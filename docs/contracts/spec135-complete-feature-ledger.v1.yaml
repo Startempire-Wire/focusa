@@ -2001,9 +2001,9 @@
         "pwa",
         "tui"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "mission_canvas",
       "dependencies": [
         "SPEC135-M4",
@@ -2047,7 +2047,9 @@
       "source_spec": "135G \u00a7\u00a713\u201314",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
-        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh"
+        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh",
+        "tests/spec135_m5_browser_context_isolation_test.py",
+        "tests/spec135_m5_browser_context_isolation_e2e_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -2070,7 +2072,7 @@
       ],
       "closure_status": "open",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "partial",
       "delivery_lane": "mission_canvas",
       "dependencies": [
         "SPEC135-M4",
@@ -2117,7 +2119,10 @@
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh",
-        "tests/spec135h_implementation_acceleration_static_test.sh"
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135_mission_canvas_portability_test.py",
+        "tests/spec135_m6_canvas_resume_test.py",
+        "tests/spec135_m6_canvas_resume_e2e_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"

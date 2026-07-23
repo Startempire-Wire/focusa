@@ -1,0 +1,53 @@
+{
+  "schema": "focusa.spec135.mission_canvas_portability.v1",
+  "product_boundary": {
+    "core_product": "Focusa Mission Canvas",
+    "optional_service": "focus.work",
+    "optional_service_required": false,
+    "vendor_cloud_required": false,
+    "operator_vps_required": false
+  },
+  "supported_topologies": [
+    "local_single_user",
+    "local_multi_client",
+    "self_hosted_lan",
+    "self_hosted_remote",
+    "portable_development_worktree",
+    "optional_managed_saas"
+  ],
+  "out_of_box_defaults": {
+    "daemon_discovery": "http://127.0.0.1:8787",
+    "daemon_base_url_overridable": true,
+    "local_identity_generated": true,
+    "local_sqlite_persistence": true,
+    "network_connection_required": false,
+    "external_oauth_required": false,
+    "external_database_required": false,
+    "generated_sdk_required_at_runtime": false
+  },
+  "portable_clients": [
+    "browser_pwa",
+    "pi_extension",
+    "native_tui",
+    "menubar",
+    "typescript_sdk",
+    "go_sdk"
+  ],
+  "runtime_contract": {
+    "canonical_runtime": "focusa_rust_daemon",
+    "protocols": ["http_json", "openapi_3_0_3", "json_schema_2020_12"],
+    "state_owner": "selected_focusa_daemon",
+    "storage_owner": "selected_focusa_installation",
+    "client_generated_identity_scope": ["client_instance_id", "user_id", "device_id"],
+    "hard_coded_host_forbidden": true,
+    "hard_coded_local_path_forbidden": true,
+    "saas_specific_identity_forbidden": true
+  },
+  "acceptance": [
+    "A fresh local installation can open Mission Canvas without focus.work credentials or network access.",
+    "A self-hosted installation can expose the same Mission Canvas APIs by changing only the daemon base URL.",
+    "Restart and exact resume use the selected installation's canonical event log and snapshot state.",
+    "Optional managed SaaS uses the same public contracts and does not create a second Mission Canvas authority.",
+    "TypeScript and Go SDKs are optional integration clients and are never runtime prerequisites."
+  ]
+}

@@ -58,7 +58,7 @@ verified_requirements = {
     "SPEC135-C1", "SPEC135-C2", "SPEC135-C3",
     "SPEC135-RI1", "SPEC135-RI2", "SPEC135-RI3",
     "SPEC135-P1", "SPEC135-ST1", "SPEC135-ST2", "SPEC135-ST3", "SPEC135-ST4",
-    "SPEC135-M1", "SPEC135-M2", "SPEC135-M3", "SPEC135-M4",
+    "SPEC135-M1", "SPEC135-M2", "SPEC135-M3", "SPEC135-M4", "SPEC135-M5",
     "SPEC135-U1", "SPEC135-U2",
     "SPEC135-ALPHA1", "SPEC135-ALPHA2", "SPEC135-ALPHA3", "SPEC135-ALPHA4",
 }
@@ -66,6 +66,10 @@ for completed in verified_requirements:
     row = next(r for r in requirements if r["requirement_id"] == completed)
     assert row["current_status"] == "verified"
     assert row["closure_status"] == "verified"
+
+m6 = next(r for r in requirements if r["requirement_id"] == "SPEC135-M6")
+assert m6["current_status"] == "partial"
+assert m6["closure_status"] == "open"
 
 node_ids = {n["requirement_id"] for n in dag["nodes"]}
 assert dag["schema"] == "focusa.spec135.delivery_dag.v1"

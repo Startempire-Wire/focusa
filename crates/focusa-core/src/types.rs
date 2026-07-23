@@ -2484,6 +2484,44 @@ pub enum MissionCanvasBindingKind {
     Action,
 }
 
+/// Durable per-client Mission Canvas presentation and restoration state.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MissionCanvasStateRecord {
+    pub canvas_id: String,
+    pub state_revision: u64,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub client_instance_id: String,
+    pub user_id: String,
+    pub device_id: String,
+    #[serde(default)]
+    pub open_work_surface_ids: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub focused_work_surface_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secondary_focused_surface_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub split_layout_ref: Option<String>,
+    #[serde(default)]
+    pub group_order: Vec<String>,
+    #[serde(default)]
+    pub aggregate_project_roots: Vec<String>,
+    #[serde(default)]
+    pub aggregate_continuity_ids: Vec<String>,
+    #[serde(default)]
+    pub aggregate_surface_kinds: Vec<String>,
+    #[serde(default)]
+    pub aggregate_surface_states: Vec<String>,
+    #[serde(default)]
+    pub selected_context_refs: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unread_event_cursor: Option<u64>,
+    pub session_projection_revision: u64,
+    pub idempotency_key: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 /// Browser storage/permission isolation posture owned by an exact Focusa attachment.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -2676,6 +2714,9 @@ pub struct FocusaState {
     /// Append-only Mission Canvas Work Surface layout/lifecycle projections.
     #[serde(default)]
     pub mission_canvas_surfaces: Vec<MissionCanvasWorkSurfaceRecord>,
+    /// Append-only per-client Mission Canvas presentation/restoration revisions.
+    #[serde(default)]
+    pub mission_canvas_states: Vec<MissionCanvasStateRecord>,
     /// Append-only exact attachment bindings for Mission Canvas Work Surfaces.
     #[serde(default)]
     pub mission_canvas_surface_bindings: Vec<MissionCanvasSurfaceBindingRecord>,
@@ -2756,6 +2797,7 @@ impl FocusaState {
             task_materializations: vec![],
             work_rail_records: vec![],
             mission_canvas_surfaces: vec![],
+            mission_canvas_states: vec![],
             mission_canvas_surface_bindings: vec![],
             context_contradictions: vec![],
             context_decisions: vec![],
@@ -3391,6 +3433,9 @@ pub enum FocusaEvent {
     },
     MissionCanvasSurfaceBindingRevised {
         binding: MissionCanvasSurfaceBindingRecord,
+    },
+    MissionCanvasStateRevised {
+        canvas: MissionCanvasStateRecord,
     },
     ContextClaimReviewed {
         claim: ContextClaimRecord,

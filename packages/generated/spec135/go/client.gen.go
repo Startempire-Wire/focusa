@@ -18056,3 +18056,107 @@ func ParseFocusaWorkspaceArtifactIntakeResponse(rsp *http.Response) (*FocusaWork
 
 	return response, nil
 }
+
+// FocusaMissionCanvasStateGetParams defines portable Mission Canvas restoration scope.
+type FocusaMissionCanvasStateGetParams struct {
+	ProjectRoot      string `form:"project_root" json:"project_root"`
+	ContinuityId     string `form:"continuity_id" json:"continuity_id"`
+	ClientInstanceId string `form:"client_instance_id" json:"client_instance_id"`
+	UserId           string `form:"user_id" json:"user_id"`
+	DeviceId         string `form:"device_id" json:"device_id"`
+}
+
+// FocusaMissionCanvasStateMutationRequestV1 persists exact client topology.
+type FocusaMissionCanvasStateMutationRequestV1 struct {
+	ProjectRoot               string   `json:"project_root"`
+	ContinuityId              string   `json:"continuity_id"`
+	ClientInstanceId          string   `json:"client_instance_id"`
+	UserId                    string   `json:"user_id"`
+	DeviceId                  string   `json:"device_id"`
+	IdempotencyKey            string   `json:"idempotency_key"`
+	ExpectedStateVersion      int      `json:"expected_state_version"`
+	ExpectedCanvasRevision    int      `json:"expected_canvas_revision"`
+	OpenWorkSurfaceIds        []string `json:"open_work_surface_ids,omitempty"`
+	FocusedWorkSurfaceId      *string  `json:"focused_work_surface_id,omitempty"`
+	SecondaryFocusedSurfaceId *string  `json:"secondary_focused_surface_id,omitempty"`
+	SplitLayoutRef            *string  `json:"split_layout_ref,omitempty"`
+	GroupOrder                []string `json:"group_order,omitempty"`
+	AggregateProjectRoots     []string `json:"aggregate_project_roots,omitempty"`
+	AggregateContinuityIds    []string `json:"aggregate_continuity_ids,omitempty"`
+	AggregateSurfaceKinds     []string `json:"aggregate_surface_kinds,omitempty"`
+	AggregateSurfaceStates    []string `json:"aggregate_surface_states,omitempty"`
+	SelectedContextRefs       []string `json:"selected_context_refs,omitempty"`
+	UnreadEventCursor         *int     `json:"unread_event_cursor,omitempty"`
+	SessionProjectionRevision int      `json:"session_projection_revision"`
+}
+
+// FocusaMissionCanvasStateMutateJSONRequestBody is the JSON request body alias.
+type FocusaMissionCanvasStateMutateJSONRequestBody = FocusaMissionCanvasStateMutationRequestV1
+
+// FocusaMissionCanvasStateGet rehydrates exact state from any selected Focusa daemon.
+func (c *Client) FocusaMissionCanvasStateGet(ctx context.Context, params *FocusaMissionCanvasStateGetParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaMissionCanvasStateGetRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// NewFocusaMissionCanvasStateGetRequest creates a portable state rehydration request.
+func NewFocusaMissionCanvasStateGetRequest(server string, params *FocusaMissionCanvasStateGetParams) (*http.Request, error) {
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+	endpoint, err := serverURL.Parse("/v1/mission-canvas/state")
+	if err != nil {
+		return nil, err
+	}
+	query := endpoint.Query()
+	query.Set("project_root", params.ProjectRoot)
+	query.Set("continuity_id", params.ContinuityId)
+	query.Set("client_instance_id", params.ClientInstanceId)
+	query.Set("user_id", params.UserId)
+	query.Set("device_id", params.DeviceId)
+	endpoint.RawQuery = query.Encode()
+	return http.NewRequest(http.MethodGet, endpoint.String(), nil)
+}
+
+// FocusaMissionCanvasStateMutate persists exact client topology.
+func (c *Client) FocusaMissionCanvasStateMutate(ctx context.Context, body FocusaMissionCanvasStateMutateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	payload, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	req, err := NewFocusaMissionCanvasStateMutateRequest(c.Server, bytes.NewReader(payload))
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// NewFocusaMissionCanvasStateMutateRequest creates a portable state mutation request.
+func NewFocusaMissionCanvasStateMutateRequest(server string, body io.Reader) (*http.Request, error) {
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+	endpoint, err := serverURL.Parse("/v1/mission-canvas/state/mutate")
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest(http.MethodPost, endpoint.String(), body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	return req, nil
+}

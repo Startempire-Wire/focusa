@@ -1,6 +1,6 @@
 {
   "attachment_id": "example",
-  "binding_count": 83,
+  "binding_count": 85,
   "bindings": [
     {
       "action_id": "focusa.health.check",
@@ -3732,6 +3732,102 @@
           "project_root",
           "continuity_id",
           "attachment_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.mission_canvas.state.get",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "mission_canvas"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.mission_canvas_state_get.request.v1",
+        "output_schema_ref": "focusa.mission_canvas_state.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.mission_canvas.state.get",
+      "permission_scopes": [
+        "mission_canvas:read"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Rehydrate Exact Mission Canvas Client State",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Rehydrate Exact Mission Canvas Client State",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "attachment_id": "example",
+        "continuity_id": "example",
+        "project_root": "/example",
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "client_instance_id",
+          "user_id",
+          "device_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.mission_canvas.state.mutate",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "mission_canvas"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.mission_canvas_state_mutation.request.v1",
+        "output_schema_ref": "focusa.mission_canvas_state_mutation_result.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "preview",
+        "optimistic_concurrency_required": true,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.mission_canvas.state.mutate",
+      "permission_scopes": [
+        "mission_canvas:write"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Persist Exact Mission Canvas Client State",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Persist Exact Mission Canvas Client State",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "scoped_mutation"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "attachment_id": "example",
+        "continuity_id": "example",
+        "project_root": "/example",
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "client_instance_id",
+          "user_id",
+          "device_id"
         ]
       }
     }

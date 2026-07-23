@@ -1664,6 +1664,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/mission-canvas/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rehydrate exact Mission Canvas client state */
+        get: operations["focusa.mission_canvas.state.get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/mission-canvas/state/mutate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Persist exact Mission Canvas client state */
+        post: operations["focusa.mission_canvas.state.mutate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4652,6 +4686,131 @@ export interface components {
             uiai_session_id?: string;
             work_surface_id?: string;
             workpoint_id?: string;
+        };
+        /** focusa.mission_canvas_state_get.request.v1 */
+        focusa_mission_canvas_state_get_request_v1: {
+            project_root: string;
+            continuity_id: string;
+            client_instance_id: string;
+            user_id: string;
+            device_id: string;
+        };
+        /** focusa.mission_canvas_state.v1 */
+        focusa_mission_canvas_state_v1: {
+            /** @constant */
+            schema: "focusa.mission_canvas_state.v1";
+            state_version: number;
+            canvas: {
+                canvas_id: string;
+                state_revision: number;
+                project_root: string;
+                continuity_id: string;
+                client_instance_id: string;
+                user_id: string;
+                device_id: string;
+                open_work_surface_ids: string[];
+                focused_work_surface_id?: string;
+                secondary_focused_surface_id?: string;
+                split_layout_ref?: string;
+                group_order: string[];
+                aggregate_project_roots: string[];
+                aggregate_continuity_ids: string[];
+                aggregate_surface_kinds: string[];
+                aggregate_surface_states: string[];
+                selected_context_refs: string[];
+                unread_event_cursor?: number;
+                session_projection_revision: number;
+                idempotency_key: string;
+                /** Format: date-time */
+                created_at: string;
+                /** Format: date-time */
+                updated_at: string;
+            };
+            surfaces: {
+                attachment_id: string;
+                canonical_state_refs: string[];
+                continuity_id: string;
+                /** Format: date-time */
+                created_at: string;
+                idempotency_key: string;
+                instance_id: string;
+                mission_ref: string;
+                pane_id: string;
+                pinned: boolean;
+                project_root: string;
+                session_id?: string;
+                state_revision: number;
+                /** @enum {unknown} */
+                status: "active" | "suspended" | "view_closed";
+                surface_kind: string;
+                tab_index: number;
+                title: string;
+                unread: boolean;
+                /** Format: date-time */
+                updated_at: string;
+                work_surface_id: string;
+                workpoint_id?: string;
+            }[];
+            recovery_actions: string[];
+        };
+        /** focusa.mission_canvas_state_mutation.request.v1 */
+        focusa_mission_canvas_state_mutation_request_v1: {
+            project_root: string;
+            continuity_id: string;
+            client_instance_id: string;
+            user_id: string;
+            device_id: string;
+            idempotency_key: string;
+            expected_state_version: number;
+            expected_canvas_revision: number;
+            open_work_surface_ids?: string[];
+            focused_work_surface_id?: string;
+            secondary_focused_surface_id?: string;
+            split_layout_ref?: string;
+            group_order?: string[];
+            aggregate_project_roots?: string[];
+            aggregate_continuity_ids?: string[];
+            aggregate_surface_kinds?: string[];
+            aggregate_surface_states?: string[];
+            selected_context_refs?: string[];
+            unread_event_cursor?: number;
+            session_projection_revision: number;
+        };
+        /** focusa.mission_canvas_state_mutation_result.v1 */
+        focusa_mission_canvas_state_mutation_result_v1: {
+            /** @constant */
+            schema: "focusa.mission_canvas_state_mutation_result.v1";
+            state_version: number;
+            replayed: boolean;
+            canvas: {
+                canvas_id: string;
+                state_revision: number;
+                project_root: string;
+                continuity_id: string;
+                client_instance_id: string;
+                user_id: string;
+                device_id: string;
+                open_work_surface_ids: string[];
+                focused_work_surface_id?: string;
+                secondary_focused_surface_id?: string;
+                split_layout_ref?: string;
+                group_order: string[];
+                aggregate_project_roots: string[];
+                aggregate_continuity_ids: string[];
+                aggregate_surface_kinds: string[];
+                aggregate_surface_states: string[];
+                selected_context_refs: string[];
+                unread_event_cursor?: number;
+                session_projection_revision: number;
+                idempotency_key: string;
+                /** Format: date-time */
+                created_at: string;
+                /** Format: date-time */
+                updated_at: string;
+            };
+            evidence_ref: string;
+            receipt_ref: string;
+            tool_result: components["schemas"]["focusa_tool_result_v1"];
         };
     };
     responses: never;
@@ -7696,6 +7855,77 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["focusa_tool_result_v1"];
                 };
+            };
+        };
+    };
+    "focusa.mission_canvas.state.get": {
+        parameters: {
+            query: {
+                project_root: string;
+                continuity_id: string;
+                client_instance_id: string;
+                user_id: string;
+                device_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Exact restorable Mission Canvas state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_mission_canvas_state_v1"];
+                };
+            };
+            /** @description No persisted state; no replacement identity is manufactured */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "focusa.mission_canvas.state.mutate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_mission_canvas_state_mutation_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Persisted restoration revision */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_mission_canvas_state_mutation_result_v1"];
+                };
+            };
+            /** @description Optimistic writer conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Scope or topology validation rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

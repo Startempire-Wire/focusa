@@ -1304,13 +1304,13 @@
       "bead_id": "focusa-mc-m5",
       "lane": "mission_canvas",
       "requirement_id": "SPEC135-M5",
-      "status": "missing"
+      "status": "verified"
     },
     {
       "bead_id": "focusa-mc-m6",
       "lane": "mission_canvas",
       "requirement_id": "SPEC135-M6",
-      "status": "missing"
+      "status": "partial"
     },
     {
       "bead_id": "focusa-mc-m7",
