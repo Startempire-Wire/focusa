@@ -25,6 +25,102 @@ use crate::focus::stack::rebuild_stack_path;
 use crate::focus::state::apply_delta;
 use crate::types::*;
 
+fn upsert_context_claim(
+    state: &mut FocusaState,
+    claim: ContextClaimRecord,
+    require_existing: bool,
+) -> Result<(), ReducerError> {
+    if let Some(index) = state
+        .context_claims
+        .iter()
+        .position(|existing| existing.claim_id == claim.claim_id)
+    {
+        let expected_revision = state.context_claims[index].revision + 1;
+        if claim.revision != expected_revision {
+            return Err(ReducerError::InvalidEvent(format!(
+                "Context claim revision mismatch: claim={} expected={} actual={}",
+                claim.claim_id, expected_revision, claim.revision
+            )));
+        }
+        state.context_claims[index] = claim;
+    } else {
+        if require_existing || claim.revision != 1 {
+            return Err(ReducerError::InvalidEvent(format!(
+                "Context claim must exist or start at revision 1: {}",
+                claim.claim_id
+            )));
+        }
+        state.context_claims.push(claim);
+    }
+    Ok(())
+}
+
+fn refresh_reactive_context(
+    state: &mut FocusaState,
+    project_root: &str,
+    continuity_id: &str,
+    attachment_id: &str,
+    updated_at: chrono::DateTime<chrono::Utc>,
+) {
+    let mut unresolved_contradiction_refs: Vec<String> = state
+        .context_contradictions
+        .iter()
+        .filter(|edge| {
+            edge.project_root == project_root
+                && edge.continuity_id == continuity_id
+                && edge.attachment_id == attachment_id
+                && edge.status == "open"
+        })
+        .map(|edge| edge.contradiction_id.clone())
+        .collect();
+    unresolved_contradiction_refs.sort();
+    unresolved_contradiction_refs.dedup();
+
+    let blocked: std::collections::BTreeSet<String> = state
+        .context_contradictions
+        .iter()
+        .filter(|edge| unresolved_contradiction_refs.contains(&edge.contradiction_id))
+        .flat_map(|edge| [edge.left_claim_id.clone(), edge.right_claim_id.clone()])
+        .collect();
+    let scoped_claims = state.context_claims.iter().filter(|claim| {
+        claim.project_root == project_root
+            && claim.continuity_id == continuity_id
+            && claim.attachment_id == attachment_id
+    });
+    let mut accepted_claim_refs = Vec::new();
+    let mut candidate_claim_refs = Vec::new();
+    for claim in scoped_claims {
+        if claim.status == "accepted" && !blocked.contains(&claim.claim_id) {
+            accepted_claim_refs.push(claim.claim_id.clone());
+        } else if !matches!(claim.status.as_str(), "rejected" | "superseded") {
+            candidate_claim_refs.push(claim.claim_id.clone());
+        }
+    }
+    accepted_claim_refs.sort();
+    candidate_claim_refs.sort();
+    let blocked_claim_refs = blocked.into_iter().collect();
+    let projection = ReactiveContextProjection {
+        project_root: project_root.to_string(),
+        continuity_id: continuity_id.to_string(),
+        attachment_id: attachment_id.to_string(),
+        accepted_claim_refs,
+        candidate_claim_refs,
+        blocked_claim_refs,
+        unresolved_contradiction_refs,
+        revision: state.version + 1,
+        updated_at: Some(updated_at),
+    };
+    if let Some(index) = state.reactive_context.iter().position(|existing| {
+        existing.project_root == project_root
+            && existing.continuity_id == continuity_id
+            && existing.attachment_id == attachment_id
+    }) {
+        state.reactive_context[index] = projection;
+    } else {
+        state.reactive_context.push(projection);
+    }
+}
+
 fn outcome_is_positive(outcome: &str) -> bool {
     let lowered = outcome.to_ascii_lowercase();
     lowered.contains("pass")
@@ -271,6 +367,975 @@ pub fn reduce_with_meta(
     let emitted_event = event.clone();
 
     match event {
+        // ─── Context corpus ─────────────────────────────────────────────
+        FocusaEvent::ContextSourceCommitted { source } => {
+            if source.receipt.before_state_version != state.version
+                || source.receipt.after_state_version != state.version + 1
+            {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "Context receipt version mismatch: state={} before={} after={}",
+                    state.version,
+                    source.receipt.before_state_version,
+                    source.receipt.after_state_version
+                )));
+            }
+            if state.context_sources.iter().any(|existing| {
+                existing.source_id == source.source_id
+                    || (existing.project_root == source.project_root
+                        && existing.continuity_id == source.continuity_id
+                        && existing.attachment_id == source.attachment_id
+                        && existing.idempotency_key == source.idempotency_key)
+            }) {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "duplicate Context source commit: {}",
+                    source.source_id
+                )));
+            }
+            state.context_sources.push(source);
+        }
+        FocusaEvent::ContextSourceIngested { source } => {
+            if source.receipt.before_state_version != state.version
+                || source.receipt.after_state_version != state.version + 1
+            {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "Context ingestion receipt version mismatch: state={} before={} after={}",
+                    state.version,
+                    source.receipt.before_state_version,
+                    source.receipt.after_state_version
+                )));
+            }
+            if state.context_sources.iter().any(|existing| {
+                existing.project_root == source.project_root
+                    && existing.continuity_id == source.continuity_id
+                    && existing.attachment_id == source.attachment_id
+                    && existing.idempotency_key == source.idempotency_key
+            }) {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "duplicate Context source ingestion: {}",
+                    source.idempotency_key
+                )));
+            }
+            if let Some(index) = state
+                .context_sources
+                .iter()
+                .position(|existing| existing.source_id == source.source_id)
+            {
+                let expected_revision = state.context_sources[index].revision + 1;
+                if source.revision != expected_revision {
+                    return Err(ReducerError::InvalidEvent(format!(
+                        "Context source revision mismatch: source={} expected={} actual={}",
+                        source.source_id, expected_revision, source.revision
+                    )));
+                }
+                state.context_sources[index] = source;
+            } else {
+                if source.revision != 1 {
+                    return Err(ReducerError::InvalidEvent(format!(
+                        "new Context source must start at revision 1: {}",
+                        source.source_id
+                    )));
+                }
+                state.context_sources.push(source);
+            }
+        }
+        FocusaEvent::WorkspaceArtifactLinked { artifact, .. } => {
+            if state.workspace_artifacts.iter().any(|existing| {
+                existing.scope.project_root == artifact.scope.project_root
+                    && existing.scope.continuity_id == artifact.scope.continuity_id
+                    && existing.origin.attachment_id == artifact.origin.attachment_id
+                    && existing.idempotency_key == artifact.idempotency_key
+            }) {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "duplicate Workspace Artifact link idempotency key: {}",
+                    artifact.idempotency_key
+                )));
+            }
+            if let Some(index) = state
+                .workspace_artifacts
+                .iter()
+                .position(|existing| existing.artifact_id == artifact.artifact_id)
+            {
+                let existing = &state.workspace_artifacts[index];
+                if artifact.revision != existing.revision + 1
+                    || artifact.linked_at != existing.linked_at
+                    || artifact.scope != existing.scope
+                    || artifact.source.system != existing.source.system
+                    || artifact.source.source_ref != existing.source.source_ref
+                    || artifact.content.sha256 != existing.content.sha256
+                {
+                    return Err(ReducerError::InvalidEvent(format!(
+                        "invalid Workspace Artifact projection revision: {}",
+                        artifact.artifact_id
+                    )));
+                }
+                state.workspace_artifacts[index] = artifact;
+            } else {
+                if artifact.revision != 1 {
+                    return Err(ReducerError::InvalidEvent(format!(
+                        "new Workspace Artifact must start at revision 1: {}",
+                        artifact.artifact_id
+                    )));
+                }
+                state.workspace_artifacts.push(artifact);
+                state
+                    .workspace_artifacts
+                    .sort_by(|left, right| left.artifact_id.cmp(&right.artifact_id));
+            }
+        }
+        FocusaEvent::ProjectRoleProfileRevised { profile } => {
+            if profile.grants_permissions {
+                return Err(ReducerError::InvalidEvent(
+                    "project role profiles cannot grant permission".to_string(),
+                ));
+            }
+            if profile.grounding.operator_seed_ref.trim().is_empty()
+                || (profile.grounding.context_artifact_refs.is_empty()
+                    && profile.grounding.context_claim_refs.is_empty()
+                    && profile.grounding.interview_answer_refs.is_empty())
+            {
+                return Err(ReducerError::InvalidEvent(
+                    "project role profile requires an operator seed and Context grounding"
+                        .to_string(),
+                ));
+            }
+            if state.project_role_profiles.iter().any(|existing| {
+                existing.project_root == profile.project_root
+                    && existing.continuity_id == profile.continuity_id
+                    && existing.attachment_id == profile.attachment_id
+                    && existing.idempotency_key == profile.idempotency_key
+            }) {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "duplicate project role profile idempotency key: {}",
+                    profile.idempotency_key
+                )));
+            }
+            let revisions: Vec<&ProjectAgentRoleProfile> = state
+                .project_role_profiles
+                .iter()
+                .filter(|existing| existing.role_profile_id == profile.role_profile_id)
+                .collect();
+            if let Some(latest) = revisions.iter().max_by_key(|existing| existing.revision) {
+                if profile.revision != latest.revision + 1
+                    || profile.created_at != latest.created_at
+                    || profile.project_root != latest.project_root
+                    || profile.continuity_id != latest.continuity_id
+                    || profile.attachment_id != latest.attachment_id
+                {
+                    return Err(ReducerError::InvalidEvent(format!(
+                        "invalid project role profile revision: {}",
+                        profile.role_profile_id
+                    )));
+                }
+            } else if profile.revision != 1 {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "new project role profile must start at revision 1: {}",
+                    profile.role_profile_id
+                )));
+            }
+            let review_matches_status = match (&profile.status, profile.review.as_ref()) {
+                (RoleProfileStatus::Approved, Some(review)) => {
+                    matches!(review.decision, RoleReviewDecision::Approve)
+                }
+                (RoleProfileStatus::Superseded, Some(review)) => {
+                    matches!(review.decision, RoleReviewDecision::Reject)
+                }
+                (RoleProfileStatus::PendingOperator, Some(review)) => {
+                    matches!(review.decision, RoleReviewDecision::Defer)
+                }
+                (RoleProfileStatus::Draft | RoleProfileStatus::PendingOperator, None) => true,
+                _ => false,
+            };
+            if !review_matches_status {
+                return Err(ReducerError::InvalidEvent(
+                    "project role profile status does not match its explicit review".to_string(),
+                ));
+            }
+            state.project_role_profiles.push(profile);
+            state.project_role_profiles.sort_by(|left, right| {
+                left.role_profile_id
+                    .cmp(&right.role_profile_id)
+                    .then(left.revision.cmp(&right.revision))
+            });
+        }
+        FocusaEvent::ProjectInterviewSessionRevised { session } => {
+            if session.interview_session_id.trim().is_empty()
+                || session.project_root.trim().is_empty()
+                || session.continuity_id.trim().is_empty()
+                || session.attachment_id.trim().is_empty()
+                || session.idempotency_key.trim().is_empty()
+                || session.state_revision == 0
+            {
+                return Err(ReducerError::InvalidEvent(
+                    "project Interview session requires identity, exact scope, idempotency key, and positive revision".to_string(),
+                ));
+            }
+            let role_is_approved = state.project_role_profiles.iter().any(|profile| {
+                profile.role_profile_id == session.approved_role_profile_ref
+                    && profile.project_root == session.project_root
+                    && profile.continuity_id == session.continuity_id
+                    && profile.attachment_id == session.attachment_id
+                    && matches!(profile.status, RoleProfileStatus::Approved)
+            });
+            if !role_is_approved {
+                return Err(ReducerError::InvalidEvent(
+                    "project Interview session requires an approved Role Profile in exact scope"
+                        .to_string(),
+                ));
+            }
+            let revisions: Vec<&ProjectInterviewSessionRecord> = state
+                .project_interview_sessions
+                .iter()
+                .filter(|existing| existing.interview_session_id == session.interview_session_id)
+                .collect();
+            let expected_revision = revisions
+                .iter()
+                .map(|existing| existing.state_revision)
+                .max()
+                .unwrap_or(0)
+                + 1;
+            if session.state_revision != expected_revision {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "project Interview revision must be {expected_revision}"
+                )));
+            }
+            let branch_ids: std::collections::BTreeSet<_> = session
+                .branches
+                .iter()
+                .map(|branch| branch.decision_branch_id.as_str())
+                .collect();
+            if branch_ids.len() != session.branches.len()
+                || session.branches.iter().any(|branch| {
+                    branch.decision_branch_id.trim().is_empty()
+                        || branch.tranche.trim().is_empty()
+                        || branch.label.trim().is_empty()
+                        || branch
+                            .parent_branch_id
+                            .as_deref()
+                            .is_some_and(|parent| !branch_ids.contains(parent))
+                })
+            {
+                return Err(ReducerError::InvalidEvent(
+                    "project Interview branches require unique IDs, tranche, label, and valid parents".to_string(),
+                ));
+            }
+            let question_ids: std::collections::BTreeSet<_> = session
+                .questions
+                .iter()
+                .map(|question| question.question_id.as_str())
+                .collect();
+            if question_ids.len() != session.questions.len()
+                || session.questions.iter().any(|question| {
+                    question.session_id != session.interview_session_id
+                        || !branch_ids.contains(question.decision_branch_id.as_str())
+                        || question.question.trim().is_empty()
+                        || question.stop_condition.trim().is_empty()
+                        || question.environment_facts_checked.is_empty()
+                        || question.linked_context_refs.is_empty()
+                        || (question.decision_required
+                            && (question.recommendation.trim().is_empty()
+                                || question.recommendation_basis_refs.is_empty()))
+                })
+            {
+                return Err(ReducerError::InvalidEvent(
+                    "project Interview questions require unique IDs, valid branch, fact refs, stop condition, and cited recommendation".to_string(),
+                ));
+            }
+            if session.answers.iter().any(|answer| {
+                !question_ids.contains(answer.question_id.as_str())
+                    || answer.operator_id.trim().is_empty()
+            }) {
+                return Err(ReducerError::InvalidEvent(
+                    "project Interview answers require a valid question and operator".to_string(),
+                ));
+            }
+            if session
+                .active_branch_id
+                .as_deref()
+                .is_some_and(|branch| !branch_ids.contains(branch))
+                || session
+                    .current_question_id
+                    .as_deref()
+                    .is_some_and(|question| !question_ids.contains(question))
+            {
+                return Err(ReducerError::InvalidEvent(
+                    "project Interview resume pointers must reference retained branch and question state".to_string(),
+                ));
+            }
+            let closed_at_matches = match session.status {
+                ProjectInterviewSessionStatus::Closed => session.closed_at.is_some(),
+                _ => session.closed_at.is_none(),
+            };
+            if !closed_at_matches {
+                return Err(ReducerError::InvalidEvent(
+                    "project Interview closed_at must match closed status".to_string(),
+                ));
+            }
+            state.project_interview_sessions.push(session);
+            state.project_interview_sessions.sort_by(|left, right| {
+                left.interview_session_id
+                    .cmp(&right.interview_session_id)
+                    .then(left.state_revision.cmp(&right.state_revision))
+            });
+        }
+        FocusaEvent::SpecWorkbenchSessionRevised { session } => {
+            if session.workbench_session_id.trim().is_empty()
+                || session.project_root.trim().is_empty()
+                || session.continuity_id.trim().is_empty()
+                || session.attachment_id.trim().is_empty()
+                || session.current_ask.trim().is_empty()
+                || session.idempotency_key.trim().is_empty()
+                || session.state_revision == 0
+                || !session.canonical
+                || !session.advisory_agents
+                || !session.operator_required
+            {
+                return Err(ReducerError::InvalidEvent("Spec Workbench requires identity, exact scope, ask, canonical operator authority, idempotency, and positive revision".to_string()));
+            }
+            let expected_revision = state
+                .spec_workbench_sessions
+                .iter()
+                .filter(|existing| existing.workbench_session_id == session.workbench_session_id)
+                .map(|existing| existing.state_revision)
+                .max()
+                .unwrap_or(0)
+                + 1;
+            if session.state_revision != expected_revision {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "Spec Workbench revision must be {expected_revision}"
+                )));
+            }
+            let section_ids: std::collections::BTreeSet<_> = session
+                .sections
+                .iter()
+                .map(|section| section.section_id.as_str())
+                .collect();
+            let round_ids: std::collections::BTreeSet<_> = session
+                .rounds
+                .iter()
+                .map(|round| round.round_id.as_str())
+                .collect();
+            let objection_ids: std::collections::BTreeSet<_> = session
+                .objections
+                .iter()
+                .map(|item| item.objection_id.as_str())
+                .collect();
+            let gate_ids: std::collections::BTreeSet<_> = session
+                .gates
+                .iter()
+                .map(|gate| gate.gate_id.as_str())
+                .collect();
+            let amendment_ids: std::collections::BTreeSet<_> = session
+                .amendments
+                .iter()
+                .map(|item| item.amendment_id.as_str())
+                .collect();
+            if section_ids.len() != session.sections.len()
+                || round_ids.len() != session.rounds.len()
+                || objection_ids.len() != session.objections.len()
+                || gate_ids.len() != session.gates.len()
+                || amendment_ids.len() != session.amendments.len()
+            {
+                return Err(ReducerError::InvalidEvent(
+                    "Spec Workbench records require unique IDs".to_string(),
+                ));
+            }
+            if session
+                .current_section_id
+                .as_deref()
+                .is_some_and(|id| !section_ids.contains(id))
+                || session.rounds.iter().any(|round| {
+                    !section_ids.contains(round.section_id.as_str())
+                        || round.transcript_ref.trim().is_empty()
+                })
+                || session.objections.iter().any(|item| {
+                    !section_ids.contains(item.section_id.as_str())
+                        || !round_ids.contains(item.round_id.as_str())
+                        || item.evidence_refs.is_empty()
+                })
+                || session.gates.iter().any(|gate| {
+                    !section_ids.contains(gate.section_id.as_str())
+                        || gate.decided_by.trim().is_empty()
+                        || gate.evidence_refs.is_empty()
+                })
+                || session.amendments.iter().any(|item| {
+                    !section_ids.contains(item.section_id.as_str())
+                        || item.after_revision != item.before_revision + 1
+                        || item.evidence_refs.is_empty()
+                })
+            {
+                return Err(ReducerError::InvalidEvent("Spec Workbench references, grounding evidence, gates, and amendments must remain linked".to_string()));
+            }
+            for section in &session.sections {
+                if section.title.trim().is_empty()
+                    || section.content.trim().is_empty()
+                    || section
+                        .objection_ids
+                        .iter()
+                        .any(|id| !objection_ids.contains(id.as_str()))
+                    || section
+                        .amendment_ids
+                        .iter()
+                        .any(|id| !amendment_ids.contains(id.as_str()))
+                {
+                    return Err(ReducerError::InvalidEvent(
+                        "Spec section requires content and valid objection/amendment links"
+                            .to_string(),
+                    ));
+                }
+                if matches!(section.status, SpecSectionStatus::Approved) {
+                    let grounded = !section.grounding.context_refs.is_empty()
+                        && !section.grounding.evidence_refs.is_empty();
+                    let unresolved = session.objections.iter().any(|item| {
+                        item.section_id == section.section_id
+                            && matches!(item.status, SpecObjectionStatus::Open)
+                    });
+                    let approved_gate = section.operator_gate_id.as_deref().is_some_and(|id| {
+                        gate_ids.contains(id)
+                            && session.gates.iter().any(|gate| {
+                                gate.gate_id == id
+                                    && matches!(gate.decision, SpecGateDecision::Approve)
+                            })
+                    });
+                    if !grounded
+                        || unresolved
+                        || !approved_gate
+                        || section.approved_revision != Some(section.revision)
+                    {
+                        return Err(ReducerError::InvalidEvent("approved Spec section requires grounding, resolved objections, matching revision, and explicit operator gate".to_string()));
+                    }
+                }
+            }
+            if matches!(session.status, SpecWorkbenchStatus::FinalApproved)
+                && (session.sections.is_empty()
+                    || session
+                        .sections
+                        .iter()
+                        .any(|section| !matches!(section.status, SpecSectionStatus::Approved))
+                    || session.final_spec_id.is_none())
+            {
+                return Err(ReducerError::InvalidEvent(
+                    "final Spec approval requires all sections approved and final_spec_id"
+                        .to_string(),
+                ));
+            }
+            if matches!(session.status, SpecWorkbenchStatus::Closed) != session.closed_at.is_some()
+            {
+                return Err(ReducerError::InvalidEvent(
+                    "Spec Workbench closed_at must match closed status".to_string(),
+                ));
+            }
+            state.spec_workbench_sessions.push(session);
+            state.spec_workbench_sessions.sort_by(|left, right| {
+                left.workbench_session_id
+                    .cmp(&right.workbench_session_id)
+                    .then(left.state_revision.cmp(&right.state_revision))
+            });
+        }
+        FocusaEvent::ProviderNeutralTaskPlanRevised { task_plan } => {
+            if task_plan.task_plan_id.trim().is_empty()
+                || task_plan.project_root.trim().is_empty()
+                || task_plan.continuity_id.trim().is_empty()
+                || task_plan.attachment_id.trim().is_empty()
+                || task_plan.workbench_session_id.trim().is_empty()
+                || task_plan.final_spec_id.trim().is_empty()
+                || task_plan.idempotency_key.trim().is_empty()
+                || task_plan.state_revision == 0
+                || task_plan.materialized
+            {
+                return Err(ReducerError::InvalidEvent("provider-neutral task plan requires identity, exact scope, approved Spec refs, idempotency, positive revision, and unmaterialized state".to_string()));
+            }
+            let source = state
+                .spec_workbench_sessions
+                .iter()
+                .find(|source| {
+                    source.workbench_session_id == task_plan.workbench_session_id
+                        && source.project_root == task_plan.project_root
+                        && source.continuity_id == task_plan.continuity_id
+                        && source.attachment_id == task_plan.attachment_id
+                        && source.final_spec_id.as_deref() == Some(task_plan.final_spec_id.as_str())
+                        && matches!(source.status, SpecWorkbenchStatus::FinalApproved)
+                })
+                .ok_or_else(|| {
+                    ReducerError::InvalidEvent(
+                        "task plan source must be an exact-scoped final-approved Spec Workbench"
+                            .to_string(),
+                    )
+                })?;
+            let expected_revision = state
+                .provider_neutral_task_plans
+                .iter()
+                .filter(|existing| existing.task_plan_id == task_plan.task_plan_id)
+                .map(|existing| existing.state_revision)
+                .max()
+                .unwrap_or(0)
+                + 1;
+            if task_plan.state_revision != expected_revision {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "task plan revision must be {expected_revision}"
+                )));
+            }
+            let task_ids: std::collections::BTreeSet<_> = task_plan
+                .tasks
+                .iter()
+                .map(|task| task.provider_neutral_id.as_str())
+                .collect();
+            let section_ids: std::collections::BTreeSet<_> = source
+                .sections
+                .iter()
+                .map(|section| section.section_id.as_str())
+                .collect();
+            if task_ids.len() != task_plan.tasks.len() {
+                return Err(ReducerError::InvalidEvent(
+                    "task DAG requires unique provider-neutral IDs".to_string(),
+                ));
+            }
+            if task_plan.tasks.iter().any(|task| {
+                task.provider_neutral_id.trim().is_empty()
+                    || task.title.trim().is_empty()
+                    || task.description.trim().is_empty()
+                    || task.linked_spec_sections.is_empty()
+                    || task
+                        .linked_spec_sections
+                        .iter()
+                        .any(|id| !section_ids.contains(id.as_str()))
+                    || task.requirement_refs.is_empty()
+                    || task.acceptance_criteria.is_empty()
+                    || task.evidence_requirements.is_empty()
+                    || task.verification_policy_ref.trim().is_empty()
+                    || task.allowed_scope.is_empty()
+                    || task.task_class.trim().is_empty()
+                    || task.closure_kind.trim().is_empty()
+                    || task.closure_policy_ref.trim().is_empty()
+                    || task.dependencies.iter().any(|id| {
+                        id == &task.provider_neutral_id || !task_ids.contains(id.as_str())
+                    })
+            }) {
+                return Err(ReducerError::InvalidEvent("every task requires valid Spec/requirement/proof links, policy, scope, and in-graph dependencies".to_string()));
+            }
+            let mut resolved = std::collections::BTreeSet::new();
+            loop {
+                let before = resolved.len();
+                for task in &task_plan.tasks {
+                    if task
+                        .dependencies
+                        .iter()
+                        .all(|dependency| resolved.contains(dependency.as_str()))
+                    {
+                        resolved.insert(task.provider_neutral_id.as_str());
+                    }
+                }
+                if resolved.len() == before {
+                    break;
+                }
+            }
+            if resolved.len() != task_plan.tasks.len() {
+                return Err(ReducerError::InvalidEvent(
+                    "task dependency graph must be acyclic".to_string(),
+                ));
+            }
+            match task_plan.status {
+                TaskPlanStatus::Draft => {
+                    if task_plan.approved_revision.is_some() || task_plan.approved_by.is_some() {
+                        return Err(ReducerError::InvalidEvent(
+                            "draft task plan cannot contain approval authority".to_string(),
+                        ));
+                    }
+                }
+                TaskPlanStatus::PendingOperator => {
+                    if task_plan.tasks.is_empty()
+                        || task_plan.preview_token.as_deref().is_none_or(str::is_empty)
+                        || task_plan.previewed_revision != Some(task_plan.state_revision)
+                    {
+                        return Err(ReducerError::InvalidEvent("operator preview requires a non-empty valid DAG and revision-bound preview token".to_string()));
+                    }
+                }
+                TaskPlanStatus::Approved => {
+                    if task_plan.tasks.is_empty()
+                        || task_plan.preview_token.as_deref().is_none_or(str::is_empty)
+                        || task_plan.previewed_revision != Some(task_plan.state_revision - 1)
+                        || task_plan.approved_revision != Some(task_plan.state_revision)
+                        || task_plan.approved_by.as_deref().is_none_or(str::is_empty)
+                        || task_plan.receipt_refs.is_empty()
+                    {
+                        return Err(ReducerError::InvalidEvent("task plan approval requires prior revision-bound preview, explicit operator, matching revision, and Receipt".to_string()));
+                    }
+                }
+            }
+            state.provider_neutral_task_plans.push(task_plan);
+            state.provider_neutral_task_plans.sort_by(|left, right| {
+                left.task_plan_id
+                    .cmp(&right.task_plan_id)
+                    .then(left.state_revision.cmp(&right.state_revision))
+            });
+        }
+        FocusaEvent::TaskPlanMaterialized { materialization } => {
+            if materialization.materialization_id.trim().is_empty()
+                || materialization.project_root.trim().is_empty()
+                || materialization.continuity_id.trim().is_empty()
+                || materialization.attachment_id.trim().is_empty()
+                || materialization.provider != "work_item.bd"
+                || materialization.worktree_prefix.trim().is_empty()
+                || materialization.permission_grant_ref.trim().is_empty()
+                || materialization.idempotency_key.trim().is_empty()
+                || materialization.evidence_ref.trim().is_empty()
+                || materialization.receipt_ref.trim().is_empty()
+            {
+                return Err(ReducerError::InvalidEvent("task materialization requires identity, exact scope, Beads provider, prefix, permission, idempotency, Evidence, and Receipt".to_string()));
+            }
+            if state.task_materializations.iter().any(|existing| {
+                existing.materialization_id == materialization.materialization_id
+                    || (existing.project_root == materialization.project_root
+                        && existing.continuity_id == materialization.continuity_id
+                        && existing.attachment_id == materialization.attachment_id
+                        && existing.idempotency_key == materialization.idempotency_key)
+            }) {
+                return Err(ReducerError::InvalidEvent(
+                    "duplicate task materialization".to_string(),
+                ));
+            }
+            let plan = state
+                .provider_neutral_task_plans
+                .iter()
+                .find(|plan| {
+                    plan.task_plan_id == materialization.task_plan_id
+                        && plan.state_revision == materialization.task_plan_revision
+                        && plan.project_root == materialization.project_root
+                        && plan.continuity_id == materialization.continuity_id
+                        && plan.attachment_id == materialization.attachment_id
+                        && matches!(plan.status, TaskPlanStatus::Approved)
+                })
+                .ok_or_else(|| {
+                    ReducerError::InvalidEvent(
+                        "task materialization requires exact-scoped approved task plan revision"
+                            .to_string(),
+                    )
+                })?;
+            let expected_ledger = std::path::Path::new(&materialization.project_root)
+                .join(".beads/issues.jsonl")
+                .to_string_lossy()
+                .to_string();
+            if materialization.target_ledger_ref != expected_ledger {
+                return Err(ReducerError::InvalidEvent("task materialization target must be canonical project_root/.beads/issues.jsonl".to_string()));
+            }
+            let refs: std::collections::BTreeMap<_, _> = materialization
+                .tasks
+                .iter()
+                .map(|task| (task.provider_neutral_id.as_str(), task))
+                .collect();
+            if refs.len() != plan.tasks.len() || materialization.tasks.len() != plan.tasks.len() {
+                return Err(ReducerError::InvalidEvent(
+                    "materialization must map every approved task exactly once".to_string(),
+                ));
+            }
+            for task in &plan.tasks {
+                let mapped = refs.get(task.provider_neutral_id.as_str()).ok_or_else(|| {
+                    ReducerError::InvalidEvent("approved task missing provider mapping".to_string())
+                })?;
+                let expected_dependencies: std::collections::BTreeSet<_> = task
+                    .dependencies
+                    .iter()
+                    .filter_map(|dependency| {
+                        refs.get(dependency.as_str())
+                            .map(|item| item.provider_id.as_str())
+                    })
+                    .collect();
+                let actual_dependencies: std::collections::BTreeSet<_> = mapped
+                    .provider_dependency_ids
+                    .iter()
+                    .map(String::as_str)
+                    .collect();
+                if !mapped
+                    .provider_id
+                    .starts_with(&format!("{}-", materialization.worktree_prefix))
+                    || mapped.external_ref
+                        != format!(
+                            "focusa-task-plan:{}:{}",
+                            plan.task_plan_id, task.provider_neutral_id
+                        )
+                    || expected_dependencies != actual_dependencies
+                {
+                    return Err(ReducerError::InvalidEvent("materialized IDs, external refs, and dependency links must remain stable and exact".to_string()));
+                }
+            }
+            state.task_materializations.push(materialization);
+            state
+                .task_materializations
+                .sort_by(|left, right| left.materialization_id.cmp(&right.materialization_id));
+        }
+        FocusaEvent::WorkRailRevised { record } => {
+            if record.work_rail_id.trim().is_empty()
+                || record.state_revision == 0
+                || record.provider != "work_item.bd"
+                || record.provider_item_id.trim().is_empty()
+                || record.title.trim().is_empty()
+                || record.project_root.trim().is_empty()
+                || record.working_subpath_id.trim().is_empty()
+                || record.continuity_id.trim().is_empty()
+                || record.attachment_id.trim().is_empty()
+                || record.idempotency_key.trim().is_empty()
+            {
+                return Err(ReducerError::InvalidEvent("Work Rail requires identity, exact project/working-subpath/continuity/attachment scope, Beads provider, and idempotency".to_string()));
+            }
+            let expected_revision = state
+                .work_rail_records
+                .iter()
+                .filter(|existing| existing.work_rail_id == record.work_rail_id)
+                .map(|existing| existing.state_revision)
+                .max()
+                .unwrap_or(0)
+                + 1;
+            if record.state_revision != expected_revision {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "Work Rail revision must be {expected_revision}"
+                )));
+            }
+            let workpoint = state.workpoint.records.iter().find(|workpoint| {
+                workpoint.workpoint_id == record.workpoint_id
+                    && workpoint.canonical
+                    && workpoint.project_root.as_deref() == Some(record.project_root.as_str())
+                    && workpoint.continuity_id.as_deref() == Some(record.continuity_id.as_str())
+                    && workpoint.work_item_id.as_deref() == Some(record.provider_item_id.as_str())
+                    && workpoint.session_identity.as_ref().and_then(|identity| identity.working_subpath_id.as_deref()) == Some(record.working_subpath_id.as_str())
+            }).ok_or_else(|| ReducerError::InvalidEvent("Work Rail authority requires one canonical Workpoint matching project, working sub-path, continuity, and Bead".to_string()))?;
+            if matches!(record.focusa_status, WorkRailStatus::VerifiedComplete) {
+                let linked: std::collections::BTreeSet<_> = workpoint
+                    .verification_records
+                    .iter()
+                    .filter_map(|verification| verification.evidence_ref.as_deref())
+                    .collect();
+                if record.provider_status != "closed"
+                    || record.evidence_refs.is_empty()
+                    || record
+                        .evidence_refs
+                        .iter()
+                        .any(|evidence| !linked.contains(evidence.as_str()))
+                    || record.receipt_ref.as_deref().is_none_or(str::is_empty)
+                    || record
+                        .closure_claim_ref
+                        .as_deref()
+                        .is_none_or(str::is_empty)
+                    || !record.blockers.is_empty()
+                {
+                    return Err(ReducerError::InvalidEvent("verified Work Rail closure requires provider closed, Workpoint-linked proof, no blockers, closure claim, and Receipt".to_string()));
+                }
+            }
+            state.work_rail_records.push(record);
+            state.work_rail_records.sort_by(|left, right| {
+                left.work_rail_id
+                    .cmp(&right.work_rail_id)
+                    .then(left.state_revision.cmp(&right.state_revision))
+            });
+        }
+        FocusaEvent::MissionCanvasSurfaceRevised { surface } => {
+            if surface.work_surface_id.trim().is_empty()
+                || surface.state_revision == 0
+                || surface.project_root.trim().is_empty()
+                || surface.continuity_id.trim().is_empty()
+                || surface.attachment_id.trim().is_empty()
+                || surface.instance_id.trim().is_empty()
+                || surface.mission_ref.trim().is_empty()
+                || surface.title.trim().is_empty()
+                || surface.surface_kind.trim().is_empty()
+                || surface.pane_id.trim().is_empty()
+                || surface.canonical_state_refs.is_empty()
+                || surface.idempotency_key.trim().is_empty()
+            {
+                return Err(ReducerError::InvalidEvent("Mission Canvas Work Surface requires identity, exact scope, mission, pane/tab placement, bounded canonical refs, and idempotency".to_string()));
+            }
+            let expected_revision = state
+                .mission_canvas_surfaces
+                .iter()
+                .filter(|existing| existing.work_surface_id == surface.work_surface_id)
+                .map(|existing| existing.state_revision)
+                .max()
+                .unwrap_or(0)
+                + 1;
+            if surface.state_revision != expected_revision {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "Mission Canvas Work Surface revision must be {expected_revision}"
+                )));
+            }
+            if surface
+                .canonical_state_refs
+                .iter()
+                .any(|reference| reference.trim().is_empty())
+            {
+                return Err(ReducerError::InvalidEvent("Work Surface canonical refs must be bounded handles, never duplicated state payloads".to_string()));
+            }
+            state.mission_canvas_surfaces.push(surface);
+            state.mission_canvas_surfaces.sort_by(|left, right| {
+                left.work_surface_id
+                    .cmp(&right.work_surface_id)
+                    .then(left.state_revision.cmp(&right.state_revision))
+            });
+        }
+        FocusaEvent::MissionCanvasSurfaceBindingRevised { binding } => {
+            if binding.binding_id.trim().is_empty()
+                || binding.state_revision == 0
+                || binding.project_root.trim().is_empty()
+                || binding.continuity_id.trim().is_empty()
+                || binding.attachment_id.trim().is_empty()
+                || binding.work_surface_id.trim().is_empty()
+                || binding.target_ref.trim().is_empty()
+                || !matches!(binding.access_mode.as_str(), "read" | "write" | "invoke")
+                || binding.idempotency_key.trim().is_empty()
+            {
+                return Err(ReducerError::InvalidEvent("Mission Canvas binding requires identity, exact attachment scope, Work Surface, target, access mode, and idempotency".to_string()));
+            }
+            let surface_exists = state.mission_canvas_surfaces.iter().any(|surface| {
+                surface.work_surface_id == binding.work_surface_id
+                    && surface.project_root == binding.project_root
+                    && surface.continuity_id == binding.continuity_id
+                    && surface.attachment_id == binding.attachment_id
+            });
+            if !surface_exists {
+                return Err(ReducerError::InvalidEvent(
+                    "Mission Canvas binding cannot cross surface or attachment scope".to_string(),
+                ));
+            }
+            let expected_revision = state
+                .mission_canvas_surface_bindings
+                .iter()
+                .filter(|existing| existing.binding_id == binding.binding_id)
+                .map(|existing| existing.state_revision)
+                .max()
+                .unwrap_or(0)
+                + 1;
+            if binding.state_revision != expected_revision {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "Mission Canvas binding revision must be {expected_revision}"
+                )));
+            }
+            state.mission_canvas_surface_bindings.push(binding);
+            state
+                .mission_canvas_surface_bindings
+                .sort_by(|left, right| {
+                    left.binding_id
+                        .cmp(&right.binding_id)
+                        .then(left.state_revision.cmp(&right.state_revision))
+                });
+        }
+        FocusaEvent::ContextClaimProposed { claim } => {
+            if state.context_claims.iter().any(|existing| {
+                existing.claim_id == claim.claim_id
+                    || (existing.project_root == claim.project_root
+                        && existing.continuity_id == claim.continuity_id
+                        && existing.attachment_id == claim.attachment_id
+                        && existing.idempotency_key == claim.idempotency_key)
+            }) {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "duplicate Context claim proposal: {}",
+                    claim.claim_id
+                )));
+            }
+            let scope = (
+                claim.project_root.clone(),
+                claim.continuity_id.clone(),
+                claim.attachment_id.clone(),
+                claim.committed_at,
+            );
+            upsert_context_claim(&mut state, claim, false)?;
+            refresh_reactive_context(&mut state, &scope.0, &scope.1, &scope.2, scope.3);
+        }
+        FocusaEvent::ContextClaimReviewed { claim, decision } => {
+            let scope = (
+                claim.project_root.clone(),
+                claim.continuity_id.clone(),
+                claim.attachment_id.clone(),
+                decision.decided_at,
+            );
+            upsert_context_claim(&mut state, claim, true)?;
+            if state
+                .context_decisions
+                .iter()
+                .any(|existing| existing.decision_id == decision.decision_id)
+            {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "duplicate Context decision: {}",
+                    decision.decision_id
+                )));
+            }
+            state.context_decisions.push(decision);
+            refresh_reactive_context(&mut state, &scope.0, &scope.1, &scope.2, scope.3);
+        }
+        FocusaEvent::ContextContradictionOpened {
+            contradiction,
+            claims,
+        } => {
+            if contradiction.revision != 1
+                || state.context_contradictions.iter().any(|existing| {
+                    existing.contradiction_id == contradiction.contradiction_id
+                        || existing.idempotency_key == contradiction.idempotency_key
+                })
+            {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "duplicate or invalid Context contradiction: {}",
+                    contradiction.contradiction_id
+                )));
+            }
+            if claims.len() != 2 {
+                return Err(ReducerError::InvalidEvent(
+                    "Context contradiction must update exactly two claims".to_string(),
+                ));
+            }
+            for claim in claims {
+                upsert_context_claim(&mut state, claim, true)?;
+            }
+            let scope = (
+                contradiction.project_root.clone(),
+                contradiction.continuity_id.clone(),
+                contradiction.attachment_id.clone(),
+                contradiction.committed_at,
+            );
+            state.context_contradictions.push(contradiction);
+            refresh_reactive_context(&mut state, &scope.0, &scope.1, &scope.2, scope.3);
+        }
+        FocusaEvent::ContextContradictionResolved {
+            contradiction,
+            claims,
+            decision,
+        } => {
+            let Some(index) = state
+                .context_contradictions
+                .iter()
+                .position(|existing| existing.contradiction_id == contradiction.contradiction_id)
+            else {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "Context contradiction not found: {}",
+                    contradiction.contradiction_id
+                )));
+            };
+            let expected_revision = state.context_contradictions[index].revision + 1;
+            if contradiction.revision != expected_revision || contradiction.status != "resolved" {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "Context contradiction resolution revision/status mismatch: {}",
+                    contradiction.contradiction_id
+                )));
+            }
+            for claim in claims {
+                upsert_context_claim(&mut state, claim, true)?;
+            }
+            let scope = (
+                contradiction.project_root.clone(),
+                contradiction.continuity_id.clone(),
+                contradiction.attachment_id.clone(),
+                decision.decided_at,
+            );
+            state.context_contradictions[index] = contradiction;
+            if state
+                .context_decisions
+                .iter()
+                .any(|existing| existing.decision_id == decision.decision_id)
+            {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "duplicate Context decision: {}",
+                    decision.decision_id
+                )));
+            }
+            state.context_decisions.push(decision);
+            refresh_reactive_context(&mut state, &scope.0, &scope.1, &scope.2, scope.3);
+        }
+
         // ─── Instance Lifecycle ─────────────────────────────────────────
         FocusaEvent::InstanceConnected { instance_id, kind } => {
             if !state.instances.iter().any(|i| i.id == instance_id) {
@@ -3203,6 +4268,57 @@ mod tests {
             continuity_id: Some("cont-test".to_string()),
         };
         reduce(state, event).unwrap().new_state
+    }
+
+    #[test]
+    fn context_source_commit_is_canonical_scoped_and_idempotency_guarded() {
+        let committed_at = Utc::now();
+        let source = ContextSourceRecord {
+            source_id: "context-source:test".to_string(),
+            project_root: "/repo/test".to_string(),
+            continuity_id: "cont-test".to_string(),
+            attachment_id: "attachment:test".to_string(),
+            source_kind: "markdown".to_string(),
+            title: "Project context".to_string(),
+            content: "# Context".to_string(),
+            content_hash: "abc123".to_string(),
+            idempotency_key: "idem-test".to_string(),
+            revision: 1,
+            committed_at,
+            evidence: ContextSourceEvidence {
+                evidence_ref: "evidence:context-source:test".to_string(),
+                target_ref: "context-source:test".to_string(),
+                result: "committed".to_string(),
+                content_hash: "abc123".to_string(),
+                captured_at: committed_at,
+            },
+            receipt: ContextSourceReceipt {
+                receipt_ref: "receipt:context-source:test".to_string(),
+                operation_id: "focusa.context.source.commit".to_string(),
+                idempotency_key: "idem-test".to_string(),
+                before_state_version: 0,
+                after_state_version: 1,
+                reversible: true,
+                committed_at,
+            },
+            source_locator: String::new(),
+            source_revision: String::new(),
+            mime_type: String::new(),
+            adapter_id: "focusa.context.commit".to_string(),
+            ingestion_status: "committed".to_string(),
+            extraction_diagnostics: Vec::new(),
+            health: Default::default(),
+        };
+        let event = FocusaEvent::ContextSourceCommitted {
+            source: source.clone(),
+        };
+        let reduced = reduce(fresh_state(), event.clone()).expect("Context commit reduces");
+        assert_eq!(reduced.new_state.version, 1);
+        assert_eq!(reduced.new_state.context_sources, vec![source]);
+        assert!(matches!(
+            reduce(reduced.new_state, event),
+            Err(ReducerError::InvalidEvent(message)) if message.contains("version mismatch")
+        ));
     }
 
     fn push_frame(state: FocusaState, title: &str) -> (FocusaState, FrameId) {

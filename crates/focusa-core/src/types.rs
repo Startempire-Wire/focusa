@@ -9,6 +9,7 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use uuid::Uuid;
 
 // ─── Identifiers ────────────────────────────────────────────────────────────
@@ -1613,8 +1614,972 @@ pub const FOCUSA_STATE_PLANE_CONTRACT: &[(&str, AuthorityPlane)] = &[
     ("threads", AuthorityPlane::RuntimeCorrelation),
     ("active_turn", AuthorityPlane::RuntimeCorrelation),
     ("anticipated_context", AuthorityPlane::AdvisoryProjection),
+    ("context_sources", AuthorityPlane::CanonicalCognition),
+    ("workspace_artifacts", AuthorityPlane::CanonicalCognition),
+    ("context_claims", AuthorityPlane::CanonicalCognition),
+    ("context_contradictions", AuthorityPlane::CanonicalCognition),
+    ("context_decisions", AuthorityPlane::CanonicalCognition),
+    ("reactive_context", AuthorityPlane::CanonicalCognition),
     ("version", AuthorityPlane::CanonicalCognition),
 ];
+
+/// Evidence emitted by a canonical Context source commit.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ContextSourceEvidence {
+    pub evidence_ref: String,
+    pub target_ref: String,
+    pub result: String,
+    pub content_hash: String,
+    pub captured_at: DateTime<Utc>,
+}
+
+/// Receipt proving the exact state transition for a Context source commit.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ContextSourceReceipt {
+    pub receipt_ref: String,
+    pub operation_id: String,
+    pub idempotency_key: String,
+    pub before_state_version: u64,
+    pub after_state_version: u64,
+    pub reversible: bool,
+    pub committed_at: DateTime<Utc>,
+}
+
+/// Health and recovery state for the adapter that produced a Context source.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ContextSourceHealth {
+    pub status: String,
+    pub adapter_id: String,
+    pub message: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub recovery_action: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_successful_sync: Option<DateTime<Utc>>,
+}
+
+/// Canonical, scoped Context source retained by the Focusa reducer.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ContextSourceRecord {
+    pub source_id: String,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    pub source_kind: String,
+    pub title: String,
+    pub content: String,
+    pub content_hash: String,
+    pub idempotency_key: String,
+    pub revision: u64,
+    pub committed_at: DateTime<Utc>,
+    pub evidence: ContextSourceEvidence,
+    pub receipt: ContextSourceReceipt,
+    #[serde(default)]
+    pub source_locator: String,
+    #[serde(default)]
+    pub source_revision: String,
+    #[serde(default)]
+    pub mime_type: String,
+    #[serde(default)]
+    pub adapter_id: String,
+    #[serde(default)]
+    pub ingestion_status: String,
+    #[serde(default)]
+    pub extraction_diagnostics: Vec<String>,
+    #[serde(default)]
+    pub health: ContextSourceHealth,
+}
+
+/// Stable bounded content handle for a rich Workspace Artifact; never stores a large browser blob.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkspaceArtifactContent {
+    pub handle_ref: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artifact_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artifact_path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inline_preview: Option<String>,
+    pub sha256: String,
+    pub size_bytes: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkspaceArtifactSource {
+    pub system: String,
+    pub source_ref: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_url: Option<String>,
+    pub captured_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkspaceArtifactScope {
+    pub project_root: String,
+    pub continuity_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub project_identity_ref: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workpoint_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub work_item_ref: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkspaceArtifactOrigin {
+    pub instance_id: String,
+    pub attachment_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub focusa_session_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub work_surface_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub harness_session_ref: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub silent_session_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub silent_run_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uiai_session_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub browser_context_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub browser_target_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkspaceArtifactEvidenceStatus {
+    #[default]
+    ProposalOnly,
+    CapturePending,
+    Captured,
+    Linked,
+    Verified,
+    Stale,
+    Blocked,
+    ScopeMismatch,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkspaceArtifactTrust {
+    pub evidence_status: WorkspaceArtifactEvidenceStatus,
+    pub redaction_status: String,
+    pub freshness_status: String,
+    pub provenance_status: String,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkspaceArtifactSemantic {
+    #[serde(default)]
+    pub domain_pack_refs: Vec<String>,
+    #[serde(default)]
+    pub candidate_object_refs: Vec<String>,
+    #[serde(default)]
+    pub candidate_link_refs: Vec<String>,
+    #[serde(default)]
+    pub candidate_claim_refs: Vec<String>,
+    #[serde(default)]
+    pub verification_policy_refs: Vec<String>,
+    #[serde(default)]
+    pub semantic_delta_refs: Vec<String>,
+    /// Source-preserving citation handles for research and document artifacts.
+    #[serde(default)]
+    pub citation_refs: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkspaceArtifactRetention {
+    pub policy: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<DateTime<Utc>>,
+    pub cleanup_action: String,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkspaceArtifactRender {
+    pub preferred_renderer: String,
+    pub fallback_renderer: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub width: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub height: Option<u32>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkspaceEventType {
+    UiaiSessionOpened,
+    UiaiSessionStatusChanged,
+    UiaiFpvShareCreated,
+    BrowserContextCreated,
+    BrowserContextStatusChanged,
+    BrowserContextClosed,
+    BrowserTargetOpened,
+    BrowserTargetNavigated,
+    BrowserTargetMoved,
+    BrowserTargetClosed,
+    WorkspaceArtifactCapturePending,
+    WorkspaceArtifactLinked,
+    WorkspaceArtifactVerified,
+    WorkspaceArtifactStale,
+    WorkspaceArtifactRedacted,
+    WorkspaceArtifactRemoved,
+    WorkspaceArtifactRenderFailed,
+}
+
+/// Bounded projection-invalidation metadata; never semantic-promotion authority.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkspaceEventRecord {
+    pub schema: String,
+    pub event: WorkspaceEventType,
+    pub project_root: String,
+    pub continuity_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workpoint_id: Option<String>,
+    pub instance_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
+    pub attachment_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub work_surface_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uiai_session_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub browser_context_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub browser_target_id: Option<String>,
+    pub artifact_id: String,
+    pub artifact_kind: String,
+    pub source_state_revision: u64,
+    pub payload_ref: String,
+    #[serde(default)]
+    pub invalidate: Vec<String>,
+    pub semantic_authority: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkspaceArtifactRecord {
+    pub artifact_id: String,
+    pub artifact_kind: String,
+    pub mime_type: String,
+    pub title: String,
+    pub summary: String,
+    pub content: WorkspaceArtifactContent,
+    pub source: WorkspaceArtifactSource,
+    pub scope: WorkspaceArtifactScope,
+    pub origin: WorkspaceArtifactOrigin,
+    pub trust: WorkspaceArtifactTrust,
+    pub semantic: WorkspaceArtifactSemantic,
+    #[serde(default)]
+    pub diagnostics_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    pub retention: WorkspaceArtifactRetention,
+    pub render: WorkspaceArtifactRender,
+    pub idempotency_key: String,
+    pub revision: u64,
+    pub linked_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RoleProfileGrounding {
+    #[serde(default)]
+    pub context_artifact_refs: Vec<String>,
+    #[serde(default)]
+    pub context_claim_refs: Vec<String>,
+    #[serde(default)]
+    pub interview_answer_refs: Vec<String>,
+    pub operator_seed_ref: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RoleAssumptionRecord {
+    pub assumption_id: String,
+    pub statement: String,
+    #[serde(default)]
+    pub source_refs: Vec<String>,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RoleRedlineRecord {
+    pub field: String,
+    pub before: String,
+    pub after: String,
+    pub rationale: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RoleProfileStatus {
+    Draft,
+    PendingOperator,
+    Approved,
+    Superseded,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RoleReviewDecision {
+    Approve,
+    Reject,
+    Defer,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RoleReviewRecord {
+    pub decision: RoleReviewDecision,
+    pub reviewed_by: String,
+    pub reviewed_at: DateTime<Utc>,
+    pub rationale: String,
+}
+
+/// Versioned, Context-grounded project role. It describes responsibility, never permission.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectAgentRoleProfile {
+    pub role_profile_id: String,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    pub revision: u64,
+    pub original_seed: String,
+    pub title: String,
+    pub purpose: String,
+    #[serde(default)]
+    pub expertise: Vec<String>,
+    #[serde(default)]
+    pub primary_responsibilities: Vec<String>,
+    #[serde(default)]
+    pub secondary_responsibilities: Vec<String>,
+    #[serde(default)]
+    pub expected_deliverables: Vec<String>,
+    #[serde(default)]
+    pub quality_standards: Vec<String>,
+    #[serde(default)]
+    pub decision_principles: Vec<String>,
+    #[serde(default)]
+    pub evidence_expectations: Vec<String>,
+    pub evidence_behavior: String,
+    pub communication_posture: String,
+    pub stakeholder_posture: String,
+    #[serde(default)]
+    pub non_responsibilities: Vec<String>,
+    #[serde(default)]
+    pub forbidden_assumptions: Vec<String>,
+    #[serde(default)]
+    pub escalation_triggers: Vec<String>,
+    #[serde(default)]
+    pub handoff_boundaries: Vec<String>,
+    #[serde(default)]
+    pub tool_preferences: Vec<String>,
+    #[serde(default)]
+    pub reviewer_lenses: Vec<String>,
+    pub grounding: RoleProfileGrounding,
+    #[serde(default)]
+    pub assumptions: Vec<RoleAssumptionRecord>,
+    #[serde(default)]
+    pub unresolved_questions: Vec<String>,
+    #[serde(default)]
+    pub redlines: Vec<RoleRedlineRecord>,
+    pub grants_permissions: bool,
+    #[serde(default)]
+    pub permission_profile_refs: Vec<String>,
+    pub status: RoleProfileStatus,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub review: Option<RoleReviewRecord>,
+    pub idempotency_key: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProjectInterviewSessionStatus {
+    Active,
+    Paused,
+    Closed,
+    ReadyForSpec,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProjectInterviewBranchStatus {
+    Active,
+    Deferred,
+    Resolved,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProjectInterviewQuestionStatus {
+    Queued,
+    Asked,
+    Answered,
+    Deferred,
+    Skipped,
+    Superseded,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProjectInterviewAnswerStatus {
+    Active,
+    Amended,
+    Superseded,
+    Withdrawn,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectInterviewBranchRecord {
+    pub decision_branch_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_branch_id: Option<String>,
+    pub tranche: String,
+    pub label: String,
+    pub status: ProjectInterviewBranchStatus,
+    #[serde(default)]
+    pub question_ids: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deferred_reason: Option<String>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ProjectInterviewQuestionRecord {
+    pub question_id: String,
+    pub session_id: String,
+    pub decision_branch_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_question_id: Option<String>,
+    pub question: String,
+    pub reason_for_asking: String,
+    pub triggering_gap: String,
+    pub recommendation: String,
+    #[serde(default)]
+    pub recommendation_basis_refs: Vec<String>,
+    #[serde(default)]
+    pub environment_facts_checked: Vec<String>,
+    #[serde(default)]
+    pub contradiction_refs: Vec<String>,
+    #[serde(default)]
+    pub linked_context_refs: Vec<String>,
+    #[serde(default)]
+    pub linked_spec_sections: Vec<String>,
+    pub decision_required: bool,
+    pub priority: String,
+    pub answer_type: String,
+    pub sensitivity: String,
+    pub readiness_effect: String,
+    pub stop_condition: String,
+    pub status: ProjectInterviewQuestionStatus,
+    pub created_at: DateTime<Utc>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub answered_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ProjectInterviewAnswerRecord {
+    pub answer_id: String,
+    pub question_id: String,
+    pub answer: Value,
+    #[serde(default)]
+    pub attachment_refs: Vec<String>,
+    pub operator_id: String,
+    pub status: ProjectInterviewAnswerStatus,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<f64>,
+    pub notes: String,
+    pub created_at: DateTime<Utc>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub supersedes: Option<String>,
+}
+
+/// Canonical restart-safe Interview asset. RI2 proposes questions; this record owns state.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ProjectInterviewSessionRecord {
+    pub interview_session_id: String,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    pub strategy_id: String,
+    pub strategy_version: u64,
+    pub approved_role_profile_ref: String,
+    pub state_revision: u64,
+    pub status: ProjectInterviewSessionStatus,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active_branch_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub current_question_id: Option<String>,
+    #[serde(default)]
+    pub branches: Vec<ProjectInterviewBranchRecord>,
+    #[serde(default)]
+    pub questions: Vec<ProjectInterviewQuestionRecord>,
+    #[serde(default)]
+    pub answers: Vec<ProjectInterviewAnswerRecord>,
+    pub idempotency_key: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub closed_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SpecWorkbenchStatus {
+    Active,
+    Closed,
+    FinalApproved,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SpecSectionStatus {
+    Draft,
+    Grounded,
+    Challenged,
+    PendingApproval,
+    Approved,
+    Rejected,
+    Amended,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SpecObjectionStatus {
+    Open,
+    Resolved,
+    Accepted,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SpecGateDecision {
+    Approve,
+    Reject,
+    Defer,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SpecGroundingBlock {
+    #[serde(default)]
+    pub context_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub codebase_refs: Vec<String>,
+    #[serde(default)]
+    pub research_refs: Vec<String>,
+    pub docs_only: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SpecObjectionRecord {
+    pub objection_id: String,
+    pub section_id: String,
+    pub round_id: String,
+    pub actor_role: String,
+    pub claim: String,
+    pub reasoning_summary: String,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    pub confidence: f64,
+    pub status: SpecObjectionStatus,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolution: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SpecRoundRecord {
+    pub round_id: String,
+    pub section_id: String,
+    pub round_index: u32,
+    pub round_kind: String,
+    #[serde(default)]
+    pub output_refs: Vec<String>,
+    pub transcript_ref: String,
+    pub verdict: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stop_reason: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SpecOperatorGateRecord {
+    pub gate_id: String,
+    pub section_id: String,
+    pub decision: SpecGateDecision,
+    pub approval_scope: String,
+    pub rationale: String,
+    pub decided_by: String,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    pub decided_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SpecAmendmentRecord {
+    pub amendment_id: String,
+    pub section_id: String,
+    pub before_revision: u64,
+    pub after_revision: u64,
+    pub reason: String,
+    pub changed_by: String,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SpecSectionRecord {
+    pub section_id: String,
+    pub title: String,
+    pub section_kind: String,
+    pub status: SpecSectionStatus,
+    pub order_index: u32,
+    pub revision: u64,
+    pub content: String,
+    pub grounding: SpecGroundingBlock,
+    #[serde(default)]
+    pub objection_ids: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approved_revision: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub operator_gate_id: Option<String>,
+    #[serde(default)]
+    pub amendment_ids: Vec<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Canonical Spec 120 Workbench asset; exports and agent rounds remain projections.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SpecWorkbenchSessionRecord {
+    pub workbench_session_id: String,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    pub current_ask: String,
+    pub state_revision: u64,
+    pub status: SpecWorkbenchStatus,
+    pub canonical: bool,
+    pub advisory_agents: bool,
+    pub operator_required: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub current_section_id: Option<String>,
+    #[serde(default)]
+    pub sections: Vec<SpecSectionRecord>,
+    #[serde(default)]
+    pub rounds: Vec<SpecRoundRecord>,
+    #[serde(default)]
+    pub objections: Vec<SpecObjectionRecord>,
+    #[serde(default)]
+    pub gates: Vec<SpecOperatorGateRecord>,
+    #[serde(default)]
+    pub amendments: Vec<SpecAmendmentRecord>,
+    #[serde(default)]
+    pub receipt_refs: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub final_spec_id: Option<String>,
+    pub idempotency_key: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub closed_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TaskPlanStatus {
+    Draft,
+    PendingOperator,
+    Approved,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProviderNeutralTaskRecord {
+    pub provider_neutral_id: String,
+    pub title: String,
+    pub description: String,
+    pub order_index: u32,
+    #[serde(default)]
+    pub linked_spec_sections: Vec<String>,
+    #[serde(default)]
+    pub requirement_refs: Vec<String>,
+    #[serde(default)]
+    pub acceptance_criteria: Vec<String>,
+    #[serde(default)]
+    pub evidence_requirements: Vec<String>,
+    #[serde(default)]
+    pub semantic_object_refs: Vec<String>,
+    #[serde(default)]
+    pub allowed_action_type_ids: Vec<String>,
+    pub verification_policy_ref: String,
+    #[serde(default)]
+    pub allowed_scope: Vec<String>,
+    #[serde(default)]
+    pub dependencies: Vec<String>,
+    #[serde(default)]
+    pub blockers: Vec<String>,
+    pub task_class: String,
+    pub closure_kind: String,
+    pub closure_policy_ref: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preferred_provider: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_ref: Option<String>,
+}
+
+/// Canonical provider-neutral task DAG; materialization is a separate approved step.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProviderNeutralTaskPlanRecord {
+    pub task_plan_id: String,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    pub workbench_session_id: String,
+    pub final_spec_id: String,
+    pub state_revision: u64,
+    pub status: TaskPlanStatus,
+    #[serde(default)]
+    pub tasks: Vec<ProviderNeutralTaskRecord>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preview_token: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub previewed_revision: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approved_revision: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approved_by: Option<String>,
+    #[serde(default)]
+    pub receipt_refs: Vec<String>,
+    pub materialized: bool,
+    pub idempotency_key: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MaterializedTaskRef {
+    pub provider_neutral_id: String,
+    pub provider_id: String,
+    #[serde(default)]
+    pub provider_dependency_ids: Vec<String>,
+    pub external_ref: String,
+}
+
+/// Append-only proof that an approved task plan was materialized by a provider adapter.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TaskMaterializationRecord {
+    pub materialization_id: String,
+    pub task_plan_id: String,
+    pub task_plan_revision: u64,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    pub provider: String,
+    pub worktree_prefix: String,
+    pub target_ledger_ref: String,
+    #[serde(default)]
+    pub tasks: Vec<MaterializedTaskRef>,
+    pub permission_grant_ref: String,
+    pub idempotency_key: String,
+    pub evidence_ref: String,
+    pub receipt_ref: String,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkRailStatus {
+    Ready,
+    Active,
+    Verifying,
+    ProofMissing,
+    Reconciling,
+    VerifiedComplete,
+    ProviderClosedFocusaUnverified,
+    Cancelled,
+}
+
+/// Canonical Work Rail row joining Beads, Workpoint, proof, closure, and Receipt truth.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkRailRecord {
+    pub work_rail_id: String,
+    pub state_revision: u64,
+    pub provider: String,
+    pub provider_item_id: String,
+    pub title: String,
+    pub provider_status: String,
+    pub focusa_status: WorkRailStatus,
+    pub workpoint_id: WorkpointId,
+    pub project_root: String,
+    pub working_subpath_id: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    #[serde(default)]
+    pub dependencies: Vec<String>,
+    #[serde(default)]
+    pub blockers: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub artifact_refs: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub receipt_ref: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub closure_claim_ref: Option<String>,
+    pub idempotency_key: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MissionCanvasSurfaceStatus {
+    Active,
+    Suspended,
+    ViewClosed,
+}
+
+/// Durable Mission Canvas tab/pane projection over existing canonical state owners.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MissionCanvasWorkSurfaceRecord {
+    pub work_surface_id: String,
+    pub state_revision: u64,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    pub instance_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workpoint_id: Option<String>,
+    pub mission_ref: String,
+    pub title: String,
+    pub surface_kind: String,
+    pub status: MissionCanvasSurfaceStatus,
+    pub pane_id: String,
+    pub tab_index: u32,
+    pub pinned: bool,
+    pub unread: bool,
+    #[serde(default)]
+    pub canonical_state_refs: Vec<String>,
+    pub idempotency_key: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MissionCanvasBindingKind {
+    Session,
+    BrowserContext,
+    BrowserTarget,
+    File,
+    Operation,
+    Evidence,
+    Action,
+}
+
+/// Exact attachment-scoped binding from a Work Surface to an external/canonical target.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MissionCanvasSurfaceBindingRecord {
+    pub binding_id: String,
+    pub state_revision: u64,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    pub work_surface_id: String,
+    pub binding_kind: MissionCanvasBindingKind,
+    pub target_ref: String,
+    pub access_mode: String,
+    pub active: bool,
+    pub idempotency_key: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Canonical candidate/accepted claim extracted from source-preserving Context.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ContextClaimRecord {
+    pub claim_id: String,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    pub claim: String,
+    pub source_citation_refs: Vec<String>,
+    pub confidence: f64,
+    pub status: String,
+    #[serde(default)]
+    pub contradiction_refs: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reviewed_by: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reviewed_at: Option<DateTime<Utc>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub supersedes_claim_id: Option<String>,
+    pub idempotency_key: String,
+    pub revision: u64,
+    pub committed_at: DateTime<Utc>,
+}
+
+/// Explicit canonical contradiction edge between two Context claims.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ContextContradictionRecord {
+    pub contradiction_id: String,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    pub left_claim_id: String,
+    pub right_claim_id: String,
+    pub status: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selected_claim_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolution: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolved_by: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolved_at: Option<DateTime<Utc>>,
+    pub idempotency_key: String,
+    pub revision: u64,
+    pub committed_at: DateTime<Utc>,
+}
+
+/// Append-only decision record for claim review and contradiction resolution.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ContextDecisionRecord {
+    pub decision_id: String,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    pub decision_kind: String,
+    pub target_ref: String,
+    pub outcome: String,
+    pub rationale: String,
+    pub decided_by: String,
+    pub decided_at: DateTime<Utc>,
+    pub evidence_refs: Vec<String>,
+    pub receipt_ref: String,
+}
+
+/// Canonical reactive read model derived from claims and contradiction edges.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReactiveContextProjection {
+    pub project_root: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    pub accepted_claim_refs: Vec<String>,
+    pub candidate_claim_refs: Vec<String>,
+    pub blocked_claim_refs: Vec<String>,
+    pub unresolved_contradiction_refs: Vec<String>,
+    pub revision: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<DateTime<Utc>>,
+}
 
 /// The complete cognitive state of a Focusa instance.
 ///
@@ -1664,6 +2629,48 @@ pub struct FocusaState {
     /// Used by next turn's pre-enrichment before Mem0/Wiki queries.
     #[serde(default)]
     pub anticipated_context: Vec<String>,
+    /// Canonical Context corpus seed, scoped by project/workstream/attachment.
+    #[serde(default)]
+    pub context_sources: Vec<ContextSourceRecord>,
+    /// Canonical links to bounded rich-artifact descriptors; UIAI runtime state and blobs stay external.
+    #[serde(default)]
+    pub workspace_artifacts: Vec<WorkspaceArtifactRecord>,
+    /// Canonical Context claims derived from source-preserving citations.
+    #[serde(default)]
+    pub context_claims: Vec<ContextClaimRecord>,
+    /// Append-only revisions of the Context-grounded project role; never permission authority.
+    #[serde(default)]
+    pub project_role_profiles: Vec<ProjectAgentRoleProfile>,
+    /// Append-only restart-safe Interview session revisions.
+    #[serde(default)]
+    pub project_interview_sessions: Vec<ProjectInterviewSessionRecord>,
+    /// Append-only Spec 120 Workbench session revisions.
+    #[serde(default)]
+    pub spec_workbench_sessions: Vec<SpecWorkbenchSessionRecord>,
+    /// Append-only provider-neutral task plan revisions; never materialized before approval.
+    #[serde(default)]
+    pub provider_neutral_task_plans: Vec<ProviderNeutralTaskPlanRecord>,
+    /// Provider adapter materialization proofs for approved task plans.
+    #[serde(default)]
+    pub task_materializations: Vec<TaskMaterializationRecord>,
+    /// Append-only Work Rail revisions linked to canonical Workpoints and Beads.
+    #[serde(default)]
+    pub work_rail_records: Vec<WorkRailRecord>,
+    /// Append-only Mission Canvas Work Surface layout/lifecycle projections.
+    #[serde(default)]
+    pub mission_canvas_surfaces: Vec<MissionCanvasWorkSurfaceRecord>,
+    /// Append-only exact attachment bindings for Mission Canvas Work Surfaces.
+    #[serde(default)]
+    pub mission_canvas_surface_bindings: Vec<MissionCanvasSurfaceBindingRecord>,
+    /// Canonical contradiction edges requiring explicit resolution.
+    #[serde(default)]
+    pub context_contradictions: Vec<ContextContradictionRecord>,
+    /// Append-only approvals and contradiction-resolution decisions.
+    #[serde(default)]
+    pub context_decisions: Vec<ContextDecisionRecord>,
+    /// Reactive per-attachment projection refreshed by the reducer.
+    #[serde(default)]
+    pub reactive_context: Vec<ReactiveContextProjection>,
     /// Monotonic version — incremented on every successful reduction.
     pub version: u64,
 }
@@ -1722,6 +2729,20 @@ impl FocusaState {
             threads: vec![],
             active_turn: None,
             anticipated_context: vec![],
+            context_sources: vec![],
+            workspace_artifacts: vec![],
+            context_claims: vec![],
+            project_role_profiles: vec![],
+            project_interview_sessions: vec![],
+            spec_workbench_sessions: vec![],
+            provider_neutral_task_plans: vec![],
+            task_materializations: vec![],
+            work_rail_records: vec![],
+            mission_canvas_surfaces: vec![],
+            mission_canvas_surface_bindings: vec![],
+            context_contradictions: vec![],
+            context_decisions: vec![],
+            reactive_context: vec![],
             version: 0,
         }
     }
@@ -2315,6 +3336,59 @@ pub struct AsccSlotMetadata {
 #[serde(tag = "type")]
 #[allow(clippy::large_enum_variant)]
 pub enum FocusaEvent {
+    // Context corpus
+    ContextSourceCommitted {
+        source: ContextSourceRecord,
+    },
+    ContextSourceIngested {
+        source: ContextSourceRecord,
+    },
+    WorkspaceArtifactLinked {
+        artifact: WorkspaceArtifactRecord,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        workspace_event: Option<WorkspaceEventRecord>,
+    },
+    ContextClaimProposed {
+        claim: ContextClaimRecord,
+    },
+    ProjectRoleProfileRevised {
+        profile: ProjectAgentRoleProfile,
+    },
+    ProjectInterviewSessionRevised {
+        session: ProjectInterviewSessionRecord,
+    },
+    SpecWorkbenchSessionRevised {
+        session: SpecWorkbenchSessionRecord,
+    },
+    ProviderNeutralTaskPlanRevised {
+        task_plan: ProviderNeutralTaskPlanRecord,
+    },
+    TaskPlanMaterialized {
+        materialization: TaskMaterializationRecord,
+    },
+    WorkRailRevised {
+        record: WorkRailRecord,
+    },
+    MissionCanvasSurfaceRevised {
+        surface: MissionCanvasWorkSurfaceRecord,
+    },
+    MissionCanvasSurfaceBindingRevised {
+        binding: MissionCanvasSurfaceBindingRecord,
+    },
+    ContextClaimReviewed {
+        claim: ContextClaimRecord,
+        decision: ContextDecisionRecord,
+    },
+    ContextContradictionOpened {
+        contradiction: ContextContradictionRecord,
+        claims: Vec<ContextClaimRecord>,
+    },
+    ContextContradictionResolved {
+        contradiction: ContextContradictionRecord,
+        claims: Vec<ContextClaimRecord>,
+        decision: ContextDecisionRecord,
+    },
+
     // Instance lifecycle (multi-device / multi-surface observability)
     InstanceConnected {
         instance_id: Uuid,

@@ -1,0 +1,43 @@
+{
+  "schema": "focusa.spec135_c2_context_retrieval_proof.v1",
+  "requirement_id": "SPEC135-C2",
+  "status": "verified",
+  "critical_path": ["SPEC135-F12","SPEC135-C1","SPEC135-C2","SPEC135-C3","SPEC135-ALPHA1"],
+  "operation": "focusa.context.retrieve",
+  "runtime_proof": {
+    "lexical_index": "SQLite FTS5",
+    "vector_index": "sqlite-vec 0.1.7",
+    "embedding_provider": "fastembed-rs 4.9.1",
+    "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "embedding_dimensions": 384,
+    "hybrid_merge": "deterministic reciprocal-rank fusion",
+    "exact_scope_keys": ["project_root","continuity_id","attachment_id"],
+    "max_results": 50,
+    "max_chunks_per_source": 256,
+    "citation_fields": ["source_id","source_revision","source_kind","source_locator","content_hash","chunk_id","chunk_ordinal","line_start","line_end"],
+    "contradiction_status": "candidate",
+    "vector_absence_behavior": "deterministic lexical fallback",
+    "restart_result": "same ordered chunk ids",
+    "real_fastembed_sqlite_vec_test_seconds": 6.92
+  },
+  "proof_commands": [
+    "cargo test -p focusa-core runtime::context_retrieval::tests::lexical_retrieval_is_scoped_cited_contradiction_aware_and_restart_safe",
+    "cargo test -p focusa-core --features context-vector-fastembed runtime::context_retrieval::tests::fastembed_and_sqlite_vec_produce_hybrid_context_hits",
+    "python3 tests/spec135_context_retrieval_e2e_test.py",
+    "python3 tests/spec135_context_retrieval_test.py",
+    "npm --prefix packages/a2ui-renderer run check",
+    "npm --prefix packages/a2ui-renderer run proof:build"
+  ],
+  "evidence_refs": [
+    "test:focusa-core:context-vector-fastembed",
+    "citation:669f3c8e99066a516baf278f",
+    "citation:142a5009211501ec2d5f602e",
+    "contradiction:c160974415df3342d3a57d14",
+    "evidence:context-retrieval:ca30c935bb40090fde22a89a",
+    "uiai-browser:session=biw4d3UW:desktop:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/biw4d3UW-1784588782710293000.png",
+    "uiai-browser:session=biw4d3UW:mobile:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/biw4d3UW-1784588806118638000.png",
+    "browser-diagnostics:2026-07-20T23:07:04.444Z"
+  ],
+  "receipt_refs": ["receipt:context-retrieval:ca30c935bb40090fde22a89a"],
+  "ui_eval_result_ref": "docs/contracts/spec135/generated-contract-v1/uiai-eval.c2-context-retrieval.result.json"
+}

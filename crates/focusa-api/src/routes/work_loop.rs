@@ -13,6 +13,7 @@ use axum::{
 };
 use chrono::Utc;
 use focusa_core::scoped_state::WorkstreamKey;
+use focusa_core::tool_result::{ToolResultV1, ToolStatus};
 use focusa_core::types::{
     Action, BlockerClass, EventLogEntry, FocusaEvent, FocusaState, ProjectRunId, SignalOrigin,
     SpecLinkedTaskPacket, TaskClass, WorkLoopPolicy, WorkLoopPolicyOverrides, WorkLoopPreset,
@@ -316,12 +317,42 @@ pub struct DecisionContextRequest {
 pub struct PiDriverStartRequest {
     pub cwd: Option<String>,
     pub models: Option<String>,
+    pub resume_session: Option<String>,
+    pub session_dir: Option<String>,
+    pub session_name: Option<String>,
+    pub workpoint_id: Option<String>,
+    pub idempotency_key: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct PiDriverPromptRequest {
     pub message: String,
     pub streaming_behavior: Option<String>,
+}
+
+fn agent_execution_tool_result(summary: &str, side_effect: &str) -> Value {
+    let mut result = ToolResultV1::success(ToolStatus::Accepted, summary);
+    result.tool = Some("focusa_agent_execution_adapter".to_string());
+    result.family = Some("work_loop".to_string());
+    result.side_effects = vec![side_effect.to_string()];
+    serde_json::to_value(result)
+        .unwrap_or_else(|_| json!({"schema": "focusa.tool_result.v1", "ok": true}))
+}
+
+fn configure_pi_rpc_invocation(command: &mut Command, request: &PiDriverStartRequest) {
+    command.args(["--mode", "rpc"]);
+    if let Some(models) = request.models.as_deref() {
+        command.args(["--models", models]);
+    }
+    if let Some(resume_session) = request.resume_session.as_deref() {
+        command.args(["--session", resume_session]);
+    }
+    if let Some(session_dir) = request.session_dir.as_deref() {
+        command.args(["--session-dir", session_dir]);
+    }
+    if let Some(session_name) = request.session_name.as_deref() {
+        command.args(["--name", session_name]);
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -2872,8 +2903,23 @@ async fn start_pi_driver(
         work_loop_scope_root(&focusa)
     };
 
+    if payload.idempotency_key.trim().is_empty() {
+        return Err(bad_request("idempotency_key must not be empty"));
+    }
     let mut guard = state.pi_rpc_session.lock().await;
-    if guard.is_some() {
+    if let Some(existing) = guard.as_ref() {
+        if existing.idempotency_key == payload.idempotency_key {
+            return Ok(Json(json!({
+                "schema": "focusa.agent_execution_adapter_result.v1",
+                "status": "accepted",
+                "adapter": "pi-rpc",
+                "session_id": existing.session_id,
+                "resumable": true,
+                "idempotent_replay": true,
+                "authority": "focusa.spec133.work_loop",
+                "tool_result": agent_execution_tool_result("Pi RPC execution already active", "none"),
+            })));
+        }
         return Err(conflict("pi rpc driver already active", Some(writer_id)));
     }
 
@@ -2893,15 +2939,12 @@ async fn start_pi_driver(
     };
 
     cmd.env("PATH", merged_path)
-        .args(["--mode", "rpc", "--no-session"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .kill_on_drop(true);
     configure_pi_rpc_process_group(&mut cmd);
-    if let Some(models) = payload.models.as_deref() {
-        cmd.args(["--models", models]);
-    }
+    configure_pi_rpc_invocation(&mut cmd, &payload);
     if let Some(cwd) = payload.cwd.as_deref() {
         cmd.current_dir(cwd);
     } else {
@@ -3088,12 +3131,22 @@ async fn start_pi_driver(
         stdin,
         session_id: session_id.clone(),
         cwd: payload.cwd.clone(),
+        idempotency_key: payload.idempotency_key.clone(),
         started_at: std::time::Instant::now(),
     });
 
-    Ok(Json(
-        json!({"status":"accepted","adapter":"pi-rpc","session_id":session_id}),
-    ))
+    Ok(Json(json!({
+        "schema": "focusa.agent_execution_adapter_result.v1",
+        "status": "accepted",
+        "adapter": "pi-rpc",
+        "session_id": session_id,
+        "resumable": true,
+        "resumed_from": payload.resume_session,
+        "workpoint_id": payload.workpoint_id,
+        "cancellation": {"abort_route": "/v1/work-loop/driver/abort", "stop_route": "/v1/work-loop/driver/stop"},
+        "authority": "focusa.spec133.work_loop",
+        "tool_result": agent_execution_tool_result("Pi RPC execution started or resumed", "process_started"),
+    })))
 }
 
 async fn prompt_pi_driver(
@@ -3110,6 +3163,14 @@ async fn prompt_pi_driver(
     let Some(session) = guard.as_mut() else {
         return Err(bad_request("pi rpc driver not active"));
     };
+    if payload.message.trim().is_empty() {
+        return Err(bad_request("pi rpc prompt message must not be empty"));
+    }
+    if let Some(streaming_behavior) = payload.streaming_behavior.as_deref()
+        && !matches!(streaming_behavior, "steer" | "followUp")
+    {
+        return Err(bad_request("streaming_behavior must be steer or followUp"));
+    }
     let msg = if let Some(streaming_behavior) = payload.streaming_behavior.as_deref() {
         json!({"id": format!("prompt-{}", Uuid::now_v7()), "type":"prompt", "message": payload.message, "streamingBehavior": streaming_behavior})
     } else {
@@ -3125,9 +3186,15 @@ async fn prompt_pi_driver(
         .write_all(b"\n")
         .await
         .map_err(|e| bad_request(format!("failed writing newline: {e}")))?;
-    Ok(Json(
-        json!({"status":"accepted","session_id":session.session_id}),
-    ))
+    Ok(Json(json!({
+        "schema": "focusa.agent_execution_adapter_result.v1",
+        "status": "accepted",
+        "adapter": "pi-rpc",
+        "session_id": session.session_id,
+        "resumable": true,
+        "authority": "focusa.spec133.work_loop",
+        "tool_result": agent_execution_tool_result("Prompt accepted by Pi RPC", "prompt_accepted"),
+    })))
 }
 
 async fn abort_pi_driver(
@@ -3149,9 +3216,16 @@ async fn abort_pi_driver(
         .write_all(msg.as_bytes())
         .await
         .map_err(|e| bad_request(format!("failed writing abort: {e}")))?;
-    Ok(Json(
-        json!({"status":"accepted","session_id":session.session_id}),
-    ))
+    Ok(Json(json!({
+        "schema": "focusa.agent_execution_adapter_result.v1",
+        "status": "accepted",
+        "adapter": "pi-rpc",
+        "session_id": session.session_id,
+        "resumable": true,
+        "cancelled": true,
+        "authority": "focusa.spec133.work_loop",
+        "tool_result": agent_execution_tool_result("Pi RPC turn aborted", "turn_aborted"),
+    })))
 }
 
 async fn stop_pi_driver(
@@ -3168,9 +3242,16 @@ async fn stop_pi_driver(
         return Err(bad_request("pi rpc driver not active"));
     };
     terminate_pi_rpc_child(&mut session.child).await;
-    Ok(Json(
-        json!({"status":"accepted","session_id":session.session_id}),
-    ))
+    Ok(Json(json!({
+        "schema": "focusa.agent_execution_adapter_result.v1",
+        "status": "stopped",
+        "adapter": "pi-rpc",
+        "session_id": session.session_id,
+        "resumable": true,
+        "cancelled": true,
+        "authority": "focusa.spec133.work_loop",
+        "tool_result": agent_execution_tool_result("Pi RPC execution stopped", "process_stopped"),
+    })))
 }
 
 async fn attach_session(
@@ -4438,5 +4519,39 @@ mod tests {
             bundle.get("task_id").and_then(Value::as_str),
             Some("focusa-live")
         );
+    }
+
+    #[test]
+    fn pi_rpc_execution_invocation_is_persisted_resumable_and_governed() {
+        let request = PiDriverStartRequest {
+            cwd: Some("/tmp/project".to_string()),
+            models: Some("anthropic/claude".to_string()),
+            resume_session: Some("session-123".to_string()),
+            session_dir: Some("/tmp/pi-sessions".to_string()),
+            session_name: Some("governed-workpoint".to_string()),
+            workpoint_id: Some("workpoint-123".to_string()),
+            idempotency_key: "execution-123".to_string(),
+        };
+        let mut command = Command::new("pi");
+        configure_pi_rpc_invocation(&mut command, &request);
+        let args: Vec<_> = command
+            .as_std()
+            .get_args()
+            .map(|arg| arg.to_string_lossy().to_string())
+            .collect();
+        assert_eq!(args[0..2], ["--mode", "rpc"]);
+        assert!(
+            args.windows(2)
+                .any(|pair| pair == ["--session", "session-123"])
+        );
+        assert!(
+            args.windows(2)
+                .any(|pair| pair == ["--session-dir", "/tmp/pi-sessions"])
+        );
+        assert!(
+            args.windows(2)
+                .any(|pair| pair == ["--name", "governed-workpoint"])
+        );
+        assert!(!args.iter().any(|arg| arg == "--no-session"));
     }
 }

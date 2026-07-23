@@ -1,0 +1,57 @@
+{
+  "schema": "uiai.focusa_research_diagnostics_packet.v1",
+  "mode": "proof",
+  "goal": "Prove corrected SPEC135-U1 preserves full bounded Workspace Artifact origin, trust, semantic citations, retention, rendering, diagnostics, Evidence, and Receipt while UIAI retains runtime/blob authority.",
+  "scope_status": "present",
+  "focusa_scope": {
+    "project_root": "/Volumes/Macintosh HD/Users/vsmith/focusa",
+    "continuity_id": "focusa-cont-mission-canvas-57e8c074-539f-44a2-86f6-527b478f9d80",
+    "work_item_id": "focusa-mc-u1",
+    "attachment_id": "attachment:u1-workspace-artifact"
+  },
+  "target_refs": ["browser:https://hear-tagged-blowing-britain.trycloudflare.com/workspace-artifact.html", "generated-ui:workspace-artifact:desktop", "generated-ui:workspace-artifact:mobile"],
+  "evidence_refs": ["uiai-diagnostics:session=ZibUOJ2s:seq=2", "uiai-screenshot:session=ZibUOJ2s:1784608701199222000", "uiai-screenshot:session=ZibUOJ2s:1784608738651419000"],
+  "captures": [
+    {
+      "type": "diagnostics",
+      "evidence_ref": "uiai-diagnostics:session=ZibUOJ2s:seq=2",
+      "target_ref": "browser:https://hear-tagged-blowing-britain.trycloudflare.com/workspace-artifact.html",
+      "title": "Focusa Workspace Artifact Bridge Eval",
+      "summary": "Corrected Workspace Artifact action completed with full descriptor citations and no failures."
+    },
+    {
+      "type": "screenshot",
+      "evidence_ref": "uiai-screenshot:session=ZibUOJ2s:1784608701199222000",
+      "target_ref": "generated-ui:workspace-artifact:desktop",
+      "title": "Workspace Artifact desktop proof",
+      "summary": "Full descriptor origin, citations, Evidence, Receipt, renderer, and cleanup rendered at 1440x1000."
+    },
+    {
+      "type": "screenshot",
+      "evidence_ref": "uiai-screenshot:session=ZibUOJ2s:1784608738651419000",
+      "target_ref": "generated-ui:workspace-artifact:mobile",
+      "title": "Workspace Artifact mobile proof",
+      "summary": "390x844 viewport retained 390px scroll width, 324px action width, and deep keyboard focus."
+    }
+  ],
+  "active_object_hints": [
+    {"kind": "url", "hint": "browser:https://hear-tagged-blowing-britain.trycloudflare.com/workspace-artifact.html"}
+  ],
+  "recommended_focusa": {
+    "preferred_tool": "focusa_browser_diagnostics_intake",
+    "fallback_tool": "focusa_evidence_capture",
+    "args_preview": {
+      "target_ref": "browser:https://hear-tagged-blowing-britain.trycloudflare.com/workspace-artifact.html",
+      "result": "Corrected Workspace Artifact action completed with full descriptor citations and no failures.",
+      "evidence_ref": "uiai-diagnostics:session=ZibUOJ2s:seq=2",
+      "attach_to_workpoint": false
+    },
+    "next_tools": ["focusa_browser_diagnostics_intake", "focusa_evidence_capture", "focusa_active_object_resolve", "focusa_predict_record"]
+  },
+  "recommended_next_action": "Retain the packet as U1 proof, close UIAI session and tunnel, run restart/lint/static regressions, then commit only Mission Canvas-owned files.",
+  "render": {
+    "summary_line": "UIAI packet evidence=3 target=workspace-artifact scope=present tool=focusa_browser_diagnostics_intake next=close temporary proof resources and run regressions."
+  },
+  "headless_next_action": "Close UIAI session and temporary proof resources, then run restart, lint, static, and generated-client regressions.",
+  "cleanup": {"session_id": "ZibUOJ2s", "recommended_action": "close_when_done", "tool": "uiai_browser_close"}
+}

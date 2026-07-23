@@ -34,6 +34,16 @@ fn trim_hot_clt_snapshot(state: &mut FocusaState) -> usize {
     retain_hot_window(&mut state.clt, hot_clt_snapshot_max_nodes())
 }
 
+/// Stable replay record joined to the append-only event hash-chain sequence.
+#[derive(Clone, Debug, PartialEq)]
+pub struct DurableEventRecord {
+    pub sequence: u64,
+    pub event_id: String,
+    pub timestamp: String,
+    pub correlation_id: Option<String>,
+    pub payload: serde_json::Value,
+}
+
 /// SQLite-backed persistence.
 ///
 /// NOTE: Focusa daemon is single-writer, but API reads may happen concurrently.
@@ -111,6 +121,11 @@ impl SqlitePersistence {
             crate::silent_sessions::MigrationMode::Apply,
         )?;
         Ok(this)
+    }
+
+    /// Canonical SQLite path used by bounded derived indexes such as Context retrieval.
+    pub fn database_path(&self) -> PathBuf {
+        self.data_dir.join("focusa.sqlite")
     }
 
     pub(crate) fn with_connection_mut<T>(
@@ -902,6 +917,86 @@ impl SqlitePersistence {
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         let count: i64 = conn.query_row("SELECT COUNT(*) FROM events", [], |row| row.get(0))?;
         Ok(count.max(0) as u64)
+    }
+
+    /// Read durable events strictly after a stable sequence cursor.
+    pub fn durable_events_after(
+        &self,
+        sequence: u64,
+        limit: usize,
+    ) -> anyhow::Result<Vec<DurableEventRecord>> {
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut statement = conn.prepare(
+            r#"
+            SELECT h.chain_index + 1, e.event_id, e.ts, e.payload_json, e.correlation_id
+            FROM event_hash_chain h
+            INNER JOIN events e ON e.event_id = h.event_id
+            WHERE h.chain_index >= ?1
+            ORDER BY h.chain_index ASC
+            LIMIT ?2
+            "#,
+        )?;
+        let rows = statement.query_map(
+            params![sequence as i64, limit.clamp(1, 1_000) as i64],
+            |row| {
+                let payload_json: String = row.get(3)?;
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    payload_json,
+                    row.get::<_, Option<String>>(4)?,
+                ))
+            },
+        )?;
+        rows.map(|row| {
+            let (sequence, event_id, timestamp, payload_json, correlation_id) = row?;
+            Ok(DurableEventRecord {
+                sequence: u64::try_from(sequence)?,
+                event_id,
+                timestamp,
+                correlation_id,
+                payload: serde_json::from_str(&payload_json)?,
+            })
+        })
+        .collect()
+    }
+
+    /// Resolve an SSE Last-Event-ID UUID to its durable sequence cursor.
+    pub fn durable_event_sequence(&self, event_id: &str) -> anyhow::Result<Option<u64>> {
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let sequence: Option<i64> = conn
+            .query_row(
+                "SELECT chain_index + 1 FROM event_hash_chain WHERE event_id = ?1",
+                [event_id],
+                |row| row.get(0),
+            )
+            .optional()?;
+        sequence.map(u64::try_from).transpose().map_err(Into::into)
+    }
+
+    /// Latest durable sequence, or zero when the event ledger is empty.
+    pub fn latest_durable_event_sequence(&self) -> anyhow::Result<u64> {
+        let conn = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let sequence: Option<i64> = conn.query_row(
+            "SELECT MAX(chain_index) + 1 FROM event_hash_chain",
+            [],
+            |row| row.get(0),
+        )?;
+        sequence
+            .map(u64::try_from)
+            .transpose()
+            .map(Option::unwrap_or_default)
+            .map_err(Into::into)
     }
 
     pub fn append_event(&self, entry: &EventLogEntry) -> anyhow::Result<()> {

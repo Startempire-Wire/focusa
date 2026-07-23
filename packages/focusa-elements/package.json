@@ -1,0 +1,32 @@
+{
+  "name": "@focusa/elements",
+  "version": "0.9.120-dev",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/focusa-elements.js"
+    }
+  },
+  "scripts": {
+    "generate": "node scripts/generate-elements.mjs",
+    "build": "npm run generate && vite build && tsc -p tsconfig.build.json",
+    "check": "npm run generate && svelte-check --tsconfig ./tsconfig.json",
+    "prepare": "npm run build",
+    "test": "npm run generate && vitest run"
+  },
+  "dependencies": {
+    "svelte": "5.55.9"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "5.1.1",
+    "@testing-library/svelte": "5.2.9",
+    "@types/node": "24.10.1",
+    "jsdom": "26.1.0",
+    "svelte-check": "4.3.4",
+    "typescript": "5.9.3",
+    "vite": "6.4.1",
+    "vitest": "3.2.4"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "schema":"uiai.focusa_ui_eval_result.v1","scenario_id":"spec135-c3-context-claim-review","status":"passed",
+  "browser_session_refs":["uiai-browser:session=gIc7kNV1"],"browser_context_refs":["focusa-cont-mission-canvas-57e8c074-539f-44a2-86f6-527b478f9d80","attachment:c3-context"],
+  "step_results":[
+    {"step_id":"open","status":"passed","result":"UIAI opened generated Context claim review at 1280x900.","evidence_refs":["uiai-browser:session=gIc7kNV1"]},
+    {"step_id":"propose","status":"passed","result":"One generated action executed four governed mutations and retained two source-linked claims.","evidence_refs":["context-claim:d1ca46af9971217fb0d74e10","context-claim:d738c0a36c98d5f00eb0fd36"]},
+    {"step_id":"contradict","status":"passed","result":"Canonical contradiction edge was created and displayed for explicit review.","evidence_refs":["context-contradiction:ffbee8497d9329e7065ec7ca"]},
+    {"step_id":"resolve","status":"passed","result":"Operator decision accepted the authoritative claim, rejected its opposite, and projected one accepted claim with no blockers.","evidence_refs":["context-decision:25e44e4b2b54cd360282b034","evidence:context-graph:73bf9664f8aa2e4ae68bb49f","receipt:context-graph:73bf9664f8aa2e4ae68bb49f"]},
+    {"step_id":"mobile","status":"passed","result":"390x844 viewport had scrollWidth=390, 324px action, and nested button focus=true.","evidence_refs":["uiai-browser:session=gIc7kNV1:mobile:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/gIc7kNV1-1784593799315395000.png"]},
+    {"step_id":"diagnostics","status":"passed","result":"Nine browser/API requests completed with zero errors, exceptions, failures, 4xx, or 5xx.","evidence_refs":["uiai-diagnostics:session=gIc7kNV1:seq=9","browser-diagnostics:2026-07-21T00:30:32.654Z"]},
+    {"step_id":"close","status":"passed","result":"UIAI browser session gIc7kNV1 was explicitly closed.","evidence_refs":["uiai-browser:session=gIc7kNV1:closed"]}
+  ],
+  "screenshots":["/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/gIc7kNV1-1784593772695967000.png","/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/gIc7kNV1-1784593799315395000.png"],
+  "diagnostics":[
+    {"level":"info","category":"runtime","summary":"claims=2; contradiction=resolved; decisions=1; accepted=1; blocked=0","diagnostics_ref":"uiai-browser:session=gIc7kNV1:eval:context-claims"},
+    {"level":"info","category":"network","summary":"requests=9; failed_requests=0; http_4xx=0; http_5xx=0","diagnostics_ref":"uiai-diagnostics:session=gIc7kNV1:seq=9"},
+    {"level":"info","category":"console","summary":"console_errors=0; console_warnings=0; exceptions=0","diagnostics_ref":"browser-diagnostics:2026-07-21T00:30:32.654Z"}
+  ],
+  "accessibility_report_ref":"test:focusa-elements:component-semantics-and-nested-button-focus",
+  "visual_comparison_refs":["uiai-browser:session=gIc7kNV1:desktop:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/gIc7kNV1-1784593772695967000.png","uiai-browser:session=gIc7kNV1:mobile:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/gIc7kNV1-1784593799315395000.png"],
+  "focusa_evidence_refs":["evidence:context-graph:73bf9664f8aa2e4ae68bb49f","browser-diagnostics:2026-07-21T00:30:32.654Z"],
+  "receipt_refs":["receipt:context-graph:73bf9664f8aa2e4ae68bb49f"],"failure_class":null,"recovery_action":null,"evaluated_at":"2026-07-21T00:29:59Z"
+}

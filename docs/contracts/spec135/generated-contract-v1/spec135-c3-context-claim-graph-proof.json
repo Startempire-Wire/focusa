@@ -1,0 +1,19 @@
+{
+  "schema":"focusa.spec135_c3_context_claim_graph_proof.v1","requirement_id":"SPEC135-C3","status":"verified",
+  "critical_path":["SPEC135-F12","SPEC135-C1","SPEC135-C2","SPEC135-C3","SPEC135-ALPHA1"],
+  "operations":["focusa.context.graph.read","focusa.context.graph.mutate"],
+  "canonical_records":["ContextClaimRecord","ContextContradictionRecord","ContextDecisionRecord","ReactiveContextProjection"],
+  "actions":["propose_claim","review_claim","open_contradiction","resolve_contradiction"],
+  "invariants":[
+    "source citation refs remain attached to every claim",
+    "open contradictions block accepted claims from reactive projection",
+    "resolution requires explicit actor, rationale, outcome, Evidence, and Receipt",
+    "candidate or contradicted claims never silently become canonical project truth",
+    "state and projection survive restart with exact scope and decision history"
+  ],
+  "runtime_proof":{"claims":2,"resolved_contradictions":1,"decisions":2,"accepted_projection_claims":1,"blocked_after_resolution":0,"unresolved_after_resolution":0,"idempotent_replay":"no_op","restart":"exact_projection_resumed"},
+  "proof_commands":["python3 tests/spec135_context_claim_graph_test.py","python3 tests/spec135_context_claim_graph_e2e_test.py","cargo test -p focusa-api routes::agent_capabilities::tests::","npm --prefix packages/a2ui-renderer run check","npm --prefix packages/a2ui-renderer run proof:build"],
+  "evidence_refs":["context-claim:d1ca46af9971217fb0d74e10","context-claim:d738c0a36c98d5f00eb0fd36","context-contradiction:ffbee8497d9329e7065ec7ca","context-decision:25e44e4b2b54cd360282b034","evidence:context-graph:73bf9664f8aa2e4ae68bb49f","uiai-browser:session=gIc7kNV1:desktop:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/gIc7kNV1-1784593772695967000.png","uiai-browser:session=gIc7kNV1:mobile:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/gIc7kNV1-1784593799315395000.png","browser-diagnostics:2026-07-21T00:30:32.654Z"],
+  "receipt_refs":["receipt:context-graph:73bf9664f8aa2e4ae68bb49f"],
+  "ui_eval_result_ref":"docs/contracts/spec135/generated-contract-v1/uiai-eval.c3-context-claims.result.json"
+}

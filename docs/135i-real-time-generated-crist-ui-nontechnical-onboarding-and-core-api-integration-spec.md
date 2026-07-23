@@ -84,7 +84,7 @@ Rust + Serde + Schemars + Utoipa
 → generated A2UI catalog schemas and UI action bindings
 ```
 
-OpenAPI 3.1 is not the Spec 135 transport contract. Manual duplicate DTOs, route wrappers, action registries, and UIAI Focusa client models are forbidden when generation can represent the contract.
+OpenAPI 3.0.3 is the sole Spec 135 transport contract. Manual duplicate DTOs, route wrappers, action registries, and UIAI Focusa client models are forbidden when generation can represent the contract.
 
 ### 2.4 Model execution
 
@@ -328,7 +328,7 @@ packages/focusa-generated-ui/
 
 Generated UI routes MUST compose existing Context, Role, Interview, Spec, Task, Workpoint, Evidence, Receipt, connector, provider, session, capability, permission, and ToolResult primitives. Canonical business logic MUST NOT be copied into UI routes or components.
 
-General behavior MUST be submitted to the greater Focusa primitive before C.R.I.S.T.-specific projection code is added.
+General behavior MUST be submitted to the **Greater Focusa primitive** before C.R.I.S.T.-specific projection code is added.
 
 ---
 

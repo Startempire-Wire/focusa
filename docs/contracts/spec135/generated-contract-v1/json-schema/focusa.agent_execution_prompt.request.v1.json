@@ -1,0 +1,25 @@
+{
+  "$id": "/v1/agent/schemas/focusa.agent_execution_prompt.request.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "message": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "streaming_behavior": {
+      "enum": [
+        "steer",
+        "followUp"
+      ],
+      "type": "string"
+    }
+  },
+  "required": [
+    "message"
+  ],
+  "title": "Focusa Pi RPC Agent Execution Prompt Request v1",
+  "type": "object",
+  "x-focusa-generated-from": "PiDriverPromptRequest",
+  "x-focusa-schema-id": "focusa.agent_execution_prompt.request.v1"
+}

@@ -1,0 +1,289 @@
+{
+  "capability_snapshot": {
+    "agent_id": null,
+    "attachment_id": null,
+    "capabilities": [
+      {
+        "capability_id": "agent",
+        "missing_permission_scopes": [],
+        "reason": "Required permission scopes are granted",
+        "recovery_action_ref": null,
+        "status": "available"
+      },
+      {
+        "capability_id": "awareness",
+        "missing_permission_scopes": [],
+        "reason": "Required permission scopes are granted",
+        "recovery_action_ref": null,
+        "status": "available"
+      },
+      {
+        "capability_id": "bloatgaurd",
+        "missing_permission_scopes": [],
+        "reason": "Required permission scopes are granted",
+        "recovery_action_ref": null,
+        "status": "available"
+      },
+      {
+        "capability_id": "call_stack",
+        "missing_permission_scopes": [],
+        "reason": "Required permission scopes are granted",
+        "recovery_action_ref": null,
+        "status": "available"
+      },
+      {
+        "capability_id": "context_cognition",
+        "missing_permission_scopes": [],
+        "reason": "Required permission scopes are granted",
+        "recovery_action_ref": null,
+        "status": "available"
+      },
+      {
+        "capability_id": "device",
+        "missing_permission_scopes": [],
+        "reason": "Required permission scopes are granted",
+        "recovery_action_ref": null,
+        "status": "available"
+      },
+      {
+        "capability_id": "diagnostics",
+        "missing_permission_scopes": [],
+        "reason": "Required permission scopes are granted",
+        "recovery_action_ref": null,
+        "status": "available"
+      },
+      {
+        "capability_id": "dxux",
+        "missing_permission_scopes": [],
+        "reason": "Required permission scopes are granted",
+        "recovery_action_ref": null,
+        "status": "available"
+      },
+      {
+        "capability_id": "events",
+        "missing_permission_scopes": [],
+        "reason": "Required permission scopes are granted",
+        "recovery_action_ref": null,
+        "status": "available"
+      },
+      {
+        "capability_id": "evidence",
+        "missing_permission_scopes": [],
+        "reason": "Required permission scopes are granted",
+        "recovery_action_ref": null,
+        "status": "available"
+      },
+      {
+        "capability_id": "health",
+        "missing_permission_scopes": [],
+        "reason": "Required permission scopes are granted",
+        "recovery_action_ref": null,
+        "status": "available"
+      },
+      {
+        "capability_id": "license",
+        "missing_permission_scopes": [],
+        "reason": "Required permission scopes are granted",
+        "recovery_action_ref": null,
+        "status": "available"
+      },
+      {
+        "capability_id": "lineage",
+        "missing_permission_scopes": [],
+        "reason": "Required permission scopes are granted",
+        "recovery_action_ref": null,
+        "status": "available"
+      },
+      {
+        "capability_id": "memory",
+        "missing_permission_scopes": [],
+        "reason": "Required permission scopes are granted",
+        "recovery_action_ref": null,
+        "status": "available"
+      },
+      {
+        "capability_id": "metacognition",
+        "missing_permission_scopes": [],
+        "reason": "Required permission scopes are granted",
+        "recovery_action_ref": null,
+        "status": "available"
+      },
+      {
+        "capability_id": "prediction",
+        "missing_permission_scopes": [],
+        "reason": "Required permission scopes are granted",
+        "recovery_action_ref": null,
+        "status": "available"
+      },
+      {
+        "capability_id": "project",
+        "missing_permission_scopes": [],
+        "reason": "Required permission scopes are granted",
+        "recovery_action_ref": null,
+        "status": "available"
+      },
+      {
+        "capability_id": "resource",
+        "missing_permission_scopes": [],
+        "reason": "Required permission scopes are granted",
+        "recovery_action_ref": null,
+        "status": "available"
+      },
+      {
+        "capability_id": "state",
+        "missing_permission_scopes": [],
+        "reason": "Required permission scopes are granted",
+        "recovery_action_ref": null,
+        "status": "available"
+      },
+      {
+        "capability_id": "trajectory",
+        "missing_permission_scopes": [],
+        "reason": "Required permission scopes are granted",
+        "recovery_action_ref": null,
+        "status": "available"
+      },
+      {
+        "capability_id": "traverse",
+        "missing_permission_scopes": [],
+        "reason": "Required permission scopes are granted",
+        "recovery_action_ref": null,
+        "status": "available"
+      },
+      {
+        "capability_id": "turn",
+        "missing_permission_scopes": [],
+        "reason": "Required permission scopes are granted",
+        "recovery_action_ref": null,
+        "status": "available"
+      },
+      {
+        "capability_id": "work_loop",
+        "missing_permission_scopes": [],
+        "reason": "Required permission scopes are granted",
+        "recovery_action_ref": null,
+        "status": "available"
+      },
+      {
+        "capability_id": "workpoint",
+        "missing_permission_scopes": [],
+        "reason": "Required permission scopes are granted",
+        "recovery_action_ref": null,
+        "status": "available"
+      }
+    ],
+    "client_capabilities": [
+      "openapi-3.0.3",
+      "json-schema-2020-12",
+      "a2ui-web_core-0.9.1",
+      "a2ui-lit-0.9.1",
+      "a2ui-action-bindings",
+      "protocol-handshake-v1"
+    ],
+    "connectors": [],
+    "continuity_id": "example",
+    "permissions": {
+      "effective_token_scopes": [
+        "admin:*",
+        "commands:submit",
+        "read:*"
+      ],
+      "granted_scopes": [
+        "awareness:read",
+        "bloatgaurd:read",
+        "call_stack:read",
+        "call_stack:write",
+        "context:read",
+        "device:read",
+        "device:write",
+        "diagnostics:read",
+        "dxux:read",
+        "events:read",
+        "evidence:write",
+        "health:read",
+        "license:write",
+        "lineage:read",
+        "memory:read",
+        "memory:write",
+        "metacog:read",
+        "metacog:write",
+        "prediction:read",
+        "prediction:write",
+        "project:read",
+        "resource:read",
+        "state:read",
+        "trajectory:read",
+        "trajectory:write",
+        "traverse:read",
+        "turn:write",
+        "work-loop:write",
+        "work_loop:read",
+        "work_loop:write",
+        "workpoint:read",
+        "workpoint:write"
+      ],
+      "missing_scopes": []
+    },
+    "project_root": "/example",
+    "providers": [],
+    "schema": "focusa.ui_capability_snapshot.v1",
+    "scope_validated": true,
+    "source_state_revision": "operation-registry-1.0.0"
+  },
+  "client_id": "spec135-test",
+  "compatibility_lock": {
+    "a2ui_catalog": "0.9.1",
+    "a2ui_protocol": "0.9.1",
+    "ag_ui_adapter": "0.0.0",
+    "docling": "external",
+    "domain_pack_versions": [],
+    "embedding_profile": "project-configured",
+    "event_stream": "1.0.0",
+    "focusa_api": "1.0.0",
+    "focusa_runtime": "0.9.120-dev",
+    "minimum_reader_versions": {
+      "a2ui_catalog": "0.9.1",
+      "a2ui_protocol": "0.9.1",
+      "event_stream": "1.0.0",
+      "focusa_api": "1.0.0",
+      "json_schema": "2020-12",
+      "openapi": "3.0.3",
+      "operation_registry": "1.0.0",
+      "tool_result": "1.0.0"
+    },
+    "minimum_writer_versions": {
+      "a2ui_catalog": "0.9.1",
+      "a2ui_protocol": "0.9.1",
+      "event_stream": "1.0.0",
+      "focusa_api": "1.0.0",
+      "operation_registry": "1.0.0",
+      "tool_result": "1.0.0"
+    },
+    "operation_registry": "1.0.0",
+    "pi_runtime": "0.9.120-dev",
+    "schema": "focusa.compatibility_lock.v1",
+    "tool_result": "1.0.0",
+    "uiai_engine": "external",
+    "uiai_focusa_client": "0.0.0"
+  },
+  "compatible": true,
+  "continuity_id": "example",
+  "project_root": "/example",
+  "requested_capabilities": [
+    "project",
+    "a2ui"
+  ],
+  "safe_state_retained": true,
+  "schema": "focusa.protocol_handshake.response.v1",
+  "server_versions": {
+    "a2ui_catalog": "0.9.1",
+    "a2ui_protocol": "0.9.1",
+    "event_stream": "1.0.0",
+    "focusa_api": "1.0.0",
+    "json_schema": "2020-12",
+    "openapi": "3.0.3",
+    "operation_registry": "1.0.0",
+    "tool_result": "1.0.0"
+  },
+  "status": "accepted"
+}

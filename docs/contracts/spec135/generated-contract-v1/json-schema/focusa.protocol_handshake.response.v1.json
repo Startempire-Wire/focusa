@@ -1,0 +1,71 @@
+{
+  "$id": "/v1/agent/schemas/focusa.protocol_handshake.response.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "capability_snapshot": {
+      "type": "object"
+    },
+    "client_id": {
+      "type": "string"
+    },
+    "compatibility_lock": {
+      "type": "object"
+    },
+    "compatible": {
+      "enum": [
+        true
+      ],
+      "type": "boolean"
+    },
+    "continuity_id": {
+      "type": "string"
+    },
+    "project_root": {
+      "type": "string"
+    },
+    "requested_capabilities": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "safe_state_retained": {
+      "type": "boolean"
+    },
+    "schema": {
+      "enum": [
+        "focusa.protocol_handshake.response.v1"
+      ],
+      "type": "string"
+    },
+    "server_versions": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "type": "object"
+    },
+    "status": {
+      "enum": [
+        "accepted"
+      ],
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema",
+    "status",
+    "compatible",
+    "client_id",
+    "project_root",
+    "continuity_id",
+    "server_versions",
+    "capability_snapshot",
+    "compatibility_lock",
+    "safe_state_retained"
+  ],
+  "title": "Focusa Protocol Handshake Response v1",
+  "type": "object",
+  "x-focusa-generated-from": "protocol_handshake_handler",
+  "x-focusa-schema-id": "focusa.protocol_handshake.response.v1"
+}

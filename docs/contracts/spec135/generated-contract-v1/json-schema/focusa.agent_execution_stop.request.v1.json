@@ -1,0 +1,9 @@
+{
+  "$id": "/v1/agent/schemas/focusa.agent_execution_stop.request.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "title": "focusa.agent_execution_stop.request.v1",
+  "type": "object",
+  "x-focusa-generated-from": "Spec133 Pi RPC process control",
+  "x-focusa-schema-id": "focusa.agent_execution_stop.request.v1"
+}

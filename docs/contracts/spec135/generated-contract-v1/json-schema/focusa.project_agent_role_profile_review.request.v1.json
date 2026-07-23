@@ -1,0 +1,73 @@
+{
+  "$id": "/v1/agent/schemas/focusa.project_agent_role_profile_review.request.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "attachment_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "continuity_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "decision": {
+      "enum": [
+        "approve",
+        "reject",
+        "defer"
+      ]
+    },
+    "expected_state_version": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "profile_revision": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "project_root": {
+      "maxLength": 4096,
+      "minLength": 1,
+      "type": "string"
+    },
+    "rationale": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "type": "string"
+    },
+    "reviewed_by": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "role_profile_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "project_root",
+    "continuity_id",
+    "attachment_id",
+    "role_profile_id",
+    "profile_revision",
+    "idempotency_key",
+    "expected_state_version",
+    "decision",
+    "reviewed_by",
+    "rationale"
+  ],
+  "title": "focusa.project_agent_role_profile_review.request.v1",
+  "type": "object",
+  "x-focusa-generated-from": "RoleProfileReviewRequest",
+  "x-focusa-schema-id": "focusa.project_agent_role_profile_review.request.v1"
+}

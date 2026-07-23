@@ -1,0 +1,44 @@
+{
+  "schema": "uiai.focusa_ui_eval_result.v1",
+  "scenario_id": "spec135-c1-real-context-ingestion",
+  "status": "passed",
+  "browser_session_refs": ["uiai-browser:session=DOsySCMn"],
+  "browser_context_refs": ["focusa-cont-mission-canvas-57e8c074-539f-44a2-86f6-527b478f9d80", "attachment:c1-context"],
+  "step_results": [
+    {"step_id": "open", "status": "passed", "result": "UIAI opened the generated Context ingestion surface at 1280x900.", "evidence_refs": ["uiai-browser:session=DOsySCMn"]},
+    {"step_id": "health", "status": "passed", "result": "Generated client read configured Docling Serve v1 as healthy.", "evidence_refs": ["uiai-browser:session=DOsySCMn:eval:docling-health"]},
+    {"step_id": "ingest", "status": "passed", "result": "One generated action imported real Markdown, code, and PDF; PDF extraction status=success, processing=11.455s, errors=0.", "evidence_refs": ["uiai-browser:session=DOsySCMn:eval:context-ingestion"]},
+    {"step_id": "proof", "status": "passed", "result": "Trusted generated elements rendered completed progress, healthy adapter, three Evidence refs, and three Receipt refs.", "evidence_refs": ["uiai-browser:session=DOsySCMn:desktop:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/DOsySCMn-1784580257199498000.png"]},
+    {"step_id": "mobile", "status": "passed", "result": "390x844 viewport had scrollWidth=390 and a 324px full-width primary action.", "evidence_refs": ["uiai-browser:session=DOsySCMn:mobile:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/DOsySCMn-1784580329795181000.png"]},
+    {"step_id": "diagnostics", "status": "passed", "result": "Nine browser/API requests completed with zero console errors, exceptions, failed requests, 4xx, or 5xx responses.", "evidence_refs": ["uiai-diagnostics:session=DOsySCMn:seq=9", "browser-diagnostics:2026-07-20T20:45:58.296Z"]},
+    {"step_id": "close", "status": "passed", "result": "UIAI browser session DOsySCMn was explicitly closed.", "evidence_refs": ["uiai-browser:session=DOsySCMn:closed"]}
+  ],
+  "screenshots": [
+    "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/DOsySCMn-1784580257199498000.png",
+    "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/DOsySCMn-1784580329795181000.png"
+  ],
+  "diagnostics": [
+    {"level": "info", "category": "runtime", "summary": "Markdown/code used native adapter; PDF used real Docling Serve v1 with success and zero extraction errors", "diagnostics_ref": "uiai-browser:session=DOsySCMn:eval:context-ingestion"},
+    {"level": "info", "category": "network", "summary": "requests=9; failed_requests=0; http_4xx=0; http_5xx=0", "diagnostics_ref": "uiai-diagnostics:session=DOsySCMn:seq=9"},
+    {"level": "info", "category": "console", "summary": "console_errors=0; console_warnings=0; exceptions=0", "diagnostics_ref": "browser-diagnostics:2026-07-20T20:45:58.296Z"}
+  ],
+  "accessibility_report_ref": "test:focusa-elements:component-semantics-and-nested-button-focus",
+  "visual_comparison_refs": [
+    "uiai-browser:session=DOsySCMn:desktop:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/DOsySCMn-1784580257199498000.png",
+    "uiai-browser:session=DOsySCMn:mobile:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/DOsySCMn-1784580329795181000.png"
+  ],
+  "focusa_evidence_refs": [
+    "evidence:context-ingest:9138ff896bd19898c9d2eccd",
+    "evidence:context-ingest:cb9ae2f1e8308e8ec9179e48",
+    "evidence:context-ingest:05a5338ab405d49025532bcd",
+    "browser-diagnostics:2026-07-20T20:45:58.296Z"
+  ],
+  "receipt_refs": [
+    "receipt:context-ingest:9138ff896bd19898c9d2eccd",
+    "receipt:context-ingest:cb9ae2f1e8308e8ec9179e48",
+    "receipt:context-ingest:05a5338ab405d49025532bcd"
+  ],
+  "failure_class": null,
+  "recovery_action": null,
+  "evaluated_at": "2026-07-20T20:45:29Z"
+}

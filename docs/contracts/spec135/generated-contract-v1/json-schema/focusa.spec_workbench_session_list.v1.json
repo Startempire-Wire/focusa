@@ -1,0 +1,252 @@
+{
+  "$id": "/v1/agent/schemas/focusa.spec_workbench_session_list.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "schema": {
+      "const": "focusa.spec_workbench_session_list.v1"
+    },
+    "sessions": {
+      "items": {
+        "properties": {
+          "advisory_agents": {
+            "const": true
+          },
+          "amendments": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "attachment_id": {
+            "type": "string"
+          },
+          "canonical": {
+            "const": true
+          },
+          "closed_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "current_ask": {
+            "type": "string"
+          },
+          "current_section_id": {
+            "type": "string"
+          },
+          "final_spec_id": {
+            "type": "string"
+          },
+          "gates": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "objections": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "operator_required": {
+            "const": true
+          },
+          "project_root": {
+            "type": "string"
+          },
+          "receipt_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "rounds": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "sections": {
+            "items": {
+              "properties": {
+                "amendment_ids": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "approved_revision": {
+                  "type": "integer"
+                },
+                "content": {
+                  "type": "string"
+                },
+                "created_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "grounding": {
+                  "properties": {
+                    "codebase_refs": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "context_refs": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "docs_only": {
+                      "type": "boolean"
+                    },
+                    "evidence_refs": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "research_refs": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "context_refs",
+                    "evidence_refs",
+                    "codebase_refs",
+                    "research_refs",
+                    "docs_only"
+                  ],
+                  "type": "object"
+                },
+                "objection_ids": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "operator_gate_id": {
+                  "type": "string"
+                },
+                "order_index": {
+                  "type": "integer"
+                },
+                "revision": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "section_id": {
+                  "type": "string"
+                },
+                "section_kind": {
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "draft",
+                    "grounded",
+                    "challenged",
+                    "pending_approval",
+                    "approved",
+                    "rejected",
+                    "amended"
+                  ]
+                },
+                "title": {
+                  "type": "string"
+                },
+                "updated_at": {
+                  "format": "date-time",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "section_id",
+                "title",
+                "section_kind",
+                "status",
+                "order_index",
+                "revision",
+                "content",
+                "grounding",
+                "objection_ids",
+                "amendment_ids",
+                "created_at",
+                "updated_at"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "state_revision": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "closed",
+              "final_approved"
+            ]
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "workbench_session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workbench_session_id",
+          "project_root",
+          "continuity_id",
+          "attachment_id",
+          "current_ask",
+          "state_revision",
+          "status",
+          "canonical",
+          "advisory_agents",
+          "operator_required",
+          "sections",
+          "rounds",
+          "objections",
+          "gates",
+          "amendments",
+          "receipt_refs",
+          "idempotency_key",
+          "created_at",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "state_version": {
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema",
+    "state_version",
+    "sessions"
+  ],
+  "title": "focusa.spec_workbench_session_list.v1",
+  "type": "object",
+  "x-focusa-schema-id": "focusa.spec_workbench_session_list.v1"
+}

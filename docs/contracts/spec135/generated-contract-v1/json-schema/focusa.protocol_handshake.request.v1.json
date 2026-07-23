@@ -1,0 +1,31 @@
+{
+  "$id": "/v1/agent/schemas/focusa.protocol_handshake.request.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "client_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "client_versions": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "type": "object"
+    },
+    "requested_capabilities": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "client_id",
+    "client_versions"
+  ],
+  "title": "Focusa Protocol Handshake Request v1",
+  "type": "object",
+  "x-focusa-generated-from": "ProtocolHandshakeRequest",
+  "x-focusa-schema-id": "focusa.protocol_handshake.request.v1"
+}

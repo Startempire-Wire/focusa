@@ -1,0 +1,256 @@
+{
+  "$id": "/v1/agent/schemas/focusa.context_retrieve_response.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "canonical_sources": {
+      "const": true
+    },
+    "evidence_ref": {
+      "type": "string"
+    },
+    "receipt_ref": {
+      "type": "string"
+    },
+    "result": {
+      "additionalProperties": false,
+      "properties": {
+        "capabilities": {
+          "additionalProperties": false,
+          "properties": {
+            "degradation_reason": {
+              "maxLength": 320,
+              "type": "string"
+            },
+            "degraded_to_lexical": {
+              "type": "boolean"
+            },
+            "embedding_model": {
+              "type": "string"
+            },
+            "embedding_provider": {
+              "type": "string"
+            },
+            "lexical": {
+              "type": "string"
+            },
+            "vector_index": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "lexical",
+            "vector_index",
+            "embedding_provider",
+            "degraded_to_lexical"
+          ],
+          "type": "object"
+        },
+        "contradictions": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "contradiction_id": {
+                "type": "string"
+              },
+              "left_citation_id": {
+                "type": "string"
+              },
+              "right_citation_id": {
+                "type": "string"
+              },
+              "shared_terms": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 12,
+                "type": "array"
+              },
+              "status": {
+                "const": "candidate"
+              },
+              "summary": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "contradiction_id",
+              "status",
+              "summary",
+              "left_citation_id",
+              "right_citation_id",
+              "shared_terms"
+            ],
+            "type": "object"
+          },
+          "maxItems": 1225,
+          "type": "array"
+        },
+        "hits": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "chunk_id": {
+                "type": "string"
+              },
+              "citation": {
+                "additionalProperties": false,
+                "properties": {
+                  "chunk_id": {
+                    "type": "string"
+                  },
+                  "chunk_ordinal": {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "citation_id": {
+                    "type": "string"
+                  },
+                  "content_hash": {
+                    "type": "string"
+                  },
+                  "line_end": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "line_start": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "source_id": {
+                    "type": "string"
+                  },
+                  "source_kind": {
+                    "type": "string"
+                  },
+                  "source_locator": {
+                    "type": "string"
+                  },
+                  "source_revision": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "citation_id",
+                  "source_id",
+                  "source_revision",
+                  "source_kind",
+                  "title",
+                  "source_locator",
+                  "content_hash",
+                  "chunk_id",
+                  "chunk_ordinal",
+                  "line_start",
+                  "line_end"
+                ],
+                "type": "object"
+              },
+              "contradiction_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "uniqueItems": true
+              },
+              "retrieval_modes": {
+                "items": {
+                  "enum": [
+                    "lexical",
+                    "vector"
+                  ]
+                },
+                "type": "array",
+                "uniqueItems": true
+              },
+              "score": {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              "snippet": {
+                "maxLength": 1600,
+                "type": "string"
+              }
+            },
+            "required": [
+              "chunk_id",
+              "snippet",
+              "score",
+              "retrieval_modes",
+              "citation",
+              "contradiction_refs"
+            ],
+            "type": "object"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "indexed_chunk_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "indexed_source_count": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "mode_requested": {
+          "enum": [
+            "lexical",
+            "hybrid"
+          ]
+        },
+        "mode_used": {
+          "enum": [
+            "lexical",
+            "hybrid"
+          ]
+        },
+        "query": {
+          "type": "string"
+        },
+        "result_count": {
+          "maximum": 50,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "schema": {
+          "const": "focusa.context_retrieval_result.v1"
+        }
+      },
+      "required": [
+        "schema",
+        "query",
+        "mode_requested",
+        "mode_used",
+        "result_count",
+        "indexed_source_count",
+        "indexed_chunk_count",
+        "hits",
+        "contradictions",
+        "capabilities"
+      ],
+      "type": "object"
+    },
+    "schema": {
+      "const": "focusa.context_retrieve_response.v1"
+    },
+    "tool_result": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema",
+    "canonical_sources",
+    "result",
+    "evidence_ref",
+    "receipt_ref",
+    "tool_result"
+  ],
+  "title": "focusa.context_retrieve_response.v1",
+  "type": "object",
+  "x-focusa-generated-from": "ContextRetrieveResponse",
+  "x-focusa-schema-id": "focusa.context_retrieve_response.v1"
+}

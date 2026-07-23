@@ -722,6 +722,7 @@ This spec does **not** require:
 | INF-05 | bounded runtime | `.../bounded.rs:22` | `RESOURCE_MODE_TRANSITION_OMITTED` | global omitted-counter | infra-only | P3 | omitted-counter never affects scope outcome |
 | INF-06 | bounded runtime | `.../bounded.rs:23` | `RESOURCE_MODE_HYSTERESIS_STATE` | process-global hysteresis state | infra-only runtime service | P3 | scope results independent of hysteresis history |
 | INF-07 | bounded runtime | `.../bounded.rs:142,144,145` | pressure/response-size globals | pressure history can taint prompts if not quarantined | infra-only telemetry service | P3 | awareness/warnings may vary, canonical authority may not |
+| INF-08 | Context retrieval model cache | `crates/focusa-core/src/runtime/context_retrieval.rs:31` | `FASTEMBED_MODEL` caches one immutable embedding model behind a mutex | process-local model reuse could be mistaken for Context authority | keep as infra-only compute cache; canonical Context and retrieval evidence remain exact-scope reducer state | P3 | alternating project scopes may reuse model weights but never vectors, sources, claims, or retrieval authority |
 
 ### C. Pi extension runtime singleton hub
 

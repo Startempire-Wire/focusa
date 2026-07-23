@@ -1,0 +1,37 @@
+{
+  "schema": "focusa.spec135_st3_task_materialization_proof.v1",
+  "requirement_id": "SPEC135-ST3",
+  "status": "passed",
+  "operations": ["focusa.task_plan.materialize.beads"],
+  "invariants": [
+    "Only an exact-scoped approved task-plan revision may materialize",
+    "Target must be the canonical parent Git root and project_root/.beads/issues.jsonl",
+    "Worktree Git files and local Beads database files are rejected",
+    "Provider IDs are deterministic from worktree prefix, task-plan ID, and provider-neutral ID",
+    "Existing stable-ID collisions with another external ref fail closed",
+    "Every provider task retains requirement, Spec-section, acceptance, Evidence, and verification links",
+    "Provider dependencies exactly mirror the approved DAG",
+    "Idempotent replay creates no duplicate task",
+    "Materialization emits canonical Evidence and Receipt refs"
+  ],
+  "static_validation": {
+    "test": "tests/spec135_task_materialization_test.py",
+    "e2e_for_remote": "tests/spec135_task_materialization_e2e_test.py",
+    "local_policy": "lint/static-only per operator directive",
+    "remote_rust_ci": "passed: GitHub Actions run 29954553869",
+    "remote_st3_e2e": "passed: job 89040206095 (Spec 135 ST3 canonical parent Beads materialization E2E: PASS)",
+    "unrelated_gate_note": "Strict aggregate continued to fail later in pre-existing Spec130 utility-card persistence; ST3 gate had already passed."
+  },
+  "contracts": {
+    "operation_count": 77,
+    "request_schema": "json-schema/focusa.task_plan_beads_materialization.request.v1.json",
+    "result_schema": "json-schema/focusa.task_plan_beads_materialization_result.v1.json",
+    "typescript": "packages/generated/spec135/typescript/schema.d.ts",
+    "go": "packages/generated/spec135/go/client.gen.go"
+  },
+  "generated_ui": {
+    "surface": "packages/a2ui-renderer/proof/task-materialization.html",
+    "controller": "packages/a2ui-renderer/proof/task-materialization.ts",
+    "remote_uiai_eval_required": true
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "schema": "focusa.spec135_ri2_interview_strategy_proof.v1",
+  "requirement_id": "SPEC135-RI2",
+  "status": "passed",
+  "critical_path": ["SPEC135-C3", "SPEC135-RI1", "SPEC135-RI2", "SPEC135-RI3", "SPEC135-ALPHA2"],
+  "operation": "focusa.interview.strategy.grill_with_docs.next_question",
+  "strategy": "focusa.interview.strategy.grill-with-docs.v1",
+  "invariants": [
+    "Canonical Context and an approved exact-scoped Role Profile are verified before asking",
+    "All six core tranches are completed or represented",
+    "Only one primary question is returned",
+    "The active dependency branch is exhausted before global priority traversal resumes",
+    "Every operator-decision question has one recommendation with canonical cited basis",
+    "Every question includes an explicit stop condition and branch progress",
+    "The operator answer remains authoritative",
+    "The strategy is advisory and does not duplicate RI3 Interview persistence authority"
+  ],
+  "runtime_proof": {
+    "test": "tests/spec135_interview_strategy_e2e_test.py",
+    "result": "passed",
+    "coverage": ["six tranches", "fact-before-question", "active branch", "priority and downstream dependency ordering", "one question", "cited recommendation", "unknown ref rejection", "unapproved Role rejection", "readiness stop", "restart determinism"]
+  },
+  "contract_proof": {
+    "registry_operation_count": 68,
+    "request_schema": "focusa.grill_interview_context.v1",
+    "response_schema": "focusa.grill_interview_strategy_response.v1",
+    "openapi": "docs/contracts/spec135/generated-contract-v1/openapi-3.0.3.json",
+    "typescript_client": "packages/generated/spec135/typescript/schema.d.ts",
+    "go_client": "packages/generated/spec135/go/client.gen.go",
+    "ui_binding": "docs/contracts/spec135/generated-contract-v1/ui-action-bindings.fixture.json"
+  },
+  "generated_ui_proof": {
+    "surface": "packages/a2ui-renderer/proof/interview-strategy.html",
+    "controller": "packages/a2ui-renderer/proof/interview-strategy.ts",
+    "frameworks": ["@a2ui/web_core 0.9.1", "@a2ui/lit 0.9.1", "Focusa Svelte Custom Elements 0.9.120-dev"],
+    "scenario": "uiai-eval.ri2-interview-strategy.scenario.json",
+    "result": "uiai-eval.ri2-interview-strategy.result.json",
+    "session": "zFmKYl6M",
+    "desktop_screenshot": "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/zFmKYl6M-1784647902779401000.png",
+    "mobile_screenshot": "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/zFmKYl6M-1784647930318456000.png",
+    "diagnostics": "uiai-diagnostics:session=zFmKYl6M:seq=7",
+    "diagnostics_summary": {"console_errors":0,"console_warnings":0,"exceptions":0,"failed_requests":0,"http_4xx":0,"http_5xx":0},
+    "mobile_layout": {"viewport_width":390,"body_width":390,"horizontal_overflow":false,"primary_action_width":310}
+  },
+  "authority_boundary": {
+    "strategy_authority": "Focusa Core reusable InterviewStrategy primitive",
+    "state_authority": "Focusa Interview Engine in SPEC135-RI3",
+    "browser_authority": "UIAI Engine",
+    "operator_authority": "Operator answer and steering",
+    "semantic_authority": false
+  }
+}

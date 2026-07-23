@@ -1,0 +1,150 @@
+{
+  "$id": "/v1/agent/schemas/focusa.work_rail_mutation_result.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "evidence_ref": {
+      "type": "string"
+    },
+    "receipt_ref": {
+      "type": "string"
+    },
+    "replayed": {
+      "type": "boolean"
+    },
+    "row": {
+      "properties": {
+        "artifact_refs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "attachment_id": {
+          "type": "string"
+        },
+        "blockers": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "closure_claim_ref": {
+          "type": "string"
+        },
+        "continuity_id": {
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "dependencies": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "focusa_status": {
+          "enum": [
+            "ready",
+            "active",
+            "verifying",
+            "proof_missing",
+            "reconciling",
+            "verified_complete",
+            "provider_closed_focusa_unverified",
+            "cancelled"
+          ]
+        },
+        "idempotency_key": {
+          "type": "string"
+        },
+        "project_root": {
+          "type": "string"
+        },
+        "provider": {
+          "const": "work_item.bd"
+        },
+        "provider_item_id": {
+          "type": "string"
+        },
+        "provider_status": {
+          "type": "string"
+        },
+        "receipt_ref": {
+          "type": "string"
+        },
+        "state_revision": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "title": {
+          "type": "string"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "work_rail_id": {
+          "type": "string"
+        },
+        "working_subpath_id": {
+          "type": "string"
+        },
+        "workpoint_id": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "work_rail_id",
+        "state_revision",
+        "provider",
+        "provider_item_id",
+        "title",
+        "provider_status",
+        "focusa_status",
+        "workpoint_id",
+        "project_root",
+        "working_subpath_id",
+        "continuity_id",
+        "attachment_id",
+        "dependencies",
+        "blockers",
+        "evidence_refs",
+        "artifact_refs",
+        "idempotency_key",
+        "created_at",
+        "updated_at"
+      ],
+      "type": "object"
+    },
+    "schema": {
+      "const": "focusa.work_rail_mutation_result.v1"
+    },
+    "state_version": {
+      "type": "integer"
+    },
+    "tool_result": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema",
+    "state_version",
+    "replayed",
+    "row",
+    "evidence_ref",
+    "receipt_ref",
+    "tool_result"
+  ],
+  "title": "focusa.work_rail_mutation_result.v1",
+  "type": "object",
+  "x-focusa-schema-id": "focusa.work_rail_mutation_result.v1"
+}

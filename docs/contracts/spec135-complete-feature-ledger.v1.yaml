@@ -1,0 +1,4962 @@
+{
+  "authority": "docs/135-series-current-manifest.md",
+  "generated_from": "focusa-mc-* canonical Beads decomposition",
+  "requirement_count": 73,
+  "requirements": [
+    {
+      "acceptance_criteria": [
+        "Versioned Delivery Contract identifies every normative source and amendment",
+        "No requirement is silently deferred"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "verified",
+      "core_types": [],
+      "current_status": "verified",
+      "delivery_lane": "foundation",
+      "dependencies": [],
+      "evidence_requirements": [
+        "delivery-contract artifact",
+        "manifest regression test"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-f0"
+      ],
+      "migration_requirements": [],
+      "normative_text": "F0 Freeze Spec 135\u2013135K and compile authoritative Delivery Contract. Freeze the series, amendments, requirement IDs, supersession rules, and no-deferral contract.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-F0",
+      "source_section": [
+        "135 manifest",
+        "135D \u00a73",
+        "135H \u00a77"
+      ],
+      "source_spec": "135 manifest",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Every requirement has dependencies, owner, state, proof, and closure fields",
+        "DAG is acyclic and exposes ready work"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "verified",
+      "core_types": [],
+      "current_status": "verified",
+      "delivery_lane": "foundation",
+      "dependencies": [
+        "SPEC135-F0"
+      ],
+      "evidence_requirements": [
+        "DAG validation",
+        "matrix coverage audit"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-f1"
+      ],
+      "migration_requirements": [],
+      "normative_text": "F1 Build feature ledger, closure DAG, parity, framework, and proof matrices. Create machine-readable requirement, dependency, reuse, primitive-submission, client, connector, proof, and closure matrices.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-F1",
+      "source_section": [
+        "135D \u00a7\u00a74\u20137",
+        "135H \u00a721"
+      ],
+      "source_spec": "135D \u00a7\u00a74\u20137",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Schemas cover project/workstream/attachment scope and shared envelopes",
+        "Contract generation is deterministic"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "verified",
+      "core_types": [],
+      "current_status": "verified",
+      "delivery_lane": "foundation",
+      "dependencies": [
+        "SPEC135-F1"
+      ],
+      "evidence_requirements": [
+        "schema snapshots",
+        "OpenAPI validation"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-f2"
+      ],
+      "migration_requirements": [],
+      "normative_text": "F2 Publish JSON Schema 2020-12 and OpenAPI 3.0.3 contracts. Generate canonical schema and OpenAPI contracts from Rust owners without duplicate DTO authority.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-F2",
+      "source_section": [
+        "135D \u00a76",
+        "135H Foundation F2",
+        "135J"
+      ],
+      "source_spec": "135D \u00a76",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Generated clients compile and match operation IDs",
+        "No duplicate manual client DTO catalog"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "verified",
+      "core_types": [],
+      "current_status": "verified",
+      "delivery_lane": "foundation",
+      "dependencies": [
+        "SPEC135-F2"
+      ],
+      "evidence_requirements": [
+        "TypeScript check",
+        "Go client compile",
+        "contract diff"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-f3"
+      ],
+      "migration_requirements": [],
+      "normative_text": "F3 Generate TypeScript and Go clients from canonical contracts. Generate openapi-typescript/openapi-fetch and oapi-codegen clients and remove hand-maintained drift.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-F3",
+      "source_section": [
+        "135H Foundation F3",
+        "135I",
+        "135J"
+      ],
+      "source_spec": "135H Foundation F3",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Each generated action resolves exact scope, capability, permission, schema, preview/commit, idempotency, concurrency, Receipt, and recovery",
+        "No second route/action catalog"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "verified",
+      "core_types": [],
+      "current_status": "verified",
+      "delivery_lane": "foundation",
+      "dependencies": [
+        "SPEC135-F2",
+        "SPEC135-F3"
+      ],
+      "evidence_requirements": [
+        "registry completeness audit",
+        "binding fixtures"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-f4"
+      ],
+      "migration_requirements": [],
+      "normative_text": "F4 Implement Operation Registry, capability projection, and UI Action Bindings. Make one generated operation authority for API, Pi, UIAI, connectors, and generated UI actions.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-F4",
+      "source_section": [
+        "135H Foundation F4",
+        "135I \u00a73",
+        "135J"
+      ],
+      "source_spec": "135H Foundation F4",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "All covered operations use canonical constructors and failure classes",
+        "Generated clients consume the same envelope"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "verified",
+      "core_types": [],
+      "current_status": "verified",
+      "delivery_lane": "foundation",
+      "dependencies": [
+        "SPEC135-F4"
+      ],
+      "evidence_requirements": [
+        "envelope contract tests",
+        "failure recovery tests"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-f5"
+      ],
+      "migration_requirements": [],
+      "normative_text": "F5 Unify ToolResult and error envelopes. Adopt one typed success/error/recovery envelope across CLI, API, Pi, UIAI, connectors, and clients.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-F5",
+      "source_section": [
+        "135H Foundation F5",
+        "135J"
+      ],
+      "source_spec": "135H Foundation F5",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Cursor and Last-Event-ID replay survive restart",
+        "Live tail continues from durable replay without gaps or duplicates"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "verified",
+      "core_types": [],
+      "current_status": "verified",
+      "delivery_lane": "foundation",
+      "dependencies": [
+        "SPEC135-F5"
+      ],
+      "evidence_requirements": [
+        "restart replay test",
+        "stream sequence test"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-f6"
+      ],
+      "migration_requirements": [],
+      "normative_text": "F6 Implement durable SQLite replay plus broadcast live tail. Persist stable event IDs/sequences/cursors and serve replay plus live broadcast without duplicate histories.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-F6",
+      "source_section": [
+        "135H Foundation F6",
+        "135I \u00a74",
+        "135J"
+      ],
+      "source_spec": "135H Foundation F6",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Unauthorized or version-incompatible actions fail closed with recovery",
+        "Permission projection is scope exact"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "verified",
+      "core_types": [],
+      "current_status": "verified",
+      "delivery_lane": "foundation",
+      "dependencies": [
+        "SPEC135-F4",
+        "SPEC135-F6"
+      ],
+      "evidence_requirements": [
+        "capability matrix test",
+        "handshake compatibility test"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-f7"
+      ],
+      "migration_requirements": [],
+      "normative_text": "F7 Project capabilities, permissions, and protocol/version handshake. Project exact capabilities and permissions into clients and generated UI with fail-closed version negotiation.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-F7",
+      "source_section": [
+        "135H Foundation F7",
+        "135I",
+        "135J"
+      ],
+      "source_spec": "135H Foundation F7",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Execution is governed, resumable, cancellation-aware, and envelope-compatible",
+        "No model runtime bypasses Focusa authority"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "verified",
+      "core_types": [],
+      "current_status": "verified",
+      "delivery_lane": "foundation",
+      "dependencies": [
+        "SPEC135-F5",
+        "SPEC135-F7"
+      ],
+      "evidence_requirements": [
+        "Pi RPC integration test",
+        "resume/cancel proof"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-f8"
+      ],
+      "migration_requirements": [],
+      "normative_text": "F8 Implement Pi RPC AgentExecutionAdapter. Use Spec 133 governed sessions through a Pi RPC execution adapter without competing orchestration.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-F8",
+      "source_section": [
+        "135H Foundation F8",
+        "135D fixed stack"
+      ],
+      "source_spec": "135H Foundation F8",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "A2UI snapshot/delta fixtures render deterministically",
+        "No complete custom Svelte renderer or Playwright dependency"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "verified",
+      "core_types": [],
+      "current_status": "verified",
+      "delivery_lane": "foundation",
+      "dependencies": [
+        "SPEC135-F4",
+        "SPEC135-F6",
+        "SPEC135-F7"
+      ],
+      "evidence_requirements": [
+        "A2UI fixture tests",
+        "renderer smoke"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-f9"
+      ],
+      "migration_requirements": [],
+      "normative_text": "F9 Integrate A2UI web_core and permanent Lit renderer. Adopt A2UI v0.9.1 web_core and Lit renderer as the permanent generated UI runtime.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-F9",
+      "source_section": [
+        "135H Foundation F9",
+        "135I",
+        "135J"
+      ],
+      "source_spec": "135H Foundation F9",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Catalog covers required stage primitives and recovery states",
+        "Components pass Vitest and accessibility checks"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "verified",
+      "core_types": [],
+      "current_status": "verified",
+      "delivery_lane": "foundation",
+      "dependencies": [
+        "SPEC135-F9"
+      ],
+      "evidence_requirements": [
+        "component tests",
+        "catalog conformance fixtures"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-f10"
+      ],
+      "migration_requirements": [],
+      "normative_text": "F10 Build trusted Focusa Svelte Custom Elements catalog. Implement trusted Focusa components for required generated surfaces, terminal fallback, responsive layout, and accessibility.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-F10",
+      "source_section": [
+        "135H Foundation F10",
+        "135I"
+      ],
+      "source_spec": "135H Foundation F10",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Eval proves action binding, rendering, recovery, and Evidence capture",
+        "Diagnostics are retained as bounded evidence"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "verified",
+      "core_types": [],
+      "current_status": "verified",
+      "delivery_lane": "foundation",
+      "dependencies": [
+        "SPEC135-F9",
+        "SPEC135-F10"
+      ],
+      "evidence_requirements": [
+        "UIAI Eval artifact",
+        "browser diagnostics evidence"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-f11"
+      ],
+      "migration_requirements": [],
+      "normative_text": "F11 Establish first UIAI Engine Eval generated-UI scenario. Create the first deterministic UIAI browser evaluation for generated Mission Canvas behavior.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-F11",
+      "source_section": [
+        "135H Foundation F11",
+        "135C",
+        "135I"
+      ],
+      "source_spec": "135H Foundation F11",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Real Context mutation traverses the complete canonical stack",
+        "Result survives restart and exact resume"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "verified",
+      "core_types": [],
+      "current_status": "verified",
+      "delivery_lane": "foundation",
+      "dependencies": [
+        "SPEC135-F3",
+        "SPEC135-F4",
+        "SPEC135-F5",
+        "SPEC135-F6",
+        "SPEC135-F7",
+        "SPEC135-F8",
+        "SPEC135-F9",
+        "SPEC135-F10",
+        "SPEC135-F11"
+      ],
+      "evidence_requirements": [
+        "end-to-end Alpha seed proof",
+        "Receipt and Evidence refs"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-f12"
+      ],
+      "migration_requirements": [],
+      "normative_text": "F12 Execute one real Context operation through generated UI. Complete the first production-shaped operation from generated UI through canonical commit, event, Evidence/Receipt, and UI delta.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-F12",
+      "source_section": [
+        "135H Foundation F12",
+        "135I"
+      ],
+      "source_spec": "135H Foundation F12",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Real Markdown/code and PDF ingest without mock providers",
+        "Generated Context UI shows progress, health, retry, and source scope"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "verified",
+      "core_types": [],
+      "current_status": "verified",
+      "delivery_lane": "context",
+      "dependencies": [
+        "SPEC135-F12"
+      ],
+      "evidence_requirements": [
+        "ingestion integration tests",
+        "UIAI Context eval"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-c1"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Context document ingestion: Markdown, code, PDF, Docling, and source health. Implement real document ingestion with UIAI Documents, Docling Serve v1, HybridChunker, progress, health, and recovery.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-C1",
+      "source_section": [
+        "135B Context",
+        "135H Alpha 1",
+        "135I Context"
+      ],
+      "source_spec": "135B Context",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Retrieval is deterministic, scoped, cited, and restart-safe",
+        "Vector absence degrades safely to lexical retrieval"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "verified",
+      "core_types": [],
+      "current_status": "verified",
+      "delivery_lane": "context",
+      "dependencies": [
+        "SPEC135-C1",
+        "SPEC135-F6"
+      ],
+      "evidence_requirements": [
+        "retrieval quality fixtures",
+        "restart proof"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-c2"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Context retrieval: SQLite FTS5, sqlite-vec, fastembed, citations, and contradiction support. Build bounded hybrid retrieval and evidence-backed citation primitives reusable across domains.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-C2",
+      "source_section": [
+        "135B",
+        "135D fixed stack",
+        "135F"
+      ],
+      "source_spec": "135B",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Claims retain provenance and scope",
+        "Contradictions require explicit resolution and update reactive views"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "verified",
+      "core_types": [],
+      "current_status": "verified",
+      "delivery_lane": "context",
+      "dependencies": [
+        "SPEC135-C2",
+        "SPEC135-F7"
+      ],
+      "evidence_requirements": [
+        "claim reducer tests",
+        "contradiction UI eval"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-c3"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Context claim graph, contradiction review, approval, and reactive projection. Persist claims, sources, contradictions, decisions, and approval state through canonical reducers and generated UI.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-C3",
+      "source_section": [
+        "135B Context",
+        "135F reactive context",
+        "135I"
+      ],
+      "source_spec": "135B Context",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Connector uses canonical typed adapter and permissions",
+        "Imported artifacts enter the same Context pipeline"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "context",
+      "dependencies": [
+        "SPEC135-C3",
+        "SPEC135-P2"
+      ],
+      "evidence_requirements": [
+        "wiremock connector tests",
+        "credential redaction audit"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-c4"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Google Drive Context connector through typed connector framework. Implement scoped Google Drive discovery/import with OAuth, keyring, capability, health, and recovery.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-C4",
+      "source_section": [
+        "135B",
+        "135D connectors"
+      ],
+      "source_spec": "135B",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Role separates responsibility from permission and exposes assumptions",
+        "Approval is durable, auditable, and resumable"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "mission_canvas",
+        "pi",
+        "typescript"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "role_interview",
+      "dependencies": [
+        "SPEC135-F12",
+        "SPEC135-C3"
+      ],
+      "evidence_requirements": [
+        "Role reducer/API tests",
+        "generated Role UI eval"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "mission_canvas",
+        "pi",
+        "typescript"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-ri1"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Role seed, grounded draft, assumptions, redline, responsibility, permission, and approval. Implement canonical Role state and generated approval UI grounded in Context evidence.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-RI1",
+      "source_section": [
+        "135B Role",
+        "135I Role"
+      ],
+      "source_spec": "135B Role",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Retrieval occurs before questions",
+        "Each question has recommendation, sources, dependency branch, and stop condition"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "mission_canvas",
+        "pi",
+        "typescript"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "role_interview",
+      "dependencies": [
+        "SPEC135-RI1"
+      ],
+      "evidence_requirements": [
+        "strategy fixtures",
+        "question sequencing tests"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "mission_canvas",
+        "pi",
+        "typescript"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-ri2"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Grill Interview strategy with retrieval-first, one-question decisions, and tranches. Implement focusa.interview.strategy.grill-with-docs.v1 with Discovery, Boundary, Failure, Evidence, Architecture, and Spec-Readiness tranches.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-RI2",
+      "source_section": [
+        "135B Interview",
+        "135H \u00a7\u00a74\u20136"
+      ],
+      "source_spec": "135B Interview",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Close/reopen/restart resumes exact question and branch state",
+        "Deferred branches remain visible and governed"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "mission_canvas",
+        "pi",
+        "typescript"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "role_interview",
+      "dependencies": [
+        "SPEC135-RI2",
+        "SPEC135-F6"
+      ],
+      "evidence_requirements": [
+        "restart/resume integration test",
+        "Interview UIAI eval"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "mission_canvas",
+        "pi",
+        "typescript"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-ri3"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Durable Interview branch graph, autosave, pause, close, reopen, and exact resume. Persist Interview questions, answers, recommendations, branch relationships, progress, and recovery state.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-RI3",
+      "source_section": [
+        "135B",
+        "135H Alpha 2",
+        "135I Interview"
+      ],
+      "source_spec": "135B",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Artifacts cite source questions/evidence and support supersession",
+        "Closure package feeds Spec workbench without transcript dependence"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "mission_canvas",
+        "pi",
+        "typescript"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "role_interview",
+      "dependencies": [
+        "SPEC135-RI3"
+      ],
+      "evidence_requirements": [
+        "artifact snapshot tests",
+        "provenance audit"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "mission_canvas",
+        "pi",
+        "typescript"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-ri4"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Governed glossary, ADR candidates, compendium, and Role/Interview closure package. Produce reusable glossary, decision, architecture, and compendium artifacts from approved Interview state.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-RI4",
+      "source_section": [
+        "135B",
+        "135H"
+      ],
+      "source_spec": "135B",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Sections, objections, evidence, approval, and amendment state persist",
+        "Workbench can close and resume exactly"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "spec_tasks",
+      "dependencies": [
+        "SPEC135-RI3",
+        "SPEC135-C3"
+      ],
+      "evidence_requirements": [
+        "Spec 120 integration test",
+        "Workbench UI eval"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-st1"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Spec 120 Workbench cycle: sections, grounding, objections, approvals, and amendments. Run a real governed Spec 120 cycle through canonical state and generated Workbench UI.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-ST1",
+      "source_section": [
+        "135B Spec",
+        "135H Alpha 3",
+        "135I Spec"
+      ],
+      "source_spec": "135B Spec",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Task graph preserves requirement and proof links",
+        "No task materializes before approval"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "spec_tasks",
+      "dependencies": [
+        "SPEC135-ST1",
+        "SPEC135-P1"
+      ],
+      "evidence_requirements": [
+        "DAG validator",
+        "preview/approval tests"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-st2"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Provider-neutral task plan, dependency graph, preview, edit, and approval. Generate a provider-neutral task DAG from approved specs with operator preview/edit/approval.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-ST2",
+      "source_section": [
+        "135B Tasks",
+        "135H Alpha 3",
+        "135I Tasks"
+      ],
+      "source_spec": "135B Tasks",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "No worktree-local database is created",
+        "IDs remain stable through merge and every task links requirement/dependency/proof"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "spec_tasks",
+      "dependencies": [
+        "SPEC135-ST2"
+      ],
+      "evidence_requirements": [
+        "Beads parity audit",
+        "prefix collision test"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-st3"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Materialize approved task graph into shared Beads with worktree prefix. Materialize tasks into the canonical parent Beads database using stable worktree-specific prefixes and dependency links.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-ST3",
+      "source_section": [
+        "135B Tasks",
+        "135D machine-readable graph",
+        "Issue #10"
+      ],
+      "source_spec": "135B Tasks",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Workpoint authority includes project, working sub-path, continuity, and bead",
+        "Closure requires linked proof and emits Receipt"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "spec_tasks",
+      "dependencies": [
+        "SPEC135-ST3",
+        "SPEC135-F6",
+        "SPEC135-F7"
+      ],
+      "evidence_requirements": [
+        "checkpoint/resume tests",
+        "Evidence/Receipt audit"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-st4"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Workpoint, Work Rail, Evidence, closure, and Receipt lifecycle. Connect approved Beads to scoped Workpoints, progress projection, Evidence, closure verification, and Receipts.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-ST4",
+      "source_section": [
+        "135A Work Rail",
+        "135B",
+        "135H Alpha 4",
+        "135I Continuation"
+      ],
+      "source_spec": "135A Work Rail",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Mission Canvas is the canonical product surface, not a decorative duplicate",
+        "Workspace projects canonical read models only"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "mission_canvas",
+      "dependencies": [
+        "SPEC135-F12"
+      ],
+      "evidence_requirements": [
+        "naming/static guard",
+        "workspace integration smoke"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-m1"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Professional Workspace and Mission Canvas canonical shell. Implement the canonical professional workspace shell and Mission Canvas naming, routing, command, and state boundaries.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-M1",
+      "source_section": [
+        "135 master",
+        "135A",
+        "135G"
+      ],
+      "source_spec": "135 master",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Active bead/Workpoint/proof/next action stay visible",
+        "Responsive and terminal modes preserve action reachability"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "mission_canvas",
+      "dependencies": [
+        "SPEC135-M1",
+        "SPEC135-ST4"
+      ],
+      "evidence_requirements": [
+        "TUI snapshot tests",
+        "keyboard/mouse proof"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-m2"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Pi sidebar, Work Rail, vertical navigation, responsive and terminal projection. Implement Pi sidebar and Work Rail projections with vertical UX, keyboard/mouse parity, narrow layouts, and ASCII fallback.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-M2",
+      "source_section": [
+        "135A"
+      ],
+      "source_spec": "135A",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Multiple surfaces coexist without state duplication",
+        "Tab/pane identity and lifecycle persist"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "mission_canvas",
+      "dependencies": [
+        "SPEC135-M1"
+      ],
+      "evidence_requirements": [
+        "surface registry tests",
+        "multiplex UI eval"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-m3"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Multiplexed Mission Canvas hierarchy, tabs, panes, and work-surface registry. Implement project\u2192mission\u2192surface hierarchy, surface registry, tabs/panes, status indicators, and bounded projections.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-M3",
+      "source_section": [
+        "135G \u00a7\u00a75\u20138"
+      ],
+      "source_spec": "135G \u00a7\u00a75\u20138",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Every mutation resolves exact attachment scope",
+        "Cross-surface targeting fails closed"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "mission_canvas",
+      "dependencies": [
+        "SPEC135-M3"
+      ],
+      "evidence_requirements": [
+        "attachment scope tests",
+        "cross-surface denial proof"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-m4"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Session Attachments and exact action/evidence targeting. Bind sessions, browser contexts, files, operations, Evidence, and actions to exact project/workstream/surface attachments.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-M4",
+      "source_section": [
+        "135G \u00a7\u00a79\u201312"
+      ],
+      "source_spec": "135G \u00a7\u00a79\u201312",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "No browser context leaks across surfaces or projects",
+        "Cleanup and recovery retain Evidence handles"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "mission_canvas",
+      "dependencies": [
+        "SPEC135-M4",
+        "SPEC135-U1"
+      ],
+      "evidence_requirements": [
+        "browser isolation eval",
+        "cookie/session separation test"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-m5"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Browser-context isolation and UIAI session ownership. Isolate browser sessions, cookies, diagnostics, artifacts, and cleanup by attachment and Work Surface.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-M5",
+      "source_section": [
+        "135G \u00a7\u00a713\u201314"
+      ],
+      "source_spec": "135G \u00a7\u00a713\u201314",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Restart restores exact surfaces, tabs, attachments, and next action",
+        "Stale surfaces recover explicitly"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "mission_canvas",
+      "dependencies": [
+        "SPEC135-M4",
+        "SPEC135-M5",
+        "SPEC135-F6"
+      ],
+      "evidence_requirements": [
+        "restart/resume scenario suite",
+        "migration proof"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-m6"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Mission Canvas persistence, pause, restart, reopen, and exact surface resume. Persist multiplexed surface topology, attachment state, cursors, and selected context through restart.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-M6",
+      "source_section": [
+        "135G \u00a7\u00a715\u201318",
+        "135H Alpha 6"
+      ],
+      "source_spec": "135G \u00a7\u00a715\u201318",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Keyboard, screen-reader, contrast, reduced-motion, and error recovery pass",
+        "No raw JSON is required for primary tasks"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "mission_canvas",
+      "dependencies": [
+        "SPEC135-M2",
+        "SPEC135-M3"
+      ],
+      "evidence_requirements": [
+        "accessibility audit",
+        "nontechnical usability eval"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-m7"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Mission Canvas accessibility, recovery states, and nontechnical interaction clarity. Ensure all Mission Canvas controls have accessible, understandable, recoverable behavior across visual and terminal surfaces.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-M7",
+      "source_section": [
+        "135A",
+        "135G",
+        "135I",
+        "135K"
+      ],
+      "source_spec": "135A",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Artifacts retain source, scope, diagnostics, and Evidence refs",
+        "No UIAI state becomes canonical Focusa state"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "uiai_uxp",
+      "dependencies": [
+        "SPEC135-F11",
+        "SPEC135-F12"
+      ],
+      "evidence_requirements": [
+        "bridge contract tests",
+        "research packet proof"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-u1"
+      ],
+      "migration_requirements": [],
+      "normative_text": "UIAI rich artifact and research bridge through canonical contracts. Implement provider-neutral research/artifact intake, bounded diagnostics, citations, and attachment-scoped artifact projection.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-U1",
+      "source_section": [
+        "135C"
+      ],
+      "source_spec": "135C",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Relevant canonical changes produce bounded deltas automatically",
+        "Reconnect replays missed updates exactly once"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "uiai_uxp",
+      "dependencies": [
+        "SPEC135-U1",
+        "SPEC135-F6"
+      ],
+      "evidence_requirements": [
+        "live-refresh integration test",
+        "reconnect eval"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-u2"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Automatic artifact live refresh from canonical events and Evidence. Refresh generated artifacts from durable event replay/live tail without polling-only or duplicate history.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-U2",
+      "source_section": [
+        "135C",
+        "135H Alpha 5"
+      ],
+      "source_spec": "135C",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "All required browser scenarios produce reproducible evidence",
+        "No Playwright dependency is introduced"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "uiai_uxp",
+      "dependencies": [
+        "SPEC135-U2",
+        "SPEC135-M5"
+      ],
+      "evidence_requirements": [
+        "UIAI Eval matrix",
+        "diagnostics intake refs"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-u3"
+      ],
+      "migration_requirements": [],
+      "normative_text": "UIAI browser Eval suite for generated actions, refresh, recovery, and isolation. Cover every browser-facing critical path with UIAI Engine Eval and diagnostics-first failure evidence.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-U3",
+      "source_section": [
+        "135C",
+        "135G",
+        "135H"
+      ],
+      "source_spec": "135C",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Primary actions, autosave, progress, sources, and recovery are clear",
+        "Accessibility checks pass for every trusted component"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "uiai_uxp",
+      "dependencies": [
+        "SPEC135-U3",
+        "SPEC135-M7"
+      ],
+      "evidence_requirements": [
+        "moderated usability scenarios",
+        "accessibility fixtures"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-u4"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Generated UI accessibility and nontechnical usability proof. Verify generated surfaces are understandable, operable, recoverable, and resumable by nontechnical operators.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-U4",
+      "source_section": [
+        "135I",
+        "135K"
+      ],
+      "source_spec": "135I",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Friction data is scoped, privacy-safe, inspectable, and linked to outcomes",
+        "Learning never silently mutates canonical UI behavior"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "uiai_uxp",
+      "dependencies": [
+        "SPEC135-U4",
+        "SPEC135-ALPHA8"
+      ],
+      "evidence_requirements": [
+        "friction event tests",
+        "privacy audit",
+        "learning evaluation"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-u5"
+      ],
+      "migration_requirements": [],
+      "normative_text": "UXP/UFI friction telemetry and learning loop. Capture bounded friction events, explanations, recovery outcomes, and reusable improvements without surveillance or hidden authority.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-U5",
+      "source_section": [
+        "135K \u00a7\u00a75\u201312"
+      ],
+      "source_spec": "135K \u00a7\u00a75\u201312",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Only improvements beating baseline and thresholds promote",
+        "Rollback restores prior artifact deterministically"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "uiai_uxp",
+      "dependencies": [
+        "SPEC135-U5",
+        "SPEC135-Q1"
+      ],
+      "evidence_requirements": [
+        "optimizer eval",
+        "promotion/rollback proof"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-u6"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Adaptive generated-UI proposal, evaluation, promotion, and rollback. Turn validated friction learning into versioned generated-UI proposals with evaluation, operator control, promotion, and rollback.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-U6",
+      "source_section": [
+        "135K"
+      ],
+      "source_spec": "135K",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Ontology state is canonical, typed, replayable, and evidence-linked",
+        "C.R.I.S.T. remains a projection, not core ownership"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "ontology_domain",
+      "dependencies": [
+        "SPEC135-F4",
+        "SPEC135-F5",
+        "SPEC135-F6"
+      ],
+      "evidence_requirements": [
+        "ontology contract tests",
+        "replay proof"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-v1"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Domain-general ontology core and canonical semantic identifiers. Implement reusable ontology primitives, semantic identifiers, relationships, provenance, versioning, and bounded reads.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-V1",
+      "source_section": [
+        "135F \u00a7\u00a74\u20138"
+      ],
+      "source_spec": "135F \u00a7\u00a74\u20138",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Traversal is bounded and scope-safe",
+        "Snapshot/event migration preserves identifiers and provenance"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "ontology_domain",
+      "dependencies": [
+        "SPEC135-V1"
+      ],
+      "evidence_requirements": [
+        "graph property tests",
+        "migration fixtures"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-v2"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Semantic graph storage, traversal, freshness, and migration. Implement graph storage/projection with bounded traversal, snapshots, freshness, migrations, and APIs.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-V2",
+      "source_section": [
+        "135F \u00a7\u00a79\u201316"
+      ],
+      "source_spec": "135F \u00a7\u00a79\u201316",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Pack is removable/configurable and does not fork core state",
+        "Projection parity fixtures pass"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "ontology_domain",
+      "dependencies": [
+        "SPEC135-V2"
+      ],
+      "evidence_requirements": [
+        "domain-pack conformance"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-v3"
+      ],
+      "migration_requirements": [],
+      "normative_text": "General domain pack over canonical ontology state. Implement general-purpose terminology, workflows, generated surfaces, and policy projections.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-V3",
+      "source_section": [
+        "135F required packs"
+      ],
+      "source_spec": "135F required packs",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Code claims cite parsed reality",
+        "Graph updates react to bounded repository changes"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "ontology_domain",
+      "dependencies": [
+        "SPEC135-V2"
+      ],
+      "evidence_requirements": [
+        "parser fixtures",
+        "software projection eval"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-v4"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Software domain pack with code/graph reality. Integrate petgraph, Tree-sitter, and ast-grep for evidence-backed software project projections.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-V4",
+      "source_section": [
+        "135F",
+        "135D code reality"
+      ],
+      "source_spec": "135F",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Research pack reuses core source/claim primitives",
+        "Artifacts remain attachment scoped"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "ontology_domain",
+      "dependencies": [
+        "SPEC135-V2",
+        "SPEC135-U1"
+      ],
+      "evidence_requirements": [
+        "research pack conformance"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-v5"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Research domain pack with sources, claims, and artifact workflows. Project research terminology and workflows over identical canonical Context/Evidence state.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-V5",
+      "source_section": [
+        "135F",
+        "135C"
+      ],
+      "source_spec": "135F",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Selection order is deterministic and explainable",
+        "Switching packs does not fork or lose state"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "ontology_domain",
+      "dependencies": [
+        "SPEC135-V3",
+        "SPEC135-V4",
+        "SPEC135-V5",
+        "SPEC135-F6"
+      ],
+      "evidence_requirements": [
+        "selection property tests",
+        "three-pack Alpha proof"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-v6"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Reactive domain-pack selection and General\u2192Software\u2192Research parity. Select and update domain projections deterministically from policy and context while preserving identical underlying state.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-V6",
+      "source_section": [
+        "135F \u00a713",
+        "135H Alpha 7"
+      ],
+      "source_spec": "135F \u00a713",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Providers cannot bypass scope, permission, idempotency, or Receipt requirements",
+        "Parity matrix covers supported providers"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "providers_connectors",
+      "dependencies": [
+        "SPEC135-F3",
+        "SPEC135-F4",
+        "SPEC135-F5",
+        "SPEC135-F8"
+      ],
+      "evidence_requirements": [
+        "provider conformance suite"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-p1"
+      ],
+      "migration_requirements": [
+        "expand-contract compatibility"
+      ],
+      "normative_text": "Provider-neutral execution, model, and operation contracts. Define typed provider-neutral execution contracts that preserve Focusa governance and generated operation authority.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-P1",
+      "source_section": [
+        "135D",
+        "135E",
+        "135J"
+      ],
+      "source_spec": "135D",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Connector state, health, errors, and recovery use canonical envelopes",
+        "Mock-only connectors cannot close requirements"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "providers_connectors",
+      "dependencies": [
+        "SPEC135-P1",
+        "SPEC135-F7"
+      ],
+      "evidence_requirements": [
+        "wiremock conformance",
+        "connector health tests"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-p2"
+      ],
+      "migration_requirements": [
+        "expand-contract compatibility"
+      ],
+      "normative_text": "Typed connector framework with capability, health, retry, and rate policy. Implement reusable connector primitives using reqwest/serde and generated or typed adapters.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-P2",
+      "source_section": [
+        "135D connectors",
+        "135E"
+      ],
+      "source_spec": "135D connectors",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Secrets never enter logs/Evidence/public artifacts",
+        "Revocation and expiry produce deterministic recovery"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "providers_connectors",
+      "dependencies": [
+        "SPEC135-P2"
+      ],
+      "evidence_requirements": [
+        "secret scan",
+        "OAuth lifecycle tests"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-p3"
+      ],
+      "migration_requirements": [
+        "expand-contract compatibility"
+      ],
+      "normative_text": "OAuth2, keyring, secret redaction, and connector permission lifecycle. Adopt oauth2-rs and keyring-rs for secure scoped connector authorization and revocation.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-P3",
+      "source_section": [
+        "135D security/connectors",
+        "135E"
+      ],
+      "source_spec": "135D security/connectors",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Adapter is downstream, stateless with respect to canonical history, and replay compatible",
+        "Native path remains authoritative"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "providers_connectors",
+      "dependencies": [
+        "SPEC135-F6",
+        "SPEC135-F9"
+      ],
+      "evidence_requirements": [
+        "adapter parity tests"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-p4"
+      ],
+      "migration_requirements": [
+        "expand-contract compatibility"
+      ],
+      "normative_text": "AG-UI compatibility adapter after native stream stabilization. Translate native Focusa/A2UI events for AG-UI consumers without creating another history or blocking Alpha.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-P4",
+      "source_section": [
+        "135D",
+        "135I",
+        "135J"
+      ],
+      "source_spec": "135D",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "All readers/writers and generated clients pass parity matrix",
+        "Removal occurs only after compatibility proof"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "providers_connectors",
+      "dependencies": [
+        "SPEC135-P1",
+        "SPEC135-P2",
+        "SPEC135-P4"
+      ],
+      "evidence_requirements": [
+        "cross-client matrix",
+        "migration receipts"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-p5"
+      ],
+      "migration_requirements": [
+        "expand-contract compatibility"
+      ],
+      "normative_text": "Provider, connector, client, and stream parity migration. Migrate existing consumers with expand-contract and prove parity before old forms are removed.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-P5",
+      "source_section": [
+        "135E \u00a7\u00a78\u201314"
+      ],
+      "source_spec": "135E \u00a7\u00a78\u201314",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Trust boundaries and fail-closed rules are explicit and tested",
+        "Operator authority and confirmation requirements are preserved"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "pi"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "quality",
+      "dependencies": [
+        "SPEC135-F7"
+      ],
+      "evidence_requirements": [
+        "threat model",
+        "scope denial tests"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [],
+      "implementation_tasks": [
+        "focusa-mc-q1"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Threat model and exact project/workstream/attachment/action scope policy. Threat-model generated actions, work surfaces, attachments, connectors, events, and multi-agent worktrees.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-Q1",
+      "source_section": [
+        "135D",
+        "135G",
+        "135J"
+      ],
+      "source_spec": "135D",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": []
+    },
+    {
+      "acceptance_criteria": [
+        "No secrets/customer/runtime data leak",
+        "Auth and permission gates cover every mutation and stream"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "pi"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "quality",
+      "dependencies": [
+        "SPEC135-Q1"
+      ],
+      "evidence_requirements": [
+        "security audit",
+        "redaction tests"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [],
+      "implementation_tasks": [
+        "focusa-mc-q2"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Security, privacy, auth, permission, and data-minimization gates. Implement cross-series security/privacy controls and public/private boundary enforcement.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-Q2",
+      "source_section": [
+        "135A\u2013135K security sections"
+      ],
+      "source_spec": "135A\u2013135K security sections",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": []
+    },
+    {
+      "acceptance_criteria": [
+        "Budgets are measurable and regression-gated",
+        "Large graphs/tables/artifacts virtualize and bound payloads"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "pi"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "quality",
+      "dependencies": [
+        "SPEC135-F12"
+      ],
+      "evidence_requirements": [
+        "benchmarks",
+        "load/soak tests"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [],
+      "implementation_tasks": [
+        "focusa-mc-q3"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Performance, resource, latency, virtualization, and bounded-output budgets. Enforce startup, interaction, stream, graph, retrieval, rendering, and output budgets with graceful degradation.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-Q3",
+      "source_section": [
+        "135D performance laws",
+        "135F \u00a720",
+        "135G performance",
+        "135J"
+      ],
+      "source_spec": "135D performance laws",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": []
+    },
+    {
+      "acceptance_criteria": [
+        "Duplicate commits are prevented",
+        "Every interruption has explicit recoverable state"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "pi"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "quality",
+      "dependencies": [
+        "SPEC135-F6",
+        "SPEC135-F7"
+      ],
+      "evidence_requirements": [
+        "fault injection",
+        "restart/chaos suite"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [],
+      "implementation_tasks": [
+        "focusa-mc-q4"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Recovery, idempotency, concurrency, restart, chaos, and exact-resume suite. Prove preview/commit, optimistic concurrency, retries, replay, crash recovery, and exact resume across the product.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-Q4",
+      "source_section": [
+        "135D",
+        "135E",
+        "135G",
+        "135J"
+      ],
+      "source_spec": "135D",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": []
+    },
+    {
+      "acceptance_criteria": [
+        "No forbidden or unknown dependency ships",
+        "SBOM and notices are reproducible"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "pi"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "quality",
+      "dependencies": [
+        "SPEC135-F3",
+        "SPEC135-F9",
+        "SPEC135-F10",
+        "SPEC135-P2"
+      ],
+      "evidence_requirements": [
+        "cargo-deny/about",
+        "Syft artifacts"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [],
+      "implementation_tasks": [
+        "focusa-mc-q5"
+      ],
+      "migration_requirements": [],
+      "normative_text": "License inventory, notices, cargo-deny/about, and Syft SBOM. Verify framework, package, model, and container licenses and generate required notices/SBOM.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-Q5",
+      "source_section": [
+        "135D fixed stack/compliance"
+      ],
+      "source_spec": "135D fixed stack/compliance",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": []
+    },
+    {
+      "acceptance_criteria": [
+        "Any failing required check blocks closure",
+        "Gate emits bounded Evidence and actionable recovery"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "pi"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "quality",
+      "dependencies": [
+        "SPEC135-Q2",
+        "SPEC135-Q3",
+        "SPEC135-Q4",
+        "SPEC135-Q5"
+      ],
+      "evidence_requirements": [
+        "consolidated regression gate",
+        "public-surface guard"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [],
+      "implementation_tasks": [
+        "focusa-mc-q6"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Cross-series quality, compatibility, public-surface, and release gate. Aggregate security, performance, recovery, license, compatibility, docs, and public-surface proof into one fail-closed gate.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-Q6",
+      "source_section": [
+        "135D",
+        "135E",
+        "135H"
+      ],
+      "source_spec": "135D",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": []
+    },
+    {
+      "acceptance_criteria": [
+        "Real sources ingest, retrieve, cite, and render with restart-safe state"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "alpha",
+      "dependencies": [
+        "SPEC135-C3",
+        "SPEC135-U2",
+        "SPEC135-F12"
+      ],
+      "evidence_requirements": [
+        "Cross-Functional Alpha evidence",
+        "UIAI Eval where browser-facing"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-alpha1"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Alpha 1: real Markdown/code and PDF Context ingestion through generated UI. Alpha 1: real Markdown/code and PDF Context ingestion through generated UI",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-ALPHA1",
+      "source_section": [
+        "135H Alpha 1"
+      ],
+      "source_spec": "135H Alpha 1",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Role approval and Interview exact resume work through generated UI"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "alpha",
+      "dependencies": [
+        "SPEC135-ALPHA1",
+        "SPEC135-RI3"
+      ],
+      "evidence_requirements": [
+        "Cross-Functional Alpha evidence",
+        "UIAI Eval where browser-facing"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-alpha2"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Alpha 2: real Role approval and Grill Interview close/resume. Alpha 2: real Role approval and Grill Interview close/resume",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-ALPHA2",
+      "source_section": [
+        "135H Alpha 2"
+      ],
+      "source_spec": "135H Alpha 2",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Approved spec materializes a correctly linked shared-database bead"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "alpha",
+      "dependencies": [
+        "SPEC135-ALPHA2",
+        "SPEC135-ST3"
+      ],
+      "evidence_requirements": [
+        "Cross-Functional Alpha evidence",
+        "UIAI Eval where browser-facing"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-alpha3"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Alpha 3: real Spec 120 cycle and provider-neutral Beads task. Alpha 3: real Spec 120 cycle and provider-neutral Beads task",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-ALPHA3",
+      "source_section": [
+        "135H Alpha 3"
+      ],
+      "source_spec": "135H Alpha 3",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Task executes through verified Workpoint and closes only with Evidence/Receipt"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "alpha",
+      "dependencies": [
+        "SPEC135-ALPHA3",
+        "SPEC135-ST4",
+        "SPEC135-M2"
+      ],
+      "evidence_requirements": [
+        "Cross-Functional Alpha evidence",
+        "UIAI Eval where browser-facing"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-alpha4"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Alpha 4: Workpoint, Work Rail, Evidence, closure, and Receipt. Alpha 4: Workpoint, Work Rail, Evidence, closure, and Receipt",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-ALPHA4",
+      "source_section": [
+        "135H Alpha 4"
+      ],
+      "source_spec": "135H Alpha 4",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Artifact refreshes automatically from canonical events and retains Evidence"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "alpha",
+      "dependencies": [
+        "SPEC135-ALPHA4",
+        "SPEC135-U3"
+      ],
+      "evidence_requirements": [
+        "Cross-Functional Alpha evidence",
+        "UIAI Eval where browser-facing"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-alpha5"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Alpha 5: UIAI artifact, Evidence, and automatic live refresh. Alpha 5: UIAI artifact, Evidence, and automatic live refresh",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-ALPHA5",
+      "source_section": [
+        "135H Alpha 5"
+      ],
+      "source_spec": "135H Alpha 5",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Multiplexed surfaces and browser contexts remain isolated and resumable"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "alpha",
+      "dependencies": [
+        "SPEC135-ALPHA5",
+        "SPEC135-M6"
+      ],
+      "evidence_requirements": [
+        "Cross-Functional Alpha evidence",
+        "UIAI Eval where browser-facing"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-alpha6"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Alpha 6: Pi/UIAI Work Surfaces, attachments, and browser isolation. Alpha 6: Pi/UIAI Work Surfaces, attachments, and browser isolation",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-ALPHA6",
+      "source_section": [
+        "135H Alpha 6"
+      ],
+      "source_spec": "135H Alpha 6",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Three domain projections preserve identical canonical state"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "alpha",
+      "dependencies": [
+        "SPEC135-ALPHA6",
+        "SPEC135-V6"
+      ],
+      "evidence_requirements": [
+        "Cross-Functional Alpha evidence",
+        "UIAI Eval where browser-facing"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-alpha7"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Alpha 7: General\u2192Software\u2192Research projection over identical state. Alpha 7: General\u2192Software\u2192Research projection over identical state",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-ALPHA7",
+      "source_section": [
+        "135H Alpha 7"
+      ],
+      "source_spec": "135H Alpha 7",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "A nontechnical operator completes and recovers the full generated path"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "alpha",
+      "dependencies": [
+        "SPEC135-ALPHA7",
+        "SPEC135-U4",
+        "SPEC135-Q2",
+        "SPEC135-Q3"
+      ],
+      "evidence_requirements": [
+        "Cross-Functional Alpha evidence",
+        "UIAI Eval where browser-facing"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-alpha8"
+      ],
+      "migration_requirements": [],
+      "normative_text": "Alpha 8: permanent nontechnical Spec 135 dogfood path. Alpha 8: permanent nontechnical Spec 135 dogfood path",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-ALPHA8",
+      "source_section": [
+        "135H Alpha 8",
+        "135I",
+        "135K"
+      ],
+      "source_spec": "135H Alpha 8",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Every changed type/route/event/client has old/new owner and migration state"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "migration",
+      "dependencies": [
+        "SPEC135-F1"
+      ],
+      "evidence_requirements": [
+        "migration fixtures",
+        "compatibility matrix",
+        "Receipts"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-e1"
+      ],
+      "migration_requirements": [
+        "expand-contract compatibility"
+      ],
+      "normative_text": "Inventory cross-spec amendments, owners, readers, writers, and compatibility states. Build the complete migration inventory and supersession matrix.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-E1",
+      "source_section": [
+        "135E \u00a7\u00a73\u20135"
+      ],
+      "source_spec": "135E \u00a7\u00a73\u20135",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Old and new readers coexist until replay/migration proof passes"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "migration",
+      "dependencies": [
+        "SPEC135-E1",
+        "SPEC135-F6"
+      ],
+      "evidence_requirements": [
+        "migration fixtures",
+        "compatibility matrix",
+        "Receipts"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-e2"
+      ],
+      "migration_requirements": [
+        "expand-contract compatibility"
+      ],
+      "normative_text": "Migrate canonical storage, projections, event IDs, cursors, and replay. Apply expand-contract to state, snapshots, events, and stream cursors.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-E2",
+      "source_section": [
+        "135E \u00a7\u00a76\u20139"
+      ],
+      "source_spec": "135E \u00a7\u00a76\u20139",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Generated compatibility and Schemathesis workflows pass"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "migration",
+      "dependencies": [
+        "SPEC135-E1",
+        "SPEC135-F3",
+        "SPEC135-F4",
+        "SPEC135-F5"
+      ],
+      "evidence_requirements": [
+        "migration fixtures",
+        "compatibility matrix",
+        "Receipts"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-e3"
+      ],
+      "migration_requirements": [
+        "expand-contract compatibility"
+      ],
+      "normative_text": "Migrate schema, Operation Registry, envelopes, and generated clients. Migrate contracts and all client consumers without duplicate authority.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-E3",
+      "source_section": [
+        "135E \u00a710"
+      ],
+      "source_spec": "135E \u00a710",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "No static/transcript-only fallback remains primary"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "migration",
+      "dependencies": [
+        "SPEC135-E1",
+        "SPEC135-F8",
+        "SPEC135-F9",
+        "SPEC135-F10"
+      ],
+      "evidence_requirements": [
+        "migration fixtures",
+        "compatibility matrix",
+        "Receipts"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-e4"
+      ],
+      "migration_requirements": [
+        "expand-contract compatibility"
+      ],
+      "normative_text": "Migrate generated UI, model execution, browser proof, and attachments. Move UI/runtime consumers to native Focusa/A2UI paths with proof continuity.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-E4",
+      "source_section": [
+        "135E \u00a7\u00a711\u201313"
+      ],
+      "source_spec": "135E \u00a7\u00a711\u201313",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Closure matrix has no unsupported or silently deferred rows"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "migration",
+      "dependencies": [
+        "SPEC135-E2",
+        "SPEC135-E3",
+        "SPEC135-E4",
+        "SPEC135-P5"
+      ],
+      "evidence_requirements": [
+        "migration fixtures",
+        "compatibility matrix",
+        "Receipts"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-e5"
+      ],
+      "migration_requirements": [
+        "expand-contract compatibility"
+      ],
+      "normative_text": "Complete expand-contract rollout and remove old forms after parity. Close migration only after every reader, writer, client, provider, and proof path passes.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-E5",
+      "source_section": [
+        "135E \u00a7\u00a714\u201317"
+      ],
+      "source_spec": "135E \u00a7\u00a714\u201317",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "No applicable requirement is missing, mock-only, static-only, or silently deferred"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "closure",
+      "dependencies": [
+        "SPEC135-C4",
+        "SPEC135-RI4",
+        "SPEC135-ST4",
+        "SPEC135-M6",
+        "SPEC135-U6",
+        "SPEC135-V6",
+        "SPEC135-P5",
+        "SPEC135-Q6",
+        "SPEC135-E5",
+        "SPEC135-ALPHA8"
+      ],
+      "evidence_requirements": [
+        "closure matrix audit"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-z1"
+      ],
+      "migration_requirements": [
+        "expand-contract compatibility"
+      ],
+      "normative_text": "Compile final requirement-to-implementation-to-proof closure matrix. Resolve every series requirement to code, test, Evidence, Receipt, and state.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-Z1",
+      "source_section": [
+        "135D \u00a716",
+        "135E \u00a7\u00a715\u201317",
+        "135H \u00a724"
+      ],
+      "source_spec": "135D \u00a716",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "The complete path succeeds with real providers/artifacts and exact state continuity"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "closure",
+      "dependencies": [
+        "SPEC135-ALPHA8",
+        "SPEC135-M6",
+        "SPEC135-ST4",
+        "SPEC135-U3"
+      ],
+      "evidence_requirements": [
+        "end-to-end evidence bundle"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-z2"
+      ],
+      "migration_requirements": [
+        "expand-contract compatibility"
+      ],
+      "normative_text": "Run permanent Onboarding\u2192Context\u2192Role\u2192Interview\u2192Spec\u2192Tasks\u2192Workpoint\u2192Evidence\u2192Receipt\u2192artifact\u2192Canvas integration gate. Execute the canonical permanent integration chain through pause/restart/exact resume.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-Z2",
+      "source_section": [
+        "135D \u00a79",
+        "135H"
+      ],
+      "source_spec": "135D \u00a79",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Restart restores exact product state and worktree lineage remains auditable"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "closure",
+      "dependencies": [
+        "SPEC135-Z2",
+        "SPEC135-Q4"
+      ],
+      "evidence_requirements": [
+        "restart trace",
+        "git/bead lineage proof"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-z3"
+      ],
+      "migration_requirements": [
+        "expand-contract compatibility"
+      ],
+      "normative_text": "Prove restart, exact resume, Evidence, Receipt, and worktree lineage. Verify runtime and development continuity, including stable bead IDs and merge target.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-Z3",
+      "source_section": [
+        "135G",
+        "135H",
+        "Issue #10"
+      ],
+      "source_spec": "135G",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Every mandatory gate passes from a clean synchronized checkout"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "closure",
+      "dependencies": [
+        "SPEC135-Z1",
+        "SPEC135-Z2",
+        "SPEC135-Z3",
+        "SPEC135-Q6"
+      ],
+      "evidence_requirements": [
+        "test manifest",
+        "Eval refs",
+        "audit artifacts"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-z4"
+      ],
+      "migration_requirements": [
+        "expand-contract compatibility"
+      ],
+      "normative_text": "Run complete test, UIAI Eval, Schemathesis, accessibility, security, performance, and license gates. Execute all required automated and operator-visible closure checks.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-Z4",
+      "source_section": [
+        "135A\u2013135K acceptance sections"
+      ],
+      "source_spec": "135A\u2013135K acceptance sections",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Feature branch is merge-ready, documented, evidence-backed, and fully operational"
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "closure_status": "open",
+      "core_types": [],
+      "current_status": "missing",
+      "delivery_lane": "closure",
+      "dependencies": [
+        "SPEC135-Z4",
+        "SPEC135-E5",
+        "SPEC135-P5"
+      ],
+      "evidence_requirements": [
+        "release proof",
+        "project-card outcome",
+        "final Receipt"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client",
+        "generated Go client"
+      ],
+      "generated_ui_surfaces": [
+        "api",
+        "cli",
+        "go",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "implementation_tasks": [
+        "focusa-mc-z5"
+      ],
+      "migration_requirements": [
+        "expand-contract compatibility"
+      ],
+      "normative_text": "Publish operational Mission Canvas closure and merge-ready release proof. Package bounded public-safe proof and declare closure only after verified merge readiness.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-Z5",
+      "source_section": [
+        "135 manifest final acceptance"
+      ],
+      "source_spec": "135 manifest final acceptance",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    }
+  ],
+  "schema": "focusa.spec135.feature_ledger.v1",
+  "series": "135-135K"
+}

@@ -389,6 +389,7 @@ type FocusaFailureClass =
   | "unknown_ambiguous_completion";
 
 interface FocusaToolResultV1 {
+  schema: "focusa.tool_result.v1";
   ok: boolean;
   status: FocusaToolStatus;
   failure_class: FocusaFailureClass | null;
@@ -730,6 +731,7 @@ function focusaToolResult(params: {
   const nextTools = (params.next_tools?.length ? params.next_tools : (guidance.next_tools ?? [])).slice(0, 4);
   const reflexSuggestions = reflexSuggestionsForFailure(failureClass, params.status, nextTools);
   return {
+    schema: "focusa.tool_result.v1",
     ok: params.ok,
     status: params.status,
     failure_class: failureClass,

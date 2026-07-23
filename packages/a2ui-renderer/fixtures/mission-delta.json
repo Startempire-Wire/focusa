@@ -1,0 +1,15 @@
+[
+  {
+    "version": "v0.9",
+    "updateComponents": {
+      "surfaceId": "mission-canvas",
+      "components": [
+        {
+          "id": "root",
+          "component": "Text",
+          "text": "Mission resumed"
+        }
+      ]
+    }
+  }
+]

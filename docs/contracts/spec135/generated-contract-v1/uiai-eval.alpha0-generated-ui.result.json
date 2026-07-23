@@ -1,0 +1,40 @@
+{
+  "schema": "uiai.focusa_ui_eval_result.v1",
+  "scenario_id": "spec135-alpha0-generated-ui-action-recovery",
+  "status": "passed",
+  "browser_session_refs": ["uiai-browser:session=Aat70l1r"],
+  "browser_context_refs": ["focusa-cont-mission-canvas-57e8c074-539f-44a2-86f6-527b478f9d80", "attachment:context-alpha0"],
+  "step_results": [
+    {"step_id": "open", "status": "passed", "result": "UIAI opened the generated UI proof target at 1280x900.", "evidence_refs": ["uiai-browser:session=Aat70l1r"]},
+    {"step_id": "render", "status": "passed", "result": "Lit rendered Svelte stage/action elements and unknown-component recovery from the trusted A2UI catalog.", "evidence_refs": ["uiai-browser:session=Aat70l1r:desktop:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/Aat70l1r-1784539238050221000.png"]},
+    {"step_id": "allowlisted-action", "status": "passed", "result": "context.review executed once with exact project_root, continuity_id, and attachment_id context.", "evidence_refs": ["uiai-browser:session=Aat70l1r:eval:allowlisted-action"]},
+    {"step_id": "blocked-action", "status": "passed", "result": "unknown.mutate did not execute; the observed action list stayed [context.review] and recovery count became two.", "evidence_refs": ["uiai-browser:session=Aat70l1r:eval:blocked-action"]},
+    {"step_id": "responsive", "status": "passed", "result": "The generated surface remained usable at 390x844 with full-width mobile actions.", "evidence_refs": ["uiai-browser:session=Aat70l1r:mobile:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/Aat70l1r-1784539249349349000.png"]},
+    {"step_id": "keyboard", "status": "passed", "result": "Tab reached the Test recovery button and computed focus outline was solid.", "evidence_refs": ["uiai-browser:session=Aat70l1r:eval:keyboard-focus"]},
+    {"step_id": "diagnostics", "status": "passed", "result": "Final bounded diagnostics reported zero console errors, exceptions, failed requests, 4xx, or 5xx responses.", "evidence_refs": ["uiai-diagnostics:session=Aat70l1r:seq=2", "browser-diagnostics:2026-07-20T09:21:34.287Z"]},
+    {"step_id": "close", "status": "passed", "result": "UIAI browser session Aat70l1r was explicitly closed.", "evidence_refs": ["uiai-browser:session=Aat70l1r:closed"]}
+  ],
+  "screenshots": [
+    "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/Aat70l1r-1784539238050221000.png",
+    "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/Aat70l1r-1784539249349349000.png"
+  ],
+  "diagnostics": [
+    {"level": "info", "category": "console", "summary": "console_errors=0; console_warnings=0", "diagnostics_ref": "uiai-diagnostics:session=Aat70l1r:seq=2"},
+    {"level": "info", "category": "runtime", "summary": "exceptions=0; failed_requests=0; http_4xx=0; http_5xx=0", "diagnostics_ref": "browser-diagnostics:2026-07-20T09:21:34.287Z"},
+    {"level": "info", "category": "accessibility", "summary": "Keyboard Tab reached a generated button with a solid visible focus outline.", "diagnostics_ref": "uiai-browser:session=Aat70l1r:eval:keyboard-focus"}
+  ],
+  "accessibility_report_ref": "uiai-browser:session=Aat70l1r:eval:keyboard-focus",
+  "visual_comparison_refs": [
+    "uiai-browser:session=Aat70l1r:desktop:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/Aat70l1r-1784539238050221000.png",
+    "uiai-browser:session=Aat70l1r:mobile:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/Aat70l1r-1784539249349349000.png"
+  ],
+  "focusa_evidence_refs": [
+    "browser-diagnostics:2026-07-20T09:21:34.287Z",
+    "uiai-browser:session=Aat70l1r:desktop:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/Aat70l1r-1784539238050221000.png",
+    "uiai-browser:session=Aat70l1r:mobile:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/Aat70l1r-1784539249349349000.png"
+  ],
+  "receipt_refs": [],
+  "failure_class": null,
+  "recovery_action": null,
+  "evaluated_at": "2026-07-20T09:21:17Z"
+}

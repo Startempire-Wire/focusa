@@ -1,0 +1,41 @@
+{
+  "schema": "uiai.focusa_ui_eval_result.v1",
+  "scenario_id": "spec135-alpha0-real-context-commit-restart-resume",
+  "status": "passed",
+  "browser_session_refs": ["uiai-browser:session=xIze1Kcn"],
+  "browser_context_refs": ["focusa-cont-mission-canvas-57e8c074-539f-44a2-86f6-527b478f9d80", "attachment:f12-context"],
+  "step_results": [
+    {"step_id": "open", "status": "passed", "result": "UIAI opened the generated Context commit surface at 1280x900.", "evidence_refs": ["uiai-browser:session=xIze1Kcn"]},
+    {"step_id": "binding", "status": "passed", "result": "The bundled binding resolved focusa.context.source.commit with all three scope keys, idempotency, concurrency, and Receipt requirements.", "evidence_refs": ["docs/contracts/spec135/generated-contract-v1/ui-action-bindings.fixture.json#focusa.context.source.commit"]},
+    {"step_id": "commit", "status": "passed", "result": "The generated TypeScript client committed context-source:88d1806b49ebfb8a756c5984 as canonical state version 17.", "evidence_refs": ["uiai-browser:session=xIze1Kcn:eval:context-commit"]},
+    {"step_id": "proof", "status": "passed", "result": "Generated UI rendered saved Evidence and Receipt references.", "evidence_refs": ["uiai-browser:session=xIze1Kcn:commit:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/xIze1Kcn-1784562563465252000.png"]},
+    {"step_id": "restart", "status": "passed", "result": "After daemon restart the exact source, Evidence, and Receipt remained in canonical state.", "evidence_refs": ["test:spec135_context_source_e2e_test.py", "uiai-browser:session=xIze1Kcn:restart-resume"]},
+    {"step_id": "resume", "status": "passed", "result": "Generated UI replay returned no_op, replayed=true, unchanged source/ref identity, and sourceCount=1.", "evidence_refs": ["uiai-browser:session=xIze1Kcn:restart-resume:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/xIze1Kcn-1784562658970256000.png"]},
+    {"step_id": "diagnostics", "status": "passed", "result": "Six browser/API requests completed with zero console errors, exceptions, failed requests, 4xx, or 5xx responses.", "evidence_refs": ["uiai-diagnostics:session=xIze1Kcn:seq=6", "browser-diagnostics:2026-07-20T15:51:46.721Z"]},
+    {"step_id": "close", "status": "passed", "result": "UIAI browser session xIze1Kcn was explicitly closed.", "evidence_refs": ["uiai-browser:session=xIze1Kcn:closed"]}
+  ],
+  "screenshots": [
+    "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/xIze1Kcn-1784562563465252000.png",
+    "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/xIze1Kcn-1784562658970256000.png"
+  ],
+  "diagnostics": [
+    {"level": "info", "category": "runtime", "summary": "canonical commit completed at state version 17 and restart resume replayed as no_op", "diagnostics_ref": "uiai-browser:session=xIze1Kcn:eval:context-commit"},
+    {"level": "info", "category": "network", "summary": "requests=6; failed_requests=0; http_4xx=0; http_5xx=0", "diagnostics_ref": "uiai-diagnostics:session=xIze1Kcn:seq=6"},
+    {"level": "info", "category": "console", "summary": "console_errors=0; console_warnings=0; exceptions=0", "diagnostics_ref": "browser-diagnostics:2026-07-20T15:51:46.721Z"}
+  ],
+  "accessibility_report_ref": "test:focusa-elements:component-semantics",
+  "visual_comparison_refs": [
+    "uiai-browser:session=xIze1Kcn:commit:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/xIze1Kcn-1784562563465252000.png",
+    "uiai-browser:session=xIze1Kcn:restart-resume:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/xIze1Kcn-1784562658970256000.png"
+  ],
+  "focusa_evidence_refs": [
+    "evidence:context-source:88d1806b49ebfb8a756c5984",
+    "browser-diagnostics:2026-07-20T15:51:46.721Z",
+    "uiai-browser:session=xIze1Kcn:commit:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/xIze1Kcn-1784562563465252000.png",
+    "uiai-browser:session=xIze1Kcn:restart-resume:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/xIze1Kcn-1784562658970256000.png"
+  ],
+  "receipt_refs": ["receipt:context-source:88d1806b49ebfb8a756c5984"],
+  "failure_class": null,
+  "recovery_action": null,
+  "evaluated_at": "2026-07-20T15:51:29Z"
+}

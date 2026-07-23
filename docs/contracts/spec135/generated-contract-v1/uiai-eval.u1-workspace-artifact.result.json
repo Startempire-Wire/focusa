@@ -1,0 +1,41 @@
+{
+  "schema": "uiai.focusa_ui_eval_result.v1",
+  "scenario_id": "spec135-u1-workspace-artifact-bridge",
+  "status": "passed",
+  "browser_session_refs": ["uiai-browser:session=ZibUOJ2s"],
+  "browser_context_refs": [
+    "focusa-cont-mission-canvas-57e8c074-539f-44a2-86f6-527b478f9d80",
+    "attachment:u1-workspace-artifact"
+  ],
+  "step_results": [
+    {"step_id": "open", "status": "passed", "result": "UIAI opened the corrected generated Workspace Artifact bridge at 1440x1000.", "evidence_refs": ["uiai-browser:session=ZibUOJ2s"]},
+    {"step_id": "link", "status": "passed", "result": "The generated action linked a full bounded UIAI descriptor with instance origin, citations, retention, renderer dimensions, and external blob/browser authority.", "evidence_refs": ["workspace-artifact:ecbbfa669341001f2f9de98f"]},
+    {"step_id": "trust", "status": "passed", "result": "Generated cards displayed UIAI session origin, SHA-256 handle, diagnostics, Evidence, Receipt, renderer fallback, and cleanup policy.", "evidence_refs": ["evidence:context-retrieve:a248110aa8107ce7b8fa3c9d", "receipt:workspace-artifact:88105fede494ca41ec56539d"]},
+    {"step_id": "mobile", "status": "passed", "result": "At 390x844, scrollWidth remained 390, the primary action width was 324px, and deep shadow-DOM focus succeeded.", "evidence_refs": ["uiai-screenshot:session=ZibUOJ2s:1784608738651419000"]},
+    {"step_id": "diagnostics", "status": "passed", "result": "The isolated final evaluation window completed 2 requests with zero console errors, exceptions, failed requests, HTTP 4xx, or HTTP 5xx.", "evidence_refs": ["uiai-diagnostics:session=ZibUOJ2s:seq=2"]},
+    {"step_id": "close", "status": "passed", "result": "UIAI browser session and temporary proof services were closed independently of the canonical descriptor.", "evidence_refs": ["uiai-browser:session=ZibUOJ2s:closed"]}
+  ],
+  "screenshots": [
+    "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/ZibUOJ2s-1784608701199222000.png",
+    "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/ZibUOJ2s-1784608738651419000.png"
+  ],
+  "visual_comparison_refs": [
+    "uiai-browser:session=ZibUOJ2s:desktop:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/ZibUOJ2s-1784608701199222000.png",
+    "uiai-browser:session=ZibUOJ2s:mobile:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/ZibUOJ2s-1784608738651419000.png"
+  ],
+  "accessibility_report_ref": "uiai-browser:session=ZibUOJ2s:deep-focus:true",
+  "diagnostics": [
+    {"level": "info", "category": "runtime", "summary": "artifact=workspace-artifact:ecbbfa669341001f2f9de98f; revision=1; citations=1; external_artifact_authority=true", "diagnostics_ref": "uiai-browser:session=ZibUOJ2s:eval:workspace-artifact"},
+    {"level": "info", "category": "network", "summary": "final_window_requests=2; failed_requests=0; http_4xx=0; http_5xx=0", "diagnostics_ref": "uiai-diagnostics:session=ZibUOJ2s:seq=2"},
+    {"level": "info", "category": "console", "summary": "console_errors=0; console_warnings=0; exceptions=0", "diagnostics_ref": "uiai-diagnostics:session=ZibUOJ2s:seq=2"},
+    {"level": "info", "category": "responsive", "summary": "viewport=390; scrollWidth=390; actionWidth=324; deepFocused=true", "diagnostics_ref": "uiai-browser:session=ZibUOJ2s:responsive"}
+  ],
+  "focusa_evidence_refs": [
+    "evidence:context-retrieve:a248110aa8107ce7b8fa3c9d",
+    "uiai-diagnostics:session=ZibUOJ2s:seq=2"
+  ],
+  "receipt_refs": ["receipt:workspace-artifact:88105fede494ca41ec56539d"],
+  "failure_class": null,
+  "recovery_action": null,
+  "evaluated_at": "2026-07-21T04:38:58Z"
+}

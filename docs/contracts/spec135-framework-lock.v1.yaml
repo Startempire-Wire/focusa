@@ -1,0 +1,118 @@
+{
+  "adoption_order": [
+    "adopt",
+    "wrap",
+    "configure",
+    "extend",
+    "custom only after failing conformance fixture"
+  ],
+  "authority": "docs/135-series-current-manifest.md",
+  "forbidden": [
+    "Playwright in Focusa",
+    "complete custom Svelte A2UI renderer",
+    "AG-UI as canonical state",
+    "Vercel WorkflowAgent",
+    "ToolLoopAgent",
+    "AI SDK UI",
+    "@ai-sdk/svelte",
+    "Vercel AI Gateway as runtime authority",
+    "duplicate route/action catalog",
+    "duplicate canonical state machine"
+  ],
+  "locks": [
+    {
+      "area": "contracts",
+      "required": [
+        "Serde",
+        "Schemars",
+        "Utoipa",
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "openapi-typescript",
+        "openapi-fetch",
+        "oapi-codegen v2.7.x"
+      ]
+    },
+    {
+      "area": "generated_ui",
+      "compatibility": [
+        "AG-UI adapter after native stabilization"
+      ],
+      "required": [
+        "A2UI v0.9.1",
+        "@a2ui/web_core/v0_9",
+        "@a2ui/lit/v0_9",
+        "Focusa Svelte Custom Elements"
+      ]
+    },
+    {
+      "area": "model_execution",
+      "required": [
+        "Spec 133 governed sessions",
+        "Pi RPC AgentExecutionAdapter"
+      ]
+    },
+    {
+      "area": "documents_retrieval",
+      "required": [
+        "UIAI Documents",
+        "Docling Serve v1",
+        "HybridChunker",
+        "SQLite FTS5",
+        "sqlite-vec",
+        "fastembed-rs"
+      ]
+    },
+    {
+      "area": "ui",
+      "required": [
+        "SvelteKit 2",
+        "Svelte 5",
+        "Tailwind 4",
+        "shadcn-svelte",
+        "Bits UI",
+        "Paneforge",
+        "TanStack Query",
+        "TanStack Table",
+        "TanStack Virtual",
+        "Svelte Flow"
+      ]
+    },
+    {
+      "area": "artifacts_code_graph",
+      "required": [
+        "PDF.js",
+        "CodeMirror Merge",
+        "Apache ECharts",
+        "petgraph",
+        "Tree-sitter",
+        "ast-grep"
+      ]
+    },
+    {
+      "area": "testing",
+      "required": [
+        "cargo-nextest",
+        "rstest",
+        "proptest",
+        "insta",
+        "wiremock",
+        "Vitest",
+        "Svelte Testing Library",
+        "Schemathesis",
+        "A2UI fixtures",
+        "UIAI Engine Eval"
+      ]
+    },
+    {
+      "area": "compliance",
+      "required": [
+        "cargo-deny",
+        "cargo-about",
+        "license inventory",
+        "Syft SBOM"
+      ]
+    }
+  ],
+  "schema": "focusa.spec135.framework_lock.v1"
+}

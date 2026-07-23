@@ -1,0 +1,82 @@
+{
+  "schema": "focusa.spec135_ri1_role_profile_proof.v1",
+  "requirement_id": "SPEC135-RI1",
+  "status": "passed",
+  "critical_path": [
+    "SPEC135-C3",
+    "SPEC135-RI1",
+    "SPEC135-RI2",
+    "SPEC135-RI3",
+    "SPEC135-ALPHA2"
+  ],
+  "operations": [
+    "focusa.role_profile.list",
+    "focusa.role_profile.draft",
+    "focusa.role_profile.review"
+  ],
+  "invariants": [
+    "Role responsibility never grants operational permission",
+    "Every draft preserves the original operator seed and canonical Context grounding refs",
+    "Assumptions and unresolved questions are explicit",
+    "Approval is blocked while questions or unverified assumptions remain",
+    "Operator edits require before/after redlines",
+    "Approve, reject, and defer are explicit append-only review revisions",
+    "Optimistic concurrency and idempotency protect every mutation",
+    "Exact project, workstream, and Attachment scope survives restart"
+  ],
+  "runtime_proof": {
+    "test": "tests/spec135_role_profile_e2e_test.py",
+    "revisions": 5,
+    "decisions": ["approve", "defer", "reject"],
+    "permission_assertion_rejected": true,
+    "embedded_permission_grant_language_rejected": true,
+    "missing_grounding_rejected": true,
+    "stable_role_profile_id": true,
+    "idempotent_replay": "no_op",
+    "restart": "five_revision_history_and_approved_revision_resumed",
+    "active_approved_revision_after_rejected_update": 2
+  },
+  "generated_ui_proof": {
+    "surface": "packages/a2ui-renderer/proof/role-profile.html",
+    "scenario_ref": "uiai-eval.ri1-role-profile.scenario.json",
+    "result_ref": "uiai-eval.ri1-role-profile.result.json",
+    "browser_session_ref": "uiai-browser:session=iiJMlG5B",
+    "role_profile_id": "project-role-profile:554dfa8199a50a32226e972d",
+    "draft_revision": 1,
+    "approved_revision": 2,
+    "grants_permissions": false,
+    "desktop_screenshot": "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/iiJMlG5B-1784624624514904000.png",
+    "mobile_screenshot": "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/iiJMlG5B-1784624659861406000.png",
+    "mobile_scroll_width": 390,
+    "mobile_action_widths": [324, 324, 324, 324],
+    "diagnostics_ref": "uiai-diagnostics:session=iiJMlG5B:seq=10",
+    "unexpected_failures": 0
+  },
+  "canonical_records": {
+    "draft_event_id": "019f83e7-1161-77b0-87ba-0bf28e8f60b6",
+    "approval_event_id": "019f83e9-ff98-7e32-9fba-684989beea96",
+    "context_source_id": "context-source:dad350a32644e02b4322f289",
+    "approval_receipt_ref": "receipt:project-role-profile:a8c8e1df5b49e296da116222",
+    "approval_state_version": 17
+  },
+  "evidence_refs": [
+    "context-source:dad350a32644e02b4322f289",
+    "uiai-diagnostics:session=iiJMlG5B:seq=10",
+    "tests/spec135_role_profile_e2e_test.py",
+    "tests/spec135_role_profile_test.py"
+  ],
+  "receipt_refs": [
+    "receipt:project-role-profile:6e537df8f921f0b199991831",
+    "receipt:project-role-profile:a8c8e1df5b49e296da116222"
+  ],
+  "ui_eval_result_ref": "uiai-eval.ri1-role-profile.result.json",
+  "proof_commands": [
+    "python3 tests/spec135_role_profile_test.py",
+    "python3 tests/spec135_role_profile_e2e_test.py",
+    "CARGO_INCREMENTAL=0 cargo clippy -p focusa-api --all-targets -- -D warnings -A clippy::needless-return",
+    "npm --prefix packages/a2ui-renderer run check",
+    "npm --prefix packages/a2ui-renderer test",
+    "npm --prefix packages/a2ui-renderer run proof:build",
+    "go test ./packages/generated/spec135/go/..."
+  ]
+}

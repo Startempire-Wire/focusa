@@ -1,0 +1,94 @@
+{
+  "$id": "/v1/agent/schemas/focusa.spec_workbench_mutation.request.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "action": {
+      "enum": [
+        "open",
+        "upsert_section",
+        "add_round",
+        "add_objection",
+        "resolve_objection",
+        "approve_section",
+        "reject_section",
+        "amend_section",
+        "close",
+        "reopen",
+        "final_approve"
+      ]
+    },
+    "amendment": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "attachment_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "continuity_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "current_ask": {
+      "type": "string"
+    },
+    "decision": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "expected_session_revision": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "expected_state_version": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "idempotency_key": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "objection": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "objection_id": {
+      "type": "string"
+    },
+    "project_root": {
+      "maxLength": 4096,
+      "minLength": 1,
+      "type": "string"
+    },
+    "resolution": {
+      "type": "string"
+    },
+    "round": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "section": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "workbench_session_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "project_root",
+    "continuity_id",
+    "attachment_id",
+    "idempotency_key",
+    "expected_state_version",
+    "expected_session_revision",
+    "action"
+  ],
+  "title": "focusa.spec_workbench_mutation.request.v1",
+  "type": "object",
+  "x-focusa-schema-id": "focusa.spec_workbench_mutation.request.v1"
+}

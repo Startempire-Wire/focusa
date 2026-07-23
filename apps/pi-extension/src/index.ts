@@ -11,6 +11,7 @@ import {
   getEffectiveFocusSnapshot,
   getFocusaAvailable,
   getActiveFrameId,
+  getActiveWorkpointPacket,
   isProjectRootAuthoritySafe,
   makeAttachmentKey,
   runWithAttachmentRuntime,
@@ -196,6 +197,27 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
         ctx.ui.notify(
           `Focusa: ${up}${title}${goal}${mission}${focus} | Frame: ${getActiveFrameId() ?? "none"} | D:${snapshot.decisions.length} C:${snapshot.constraints.length} F:${snapshot.failures.length}${tier}`,
           "info"
+        );
+      },
+    });
+
+    pi.registerShortcut("ctrl+shift+r", {
+      description: "Inspect active Work Rail row",
+      handler: async (ctx) => {
+        const packet = getActiveWorkpointPacket();
+        const workpoint =
+          packet?.workpoint && typeof packet.workpoint === "object" ? packet.workpoint : packet;
+        const bead = workpoint?.work_item_id || packet?.work_item_id || "no bead";
+        const workpointId = workpoint?.workpoint_id || packet?.workpoint_id || "no workpoint";
+        const proof = Array.isArray(workpoint?.verification_records)
+          ? workpoint.verification_records.length
+          : Array.isArray(packet?.evidence_refs)
+            ? packet.evidence_refs.length
+            : 0;
+        const next = workpoint?.next_slice || packet?.next_slice || "checkpoint next action";
+        ctx.ui.notify(
+          `Work Rail | ${bead} | ${workpointId} | proof:${proof} | next:${next}`,
+          packet ? "info" : "warning"
         );
       },
     });

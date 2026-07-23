@@ -70,6 +70,47 @@ fn sqlite_event_hash_chain_links_appended_events() {
 }
 
 #[test]
+fn durable_sequence_cursor_replays_after_restart_without_duplicates() {
+    let dir = temp_dir();
+    let mut cfg = FocusaConfig::default();
+    cfg.data_dir = dir.to_string_lossy().to_string();
+
+    let first = test_event("cursor-1");
+    let second = test_event("cursor-2");
+    let third = test_event("cursor-3");
+    let second_id = second.id.to_string();
+    {
+        let persistence = SqlitePersistence::new(&cfg).unwrap();
+        persistence.append_event(&first).unwrap();
+        persistence.append_event(&second).unwrap();
+        persistence.append_event(&third).unwrap();
+        let all = persistence.durable_events_after(0, 10).unwrap();
+        assert_eq!(
+            all.iter().map(|event| event.sequence).collect::<Vec<_>>(),
+            [1, 2, 3]
+        );
+        assert_eq!(
+            persistence.durable_event_sequence(&second_id).unwrap(),
+            Some(2)
+        );
+        assert_eq!(persistence.latest_durable_event_sequence().unwrap(), 3);
+    }
+
+    let reopened = SqlitePersistence::new(&cfg).unwrap();
+    let replay = reopened.durable_events_after(1, 10).unwrap();
+    assert_eq!(
+        replay
+            .iter()
+            .map(|event| event.sequence)
+            .collect::<Vec<_>>(),
+        [2, 3]
+    );
+    let tail = reopened.durable_events_after(2, 10).unwrap();
+    assert_eq!(tail.len(), 1);
+    assert_eq!(tail[0].sequence, 3);
+}
+
+#[test]
 fn sqlite_persistence_creates_machine_id() {
     let dir = temp_dir();
 

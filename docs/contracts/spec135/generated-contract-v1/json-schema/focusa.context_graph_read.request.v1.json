@@ -1,0 +1,31 @@
+{
+  "$id": "/v1/agent/schemas/focusa.context_graph_read.request.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "attachment_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "continuity_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "project_root": {
+      "maxLength": 4096,
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "project_root",
+    "continuity_id",
+    "attachment_id"
+  ],
+  "title": "focusa.context_graph_read.request.v1",
+  "type": "object",
+  "x-focusa-generated-from": "ContextGraphScope",
+  "x-focusa-schema-id": "focusa.context_graph_read.request.v1"
+}

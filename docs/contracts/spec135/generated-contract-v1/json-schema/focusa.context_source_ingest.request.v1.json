@@ -1,0 +1,82 @@
+{
+  "$id": "/v1/agent/schemas/focusa.context_source_ingest.request.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "attachment_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "content": {
+      "maxLength": 2097152,
+      "type": "string"
+    },
+    "content_base64": {
+      "maxLength": 27962028,
+      "type": "string"
+    },
+    "continuity_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "expected_state_version": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "idempotency_key": {
+      "maxLength": 160,
+      "minLength": 1,
+      "type": "string"
+    },
+    "mime_type": {
+      "maxLength": 128,
+      "minLength": 1,
+      "type": "string"
+    },
+    "project_root": {
+      "maxLength": 4096,
+      "minLength": 1,
+      "type": "string"
+    },
+    "source_kind": {
+      "enum": [
+        "markdown",
+        "code",
+        "pdf"
+      ]
+    },
+    "source_locator": {
+      "maxLength": 1024,
+      "minLength": 1,
+      "type": "string"
+    },
+    "source_revision": {
+      "maxLength": 256,
+      "minLength": 1,
+      "type": "string"
+    },
+    "title": {
+      "maxLength": 240,
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "project_root",
+    "continuity_id",
+    "attachment_id",
+    "idempotency_key",
+    "expected_state_version",
+    "source_kind",
+    "source_locator",
+    "source_revision",
+    "title",
+    "mime_type"
+  ],
+  "title": "focusa.context_source_ingest.request.v1",
+  "type": "object",
+  "x-focusa-generated-from": "ContextSourceIngestRequest",
+  "x-focusa-schema-id": "focusa.context_source_ingest.request.v1"
+}

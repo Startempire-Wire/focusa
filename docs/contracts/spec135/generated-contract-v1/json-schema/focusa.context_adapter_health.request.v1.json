@@ -1,0 +1,10 @@
+{
+  "$id": "/v1/agent/schemas/focusa.context_adapter_health.request.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {},
+  "title": "focusa.context_adapter_health.request.v1",
+  "type": "object",
+  "x-focusa-generated-from": "DoclingHealthRequest",
+  "x-focusa-schema-id": "focusa.context_adapter_health.request.v1"
+}

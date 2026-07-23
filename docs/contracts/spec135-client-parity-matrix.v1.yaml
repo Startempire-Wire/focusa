@@ -1,0 +1,1005 @@
+{
+  "canonical_contracts": [
+    "JSON Schema 2020-12",
+    "OpenAPI 3.0.3",
+    "Operation Registry",
+    "ToolResult/error envelope",
+    "durable replay/live tail"
+  ],
+  "clients": [
+    {
+      "canonical_state_owner": false,
+      "client_id": "api",
+      "contract_source": "generated Operation Registry/OpenAPI",
+      "required_recovery": true
+    },
+    {
+      "canonical_state_owner": false,
+      "client_id": "cli",
+      "contract_source": "generated Operation Registry/OpenAPI",
+      "required_recovery": true
+    },
+    {
+      "canonical_state_owner": false,
+      "client_id": "pi",
+      "contract_source": "generated Operation Registry/OpenAPI",
+      "required_recovery": true
+    },
+    {
+      "canonical_state_owner": false,
+      "client_id": "typescript",
+      "contract_source": "generated Operation Registry/OpenAPI",
+      "required_recovery": true
+    },
+    {
+      "canonical_state_owner": false,
+      "client_id": "go",
+      "contract_source": "generated Operation Registry/OpenAPI",
+      "required_recovery": true
+    },
+    {
+      "canonical_state_owner": false,
+      "client_id": "mission_canvas",
+      "contract_source": "generated Operation Registry/OpenAPI",
+      "required_recovery": true
+    },
+    {
+      "canonical_state_owner": false,
+      "client_id": "uiai_engine_cockpit",
+      "contract_source": "generated Operation Registry/OpenAPI",
+      "required_recovery": true
+    },
+    {
+      "canonical_state_owner": false,
+      "client_id": "menubar",
+      "contract_source": "generated Operation Registry/OpenAPI",
+      "required_recovery": true
+    },
+    {
+      "canonical_state_owner": false,
+      "client_id": "tui",
+      "contract_source": "generated Operation Registry/OpenAPI",
+      "required_recovery": true
+    },
+    {
+      "canonical_state_owner": false,
+      "client_id": "pwa",
+      "contract_source": "generated Operation Registry/OpenAPI",
+      "required_recovery": true
+    }
+  ],
+  "requirements": [
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-F0",
+      "status": "verified"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-F1",
+      "status": "partial"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-F2",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-F3",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-F4",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-F5",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-F6",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-F7",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-F8",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-F9",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-F10",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-F11",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-F12",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-C1",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-C2",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-C3",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-C4",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "mission_canvas",
+        "pi",
+        "typescript"
+      ],
+      "requirement_id": "SPEC135-RI1",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "mission_canvas",
+        "pi",
+        "typescript"
+      ],
+      "requirement_id": "SPEC135-RI2",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "mission_canvas",
+        "pi",
+        "typescript"
+      ],
+      "requirement_id": "SPEC135-RI3",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "mission_canvas",
+        "pi",
+        "typescript"
+      ],
+      "requirement_id": "SPEC135-RI4",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "requirement_id": "SPEC135-ST1",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "requirement_id": "SPEC135-ST2",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "requirement_id": "SPEC135-ST3",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "requirement_id": "SPEC135-ST4",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui"
+      ],
+      "requirement_id": "SPEC135-M1",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui"
+      ],
+      "requirement_id": "SPEC135-M2",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui"
+      ],
+      "requirement_id": "SPEC135-M3",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui"
+      ],
+      "requirement_id": "SPEC135-M4",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui"
+      ],
+      "requirement_id": "SPEC135-M5",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui"
+      ],
+      "requirement_id": "SPEC135-M6",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui"
+      ],
+      "requirement_id": "SPEC135-M7",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-U1",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-U2",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-U3",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-U4",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-U5",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-U6",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "requirement_id": "SPEC135-V1",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "requirement_id": "SPEC135-V2",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "requirement_id": "SPEC135-V3",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "requirement_id": "SPEC135-V4",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "requirement_id": "SPEC135-V5",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "tui",
+        "typescript"
+      ],
+      "requirement_id": "SPEC135-V6",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-P1",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-P2",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-P3",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-P4",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-P5",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "pi"
+      ],
+      "requirement_id": "SPEC135-Q1",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "pi"
+      ],
+      "requirement_id": "SPEC135-Q2",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "pi"
+      ],
+      "requirement_id": "SPEC135-Q3",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "pi"
+      ],
+      "requirement_id": "SPEC135-Q4",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "pi"
+      ],
+      "requirement_id": "SPEC135-Q5",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "pi"
+      ],
+      "requirement_id": "SPEC135-Q6",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-ALPHA1",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-ALPHA2",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-ALPHA3",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-ALPHA4",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-ALPHA5",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-ALPHA6",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-ALPHA7",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-ALPHA8",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-E1",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-E2",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-E3",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-E4",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "mission_canvas",
+        "pi",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-E5",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-Z1",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-Z2",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-Z3",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-Z4",
+      "status": "missing"
+    },
+    {
+      "required_clients": [
+        "api",
+        "cli",
+        "go",
+        "menubar",
+        "mission_canvas",
+        "pi",
+        "pwa",
+        "tui",
+        "typescript",
+        "uiai_engine_cockpit"
+      ],
+      "requirement_id": "SPEC135-Z5",
+      "status": "missing"
+    }
+  ],
+  "schema": "focusa.spec135.client_parity_matrix.v1"
+}

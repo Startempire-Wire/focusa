@@ -1,0 +1,22 @@
+[
+  {
+    "version": "v0.9",
+    "createSurface": {
+      "surfaceId": "mission-canvas",
+      "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+    }
+  },
+  {
+    "version": "v0.9",
+    "updateComponents": {
+      "surfaceId": "mission-canvas",
+      "components": [
+        {
+          "id": "root",
+          "component": "Text",
+          "text": "Mission ready"
+        }
+      ]
+    }
+  }
+]

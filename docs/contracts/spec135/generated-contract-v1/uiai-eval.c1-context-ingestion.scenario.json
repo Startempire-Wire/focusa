@@ -1,0 +1,30 @@
+{
+  "schema": "uiai.focusa_ui_eval_scenario.v1",
+  "scenario_id": "spec135-c1-real-context-ingestion",
+  "feature_scope": {
+    "project_root": "/example/focusa",
+    "continuity_id": "focusa-cont-c1-generated-ui",
+    "attachment_id": "attachment:c1-context"
+  },
+  "route_or_target": "packages/a2ui-renderer/proof/context-ingest.html",
+  "preconditions": [
+    "focusa.context.source.ingest and Docling health are generated Operation Registry bindings",
+    "Docling Serve v1 health is ready",
+    "The proof server proxies the generated TypeScript client to a real Focusa daemon"
+  ],
+  "steps": [
+    {"step_id": "open", "action": "open", "target": "Context ingestion proof target", "expected": "Generated source scope and import action render", "evidence_kind": "dom"},
+    {"step_id": "health", "action": "read", "target": "Docling adapter health", "expected": "Configured Docling Serve v1 is healthy", "evidence_kind": "diagnostics"},
+    {"step_id": "ingest", "action": "click", "target": "Import Sources", "expected": "Markdown, code, and PDF import through generated client", "evidence_kind": "action"},
+    {"step_id": "proof", "action": "snapshot", "target": "Completed Context surface", "expected": "Progress, adapter health, Evidence, and Receipt refs render", "evidence_kind": "screenshot"},
+    {"step_id": "mobile", "action": "resize", "target": "390x844 viewport", "expected": "No horizontal overflow and primary action remains usable", "evidence_kind": "screenshot"},
+    {"step_id": "diagnostics", "action": "diagnostics", "target": "UIAI browser session", "expected": "No console exception or failed request", "evidence_kind": "diagnostics"},
+    {"step_id": "close", "action": "close", "target": "UIAI browser session", "expected": "Session resources are released", "evidence_kind": "diagnostics"}
+  ],
+  "required_capabilities": ["context", "docling-serve-v1", "a2ui-web_core-0.9.1", "a2ui-lit-0.9.1", "focusa-svelte-elements-0.9.120-dev"],
+  "required_scopes": ["project_root", "continuity_id", "attachment_id"],
+  "expected_visible_states": ["ready", "checking", "processing", "completed", "retry"],
+  "expected_actions": ["focusa.context.source.ingest allowed and exact-scoped"],
+  "expected_evidence": ["three canonical source Evidence refs", "desktop screenshot", "mobile screenshot", "bounded diagnostics"],
+  "expected_receipts": ["three canonical ingestion Receipt refs"]
+}

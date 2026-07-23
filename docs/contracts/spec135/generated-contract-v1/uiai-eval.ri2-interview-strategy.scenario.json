@@ -1,0 +1,39 @@
+{
+  "schema": "uiai.focusa_ui_eval_scenario.v1",
+  "scenario_id": "spec135-ri2-grill-interview-strategy",
+  "feature_scope": {
+    "project_root": "/example/focusa",
+    "continuity_id": "focusa-cont-ri2-generated-ui",
+    "attachment_id": "attachment:ri2-interview"
+  },
+  "route_or_target": "packages/a2ui-renderer/proof/interview-strategy.html",
+  "preconditions": [
+    "One canonical Context source and approved RI1 Role Profile exist in exact scope",
+    "Generated Grill strategy operation, schemas, client, and UI binding are available",
+    "The proof server proxies typed generated-client requests to a real Focusa daemon"
+  ],
+  "steps": [
+    {"step_id":"open","action":"open","target":"Grill Interview Strategy proof","expected":"Generated retrieval-first Interview surface renders","evidence_kind":"dom"},
+    {"step_id":"propose","action":"click","target":"Run Grill Strategy","expected":"Exactly one Boundary question is selected inside the active scope branch with one cited recommendation","evidence_kind":"action"},
+    {"step_id":"authority","action":"eval","target":"typed strategy response","expected":"retrieval_performed_before_question, one_question_only, and operator_answer_is_authoritative are true","evidence_kind":"dom"},
+    {"step_id":"mobile","action":"resize","target":"390x844 viewport","expected":"No horizontal overflow and the primary action remains usable","evidence_kind":"screenshot"},
+    {"step_id":"diagnostics","action":"diagnostics","target":"final UIAI evaluation window","expected":"No console error, exception, failed request, HTTP 4xx, or HTTP 5xx","evidence_kind":"diagnostics"},
+    {"step_id":"close","action":"close","target":"UIAI session and proof services","expected":"Browser resources release without becoming Interview authority","evidence_kind":"diagnostics"}
+  ],
+  "required_capabilities": [
+    "focusa.interview.strategy.grill-with-docs.v1",
+    "fact-before-question",
+    "one-question-presentation",
+    "dependency-branch-traversal",
+    "cited-recommendation",
+    "six-core-tranches",
+    "a2ui-web_core-0.9.1",
+    "a2ui-lit-0.9.1",
+    "focusa-svelte-elements-0.9.120-dev"
+  ],
+  "required_scopes": ["project_root", "continuity_id", "attachment_id"],
+  "expected_visible_states": ["ready", "running", "completed", "recovery"],
+  "expected_actions": ["focusa.interview.strategy.grill_with_docs.next_question exact-scoped and advisory"],
+  "expected_evidence": ["approved Role Profile ref", "canonical Context source ref", "active branch", "one question", "cited recommendation", "stop condition", "desktop/mobile screenshots", "diagnostics"],
+  "expected_receipts": []
+}

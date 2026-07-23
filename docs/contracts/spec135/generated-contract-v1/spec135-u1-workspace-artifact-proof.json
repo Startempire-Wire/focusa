@@ -1,0 +1,65 @@
+{
+  "schema": "focusa.spec135_u1_workspace_artifact_proof.v1",
+  "requirement_id": "SPEC135-U1",
+  "status": "verified",
+  "critical_path": ["SPEC135-F12", "SPEC135-U1", "SPEC135-U2", "SPEC135-ALPHA1"],
+  "operations": ["focusa.workspace.artifact.list", "focusa.workspace.artifact.intake"],
+  "canonical_records": ["WorkspaceArtifactRecord", "WorkspaceArtifactContent", "WorkspaceArtifactSource", "WorkspaceArtifactScope", "WorkspaceArtifactOrigin", "WorkspaceArtifactTrust", "WorkspaceArtifactSemantic", "WorkspaceArtifactRetention", "WorkspaceArtifactRender"],
+  "invariants": [
+    "artifact links remain project-, workstream-, attachment-, and origin-scoped",
+    "source, instance/session origin, diagnostics, provenance, Evidence, citations, semantic candidates, render dimensions, retention, and cleanup survive restart",
+    "UIAI browser state and large blobs remain externally authoritative",
+    "inline previews are bounded to 2000 characters and every accepted descriptor has linked or verified Evidence",
+    "idempotency replays the same stable artifact and Receipt without duplicating canonical state",
+    "stable artifact identity permits revisioned path and URL projection rehydration without changing source, scope, or content hash"
+  ],
+  "runtime_proof": {
+    "artifact_kinds": ["diagnostics", "markdown"],
+    "source_system": "uiai",
+    "evidence_status": "linked",
+    "external_artifact_authority": true,
+    "citation_refs": 2,
+    "cited_research_packet": "restart_resumed",
+    "semantic_groups": 7,
+    "idempotent_replay": "no_op",
+    "projection_rehydration": "revision_1_to_2_same_artifact_id",
+    "negative_validation_gates": 6,
+    "exact_scope_filter": "verified",
+    "restart": "revision_2_descriptor_resumed"
+  },
+  "generated_ui_proof": {
+    "artifact_id": "workspace-artifact:ecbbfa669341001f2f9de98f",
+    "source_session": "biw4d3UW",
+    "eval_session": "ZibUOJ2s",
+    "desktop_viewport": "1440x1000",
+    "mobile_viewport": "390x844",
+    "mobile_scroll_width": 390,
+    "primary_action_width": 324,
+    "deep_shadow_focus": true,
+    "final_requests": 2,
+    "failed_requests": 0,
+    "console_errors": 0,
+    "exceptions": 0
+  },
+  "proof_commands": [
+    "cargo fmt --all --check",
+    "cargo clippy -p focusa-api --all-targets -- -D warnings -A clippy::needless-return",
+    "ruff check tests/spec135_workspace_artifact_test.py tests/spec135_workspace_artifact_e2e_test.py",
+    "python3 tests/spec135_workspace_artifact_test.py",
+    "python3 tests/spec135_workspace_artifact_e2e_test.py",
+    "npm --prefix packages/a2ui-renderer run check",
+    "npm --prefix packages/a2ui-renderer test",
+    "npm --prefix packages/a2ui-renderer run proof:build",
+    "go vet ./... && go test ./..."
+  ],
+  "evidence_refs": [
+    "workspace-artifact:ecbbfa669341001f2f9de98f",
+    "evidence:context-retrieve:a248110aa8107ce7b8fa3c9d",
+    "uiai-diagnostics:session=ZibUOJ2s:seq=2",
+    "uiai-browser:session=ZibUOJ2s:desktop:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/ZibUOJ2s-1784608701199222000.png",
+    "uiai-browser:session=ZibUOJ2s:mobile:/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/ZibUOJ2s-1784608738651419000.png"
+  ],
+  "receipt_refs": ["receipt:workspace-artifact:88105fede494ca41ec56539d"],
+  "research_packet_ref": "docs/contracts/spec135/generated-contract-v1/uiai.focusa-research-diagnostics-packet.u1-workspace-artifact.json",
+  "ui_eval_result_ref": "docs/contracts/spec135/generated-contract-v1/uiai-eval.u1-workspace-artifact.result.json"
+}

@@ -202,6 +202,7 @@ pub struct PiRpcSession {
     pub stdin: ChildStdin,
     pub session_id: String,
     pub cwd: Option<String>,
+    pub idempotency_key: String,
     pub started_at: Instant,
 }
 
@@ -540,6 +541,17 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::trajectory::router())
         .merge(routes::call_stack::router())
         .merge(routes::context_cognition::router())
+        .merge(routes::context_sources::router())
+        .merge(routes::context_claims::router())
+        .merge(routes::role_profiles::router())
+        .merge(routes::interview_sessions::router())
+        .merge(routes::interview_strategy::router())
+        .merge(routes::spec_workbench::router())
+        .merge(routes::provider_execution::router())
+        .merge(routes::task_plans::router())
+        .merge(routes::work_rail::router())
+        .merge(routes::mission_canvas_surfaces::router())
+        .merge(routes::workspace_artifacts::router())
         .merge(routes::device_pairing::router())
         .merge(routes::deck::router())
         .merge(routes::preload::router())

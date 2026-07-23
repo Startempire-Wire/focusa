@@ -1,0 +1,59 @@
+{
+  "schema": "focusa.spec135_alpha1_context_ingestion_proof.v1",
+  "requirement_id": "SPEC135-ALPHA1",
+  "status": "passed",
+  "acceptance": "Real Markdown, code, and PDF sources ingest, retrieve, cite, and render through generated UI with restart-safe canonical state.",
+  "merge_gate": {
+    "required_feeders": ["SPEC135-F12", "SPEC135-C3", "SPEC135-U2"],
+    "critical_paths": [
+      ["SPEC135-F12", "SPEC135-C1", "SPEC135-C2", "SPEC135-C3", "SPEC135-ALPHA1"],
+      ["SPEC135-F12", "SPEC135-U1", "SPEC135-U2", "SPEC135-ALPHA1"]
+    ],
+    "all_feeders_closed": true
+  },
+  "acceptance_mapping": {
+    "real_source_ingestion": {
+      "proof_ref": "spec135-c1-context-ingestion-proof.json",
+      "result": "Markdown, code, and Docling PDF ingestion persisted three canonical exact-scope sources and survived restart."
+    },
+    "retrieval_and_citations": {
+      "proof_ref": "spec135-c2-context-retrieval-proof.json",
+      "result": "FTS5/sqlite-vec hybrid retrieval returned bounded source revision, locator, hash, chunk, and line citations with deterministic lexical fallback."
+    },
+    "claim_and_contradiction_governance": {
+      "proof_ref": "spec135-c3-context-claim-graph-proof.json",
+      "result": "Cited claims, contradiction candidates, decisions, review state, and reactive projections remained canonical and restart-safe."
+    },
+    "rich_artifact_rendering": {
+      "proof_ref": "spec135-u1-workspace-artifact-proof.json",
+      "result": "Generated UI rendered provider-neutral bounded artifact descriptors while UIAI retained browser runtime and blob authority."
+    },
+    "automatic_targeted_refresh": {
+      "proof_ref": "spec135-u2-workspace-live-refresh-proof.json",
+      "result": "Durable cursor replay refreshed only the exact subscribed Work Surface and suppressed unrelated Attachment updates."
+    }
+  },
+  "generated_ui_eval_refs": [
+    "uiai-eval.c1-context-ingestion.result.json",
+    "uiai-eval.c2-context-retrieval.result.json",
+    "uiai-eval.c3-context-claims.result.json",
+    "uiai-eval.u1-workspace-artifact.result.json",
+    "uiai-eval.u2-workspace-live-refresh.result.json"
+  ],
+  "evidence_refs": [
+    "spec135-c1-context-ingestion-proof.json",
+    "spec135-c2-context-retrieval-proof.json",
+    "spec135-c3-context-claim-graph-proof.json",
+    "spec135-u1-workspace-artifact-proof.json",
+    "spec135-u2-workspace-live-refresh-proof.json",
+    "tests/spec135_alpha1_closure_test.py"
+  ],
+  "proof_commands": [
+    "python3 tests/spec135_alpha1_closure_test.py",
+    "python3 tests/spec135_context_ingestion_e2e_test.py",
+    "python3 tests/spec135_context_retrieval_e2e_test.py",
+    "python3 tests/spec135_context_claim_graph_e2e_test.py",
+    "python3 tests/spec135_workspace_artifact_e2e_test.py",
+    "python3 tests/spec135_workspace_live_refresh_e2e_test.py"
+  ]
+}

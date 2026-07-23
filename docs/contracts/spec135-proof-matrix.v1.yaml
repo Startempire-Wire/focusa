@@ -1,0 +1,1764 @@
+{
+  "authority": "docs/135e-cross-spec-amendments-migration-and-closure-matrix.md",
+  "global_closure_gates": [
+    "permanent onboarding-to-exact-resume traversal",
+    "generated contract compatibility",
+    "client parity",
+    "UIAI browser proof",
+    "accessibility",
+    "security/privacy",
+    "performance/resource laws",
+    "license/SBOM",
+    "public-surface guard"
+  ],
+  "requirements": [
+    {
+      "acceptance_criteria": [
+        "Versioned Delivery Contract identifies every normative source and amendment",
+        "No requirement is silently deferred"
+      ],
+      "bead_id": "focusa-mc-f0",
+      "closure_status": "verified",
+      "evidence_requirements": [
+        "delivery-contract artifact",
+        "manifest regression test"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-F0",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Every requirement has dependencies, owner, state, proof, and closure fields",
+        "DAG is acyclic and exposes ready work"
+      ],
+      "bead_id": "focusa-mc-f1",
+      "closure_status": "verified",
+      "evidence_requirements": [
+        "DAG validation",
+        "matrix coverage audit"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-F1",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Schemas cover project/workstream/attachment scope and shared envelopes",
+        "Contract generation is deterministic"
+      ],
+      "bead_id": "focusa-mc-f2",
+      "closure_status": "verified",
+      "evidence_requirements": [
+        "schema snapshots",
+        "OpenAPI validation"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-F2",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Generated clients compile and match operation IDs",
+        "No duplicate manual client DTO catalog"
+      ],
+      "bead_id": "focusa-mc-f3",
+      "closure_status": "verified",
+      "evidence_requirements": [
+        "TypeScript check",
+        "Go client compile",
+        "contract diff"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-F3",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Each generated action resolves exact scope, capability, permission, schema, preview/commit, idempotency, concurrency, Receipt, and recovery",
+        "No second route/action catalog"
+      ],
+      "bead_id": "focusa-mc-f4",
+      "closure_status": "verified",
+      "evidence_requirements": [
+        "registry completeness audit",
+        "binding fixtures"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-F4",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "All covered operations use canonical constructors and failure classes",
+        "Generated clients consume the same envelope"
+      ],
+      "bead_id": "focusa-mc-f5",
+      "closure_status": "verified",
+      "evidence_requirements": [
+        "envelope contract tests",
+        "failure recovery tests"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-F5",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Cursor and Last-Event-ID replay survive restart",
+        "Live tail continues from durable replay without gaps or duplicates"
+      ],
+      "bead_id": "focusa-mc-f6",
+      "closure_status": "verified",
+      "evidence_requirements": [
+        "restart replay test",
+        "stream sequence test"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-F6",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Unauthorized or version-incompatible actions fail closed with recovery",
+        "Permission projection is scope exact"
+      ],
+      "bead_id": "focusa-mc-f7",
+      "closure_status": "verified",
+      "evidence_requirements": [
+        "capability matrix test",
+        "handshake compatibility test"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-F7",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Execution is governed, resumable, cancellation-aware, and envelope-compatible",
+        "No model runtime bypasses Focusa authority"
+      ],
+      "bead_id": "focusa-mc-f8",
+      "closure_status": "verified",
+      "evidence_requirements": [
+        "Pi RPC integration test",
+        "resume/cancel proof"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-F8",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "A2UI snapshot/delta fixtures render deterministically",
+        "No complete custom Svelte renderer or Playwright dependency"
+      ],
+      "bead_id": "focusa-mc-f9",
+      "closure_status": "verified",
+      "evidence_requirements": [
+        "A2UI fixture tests",
+        "renderer smoke"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-F9",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Catalog covers required stage primitives and recovery states",
+        "Components pass Vitest and accessibility checks"
+      ],
+      "bead_id": "focusa-mc-f10",
+      "closure_status": "verified",
+      "evidence_requirements": [
+        "component tests",
+        "catalog conformance fixtures"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-F10",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Eval proves action binding, rendering, recovery, and Evidence capture",
+        "Diagnostics are retained as bounded evidence"
+      ],
+      "bead_id": "focusa-mc-f11",
+      "closure_status": "verified",
+      "evidence_requirements": [
+        "UIAI Eval artifact",
+        "browser diagnostics evidence"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-F11",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Real Context mutation traverses the complete canonical stack",
+        "Result survives restart and exact resume"
+      ],
+      "bead_id": "focusa-mc-f12",
+      "closure_status": "verified",
+      "evidence_requirements": [
+        "end-to-end Alpha seed proof",
+        "Receipt and Evidence refs"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-F12",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Real Markdown/code and PDF ingest without mock providers",
+        "Generated Context UI shows progress, health, retry, and source scope"
+      ],
+      "bead_id": "focusa-mc-c1",
+      "closure_status": "verified",
+      "evidence_requirements": [
+        "ingestion integration tests",
+        "UIAI Context eval"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-C1",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Retrieval is deterministic, scoped, cited, and restart-safe",
+        "Vector absence degrades safely to lexical retrieval"
+      ],
+      "bead_id": "focusa-mc-c2",
+      "closure_status": "verified",
+      "evidence_requirements": [
+        "retrieval quality fixtures",
+        "restart proof"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-C2",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Claims retain provenance and scope",
+        "Contradictions require explicit resolution and update reactive views"
+      ],
+      "bead_id": "focusa-mc-c3",
+      "closure_status": "verified",
+      "evidence_requirements": [
+        "claim reducer tests",
+        "contradiction UI eval"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-C3",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Connector uses canonical typed adapter and permissions",
+        "Imported artifacts enter the same Context pipeline"
+      ],
+      "bead_id": "focusa-mc-c4",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "wiremock connector tests",
+        "credential redaction audit"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-C4",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Role separates responsibility from permission and exposes assumptions",
+        "Approval is durable, auditable, and resumable"
+      ],
+      "bead_id": "focusa-mc-ri1",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "Role reducer/API tests",
+        "generated Role UI eval"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-RI1",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Retrieval occurs before questions",
+        "Each question has recommendation, sources, dependency branch, and stop condition"
+      ],
+      "bead_id": "focusa-mc-ri2",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "strategy fixtures",
+        "question sequencing tests"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-RI2",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Close/reopen/restart resumes exact question and branch state",
+        "Deferred branches remain visible and governed"
+      ],
+      "bead_id": "focusa-mc-ri3",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "restart/resume integration test",
+        "Interview UIAI eval"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-RI3",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Artifacts cite source questions/evidence and support supersession",
+        "Closure package feeds Spec workbench without transcript dependence"
+      ],
+      "bead_id": "focusa-mc-ri4",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "artifact snapshot tests",
+        "provenance audit"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-RI4",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Sections, objections, evidence, approval, and amendment state persist",
+        "Workbench can close and resume exactly"
+      ],
+      "bead_id": "focusa-mc-st1",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "Spec 120 integration test",
+        "Workbench UI eval"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-ST1",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Task graph preserves requirement and proof links",
+        "No task materializes before approval"
+      ],
+      "bead_id": "focusa-mc-st2",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "DAG validator",
+        "preview/approval tests"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-ST2",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "No worktree-local database is created",
+        "IDs remain stable through merge and every task links requirement/dependency/proof"
+      ],
+      "bead_id": "focusa-mc-st3",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "Beads parity audit",
+        "prefix collision test"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-ST3",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Workpoint authority includes project, working sub-path, continuity, and bead",
+        "Closure requires linked proof and emits Receipt"
+      ],
+      "bead_id": "focusa-mc-st4",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "checkpoint/resume tests",
+        "Evidence/Receipt audit"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-ST4",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Mission Canvas is the canonical product surface, not a decorative duplicate",
+        "Workspace projects canonical read models only"
+      ],
+      "bead_id": "focusa-mc-m1",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "naming/static guard",
+        "workspace integration smoke"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-M1",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Active bead/Workpoint/proof/next action stay visible",
+        "Responsive and terminal modes preserve action reachability"
+      ],
+      "bead_id": "focusa-mc-m2",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "TUI snapshot tests",
+        "keyboard/mouse proof"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-M2",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Multiple surfaces coexist without state duplication",
+        "Tab/pane identity and lifecycle persist"
+      ],
+      "bead_id": "focusa-mc-m3",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "surface registry tests",
+        "multiplex UI eval"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-M3",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Every mutation resolves exact attachment scope",
+        "Cross-surface targeting fails closed"
+      ],
+      "bead_id": "focusa-mc-m4",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "attachment scope tests",
+        "cross-surface denial proof"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-M4",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "No browser context leaks across surfaces or projects",
+        "Cleanup and recovery retain Evidence handles"
+      ],
+      "bead_id": "focusa-mc-m5",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "browser isolation eval",
+        "cookie/session separation test"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-M5",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Restart restores exact surfaces, tabs, attachments, and next action",
+        "Stale surfaces recover explicitly"
+      ],
+      "bead_id": "focusa-mc-m6",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "restart/resume scenario suite",
+        "migration proof"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-M6",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Keyboard, screen-reader, contrast, reduced-motion, and error recovery pass",
+        "No raw JSON is required for primary tasks"
+      ],
+      "bead_id": "focusa-mc-m7",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "accessibility audit",
+        "nontechnical usability eval"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-M7",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Artifacts retain source, scope, diagnostics, and Evidence refs",
+        "No UIAI state becomes canonical Focusa state"
+      ],
+      "bead_id": "focusa-mc-u1",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "bridge contract tests",
+        "research packet proof"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-U1",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Relevant canonical changes produce bounded deltas automatically",
+        "Reconnect replays missed updates exactly once"
+      ],
+      "bead_id": "focusa-mc-u2",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "live-refresh integration test",
+        "reconnect eval"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-U2",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "All required browser scenarios produce reproducible evidence",
+        "No Playwright dependency is introduced"
+      ],
+      "bead_id": "focusa-mc-u3",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "UIAI Eval matrix",
+        "diagnostics intake refs"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-U3",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Primary actions, autosave, progress, sources, and recovery are clear",
+        "Accessibility checks pass for every trusted component"
+      ],
+      "bead_id": "focusa-mc-u4",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "moderated usability scenarios",
+        "accessibility fixtures"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-U4",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Friction data is scoped, privacy-safe, inspectable, and linked to outcomes",
+        "Learning never silently mutates canonical UI behavior"
+      ],
+      "bead_id": "focusa-mc-u5",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "friction event tests",
+        "privacy audit",
+        "learning evaluation"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-U5",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Only improvements beating baseline and thresholds promote",
+        "Rollback restores prior artifact deterministically"
+      ],
+      "bead_id": "focusa-mc-u6",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "optimizer eval",
+        "promotion/rollback proof"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-U6",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Ontology state is canonical, typed, replayable, and evidence-linked",
+        "C.R.I.S.T. remains a projection, not core ownership"
+      ],
+      "bead_id": "focusa-mc-v1",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "ontology contract tests",
+        "replay proof"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-V1",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Traversal is bounded and scope-safe",
+        "Snapshot/event migration preserves identifiers and provenance"
+      ],
+      "bead_id": "focusa-mc-v2",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "graph property tests",
+        "migration fixtures"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-V2",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Pack is removable/configurable and does not fork core state",
+        "Projection parity fixtures pass"
+      ],
+      "bead_id": "focusa-mc-v3",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "domain-pack conformance"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-V3",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Code claims cite parsed reality",
+        "Graph updates react to bounded repository changes"
+      ],
+      "bead_id": "focusa-mc-v4",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "parser fixtures",
+        "software projection eval"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-V4",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Research pack reuses core source/claim primitives",
+        "Artifacts remain attachment scoped"
+      ],
+      "bead_id": "focusa-mc-v5",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "research pack conformance"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-V5",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Selection order is deterministic and explainable",
+        "Switching packs does not fork or lose state"
+      ],
+      "bead_id": "focusa-mc-v6",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "selection property tests",
+        "three-pack Alpha proof"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-V6",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Providers cannot bypass scope, permission, idempotency, or Receipt requirements",
+        "Parity matrix covers supported providers"
+      ],
+      "bead_id": "focusa-mc-p1",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "provider conformance suite"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-P1",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Connector state, health, errors, and recovery use canonical envelopes",
+        "Mock-only connectors cannot close requirements"
+      ],
+      "bead_id": "focusa-mc-p2",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "wiremock conformance",
+        "connector health tests"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-P2",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Secrets never enter logs/Evidence/public artifacts",
+        "Revocation and expiry produce deterministic recovery"
+      ],
+      "bead_id": "focusa-mc-p3",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "secret scan",
+        "OAuth lifecycle tests"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-P3",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Adapter is downstream, stateless with respect to canonical history, and replay compatible",
+        "Native path remains authoritative"
+      ],
+      "bead_id": "focusa-mc-p4",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "adapter parity tests"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-P4",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "All readers/writers and generated clients pass parity matrix",
+        "Removal occurs only after compatibility proof"
+      ],
+      "bead_id": "focusa-mc-p5",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "cross-client matrix",
+        "migration receipts"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-P5",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Trust boundaries and fail-closed rules are explicit and tested",
+        "Operator authority and confirmation requirements are preserved"
+      ],
+      "bead_id": "focusa-mc-q1",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "threat model",
+        "scope denial tests"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-Q1",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": []
+    },
+    {
+      "acceptance_criteria": [
+        "No secrets/customer/runtime data leak",
+        "Auth and permission gates cover every mutation and stream"
+      ],
+      "bead_id": "focusa-mc-q2",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "security audit",
+        "redaction tests"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-Q2",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": []
+    },
+    {
+      "acceptance_criteria": [
+        "Budgets are measurable and regression-gated",
+        "Large graphs/tables/artifacts virtualize and bound payloads"
+      ],
+      "bead_id": "focusa-mc-q3",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "benchmarks",
+        "load/soak tests"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-Q3",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": []
+    },
+    {
+      "acceptance_criteria": [
+        "Duplicate commits are prevented",
+        "Every interruption has explicit recoverable state"
+      ],
+      "bead_id": "focusa-mc-q4",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "fault injection",
+        "restart/chaos suite"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-Q4",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh",
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+      ],
+      "uiai_eval_scenarios": []
+    },
+    {
+      "acceptance_criteria": [
+        "No forbidden or unknown dependency ships",
+        "SBOM and notices are reproducible"
+      ],
+      "bead_id": "focusa-mc-q5",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "cargo-deny/about",
+        "Syft artifacts"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-Q5",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": []
+    },
+    {
+      "acceptance_criteria": [
+        "Any failing required check blocks closure",
+        "Gate emits bounded Evidence and actionable recovery"
+      ],
+      "bead_id": "focusa-mc-q6",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "consolidated regression gate",
+        "public-surface guard"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-Q6",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": []
+    },
+    {
+      "acceptance_criteria": [
+        "Real sources ingest, retrieve, cite, and render with restart-safe state"
+      ],
+      "bead_id": "focusa-mc-alpha1",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "Cross-Functional Alpha evidence",
+        "UIAI Eval where browser-facing"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-ALPHA1",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Role approval and Interview exact resume work through generated UI"
+      ],
+      "bead_id": "focusa-mc-alpha2",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "Cross-Functional Alpha evidence",
+        "UIAI Eval where browser-facing"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-ALPHA2",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Approved spec materializes a correctly linked shared-database bead"
+      ],
+      "bead_id": "focusa-mc-alpha3",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "Cross-Functional Alpha evidence",
+        "UIAI Eval where browser-facing"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-ALPHA3",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Task executes through verified Workpoint and closes only with Evidence/Receipt"
+      ],
+      "bead_id": "focusa-mc-alpha4",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "Cross-Functional Alpha evidence",
+        "UIAI Eval where browser-facing"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-ALPHA4",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Artifact refreshes automatically from canonical events and retains Evidence"
+      ],
+      "bead_id": "focusa-mc-alpha5",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "Cross-Functional Alpha evidence",
+        "UIAI Eval where browser-facing"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-ALPHA5",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Multiplexed surfaces and browser contexts remain isolated and resumable"
+      ],
+      "bead_id": "focusa-mc-alpha6",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "Cross-Functional Alpha evidence",
+        "UIAI Eval where browser-facing"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-ALPHA6",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Three domain projections preserve identical canonical state"
+      ],
+      "bead_id": "focusa-mc-alpha7",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "Cross-Functional Alpha evidence",
+        "UIAI Eval where browser-facing"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-ALPHA7",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "A nontechnical operator completes and recovers the full generated path"
+      ],
+      "bead_id": "focusa-mc-alpha8",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "Cross-Functional Alpha evidence",
+        "UIAI Eval where browser-facing"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-ALPHA8",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Every changed type/route/event/client has old/new owner and migration state"
+      ],
+      "bead_id": "focusa-mc-e1",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "migration fixtures",
+        "compatibility matrix",
+        "Receipts"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-E1",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Old and new readers coexist until replay/migration proof passes"
+      ],
+      "bead_id": "focusa-mc-e2",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "migration fixtures",
+        "compatibility matrix",
+        "Receipts"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-E2",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Generated compatibility and Schemathesis workflows pass"
+      ],
+      "bead_id": "focusa-mc-e3",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "migration fixtures",
+        "compatibility matrix",
+        "Receipts"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-E3",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "No static/transcript-only fallback remains primary"
+      ],
+      "bead_id": "focusa-mc-e4",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "migration fixtures",
+        "compatibility matrix",
+        "Receipts"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-E4",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Closure matrix has no unsupported or silently deferred rows"
+      ],
+      "bead_id": "focusa-mc-e5",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "migration fixtures",
+        "compatibility matrix",
+        "Receipts"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-E5",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "No applicable requirement is missing, mock-only, static-only, or silently deferred"
+      ],
+      "bead_id": "focusa-mc-z1",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "closure matrix audit"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-Z1",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "The complete path succeeds with real providers/artifacts and exact state continuity"
+      ],
+      "bead_id": "focusa-mc-z2",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "end-to-end evidence bundle"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-Z2",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Restart restores exact product state and worktree lineage remains auditable"
+      ],
+      "bead_id": "focusa-mc-z3",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "restart trace",
+        "git/bead lineage proof"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-Z3",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh",
+        "tests/spec135h_implementation_acceleration_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Every mandatory gate passes from a clean synchronized checkout"
+      ],
+      "bead_id": "focusa-mc-z4",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "test manifest",
+        "Eval refs",
+        "audit artifacts"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-Z4",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Feature branch is merge-ready, documented, evidence-backed, and fully operational"
+      ],
+      "bead_id": "focusa-mc-z5",
+      "closure_status": "open",
+      "evidence_requirements": [
+        "release proof",
+        "project-card outcome",
+        "final Receipt"
+      ],
+      "receipt_requirements": [
+        "closure Receipt",
+        "governed mutation Receipt when applicable"
+      ],
+      "requirement_id": "SPEC135-Z5",
+      "tests": [
+        "tests/spec135_delivery_contract_regression_static_test.sh"
+      ],
+      "uiai_eval_scenarios": [
+        "required when browser-facing"
+      ]
+    }
+  ],
+  "schema": "focusa.spec135.proof_matrix.v1"
+}

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22><text y=%22.9em%22>F</text></svg>" />
+    <title>Focusa Workspace Live Refresh Eval</title>
+    <style>
+      :root { color: #172033; background: #eef2f8; font: 16px/1.5 system-ui, sans-serif; }
+      body { margin: 0; }
+      main { width: min(58rem, calc(100% - 2rem)); margin: 2rem auto; }
+      h1 { font-size: clamp(1.55rem, 5vw, 2.4rem); margin-bottom: .35rem; }
+      #refresh-result { margin-block: 1rem; padding: .75rem; border-radius: .5rem; background: #fff; }
+      #workspace-refresh-surface { display: grid; gap: .75rem; }
+      @media (max-width: 34rem) { main { margin-block: 1rem; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Targeted Workspace live refresh</h1>
+      <p>Reconnect from a durable cursor, recover a missed artifact event, and leave unrelated Work Surfaces untouched.</p>
+      <div id="refresh-result" role="status" aria-live="polite">Live refresh has not run</div>
+      <section id="workspace-refresh-surface" aria-label="Generated Workspace live-refresh surface"></section>
+    </main>
+    <script type="module" src="/workspace-live-refresh.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,24 @@
+{
+  "schema": "uiai.focusa_ui_eval_result.v1",
+  "scenario_id": "spec135-ri2-grill-interview-strategy",
+  "status": "passed",
+  "browser_session_refs": ["uiai-browser:session=zFmKYl6M"],
+  "browser_context_refs": ["focusa-cont-mission-canvas-57e8c074-539f-44a2-86f6-527b478f9d80", "attachment:ri2-interview"],
+  "step_results": [
+    {"step_id":"open","status":"passed","result":"UIAI opened the generated Grill Interview strategy surface at 1440x1000.","evidence_refs":["uiai-browser:session=zFmKYl6M:read:1"]},
+    {"step_id":"propose","status":"passed","result":"One action selected the higher-value non-goal question inside the active scope branch rather than the global Discovery blocker.","evidence_refs":["uiai-browser:session=zFmKYl6M","context-source:f063e9284338919fd6276238","project-role-profile:e21d217860c356b6bc7e30d1"]},
+    {"step_id":"authority","status":"passed","result":"UIAI Eval observed status=completed, actions=1, tranche=boundary, branch=scope, recommendationRefs=1, retrievalFirst=true, oneQuestion=true, operator authority=true.","evidence_refs":["uiai-browser:session=zFmKYl6M:eval:ri2-strategy"]},
+    {"step_id":"mobile","status":"passed","result":"At 390x844 the body width equaled the viewport, horizontal overflow was false, and Run Grill Strategy remained 310 pixels wide.","evidence_refs":["/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/zFmKYl6M-1784647930318456000.png"]},
+    {"step_id":"diagnostics","status":"passed","result":"Final diagnostics reported zero console errors, warnings, exceptions, failed requests, HTTP 4xx, and HTTP 5xx across seven requests.","evidence_refs":["uiai-diagnostics:session=zFmKYl6M:seq=7"]},
+    {"step_id":"close","status":"passed","result":"The browser session and temporary proof processes were closed after evidence capture.","evidence_refs":["uiai-browser:session=zFmKYl6M"]}
+  ],
+  "artifact_refs": [
+    "packages/a2ui-renderer/proof/interview-strategy.html",
+    "packages/a2ui-renderer/proof/interview-strategy.ts",
+    "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/zFmKYl6M-1784647902779401000.png",
+    "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/zFmKYl6M-1784647930318456000.png"
+  ],
+  "diagnostics_ref": "uiai-diagnostics:session=zFmKYl6M:seq=7",
+  "limitations": ["The strategy is advisory and deliberately does not persist Interview questions or answers; RI3 owns canonical Interview state."],
+  "completed_at": "2026-07-21T15:32:09Z"
+}
