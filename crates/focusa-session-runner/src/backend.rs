@@ -15,7 +15,8 @@ use thiserror::Error;
 use crate::identity::VerifiedExecutionContext;
 #[cfg(unix)]
 use crate::process_posix::{
-    ExitedRunRecord, HeartbeatSnapshot, PosixProcessSupervisor, PosixSpawnRequest, SupervisorError,
+    ControlledStopPolicy, ControlledStopReport, ExitedRunRecord, HeartbeatSnapshot,
+    NativeAbortDisposition, PosixProcessSupervisor, PosixSpawnRequest, SupervisorError,
 };
 #[cfg(unix)]
 use crate::protocol::{ActiveRunRecord, AdoptionDecision, AdoptionExpectation};
@@ -326,6 +327,20 @@ impl DirectProcessBackend {
         observed_at: DateTime<Utc>,
     ) -> Result<AdoptionDecision, SupervisorError> {
         self.supervisor.evaluate_adoption(expectation, observed_at)
+    }
+
+    pub async fn controlled_stop<F>(
+        &mut self,
+        run_id: SilentSessionRunId,
+        policy: ControlledStopPolicy,
+        native_abort: F,
+    ) -> Result<ControlledStopReport, SupervisorError>
+    where
+        F: FnMut(&ActiveRunRecord) -> NativeAbortDisposition,
+    {
+        self.supervisor
+            .controlled_stop(run_id, policy, native_abort)
+            .await
     }
 
     pub async fn force_terminate(

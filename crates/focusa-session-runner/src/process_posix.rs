@@ -15,6 +15,7 @@ use focusa_core::silent_session::{SilentSessionId, SilentSessionRunId};
 use nix::errno::Errno;
 use nix::sys::signal::{Signal, killpg};
 use nix::unistd::{Pid, getpgid, getsid};
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::ffi::{OsStr, OsString};
 use std::fs;
@@ -22,8 +23,10 @@ use std::os::unix::fs::MetadataExt;
 use std::os::unix::process::ExitStatusExt;
 use std::path::{Path, PathBuf};
 use std::process::{ExitStatus, Stdio};
+use std::time::Duration;
 use thiserror::Error;
 use tokio::process::{Child, Command};
+use tokio::time::{Instant, sleep};
 use uuid::Uuid;
 
 const RESERVED_RUNNER_ENV: [&str; 3] = [
@@ -43,7 +46,7 @@ pub struct PosixSpawnRequest {
     pub launch_manifest_sha256: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExitedRunRecord {
     pub session_id: SilentSessionId,
     pub run_id: SilentSessionRunId,
@@ -58,6 +61,85 @@ pub struct ExitedRunRecord {
 pub struct HeartbeatSnapshot {
     pub heartbeat: RunnerHeartbeat,
     pub exited_runs: Vec<ExitedRunRecord>,
+}
+
+pub const CONTROLLED_STOP_REPORT_SCHEMA: &str = "focusa.controlled_stop_report.v1";
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "status", rename_all = "snake_case")]
+pub enum NativeAbortDisposition {
+    Requested,
+    Unsupported,
+    Failed { reason: String },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ControlledStopStage {
+    NativeAbortRequested,
+    NativeAbortAccepted,
+    NativeAbortUnavailable,
+    NativeAbortFailed,
+    NativeAbortGraceExpired,
+    GracefulTerminationRequested,
+    GracefulTerminationGraceExpired,
+    ForceTerminationRequested,
+    LeakVerificationStarted,
+    LeakVerificationPassed,
+    LeakVerificationFailed,
+    TerminalStopped,
+    TerminalLeakDetected,
+    TerminalAlreadyExited,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ControlledStopTerminal {
+    AlreadyExited,
+    StoppedAfterNativeAbort,
+    StoppedAfterGracefulTermination,
+    StoppedAfterForce,
+    LeakDetected,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ControlledStopEvent {
+    pub sequence: u32,
+    pub stage: ControlledStopStage,
+    pub observed_at: DateTime<Utc>,
+    pub detail: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ControlledStopPolicy {
+    pub native_abort_grace: Duration,
+    pub graceful_termination_grace: Duration,
+    pub force_termination_grace: Duration,
+    pub poll_interval: Duration,
+}
+
+impl Default for ControlledStopPolicy {
+    fn default() -> Self {
+        Self {
+            native_abort_grace: Duration::from_secs(2),
+            graceful_termination_grace: Duration::from_secs(5),
+            force_termination_grace: Duration::from_secs(2),
+            poll_interval: Duration::from_millis(25),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ControlledStopReport {
+    pub schema: String,
+    pub session_id: SilentSessionId,
+    pub run_id: SilentSessionRunId,
+    pub generation: u64,
+    pub process_instance_id: String,
+    pub native_abort: NativeAbortDisposition,
+    pub terminal: ControlledStopTerminal,
+    pub exit: Option<ExitedRunRecord>,
+    pub events: Vec<ControlledStopEvent>,
 }
 
 struct OwnedProcess {
@@ -294,6 +376,34 @@ impl PosixProcessSupervisor {
             .map_err(SupervisorError::Protocol)
     }
 
+    /// Execute the Spec 133 controlled-stop ladder against the complete owned
+    /// process group. The caller supplies only the harness-native abort request;
+    /// all OS escalation, grace timing, and leak verification remain runner-owned.
+    pub async fn controlled_stop<F>(
+        &mut self,
+        run_id: SilentSessionRunId,
+        policy: ControlledStopPolicy,
+        mut native_abort: F,
+    ) -> Result<ControlledStopReport, SupervisorError>
+    where
+        F: FnMut(&ActiveRunRecord) -> NativeAbortDisposition,
+    {
+        if policy.poll_interval.is_zero() {
+            return Err(SupervisorError::InvalidControlledStopPolicy);
+        }
+        let report = {
+            let owned = self
+                .runs
+                .get_mut(&run_id)
+                .ok_or(SupervisorError::RunNotOwned(run_id))?;
+            controlled_stop_owned(owned, policy, &mut native_abort).await?
+        };
+        if report.terminal != ControlledStopTerminal::LeakDetected {
+            self.runs.remove(&run_id);
+        }
+        Ok(report)
+    }
+
     /// Force-kill the entire owned process group before reaping its leader.
     /// This ordering prevents the leader PID from being reused before the
     /// process-tree signal is delivered.
@@ -323,6 +433,234 @@ impl Drop for PosixProcessSupervisor {
                 let _ = killpg(process_group, Signal::SIGKILL);
             }
         }
+    }
+}
+
+async fn controlled_stop_owned<F>(
+    owned: &mut OwnedProcess,
+    policy: ControlledStopPolicy,
+    native_abort: &mut F,
+) -> Result<ControlledStopReport, SupervisorError>
+where
+    F: FnMut(&ActiveRunRecord) -> NativeAbortDisposition,
+{
+    let record = &owned.record;
+    let process_group = process_group_pid(record)?;
+    validate_live_process_tree(record)?;
+    let mut events = Vec::new();
+
+    if let Some(status) = owned.child.try_wait().map_err(io_error)? {
+        push_stop_event(
+            &mut events,
+            ControlledStopStage::LeakVerificationStarted,
+            None,
+        );
+        let leak = process_group_is_alive(process_group)?;
+        push_stop_event(
+            &mut events,
+            if leak {
+                ControlledStopStage::LeakVerificationFailed
+            } else {
+                ControlledStopStage::LeakVerificationPassed
+            },
+            None,
+        );
+        push_stop_event(
+            &mut events,
+            if leak {
+                ControlledStopStage::TerminalLeakDetected
+            } else {
+                ControlledStopStage::TerminalAlreadyExited
+            },
+            None,
+        );
+        return Ok(stop_report(
+            record,
+            NativeAbortDisposition::Unsupported,
+            if leak {
+                ControlledStopTerminal::LeakDetected
+            } else {
+                ControlledStopTerminal::AlreadyExited
+            },
+            Some(status),
+            events,
+        ));
+    }
+
+    push_stop_event(&mut events, ControlledStopStage::NativeAbortRequested, None);
+    let native_abort_disposition = native_abort(record);
+    let (abort_stage, abort_detail) = match &native_abort_disposition {
+        NativeAbortDisposition::Requested => (ControlledStopStage::NativeAbortAccepted, None),
+        NativeAbortDisposition::Unsupported => (ControlledStopStage::NativeAbortUnavailable, None),
+        NativeAbortDisposition::Failed { reason } => {
+            (ControlledStopStage::NativeAbortFailed, Some(reason.clone()))
+        }
+    };
+    push_stop_event(&mut events, abort_stage, abort_detail);
+
+    let mut terminal = ControlledStopTerminal::StoppedAfterNativeAbort;
+    let mut status = wait_for_process_group_exit(
+        &mut owned.child,
+        process_group,
+        policy.native_abort_grace,
+        policy.poll_interval,
+    )
+    .await?;
+
+    if process_group_is_alive(process_group)? {
+        push_stop_event(
+            &mut events,
+            ControlledStopStage::NativeAbortGraceExpired,
+            None,
+        );
+        push_stop_event(
+            &mut events,
+            ControlledStopStage::GracefulTerminationRequested,
+            None,
+        );
+        signal_process_group(process_group, Signal::SIGTERM)?;
+        terminal = ControlledStopTerminal::StoppedAfterGracefulTermination;
+        status = wait_for_process_group_exit(
+            &mut owned.child,
+            process_group,
+            policy.graceful_termination_grace,
+            policy.poll_interval,
+        )
+        .await?
+        .or(status);
+    }
+
+    if process_group_is_alive(process_group)? {
+        push_stop_event(
+            &mut events,
+            ControlledStopStage::GracefulTerminationGraceExpired,
+            None,
+        );
+        push_stop_event(
+            &mut events,
+            ControlledStopStage::ForceTerminationRequested,
+            None,
+        );
+        signal_process_group(process_group, Signal::SIGKILL)?;
+        terminal = ControlledStopTerminal::StoppedAfterForce;
+        status = wait_for_process_group_exit(
+            &mut owned.child,
+            process_group,
+            policy.force_termination_grace,
+            policy.poll_interval,
+        )
+        .await?
+        .or(status);
+    }
+
+    push_stop_event(
+        &mut events,
+        ControlledStopStage::LeakVerificationStarted,
+        None,
+    );
+    let leak = process_group_is_alive(process_group)?;
+    push_stop_event(
+        &mut events,
+        if leak {
+            ControlledStopStage::LeakVerificationFailed
+        } else {
+            ControlledStopStage::LeakVerificationPassed
+        },
+        None,
+    );
+    if leak {
+        terminal = ControlledStopTerminal::LeakDetected;
+    }
+    push_stop_event(
+        &mut events,
+        if leak {
+            ControlledStopStage::TerminalLeakDetected
+        } else {
+            ControlledStopStage::TerminalStopped
+        },
+        None,
+    );
+
+    Ok(stop_report(
+        record,
+        native_abort_disposition,
+        terminal,
+        status,
+        events,
+    ))
+}
+
+async fn wait_for_process_group_exit(
+    child: &mut Child,
+    process_group: Pid,
+    grace: Duration,
+    poll_interval: Duration,
+) -> Result<Option<ExitStatus>, SupervisorError> {
+    let deadline = Instant::now() + grace;
+    let mut status = child.try_wait().map_err(io_error)?;
+    loop {
+        if !process_group_is_alive(process_group)? {
+            if status.is_none() {
+                status = Some(child.wait().await.map_err(io_error)?);
+            }
+            return Ok(status);
+        }
+        let now = Instant::now();
+        if now >= deadline {
+            return Ok(status);
+        }
+        sleep(poll_interval.min(deadline - now)).await;
+        if status.is_none() {
+            status = child.try_wait().map_err(io_error)?;
+        }
+    }
+}
+
+fn signal_process_group(process_group: Pid, signal: Signal) -> Result<(), SupervisorError> {
+    match killpg(process_group, signal) {
+        Ok(()) | Err(Errno::ESRCH) => Ok(()),
+        Err(error) => Err(os_error(error)),
+    }
+}
+
+fn process_group_is_alive(process_group: Pid) -> Result<bool, SupervisorError> {
+    match killpg(process_group, None) {
+        Ok(()) | Err(Errno::EPERM) => Ok(true),
+        Err(Errno::ESRCH) => Ok(false),
+        Err(error) => Err(os_error(error)),
+    }
+}
+
+fn push_stop_event(
+    events: &mut Vec<ControlledStopEvent>,
+    stage: ControlledStopStage,
+    detail: Option<String>,
+) {
+    events.push(ControlledStopEvent {
+        sequence: u32::try_from(events.len() + 1).unwrap_or(u32::MAX),
+        stage,
+        observed_at: Utc::now(),
+        detail,
+    });
+}
+
+fn stop_report(
+    record: &ActiveRunRecord,
+    native_abort: NativeAbortDisposition,
+    terminal: ControlledStopTerminal,
+    status: Option<ExitStatus>,
+    events: Vec<ControlledStopEvent>,
+) -> ControlledStopReport {
+    ControlledStopReport {
+        schema: CONTROLLED_STOP_REPORT_SCHEMA.into(),
+        session_id: record.session_id,
+        run_id: record.run_id,
+        generation: record.generation,
+        process_instance_id: record.process_tree.process_instance_id.clone(),
+        native_abort,
+        terminal,
+        exit: status.map(|status| exit_record(record, status, Utc::now())),
+        events,
     }
 }
 
@@ -442,6 +780,8 @@ pub enum SupervisorError {
     SessionAlreadyHasActiveRun(SilentSessionId),
     #[error("run is not owned by this runner: {0}")]
     RunNotOwned(SilentSessionRunId),
+    #[error("controlled-stop policy requires a nonzero polling interval")]
+    InvalidControlledStopPolicy,
     #[error("runner executable must be absolute: {0}")]
     ExecutableMustBeAbsolute(PathBuf),
     #[error("runner executable is not a regular executable file: {0}")]
@@ -563,6 +903,25 @@ mod tests {
         panic!("runner child did not finish writing {}", path.display());
     }
 
+    async fn wait_for_path(path: &Path) {
+        for _ in 0..100 {
+            if path.exists() {
+                return;
+            }
+            sleep(TokioDuration::from_millis(10)).await;
+        }
+        panic!("runner child did not create {}", path.display());
+    }
+
+    fn short_stop_policy() -> ControlledStopPolicy {
+        ControlledStopPolicy {
+            native_abort_grace: TokioDuration::from_millis(50),
+            graceful_termination_grace: TokioDuration::from_millis(50),
+            force_termination_grace: TokioDuration::from_secs(1),
+            poll_interval: TokioDuration::from_millis(5),
+        }
+    }
+
     #[tokio::test]
     async fn owner_runner_spawns_owned_process_group_and_supports_live_adoption() {
         let project = TestProject::new();
@@ -668,6 +1027,97 @@ mod tests {
         let exit = observed_exit.expect("short process should be reaped");
         assert_eq!(exit.run_id, run_id);
         assert_eq!(exit.exit_code, Some(7));
+        assert_eq!(supervisor.active_run_count(), 0);
+    }
+
+    #[tokio::test]
+    async fn controlled_stop_prefers_harness_native_abort_and_events_every_stage() {
+        let project = TestProject::new();
+        let current = OsIdentity::current().expect("current identity should resolve");
+        let context = project.context(current.uid);
+        let ready = context
+            .authorize_mutation_path("native-abort-ready")
+            .expect("ready path should be workspace-scoped");
+        let script = "trap 'exit 0' USR1; : > native-abort-ready; while :; do sleep 1; done";
+        let request = spawn_request(script);
+        let run_id = request.run_id;
+        let mut supervisor = PosixProcessSupervisor::for_current_user("runner:native-abort")
+            .expect("runner should initialize");
+        supervisor
+            .spawn(&context, request, Utc::now())
+            .expect("process should spawn");
+        wait_for_path(ready.as_path()).await;
+
+        let report = supervisor
+            .controlled_stop(run_id, short_stop_policy(), |record| {
+                let group = process_group_pid(record).expect("group should be valid");
+                killpg(group, Signal::SIGUSR1).expect("native abort signal should be delivered");
+                NativeAbortDisposition::Requested
+            })
+            .await
+            .expect("controlled stop should complete");
+
+        assert_eq!(
+            report.terminal,
+            ControlledStopTerminal::StoppedAfterNativeAbort
+        );
+        assert_eq!(report.native_abort, NativeAbortDisposition::Requested);
+        assert!(report.exit.is_some());
+        assert_eq!(
+            report
+                .events
+                .iter()
+                .map(|event| event.stage)
+                .collect::<Vec<_>>(),
+            vec![
+                ControlledStopStage::NativeAbortRequested,
+                ControlledStopStage::NativeAbortAccepted,
+                ControlledStopStage::LeakVerificationStarted,
+                ControlledStopStage::LeakVerificationPassed,
+                ControlledStopStage::TerminalStopped,
+            ]
+        );
+        assert_eq!(supervisor.active_run_count(), 0);
+    }
+
+    #[tokio::test]
+    async fn controlled_stop_force_kills_term_resistant_descendants_and_verifies_no_leak() {
+        let project = TestProject::new();
+        let current = OsIdentity::current().expect("current identity should resolve");
+        let context = project.context(current.uid);
+        let ready = context
+            .authorize_mutation_path("force-stop-ready")
+            .expect("ready path should be workspace-scoped");
+        let script =
+            "trap '' TERM; /bin/sh -c 'trap \"\" TERM; sleep 30' & : > force-stop-ready; wait";
+        let request = spawn_request(script);
+        let run_id = request.run_id;
+        let mut supervisor = PosixProcessSupervisor::for_current_user("runner:force-stop")
+            .expect("runner should initialize");
+        supervisor
+            .spawn(&context, request, Utc::now())
+            .expect("process should spawn");
+        wait_for_path(ready.as_path()).await;
+
+        let report = supervisor
+            .controlled_stop(run_id, short_stop_policy(), |_| {
+                NativeAbortDisposition::Unsupported
+            })
+            .await
+            .expect("controlled stop should force the group");
+
+        assert_eq!(report.terminal, ControlledStopTerminal::StoppedAfterForce);
+        assert_eq!(report.native_abort, NativeAbortDisposition::Unsupported);
+        let stages = report
+            .events
+            .iter()
+            .map(|event| event.stage)
+            .collect::<Vec<_>>();
+        assert!(stages.contains(&ControlledStopStage::NativeAbortUnavailable));
+        assert!(stages.contains(&ControlledStopStage::GracefulTerminationRequested));
+        assert!(stages.contains(&ControlledStopStage::ForceTerminationRequested));
+        assert!(stages.contains(&ControlledStopStage::LeakVerificationPassed));
+        assert_eq!(stages.last(), Some(&ControlledStopStage::TerminalStopped));
         assert_eq!(supervisor.active_run_count(), 0);
     }
 
