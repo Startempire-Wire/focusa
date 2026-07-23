@@ -73,6 +73,7 @@ pub mod silent_session_resources;
 pub mod silent_session_retry;
 pub mod silent_session_scheduler;
 pub mod silent_session_stream;
+pub mod silent_session_wizard;
 pub mod silent_session_workspace;
 pub mod silent_session_writer;
 pub mod silent_sessions;
