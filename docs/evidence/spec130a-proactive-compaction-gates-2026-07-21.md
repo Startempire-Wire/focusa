@@ -158,8 +158,8 @@ The operator supplied a live Mac trace showing the old installed runtime at 137%
 Repairs added after this trace:
 
 - transport retry exhaustion arms a persistent rollover-required state;
-- after that state reaches 95% context, the Pi `input` event handles ordinary prompts locally instead of issuing another provider request, while extension commands remain routable;
-- the local response gives the exact `/focusa-rollover execute` command and states that the blocked prompt must be resent;
+- at 95% context, the Pi `input` event persists ordinary input locally, starts emergency compaction instead of issuing a provider request, and automatically replays text-only input only after verified completion;
+- after recovery is unavailable or exhausted, extension commands remain routable and the local response gives the exact `/focusa-rollover execute` command;
 - daemon health uses a tested `DaemonRecoveryGate`: two failures enter holdover, kickstarts are limited to once per 60 seconds, warnings to once per five minutes, and three consecutive healthy probes are required before SSE/reconciliation and one stable reconnect notice;
 - a failed probe during probation resets the healthy count without leaving holdover.
 

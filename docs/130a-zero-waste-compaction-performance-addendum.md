@@ -882,7 +882,7 @@ become a receipt
 
 A provider `WebSocket`, network, socket, timeout, connection-reset, temporary-service, or retryable HTTP failure is `primary_transport`. It receives at most one linked retry after the initiating epoch settles, with a maximum 60-second cooldown and a fresh live-context/idle/ownership check. It must never set the unchanged context as terminal or suppress all future recovery. Non-transport eligibility/no-op results remain terminal for that exact context epoch. No retry may add a second summarizer call or obscure the primary error.
 
-If that linked retry also fails, the coordinator must persist `rollover_required`, retain canonical checkpoint authority, and surface the exact `/focusa-rollover execute` command. At 95% or greater context pressure, ordinary user prompts must be handled locally instead of sending another predictably over-limit provider request; extension commands remain routable, and the operator must receive an immediate explanation that the prompt was not sent and must be resent after rollover.
+If that linked retry also fails, the coordinator must persist `rollover_required`, retain canonical checkpoint authority, and surface the exact `/focusa-rollover execute` command. At 95% or greater context pressure, ordinary user prompts must be persisted and handled locally instead of sending another predictably over-limit provider request; extension commands remain routable. The coordinator must start emergency compaction and automatically replay text-only input after verified completion. If recovery is unavailable or exhausted, it must explain that no provider call occurred, preserve the input in a typed session entry, and require `/focusa-rollover execute`; image-bearing input must be resent after recovery.
 
 ---
 

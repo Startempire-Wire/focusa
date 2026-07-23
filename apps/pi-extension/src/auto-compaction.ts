@@ -886,20 +886,63 @@ export function registerAutoCompaction(
   });
 
   pi.on("input", async (event, ctx) => {
-    if (!ownsRegistrationLease() || !rolloverRequired) return { action: "continue" as const };
+    if (!ownsRegistrationLease()) return { action: "continue" as const };
     const usage = ctx.getContextUsage();
     const percent = proactiveCompactionDecision(usage, getPolicy()).percent ?? 0;
     if (percent < 95) return { action: "continue" as const };
+
+    // At emergency pressure, never spend another predictable provider failure.
+    // Preserve the operator's text outside model context and either compact then
+    // replay it, or keep slash-command rollover available after bounded failure.
+    pi.appendEntry("focusa-held-critical-input", {
+      schema: "focusa.held_critical_input.v1",
+      text: event.text,
+      image_count: event.images?.length ?? 0,
+      context_percent: percent,
+      recorded_at: new Date().toISOString(),
+    });
+
+    if (!rolloverRequired) {
+      const result = maybeCompact(ctx, {
+        triggerClass: "hard_pressure",
+        customInstructions: INSTRUCTIONS,
+        onComplete: () => {
+          if (event.images?.length) {
+            if (ctx.hasUI) {
+              ctx.ui.notify(
+                "Focusa compacted the session; resend the held prompt with its image attachments.",
+                "warning"
+              );
+            }
+            return;
+          }
+          pi.sendUserMessage(event.text);
+        },
+      });
+      if (result === "requested") {
+        if (ctx.hasUI) {
+          ctx.ui.setStatus("focusa-auto-compaction", "🧭 emergency recovery");
+          ctx.ui.notify(
+            `Focusa held this ${percent.toFixed(1)}% prompt locally, started emergency compaction, and will replay it after verified completion.`,
+            "warning"
+          );
+        }
+        return { action: "handled" as const };
+      }
+    }
+
     persist("input_blocked_rollover_required", {
       context_percent: percent,
       recovery_command: "/focusa-rollover execute",
-      input_preserved: false,
-      reason: "provider_transport_retry_exhausted_at_hard_pressure",
+      input_preserved: true,
+      reason: rolloverRequired
+        ? "provider_transport_retry_exhausted_at_hard_pressure"
+        : "emergency_compaction_unavailable",
     });
     if (ctx.hasUI) {
       ctx.ui.setStatus("focusa-auto-compaction", "⛔ rollover required");
       ctx.ui.notify(
-        `Focusa held this prompt instead of sending another over-limit model request (${percent.toFixed(1)}%). Run /focusa-rollover execute; then resend the held prompt in the new session.`,
+        `Focusa preserved this prompt instead of sending another over-limit model request (${percent.toFixed(1)}%). Run /focusa-rollover execute; then resend it in the replacement session.`,
         "error"
       );
     }

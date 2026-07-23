@@ -88,12 +88,16 @@ function harness(
   const notices = [];
   const statuses = [];
   const compactCalls = [];
+  const sentMessages = [];
   const pi = {
     on(name, handler) {
       handlers.set(name, handler);
     },
     appendEntry(type, data) {
       events.push({ type, data });
+    },
+    sendUserMessage(text) {
+      sentMessages.push(text);
     },
   };
   const ctx = {
@@ -119,7 +123,7 @@ function harness(
     },
   };
   register(pi, () => policy);
-  return { handlers, events, notices, statuses, compactCalls, ctx };
+  return { handlers, events, notices, statuses, compactCalls, sentMessages, ctx };
 }
 
 const empty = evaluateProactiveCompactionEligibility([], usage.contextWindow);
@@ -296,6 +300,31 @@ assert.equal(
   true,
 );
 await retried.handlers.get("session_shutdown")({ type: "session_shutdown" }, retried.ctx);
+
+const emergency = harness(largeBranch, DEFAULT_PROACTIVE_COMPACTION_POLICY);
+emergency.ctx.getContextUsage = () => ({
+  tokens: 137_000,
+  contextWindow: 100_000,
+  percent: 137,
+});
+const emergencyInput = await emergency.handlers.get("input")(
+  { type: "input", text: "finish Mission Canvas", source: "interactive", images: [] },
+  emergency.ctx,
+);
+assert.deepEqual(emergencyInput, { action: "handled" });
+assert.equal(emergency.compactCalls.length, 1);
+const heldEmergency = emergency.events.find(
+  (entry) => entry.type === "focusa-held-critical-input",
+);
+assert.equal(heldEmergency.data.text, "finish Mission Canvas");
+assert.equal(heldEmergency.data.context_percent, 137);
+emergency.compactCalls[0].onComplete({
+  summary: "emergency summary",
+  firstKeptEntryId: "d",
+  tokensBefore: 137_000,
+});
+assert.deepEqual(emergency.sentMessages, ["finish Mission Canvas"]);
+await emergency.handlers.get("session_shutdown")({ type: "session_shutdown" }, emergency.ctx);
 
 const exhausted = harness(largeBranch, {
   ...DEFAULT_PROACTIVE_COMPACTION_POLICY,
