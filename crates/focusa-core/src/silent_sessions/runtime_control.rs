@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::{SilentSessionRunGeneration, SilentSessionRunId};
+use super::{RunGeneration, SilentSessionRunId};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -33,7 +33,7 @@ pub struct RuntimeControlCapabilities {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ExactRuntimeTarget {
     pub run_id: SilentSessionRunId,
-    pub generation: SilentSessionRunGeneration,
+    pub generation: RunGeneration,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

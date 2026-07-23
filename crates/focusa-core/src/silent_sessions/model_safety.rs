@@ -143,14 +143,14 @@ impl ModelSwitchCheckpoint {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct ModelFallbackPolicy {
+pub struct GovernedModelFallbackPolicy {
     pub enabled: bool,
     pub allowed_bindings: BTreeSet<ExactModelBinding>,
     pub allowed_trigger_classes: BTreeSet<String>,
     pub max_fallbacks: u32,
 }
 
-impl ModelFallbackPolicy {
+impl GovernedModelFallbackPolicy {
     pub fn authorize(
         &self,
         target: &ExactModelBinding,

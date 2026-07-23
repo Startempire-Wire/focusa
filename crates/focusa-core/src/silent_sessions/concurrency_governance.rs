@@ -68,7 +68,7 @@ pub fn analyze_writer_conflict(
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-pub enum WorkspaceStrategy {
+pub enum RuntimeWorkspaceStrategy {
     IsolatedWorktree,
     ExclusiveExisting,
     ReadOnlyShared,
@@ -77,7 +77,7 @@ pub enum WorkspaceStrategy {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct WorkspaceBinding {
-    pub strategy: WorkspaceStrategy,
+    pub strategy: RuntimeWorkspaceStrategy,
     pub session_id: String,
     pub owner_id: String,
     pub canonical_path: String,
@@ -94,7 +94,7 @@ impl WorkspaceBinding {
             !self.canonical_path.contains(".."),
             "workspace traversal rejected"
         );
-        if self.strategy == WorkspaceStrategy::ApprovedShared {
+        if self.strategy == RuntimeWorkspaceStrategy::ApprovedShared {
             anyhow::ensure!(
                 self.shared_mode_approval_id
                     .as_deref()

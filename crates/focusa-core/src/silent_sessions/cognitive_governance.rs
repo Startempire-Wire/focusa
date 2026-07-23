@@ -65,7 +65,7 @@ impl CognitiveBootstrap {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct RuntimeCheckpoint {
+pub struct RuntimeProgressCheckpoint {
     pub stream_cursor: String,
     pub resource_usage_ref: String,
     pub retry_ledger_ref: String,
