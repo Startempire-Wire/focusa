@@ -55,6 +55,7 @@ run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_m5_browser_
 run_gate python3 ./tests/spec135_mission_canvas_portability_test.py
 run_gate python3 ./tests/spec135_m6_canvas_resume_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_m6_canvas_resume_e2e_test.py
+run_gate python3 ./tests/spec135_m7_accessibility_recovery_test.py
 run_gate ./tests/spec130_bounded_persistence_test.sh
 run_gate ./tests/spec130_native_session_pressure_test.sh
 run_gate ./tests/spec130_auto_compaction_test.sh

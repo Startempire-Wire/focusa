@@ -77,7 +77,12 @@
       <h2>{missionTitle}</h2>
       <p>{nextAction}</p>
     </div>
-    <button class="copy-btn" type="button" onclick={copyResumeCommand}>Resume/copy</button>
+    <button
+      class="copy-btn"
+      type="button"
+      aria-label="Copy the exact Mission Canvas resume command"
+      onclick={copyResumeCommand}
+    >Resume/copy</button>
   </div>
   <div class="mission-fields">
     <div><span>ProjectIdentity</span><strong>{text(project.project_id ?? project.project?.id ?? project.canonical_name, 'unknown')}</strong></div>
