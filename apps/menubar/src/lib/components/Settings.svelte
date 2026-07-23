@@ -14,7 +14,11 @@
   } from '$lib/api';
   import { focusStore } from '$lib/stores/focus.svelte';
   import { runtimeStore } from '$lib/stores/runtime.svelte';
-  import { runMenubarUpdate, type MenubarUpdateResult } from '$lib/updater';
+  import {
+    MENUBAR_RELEASE_MODE,
+    runMenubarUpdate,
+    type MenubarUpdateResult,
+  } from '$lib/updater';
 
   const initialConnections = loadSavedConnections();
   let savedConnections = $state<SavedConnection[]>(initialConnections);
@@ -253,6 +257,9 @@
   <section class="section">
     <div class="section-label">SIGNED UPDATES</div>
     <p class="hint">Focusa verifies updater signatures before replacing the app. Automatic installation follows your daemon update policy.</p>
+    {#if MENUBAR_RELEASE_MODE === 'beta_ad_hoc'}
+      <p class="hint">Pre-license beta: Tauri-signed OTA with ad-hoc macOS bundle integrity; this build is not Apple-notarized.</p>
+    {/if}
     <div class="connection-actions">
       <button class="btn secondary" onclick={() => updateFocusa(false)} disabled={updateBusy}>
         {updateBusy ? 'Checking…' : 'Check for update'}

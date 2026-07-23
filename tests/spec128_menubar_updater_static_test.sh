@@ -13,6 +13,7 @@ SETTINGS="$ROOT/apps/menubar/src/lib/components/Settings.svelte"
 RELEASE="$ROOT/.github/workflows/release.yml"
 CI="$ROOT/.github/workflows/ci.yml"
 SIGNING_PROOF="$ROOT/.github/workflows/tauri-updater-signing-proof.yml"
+BETA_INSTALLER="$ROOT/scripts/install-focusa-menubar-beta.sh"
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 
@@ -42,4 +43,32 @@ if rg -n 'BEGIN (OPENSSH |RSA |EC )?PRIVATE KEY|untrusted comment: encrypted sec
   fail "private signing material found in tracked surfaces"
 fi
 
-echo "PASS: Spec128 signed menubar automatic updater and manual control surfaces present"
+test -x "$BETA_INSTALLER" || fail "pre-license beta installer missing or not executable"
+bash -n "$BETA_INSTALLER" || fail "pre-license beta installer syntax invalid"
+for marker in \
+  'FOCUSA_MACOS_RELEASE_MODE' \
+  'beta_ad_hoc' \
+  'production_notarized' \
+  'Signature=adhoc' \
+  'install-focusa-menubar-beta.sh' \
+  'release-gate%3Acompaction-session'; do
+  rg -q "$marker" "$RELEASE" || fail "release workflow missing pre-license/release-gate marker: $marker"
+done
+for marker in \
+  'pre-license macOS beta' \
+  'FOCUSA_BETA_ACCEPT' \
+  'com.focusa.menubar' \
+  'codesign --verify --deep --strict' \
+  'com.apple.quarantine' \
+  'previous.app' \
+  'Tauri updater key'; do
+  rg -q "$marker" "$BETA_INSTALLER" || fail "beta installer missing trust/rollback marker: $marker"
+done
+rg -q 'Signature=adhoc' "$CI" || fail "ordinary macOS CI does not prove ad-hoc bundle integrity"
+rg -q 'MENUBAR_RELEASE_MODE' "$UPDATER" "$SETTINGS" || fail "menubar UI does not disclose pre-license beta mode"
+rg -q 'not Apple-notarized' "$SETTINGS" || fail "menubar settings omit beta notarization warning"
+if awk '/^  tauri-build:/{in_job=1} /^  rust-release:/{in_job=0} in_job{print}' "$RELEASE" | rg -q 'continue-on-error: true'; then
+  fail "mandatory menubar release job remains optional"
+fi
+
+echo "PASS: Spec128 signed menubar automatic updater, pre-license beta bootstrap, and production notarization boundary present"

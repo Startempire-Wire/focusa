@@ -6,8 +6,31 @@ permissions:
   contents: write
   id-token: write
   actions: write
+  issues: read
 
 jobs:
+  # Durable release boundary: any open issue carrying this label blocks a tag.
+  compaction-session-release-gate:
+    name: Compaction/session issue gate
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all cross-surface compaction/session blockers closed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          open="$(gh api --paginate \
+            -H 'Accept: application/vnd.github+json' \
+            "/repos/${REPOSITORY}/issues?state=open&labels=release-gate%3Acompaction-session&per_page=100" \
+            --jq '[.[] | select(.pull_request == null) | {number, title}]')"
+          if [ "$(jq 'length' <<<"$open")" -ne 0 ]; then
+            echo "::error::Release blocked by open compaction/session recovery issues: $open"
+            exit 1
+          fi
+          echo "compaction_session_release_gate=passed"
+
   # Gate: tests + clippy must pass
   rust-check:
     name: Rust Check
@@ -43,7 +66,7 @@ jobs:
   create-release:
     name: Create Release
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
-    needs: rust-check
+    needs: [rust-check, compaction-session-release-gate]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -148,9 +171,8 @@ jobs:
             rust_target: x86_64-apple-darwin
 
     runs-on: ${{ matrix.platform }}
-    # Menubar remains an explicitly unnotarized preview until revenue funds Apple membership.
-    # Core CLI/daemon/TUI/Pi release integrity must not be blocked by optional Apple credentials.
-    continue-on-error: true
+    # Menubar is mandatory. beta_ad_hoc works before revenue; production_notarized
+    # becomes mandatory only when the repository variable explicitly selects it.
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v6
@@ -201,9 +223,12 @@ jobs:
           iconutil -c icns /tmp/focusa.iconset -o icons/icon.icns
           ls -la icons/
 
-      - name: Import Apple Developer ID and notarization credentials
+      # Durable pre-sales rule: paid Apple membership gates production only.
+      # beta_ad_hoc remains Tauri-signed and usable with explicit user consent.
+      - name: Select macOS beta or production signing mode
         if: ${{ contains(matrix.platform, 'macos') }}
         env:
+          FOCUSA_MACOS_RELEASE_MODE: ${{ vars.FOCUSA_MACOS_RELEASE_MODE || 'beta_ad_hoc' }}
           APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
@@ -213,6 +238,20 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -euo pipefail
+          case "${FOCUSA_MACOS_RELEASE_MODE}" in
+            beta_ad_hoc)
+              echo "::warning::Building explicit pre-license, unnotarized beta. Tauri updater signatures remain mandatory."
+              echo "FOCUSA_MACOS_RELEASE_MODE=beta_ad_hoc" >> "$GITHUB_ENV"
+              exit 0
+              ;;
+            production_notarized)
+              echo "FOCUSA_MACOS_RELEASE_MODE=production_notarized" >> "$GITHUB_ENV"
+              ;;
+            *)
+              echo "::error::Unsupported FOCUSA_MACOS_RELEASE_MODE=${FOCUSA_MACOS_RELEASE_MODE}"
+              exit 1
+              ;;
+          esac
           for required in APPLE_CERTIFICATE_BASE64 APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_API_KEY_ID APPLE_API_ISSUER_ID APPLE_API_KEY_P8 APPLE_TEAM_ID; do
             if [ -z "${!required:-}" ]; then
               echo "::error::Apple signing/notarization secret ${required} is required for release artifacts."
@@ -254,25 +293,24 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          VITE_FOCUSA_MACOS_RELEASE_MODE: ${{ vars.FOCUSA_MACOS_RELEASE_MODE || 'beta_ad_hoc' }}
         with:
           projectPath: apps/menubar
           tagName: ${{ github.ref_name }}
           releaseName: 'Focusa ${{ github.ref_name }}'
-          releaseBody: ''
+          releaseBody: ${{ vars.FOCUSA_MACOS_RELEASE_MODE == 'production_notarized' && 'Apple Developer ID signed and notarized production release.' || '⚠️ Pre-license, unnotarized beta. Install with the bundled consent bootstrap. OTA authenticity is enforced by the pinned Tauri updater key.' }}
           releaseDraft: false
           prerelease: false
           tauriScript: bunx tauri
           uploadUpdaterJson: true
           args: ${{ matrix.args }}
 
-      - name: Codesign + notarize + staple (.app + .dmg)
+      - name: Verify beta integrity or notarize production (.app + .dmg)
         if: ${{ contains(matrix.platform, 'macos') }}
         env:
           TARGET: ${{ matrix.rust_target }}
-          # Three modes (any of which produce a working .app + .dmg):
-          # 1. No APPLE_SIGNING_IDENTITY -> ad-hoc signing (free, no Apple ID)
-          # 2. APPLE_SIGNING_IDENTITY=Apple Development: <name> -> Personal Team
-          # 3. Full Developer ID + notarization secrets -> paid program, notarized
+          # Durable two-mode boundary: beta needs no paid Apple membership;
+          # production remains fail-closed on Developer ID + notarization.
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_IDENTITY_NAME: ${{ secrets.APPLE_IDENTITY_NAME }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
@@ -281,32 +319,52 @@ jobs:
           APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
         working-directory: apps/menubar
         run: |
+          set -euo pipefail
           for app in src-tauri/target/${TARGET}/release/bundle/macos/*.app; do
-            if [ -z "${APPLE_SIGNING_IDENTITY:-}" ] || [[ "${APPLE_SIGNING_IDENTITY}" == "Apple Development:"* ]]; then
-              echo "::error::MVP macOS release requires a Developer ID signing identity; ad-hoc and Apple Development signing are not customer-release eligible."
-              exit 1
-            fi
-            if [ -z "${APPLE_API_KEY_ID:-}" ] || [ -z "${APPLE_API_ISSUER_ID:-}" ] || [ -z "${APPLE_API_KEY_P8:-}" ] || [ -z "${APPLE_TEAM_ID:-}" ]; then
-              echo "::error::MVP macOS release requires App Store Connect notarization credentials."
-              exit 1
-            fi
-            # Mode 3: full Developer ID + notarization
-            codesign --deep --force --options runtime --sign "${APPLE_SIGNING_IDENTITY}" "${app}"
             codesign --verify --deep --strict --verbose=2 "${app}"
-            ditto -c -k --keepParent "${app}" "${app}.zip"
-            xcrun notarytool submit "${app}.zip" \
-              --key "${RUNNER_TEMP}/AuthKey_${APPLE_API_KEY_ID}.p8" \
-              --key-id "${APPLE_API_KEY_ID}" \
-              --issuer "${APPLE_API_ISSUER_ID}" \
-              --team-id "${APPLE_TEAM_ID}" \
-              --wait
-            xcrun stapler staple "${app}"
-            xcrun stapler validate "${app}"
-            codesign --deep --force --options runtime --sign "${APPLE_SIGNING_IDENTITY}" "${app}"
+            case "${FOCUSA_MACOS_RELEASE_MODE}" in
+              beta_ad_hoc)
+                # Tauri creates the updater archive before this step. Verify the
+                # archived app is already ad-hoc signed; mutating it here would
+                # invalidate the mandatory Tauri updater signature.
+                codesign -d --verbose=4 "${app}" 2>&1 | grep -q 'Signature=adhoc'
+                updater_archive="$(find "src-tauri/target/${TARGET}/release/bundle/macos" -maxdepth 1 -name '*.app.tar.gz' -print -quit)"
+                [ -n "${updater_archive}" ]
+                archive_dir="$(mktemp -d)"
+                tar -xzf "${updater_archive}" -C "${archive_dir}"
+                archived_app="$(find "${archive_dir}" -maxdepth 3 -type d -name '*.app' -print -quit)"
+                [ -n "${archived_app}" ]
+                codesign --verify --deep --strict --verbose=2 "${archived_app}"
+                codesign -d --verbose=4 "${archived_app}" 2>&1 | grep -q 'Signature=adhoc'
+                rm -rf "${archive_dir}"
+                echo "Verified explicit pre-license beta: ad-hoc bundle integrity + Tauri updater signature."
+                ;;
+              production_notarized)
+                ditto -c -k --keepParent "${app}" "${app}.zip"
+                xcrun notarytool submit "${app}.zip" \
+                  --key "${RUNNER_TEMP}/AuthKey_${APPLE_API_KEY_ID}.p8" \
+                  --key-id "${APPLE_API_KEY_ID}" \
+                  --issuer "${APPLE_API_ISSUER_ID}" \
+                  --team-id "${APPLE_TEAM_ID}" \
+                  --wait
+                xcrun stapler staple "${app}"
+                xcrun stapler validate "${app}"
+                for dmg in src-tauri/target/${TARGET}/release/bundle/dmg/*.dmg; do
+                  xcrun notarytool submit "${dmg}" \
+                    --key "${RUNNER_TEMP}/AuthKey_${APPLE_API_KEY_ID}.p8" \
+                    --key-id "${APPLE_API_KEY_ID}" \
+                    --issuer "${APPLE_API_ISSUER_ID}" \
+                    --team-id "${APPLE_TEAM_ID}" \
+                    --wait
+                  xcrun stapler staple "${dmg}"
+                  xcrun stapler validate "${dmg}"
+                done
+                echo "Verified Developer ID signing and Apple notarization."
+                ;;
+            esac
           done
-          echo "codesign complete (mode: ad-hoc if no identity, else ${APPLE_SIGNING_IDENTITY%%:*})"
 
-      - name: Package signed macOS app bundles
+      - name: Package verified macOS app bundles
         if: ${{ contains(matrix.platform, 'macos') }}
         env:
           TARGET: ${{ matrix.rust_target }}
@@ -335,7 +393,7 @@ jobs:
           fi
           ls -la ../../dist/menubar
 
-      - name: Upload signed menubar artifacts to workflow
+      - name: Upload verified menubar artifacts to workflow
         if: ${{ contains(matrix.platform, 'macos') }}
         uses: actions/upload-artifact@v4
         with:
@@ -343,11 +401,19 @@ jobs:
           path: dist/menubar/*
           if-no-files-found: error
 
-      - name: Upload signed menubar artifacts to release
+      - name: Upload verified menubar artifacts to release
         if: ${{ contains(matrix.platform, 'macos') }}
         uses: softprops/action-gh-release@v2
         with:
           files: dist/menubar/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload pre-license beta consent bootstrap
+        if: ${{ matrix.rust_target == 'aarch64-apple-darwin' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: scripts/install-focusa-menubar-beta.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

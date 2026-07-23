@@ -1,5 +1,10 @@
 import { fetchJson } from '$lib/api';
 
+// Paid Apple membership gates production notarization only. Pre-sales builds
+// remain explicit beta_ad_hoc releases authenticated by the Tauri updater key.
+export const MENUBAR_RELEASE_MODE =
+  import.meta.env.VITE_FOCUSA_MACOS_RELEASE_MODE || 'beta_ad_hoc';
+
 export type MenubarUpdatePhase =
   | 'checking'
   | 'current'

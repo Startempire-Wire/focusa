@@ -70,6 +70,8 @@ jobs:
           echo "Found bundle: $APP_PATH"
           test -f "$APP_PATH/Contents/Info.plist"
           /usr/bin/plutil -lint "$APP_PATH/Contents/Info.plist"
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+          codesign -d --verbose=4 "$APP_PATH" 2>&1 | grep -q 'Signature=adhoc'
 
   release-automation-static:
     name: Release Automation (static)
@@ -110,8 +112,8 @@ jobs:
           node --test tests/*.test.mjs
       - name: Spec130A provider-overflow and persistence runtime gates
         run: |
-          tests/spec130a_proactive_compaction_runtime_test.sh
-          tests/spec130a_persistence_actor_static_test.sh
+          bash tests/spec130a_proactive_compaction_runtime_test.sh
+          bash tests/spec130a_persistence_actor_static_test.sh
       - name: Spec104 static surface audit (no daemon needed)
         run: python3 tests/spec104_deep_focusa_surface_sweep.py --static-only
       - name: Spec104 Pi runtime scope integrity

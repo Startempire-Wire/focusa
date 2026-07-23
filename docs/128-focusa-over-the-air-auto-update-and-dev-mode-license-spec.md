@@ -228,6 +228,22 @@ The release workflow should publish a machine-readable manifest:
 - Mac client updater should use signed `.dmg` / `.app.tar.gz` assets.
 - Server should expose update metadata but not install Mac bundles locally.
 
+#### Pre-sales macOS distribution boundary (durable operator decision, 2026-07-23)
+
+Paid Apple Developer membership MUST NOT be a prerequisite for Focusa demos, pilots, first customers, or proving trusted OTA before revenue exists.
+
+Until Focusa can fund Developer ID distribution, the canonical macOS mode is `beta_ad_hoc`:
+
+- the release is explicitly labeled **pre-license, unnotarized beta**;
+- initial bootstrap trust is the official Focusa GitHub release over HTTPS plus explicit user consent;
+- the `.app` must carry a valid ad-hoc code signature so macOS can verify bundle integrity;
+- every automatic update artifact and `latest.json` entry must be signed by the dedicated Tauri updater key;
+- the installer removes quarantine only after the warning/consent boundary, verifies bundle identifier and code integrity, keeps the previous app, and restores it if launch fails;
+- automatic updates remain governed by the normal Focusa update policy and Tauri signature verification;
+- the product and release workflow must never describe beta artifacts as Apple-notarized.
+
+`production_notarized` remains a later distribution mode. It requires Developer ID and App Store Connect notarization credentials and must fail closed when those credentials are absent. Agents must preserve this two-mode boundary so paid Apple membership never silently becomes a pre-sales blocker again.
+
 ### Installer
 
 - Public installer updates require separate release proof and static installer tests.
@@ -413,7 +429,7 @@ Privacy rules:
 | Platform | Service manager | Binary install | Notes |
 | --- | --- | --- | --- |
 | Linux | systemd or user service | `/usr/local/bin` or user-local bin | preserve units/drop-ins; SELinux/xattrs when present |
-| macOS | launchd LaunchAgent/LaunchDaemon | `/usr/local/bin`, Homebrew prefix, or app bundle | codesign/notarization/Gatekeeper checks mandatory |
+| macOS | launchd LaunchAgent/LaunchDaemon | `/usr/local/bin`, Homebrew prefix, or app bundle | beta: ad-hoc integrity + Tauri signature + explicit consent; production: Developer ID/notarization/Gatekeeper checks |
 | Windows | Windows service or user task | `%ProgramFiles%` or user-local app data | Authenticode/signature checks; service restart rules |
 | source checkout | none or developer service | repo target dir/local symlink | dev mode can build/install from local release policy |
 
@@ -552,8 +568,10 @@ Update events should be visible in:
 29. Structured update events are visible in daemon API, CLI status, TUI/menubar/Pi doctor where applicable, and update history.
 30. Admin can pin, unpin, skip, pause, resume, force check, and trusted-dev force latest without bypassing trust verification.
 31. Static/runtime tests cover stale CLI detection, dev-mode default auto-update, eval unattended denial, checksum/signature failures, daemon restart only when changed, rollback on health failure, interrupted update recovery, installer preflight/dependency prompt, and privacy boundary.
+32. `beta_ad_hoc` installs from the official GitHub release with explicit unnotarized-beta consent, validates the app identifier and ad-hoc code integrity, preserves the previous app, and rolls back when launch proof fails.
+33. `beta_ad_hoc` Tauri OTA verifies dedicated updater signatures and does not require paid Apple membership; `production_notarized` remains fail-closed on complete Apple signing credentials.
 
-## Implementation status — 2026-07-22
+## Implementation status — 2026-07-23
 
 Release-gate audit found the installed scheduler active while the effective policy remained evaluation/notify with every part disabled; CLI/API also hard-coded `auto_apply_allowed=false`, and Pi had no policy control. The current completion slice adds persisted trusted dev override, all-surface policy, policy-derived automatic authority, scheduler-only authorization enforcement, and `/focusa-settings` OTA controls.
 
@@ -567,7 +585,10 @@ Implemented foundations through `focusa-wefzg.11`:
 - `focusa update apply` performs guarded locking, staging/download, signed-SHA256SUMS trust resolution, checksum verification, fsync, atomic promotion, daemon-last ordering, version/health probes, rollback journaling, and reverse-order restoration when every apply gate permits mutation;
 - `focusa update rollback` restores SHA-verified backup manifests; scheduler installation and policy/admin controls remain separately gated;
 - core staged-asset verification now includes declared size, SHA-256, and Ed25519 signature verification against public-key fingerprint, algorithm, key-id, and revocation state;
-- `tests/spec128_update_runtime_test.sh` plus cargo integration `spec128_update_runtime_e2e` cover safe runtime surfaces, while deeper successful/failed promotion and cross-platform fault-injection proof remains required.
+- `tests/spec128_update_runtime_test.sh` plus cargo integration `spec128_update_runtime_e2e` cover safe runtime surfaces, while deeper successful/failed promotion and cross-platform fault-injection proof remains required;
+- macOS `beta_ad_hoc` is the default pre-revenue release mode, with mandatory Tauri updater signing, ad-hoc bundle/archive integrity checks, explicit in-app unnotarized-beta disclosure, and `scripts/install-focusa-menubar-beta.sh` consent/identity/quarantine/rollback bootstrap;
+- `production_notarized` is selected only by `FOCUSA_MACOS_RELEASE_MODE` and fails closed unless all Developer ID/App Store Connect fields are present; production notarizes/staples both app and DMG without re-signing after stapling;
+- tagged releases are blocked while any GitHub issue labeled `release-gate:compaction-session` remains open.
 
 Customer safety boundary: updater mutation exists but remains deny-by-default unless explicit consent, eligible release resolution, complete assets, checksums/signatures, compatibility, license, lock, rollback, and health gates all pass. Remaining work is full manifest/provenance integration, per-asset signature use in apply, exhaustive atomic failure proof, scheduler/admin completion, and cross-part/platform parity—not reimplementation of the existing updater.
 
@@ -580,6 +601,8 @@ cargo test -p focusa-api update::
 bash tests/spec128_update_status_static_test.sh
 bash tests/spec128_installer_preflight_static_test.sh
 bash tests/spec128_update_runtime_test.sh
+bash tests/spec128_menubar_updater_static_test.sh
+bash -n scripts/install-focusa-menubar-beta.sh
 cargo test -p focusa-cli --test spec128_update_runtime_e2e
 cargo test -p focusa-cli --test cross_phase_smoke_e2e
 cargo test -p focusa-api trajectory
