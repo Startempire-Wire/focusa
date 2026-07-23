@@ -1465,6 +1465,87 @@ function capToolOutputText(result: any): any {
   };
 }
 
+const FOCUSA_TOOL_RESULT_V1_SCHEMA = Type.Object(
+  {
+    schema: Type.Literal("focusa.tool_result.v1"),
+    ok: Type.Boolean(),
+    status: Type.Union([
+      Type.Literal("accepted"),
+      Type.Literal("completed"),
+      Type.Literal("no_op"),
+      Type.Literal("blocked"),
+      Type.Literal("validation_rejected"),
+      Type.Literal("degraded"),
+      Type.Literal("offline"),
+      Type.Literal("error"),
+    ]),
+    failure_class: Type.Union([Type.String(), Type.Null()]),
+    canonical: Type.Boolean(),
+    degraded: Type.Boolean(),
+    summary: Type.String(),
+    retry: Type.Object(
+      {
+        safe: Type.Boolean(),
+        posture: Type.String(),
+        reason: Type.Optional(Type.String()),
+      },
+      { additionalProperties: false }
+    ),
+    side_effects: Type.Array(Type.String()),
+    evidence_refs: Type.Array(Type.String()),
+    next_tools: Type.Array(Type.String()),
+    recovery_hint: Type.Optional(Type.String()),
+    misuse_hint: Type.Optional(Type.String()),
+    details: Type.Optional(Type.Unknown()),
+  },
+  { additionalProperties: false }
+);
+
+const FOCUSA_TOOL_OUTPUT_SCHEMA = Type.Object(
+  {
+    content: Type.Array(
+      Type.Object(
+        {
+          type: Type.Literal("text"),
+          text: Type.String(),
+        },
+        { additionalProperties: false }
+      )
+    ),
+    details: Type.Optional(
+      Type.Object(
+        {
+          tool_result_v1: Type.Optional(FOCUSA_TOOL_RESULT_V1_SCHEMA),
+        },
+        { additionalProperties: true }
+      )
+    ),
+  },
+  { additionalProperties: false }
+);
+
+function makeToolSchemaStrict(schema: any, seen = new Set<any>()): any {
+  if (!schema || typeof schema !== "object" || seen.has(schema)) return schema;
+  seen.add(schema);
+  if (schema.type === "object" && schema.additionalProperties === undefined) {
+    schema.additionalProperties = false;
+  }
+  for (const value of Object.values(schema)) {
+    if (Array.isArray(value)) value.forEach((entry) => makeToolSchemaStrict(entry, seen));
+    else makeToolSchemaStrict(value, seen);
+  }
+  return schema;
+}
+
+function withAgentFirstSchemas(tool: any): any {
+  if (!tool?.name?.startsWith?.("focusa_")) return tool;
+  return {
+    ...tool,
+    parameters: makeToolSchemaStrict(tool.parameters),
+    outputSchema: FOCUSA_TOOL_OUTPUT_SCHEMA,
+  };
+}
+
 function withToolResultEnvelope(tool: any): any {
   if (!tool?.name?.startsWith?.("focusa_") || typeof tool.execute !== "function") return tool;
   const execute = tool.execute;
@@ -2055,7 +2136,8 @@ export function registerTools(pi: ExtensionAPI) {
   // invalidate sessionFrameKey on model switch or session reload.
   registerVuopFix(pi);
   const registerTool = pi.registerTool.bind(pi);
-  pi.registerTool = ((tool: any) => registerTool(withToolResultEnvelope(tool))) as typeof pi.registerTool;
+  pi.registerTool = ((tool: any) =>
+    registerTool(withAgentFirstSchemas(withToolResultEnvelope(tool)))) as typeof pi.registerTool;
   // ── focusa_scratch ──────────────────────────────────────────────────────
   // Agent's working notebook. Lives at /tmp/pi-scratch/. No Focus State write.
   // ALL working notes welcome: reasoning, task lists, hypotheses, dead ends,

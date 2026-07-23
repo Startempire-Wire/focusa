@@ -43,6 +43,12 @@ def main() -> int:
     contracts_doc = json.loads(contracts_path.read_text())
     contracts = contracts_doc["contracts"]
     contract_names = {item["name"] for item in contracts}
+    capability_dir = ROOT / "docs/contracts/spec141/generated-capability-v2"
+    capability_path = capability_dir / "agent-capability-descriptors.json"
+    capability_registry = json.loads(capability_path.read_text()) if capability_path.exists() else {"descriptors": []}
+    capability_descriptors = capability_registry.get("descriptors", [])
+    agent_card_path = capability_dir / "agent-card.json"
+    agent_card = json.loads(agent_card_path.read_text()) if agent_card_path.exists() else None
     tool_docs = list((ROOT / "docs/focusa-tools/tools").glob("*.md"))
     tools_src = text("apps/pi-extension/src/tools.ts")
     contract_src = text("apps/pi-extension/src/tool-contracts.ts")
@@ -93,6 +99,13 @@ def main() -> int:
         capture_output=True,
         check=False,
     )
+    descriptor_generator = subprocess.run(
+        ["bun", "scripts/generate-agent-capability-descriptors.ts", "--check"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
 
     inventory_match = re.search(r"fn inventory_lines\(\).*?vec!\[(.*?)\n\s*\]", cli_help_src, re.S)
     cli_inventory_count = len(re.findall(r'^\s*"focusa ', inventory_match.group(1), re.M)) if inventory_match else 0
@@ -113,7 +126,6 @@ def main() -> int:
         block = contract_src.split("const TOOL_NEXT_TOOLS:", 1)[1].split("\n};", 1)[0]
         next_tool_overrides = len(re.findall(r"^\s*focusa_[a-z0-9_]+:", block, re.M))
 
-    projected_contract_fields = set(contracts[0]) if contracts else set()
     required_agent_fields = {
         "input_schema",
         "output_schema",
@@ -122,12 +134,25 @@ def main() -> int:
         "anti_examples",
         "dependencies",
         "skill_refs",
-        "operation_version",
+        "version",
         "deprecation",
         "cost_hint",
         "latency_hint",
     }
-    absent_contract_fields = sorted(required_agent_fields - projected_contract_fields)
+    absent_contract_fields = sorted({
+        field
+        for descriptor in capability_descriptors
+        for field in required_agent_fields
+        if field not in descriptor
+    })
+    if not capability_descriptors:
+        absent_contract_fields = sorted(required_agent_fields)
+    strict_descriptor_inputs = sum(
+        item.get("input_schema", {}).get("type") == "object"
+        and item.get("input_schema", {}).get("additionalProperties") is False
+        for item in capability_descriptors
+    )
+    typed_descriptor_outputs = sum(bool(item.get("output_schema")) for item in capability_descriptors)
 
     stale_count_docs = []
     for path in [
@@ -147,14 +172,19 @@ def main() -> int:
         "per_tool_docs": len(tool_docs),
         "tool_families": dict(sorted(Counter(item["family"] for item in contracts).items())),
         "contract_json_validator_passed": validator.returncode == 0,
+        "capability_descriptor_generator_passed": descriptor_generator.returncode == 0,
+        "capability_descriptors_v2": len(capability_descriptors),
+        "capability_descriptors_with_strict_input": strict_descriptor_inputs,
+        "capability_descriptors_with_output_schema": typed_descriptor_outputs,
+        "agent_card_present": agent_card is not None,
         "generic_tool_docs": generic_when,
         "docs_with_examples": docs_with_examples,
         "docs_with_explicit_input_schema": docs_with_input,
         "docs_with_dependency_section": docs_with_dependency,
         "pi_typebox_nodes": typebox_properties,
         "pi_schema_description_tokens": parameter_descriptions,
-        "pi_strict_object_schemas": strict_objects,
-        "pi_output_schemas": output_schemas,
+        "pi_strict_object_schema_markers": strict_objects,
+        "pi_output_schema_markers": output_schemas,
         "tools_with_explicit_next_tool_graph": next_tool_overrides,
         "mcp_exposed_tools": len(mcp_names),
         "mcp_tool_names": sorted(mcp_names),
@@ -178,25 +208,25 @@ def main() -> int:
             {"validator_stderr": validator.stderr.strip(), "tools": len(contracts)},
             "Generate all projections from one canonical descriptor and fail CI on drift.",
         ))
-    if absent_contract_fields:
+    if absent_contract_fields or len(capability_descriptors) != len(contracts):
         findings.append(finding(
             "AF-TOOL-002", "critical", "tool_contract_registry",
-            "Public machine-readable tool contracts omit invocation and composition fields.",
-            {"absent_fields": absent_contract_fields},
+            "Agent Capability Descriptor V2 is incomplete or omits invocation/composition fields.",
+            {"absent_fields": absent_contract_fields, "descriptors": len(capability_descriptors), "tools": len(contracts)},
             "Publish strict input/output/error schemas, examples, dependencies, skill refs, versions, deprecation, and budget hints per tool.",
         ))
-    if output_schemas == 0:
+    if typed_descriptor_outputs < len(contracts):
         findings.append(finding(
             "AF-TOOL-003", "critical", "pi_tools",
-            "Pi tool registrations/contracts expose no per-tool output schemas.",
-            {"tools": len(contracts), "output_schemas": output_schemas},
+            "Not every Pi capability exposes a generated output schema.",
+            {"tools": len(contracts), "output_schemas": typed_descriptor_outputs},
             "Add structured output schemas and validate tool_result_v1 details for every tool.",
         ))
-    if strict_objects < len(contracts):
+    if strict_descriptor_inputs < len(contracts):
         findings.append(finding(
             "AF-TOOL-004", "high", "pi_tools",
-            "Most Pi input object schemas do not explicitly reject unknown properties.",
-            {"tools": len(contracts), "strict_objects": strict_objects},
+            "Not every generated Pi input object schema explicitly rejects unknown properties.",
+            {"tools": len(contracts), "strict_objects": strict_descriptor_inputs},
             "Generate strict schemas with additionalProperties=false and conditional requirement tests.",
         ))
     if len(mcp_names) < len(operations):
@@ -254,12 +284,13 @@ def main() -> int:
             {"generic_affordances": generic_when, "total_tools": len(contracts)},
             "Add tool search, describe, dependency graph, namespaced bundles, digest/listChanged, and token-budgeted deferred schema loading.",
         ))
-    findings.append(finding(
-        "AF-TOOL-012", "critical", "cross_harness_interop",
-        "No single versioned Agent Card/capability manifest projects equivalent Pi, MCP, OpenAI, CLI, REST, skill, and browser affordances.",
-        {"pi_tools": len(contracts), "agent_operations": len(operations), "mcp_tools": len(mcp_names)},
-        "Generate a signed/versioned Focusa Agent Capability Manifest with protocol bindings, auth, skills, examples, compatibility, and conformance refs.",
-    ))
+    if not agent_card or len(capability_descriptors) != len(contracts) or descriptor_generator.returncode:
+        findings.append(finding(
+            "AF-TOOL-012", "critical", "cross_harness_interop",
+            "No current generated Agent Card/capability manifest projects equivalent Pi, MCP, OpenAI, CLI, REST, skill, and browser affordances.",
+            {"pi_tools": len(contracts), "capability_descriptors": len(capability_descriptors), "agent_card": bool(agent_card), "generator_passed": descriptor_generator.returncode == 0},
+            "Generate a signed/versioned Focusa Agent Capability Manifest with protocol bindings, auth, skills, examples, compatibility, and conformance refs.",
+        ))
     findings.append(finding(
         "AF-TOOL-013", "high", "browser_interop",
         "Browser interoperability is diagnostics-intake centric; Focusa lacks a machine-readable WebMCP/UIAI capability bridge and browser workflow dependency graph.",

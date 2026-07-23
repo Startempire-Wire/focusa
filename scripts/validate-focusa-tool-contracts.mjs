@@ -26,9 +26,10 @@ const toolsSrc = read(toolsPath);
 const contractsSrc = read(contractsPath);
 const readme = read(readmePath);
 
-const wrapperInstallIndex = toolsSrc.indexOf('pi.registerTool = ((tool: any) => registerTool(withToolResultEnvelope(tool)))');
-if (wrapperInstallIndex === -1) {
-  fail('tool_result_v1 wrapper install not found in registerTools');
+const wrapperInstallIndex = toolsSrc.indexOf('pi.registerTool = ((tool: any) =>');
+const wrapperInstallBlock = wrapperInstallIndex === -1 ? '' : toolsSrc.slice(wrapperInstallIndex, wrapperInstallIndex + 240);
+if (wrapperInstallIndex === -1 || !wrapperInstallBlock.includes('withToolResultEnvelope(tool)') || !wrapperInstallBlock.includes('withAgentFirstSchemas(')) {
+  fail('tool_result_v1 plus agent-first schema wrapper install not found in registerTools');
 }
 
 const toolMatches = [...toolsSrc.matchAll(/name: "(focusa_[^"]+)"/g)];

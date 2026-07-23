@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent-First Tool Surface Audit
 
-Generated: `2026-07-23T15:49:45.685453+00:00`
+Generated: `2026-07-23T16:36:41.417691+00:00`
 
 **Status:** `gaps_found`
 **Release gate:** `fail`
@@ -11,15 +11,20 @@ Generated: `2026-07-23T15:49:45.685453+00:00`
 - **tool_contracts:** `105`
 - **per_tool_docs:** `105`
 - **tool_families:** `{'awareness': 1, 'diagnostics_hygiene': 21, 'focus_state': 11, 'metacognition': 13, 'preload': 8, 'project_identity': 4, 'session_transfer': 6, 'trajectory': 14, 'traversal': 2, 'tree_lineage': 9, 'work_loop': 7, 'workpoint': 9}`
-- **contract_json_validator_passed:** `False`
+- **contract_json_validator_passed:** `True`
+- **capability_descriptor_generator_passed:** `True`
+- **capability_descriptors_v2:** `105`
+- **capability_descriptors_with_strict_input:** `105`
+- **capability_descriptors_with_output_schema:** `105`
+- **agent_card_present:** `True`
 - **generic_tool_docs:** `43`
 - **docs_with_examples:** `52`
 - **docs_with_explicit_input_schema:** `23`
 - **docs_with_dependency_section:** `0`
-- **pi_typebox_nodes:** `826`
+- **pi_typebox_nodes:** `857`
 - **pi_schema_description_tokens:** `482`
-- **pi_strict_object_schemas:** `1`
-- **pi_output_schemas:** `0`
+- **pi_strict_object_schema_markers:** `5`
+- **pi_output_schema_markers:** `1`
 - **tools_with_explicit_next_tool_graph:** `105`
 - **mcp_exposed_tools:** `1`
 - **mcp_tool_names:** `['focusa.health']`
@@ -35,69 +40,6 @@ Generated: `2026-07-23T15:49:45.685453+00:00`
 - **tool_contracts_without_cli_command:** `15`
 
 ## Findings
-
-### AF-TOOL-001 — CRITICAL — tool_contract_registry
-
-Generated JSON contract registry has drifted from the TypeScript authority.
-
-**Remediation:** Generate all projections from one canonical descriptor and fail CI on drift.
-
-```json
-{
-  "validator_stderr": "FAIL JSON registry drifted from TypeScript registry \"/home/wirebot/focusa/docs/current/focusa-tool-contracts.json\"",
-  "tools": 105
-}
-```
-
-### AF-TOOL-002 — CRITICAL — tool_contract_registry
-
-Public machine-readable tool contracts omit invocation and composition fields.
-
-**Remediation:** Publish strict input/output/error schemas, examples, dependencies, skill refs, versions, deprecation, and budget hints per tool.
-
-```json
-{
-  "absent_fields": [
-    "anti_examples",
-    "cost_hint",
-    "dependencies",
-    "deprecation",
-    "error_schema",
-    "examples",
-    "input_schema",
-    "latency_hint",
-    "operation_version",
-    "output_schema",
-    "skill_refs"
-  ]
-}
-```
-
-### AF-TOOL-003 — CRITICAL — pi_tools
-
-Pi tool registrations/contracts expose no per-tool output schemas.
-
-**Remediation:** Add structured output schemas and validate tool_result_v1 details for every tool.
-
-```json
-{
-  "tools": 105,
-  "output_schemas": 0
-}
-```
-
-### AF-TOOL-004 — HIGH — pi_tools
-
-Most Pi input object schemas do not explicitly reject unknown properties.
-
-**Remediation:** Generate strict schemas with additionalProperties=false and conditional requirement tests.
-
-```json
-{
-  "tools": 105,
-  "strict_objects": 1
-}
-```
 
 ### AF-TOOL-005 — CRITICAL — mcp
 
@@ -226,20 +168,6 @@ Focusa lacks a dedicated search/describe/graph surface for cold-loading tool sch
 {
   "generic_affordances": 43,
   "total_tools": 105
-}
-```
-
-### AF-TOOL-012 — CRITICAL — cross_harness_interop
-
-No single versioned Agent Card/capability manifest projects equivalent Pi, MCP, OpenAI, CLI, REST, skill, and browser affordances.
-
-**Remediation:** Generate a signed/versioned Focusa Agent Capability Manifest with protocol bindings, auth, skills, examples, compatibility, and conformance refs.
-
-```json
-{
-  "pi_tools": 105,
-  "agent_operations": 81,
-  "mcp_tools": 1
 }
 ```
 

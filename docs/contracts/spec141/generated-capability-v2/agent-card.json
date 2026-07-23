@@ -1,0 +1,55 @@
+{
+  "schema": "focusa.agent_card.v1",
+  "name": "Focusa",
+  "description": "Agent-first cognitive infrastructure with scoped Workpoints, Trajectory, evidence, recovery, browser interoperability, and cross-harness capability contracts.",
+  "version": "0.9.120-dev",
+  "interfaces": [
+    "pi",
+    "mcp",
+    "openai-functions",
+    "cli",
+    "rest"
+  ],
+  "capabilities": {
+    "streaming": true,
+    "durable_tasks": true,
+    "list_changed": true,
+    "progressive_discovery": true,
+    "structured_output": true
+  },
+  "authentication": [
+    "bearer",
+    "device_pairing",
+    "local_trusted"
+  ],
+  "registry_digest": "sha256:fd7c0977731a2ef943e569b79b99749af2634053786d8e9f0472c593fdeb7d9a",
+  "skill_count": 10,
+  "skills": [
+    "skill:focusa",
+    "skill:focusa-agent-bootstrap",
+    "skill:focusa-browser-uiai",
+    "skill:focusa-metacognition",
+    "skill:focusa-project-scope",
+    "skill:focusa-session-recovery",
+    "skill:focusa-tool-discovery",
+    "skill:focusa-troubleshooting",
+    "skill:focusa-work-loop",
+    "skill:focusa-workpoint"
+  ],
+  "capability_families": [
+    "awareness",
+    "diagnostics_hygiene",
+    "focus_state",
+    "metacognition",
+    "preload",
+    "project_identity",
+    "session_transfer",
+    "trajectory",
+    "traversal",
+    "tree_lineage",
+    "work_loop",
+    "workpoint"
+  ],
+  "extended_card_path": "/v1/agent/card",
+  "card_digest": "sha256:ba34e710375d6e6aeed06a0ef8dd5b71cb98e356b2a51426d400ad1555c9d12f"
+}
