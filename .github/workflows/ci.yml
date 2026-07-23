@@ -44,6 +44,8 @@ jobs:
         env:
           FOCUSA_TEST_MODE: "1"
         run: python3 scripts/process-health-check.py --label "CI unit/integration tests" --command "cargo build -p focusa-api --bin focusa-daemon && cargo test --workspace"
+      - name: Spec133 Phase 4 supervision and recovery gate
+        run: bash tests/spec133_phase4_runtime_gate.sh
       - name: Process-health check + Clippy
         run: python3 scripts/process-health-check.py --label "CI clippy" --command "cargo clippy --workspace -- -D warnings"
 
