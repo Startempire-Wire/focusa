@@ -1,3 +1,5 @@
+import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+
 export interface WorkRailWidgetSnapshot {
   providerItemId: string;
   workpointId: string;
@@ -18,6 +20,12 @@ function bounded(value: string, length: number): string {
     .replace(/\s+/g, " ")
     .trim();
   return clean.length <= length ? clean : `${clean.slice(0, Math.max(1, length - 1))}…`;
+}
+
+function fitToWidth(lines: string[], width: number): string[] {
+  const maxWidth = Math.max(0, Math.floor(width));
+  if (maxWidth === 0) return lines.map(() => "");
+  return lines.map((line) => (visibleWidth(line) <= maxWidth ? line : truncateToWidth(line, maxWidth, "…")));
 }
 
 export function workRailSnapshotFromPacket(packet: Record<string, any> | null): WorkRailWidgetSnapshot {
@@ -49,14 +57,17 @@ export function renderWorkRailWidget(
   const workpoint = bounded(snapshot.workpointId, 22);
   const nextAction = bounded(snapshot.nextAction, Math.max(18, width - 11));
   if (width < 48) {
-    return [
-      `${palette.accent(active)} ${item} · ${proof} ${snapshot.proofCount} · ${next} ${bounded(nextAction, 18)}`,
-    ];
+    return fitToWidth(
+      [
+        `${palette.accent(active)} ${item} · ${proof} ${snapshot.proofCount} · ${next} ${bounded(nextAction, 18)}`,
+      ],
+      width
+    );
   }
   const lines = [
     `${palette.accent(active)} ${palette.good(item)}  ${palette.dim(`[${snapshot.status}]`)}  WP ${workpoint}`,
     `${palette.dim(`${proof} proof ${snapshot.proofCount}`)}  ${next} ${nextAction}`,
   ];
   if (width >= 76 && snapshot.badges?.length) lines.push(palette.dim(snapshot.badges.join(" · ")));
-  return lines;
+  return fitToWidth(lines, width);
 }
