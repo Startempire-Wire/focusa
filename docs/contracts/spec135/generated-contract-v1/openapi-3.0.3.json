@@ -10776,6 +10776,588 @@
         "x-focusa-generated-from": "WorkspaceEventRecord",
         "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
         "x-focusa-schema-id": "focusa.workspace_event.v1"
+      },
+      "focusa_mission_canvas_state_get_request_v1": {
+        "title": "focusa.mission_canvas_state_get.request.v1",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "project_root": {
+            "type": "string",
+            "minLength": 1
+          },
+          "continuity_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "client_instance_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "user_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "device_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "project_root",
+          "continuity_id",
+          "client_instance_id",
+          "user_id",
+          "device_id"
+        ]
+      },
+      "focusa_mission_canvas_state_v1": {
+        "title": "focusa.mission_canvas_state.v1",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema": {
+            "const": "focusa.mission_canvas_state.v1"
+          },
+          "state_version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "canvas": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "canvas_id": {
+                "type": "string"
+              },
+              "state_revision": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "project_root": {
+                "type": "string"
+              },
+              "continuity_id": {
+                "type": "string"
+              },
+              "client_instance_id": {
+                "type": "string"
+              },
+              "user_id": {
+                "type": "string"
+              },
+              "device_id": {
+                "type": "string"
+              },
+              "open_work_surface_ids": {
+                "type": "array",
+                "maxItems": 64,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "focused_work_surface_id": {
+                "type": "string"
+              },
+              "secondary_focused_surface_id": {
+                "type": "string"
+              },
+              "split_layout_ref": {
+                "type": "string"
+              },
+              "group_order": {
+                "type": "array",
+                "maxItems": 64,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "aggregate_project_roots": {
+                "type": "array",
+                "maxItems": 64,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "aggregate_continuity_ids": {
+                "type": "array",
+                "maxItems": 64,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "aggregate_surface_kinds": {
+                "type": "array",
+                "maxItems": 64,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "aggregate_surface_states": {
+                "type": "array",
+                "maxItems": 64,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "selected_context_refs": {
+                "type": "array",
+                "maxItems": 64,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "unread_event_cursor": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "session_projection_revision": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "idempotency_key": {
+                "type": "string"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updated_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "canvas_id",
+              "state_revision",
+              "project_root",
+              "continuity_id",
+              "client_instance_id",
+              "user_id",
+              "device_id",
+              "open_work_surface_ids",
+              "group_order",
+              "aggregate_project_roots",
+              "aggregate_continuity_ids",
+              "aggregate_surface_kinds",
+              "aggregate_surface_states",
+              "selected_context_refs",
+              "session_projection_revision",
+              "idempotency_key",
+              "created_at",
+              "updated_at"
+            ]
+          },
+          "surfaces": {
+            "type": "array",
+            "items": {
+              "properties": {
+                "attachment_id": {
+                  "type": "string"
+                },
+                "canonical_state_refs": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "continuity_id": {
+                  "type": "string"
+                },
+                "created_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "idempotency_key": {
+                  "type": "string"
+                },
+                "instance_id": {
+                  "type": "string"
+                },
+                "mission_ref": {
+                  "type": "string"
+                },
+                "pane_id": {
+                  "type": "string"
+                },
+                "pinned": {
+                  "type": "boolean"
+                },
+                "project_root": {
+                  "type": "string"
+                },
+                "session_id": {
+                  "type": "string"
+                },
+                "state_revision": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "status": {
+                  "enum": [
+                    "active",
+                    "suspended",
+                    "view_closed"
+                  ]
+                },
+                "surface_kind": {
+                  "type": "string"
+                },
+                "tab_index": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "unread": {
+                  "type": "boolean"
+                },
+                "updated_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "work_surface_id": {
+                  "type": "string"
+                },
+                "workpoint_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "work_surface_id",
+                "state_revision",
+                "project_root",
+                "continuity_id",
+                "attachment_id",
+                "instance_id",
+                "mission_ref",
+                "title",
+                "surface_kind",
+                "status",
+                "pane_id",
+                "tab_index",
+                "pinned",
+                "unread",
+                "canonical_state_refs",
+                "idempotency_key",
+                "created_at",
+                "updated_at"
+              ],
+              "type": "object"
+            }
+          },
+          "recovery_actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "schema",
+          "state_version",
+          "canvas",
+          "surfaces",
+          "recovery_actions"
+        ]
+      },
+      "focusa_mission_canvas_state_mutation_request_v1": {
+        "title": "focusa.mission_canvas_state_mutation.request.v1",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "project_root": {
+            "type": "string",
+            "minLength": 1
+          },
+          "continuity_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "client_instance_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "user_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "device_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_state_version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "expected_canvas_revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "open_work_surface_ids": {
+            "type": "array",
+            "maxItems": 64,
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "focused_work_surface_id": {
+            "type": "string"
+          },
+          "secondary_focused_surface_id": {
+            "type": "string"
+          },
+          "split_layout_ref": {
+            "type": "string"
+          },
+          "group_order": {
+            "type": "array",
+            "maxItems": 64,
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "aggregate_project_roots": {
+            "type": "array",
+            "maxItems": 64,
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "aggregate_continuity_ids": {
+            "type": "array",
+            "maxItems": 64,
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "aggregate_surface_kinds": {
+            "type": "array",
+            "maxItems": 64,
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "aggregate_surface_states": {
+            "type": "array",
+            "maxItems": 64,
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "selected_context_refs": {
+            "type": "array",
+            "maxItems": 64,
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "unread_event_cursor": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "session_projection_revision": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "project_root",
+          "continuity_id",
+          "client_instance_id",
+          "user_id",
+          "device_id",
+          "idempotency_key",
+          "expected_state_version",
+          "expected_canvas_revision",
+          "session_projection_revision"
+        ]
+      },
+      "focusa_mission_canvas_state_mutation_result_v1": {
+        "title": "focusa.mission_canvas_state_mutation_result.v1",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema": {
+            "const": "focusa.mission_canvas_state_mutation_result.v1"
+          },
+          "state_version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "replayed": {
+            "type": "boolean"
+          },
+          "canvas": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "canvas_id": {
+                "type": "string"
+              },
+              "state_revision": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "project_root": {
+                "type": "string"
+              },
+              "continuity_id": {
+                "type": "string"
+              },
+              "client_instance_id": {
+                "type": "string"
+              },
+              "user_id": {
+                "type": "string"
+              },
+              "device_id": {
+                "type": "string"
+              },
+              "open_work_surface_ids": {
+                "type": "array",
+                "maxItems": 64,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "focused_work_surface_id": {
+                "type": "string"
+              },
+              "secondary_focused_surface_id": {
+                "type": "string"
+              },
+              "split_layout_ref": {
+                "type": "string"
+              },
+              "group_order": {
+                "type": "array",
+                "maxItems": 64,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "aggregate_project_roots": {
+                "type": "array",
+                "maxItems": 64,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "aggregate_continuity_ids": {
+                "type": "array",
+                "maxItems": 64,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "aggregate_surface_kinds": {
+                "type": "array",
+                "maxItems": 64,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "aggregate_surface_states": {
+                "type": "array",
+                "maxItems": 64,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "selected_context_refs": {
+                "type": "array",
+                "maxItems": 64,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "unread_event_cursor": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "session_projection_revision": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "idempotency_key": {
+                "type": "string"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updated_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "canvas_id",
+              "state_revision",
+              "project_root",
+              "continuity_id",
+              "client_instance_id",
+              "user_id",
+              "device_id",
+              "open_work_surface_ids",
+              "group_order",
+              "aggregate_project_roots",
+              "aggregate_continuity_ids",
+              "aggregate_surface_kinds",
+              "aggregate_surface_states",
+              "selected_context_refs",
+              "session_projection_revision",
+              "idempotency_key",
+              "created_at",
+              "updated_at"
+            ]
+          },
+          "evidence_ref": {
+            "type": "string"
+          },
+          "receipt_ref": {
+            "type": "string"
+          },
+          "tool_result": {
+            "$ref": "#/components/schemas/focusa_tool_result_v1"
+          }
+        },
+        "required": [
+          "schema",
+          "state_version",
+          "replayed",
+          "canvas",
+          "evidence_ref",
+          "receipt_ref",
+          "tool_result"
+        ]
       }
     }
   },
@@ -14389,7 +14971,8 @@
         "x-focusa-scope-keys": [
           "project_root",
           "continuity_id",
-          "attachment_id"
+          "attachment_id",
+          "work_surface_id"
         ],
         "x-focusa-sensitive": "routine",
         "x-focusa-subsystem": "mission_canvas"
@@ -14498,7 +15081,8 @@
         "x-focusa-scope-keys": [
           "project_root",
           "continuity_id",
-          "attachment_id"
+          "attachment_id",
+          "work_surface_id"
         ],
         "x-focusa-sensitive": "scoped_mutation",
         "x-focusa-subsystem": "mission_canvas"
@@ -18687,6 +19271,182 @@
         ],
         "x-focusa-sensitive": "scoped_mutation",
         "x-focusa-subsystem": "workspace_artifact"
+      }
+    },
+    "/v1/mission-canvas/state": {
+      "get": {
+        "operationId": "focusa.mission_canvas.state.get",
+        "summary": "Rehydrate exact Mission Canvas client state",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "client_instance_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Exact restorable Mission Canvas state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_mission_canvas_state_v1"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No persisted state; no replacement identity is manufactured"
+          }
+        },
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "mission_canvas",
+          "materialization_mode": "canonical_read",
+          "requires_preview_token": false,
+          "side_effect_profile": "read_mission_canvas_state",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "mission_canvas"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.mission_canvas.state.get",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "mission_canvas:read"
+        ],
+        "x-focusa-plain-label": "Rehydrate Exact Mission Canvas Client State",
+        "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id",
+          "client_instance_id",
+          "user_id",
+          "device_id"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "mission_canvas"
+      }
+    },
+    "/v1/mission-canvas/state/mutate": {
+      "post": {
+        "operationId": "focusa.mission_canvas.state.mutate",
+        "summary": "Persist exact Mission Canvas client state",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_mission_canvas_state_mutation_request_v1"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Persisted restoration revision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_mission_canvas_state_mutation_result_v1"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Optimistic writer conflict"
+          },
+          "422": {
+            "description": "Scope or topology validation rejected"
+          }
+        },
+        "x-focusa": {
+          "budget_profile": "standard_mutation",
+          "canonical": true,
+          "deprecation": null,
+          "family": "mission_canvas",
+          "materialization_mode": "canonical_projection_event",
+          "requires_preview_token": true,
+          "side_effect_profile": "append_mission_canvas_state_revision",
+          "supports_side_effect_policy": [
+            "dry_run",
+            "preview",
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "mission_canvas"
+        ],
+        "x-focusa-concurrency": true,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.mission_canvas.state.mutate",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "preview",
+        "x-focusa-permissions": [
+          "mission_canvas:write"
+        ],
+        "x-focusa-plain-label": "Persist Exact Mission Canvas Client State",
+        "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id",
+          "client_instance_id",
+          "user_id",
+          "device_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "mission_canvas"
       }
     }
   },

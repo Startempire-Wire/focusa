@@ -1052,6 +1052,52 @@ fn build_operations() -> Vec<OperationEntry> {
             None,
         ),
         op(
+            "focusa.mission_canvas.state.get",
+            "Rehydrate Exact Mission Canvas Client State",
+            "mission_canvas",
+            "GET",
+            "/v1/mission-canvas/state",
+            true,
+            None,
+            "read_mission_canvas_state",
+            "canonical_read",
+            vec!["preview", "commit"],
+            false,
+            false,
+            false,
+            vec!["mission_canvas:read"],
+            false,
+            "standard_read",
+            vec!["compact", "standard", "debug"],
+            "focusa.mission_canvas_state_get.request.v1",
+            "focusa.mission_canvas_state.v1",
+            "docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md",
+            None,
+        ),
+        op(
+            "focusa.mission_canvas.state.mutate",
+            "Persist Exact Mission Canvas Client State",
+            "mission_canvas",
+            "POST",
+            "/v1/mission-canvas/state/mutate",
+            true,
+            None,
+            "append_mission_canvas_state_revision",
+            "canonical_projection_event",
+            vec!["dry_run", "preview", "commit"],
+            true,
+            true,
+            false,
+            vec!["mission_canvas:write"],
+            false,
+            "standard_mutation",
+            vec!["compact", "standard", "debug"],
+            "focusa.mission_canvas_state_mutation.request.v1",
+            "focusa.mission_canvas_state_mutation_result.v1",
+            "docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md",
+            None,
+        ),
+        op(
             "focusa.work_rail.list",
             "List Scoped Work Rail Revisions",
             "work_rail",
@@ -3087,6 +3133,10 @@ fn provider_task_plan_mutation_schema() -> Value {
 fn mission_canvas_surface_schema() -> Value {
     json!({"type":"object","required":["work_surface_id","state_revision","project_root","continuity_id","attachment_id","instance_id","mission_ref","title","surface_kind","status","pane_id","tab_index","pinned","unread","canonical_state_refs","idempotency_key","created_at","updated_at"],"properties":{"work_surface_id":{"type":"string"},"state_revision":{"type":"integer","minimum":1},"project_root":{"type":"string"},"continuity_id":{"type":"string"},"attachment_id":{"type":"string"},"instance_id":{"type":"string"},"session_id":{"type":"string"},"workpoint_id":{"type":"string"},"mission_ref":{"type":"string"},"title":{"type":"string"},"surface_kind":{"type":"string"},"status":{"enum":["active","suspended","view_closed"]},"pane_id":{"type":"string"},"tab_index":{"type":"integer","minimum":0},"pinned":{"type":"boolean"},"unread":{"type":"boolean"},"canonical_state_refs":{"type":"array","items":{"type":"string"}},"idempotency_key":{"type":"string"},"created_at":{"type":"string","format":"date-time"},"updated_at":{"type":"string","format":"date-time"}}})
 }
+
+fn mission_canvas_state_schema() -> Value {
+    json!({"type":"object","additionalProperties":false,"required":["canvas_id","state_revision","project_root","continuity_id","client_instance_id","user_id","device_id","open_work_surface_ids","group_order","aggregate_project_roots","aggregate_continuity_ids","aggregate_surface_kinds","aggregate_surface_states","selected_context_refs","session_projection_revision","idempotency_key","created_at","updated_at"],"properties":{"canvas_id":{"type":"string"},"state_revision":{"type":"integer","minimum":1},"project_root":{"type":"string"},"continuity_id":{"type":"string"},"client_instance_id":{"type":"string"},"user_id":{"type":"string"},"device_id":{"type":"string"},"open_work_surface_ids":{"type":"array","maxItems":64,"uniqueItems":true,"items":{"type":"string"}},"focused_work_surface_id":{"type":"string"},"secondary_focused_surface_id":{"type":"string"},"split_layout_ref":{"type":"string"},"group_order":{"type":"array","maxItems":64,"uniqueItems":true,"items":{"type":"string"}},"aggregate_project_roots":{"type":"array","maxItems":64,"uniqueItems":true,"items":{"type":"string"}},"aggregate_continuity_ids":{"type":"array","maxItems":64,"uniqueItems":true,"items":{"type":"string"}},"aggregate_surface_kinds":{"type":"array","maxItems":64,"uniqueItems":true,"items":{"type":"string"}},"aggregate_surface_states":{"type":"array","maxItems":64,"uniqueItems":true,"items":{"type":"string"}},"selected_context_refs":{"type":"array","maxItems":64,"uniqueItems":true,"items":{"type":"string"}},"unread_event_cursor":{"type":"integer","minimum":0},"session_projection_revision":{"type":"integer","minimum":0},"idempotency_key":{"type":"string"},"created_at":{"type":"string","format":"date-time"},"updated_at":{"type":"string","format":"date-time"}}})
+}
 fn mission_canvas_surface_mutation_schema() -> Value {
     json!({"type":"object","additionalProperties":false,"required":["project_root","continuity_id","attachment_id","idempotency_key","expected_state_version","expected_surface_revision","action"],"properties":{"project_root":{"type":"string","minLength":1},"continuity_id":{"type":"string","minLength":1},"attachment_id":{"type":"string","minLength":1},"idempotency_key":{"type":"string","minLength":1},"expected_state_version":{"type":"integer","minimum":0},"expected_surface_revision":{"type":"integer","minimum":0},"action":{"enum":["create","arrange","suspend","resume","close_view"]},"work_surface_id":{"type":"string"},"instance_id":{"type":"string"},"session_id":{"type":"string"},"workpoint_id":{"type":"string"},"mission_ref":{"type":"string"},"title":{"type":"string"},"surface_kind":{"type":"string"},"pane_id":{"type":"string"},"tab_index":{"type":"integer","minimum":0},"pinned":{"type":"boolean"},"unread":{"type":"boolean"},"canonical_state_refs":{"type":"array","items":{"type":"string"}}}})
 }
@@ -3599,6 +3649,18 @@ fn json_schema_document(schema_id: &str) -> Value {
     }
     if schema_id == "focusa.mission_canvas_surface_mutation_result.v1" {
         return json!({"$schema":JSON_SCHEMA_DIALECT_2020_12,"$id":format!("/v1/agent/schemas/{schema_id}"),"title":schema_id,"type":"object","required":["schema","state_version","replayed","surface","evidence_ref","receipt_ref","tool_result"],"properties":{"schema":{"const":"focusa.mission_canvas_surface_mutation_result.v1"},"state_version":{"type":"integer"},"replayed":{"type":"boolean"},"surface":mission_canvas_surface_schema(),"evidence_ref":{"type":"string"},"receipt_ref":{"type":"string"},"tool_result":{"type":"object"}},"x-focusa-schema-id":schema_id});
+    }
+    if schema_id == "focusa.mission_canvas_state_get.request.v1" {
+        return json!({"$schema":JSON_SCHEMA_DIALECT_2020_12,"$id":format!("/v1/agent/schemas/{schema_id}"),"title":schema_id,"type":"object","additionalProperties":false,"required":["project_root","continuity_id","client_instance_id","user_id","device_id"],"properties":{"project_root":{"type":"string","minLength":1},"continuity_id":{"type":"string","minLength":1},"client_instance_id":{"type":"string","minLength":1},"user_id":{"type":"string","minLength":1},"device_id":{"type":"string","minLength":1}},"x-focusa-schema-id":schema_id});
+    }
+    if schema_id == "focusa.mission_canvas_state.v1" {
+        return json!({"$schema":JSON_SCHEMA_DIALECT_2020_12,"$id":format!("/v1/agent/schemas/{schema_id}"),"title":schema_id,"type":"object","additionalProperties":false,"required":["schema","state_version","canvas","surfaces","recovery_actions"],"properties":{"schema":{"const":"focusa.mission_canvas_state.v1"},"state_version":{"type":"integer","minimum":0},"canvas":mission_canvas_state_schema(),"surfaces":{"type":"array","items":mission_canvas_surface_schema()},"recovery_actions":{"type":"array","items":{"type":"string"}}},"x-focusa-schema-id":schema_id});
+    }
+    if schema_id == "focusa.mission_canvas_state_mutation.request.v1" {
+        return json!({"$schema":JSON_SCHEMA_DIALECT_2020_12,"$id":format!("/v1/agent/schemas/{schema_id}"),"title":schema_id,"type":"object","additionalProperties":false,"required":["project_root","continuity_id","client_instance_id","user_id","device_id","idempotency_key","expected_state_version","expected_canvas_revision","session_projection_revision"],"properties":{"project_root":{"type":"string","minLength":1},"continuity_id":{"type":"string","minLength":1},"client_instance_id":{"type":"string","minLength":1},"user_id":{"type":"string","minLength":1},"device_id":{"type":"string","minLength":1},"idempotency_key":{"type":"string","minLength":1},"expected_state_version":{"type":"integer","minimum":0},"expected_canvas_revision":{"type":"integer","minimum":0},"open_work_surface_ids":{"type":"array","maxItems":64,"uniqueItems":true,"items":{"type":"string"}},"focused_work_surface_id":{"type":"string"},"secondary_focused_surface_id":{"type":"string"},"split_layout_ref":{"type":"string"},"group_order":{"type":"array","maxItems":64,"uniqueItems":true,"items":{"type":"string"}},"aggregate_project_roots":{"type":"array","maxItems":64,"uniqueItems":true,"items":{"type":"string"}},"aggregate_continuity_ids":{"type":"array","maxItems":64,"uniqueItems":true,"items":{"type":"string"}},"aggregate_surface_kinds":{"type":"array","maxItems":64,"uniqueItems":true,"items":{"type":"string"}},"aggregate_surface_states":{"type":"array","maxItems":64,"uniqueItems":true,"items":{"type":"string"}},"selected_context_refs":{"type":"array","maxItems":64,"uniqueItems":true,"items":{"type":"string"}},"unread_event_cursor":{"type":"integer","minimum":0},"session_projection_revision":{"type":"integer","minimum":0}},"x-focusa-schema-id":schema_id});
+    }
+    if schema_id == "focusa.mission_canvas_state_mutation_result.v1" {
+        return json!({"$schema":JSON_SCHEMA_DIALECT_2020_12,"$id":format!("/v1/agent/schemas/{schema_id}"),"title":schema_id,"type":"object","additionalProperties":false,"required":["schema","state_version","replayed","canvas","evidence_ref","receipt_ref","tool_result"],"properties":{"schema":{"const":"focusa.mission_canvas_state_mutation_result.v1"},"state_version":{"type":"integer","minimum":0},"replayed":{"type":"boolean"},"canvas":mission_canvas_state_schema(),"evidence_ref":{"type":"string"},"receipt_ref":{"type":"string"},"tool_result":{"type":"object"}},"x-focusa-schema-id":schema_id});
     }
     if schema_id == "focusa.work_rail_list.request.v1" {
         return json!({"$schema":JSON_SCHEMA_DIALECT_2020_12,"$id":format!("/v1/agent/schemas/{schema_id}"),"title":schema_id,"type":"object","additionalProperties":false,"required":["project_root","working_subpath_id","continuity_id","attachment_id"],"properties":{"project_root":{"type":"string"},"working_subpath_id":{"type":"string"},"continuity_id":{"type":"string"},"attachment_id":{"type":"string"},"work_rail_id":{"type":"string"}},"x-focusa-schema-id":schema_id});

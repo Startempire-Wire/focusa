@@ -1309,6 +1309,92 @@ pub fn reduce_with_meta(
                         .then(left.state_revision.cmp(&right.state_revision))
                 });
         }
+        FocusaEvent::MissionCanvasStateRevised { canvas } => {
+            if canvas.canvas_id.trim().is_empty()
+                || canvas.state_revision == 0
+                || canvas.project_root.trim().is_empty()
+                || canvas.continuity_id.trim().is_empty()
+                || canvas.client_instance_id.trim().is_empty()
+                || canvas.user_id.trim().is_empty()
+                || canvas.device_id.trim().is_empty()
+                || canvas.idempotency_key.trim().is_empty()
+            {
+                return Err(ReducerError::InvalidEvent(
+                    "Mission Canvas state requires identity, exact project/continuity scope, client, user, device, and idempotency"
+                        .to_string(),
+                ));
+            }
+            let bounded = [
+                &canvas.open_work_surface_ids,
+                &canvas.group_order,
+                &canvas.aggregate_project_roots,
+                &canvas.aggregate_continuity_ids,
+                &canvas.aggregate_surface_kinds,
+                &canvas.aggregate_surface_states,
+                &canvas.selected_context_refs,
+            ]
+            .iter()
+            .all(|values| {
+                values.len() <= 64
+                    && values.iter().all(|value| !value.trim().is_empty())
+                    && values
+                        .iter()
+                        .enumerate()
+                        .all(|(index, value)| !values[..index].contains(value))
+            });
+            if !bounded {
+                return Err(ReducerError::InvalidEvent(
+                    "Mission Canvas state collections must be bounded, non-empty, and unique"
+                        .to_string(),
+                ));
+            }
+            let surfaces_are_exact = canvas.open_work_surface_ids.iter().all(|surface_id| {
+                state.mission_canvas_surfaces.iter().any(|surface| {
+                    surface.work_surface_id == *surface_id
+                        && surface.project_root == canvas.project_root
+                        && surface.continuity_id == canvas.continuity_id
+                })
+            });
+            if !surfaces_are_exact {
+                return Err(ReducerError::InvalidEvent(
+                    "Mission Canvas state cannot adopt a Work Surface outside its exact project and continuity scope"
+                        .to_string(),
+                ));
+            }
+            for focused in [
+                canvas.focused_work_surface_id.as_ref(),
+                canvas.secondary_focused_surface_id.as_ref(),
+            ]
+            .into_iter()
+            .flatten()
+            {
+                if !canvas.open_work_surface_ids.contains(focused) {
+                    return Err(ReducerError::InvalidEvent(
+                        "Focused Mission Canvas surfaces must remain in the open topology"
+                            .to_string(),
+                    ));
+                }
+            }
+            let expected_revision = state
+                .mission_canvas_states
+                .iter()
+                .filter(|existing| existing.canvas_id == canvas.canvas_id)
+                .map(|existing| existing.state_revision)
+                .max()
+                .unwrap_or(0)
+                + 1;
+            if canvas.state_revision != expected_revision {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "Mission Canvas state revision must be {expected_revision}"
+                )));
+            }
+            state.mission_canvas_states.push(canvas);
+            state.mission_canvas_states.sort_by(|left, right| {
+                left.canvas_id
+                    .cmp(&right.canvas_id)
+                    .then(left.state_revision.cmp(&right.state_revision))
+            });
+        }
         FocusaEvent::ContextClaimProposed { claim } => {
             if state.context_claims.iter().any(|existing| {
                 existing.claim_id == claim.claim_id

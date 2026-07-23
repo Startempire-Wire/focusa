@@ -19,7 +19,7 @@
   // Spec: docs/55-focusa-self-host-architecture.md §6.2, doc 53 §2.0.
 
   import { onMount } from 'svelte';
-  import { getApiUrl } from '$lib/api';
+  import { DEFAULT_API_URL, getApiUrl } from '$lib/api';
   import QRCode from './QRCode.svelte';
   import Settings from './Settings.svelte';
   import {
@@ -147,7 +147,17 @@
     discoverySource = '';
     discoveryAttempts = [];
 
-    // 1. Tailscale MagicDNS — probe common hostnames
+    // 1. Out-of-box local Focusa installation. No SaaS or remote host is required.
+    for (const url of [DEFAULT_API_URL]) {
+      discoveryAttempts.push(`local: ${url}`);
+      if (await probeUrl(url)) {
+        discoveredUrl = url;
+        discoverySource = 'local Focusa installation';
+        return;
+      }
+    }
+
+    // 2. Optional self-hosted remote installation via Tailscale MagicDNS.
     const tailscaleHosts = [
       'focusa-vps',
       'focusa',
@@ -167,7 +177,7 @@
       }
     }
 
-    // 2. Bonjour / mDNS via Tauri command (best-effort; no-op in headless)
+    // 3. Bonjour / mDNS for LAN/self-hosted installations (best-effort).
     try {
       const mdns = await invoke<{ url?: string } | null>(
         'focusa_discover_via_bonjour',
@@ -191,7 +201,7 @@
       });
     }
 
-    // 3. env / localStorage hint
+    // 4. Configured daemon URL (any self-hosted or optional managed setup).
     const stored = localStorage.getItem(PUBLIC_PAIRING_URL_KEY);
     if (stored && stored.trim().length > 0) {
       discoveryAttempts.push(`localStorage: ${stored}`);
@@ -203,10 +213,7 @@
     }
 
     error =
-      'Could not auto-discover your Focusa VPS. Set one of: ' +
-      '(a) run `focusa pairing transport-setup` on your VPS, ' +
-      '(b) install Tailscale on both machines, ' +
-      '(c) paste the URL below (Advanced).';
+      'Could not find a Focusa daemon. Start the local installation, use Bonjour/Tailscale for a self-hosted daemon, or paste any daemon URL below (Advanced).';
   }
 
   async function usePastedUrl(): Promise<void> {
@@ -574,25 +581,24 @@
   {#if step === 'welcome'}
     <div class="card">
       <h3>Welcome</h3>
-      <p>Focusa connects this Mac — <strong>{macDeviceName()}</strong> — to a Focusa daemon running on your VPS.</p>
+      <p>Focusa connects this device — <strong>{macDeviceName()}</strong> — to any Focusa installation. A local daemon works out of the box; LAN, remote self-hosted, and managed deployments are optional.</p>
       <ol class="how-it-works">
-        <li>Install Focusa on your VPS (<code>curl install.focusa.dev/focusa | bash</code>).</li>
-        <li>On the VPS, run <code>focusa pairing wizard</code> — it prints a QR for your phone.</li>
-        <li>This Mac auto-discovers the VPS via Tailscale, Bonjour, or your saved URL.</li>
-        <li>Scan the Mac's static QR with the phone's Focusa Connect page, then tap Approve.</li>
-        <li>Token lands in macOS Keychain. You're paired.</li>
+        <li>Use the local Focusa installation or install Focusa on a host you control.</li>
+        <li>The app checks localhost first, then Bonjour, Tailscale, and your saved daemon URL.</li>
+        <li>Remote installations use <code>focusa pairing wizard</code> for governed device approval.</li>
+        <li>Approved credentials remain in the operating system keychain.</li>
       </ol>
       <button class="primary" onclick={() => advanceTo('vps_install')}>Get started</button>
       <details bind:open={showAdvanced}>
         <summary>Advanced</summary>
-        <p>If you've already installed Focusa on your VPS:</p>
+        <p>If Focusa is already running locally or on another host:</p>
         <button class="utility" onclick={() => advanceTo('vps_discover')}>Skip to discovery</button>
       </details>
     </div>
   {:else if step === 'vps_install'}
     <div class="card">
-      <h3>Install on your VPS</h3>
-      <p>SSH into your VPS and run:</p>
+      <h3>Choose your Focusa installation</h3>
+      <p>Use the bundled local installation, or install on any supported self-hosted machine:</p>
       <pre class="code">{`curl install.focusa.dev/focusa | bash`}</pre>
       <p>When the installer finishes, it prints a pairing URL. Continue when ready.</p>
       <div class="row">
@@ -602,8 +608,8 @@
     </div>
   {:else if step === 'vps_discover'}
     <div class="card">
-      <h3>Discover your VPS</h3>
-      <p>Looking for your Focusa daemon via Tailscale MagicDNS, Bonjour, or saved pairing URL.</p>
+      <h3>Discover Focusa</h3>
+      <p>Looking locally first, then via Bonjour, Tailscale MagicDNS, or your saved daemon URL.</p>
       {#if !discoveredUrl}
         <button class="primary" onclick={discoverVps}>Discover</button>
       {:else}

@@ -10,7 +10,7 @@ use focusa_core::{
     tool_result::{FailureClass, ToolResultV1, ToolStatus},
     types::{
         Action, FocusaEvent, MissionCanvasBindingKind, MissionCanvasBrowserIsolationClass,
-        MissionCanvasSurfaceBindingRecord, MissionCanvasSurfaceStatus,
+        MissionCanvasStateRecord, MissionCanvasSurfaceBindingRecord, MissionCanvasSurfaceStatus,
         MissionCanvasWorkSurfaceRecord,
     },
 };
@@ -889,6 +889,350 @@ pub async fn mutate_binding(
         "surface binding revision not visible",
     ))
 }
+const CANVAS_STATE_ENDPOINT: &str = "/v1/mission-canvas/state/mutate";
+
+#[derive(Debug, Deserialize)]
+pub struct CanvasStateQuery {
+    project_root: String,
+    continuity_id: String,
+    client_instance_id: String,
+    user_id: String,
+    device_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CanvasStateRequest {
+    project_root: String,
+    continuity_id: String,
+    client_instance_id: String,
+    user_id: String,
+    device_id: String,
+    idempotency_key: String,
+    expected_state_version: u64,
+    expected_canvas_revision: u64,
+    #[serde(default)]
+    open_work_surface_ids: Vec<String>,
+    #[serde(default)]
+    focused_work_surface_id: Option<String>,
+    #[serde(default)]
+    secondary_focused_surface_id: Option<String>,
+    #[serde(default)]
+    split_layout_ref: Option<String>,
+    #[serde(default)]
+    group_order: Vec<String>,
+    #[serde(default)]
+    aggregate_project_roots: Vec<String>,
+    #[serde(default)]
+    aggregate_continuity_ids: Vec<String>,
+    #[serde(default)]
+    aggregate_surface_kinds: Vec<String>,
+    #[serde(default)]
+    aggregate_surface_states: Vec<String>,
+    #[serde(default)]
+    selected_context_refs: Vec<String>,
+    #[serde(default)]
+    unread_event_cursor: Option<u64>,
+    session_projection_revision: u64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CanvasStateView {
+    schema: &'static str,
+    state_version: u64,
+    canvas: MissionCanvasStateRecord,
+    surfaces: Vec<MissionCanvasWorkSurfaceRecord>,
+    recovery_actions: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CanvasStateResult {
+    schema: &'static str,
+    state_version: u64,
+    replayed: bool,
+    canvas: MissionCanvasStateRecord,
+    evidence_ref: String,
+    receipt_ref: String,
+    tool_result: ToolResultV1,
+}
+
+fn canvas_fail(
+    code: StatusCode,
+    status: ToolStatus,
+    class: FailureClass,
+    message: impl Into<String>,
+) -> ApiError {
+    let mut result = ToolResultV1::failure(status, class, message.into());
+    result.tool = Some("focusa_mission_canvas_state_mutate".into());
+    result.family = Some("mission_canvas".into());
+    result.endpoint = Some(CANVAS_STATE_ENDPOINT.into());
+    (code, Json(Box::new(result)))
+}
+
+fn canvas_id(request: &CanvasStateRequest) -> String {
+    stable(&[
+        "canvas",
+        &request.project_root,
+        &request.continuity_id,
+        &request.client_instance_id,
+        &request.user_id,
+        &request.device_id,
+    ])
+    .replacen("work-surface:", "mission-canvas:", 1)
+}
+
+fn canvas_result(
+    canvas: MissionCanvasStateRecord,
+    state_version: u64,
+    replayed: bool,
+) -> CanvasStateResult {
+    let evidence_ref = format!(
+        "evidence:mission-canvas-state:{}:r{}",
+        canvas.canvas_id, canvas.state_revision
+    );
+    let receipt_ref = format!(
+        "receipt:mission-canvas-state:{}:{}",
+        canvas.canvas_id, canvas.idempotency_key
+    );
+    let mut tool_result = ToolResultV1::success(
+        ToolStatus::Completed,
+        if replayed {
+            "Mission Canvas restoration state replayed idempotently"
+        } else {
+            "Mission Canvas restoration state persisted"
+        },
+    );
+    tool_result.tool = Some("focusa_mission_canvas_state_mutate".into());
+    tool_result.family = Some("mission_canvas".into());
+    tool_result.endpoint = Some(CANVAS_STATE_ENDPOINT.into());
+    tool_result.evidence_refs = vec![evidence_ref.clone(), receipt_ref.clone()];
+    CanvasStateResult {
+        schema: "focusa.mission_canvas_state_mutation_result.v1",
+        state_version,
+        replayed,
+        canvas,
+        evidence_ref,
+        receipt_ref,
+        tool_result,
+    }
+}
+
+pub async fn get_canvas_state(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<CanvasStateQuery>,
+) -> Result<Json<CanvasStateView>, ApiError> {
+    if [
+        &query.project_root,
+        &query.continuity_id,
+        &query.client_instance_id,
+        &query.user_id,
+        &query.device_id,
+    ]
+    .iter()
+    .any(|value| value.trim().is_empty())
+    {
+        return Err(canvas_fail(
+            StatusCode::BAD_REQUEST,
+            ToolStatus::ValidationRejected,
+            FailureClass::ValidationRejected,
+            "project, continuity, client, user, and device scope are required",
+        ));
+    }
+    let snapshot = state.focusa.read().await;
+    let canvas = snapshot
+        .mission_canvas_states
+        .iter()
+        .filter(|canvas| {
+            canvas.project_root == query.project_root
+                && canvas.continuity_id == query.continuity_id
+                && canvas.client_instance_id == query.client_instance_id
+                && canvas.user_id == query.user_id
+                && canvas.device_id == query.device_id
+        })
+        .max_by_key(|canvas| canvas.state_revision)
+        .cloned()
+        .ok_or_else(|| {
+            canvas_fail(
+                StatusCode::NOT_FOUND,
+                ToolStatus::Blocked,
+                FailureClass::NotFound,
+                "Mission Canvas restoration state is absent; refusing to manufacture a replacement session or project",
+            )
+        })?;
+    let mut surfaces = Vec::new();
+    let mut recovery_actions = Vec::new();
+    for surface_id in &canvas.open_work_surface_ids {
+        let surface = snapshot
+            .mission_canvas_surfaces
+            .iter()
+            .filter(|surface| {
+                surface.work_surface_id == *surface_id
+                    && surface.project_root == canvas.project_root
+                    && surface.continuity_id == canvas.continuity_id
+            })
+            .max_by_key(|surface| surface.state_revision)
+            .cloned();
+        match surface {
+            Some(surface) => {
+                match surface.status {
+                    MissionCanvasSurfaceStatus::Suspended => {
+                        recovery_actions.push(format!("resume_surface:{surface_id}"));
+                    }
+                    MissionCanvasSurfaceStatus::ViewClosed => {
+                        recovery_actions.push(format!("reopen_view:{surface_id}"));
+                    }
+                    MissionCanvasSurfaceStatus::Active => {}
+                }
+                surfaces.push(surface);
+            }
+            None => recovery_actions.push(format!("remove_missing_surface:{surface_id}")),
+        }
+    }
+    Ok(Json(CanvasStateView {
+        schema: "focusa.mission_canvas_state.v1",
+        state_version: snapshot.version,
+        canvas,
+        surfaces,
+        recovery_actions,
+    }))
+}
+
+pub async fn mutate_canvas_state(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<CanvasStateRequest>,
+) -> Result<Json<CanvasStateResult>, ApiError> {
+    if [
+        &request.project_root,
+        &request.continuity_id,
+        &request.client_instance_id,
+        &request.user_id,
+        &request.device_id,
+        &request.idempotency_key,
+    ]
+    .iter()
+    .any(|value| value.trim().is_empty())
+    {
+        return Err(canvas_fail(
+            StatusCode::BAD_REQUEST,
+            ToolStatus::ValidationRejected,
+            FailureClass::ValidationRejected,
+            "project, continuity, client, user, device, and idempotency are required",
+        ));
+    }
+    let snapshot = state.focusa.read().await;
+    if let Some(existing) = snapshot
+        .mission_canvas_states
+        .iter()
+        .find(|canvas| {
+            canvas.project_root == request.project_root
+                && canvas.continuity_id == request.continuity_id
+                && canvas.client_instance_id == request.client_instance_id
+                && canvas.user_id == request.user_id
+                && canvas.device_id == request.device_id
+                && canvas.idempotency_key == request.idempotency_key
+        })
+        .cloned()
+    {
+        return Ok(Json(canvas_result(existing, snapshot.version, true)));
+    }
+    if snapshot.version != request.expected_state_version {
+        return Err(canvas_fail(
+            StatusCode::CONFLICT,
+            ToolStatus::Blocked,
+            FailureClass::WriterConflict,
+            "stale canonical state version",
+        ));
+    }
+    let canvas_id = canvas_id(&request);
+    let latest = snapshot
+        .mission_canvas_states
+        .iter()
+        .filter(|canvas| canvas.canvas_id == canvas_id)
+        .max_by_key(|canvas| canvas.state_revision);
+    if latest.map_or(0, |canvas| canvas.state_revision) != request.expected_canvas_revision {
+        return Err(canvas_fail(
+            StatusCode::CONFLICT,
+            ToolStatus::Blocked,
+            FailureClass::WriterConflict,
+            "stale Mission Canvas restoration revision",
+        ));
+    }
+    let exact_surfaces = request.open_work_surface_ids.iter().all(|surface_id| {
+        snapshot.mission_canvas_surfaces.iter().any(|surface| {
+            surface.work_surface_id == *surface_id
+                && surface.project_root == request.project_root
+                && surface.continuity_id == request.continuity_id
+        })
+    });
+    if !exact_surfaces {
+        return Err(canvas_fail(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            ToolStatus::ValidationRejected,
+            FailureClass::ScopeMismatch,
+            "Mission Canvas topology contains a Work Surface outside exact project and continuity scope",
+        ));
+    }
+    let now = Utc::now();
+    let canvas = MissionCanvasStateRecord {
+        canvas_id,
+        state_revision: request.expected_canvas_revision + 1,
+        project_root: request.project_root,
+        continuity_id: request.continuity_id,
+        client_instance_id: request.client_instance_id,
+        user_id: request.user_id,
+        device_id: request.device_id,
+        open_work_surface_ids: request.open_work_surface_ids,
+        focused_work_surface_id: request.focused_work_surface_id,
+        secondary_focused_surface_id: request.secondary_focused_surface_id,
+        split_layout_ref: request.split_layout_ref,
+        group_order: request.group_order,
+        aggregate_project_roots: request.aggregate_project_roots,
+        aggregate_continuity_ids: request.aggregate_continuity_ids,
+        aggregate_surface_kinds: request.aggregate_surface_kinds,
+        aggregate_surface_states: request.aggregate_surface_states,
+        selected_context_refs: request.selected_context_refs,
+        unread_event_cursor: request.unread_event_cursor,
+        session_projection_revision: request.session_projection_revision,
+        idempotency_key: request.idempotency_key,
+        created_at: latest.map_or(now, |canvas| canvas.created_at),
+        updated_at: now,
+    };
+    let id = canvas.canvas_id.clone();
+    let key = canvas.idempotency_key.clone();
+    drop(snapshot);
+    state
+        .command_tx
+        .send(Action::EmitEvent {
+            event: FocusaEvent::MissionCanvasStateRevised { canvas },
+        })
+        .await
+        .map_err(|_| {
+            canvas_fail(
+                StatusCode::SERVICE_UNAVAILABLE,
+                ToolStatus::Offline,
+                FailureClass::DaemonUnavailable,
+                "Mission Canvas state command channel unavailable",
+            )
+        })?;
+    for _ in 0..100 {
+        let current = state.focusa.read().await;
+        if let Some(saved) = current
+            .mission_canvas_states
+            .iter()
+            .find(|canvas| canvas.canvas_id == id && canvas.idempotency_key == key)
+        {
+            return Ok(Json(canvas_result(saved.clone(), current.version, false)));
+        }
+        drop(current);
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    Err(canvas_fail(
+        StatusCode::SERVICE_UNAVAILABLE,
+        ToolStatus::Degraded,
+        FailureClass::ReadModelLag,
+        "Mission Canvas restoration revision not visible",
+    ))
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/mission-canvas/surfaces", get(list))
@@ -898,4 +1242,6 @@ pub fn router() -> Router<Arc<AppState>> {
             "/v1/mission-canvas/surface-bindings/mutate",
             post(mutate_binding),
         )
+        .route("/v1/mission-canvas/state", get(get_canvas_state))
+        .route(CANVAS_STATE_ENDPOINT, post(mutate_canvas_state))
 }
