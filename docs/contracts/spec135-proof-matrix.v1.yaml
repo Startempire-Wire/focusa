@@ -447,7 +447,7 @@
         "Approval is durable, auditable, and resumable"
       ],
       "bead_id": "focusa-mc-ri1",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "Role reducer/API tests",
         "generated Role UI eval"
@@ -471,7 +471,7 @@
         "Each question has recommendation, sources, dependency branch, and stop condition"
       ],
       "bead_id": "focusa-mc-ri2",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "strategy fixtures",
         "question sequencing tests"
@@ -496,7 +496,7 @@
         "Deferred branches remain visible and governed"
       ],
       "bead_id": "focusa-mc-ri3",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "restart/resume integration test",
         "Interview UIAI eval"
@@ -546,7 +546,7 @@
         "Workbench can close and resume exactly"
       ],
       "bead_id": "focusa-mc-st1",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "Spec 120 integration test",
         "Workbench UI eval"
@@ -571,7 +571,7 @@
         "No task materializes before approval"
       ],
       "bead_id": "focusa-mc-st2",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "DAG validator",
         "preview/approval tests"
@@ -596,7 +596,7 @@
         "IDs remain stable through merge and every task links requirement/dependency/proof"
       ],
       "bead_id": "focusa-mc-st3",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "Beads parity audit",
         "prefix collision test"
@@ -620,7 +620,7 @@
         "Closure requires linked proof and emits Receipt"
       ],
       "bead_id": "focusa-mc-st4",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "checkpoint/resume tests",
         "Evidence/Receipt audit"
@@ -645,7 +645,7 @@
         "Workspace projects canonical read models only"
       ],
       "bead_id": "focusa-mc-m1",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "naming/static guard",
         "workspace integration smoke"
@@ -669,7 +669,7 @@
         "Responsive and terminal modes preserve action reachability"
       ],
       "bead_id": "focusa-mc-m2",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "TUI snapshot tests",
         "keyboard/mouse proof"
@@ -693,7 +693,7 @@
         "Tab/pane identity and lifecycle persist"
       ],
       "bead_id": "focusa-mc-m3",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "surface registry tests",
         "multiplex UI eval"
@@ -717,7 +717,7 @@
         "Cross-surface targeting fails closed"
       ],
       "bead_id": "focusa-mc-m4",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "attachment scope tests",
         "cross-surface denial proof"
@@ -816,7 +816,7 @@
         "No UIAI state becomes canonical Focusa state"
       ],
       "bead_id": "focusa-mc-u1",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "bridge contract tests",
         "research packet proof"
@@ -839,7 +839,7 @@
         "Reconnect replays missed updates exactly once"
       ],
       "bead_id": "focusa-mc-u2",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "live-refresh integration test",
         "reconnect eval"
@@ -1099,7 +1099,7 @@
         "Parity matrix covers supported providers"
       ],
       "bead_id": "focusa-mc-p1",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "provider conformance suite"
       ],
@@ -1348,7 +1348,7 @@
         "Real sources ingest, retrieve, cite, and render with restart-safe state"
       ],
       "bead_id": "focusa-mc-alpha1",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "Cross-Functional Alpha evidence",
         "UIAI Eval where browser-facing"
@@ -1371,7 +1371,7 @@
         "Role approval and Interview exact resume work through generated UI"
       ],
       "bead_id": "focusa-mc-alpha2",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "Cross-Functional Alpha evidence",
         "UIAI Eval where browser-facing"
@@ -1394,7 +1394,7 @@
         "Approved spec materializes a correctly linked shared-database bead"
       ],
       "bead_id": "focusa-mc-alpha3",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "Cross-Functional Alpha evidence",
         "UIAI Eval where browser-facing"
@@ -1417,7 +1417,7 @@
         "Task executes through verified Workpoint and closes only with Evidence/Receipt"
       ],
       "bead_id": "focusa-mc-alpha4",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "Cross-Functional Alpha evidence",
         "UIAI Eval where browser-facing"
