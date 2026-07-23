@@ -135,7 +135,7 @@ try {
   } as any;
 
   const utilityStart = turnsSource.indexOf("if (!getAttachmentRuntime().seenFirstBeforeAgentStart)");
-  const utilityEnd = turnsSource.indexOf("// §130: utility-card persistence block end.", utilityStart);
+  const utilityEnd = turnsSource.indexOf('pi.on("context"', utilityStart);
   assert(utilityStart >= 0 && utilityEnd > utilityStart, "utility-card persistence block missing");
   const utilityBlock = turnsSource.slice(utilityStart, utilityEnd);
   assert(

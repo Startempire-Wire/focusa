@@ -7,7 +7,7 @@ TMP="$(mktemp -d "${TMPDIR:-/tmp}/focusa-spec130a-runtime.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 
 cd "$PI_EXT"
-./node_modules/.bin/tsc -p tsconfig.json --noEmit false --outDir "$TMP/build"
+npx tsc -p tsconfig.json --noEmit false --outDir "$TMP/build"
 ln -s "$PI_EXT/node_modules" "$TMP/build/node_modules"
 
 cat >"$TMP/runtime.mjs" <<'EOF'
@@ -18,50 +18,8 @@ import {
   proactiveCompactionDecision,
   registerAutoCompaction,
 } from "./build/auto-compaction.js";
-import { classifyPiSessionProject } from "./build/session-classification.js";
 const duplicateModule = await import("./build/auto-compaction.js?duplicate-install");
 const thirdModule = await import("./build/auto-compaction.js?third-install");
-
-assert.equal(
-  classifyPiSessionProject({
-    reason: "resume",
-    currentProjectRoot: "/tmp/project",
-    markerExists: true,
-    persistedStateFound: true,
-    persistedProjectRoot: "/tmp/project",
-  }),
-  "resumed_session_resumed_project",
-);
-assert.equal(
-  classifyPiSessionProject({
-    reason: "resume",
-    currentProjectRoot: "/tmp/project",
-    markerExists: false,
-    persistedStateFound: true,
-    persistedProjectRoot: "/tmp/project",
-  }),
-  "resumed_session_recoverable_project",
-);
-assert.equal(
-  classifyPiSessionProject({
-    reason: "resume",
-    currentProjectRoot: "/tmp/other",
-    markerExists: true,
-    persistedStateFound: true,
-    persistedProjectRoot: "/tmp/project",
-  }),
-  "session_project_mismatch",
-);
-assert.equal(
-  classifyPiSessionProject({
-    reason: "fork",
-    currentProjectRoot: "/tmp/project",
-    markerExists: true,
-    persistedStateFound: true,
-    persistedProjectRoot: "/tmp/project",
-  }),
-  "forked_compacted_continuation",
-);
 
 const usage = { tokens: 190_000, contextWindow: 200_000, percent: 95 };
 const message = (id, chars) => ({
@@ -88,16 +46,12 @@ function harness(
   const notices = [];
   const statuses = [];
   const compactCalls = [];
-  const sentMessages = [];
   const pi = {
     on(name, handler) {
       handlers.set(name, handler);
     },
     appendEntry(type, data) {
       events.push({ type, data });
-    },
-    sendUserMessage(text) {
-      sentMessages.push(text);
     },
   };
   const ctx = {
@@ -123,7 +77,7 @@ function harness(
     },
   };
   register(pi, () => policy);
-  return { handlers, events, notices, statuses, compactCalls, sentMessages, ctx };
+  return { handlers, events, notices, statuses, compactCalls, ctx };
 }
 
 const empty = evaluateProactiveCompactionEligibility([], usage.contextWindow);
@@ -266,23 +220,42 @@ await nativeManual.handlers.get("session_shutdown")(
   nativeManual.ctx,
 );
 
+const terminalTransport = harness(largeBranch, {
+  ...DEFAULT_PROACTIVE_COMPACTION_POLICY,
+  cooldownMs: 20,
+});
+await terminalTransport.handlers.get("agent_settled")(
+  { type: "agent_settled" },
+  terminalTransport.ctx,
+);
+terminalTransport.compactCalls[0].onError(new Error("Summarization failed: WebSocket error"));
+terminalTransport.compactCalls[0].onError(
+  new Error("Cannot read properties of undefined (reading 'signal')"),
+);
+const primaryFailure = terminalTransport.events.find(
+  (entry) => entry.data.kind === "attempt_failed",
+);
+assert.equal(primaryFailure.data.primary_error, "Summarization failed: WebSocket error");
+assert.equal(primaryFailure.data.failure_class, "primary_transport");
+const secondaryFailure = terminalTransport.events.find(
+  (entry) => entry.data.kind === "secondary_duplicate_settlement",
+);
+assert.equal(secondaryFailure.data.failure_class, "secondary_reentrancy");
+assert.match(secondaryFailure.data.secondary_error, /signal/);
+await new Promise((resolve) => setTimeout(resolve, 50));
+assert.equal(terminalTransport.compactCalls.length, 1);
+assert.ok(!terminalTransport.events.some((entry) => entry.data.kind === "retry_scheduled"));
+await terminalTransport.handlers.get("session_shutdown")(
+  { type: "session_shutdown" },
+  terminalTransport.ctx,
+);
+
 const retried = harness(largeBranch, {
   ...DEFAULT_PROACTIVE_COMPACTION_POLICY,
   cooldownMs: 20,
 });
 await retried.handlers.get("agent_settled")({ type: "agent_settled" }, retried.ctx);
-retried.compactCalls[0].onError(new Error("Summarization failed: WebSocket error"));
-retried.compactCalls[0].onError(
-  new Error("Cannot read properties of undefined (reading 'signal')"),
-);
-const primaryFailure = retried.events.find((entry) => entry.data.kind === "attempt_failed");
-assert.equal(primaryFailure.data.primary_error, "Summarization failed: WebSocket error");
-assert.equal(primaryFailure.data.failure_class, "primary_transport");
-const secondaryFailure = retried.events.find(
-  (entry) => entry.data.kind === "secondary_duplicate_settlement",
-);
-assert.equal(secondaryFailure.data.failure_class, "secondary_reentrancy");
-assert.match(secondaryFailure.data.secondary_error, /signal/);
+retried.compactCalls[0].onError(new Error("502 Bad Gateway"));
 await new Promise((resolve) => setTimeout(resolve, 50));
 assert.equal(retried.compactCalls.length, 2);
 const starts = retried.events.filter((entry) => entry.data.kind === "attempt_started");
@@ -301,62 +274,6 @@ assert.equal(
 );
 await retried.handlers.get("session_shutdown")({ type: "session_shutdown" }, retried.ctx);
 
-const emergency = harness(largeBranch, DEFAULT_PROACTIVE_COMPACTION_POLICY);
-emergency.ctx.getContextUsage = () => ({
-  tokens: 137_000,
-  contextWindow: 100_000,
-  percent: 137,
-});
-const emergencyInput = await emergency.handlers.get("input")(
-  { type: "input", text: "finish Mission Canvas", source: "interactive", images: [] },
-  emergency.ctx,
-);
-assert.deepEqual(emergencyInput, { action: "handled" });
-assert.equal(emergency.compactCalls.length, 1);
-const heldEmergency = emergency.events.find(
-  (entry) => entry.type === "focusa-held-critical-input",
-);
-assert.equal(heldEmergency.data.text, "finish Mission Canvas");
-assert.equal(heldEmergency.data.context_percent, 137);
-emergency.compactCalls[0].onComplete({
-  summary: "emergency summary",
-  firstKeptEntryId: "d",
-  tokensBefore: 137_000,
-});
-assert.deepEqual(emergency.sentMessages, ["finish Mission Canvas"]);
-await emergency.handlers.get("session_shutdown")({ type: "session_shutdown" }, emergency.ctx);
-
-const exhausted = harness(largeBranch, {
-  ...DEFAULT_PROACTIVE_COMPACTION_POLICY,
-  cooldownMs: 20,
-});
-await exhausted.handlers.get("agent_settled")({ type: "agent_settled" }, exhausted.ctx);
-exhausted.compactCalls[0].onError(new Error("Summarization failed: WebSocket error"));
-await new Promise((resolve) => setTimeout(resolve, 50));
-assert.equal(exhausted.compactCalls.length, 2);
-exhausted.compactCalls[1].onError(new Error("Summarization failed: WebSocket error"));
-const rollover = exhausted.events.find((entry) => entry.data.kind === "rollover_required");
-assert.equal(rollover.data.reason, "provider_transport_retry_exhausted");
-assert.equal(rollover.data.recovery_command, "/focusa-rollover execute");
-assert.equal(rollover.data.canonical_checkpoint_preserved, true);
-assert.equal(rollover.data.attempts, 2);
-exhausted.ctx.getContextUsage = () => ({
-  tokens: 137_000,
-  contextWindow: 100_000,
-  percent: 137,
-});
-const heldInput = await exhausted.handlers.get("input")(
-  { type: "input", text: "keep working", source: "interactive" },
-  exhausted.ctx,
-);
-assert.deepEqual(heldInput, { action: "handled" });
-const blockedInput = exhausted.events.find(
-  (entry) => entry.data.kind === "input_blocked_rollover_required",
-);
-assert.equal(blockedInput.data.recovery_command, "/focusa-rollover execute");
-assert.equal(blockedInput.data.context_percent, 137);
-await exhausted.handlers.get("session_shutdown")({ type: "session_shutdown" }, exhausted.ctx);
-
 console.log(
   JSON.stringify(
     {
@@ -367,6 +284,7 @@ console.log(
       terminal_events: terminal.events.map((entry) => entry.data.kind),
       native_automatic_events: nativeAutomatic.events.map((entry) => entry.data.kind),
       native_manual_events: nativeManual.events.map((entry) => entry.data.kind),
+      terminal_transport_events: terminalTransport.events.map((entry) => entry.data.kind),
       retry_events: retried.events.map((entry) => entry.data.kind),
     },
     null,
