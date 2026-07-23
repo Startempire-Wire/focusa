@@ -105,6 +105,7 @@ fn inventory_lines() -> Vec<&'static str> {
         "focusa action               Context Authority and mutation preflight",
         "focusa doctor               Health, contracts, runtime, scope, and recovery checks",
         "focusa release              Release proof orchestration",
+        "focusa silent               Durable Silent Session create/control/observe/config/retention",
         "focusa update               OTA update namespace (Spec128, planned)",
         "focusa help migration       Old → new command map",
     ]

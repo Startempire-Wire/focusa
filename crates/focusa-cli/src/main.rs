@@ -127,6 +127,10 @@ enum Commands {
     #[command(subcommand)]
     Compaction(commands::compaction::CompactionCmd),
 
+    /// Daemon-native durable Silent Session control plane (Spec 133).
+    #[command(subcommand)]
+    Silent(commands::silent::SilentCmd),
+
     /// Upgrade an existing Focusa install via the atomic installer path.
     Upgrade(commands::upgrade::UpgradeArgs),
 
@@ -578,6 +582,7 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::Install(args) => commands::install::run(args).await,
         Commands::Update(cmd) => commands::update::run(cmd, cli.json).await,
         Commands::Compaction(cmd) => commands::compaction::run(cmd, cli.json).await,
+        Commands::Silent(cmd) => commands::silent::run(cmd, cli.json).await,
         Commands::Upgrade(args) => commands::upgrade::run(cli.json, args).await,
         Commands::Uninstall(args) => commands::uninstall::run(args).await,
         Commands::Codesign(args) => commands::codesign::run(args).await,
