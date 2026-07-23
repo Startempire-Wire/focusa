@@ -5,6 +5,7 @@ use crate::silent_session_retry::{RetryBudgetPolicy, RetryClass, default_retry_b
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fmt;
 use std::path::{Component, PathBuf};
@@ -131,6 +132,48 @@ pub struct SemanticObservation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OperatorAskBinding {
+    pub ask_ref: String,
+    pub exact_text: String,
+    pub text_sha256: String,
+    pub revision: u64,
+    pub captured_at: DateTime<Utc>,
+}
+
+impl OperatorAskBinding {
+    pub fn capture(
+        ask_ref: impl Into<String>,
+        exact_text: impl Into<String>,
+        revision: u64,
+        captured_at: DateTime<Utc>,
+    ) -> Self {
+        let exact_text = exact_text.into();
+        let text_sha256 = hex::encode(Sha256::digest(exact_text.as_bytes()));
+        Self {
+            ask_ref: ask_ref.into(),
+            exact_text,
+            text_sha256,
+            revision,
+            captured_at,
+        }
+    }
+
+    pub fn validate(&self) -> Result<(), SilentSessionInvariantError> {
+        if self.ask_ref.trim().is_empty() || self.exact_text.trim().is_empty() {
+            return Err(SilentSessionInvariantError::MissingField("operator_ask"));
+        }
+        if self.revision == 0 {
+            return Err(SilentSessionInvariantError::InvalidOperatorAsk);
+        }
+        let expected = hex::encode(Sha256::digest(self.exact_text.as_bytes()));
+        if self.text_sha256 != expected {
+            return Err(SilentSessionInvariantError::InvalidOperatorAsk);
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WorkpointBinding {
     pub workpoint_id: String,
     pub revision: Option<u64>,
@@ -179,6 +222,7 @@ pub struct SilentSession {
     pub trajectory_ref: Option<String>,
     pub workpoint_ref: Option<WorkpointBinding>,
     pub work_item_ref: Option<String>,
+    pub operator_ask: OperatorAskBinding,
     pub mission: String,
     pub lifecycle_state: SilentSessionLifecycleState,
     pub health: SilentSessionHealth,
@@ -571,11 +615,13 @@ pub enum SilentSessionInvariantError {
     InvalidGeneration,
     InvalidSequence,
     InvalidLease,
+    InvalidOperatorAsk,
     ScopeMutation,
 }
 
 impl SilentSession {
     pub fn validate(&self) -> Result<(), SilentSessionInvariantError> {
+        self.operator_ask.validate()?;
         if self.schema != SILENT_SESSION_SCHEMA {
             return Err(SilentSessionInvariantError::UnsupportedSchema);
         }
@@ -884,6 +930,12 @@ mod tests {
             trajectory_ref: None,
             workpoint_ref: None,
             work_item_ref: Some("focusa-a6yq6.2.1".into()),
+            operator_ask: OperatorAskBinding::capture(
+                "ask:domain-test",
+                "implement domain types",
+                1,
+                Utc::now(),
+            ),
             mission: "implement domain types".into(),
             lifecycle_state: SilentSessionLifecycleState::Draft,
             health: SilentSessionHealth::Unknown,

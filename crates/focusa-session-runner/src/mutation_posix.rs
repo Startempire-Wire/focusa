@@ -401,6 +401,9 @@ mod tests {
                     snapshot_sha256: "2".repeat(64),
                     generated_at: now,
                     fresh_until,
+                    status: focusa_core::silent_session_bootstrap::TrajectoryBootstrapStatus::CanonicalAdvisory,
+                    waypoints: vec!["prove scoped runner mutation".into()],
+                    active_gap: "runner mutation is not yet verified".into(),
                 },
                 workpoint: WorkpointBootstrapBinding {
                     workpoint_ref: workpoint_ref.clone(),
@@ -411,6 +414,12 @@ mod tests {
                     generated_at: now,
                     fresh_until,
                 },
+                operator_ask: focusa_core::silent_session::OperatorAskBinding::capture(
+                    "ask:runner-mutation-test",
+                    "prove guarded project mutation",
+                    1,
+                    now,
+                ),
                 context: ContextBootstrapBinding {
                     context_packet_ref: "context-packet:runner-mutation".into(),
                     project_identity_ref: project_identity_ref.clone(),
@@ -437,6 +446,7 @@ mod tests {
                 mission: "prove guarded project mutation".into(),
                 exact_next_action: "write one scoped fixture".into(),
                 active_object_refs: vec!["src/generated.rs".into()],
+                hook_refs: vec!["hook:before-project-mutation".into()],
                 blockers: vec![],
                 do_not_drift: vec!["do not write outside the workspace".into()],
                 evidence_refs: vec!["test:runner-bootstrap-barrier".into()],

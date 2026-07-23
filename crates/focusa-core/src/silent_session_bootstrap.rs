@@ -8,8 +8,8 @@
 //! exact session run and remain fresh.
 
 use crate::silent_session::{
-    ModelBinding, SILENT_SESSION_LEASE_SCHEMA, SilentSessionId, SilentSessionLease,
-    SilentSessionRunId, WorkpointBinding,
+    ModelBinding, OperatorAskBinding, SILENT_SESSION_LEASE_SCHEMA, SilentSessionId,
+    SilentSessionLease, SilentSessionRunId, WorkpointBinding,
 };
 use crate::silent_session_authorization::ContextAuthorityGrant;
 use chrono::{DateTime, Utc};
@@ -35,6 +35,13 @@ pub struct ProjectIdentityBootstrapBinding {
     pub fresh_until: DateTime<Utc>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TrajectoryBootstrapStatus {
+    CanonicalAdvisory,
+    GenericDegraded,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TrajectoryBootstrapBinding {
     pub trajectory_ref: String,
@@ -44,6 +51,9 @@ pub struct TrajectoryBootstrapBinding {
     pub snapshot_sha256: String,
     pub generated_at: DateTime<Utc>,
     pub fresh_until: DateTime<Utc>,
+    pub status: TrajectoryBootstrapStatus,
+    pub waypoints: Vec<String>,
+    pub active_gap: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -97,6 +107,7 @@ pub struct AgentBootstrapPacket {
     pub continuity_id: String,
     pub trajectory: TrajectoryBootstrapBinding,
     pub workpoint: WorkpointBootstrapBinding,
+    pub operator_ask: OperatorAskBinding,
     pub context: ContextBootstrapBinding,
     pub work_item_ref: Option<String>,
     pub workspace: BootstrapWorkspaceBinding,
@@ -105,6 +116,7 @@ pub struct AgentBootstrapPacket {
     pub mission: String,
     pub exact_next_action: String,
     pub active_object_refs: Vec<String>,
+    pub hook_refs: Vec<String>,
     pub blockers: Vec<String>,
     pub do_not_drift: Vec<String>,
     pub evidence_refs: Vec<String>,
@@ -120,6 +132,24 @@ impl AgentBootstrapPacket {
     }
 
     pub fn validate(&self, now: DateTime<Utc>) -> Result<(), AgentBootstrapBarrierError> {
+        self.operator_ask
+            .validate()
+            .map_err(|_| AgentBootstrapBarrierError::ScopeMismatch("operator_ask"))?;
+        if self.trajectory.status == TrajectoryBootstrapStatus::GenericDegraded {
+            return Err(AgentBootstrapBarrierError::GenericTrajectoryBlocked);
+        }
+        if self.trajectory.waypoints.is_empty()
+            || self
+                .trajectory
+                .waypoints
+                .iter()
+                .any(|value| value.trim().is_empty())
+            || self.trajectory.active_gap.trim().is_empty()
+        {
+            return Err(AgentBootstrapBarrierError::MissingField(
+                "trajectory_waypoints_or_gap",
+            ));
+        }
         if self.schema != AGENT_BOOTSTRAP_PACKET_SCHEMA {
             return Err(AgentBootstrapBarrierError::UnsupportedSchema("packet"));
         }
@@ -247,6 +277,9 @@ pub struct AgentBootstrapVerification {
     pub project_identity_ref: String,
     pub trajectory_ref: String,
     pub workpoint_ref: WorkpointBinding,
+    pub operator_ask_ref: String,
+    pub operator_ask_sha256: String,
+    pub operator_ask_revision: u64,
     pub context_packet_ref: String,
     pub verified_at: DateTime<Utc>,
     pub fresh_until: DateTime<Utc>,
@@ -276,6 +309,9 @@ impl AgentBootstrapVerification {
             || self.project_identity_ref != packet.project_identity.project_identity_ref
             || self.trajectory_ref != packet.trajectory.trajectory_ref
             || self.workpoint_ref != packet.workpoint.workpoint_ref
+            || self.operator_ask_ref != packet.operator_ask.ask_ref
+            || self.operator_ask_sha256 != packet.operator_ask.text_sha256
+            || self.operator_ask_revision != packet.operator_ask.revision
             || self.context_packet_ref != packet.context.context_packet_ref
         {
             return Err(AgentBootstrapBarrierError::VerificationMismatch);
@@ -300,6 +336,9 @@ pub fn verify_agent_bootstrap_packet(
         project_identity_ref: packet.project_identity.project_identity_ref.clone(),
         trajectory_ref: packet.trajectory.trajectory_ref.clone(),
         workpoint_ref: packet.workpoint.workpoint_ref.clone(),
+        operator_ask_ref: packet.operator_ask.ask_ref.clone(),
+        operator_ask_sha256: packet.operator_ask.text_sha256.clone(),
+        operator_ask_revision: packet.operator_ask.revision,
         context_packet_ref: packet.context.context_packet_ref.clone(),
         verified_at: now,
         fresh_until: packet.fresh_until,
@@ -511,6 +550,8 @@ pub enum AgentBootstrapBarrierError {
     InvalidSnapshotHash(&'static str),
     #[error("AgentBootstrap scope mismatch: {0}")]
     ScopeMismatch(&'static str),
+    #[error("generic trajectory is degraded context and cannot launch canonical work")]
+    GenericTrajectoryBlocked,
     #[error("Context Cognition attempted to become mutation authority")]
     ContextAuthorityEscalation,
     #[error("AgentBootstrap source timestamp is in the future")]
@@ -607,6 +648,9 @@ mod tests {
                 snapshot_sha256: "2".repeat(64),
                 generated_at: now,
                 fresh_until,
+                status: TrajectoryBootstrapStatus::CanonicalAdvisory,
+                waypoints: vec!["close the active gap".into()],
+                active_gap: "bootstrap authority is unverified".into(),
             },
             workpoint: WorkpointBootstrapBinding {
                 workpoint_ref: workpoint_ref.clone(),
@@ -617,6 +661,12 @@ mod tests {
                 generated_at: now,
                 fresh_until,
             },
+            operator_ask: OperatorAskBinding::capture(
+                "ask:bootstrap-test",
+                "execute exact governed task",
+                1,
+                now,
+            ),
             context: ContextBootstrapBinding {
                 context_packet_ref: "context-packet:1".into(),
                 project_identity_ref: project_identity_ref.clone(),
@@ -643,6 +693,7 @@ mod tests {
             mission: "implement the bounded Spec 133 slice".into(),
             exact_next_action: "prove the AgentBootstrap mutation barrier".into(),
             active_object_refs: vec!["spec:133".into()],
+            hook_refs: vec!["hook:before-mutation".into()],
             blockers: vec![],
             do_not_drift: vec!["do not deploy".into()],
             evidence_refs: vec!["test:bootstrap-barrier".into()],
@@ -701,7 +752,7 @@ mod tests {
     }
 
     #[test]
-    fn bootstrap_verification_binds_all_four_authority_sources() {
+    fn bootstrap_verification_binds_all_authority_sources_and_blocks_generic_trajectory() {
         let fixture = fixture();
         fixture
             .verification
@@ -713,6 +764,21 @@ mod tests {
         assert_eq!(
             fixture.verification.verify_for(&tampered, fixture.now),
             Err(AgentBootstrapBarrierError::VerificationMismatch)
+        );
+
+        let mut changed_ask = fixture.packet.clone();
+        changed_ask.operator_ask =
+            OperatorAskBinding::capture("ask:changed", "newer exact operator ask", 2, fixture.now);
+        assert_eq!(
+            fixture.verification.verify_for(&changed_ask, fixture.now),
+            Err(AgentBootstrapBarrierError::VerificationMismatch)
+        );
+
+        let mut generic = fixture.packet.clone();
+        generic.trajectory.status = TrajectoryBootstrapStatus::GenericDegraded;
+        assert_eq!(
+            verify_agent_bootstrap_packet(&generic, fixture.now),
+            Err(AgentBootstrapBarrierError::GenericTrajectoryBlocked)
         );
 
         let mut escalated = fixture.packet;

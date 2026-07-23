@@ -36,6 +36,12 @@ fn sample_silent_session(dir: &std::path::Path) -> (SilentSession, SilentSession
         trajectory_ref: None,
         workpoint_ref: None,
         work_item_ref: Some("item:test".into()),
+        operator_ask: crate::silent_session::OperatorAskBinding::capture(
+            "ask:persistence-test",
+            "prove durable replay",
+            1,
+            now,
+        ),
         mission: "prove durable replay".into(),
         lifecycle_state: SilentSessionLifecycleState::Running,
         health: SilentSessionHealth::Healthy,

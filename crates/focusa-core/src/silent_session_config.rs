@@ -672,6 +672,12 @@ mod tests {
             trajectory_ref: None,
             workpoint_ref: None,
             work_item_ref: None,
+            operator_ask: crate::silent_session::OperatorAskBinding::capture(
+                "ask:config-test",
+                "persist config",
+                1,
+                Utc::now(),
+            ),
             mission: "persist config".into(),
             lifecycle_state: SilentSessionLifecycleState::Draft,
             health: SilentSessionHealth::Healthy,

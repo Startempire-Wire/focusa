@@ -415,6 +415,12 @@ mod tests {
             trajectory_ref: None,
             workpoint_ref: None,
             work_item_ref: Some("focusa-a6yq6.6.1".into()),
+            operator_ask: crate::silent_session::OperatorAskBinding::capture(
+                "ask:writer-test",
+                "prove writer admission",
+                1,
+                Utc::now(),
+            ),
             mission: "prove writer admission".into(),
             lifecycle_state: SilentSessionLifecycleState::Running,
             health: SilentSessionHealth::Healthy,
