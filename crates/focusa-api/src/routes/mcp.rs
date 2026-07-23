@@ -82,8 +82,7 @@ fn safe_path_value(value: &str) -> bool {
 
 fn bind_path(path: &str, arguments: &mut Map<String, Value>) -> Result<String, Value> {
     let mut bound = path.to_string();
-    loop {
-        let Some(start) = bound.find('{') else { break };
+    while let Some(start) = bound.find('{') {
         let Some(relative_end) = bound[start + 1..].find('}') else {
             return Err(tool_error(
                 format!("invalid generated REST path template: {path}"),
