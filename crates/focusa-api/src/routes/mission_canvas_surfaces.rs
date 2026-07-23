@@ -598,7 +598,7 @@ pub async fn mutate_binding(
             StatusCode::UNPROCESSABLE_ENTITY,
             ToolStatus::ValidationRejected,
             FailureClass::ScopeMismatch,
-            "target Work Surface is absent from exact attachment scope",
+            "Cross-surface binding mutation denied: target Work Surface is absent from exact attachment scope",
         ));
     }
     let latest = r
