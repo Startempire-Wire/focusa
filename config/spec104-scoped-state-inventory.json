@@ -624,6 +624,36 @@
       "status": "infra_allowed",
       "target": "Process-wide immutable FastEmbed model/runtime cache; contains no project, workstream, attachment, or retained query authority",
       "acceptance_test": "context retrieval unit tests plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-01",
+      "path": "crates/focusa-api/src/routes/agent_capabilities.rs",
+      "symbol": "SPEC141_CAPABILITY_REGISTRY",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Generated immutable Agent Capability Descriptor V2 projection; contains no mutable project, workstream, attachment, or request authority",
+      "acceptance_test": "Spec141 generator drift check plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-01",
+      "path": "crates/focusa-api/src/routes/agent_capabilities.rs",
+      "symbol": "SPEC141_AGENT_CARD",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Generated immutable Agent Card projection; contains no mutable project, workstream, attachment, or request authority",
+      "acceptance_test": "Spec141 Agent Card digest parity plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-01",
+      "path": "crates/focusa-api/src/routes/mcp.rs",
+      "symbol": "MCP_PROJECTION",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Generated immutable MCP catalog projection; invocation authority remains in scoped REST routes",
+      "acceptance_test": "Spec141 MCP projection parity plus Spec104 singleton inventory gate"
     }
   ]
 }
