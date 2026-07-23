@@ -132,13 +132,27 @@ jobs:
             kill "$DAEMON_PID" >/dev/null 2>&1 || true
           }
           trap cleanup EXIT
-          for i in $(seq 1 120); do
+          STARTUP_BUDGET_SECONDS=300
+          for i in $(seq 1 "$STARTUP_BUDGET_SECONDS"); do
             if curl -fsS http://127.0.0.1:18787/v1/health >/dev/null; then
               break
             fi
+            if ! kill -0 "$DAEMON_PID" >/dev/null 2>&1; then
+              echo "release daemon exited before health became ready" >&2
+              tail -200 /tmp/focusa-daemon-probe.log >&2
+              exit 1
+            fi
+            if (( i % 30 == 0 )); then
+              echo "waiting for release daemon health: ${i}s/${STARTUP_BUDGET_SECONDS}s" >&2
+              tail -40 /tmp/focusa-daemon-probe.log >&2 || true
+            fi
             sleep 1
           done
-          curl -fsS http://127.0.0.1:18787/v1/health >/dev/null
+          if ! curl -fsS http://127.0.0.1:18787/v1/health >/dev/null; then
+            echo "release daemon health exceeded ${STARTUP_BUDGET_SECONDS}s startup budget" >&2
+            tail -200 /tmp/focusa-daemon-probe.log >&2
+            exit 1
+          fi
           python3 scripts/api_contract_probe.py --base-url http://127.0.0.1:18787 --out /tmp/focusa_api_spec_audit.json
       - name: Strict spec compliance gates
         env:
