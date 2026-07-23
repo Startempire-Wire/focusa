@@ -764,6 +764,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/mission-canvas/surface-bindings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Exact Work Surface Bindings
+         * @description List Exact Work Surface Bindings
+         */
+        get: operations["focusa.mission_canvas.surface_binding.list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/mission-canvas/surface-bindings/mutate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bind or Unbind an Exact Work Surface Target
+         * @description Bind or Unbind an Exact Work Surface Target
+         */
+        post: operations["focusa.mission_canvas.surface_binding.mutate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/mission-canvas/surfaces": {
         parameters: {
             query?: never;
@@ -2598,6 +2638,83 @@ export interface components {
          */
         focusa_metacog_retrieve_response_v1: {
             [key: string]: unknown;
+        };
+        /** focusa.mission_canvas_surface_binding_list.request.v1 */
+        focusa_mission_canvas_surface_binding_list_request_v1: {
+            attachment_id: string;
+            binding_id?: string;
+            continuity_id: string;
+            project_root: string;
+            work_surface_id: string;
+        };
+        /** focusa.mission_canvas_surface_binding_list.v1 */
+        focusa_mission_canvas_surface_binding_list_v1: {
+            bindings: {
+                access_mode: string;
+                active: boolean;
+                attachment_id: string;
+                binding_id: string;
+                /** @enum {unknown} */
+                binding_kind: "session" | "browser_context" | "browser_target" | "file" | "operation" | "evidence" | "action";
+                continuity_id: string;
+                /** Format: date-time */
+                created_at: string;
+                idempotency_key: string;
+                project_root: string;
+                state_revision: number;
+                target_ref: string;
+                /** Format: date-time */
+                updated_at: string;
+                work_surface_id: string;
+            }[];
+            /** @constant */
+            schema: "focusa.mission_canvas_surface_binding_list.v1";
+            state_version: number;
+        };
+        /** focusa.mission_canvas_surface_binding_mutation.request.v1 */
+        focusa_mission_canvas_surface_binding_mutation_request_v1: {
+            access_mode?: string;
+            /** @enum {unknown} */
+            action: "bind" | "unbind";
+            attachment_id: string;
+            binding_id?: string;
+            /** @enum {unknown} */
+            binding_kind?: "session" | "browser_context" | "browser_target" | "file" | "operation" | "evidence" | "action";
+            continuity_id: string;
+            expected_binding_revision: number;
+            expected_state_version: number;
+            idempotency_key: string;
+            project_root: string;
+            target_ref?: string;
+            work_surface_id: string;
+        } & (unknown & unknown);
+        /** focusa.mission_canvas_surface_binding_mutation_result.v1 */
+        focusa_mission_canvas_surface_binding_mutation_result_v1: {
+            binding: {
+                access_mode: string;
+                active: boolean;
+                attachment_id: string;
+                binding_id: string;
+                /** @enum {unknown} */
+                binding_kind: "session" | "browser_context" | "browser_target" | "file" | "operation" | "evidence" | "action";
+                continuity_id: string;
+                /** Format: date-time */
+                created_at: string;
+                idempotency_key: string;
+                project_root: string;
+                state_revision: number;
+                target_ref: string;
+                /** Format: date-time */
+                updated_at: string;
+                work_surface_id: string;
+            };
+            evidence_ref: string;
+            receipt_ref: string;
+            replayed: boolean;
+            /** @constant */
+            schema: "focusa.mission_canvas_surface_binding_mutation_result.v1";
+            state_version: number;
+            tool_result: components["schemas"]["focusa_tool_result_v1"];
         };
         focusa_mission_canvas_surface_list_request_v1: {
             attachment_id: string;
@@ -5876,6 +5993,86 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["focusa_metacog_retrieve_response_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.mission_canvas.surface_binding.list": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+                /** @description Required exact binding scope key: work_surface_id */
+                work_surface_id: string;
+                /** @description Optional exact binding scope key: binding_id */
+                binding_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List Scoped Work Rail Revisions response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_mission_canvas_surface_binding_list_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.mission_canvas.surface_binding.mutate": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_mission_canvas_surface_binding_mutation_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Bind, Activate, Verify, or Close Work Rail Row response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_mission_canvas_surface_binding_mutation_result_v1"];
                 };
             };
             /** @description Standard error envelope */

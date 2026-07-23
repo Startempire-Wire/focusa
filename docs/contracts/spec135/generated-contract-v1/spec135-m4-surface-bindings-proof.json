@@ -1,0 +1,26 @@
+{
+  "acceptance": [
+    "Every mutation resolves exact attachment scope",
+    "Cross-surface targeting fails closed"
+  ],
+  "contracts": {
+    "binding_operation_ids": [
+      "focusa.mission_canvas.surface_binding.list",
+      "focusa.mission_canvas.surface_binding.mutate"
+    ],
+    "operation_count": 83
+  },
+  "evidence_refs": [
+    "tests/spec135_m4_surface_bindings_test.py",
+    "tests/spec135_m4_surface_bindings_e2e_test.py"
+  ],
+  "implementation_task": "focusa-mc-m4",
+  "requirement_id": "SPEC135-M4",
+  "schema": "focusa.spec135_m4_surface_bindings_proof.v1",
+  "scope_keys": [
+    "project_root",
+    "continuity_id",
+    "attachment_id",
+    "work_surface_id"
+  ]
+}

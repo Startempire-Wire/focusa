@@ -1,0 +1,40 @@
+{
+  "$id": "/v1/agent/schemas/focusa.mission_canvas_surface_binding_list.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "binding": {
+      "additionalProperties": false,
+      "properties": {
+        "access_mode": { "type": "string" },
+        "active": { "type": "boolean" },
+        "attachment_id": { "type": "string" },
+        "binding_id": { "type": "string" },
+        "binding_kind": { "enum": ["session", "browser_context", "browser_target", "file", "operation", "evidence", "action"] },
+        "continuity_id": { "type": "string" },
+        "created_at": { "format": "date-time", "type": "string" },
+        "idempotency_key": { "type": "string" },
+        "project_root": { "type": "string" },
+        "state_revision": { "minimum": 1, "type": "integer" },
+        "target_ref": { "type": "string" },
+        "updated_at": { "format": "date-time", "type": "string" },
+        "work_surface_id": { "type": "string" }
+      },
+      "required": [
+        "binding_id", "state_revision", "project_root", "continuity_id", "attachment_id",
+        "work_surface_id", "binding_kind", "target_ref", "access_mode", "active",
+        "idempotency_key", "created_at", "updated_at"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "bindings": { "items": { "$ref": "#/$defs/binding" }, "type": "array" },
+    "schema": { "const": "focusa.mission_canvas_surface_binding_list.v1" },
+    "state_version": { "minimum": 0, "type": "integer" }
+  },
+  "required": ["schema", "state_version", "bindings"],
+  "title": "focusa.mission_canvas_surface_binding_list.v1",
+  "type": "object",
+  "x-focusa-schema-id": "focusa.mission_canvas_surface_binding_list.v1"
+}

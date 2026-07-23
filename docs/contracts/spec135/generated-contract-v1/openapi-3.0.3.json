@@ -3073,6 +3073,344 @@
         "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
         "x-focusa-schema-id": "focusa.metacog_retrieve.response.v1"
       },
+      "focusa_mission_canvas_surface_binding_list_request_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "attachment_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "binding_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "continuity_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "project_root": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "work_surface_id": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_root",
+          "continuity_id",
+          "attachment_id",
+          "work_surface_id"
+        ],
+        "title": "focusa.mission_canvas_surface_binding_list.request.v1",
+        "type": "object"
+      },
+      "focusa_mission_canvas_surface_binding_list_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "bindings": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "access_mode": {
+                  "type": "string"
+                },
+                "active": {
+                  "type": "boolean"
+                },
+                "attachment_id": {
+                  "type": "string"
+                },
+                "binding_id": {
+                  "type": "string"
+                },
+                "binding_kind": {
+                  "enum": [
+                    "session",
+                    "browser_context",
+                    "browser_target",
+                    "file",
+                    "operation",
+                    "evidence",
+                    "action"
+                  ]
+                },
+                "continuity_id": {
+                  "type": "string"
+                },
+                "created_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "idempotency_key": {
+                  "type": "string"
+                },
+                "project_root": {
+                  "type": "string"
+                },
+                "state_revision": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "target_ref": {
+                  "type": "string"
+                },
+                "updated_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "work_surface_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "binding_id",
+                "state_revision",
+                "project_root",
+                "continuity_id",
+                "attachment_id",
+                "work_surface_id",
+                "binding_kind",
+                "target_ref",
+                "access_mode",
+                "active",
+                "idempotency_key",
+                "created_at",
+                "updated_at"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "schema": {
+            "const": "focusa.mission_canvas_surface_binding_list.v1"
+          },
+          "state_version": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "schema",
+          "state_version",
+          "bindings"
+        ],
+        "title": "focusa.mission_canvas_surface_binding_list.v1",
+        "type": "object"
+      },
+      "focusa_mission_canvas_surface_binding_mutation_request_v1": {
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "action": {
+                  "const": "bind"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "binding_kind",
+                "target_ref",
+                "access_mode"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "action": {
+                  "const": "unbind"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "binding_id"
+              ]
+            }
+          }
+        ],
+        "properties": {
+          "access_mode": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "action": {
+            "enum": [
+              "bind",
+              "unbind"
+            ]
+          },
+          "attachment_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "binding_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "binding_kind": {
+            "enum": [
+              "session",
+              "browser_context",
+              "browser_target",
+              "file",
+              "operation",
+              "evidence",
+              "action"
+            ]
+          },
+          "continuity_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "expected_binding_revision": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "expected_state_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "idempotency_key": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "project_root": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "target_ref": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "work_surface_id": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_root",
+          "continuity_id",
+          "attachment_id",
+          "work_surface_id",
+          "idempotency_key",
+          "expected_state_version",
+          "expected_binding_revision",
+          "action"
+        ],
+        "title": "focusa.mission_canvas_surface_binding_mutation.request.v1",
+        "type": "object"
+      },
+      "focusa_mission_canvas_surface_binding_mutation_result_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "binding": {
+            "additionalProperties": false,
+            "properties": {
+              "access_mode": {
+                "type": "string"
+              },
+              "active": {
+                "type": "boolean"
+              },
+              "attachment_id": {
+                "type": "string"
+              },
+              "binding_id": {
+                "type": "string"
+              },
+              "binding_kind": {
+                "enum": [
+                  "session",
+                  "browser_context",
+                  "browser_target",
+                  "file",
+                  "operation",
+                  "evidence",
+                  "action"
+                ]
+              },
+              "continuity_id": {
+                "type": "string"
+              },
+              "created_at": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "idempotency_key": {
+                "type": "string"
+              },
+              "project_root": {
+                "type": "string"
+              },
+              "state_revision": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "target_ref": {
+                "type": "string"
+              },
+              "updated_at": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "work_surface_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "binding_id",
+              "state_revision",
+              "project_root",
+              "continuity_id",
+              "attachment_id",
+              "work_surface_id",
+              "binding_kind",
+              "target_ref",
+              "access_mode",
+              "active",
+              "idempotency_key",
+              "created_at",
+              "updated_at"
+            ],
+            "type": "object"
+          },
+          "evidence_ref": {
+            "type": "string"
+          },
+          "receipt_ref": {
+            "type": "string"
+          },
+          "replayed": {
+            "type": "boolean"
+          },
+          "schema": {
+            "const": "focusa.mission_canvas_surface_binding_mutation_result.v1"
+          },
+          "state_version": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "tool_result": {
+            "$ref": "#/components/schemas/focusa_tool_result_v1"
+          }
+        },
+        "required": [
+          "schema",
+          "state_version",
+          "replayed",
+          "binding",
+          "evidence_ref",
+          "receipt_ref",
+          "tool_result"
+        ],
+        "title": "focusa.mission_canvas_surface_binding_mutation_result.v1",
+        "type": "object"
+      },
       "focusa_mission_canvas_surface_list_request_v1": {
         "additionalProperties": false,
         "properties": {
@@ -13845,6 +14183,231 @@
         ],
         "x-focusa-sensitive": "scoped_mutation",
         "x-focusa-subsystem": "metacognition"
+      }
+    },
+    "/v1/mission-canvas/surface-bindings": {
+      "get": {
+        "description": "List Exact Work Surface Bindings",
+        "operationId": "focusa.mission_canvas.surface_binding.list",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: attachment_id",
+            "in": "query",
+            "name": "attachment_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required exact binding scope key: work_surface_id",
+            "in": "query",
+            "name": "work_surface_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional exact binding scope key: binding_id",
+            "in": "query",
+            "name": "binding_id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_mission_canvas_surface_binding_list_v1"
+                }
+              }
+            },
+            "description": "List Scoped Work Rail Revisions response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "List Exact Work Surface Bindings",
+        "tags": [
+          "mission_canvas"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "mission_canvas",
+          "materialization_mode": "canonical_projection_read",
+          "requires_preview_token": false,
+          "side_effect_profile": "read_mission_canvas_surfaces",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "mission_canvas"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.mission_canvas.surface_binding.list",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "mission_canvas:read"
+        ],
+        "x-focusa-plain-label": "List Exact Work Surface Bindings",
+        "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "mission_canvas"
+      }
+    },
+    "/v1/mission-canvas/surface-bindings/mutate": {
+      "post": {
+        "description": "Bind or Unbind an Exact Work Surface Target",
+        "operationId": "focusa.mission_canvas.surface_binding.mutate",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: attachment_id",
+            "in": "query",
+            "name": "attachment_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_mission_canvas_surface_binding_mutation_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_mission_canvas_surface_binding_mutation_result_v1"
+                }
+              }
+            },
+            "description": "Bind, Activate, Verify, or Close Work Rail Row response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Bind or Unbind an Exact Work Surface Target",
+        "tags": [
+          "mission_canvas"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_mutation",
+          "canonical": true,
+          "deprecation": null,
+          "family": "mission_canvas",
+          "materialization_mode": "canonical_projection_event",
+          "requires_preview_token": true,
+          "side_effect_profile": "append_mission_canvas_surface_revision",
+          "supports_side_effect_policy": [
+            "dry_run",
+            "preview",
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "mission_canvas"
+        ],
+        "x-focusa-concurrency": true,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.mission_canvas.surface_binding.mutate",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "preview",
+        "x-focusa-permissions": [
+          "mission_canvas:write"
+        ],
+        "x-focusa-plain-label": "Bind or Unbind an Exact Work Surface Target",
+        "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "x-focusa-sensitive": "scoped_mutation",
+        "x-focusa-subsystem": "mission_canvas"
       }
     },
     "/v1/mission-canvas/surfaces": {

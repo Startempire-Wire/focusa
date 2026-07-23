@@ -1,0 +1,16 @@
+{
+  "$id": "/v1/agent/schemas/focusa.mission_canvas_surface_binding_list.request.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "attachment_id": { "minLength": 1, "type": "string" },
+    "binding_id": { "minLength": 1, "type": "string" },
+    "continuity_id": { "minLength": 1, "type": "string" },
+    "project_root": { "minLength": 1, "type": "string" },
+    "work_surface_id": { "minLength": 1, "type": "string" }
+  },
+  "required": ["project_root", "continuity_id", "attachment_id", "work_surface_id"],
+  "title": "focusa.mission_canvas_surface_binding_list.request.v1",
+  "type": "object",
+  "x-focusa-schema-id": "focusa.mission_canvas_surface_binding_list.request.v1"
+}

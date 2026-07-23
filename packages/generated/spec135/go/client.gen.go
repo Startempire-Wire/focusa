@@ -951,6 +951,57 @@ type FocusaMetacogRetrieveRequestV1 map[string]interface{}
 // FocusaMetacogRetrieveResponseV1 Generated contract for Focusa schema focusa.metacog_retrieve.response.v1
 type FocusaMetacogRetrieveResponseV1 map[string]interface{}
 
+// FocusaMissionCanvasSurfaceBindingListV1 defines model for focusa_mission_canvas_surface_binding_list_v1.
+type FocusaMissionCanvasSurfaceBindingListV1 struct {
+	Bindings []struct {
+		AccessMode     string      `json:"access_mode"`
+		Active         bool        `json:"active"`
+		AttachmentId   string      `json:"attachment_id"`
+		BindingId      string      `json:"binding_id"`
+		BindingKind    interface{} `json:"binding_kind"`
+		ContinuityId   string      `json:"continuity_id"`
+		CreatedAt      time.Time   `json:"created_at"`
+		IdempotencyKey string      `json:"idempotency_key"`
+		ProjectRoot    string      `json:"project_root"`
+		StateRevision  int         `json:"state_revision"`
+		TargetRef      string      `json:"target_ref"`
+		UpdatedAt      time.Time   `json:"updated_at"`
+		WorkSurfaceId  string      `json:"work_surface_id"`
+	} `json:"bindings"`
+	Schema       interface{} `json:"schema"`
+	StateVersion int         `json:"state_version"`
+}
+
+// FocusaMissionCanvasSurfaceBindingMutationRequestV1 defines model for focusa_mission_canvas_surface_binding_mutation_request_v1.
+type FocusaMissionCanvasSurfaceBindingMutationRequestV1 = interface{}
+
+// FocusaMissionCanvasSurfaceBindingMutationResultV1 defines model for focusa_mission_canvas_surface_binding_mutation_result_v1.
+type FocusaMissionCanvasSurfaceBindingMutationResultV1 struct {
+	Binding struct {
+		AccessMode     string      `json:"access_mode"`
+		Active         bool        `json:"active"`
+		AttachmentId   string      `json:"attachment_id"`
+		BindingId      string      `json:"binding_id"`
+		BindingKind    interface{} `json:"binding_kind"`
+		ContinuityId   string      `json:"continuity_id"`
+		CreatedAt      time.Time   `json:"created_at"`
+		IdempotencyKey string      `json:"idempotency_key"`
+		ProjectRoot    string      `json:"project_root"`
+		StateRevision  int         `json:"state_revision"`
+		TargetRef      string      `json:"target_ref"`
+		UpdatedAt      time.Time   `json:"updated_at"`
+		WorkSurfaceId  string      `json:"work_surface_id"`
+	} `json:"binding"`
+	EvidenceRef  string      `json:"evidence_ref"`
+	ReceiptRef   string      `json:"receipt_ref"`
+	Replayed     bool        `json:"replayed"`
+	Schema       interface{} `json:"schema"`
+	StateVersion int         `json:"state_version"`
+
+	// ToolResult Canonical Focusa success, failure, retry, and recovery envelope
+	ToolResult FocusaToolResultV1 `json:"tool_result"`
+}
+
 // FocusaMissionCanvasSurfaceListV1 defines model for focusa_mission_canvas_surface_list_v1.
 type FocusaMissionCanvasSurfaceListV1 struct {
 	Schema       interface{} `json:"schema"`
@@ -2706,6 +2757,36 @@ type FocusaMetacogRetrieveParams struct {
 	ContinuityId string `form:"continuity_id" json:"continuity_id"`
 }
 
+// FocusaMissionCanvasSurfaceBindingListParams defines parameters for FocusaMissionCanvasSurfaceBindingList.
+type FocusaMissionCanvasSurfaceBindingListParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+
+	// AttachmentId Required Focusa scope key: attachment_id
+	AttachmentId string `form:"attachment_id" json:"attachment_id"`
+
+	// WorkSurfaceId Required exact binding scope key: work_surface_id
+	WorkSurfaceId string `form:"work_surface_id" json:"work_surface_id"`
+
+	// BindingId Optional exact binding scope key: binding_id
+	BindingId *string `form:"binding_id,omitempty" json:"binding_id,omitempty"`
+}
+
+// FocusaMissionCanvasSurfaceBindingMutateParams defines parameters for FocusaMissionCanvasSurfaceBindingMutate.
+type FocusaMissionCanvasSurfaceBindingMutateParams struct {
+	// ProjectRoot Required Focusa scope key: project_root
+	ProjectRoot string `form:"project_root" json:"project_root"`
+
+	// ContinuityId Required Focusa scope key: continuity_id
+	ContinuityId string `form:"continuity_id" json:"continuity_id"`
+
+	// AttachmentId Required Focusa scope key: attachment_id
+	AttachmentId string `form:"attachment_id" json:"attachment_id"`
+}
+
 // FocusaMissionCanvasSurfaceListParams defines parameters for FocusaMissionCanvasSurfaceList.
 type FocusaMissionCanvasSurfaceListParams struct {
 	// ProjectRoot Required Focusa scope key: project_root
@@ -3189,6 +3270,9 @@ type FocusaMetacogReflectJSONRequestBody = FocusaMetacogReflectRequestV1
 
 // FocusaMetacogRetrieveJSONRequestBody defines body for FocusaMetacogRetrieve for application/json ContentType.
 type FocusaMetacogRetrieveJSONRequestBody = FocusaMetacogRetrieveRequestV1
+
+// FocusaMissionCanvasSurfaceBindingMutateJSONRequestBody defines body for FocusaMissionCanvasSurfaceBindingMutate for application/json ContentType.
+type FocusaMissionCanvasSurfaceBindingMutateJSONRequestBody = FocusaMissionCanvasSurfaceBindingMutationRequestV1
 
 // FocusaMissionCanvasSurfaceMutateJSONRequestBody defines body for FocusaMissionCanvasSurfaceMutate for application/json ContentType.
 type FocusaMissionCanvasSurfaceMutateJSONRequestBody = FocusaMissionCanvasSurfaceMutationRequestV1
@@ -3714,6 +3798,14 @@ type ClientInterface interface {
 	FocusaMetacogRetrieveWithBody(ctx context.Context, params *FocusaMetacogRetrieveParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	FocusaMetacogRetrieve(ctx context.Context, params *FocusaMetacogRetrieveParams, body FocusaMetacogRetrieveJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// FocusaMissionCanvasSurfaceBindingList request
+	FocusaMissionCanvasSurfaceBindingList(ctx context.Context, params *FocusaMissionCanvasSurfaceBindingListParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// FocusaMissionCanvasSurfaceBindingMutateWithBody request with any body
+	FocusaMissionCanvasSurfaceBindingMutateWithBody(ctx context.Context, params *FocusaMissionCanvasSurfaceBindingMutateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	FocusaMissionCanvasSurfaceBindingMutate(ctx context.Context, params *FocusaMissionCanvasSurfaceBindingMutateParams, body FocusaMissionCanvasSurfaceBindingMutateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// FocusaMissionCanvasSurfaceList request
 	FocusaMissionCanvasSurfaceList(ctx context.Context, params *FocusaMissionCanvasSurfaceListParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -4585,6 +4677,42 @@ func (c *Client) FocusaMetacogRetrieveWithBody(ctx context.Context, params *Focu
 
 func (c *Client) FocusaMetacogRetrieve(ctx context.Context, params *FocusaMetacogRetrieveParams, body FocusaMetacogRetrieveJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewFocusaMetacogRetrieveRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaMissionCanvasSurfaceBindingList(ctx context.Context, params *FocusaMissionCanvasSurfaceBindingListParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaMissionCanvasSurfaceBindingListRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaMissionCanvasSurfaceBindingMutateWithBody(ctx context.Context, params *FocusaMissionCanvasSurfaceBindingMutateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaMissionCanvasSurfaceBindingMutateRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) FocusaMissionCanvasSurfaceBindingMutate(ctx context.Context, params *FocusaMissionCanvasSurfaceBindingMutateParams, body FocusaMissionCanvasSurfaceBindingMutateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewFocusaMissionCanvasSurfaceBindingMutateRequest(c.Server, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -7831,6 +7959,171 @@ func NewFocusaMetacogRetrieveRequestWithBody(server string, params *FocusaMetaco
 	return req, nil
 }
 
+// NewFocusaMissionCanvasSurfaceBindingListRequest generates requests for FocusaMissionCanvasSurfaceBindingList
+func NewFocusaMissionCanvasSurfaceBindingListRequest(server string, params *FocusaMissionCanvasSurfaceBindingListParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/mission-canvas/surface-bindings")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "attachment_id", params.AttachmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "work_surface_id", params.WorkSurfaceId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if params.BindingId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "binding_id", *params.BindingId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewFocusaMissionCanvasSurfaceBindingMutateRequest calls the generic FocusaMissionCanvasSurfaceBindingMutate builder with application/json body
+func NewFocusaMissionCanvasSurfaceBindingMutateRequest(server string, params *FocusaMissionCanvasSurfaceBindingMutateParams, body FocusaMissionCanvasSurfaceBindingMutateJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewFocusaMissionCanvasSurfaceBindingMutateRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewFocusaMissionCanvasSurfaceBindingMutateRequestWithBody generates requests for FocusaMissionCanvasSurfaceBindingMutate with any type of body
+func NewFocusaMissionCanvasSurfaceBindingMutateRequestWithBody(server string, params *FocusaMissionCanvasSurfaceBindingMutateParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/mission-canvas/surface-bindings/mutate")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "project_root", params.ProjectRoot, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "continuity_id", params.ContinuityId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "attachment_id", params.AttachmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewFocusaMissionCanvasSurfaceListRequest generates requests for FocusaMissionCanvasSurfaceList
 func NewFocusaMissionCanvasSurfaceListRequest(server string, params *FocusaMissionCanvasSurfaceListParams) (*http.Request, error) {
 	var err error
@@ -10981,6 +11274,14 @@ type ClientWithResponsesInterface interface {
 
 	FocusaMetacogRetrieveWithResponse(ctx context.Context, params *FocusaMetacogRetrieveParams, body FocusaMetacogRetrieveJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaMetacogRetrieveResponse, error)
 
+	// FocusaMissionCanvasSurfaceBindingListWithResponse request
+	FocusaMissionCanvasSurfaceBindingListWithResponse(ctx context.Context, params *FocusaMissionCanvasSurfaceBindingListParams, reqEditors ...RequestEditorFn) (*FocusaMissionCanvasSurfaceBindingListResponse, error)
+
+	// FocusaMissionCanvasSurfaceBindingMutateWithBodyWithResponse request with any body
+	FocusaMissionCanvasSurfaceBindingMutateWithBodyWithResponse(ctx context.Context, params *FocusaMissionCanvasSurfaceBindingMutateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaMissionCanvasSurfaceBindingMutateResponse, error)
+
+	FocusaMissionCanvasSurfaceBindingMutateWithResponse(ctx context.Context, params *FocusaMissionCanvasSurfaceBindingMutateParams, body FocusaMissionCanvasSurfaceBindingMutateJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaMissionCanvasSurfaceBindingMutateResponse, error)
+
 	// FocusaMissionCanvasSurfaceListWithResponse request
 	FocusaMissionCanvasSurfaceListWithResponse(ctx context.Context, params *FocusaMissionCanvasSurfaceListParams, reqEditors ...RequestEditorFn) (*FocusaMissionCanvasSurfaceListResponse, error)
 
@@ -12336,6 +12637,68 @@ func (r FocusaMetacogRetrieveResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r FocusaMetacogRetrieveResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type FocusaMissionCanvasSurfaceBindingListResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaMissionCanvasSurfaceBindingListV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaMissionCanvasSurfaceBindingListResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaMissionCanvasSurfaceBindingListResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaMissionCanvasSurfaceBindingListResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type FocusaMissionCanvasSurfaceBindingMutateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FocusaMissionCanvasSurfaceBindingMutationResultV1
+	JSONDefault  *FocusaToolResultV1
+}
+
+// Status returns HTTPResponse.Status
+func (r FocusaMissionCanvasSurfaceBindingMutateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r FocusaMissionCanvasSurfaceBindingMutateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r FocusaMissionCanvasSurfaceBindingMutateResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -14177,6 +14540,32 @@ func (c *ClientWithResponses) FocusaMetacogRetrieveWithResponse(ctx context.Cont
 	return ParseFocusaMetacogRetrieveResponse(rsp)
 }
 
+// FocusaMissionCanvasSurfaceBindingListWithResponse request returning *FocusaMissionCanvasSurfaceBindingListResponse
+func (c *ClientWithResponses) FocusaMissionCanvasSurfaceBindingListWithResponse(ctx context.Context, params *FocusaMissionCanvasSurfaceBindingListParams, reqEditors ...RequestEditorFn) (*FocusaMissionCanvasSurfaceBindingListResponse, error) {
+	rsp, err := c.FocusaMissionCanvasSurfaceBindingList(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaMissionCanvasSurfaceBindingListResponse(rsp)
+}
+
+// FocusaMissionCanvasSurfaceBindingMutateWithBodyWithResponse request with arbitrary body returning *FocusaMissionCanvasSurfaceBindingMutateResponse
+func (c *ClientWithResponses) FocusaMissionCanvasSurfaceBindingMutateWithBodyWithResponse(ctx context.Context, params *FocusaMissionCanvasSurfaceBindingMutateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*FocusaMissionCanvasSurfaceBindingMutateResponse, error) {
+	rsp, err := c.FocusaMissionCanvasSurfaceBindingMutateWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaMissionCanvasSurfaceBindingMutateResponse(rsp)
+}
+
+func (c *ClientWithResponses) FocusaMissionCanvasSurfaceBindingMutateWithResponse(ctx context.Context, params *FocusaMissionCanvasSurfaceBindingMutateParams, body FocusaMissionCanvasSurfaceBindingMutateJSONRequestBody, reqEditors ...RequestEditorFn) (*FocusaMissionCanvasSurfaceBindingMutateResponse, error) {
+	rsp, err := c.FocusaMissionCanvasSurfaceBindingMutate(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFocusaMissionCanvasSurfaceBindingMutateResponse(rsp)
+}
+
 // FocusaMissionCanvasSurfaceListWithResponse request returning *FocusaMissionCanvasSurfaceListResponse
 func (c *ClientWithResponses) FocusaMissionCanvasSurfaceListWithResponse(ctx context.Context, params *FocusaMissionCanvasSurfaceListParams, reqEditors ...RequestEditorFn) (*FocusaMissionCanvasSurfaceListResponse, error) {
 	rsp, err := c.FocusaMissionCanvasSurfaceList(ctx, params, reqEditors...)
@@ -16010,6 +16399,72 @@ func ParseFocusaMetacogRetrieveResponse(rsp *http.Response) (*FocusaMetacogRetri
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest FocusaMetacogRetrieveResponseV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaMissionCanvasSurfaceBindingListResponse parses an HTTP response from a FocusaMissionCanvasSurfaceBindingListWithResponse call
+func ParseFocusaMissionCanvasSurfaceBindingListResponse(rsp *http.Response) (*FocusaMissionCanvasSurfaceBindingListResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaMissionCanvasSurfaceBindingListResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaMissionCanvasSurfaceBindingListV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest FocusaToolResultV1
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseFocusaMissionCanvasSurfaceBindingMutateResponse parses an HTTP response from a FocusaMissionCanvasSurfaceBindingMutateWithResponse call
+func ParseFocusaMissionCanvasSurfaceBindingMutateResponse(rsp *http.Response) (*FocusaMissionCanvasSurfaceBindingMutateResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &FocusaMissionCanvasSurfaceBindingMutateResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FocusaMissionCanvasSurfaceBindingMutationResultV1
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
