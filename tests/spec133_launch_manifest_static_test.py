@@ -38,7 +38,7 @@ for marker in [
     "redact_values",
     "TypedResourceModeController",
     "resolve_resource_mode",
-]: 
+]:
     assert marker in MANIFEST, marker
 
 assert "prepare_launch_manifest" in RUNNER
