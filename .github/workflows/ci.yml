@@ -116,6 +116,8 @@ jobs:
         run: |
           bash tests/spec130a_proactive_compaction_runtime_test.sh
           bash tests/spec130a_persistence_actor_static_test.sh
+          python3 tests/spec130a_release_stress_static_test.py
+          npx --yes tsx tests/spec130a_release_stress_runtime_test.mts
       - name: Spec104 static surface audit (no daemon needed)
         run: python3 tests/spec104_deep_focusa_surface_sweep.py --static-only
       - name: Spec104 Pi runtime scope integrity

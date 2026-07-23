@@ -24,7 +24,16 @@ export const NATIVE_ANCHOR_MAX_BYTES = 8 * 1024;
 export const PROJECT_SWITCH_ANCHOR_MAX_BYTES = 2 * 1024;
 export const PERSISTENCE_SIDECAR_MAX_BYTES = 256 * 1024;
 export const PERSISTENCE_SIDECAR_GENERATIONS = 3;
+export type PersistenceFaultBoundary =
+  "prepare" | "write" | "fsync" | "checksum" | "manifest" | "target-create" | "resume-verify" | "commit";
 const PERSISTENCE_SIDECAR_DIR = "pi-session-state";
+
+function injectPersistenceFault(
+  boundary: PersistenceFaultBoundary,
+  requested?: PersistenceFaultBoundary
+): void {
+  if (requested === boundary) throw new Error(`injected persistence fault: ${boundary}`);
+}
 
 export function stableSemanticValue(value: any, key = ""): any {
   if (value == null || typeof value !== "object") return value;
@@ -130,8 +139,10 @@ function sidecarCandidates(key: string): string[] {
 export function writeRecoverySidecar(
   recoveryState: Record<string, any>,
   semanticDigest: string,
-  revision: number
+  revision: number,
+  faultAt?: PersistenceFaultBoundary
 ): { key: string; bytes: number } {
+  injectPersistenceFault("prepare", faultAt);
   const projectRoot = String(recoveryState.projectRoot || "").trim();
   const sessionId = String(recoveryState.sessionId || "").trim();
   if (!projectRoot) throw new Error("project root required for persistence sidecar");
@@ -140,6 +151,7 @@ export function writeRecoverySidecar(
   const directory = persistenceRoot();
   mkdirSync(directory, { recursive: true, mode: 0o700 });
   const target = sidecarPathForRevision(key, revision, semanticDigest);
+  injectPersistenceFault("manifest", faultAt);
   const envelope = {
     schema: COMPACTION_PERSISTENCE_SIDECAR_SCHEMA,
     revision,
@@ -148,6 +160,7 @@ export function writeRecoverySidecar(
     updatedAt: new Date().toISOString(),
   };
   const serialized = `${JSON.stringify(envelope)}\n`;
+  injectPersistenceFault("checksum", faultAt);
   const bytes = Buffer.byteLength(serialized, "utf8");
   if (bytes > PERSISTENCE_SIDECAR_MAX_BYTES) {
     throw new Error(`persistence sidecar exceeds ${PERSISTENCE_SIDECAR_MAX_BYTES} bytes`);
@@ -156,12 +169,21 @@ export function writeRecoverySidecar(
   const temporary = `${target}.tmp-${process.pid}-${Date.now()}`;
   let descriptor: number | null = null;
   try {
+    injectPersistenceFault("target-create", faultAt);
     descriptor = openSync(temporary, "w", 0o600);
     writeFileSync(descriptor, serialized, "utf8");
+    injectPersistenceFault("write", faultAt);
     fsyncSync(descriptor);
+    injectPersistenceFault("fsync", faultAt);
     closeSync(descriptor);
     descriptor = null;
     renameSync(temporary, target);
+    injectPersistenceFault("resume-verify", faultAt);
+    const committed = JSON.parse(readFileSync(target, "utf8"));
+    if (committed.semanticDigest !== semanticDigest || committed.revision !== revision) {
+      throw new Error("persistence commit verification failed");
+    }
+    injectPersistenceFault("commit", faultAt);
     for (const stale of sidecarCandidates(key).slice(PERSISTENCE_SIDECAR_GENERATIONS)) {
       try {
         unlinkSync(stale);
