@@ -572,5 +572,22 @@ mod tests {
             )
             .unwrap();
         assert!(registry.leases.is_empty());
+
+        let expired = registry
+            .acquire(&session, &candidate, &[], now, Duration::seconds(1))
+            .unwrap();
+        let mut replacement = candidate;
+        replacement.actor_instance_ref = "actor:replacement".into();
+        let replacement = registry
+            .acquire(
+                &session,
+                &replacement,
+                &[],
+                now + Duration::seconds(2),
+                Duration::seconds(30),
+            )
+            .expect("expired lease must not block a new exact writer");
+        assert!(replacement.fencing_token > expired.fencing_token);
+        assert_eq!(registry.leases.len(), 1);
     }
 }

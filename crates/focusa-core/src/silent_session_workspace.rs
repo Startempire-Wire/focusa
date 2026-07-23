@@ -85,12 +85,7 @@ impl WorkspacePlanningRequest {
         let project_slug = sanitize_segment(&self.project_slug)?;
         let work_item_slug =
             sanitize_segment(self.work_item_ref.as_deref().unwrap_or("unbound-work-item"))?;
-        let session_short = self
-            .session_id
-            .to_string()
-            .chars()
-            .take(8)
-            .collect::<String>();
+        let session_short = short_session_id(self.session_id);
         let (workspace_root, branch_ref, collision_suffix) =
             if strategy == WorkspaceStrategy::IsolatedWorktree {
                 let configured_root = self
@@ -249,6 +244,11 @@ fn sanitize_segment(value: &str) -> Result<String, WorkspacePlanError> {
     Ok(output)
 }
 
+fn short_session_id(session_id: SilentSessionId) -> String {
+    let compact = session_id.to_string().replace('-', "");
+    format!("{}-{}", &compact[..8], &compact[compact.len() - 6..])
+}
+
 fn collision_suffix(session_id: SilentSessionId, work_item_slug: &str) -> String {
     let digest = Sha256::digest(format!("{session_id}:{work_item_slug}").as_bytes());
     format!("{digest:x}").chars().take(8).collect()
@@ -382,10 +382,88 @@ mod tests {
             Err(WorkspacePlanError::ExplicitSharedApprovalRequired)
         );
         shared.explicit_shared_approval_ref = Some("approval:shared".into());
-        assert_eq!(
-            shared.plan().unwrap().strategy,
-            WorkspaceStrategy::ExplicitShared
+        let plan = shared.plan().unwrap();
+        assert_eq!(plan.strategy, WorkspaceStrategy::ExplicitShared);
+        assert_eq!(plan.warnings.len(), 1);
+    }
+
+    #[test]
+    fn two_isolated_sessions_commit_without_touching_dirty_primary_workspace() {
+        let root = root();
+        let source = root.join("source");
+        let worktree_root = root.join("worktrees");
+        fs::create_dir_all(&source).unwrap();
+        fs::create_dir_all(&worktree_root).unwrap();
+        #[cfg(unix)]
+        {
+            fs::set_permissions(&root, fs::Permissions::from_mode(0o700)).unwrap();
+            fs::set_permissions(&worktree_root, fs::Permissions::from_mode(0o700)).unwrap();
+        }
+        let git = |cwd: &Path, args: &[&str]| {
+            let output = Command::new("git")
+                .arg("-C")
+                .arg(cwd)
+                .args(args)
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "git command failed: {args:?}: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            String::from_utf8_lossy(&output.stdout).trim().to_owned()
+        };
+        git(&source, &["init"]);
+        git(
+            &source,
+            &["config", "user.email", "focusa-test@example.invalid"],
         );
+        git(&source, &["config", "user.name", "Focusa Test"]);
+        fs::write(source.join("README.md"), "base\n").unwrap();
+        git(&source, &["add", "README.md"]);
+        git(&source, &["commit", "-m", "fixture"]);
+        let primary_head = git(&source, &["rev-parse", "HEAD"]);
+        fs::write(source.join("README.md"), "dirty primary\n").unwrap();
+
+        let first = request(source.clone(), worktree_root.clone())
+            .plan()
+            .unwrap();
+        let mut second_request = request(source.clone(), worktree_root);
+        second_request.work_item_ref = Some("focusa-a6yq6.6.5-second".into());
+        let second = second_request.plan().unwrap();
+        let first_binding = materialize_isolated_worktree(&first).unwrap();
+        let second_binding = materialize_isolated_worktree(&second).unwrap();
+        for (binding, value) in [(&first_binding, "first\n"), (&second_binding, "second\n")] {
+            fs::write(binding.root.join("session.txt"), value).unwrap();
+            git(&binding.root, &["add", "session.txt"]);
+            git(&binding.root, &["commit", "-m", value.trim()]);
+        }
+
+        assert_eq!(git(&source, &["rev-parse", "HEAD"]), primary_head);
+        assert_eq!(
+            fs::read_to_string(source.join("README.md")).unwrap(),
+            "dirty primary\n"
+        );
+        let primary_status = git(&source, &["status", "--porcelain"]);
+        assert!(primary_status.contains("README.md"));
+        assert!(!primary_status.contains("session.txt"));
+        assert_ne!(
+            git(&first_binding.root, &["rev-parse", "HEAD"]),
+            git(&second_binding.root, &["rev-parse", "HEAD"])
+        );
+
+        for binding in [&first_binding, &second_binding] {
+            git(
+                &source,
+                &[
+                    "worktree",
+                    "remove",
+                    "--force",
+                    binding.root.to_str().unwrap(),
+                ],
+            );
+        }
+        let _ = fs::remove_dir_all(root);
     }
 
     #[test]
