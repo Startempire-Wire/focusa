@@ -10,6 +10,7 @@ required_evidence=(
   docs/evidence/spec133-phase5-2-workspace-strategy-proof-2026-07-23.md
   docs/evidence/spec133-phase5-3-scheduler-proof-2026-07-23.md
   docs/evidence/spec133-phase5-4-governed-integration-proof-2026-07-23.md
+  docs/evidence/spec133-phase5-5-multisession-isolation-proof-2026-07-23.md
 )
 for evidence in "${required_evidence[@]}"; do
   test -s "$evidence" || {
