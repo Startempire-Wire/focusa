@@ -8,6 +8,10 @@ Capture a bounded evidence ref/result and optionally link it to the active Workp
 - Capability family: `workpoint`; namespace: `focusa.workpoint`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
+## Context and alignment
+
+- Trajectory-aware evidence includes proof alignment metadata for `trajectory_id`, HLT, MLG, and STG while Workpoint authority remains canonical.
+
 ## Parameters and strict input schema
 
 - `target_ref` (required; string): Object/file/test/endpoint/work item proven by this evidence.

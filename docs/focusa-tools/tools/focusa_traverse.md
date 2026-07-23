@@ -8,6 +8,10 @@ Read-only surgical traversal across large Focusa surfaces. Use for bounded linea
 - Capability family: `traversal`; namespace: `focusa.traversal`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
+## Context and alignment
+
+- Bounded evidence/ECS/references projections include trajectory alignment without requesting full payloads.
+
 ## Parameters and strict input schema
 
 - `surface` (required; string): Surface: lineage|ontology|focus_stack|workpoints|evidence|telemetry|tool_registry etc.

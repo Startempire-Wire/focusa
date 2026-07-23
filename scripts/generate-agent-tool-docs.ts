@@ -10,6 +10,18 @@ const registry = JSON.parse(readFileSync(registryPath, "utf8"));
 const check = process.argv.includes("--check");
 let drift = 0;
 
+const contextGuidance: Record<string, string[]> = {
+  focusa_evidence_capture: [
+    "- Trajectory-aware evidence includes proof alignment metadata for `trajectory_id`, HLT, MLG, and STG while Workpoint authority remains canonical.",
+  ],
+  focusa_traverse: [
+    "- Bounded evidence/ECS/references projections include trajectory alignment without requesting full payloads.",
+  ],
+  focusa_metacog_capture: [
+    "- Hot-index tags preserve HLT/MLG/STG alignment within the exact `project_root + continuity_id` scope.",
+  ],
+};
+
 function inline(value: unknown): string {
   if (value === null || value === undefined) return "none";
   if (typeof value === "string") return value;
@@ -42,6 +54,7 @@ for (const descriptor of registry.descriptors) {
   const routes = descriptor.tool_names?.rest?.length
     ? descriptor.tool_names.rest.map((route: any) => `\`${route.method} ${route.path}\``).join(", ")
     : "Pi-local only";
+  const guidance = contextGuidance[descriptor.tool_names.pi] || [];
   const lines = [
     `# \`${descriptor.tool_names.pi}\``,
     "",
@@ -53,6 +66,7 @@ for (const descriptor of registry.descriptors) {
     `- Capability family: \`${descriptor.family}\`; namespace: \`${descriptor.namespace}\`.`,
     `- Load this full contract after metadata search when exact invocation or recovery semantics are needed.`,
     "",
+    ...(guidance.length ? ["## Context and alignment", "", ...guidance, ""] : []),
     "## Parameters and strict input schema",
     "",
     ...parameterLines,
