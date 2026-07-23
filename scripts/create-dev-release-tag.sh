@@ -104,7 +104,11 @@ push_main_and_tag_with_auto_rebase() {
     # HEAD, and retry. This keeps the canonical full pipeline intact without
     # manual rebase/retag intervention.
     git pull --rebase origin main
-    git tag -f "${tag}" HEAD
+    if [[ "$FORCE_RELEASE" -eq 1 ]]; then
+      git tag -fa "${tag}" -m "Release override: ${RELEASE_REASON}" HEAD
+    else
+      git tag -f "${tag}" HEAD
+    fi
     attempt=$((attempt + 1))
   done
 
@@ -172,18 +176,24 @@ fi
 
 echo "Next dev release tag: ${TAG}"
 
+if [[ "$FORCE_RELEASE" -eq 1 && -z "$RELEASE_REASON" ]]; then
+  echo "Blocked: --force-release requires --release-reason with a plain-language reason." >&2
+  exit 2
+fi
+
 PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
 if [[ -n "$PREVIOUS_TAG" ]]; then
   echo "Validating meaningful commit subjects in ${PREVIOUS_TAG}..HEAD..."
-  scripts/validate-commit-messages.sh --range "${PREVIOUS_TAG}..HEAD"
+  if ! scripts/validate-commit-messages.sh --range "${PREVIOUS_TAG}..HEAD"; then
+    if [[ "$FORCE_RELEASE" -eq 1 ]]; then
+      echo "Commit-message policy override accepted and will be recorded in the annotated tag: ${RELEASE_REASON}" >&2
+    else
+      exit 1
+    fi
+  fi
 else
   echo "No previous tag found; validating the current commit subject."
   scripts/validate-commit-messages.sh --range "HEAD^..HEAD"
-fi
-
-if [[ "$FORCE_RELEASE" -eq 1 && -z "$RELEASE_REASON" && "$DRY_RUN" -eq 0 ]]; then
-  echo "Blocked: --force-release requires --release-reason with a plain-language reason." >&2
-  exit 2
 fi
 
 if ! python3 scripts/release-gate.py; then
@@ -220,7 +230,11 @@ if [[ -n "$(git status --porcelain)" ]]; then
   git commit -m "chore: stamp menubar ${VERSION}"
 fi
 
-git tag "${TAG}" HEAD
+if [[ "$FORCE_RELEASE" -eq 1 ]]; then
+  git tag -a "${TAG}" -m "Release override: ${RELEASE_REASON}" HEAD
+else
+  git tag "${TAG}" HEAD
+fi
 
 echo "Created tag ${TAG} at $(git rev-parse --short HEAD)"
 
