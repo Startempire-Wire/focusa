@@ -8,10 +8,6 @@ Store a reusable learning signal so future reasoning can retrieve it instead of 
 - Capability family: `metacognition`; namespace: `focusa.metacognition`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-## Context and alignment
-
-- Hot-index tags preserve HLT/MLG/STG alignment within the exact `project_root + continuity_id` scope.
-
 ## Parameters and strict input schema
 
 - `kind` (required; string): Signal kind.

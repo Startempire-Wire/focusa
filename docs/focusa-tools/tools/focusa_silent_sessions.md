@@ -1,53 +1,80 @@
 # `focusa_silent_sessions`
 
-Daemon-native Spec133 Silent Session facade for Pi. The tool is a thin API client; the daemon owns canonical state, authorization, lifecycle, model selection, process supervision, persistence, recovery, and completion truth.
+Daemon-native Spec133 Silent Session client for status, observation, steering, controls, config, receipts, capabilities, and legacy action compatibility. Use it when Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
-## Actions
+## When to use
 
-Native actions: `list`, `preflight`, `watch`, `pause`, `resume`, `config`, `receipt`, `capabilities`.
+- Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility.
+- Capability family: `work_loop`; namespace: `focusa.work_loop`.
+- Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
-Legacy compatibility mappings:
+## Parameters and strict input schema
 
-| Legacy action      | Daemon behavior                |
-| ------------------ | ------------------------------ |
-| `start`            | exact session start route      |
-| `reopen`, `health` | canonical session projection   |
-| `tail`             | bounded cursor output page     |
-| `send`             | authenticated foreground input |
-| `interrupt`        | controlled interrupt           |
-| `restart`          | new exact run generation       |
-| `kill`             | authorized cancel              |
+- `action` (optional; string | string | string | string | string | string | string | string | string | string | string | string | string | string | string | string): See the strict descriptor schema.
+- `session_id` (optional; string): Exact durable Silent Session id.
+- `session_name` (optional; string): Legacy alias for exact session_id; no tmux normalization.
+- `run_id` (optional; string): Exact current run id.
+- `generation` (optional; integer; min=1): Exact current run generation.
+- `approval_id` (optional; string): Durable daemon approval id for mutations.
+- `idempotency_key` (optional; string): Mutation replay key.
+- `text` (optional; string): Input or steering text.
+- `command` (optional; string): Legacy alias for text; never executed as a shell command.
+- `cursor` (optional; string): Opaque event/output cursor.
+- `channel` (optional; string): Output channel; defaults to stdout.
+- `config` (optional; structured): Typed preflight/config request body.
+- `approved` (optional; boolean): Legacy compatibility hint only; never grants authority.
+- `force` (optional; boolean): Legacy compatibility hint only; daemon policy decides force.
 
-`session_name` remains only as an exact `session_id` alias. It is never normalized as a tmux name. `command` remains only as an input-text alias and is never executed by a shell.
+Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_silent_sessions`.
 
-## Exact-target rules
+## Output
 
-Mutations require:
+Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, canonical/degraded posture, side effects, evidence refs, retry posture, recovery, and likely-next tools are machine-readable.
 
-- `session_id`;
-- `run_id`;
-- `generation`;
-- durable `approval_id`;
-- `idempotency_key`.
+## Example
 
-Legacy `approved` and `force` booleans are compatibility hints only and never grant authority.
+```json
+{}
+```
 
-## Output and authority
+Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md
 
-Results use the daemon envelope and report `parity: full`, `authority: daemon`, canonical status, side effects, evidence/receipt references, and recovery guidance. Observation is bounded and cursor-based.
+## Anti-examples
 
-## Removed ownership
+- control mutations without writer/preflight authority
+- fresh direct questions that do not continue work
 
-The Pi extension does not:
+## Authority, permissions, and side effects
 
-- create or control tmux sessions;
-- write `/tmp` registries or logs;
-- compose shell launch commands;
-- select or verify models;
-- supervise process trees;
-- claim canonical health or recovery;
-- infer mutation authority.
+- Scope: `{"kind":"read","route_family":"auto"}`
+- Authority: `{"kind":"mutation_authority"}`
+- Side effects: `daemon_api_control`, `daemon_api_control`
+- Read-only: `false`; destructive: `false`; idempotent: `true`; open-world: `false`.
+- Confirmation required: `false`; preview supported: `false`.
 
-## Recovery
+## Failure and recovery
 
-Use `focusa_tool_doctor` when daemon access fails. Refresh the exact session/run generation after stale-target responses. For ambiguous mutation delivery, inspect canonical state before retrying with the same idempotency key.
+Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhausted`, `cold_path_timeout`, `hot_path_timeout`, `daemon_unavailable`, `read_model_lag`, `validation_rejected`.
+
+- scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context
+- resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request
+- canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture
+
+## Dependencies and workflow position
+
+- `focusa_work_loop_status` (likely_next)
+- `focusa_work_loop_checkpoint` (likely_next)
+- `focusa_resource_mode` (likely_next)
+
+Prerequisites: verified project_root plus continuity_id when project-bound.
+Likely next: `focusa_work_loop_status`, `focusa_work_loop_checkpoint`, `focusa_resource_mode`.
+
+## Skills, protocols, and source authority
+
+- Skills: `skill:focusa`, `skill:focusa-work-loop`
+- Runbooks: `runbook:work_loop`
+- Pi: `focusa_silent_sessions`; MCP: `focusa.silent.sessions`; OpenAI: `focusa_silent_sessions`.
+- CLI: `focusa silent`.
+- REST: `GET /v1/silent-sessions`, `POST /v1/silent-sessions/preflight`, `GET /v1/silent-sessions/{session_id}`, `GET /v1/silent-sessions/{session_id}/output`, `POST /v1/silent-sessions/{session_id}/input`, `POST /v1/silent-sessions/{session_id}/start`, `POST /v1/silent-sessions/{session_id}/pause`, `POST /v1/silent-sessions/{session_id}/resume`, `POST /v1/silent-sessions/{session_id}/interrupt`, `POST /v1/silent-sessions/{session_id}/cancel`, `POST /v1/silent-sessions/{session_id}/restart`, `POST /v1/silent-sessions/{session_id}/config/preview`, `GET /v1/silent-sessions/{session_id}/receipts`, `GET /v1/silent-sessions/capabilities`.
+- Specification: contract registry.
+- Descriptor digest: `sha256:4aafc5b3c5a6db1fbb49b6eeea05d701199c4582efff013e8bd28fe73be7bf45`.

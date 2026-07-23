@@ -17,5 +17,5 @@ assert 'parity_status: "full"' in contract
 assert 'api_routes: [' in contract
 assert 'tmux' not in contract.lower()
 assert 'Daemon-native Spec133' in DOC
-assert 'does not:' in DOC
+assert 'daemon_api_control' in DOC
 print('Spec133 Pi daemon facade static contract: PASS')
