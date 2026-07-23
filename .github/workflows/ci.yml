@@ -50,6 +50,8 @@ jobs:
         run: bash tests/spec133_phase5_isolation_gate.sh
       - name: Spec133 Phase 6 authority and evidence gate
         run: bash tests/spec133_phase6_evidence_gate.sh
+      - name: Spec133 Phase 7 operator surface gate
+        run: bash tests/spec133_phase7_operator_gate.sh
       - name: Process-health check + Clippy
         run: python3 scripts/process-health-check.py --label "CI clippy" --command "cargo clippy --workspace -- -D warnings"
 
