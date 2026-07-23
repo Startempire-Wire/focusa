@@ -2472,6 +2472,36 @@ pub struct MissionCanvasWorkSurfaceRecord {
     pub updated_at: DateTime<Utc>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MissionCanvasBindingKind {
+    Session,
+    BrowserContext,
+    BrowserTarget,
+    File,
+    Operation,
+    Evidence,
+    Action,
+}
+
+/// Exact attachment-scoped binding from a Work Surface to an external/canonical target.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MissionCanvasSurfaceBindingRecord {
+    pub binding_id: String,
+    pub state_revision: u64,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    pub work_surface_id: String,
+    pub binding_kind: MissionCanvasBindingKind,
+    pub target_ref: String,
+    pub access_mode: String,
+    pub active: bool,
+    pub idempotency_key: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 /// Canonical candidate/accepted claim extracted from source-preserving Context.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ContextClaimRecord {
@@ -2629,6 +2659,9 @@ pub struct FocusaState {
     /// Append-only Mission Canvas Work Surface layout/lifecycle projections.
     #[serde(default)]
     pub mission_canvas_surfaces: Vec<MissionCanvasWorkSurfaceRecord>,
+    /// Append-only exact attachment bindings for Mission Canvas Work Surfaces.
+    #[serde(default)]
+    pub mission_canvas_surface_bindings: Vec<MissionCanvasSurfaceBindingRecord>,
     /// Canonical contradiction edges requiring explicit resolution.
     #[serde(default)]
     pub context_contradictions: Vec<ContextContradictionRecord>,
@@ -2706,6 +2739,7 @@ impl FocusaState {
             task_materializations: vec![],
             work_rail_records: vec![],
             mission_canvas_surfaces: vec![],
+            mission_canvas_surface_bindings: vec![],
             context_contradictions: vec![],
             context_decisions: vec![],
             reactive_context: vec![],
@@ -3337,6 +3371,9 @@ pub enum FocusaEvent {
     },
     MissionCanvasSurfaceRevised {
         surface: MissionCanvasWorkSurfaceRecord,
+    },
+    MissionCanvasSurfaceBindingRevised {
+        binding: MissionCanvasSurfaceBindingRecord,
     },
     ContextClaimReviewed {
         claim: ContextClaimRecord,

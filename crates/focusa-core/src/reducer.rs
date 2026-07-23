@@ -1169,6 +1169,52 @@ pub fn reduce_with_meta(
                     .then(left.state_revision.cmp(&right.state_revision))
             });
         }
+        FocusaEvent::MissionCanvasSurfaceBindingRevised { binding } => {
+            if binding.binding_id.trim().is_empty()
+                || binding.state_revision == 0
+                || binding.project_root.trim().is_empty()
+                || binding.continuity_id.trim().is_empty()
+                || binding.attachment_id.trim().is_empty()
+                || binding.work_surface_id.trim().is_empty()
+                || binding.target_ref.trim().is_empty()
+                || !matches!(binding.access_mode.as_str(), "read" | "write" | "invoke")
+                || binding.idempotency_key.trim().is_empty()
+            {
+                return Err(ReducerError::InvalidEvent("Mission Canvas binding requires identity, exact attachment scope, Work Surface, target, access mode, and idempotency".to_string()));
+            }
+            let surface_exists = state.mission_canvas_surfaces.iter().any(|surface| {
+                surface.work_surface_id == binding.work_surface_id
+                    && surface.project_root == binding.project_root
+                    && surface.continuity_id == binding.continuity_id
+                    && surface.attachment_id == binding.attachment_id
+            });
+            if !surface_exists {
+                return Err(ReducerError::InvalidEvent(
+                    "Mission Canvas binding cannot cross surface or attachment scope".to_string(),
+                ));
+            }
+            let expected_revision = state
+                .mission_canvas_surface_bindings
+                .iter()
+                .filter(|existing| existing.binding_id == binding.binding_id)
+                .map(|existing| existing.state_revision)
+                .max()
+                .unwrap_or(0)
+                + 1;
+            if binding.state_revision != expected_revision {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "Mission Canvas binding revision must be {expected_revision}"
+                )));
+            }
+            state.mission_canvas_surface_bindings.push(binding);
+            state
+                .mission_canvas_surface_bindings
+                .sort_by(|left, right| {
+                    left.binding_id
+                        .cmp(&right.binding_id)
+                        .then(left.state_revision.cmp(&right.state_revision))
+                });
+        }
         FocusaEvent::ContextClaimProposed { claim } => {
             if state.context_claims.iter().any(|existing| {
                 existing.claim_id == claim.claim_id

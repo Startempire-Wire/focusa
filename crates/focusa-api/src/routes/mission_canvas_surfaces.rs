@@ -8,7 +8,10 @@ use axum::{
 use chrono::Utc;
 use focusa_core::{
     tool_result::{FailureClass, ToolResultV1, ToolStatus},
-    types::{Action, FocusaEvent, MissionCanvasSurfaceStatus, MissionCanvasWorkSurfaceRecord},
+    types::{
+        Action, FocusaEvent, MissionCanvasBindingKind, MissionCanvasSurfaceBindingRecord,
+        MissionCanvasSurfaceStatus, MissionCanvasWorkSurfaceRecord,
+    },
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -396,8 +399,361 @@ pub async fn mutate(
         "Mission Canvas surface revision not visible",
     ))
 }
+#[derive(Debug, Deserialize)]
+pub struct BindingQuery {
+    project_root: String,
+    continuity_id: String,
+    attachment_id: String,
+    work_surface_id: String,
+    #[serde(default)]
+    binding_id: Option<String>,
+}
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BindingAction {
+    Bind,
+    Unbind,
+}
+#[derive(Debug, Deserialize)]
+pub struct BindingRequest {
+    project_root: String,
+    continuity_id: String,
+    attachment_id: String,
+    work_surface_id: String,
+    idempotency_key: String,
+    expected_state_version: u64,
+    expected_binding_revision: u64,
+    action: BindingAction,
+    #[serde(default)]
+    binding_id: Option<String>,
+    #[serde(default)]
+    binding_kind: Option<MissionCanvasBindingKind>,
+    #[serde(default)]
+    target_ref: Option<String>,
+    #[serde(default)]
+    access_mode: Option<String>,
+}
+#[derive(Debug, Serialize)]
+pub struct BindingList {
+    schema: &'static str,
+    state_version: u64,
+    bindings: Vec<MissionCanvasSurfaceBindingRecord>,
+}
+#[derive(Debug, Serialize)]
+pub struct BindingResult {
+    schema: &'static str,
+    state_version: u64,
+    replayed: bool,
+    binding: MissionCanvasSurfaceBindingRecord,
+    evidence_ref: String,
+    receipt_ref: String,
+    tool_result: ToolResultV1,
+}
+fn binding_scoped(x: &MissionCanvasSurfaceBindingRecord, q: &BindingQuery) -> bool {
+    x.project_root == q.project_root
+        && x.continuity_id == q.continuity_id
+        && x.attachment_id == q.attachment_id
+        && x.work_surface_id == q.work_surface_id
+}
+fn binding_fail(
+    code: StatusCode,
+    status: ToolStatus,
+    class: FailureClass,
+    message: impl Into<String>,
+) -> ApiError {
+    let mut x = ToolResultV1::failure(status, class, message.into());
+    x.tool = Some("focusa_mission_canvas_binding_mutate".into());
+    x.family = Some("mission_canvas".into());
+    x.endpoint = Some("/v1/mission-canvas/surface-bindings/mutate".into());
+    (code, Json(Box::new(x)))
+}
+fn binding_response(
+    binding: MissionCanvasSurfaceBindingRecord,
+    version: u64,
+    replayed: bool,
+) -> BindingResult {
+    let evidence = format!(
+        "evidence:surface-binding:{}:r{}",
+        binding.binding_id, binding.state_revision
+    );
+    let receipt = format!(
+        "receipt:surface-binding:{}:{}",
+        binding.binding_id, binding.idempotency_key
+    );
+    let mut result = ToolResultV1::success(
+        ToolStatus::Completed,
+        if replayed {
+            "Surface binding replayed idempotently"
+        } else {
+            "Exact attachment binding revision committed"
+        },
+    );
+    result.tool = Some("focusa_mission_canvas_binding_mutate".into());
+    result.family = Some("mission_canvas".into());
+    result.endpoint = Some("/v1/mission-canvas/surface-bindings/mutate".into());
+    result.evidence_refs = vec![evidence.clone(), receipt.clone()];
+    BindingResult {
+        schema: "focusa.mission_canvas_surface_binding_mutation_result.v1",
+        state_version: version,
+        replayed,
+        binding,
+        evidence_ref: evidence,
+        receipt_ref: receipt,
+        tool_result: result,
+    }
+}
+pub async fn list_bindings(
+    State(state): State<Arc<AppState>>,
+    Query(q): Query<BindingQuery>,
+) -> Result<Json<BindingList>, ApiError> {
+    if [
+        &q.project_root,
+        &q.continuity_id,
+        &q.attachment_id,
+        &q.work_surface_id,
+    ]
+    .iter()
+    .any(|x| x.trim().is_empty())
+    {
+        return Err(binding_fail(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            ToolStatus::ValidationRejected,
+            FailureClass::ScopeMismatch,
+            "exact project/workstream/attachment/surface scope required",
+        ));
+    }
+    let state = state.focusa.read().await;
+    let bindings = state
+        .mission_canvas_surface_bindings
+        .iter()
+        .filter(|binding| {
+            binding_scoped(binding, &q)
+                && q.binding_id
+                    .as_ref()
+                    .is_none_or(|id| id == &binding.binding_id)
+        })
+        .cloned()
+        .collect();
+    Ok(Json(BindingList {
+        schema: "focusa.mission_canvas_surface_binding_list.v1",
+        state_version: state.version,
+        bindings,
+    }))
+}
+pub async fn mutate_binding(
+    State(state): State<Arc<AppState>>,
+    Json(r): Json<BindingRequest>,
+) -> Result<Json<BindingResult>, ApiError> {
+    if [
+        &r.project_root,
+        &r.continuity_id,
+        &r.attachment_id,
+        &r.work_surface_id,
+        &r.idempotency_key,
+    ]
+    .iter()
+    .any(|x| x.trim().is_empty())
+    {
+        return Err(binding_fail(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            ToolStatus::ValidationRejected,
+            FailureClass::ScopeMismatch,
+            "exact attachment/surface scope and idempotency required",
+        ));
+    }
+    let snapshot = state.focusa.read().await;
+    if let Some(existing) = snapshot
+        .mission_canvas_surface_bindings
+        .iter()
+        .find(|binding| {
+            binding.project_root == r.project_root
+                && binding.continuity_id == r.continuity_id
+                && binding.attachment_id == r.attachment_id
+                && binding.work_surface_id == r.work_surface_id
+                && binding.idempotency_key == r.idempotency_key
+        })
+    {
+        return Ok(Json(binding_response(
+            existing.clone(),
+            snapshot.version,
+            true,
+        )));
+    }
+    if snapshot.version != r.expected_state_version {
+        return Err(binding_fail(
+            StatusCode::CONFLICT,
+            ToolStatus::Blocked,
+            FailureClass::WriterConflict,
+            "stale canonical state version",
+        ));
+    }
+    let surface_exists = snapshot.mission_canvas_surfaces.iter().any(|surface| {
+        surface.work_surface_id == r.work_surface_id
+            && surface.project_root == r.project_root
+            && surface.continuity_id == r.continuity_id
+            && surface.attachment_id == r.attachment_id
+    });
+    if !surface_exists {
+        return Err(binding_fail(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            ToolStatus::ValidationRejected,
+            FailureClass::ScopeMismatch,
+            "target Work Surface is absent from exact attachment scope",
+        ));
+    }
+    let latest = r
+        .binding_id
+        .as_ref()
+        .and_then(|id| {
+            snapshot
+                .mission_canvas_surface_bindings
+                .iter()
+                .filter(|binding| {
+                    binding.binding_id == *id
+                        && binding.project_root == r.project_root
+                        && binding.continuity_id == r.continuity_id
+                        && binding.attachment_id == r.attachment_id
+                        && binding.work_surface_id == r.work_surface_id
+                })
+                .max_by_key(|binding| binding.state_revision)
+        })
+        .cloned();
+    if latest.as_ref().map_or(0, |binding| binding.state_revision) != r.expected_binding_revision {
+        return Err(binding_fail(
+            StatusCode::CONFLICT,
+            ToolStatus::Blocked,
+            FailureClass::WriterConflict,
+            "stale surface binding revision",
+        ));
+    }
+    let now = Utc::now();
+    let binding = match r.action {
+        BindingAction::Bind => {
+            if latest.is_some() {
+                return Err(binding_fail(
+                    StatusCode::CONFLICT,
+                    ToolStatus::Blocked,
+                    FailureClass::WriterConflict,
+                    "binding already exists",
+                ));
+            }
+            let kind = r.binding_kind.ok_or_else(|| {
+                binding_fail(
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                    ToolStatus::ValidationRejected,
+                    FailureClass::ValidationRejected,
+                    "binding_kind required",
+                )
+            })?;
+            let target = r
+                .target_ref
+                .filter(|x| !x.trim().is_empty())
+                .ok_or_else(|| {
+                    binding_fail(
+                        StatusCode::UNPROCESSABLE_ENTITY,
+                        ToolStatus::ValidationRejected,
+                        FailureClass::ValidationRejected,
+                        "target_ref required",
+                    )
+                })?;
+            let mode = r
+                .access_mode
+                .filter(|x| matches!(x.as_str(), "read" | "write" | "invoke"))
+                .ok_or_else(|| {
+                    binding_fail(
+                        StatusCode::UNPROCESSABLE_ENTITY,
+                        ToolStatus::ValidationRejected,
+                        FailureClass::PermissionDenied,
+                        "read, write, or invoke access_mode required",
+                    )
+                })?;
+            MissionCanvasSurfaceBindingRecord {
+                binding_id: r.binding_id.unwrap_or_else(|| {
+                    stable(&[
+                        &r.project_root,
+                        &r.continuity_id,
+                        &r.attachment_id,
+                        &r.work_surface_id,
+                        &target,
+                    ])
+                }),
+                state_revision: 1,
+                project_root: r.project_root.clone(),
+                continuity_id: r.continuity_id.clone(),
+                attachment_id: r.attachment_id.clone(),
+                work_surface_id: r.work_surface_id.clone(),
+                binding_kind: kind,
+                target_ref: target,
+                access_mode: mode,
+                active: true,
+                idempotency_key: r.idempotency_key.clone(),
+                created_at: now,
+                updated_at: now,
+            }
+        }
+        BindingAction::Unbind => {
+            let mut x = latest.ok_or_else(|| {
+                binding_fail(
+                    StatusCode::NOT_FOUND,
+                    ToolStatus::Blocked,
+                    FailureClass::NotFound,
+                    "surface binding missing",
+                )
+            })?;
+            x.state_revision += 1;
+            x.active = false;
+            x.idempotency_key = r.idempotency_key.clone();
+            x.updated_at = now;
+            x
+        }
+    };
+    let id = binding.binding_id.clone();
+    let key = binding.idempotency_key.clone();
+    drop(snapshot);
+    state
+        .command_tx
+        .send(Action::EmitEvent {
+            event: FocusaEvent::MissionCanvasSurfaceBindingRevised { binding },
+        })
+        .await
+        .map_err(|_| {
+            binding_fail(
+                StatusCode::SERVICE_UNAVAILABLE,
+                ToolStatus::Offline,
+                FailureClass::DaemonUnavailable,
+                "surface binding command channel unavailable",
+            )
+        })?;
+    for _ in 0..100 {
+        let current = state.focusa.read().await;
+        if let Some(saved) = current
+            .mission_canvas_surface_bindings
+            .iter()
+            .find(|binding| binding.binding_id == id && binding.idempotency_key == key)
+        {
+            return Ok(Json(binding_response(
+                saved.clone(),
+                current.version,
+                false,
+            )));
+        }
+        drop(current);
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    Err(binding_fail(
+        StatusCode::SERVICE_UNAVAILABLE,
+        ToolStatus::Degraded,
+        FailureClass::ReadModelLag,
+        "surface binding revision not visible",
+    ))
+}
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/mission-canvas/surfaces", get(list))
         .route(ENDPOINT, post(mutate))
+        .route("/v1/mission-canvas/surface-bindings", get(list_bindings))
+        .route(
+            "/v1/mission-canvas/surface-bindings/mutate",
+            post(mutate_binding),
+        )
 }
