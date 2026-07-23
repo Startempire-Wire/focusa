@@ -50,9 +50,14 @@ for marker in \
   'beta_ad_hoc' \
   'production_notarized' \
   'Signature=adhoc' \
-  'install-focusa-menubar-beta.sh' \
-  'release-gate%3Acompaction-session'; do
-  rg -q "$marker" "$RELEASE" || fail "release workflow missing pre-license/release-gate marker: $marker"
+  'install-focusa-menubar-beta.sh'; do
+  rg -q "$marker" "$RELEASE" || fail "release workflow missing pre-license marker: $marker"
+done
+for marker in \
+  'issues?state=open&per_page=100' \
+  'has("pull_request") | not' \
+  'startswith("release-gate:")'; do
+  rg -Fq "$marker" "$RELEASE" || fail "release workflow missing generic open-issue gate contract: $marker"
 done
 for marker in \
   'pre-license macOS beta' \
