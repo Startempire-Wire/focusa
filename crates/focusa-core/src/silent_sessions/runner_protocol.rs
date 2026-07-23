@@ -6,7 +6,10 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use super::{AuthenticatedRunnerCommand, SilentSessionAction, SilentSessionId, SilentSessionRunId};
+use super::{
+    AuthenticatedRunnerCommand, LaunchManifest, SilentSessionAction, SilentSessionId,
+    SilentSessionRunId,
+};
 
 pub const RUNNER_PROTOCOL_SCHEMA: &str = "focusa.session_runner_protocol.v1";
 
@@ -37,14 +40,7 @@ pub fn select_runner_execution_mode(
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RunnerLaunchSpec {
-    pub executable: String,
-    #[serde(default)]
-    pub arguments: Vec<String>,
-    pub workspace: String,
-    pub owner_os_user: String,
-    pub manifest_digest: String,
-    #[serde(default)]
-    pub inherited_environment_allowlist: Vec<String>,
+    pub manifest: LaunchManifest,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]

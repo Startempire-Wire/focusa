@@ -25,6 +25,7 @@ assert "cross-user execution requires a protected user-scoped runner socket" in 
 assert "RunnerHeartbeat" in PROTOCOL
 assert "ProcessTreeIdentity" in PROTOCOL
 assert "manifest_digest" in PROTOCOL
+assert "pub manifest: LaunchManifest" in PROTOCOL
 assert "action_digest" in PROTOCOL
 
 assert "PayloadMismatch" in SECURITY
@@ -65,9 +66,10 @@ append_pos = RUNNER.index("append_nonce(&self.nonce_ledger")
 assign_pos = RUNNER.index("self.consumed_nonces = consumed_nonces")
 assert append_pos < assign_pos
 
-# Runner receives only an explicit inherited-environment allowlist and starts clean.
-assert ".env_clear()" in RUNNER
-assert "inherited_environment_allowlist" in RUNNER
+# Runner starts from a clean environment and resolves only manifest-declared values/references.
+assert ".env_clear()" in RUNNER_SECURITY
+assert "safe_env" in RUNNER_SECURITY
+assert "secret_env_refs" in RUNNER_SECURITY
 assert "environment: BTreeMap" not in PROTOCOL
 
 print("Spec133 protected per-user runner static contract: PASS")

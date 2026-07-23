@@ -12,6 +12,7 @@ pub mod config_resolution;
 pub mod config_revision;
 pub mod event_protocol;
 pub mod identity;
+pub mod launch_manifest;
 pub mod legacy_import;
 pub mod persistence_records;
 pub mod persistence_sqlite;
@@ -37,6 +38,7 @@ pub use config_resolution::*;
 pub use config_revision::*;
 pub use event_protocol::*;
 pub use identity::*;
+pub use launch_manifest::*;
 pub use legacy_import::*;
 pub use persistence_records::*;
 pub use persistence_sqlite::*;
@@ -58,6 +60,8 @@ mod authorization_test;
 mod config_resolution_test;
 #[cfg(test)]
 mod config_revision_test;
+#[cfg(test)]
+mod launch_manifest_test;
 #[cfg(test)]
 mod legacy_import_test;
 #[cfg(test)]

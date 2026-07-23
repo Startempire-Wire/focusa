@@ -3,9 +3,8 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
-    os::unix::{fs::PermissionsExt, process::CommandExt},
+    os::unix::fs::PermissionsExt,
     path::PathBuf,
-    process::Stdio,
 };
 
 use anyhow::{Context, Result, ensure};
@@ -20,15 +19,15 @@ use serde_json::{Value, json};
 use tokio::{
     io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
     net::{UnixListener, UnixStream},
-    process::{Child, Command},
+    process::Child,
 };
 use tracing::{error, info};
 
 mod security;
 
 use security::{
-    append_nonce, canonical_owned_directory, current_user, load_nonces, prepare_socket,
-    process_group_exists, read_secret, send_process_group_signal, valid_environment_name,
+    append_nonce, canonical_owned_directory, current_user, load_nonces, prepare_launch_manifest,
+    prepare_socket, process_group_exists, read_secret, send_process_group_signal,
 };
 
 const MAX_REQUEST_BYTES: usize = 1024 * 1024;
@@ -42,6 +41,8 @@ struct Args {
     key_file: PathBuf,
     #[arg(long)]
     nonce_ledger: PathBuf,
+    #[arg(long)]
+    secret_dir: PathBuf,
     #[arg(long)]
     principal_id: String,
     #[arg(long)]
@@ -84,6 +85,7 @@ struct RunnerState {
     owner_uid: u32,
     key: Vec<u8>,
     nonce_ledger: PathBuf,
+    secret_dir: PathBuf,
     consumed_nonces: BTreeSet<String>,
     processes: BTreeMap<String, ManagedProcess>,
 }
@@ -145,20 +147,12 @@ impl RunnerState {
         spec: &focusa_core::silent_sessions::RunnerLaunchSpec,
     ) -> Result<RunnerWireResponse> {
         ensure!(
-            spec.owner_os_user == self.identity.os_user,
+            spec.manifest.os_user == self.identity.os_user,
             "launch owner mismatch"
         );
-        let workspace = canonical_owned_directory(&spec.workspace, self.owner_uid)?;
-        let executable = fs::canonicalize(&spec.executable)
-            .with_context(|| format!("canonicalize executable {}", spec.executable))?;
-        ensure!(
-            executable.is_absolute() && executable.is_file(),
-            "executable must be an absolute regular file"
-        );
-        ensure!(
-            !spec.manifest_digest.trim().is_empty(),
-            "manifest digest is required"
-        );
+        let prepared = prepare_launch_manifest(&spec.manifest, self.owner_uid, &self.secret_dir)?;
+        let workspace = prepared.workspace;
+        let manifest_digest = prepared.manifest_digest;
 
         let key = Self::process_key(request.command.session_id, request.command.run_id);
         if let Some(existing) = self.processes.get_mut(&key) {
@@ -169,25 +163,18 @@ impl RunnerState {
             );
         }
 
-        let mut command = Command::new(executable);
-        command
-            .args(&spec.arguments)
-            .current_dir(&workspace)
-            .env_clear()
-            .stdin(Stdio::null())
-            .stdout(Stdio::inherit())
-            .stderr(Stdio::inherit());
-        for name in &spec.inherited_environment_allowlist {
-            ensure!(
-                valid_environment_name(name),
-                "invalid environment allowlist name"
-            );
-            if let Some(value) = std::env::var_os(name) {
-                command.env(name, value);
-            }
+        let mut command = prepared.command;
+        let mut child = command.spawn().context("spawn owned process tree")?;
+        if let Some(mut stdout) = child.stdout.take() {
+            tokio::spawn(async move {
+                let _ = tokio::io::copy(&mut stdout, &mut tokio::io::stdout()).await;
+            });
         }
-        command.as_std_mut().process_group(0);
-        let child = command.spawn().context("spawn owned process tree")?;
+        if let Some(mut stderr) = child.stderr.take() {
+            tokio::spawn(async move {
+                let _ = tokio::io::copy(&mut stderr, &mut tokio::io::stderr()).await;
+            });
+        }
         let pid = child.id().context("spawned process has no pid")?;
         let identity = ProcessTreeIdentity {
             session_id: request.command.session_id,
@@ -196,7 +183,7 @@ impl RunnerState {
             process_group_id: i32::try_from(pid).context("pid exceeds process-group range")?,
             owner_os_user: self.identity.os_user.clone(),
             workspace: workspace.to_string_lossy().into_owned(),
-            manifest_digest: spec.manifest_digest.clone(),
+            manifest_digest,
             started_at: Utc::now(),
         };
         let process = ManagedProcess {
@@ -388,6 +375,16 @@ async fn main() -> Result<()> {
         fs::canonicalize(nonce_parent)? == socket_parent,
         "nonce ledger must share the protected runner socket directory"
     );
+    let secret_dir = canonical_owned_directory(
+        args.secret_dir
+            .to_str()
+            .context("secret directory path is not UTF-8")?,
+        owner_uid,
+    )?;
+    ensure!(
+        fs::metadata(&secret_dir)?.permissions().mode() & 0o077 == 0,
+        "secret directory permissions are too broad"
+    );
     let key = read_secret(&args.key_file, owner_uid)?;
     let consumed_nonces = load_nonces(&args.nonce_ledger, owner_uid)?;
     let listener = UnixListener::bind(&args.socket)
@@ -407,6 +404,7 @@ async fn main() -> Result<()> {
         owner_uid,
         key,
         nonce_ledger: args.nonce_ledger,
+        secret_dir,
         consumed_nonces,
         processes: BTreeMap::new(),
     };

@@ -42,7 +42,7 @@ unused_variables = "allow"
 
 [workspace.dependencies]
 # Async runtime
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time", "process", "fs", "net", "io-util", "signal"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time", "process", "fs", "net", "io-util", "io-std", "signal"] }
 
 # Serialization
 serde = { version = "1", features = ["derive"] }

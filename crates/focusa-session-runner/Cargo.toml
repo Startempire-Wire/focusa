@@ -15,7 +15,9 @@ anyhow.workspace = true
 chrono.workspace = true
 clap.workspace = true
 focusa-core = { path = "../focusa-core" }
+hex.workspace = true
 serde_json.workspace = true
+sha2.workspace = true
 tokio = { workspace = true, features = ["io-util", "signal"] }
 tracing.workspace = true
 tracing-subscriber.workspace = true

@@ -1,22 +1,201 @@
 use std::{
     collections::BTreeSet,
-    fs::{self, OpenOptions},
-    io::Write,
-    os::unix::fs::{FileTypeExt, MetadataExt, OpenOptionsExt, PermissionsExt},
+    fs::{self, File, OpenOptions},
+    io::{Read, Write},
+    os::unix::{
+        fs::{FileTypeExt, MetadataExt, OpenOptionsExt, PermissionsExt},
+        process::CommandExt,
+    },
     path::{Path, PathBuf},
+    process::Stdio,
 };
 
 use anyhow::{Context, Result, ensure};
-use focusa_core::silent_sessions::RunnerSignal;
+use focusa_core::silent_sessions::{
+    LaunchManifest, MissionDelivery, ProcessBackend, RunnerSignal, StdioMode,
+    validate_environment_name,
+};
+use sha2::{Digest, Sha256};
 use tokio::process::Command;
 
-pub(crate) fn valid_environment_name(name: &str) -> bool {
+pub(crate) struct PreparedLaunch {
+    pub command: Command,
+    pub workspace: PathBuf,
+    pub manifest_digest: String,
+}
+
+pub(crate) fn prepare_launch_manifest(
+    manifest: &LaunchManifest,
+    owner_uid: u32,
+    secret_dir: &Path,
+) -> Result<PreparedLaunch> {
+    manifest.validate()?;
+    let workspace = canonical_owned_directory(&manifest.cwd, owner_uid)?;
+    let executable = fs::canonicalize(&manifest.executable)
+        .with_context(|| format!("canonicalize executable {}", manifest.executable))?;
+    ensure!(
+        executable.is_file(),
+        "launch executable is not a regular file"
+    );
+    ensure!(
+        manifest.os_user == current_user()?.0,
+        "launch manifest OS user mismatch"
+    );
+    ensure!(
+        matches!(
+            manifest.process_backend,
+            ProcessBackend::UnixProcessGroup | ProcessBackend::EmbeddedSameUser
+        ),
+        "runner does not support the declared process backend"
+    );
+    verify_mission_delivery(&manifest.mission_delivery, &manifest.argv, owner_uid)?;
+
+    let mut command = Command::new(executable);
+    command
+        .args(&manifest.argv)
+        .current_dir(&workspace)
+        .env_clear()
+        .stdin(stdin_for_manifest(manifest, owner_uid)?)
+        .stdout(stdio_for_mode(manifest.stdout_mode)?)
+        .stderr(stdio_for_mode(manifest.stderr_mode)?);
+    for (name, value) in &manifest.safe_env {
+        validate_environment_name(name)?;
+        command.env(name, value);
+    }
+    for secret in &manifest.secret_env_refs {
+        let value = resolve_secret_reference(&secret.secret_ref, secret_dir, owner_uid)?;
+        command.env(&secret.env_name, value);
+    }
+    command.as_std_mut().process_group(0);
+    Ok(PreparedLaunch {
+        command,
+        workspace,
+        manifest_digest: manifest.digest()?,
+    })
+}
+
+fn stdin_for_manifest(manifest: &LaunchManifest, owner_uid: u32) -> Result<Stdio> {
+    match manifest.stdin_mode {
+        StdioMode::Null => Ok(Stdio::null()),
+        StdioMode::Inherit => Ok(Stdio::inherit()),
+        StdioMode::Pipe => Ok(Stdio::piped()),
+        StdioMode::MissionArtifact => match &manifest.mission_delivery {
+            MissionDelivery::Stdin { artifact_path, .. } => {
+                Ok(Stdio::from(open_secure_artifact(artifact_path, owner_uid)?))
+            }
+            _ => bail_manifest("mission stdin mode lacks a stdin artifact"),
+        },
+    }
+}
+
+fn stdio_for_mode(mode: StdioMode) -> Result<Stdio> {
+    match mode {
+        StdioMode::Null | StdioMode::MissionArtifact => Ok(Stdio::null()),
+        StdioMode::Inherit => Ok(Stdio::inherit()),
+        StdioMode::Pipe => Ok(Stdio::piped()),
+    }
+}
+
+fn verify_mission_delivery(
+    delivery: &MissionDelivery,
+    argv: &[String],
+    owner_uid: u32,
+) -> Result<()> {
+    match delivery {
+        MissionDelivery::Rpc { .. } => Ok(()),
+        MissionDelivery::Stdin {
+            artifact_path,
+            sha256,
+        }
+        | MissionDelivery::SecureArtifact {
+            artifact_path,
+            sha256,
+        } => {
+            let mut artifact = open_secure_artifact(artifact_path, owner_uid)?;
+            let mut bytes = Vec::new();
+            artifact.read_to_end(&mut bytes)?;
+            ensure!(
+                hex::encode(Sha256::digest(bytes)) == *sha256,
+                "mission artifact hash mismatch"
+            );
+            Ok(())
+        }
+        MissionDelivery::TypedArgument {
+            argv_index,
+            sha256,
+            max_bytes,
+        } => {
+            let value = argv
+                .get(*argv_index)
+                .context("mission argv index is out of bounds")?;
+            ensure!(
+                value.len() <= *max_bytes,
+                "typed mission argument exceeds its bound"
+            );
+            ensure!(
+                hex::encode(Sha256::digest(value.as_bytes())) == *sha256,
+                "typed mission argument hash mismatch"
+            );
+            Ok(())
+        }
+    }
+}
+
+fn open_secure_artifact(path: &str, owner_uid: u32) -> Result<File> {
+    let path = Path::new(path);
+    ensure!(path.is_absolute(), "mission artifact path must be absolute");
+    let metadata = fs::symlink_metadata(path)?;
+    ensure!(
+        metadata.is_file() && !metadata.file_type().is_symlink(),
+        "mission artifact is not a regular file"
+    );
+    ensure!(
+        metadata.uid() == owner_uid,
+        "mission artifact owner mismatch"
+    );
+    ensure!(
+        metadata.permissions().mode() & 0o077 == 0,
+        "mission artifact permissions are too broad"
+    );
+    File::open(path).map_err(Into::into)
+}
+
+fn resolve_secret_reference(reference: &str, secret_dir: &Path, owner_uid: u32) -> Result<String> {
+    if let Some(name) = reference.strip_prefix("env://") {
+        validate_environment_name(name)?;
+        return std::env::var(name)
+            .with_context(|| format!("resolve inherited secret reference {name}"));
+    }
+    let name = reference
+        .strip_prefix("secret://")
+        .context("unsupported secret reference scheme")?;
+    ensure!(valid_secret_name(name), "invalid secret reference name");
+    let path = secret_dir.join(name);
+    let mut secret = open_secure_artifact(
+        path.to_str().context("secret path is not UTF-8")?,
+        owner_uid,
+    )?;
+    let mut value = String::new();
+    secret.read_to_string(&mut value)?;
+    while value.ends_with('\n') || value.ends_with('\r') {
+        value.pop();
+    }
+    ensure!(!value.is_empty(), "resolved secret is empty");
+    Ok(value)
+}
+
+fn valid_secret_name(name: &str) -> bool {
     !name.is_empty()
-        && !name.as_bytes()[0].is_ascii_digit()
-        && name.len() <= 128
-        && name
-            .bytes()
-            .all(|byte| byte == b'_' || byte.is_ascii_alphanumeric())
+        && name.len() <= 200
+        && name.bytes().all(|byte| {
+            byte == b'-' || byte == b'_' || byte == b'.' || byte.is_ascii_alphanumeric()
+        })
+        && !name.starts_with('.')
+        && !name.contains("..")
+}
+
+fn bail_manifest<T>(message: &str) -> Result<T> {
+    Err(anyhow::anyhow!(message.to_string()))
 }
 
 fn command_output(program: &str, args: &[&str]) -> Result<String> {
