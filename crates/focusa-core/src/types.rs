@@ -2436,6 +2436,42 @@ pub struct WorkRailRecord {
     pub updated_at: DateTime<Utc>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MissionCanvasSurfaceStatus {
+    Active,
+    Suspended,
+    ViewClosed,
+}
+
+/// Durable Mission Canvas tab/pane projection over existing canonical state owners.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MissionCanvasWorkSurfaceRecord {
+    pub work_surface_id: String,
+    pub state_revision: u64,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub attachment_id: String,
+    pub instance_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workpoint_id: Option<String>,
+    pub mission_ref: String,
+    pub title: String,
+    pub surface_kind: String,
+    pub status: MissionCanvasSurfaceStatus,
+    pub pane_id: String,
+    pub tab_index: u32,
+    pub pinned: bool,
+    pub unread: bool,
+    #[serde(default)]
+    pub canonical_state_refs: Vec<String>,
+    pub idempotency_key: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 /// Canonical candidate/accepted claim extracted from source-preserving Context.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ContextClaimRecord {
@@ -2590,6 +2626,9 @@ pub struct FocusaState {
     /// Append-only Work Rail revisions linked to canonical Workpoints and Beads.
     #[serde(default)]
     pub work_rail_records: Vec<WorkRailRecord>,
+    /// Append-only Mission Canvas Work Surface layout/lifecycle projections.
+    #[serde(default)]
+    pub mission_canvas_surfaces: Vec<MissionCanvasWorkSurfaceRecord>,
     /// Canonical contradiction edges requiring explicit resolution.
     #[serde(default)]
     pub context_contradictions: Vec<ContextContradictionRecord>,
@@ -2666,6 +2705,7 @@ impl FocusaState {
             provider_neutral_task_plans: vec![],
             task_materializations: vec![],
             work_rail_records: vec![],
+            mission_canvas_surfaces: vec![],
             context_contradictions: vec![],
             context_decisions: vec![],
             reactive_context: vec![],
@@ -3294,6 +3334,9 @@ pub enum FocusaEvent {
     },
     WorkRailRevised {
         record: WorkRailRecord,
+    },
+    MissionCanvasSurfaceRevised {
+        surface: MissionCanvasWorkSurfaceRecord,
     },
     ContextClaimReviewed {
         claim: ContextClaimRecord,

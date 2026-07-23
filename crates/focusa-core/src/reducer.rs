@@ -1126,6 +1126,49 @@ pub fn reduce_with_meta(
                     .then(left.state_revision.cmp(&right.state_revision))
             });
         }
+        FocusaEvent::MissionCanvasSurfaceRevised { surface } => {
+            if surface.work_surface_id.trim().is_empty()
+                || surface.state_revision == 0
+                || surface.project_root.trim().is_empty()
+                || surface.continuity_id.trim().is_empty()
+                || surface.attachment_id.trim().is_empty()
+                || surface.instance_id.trim().is_empty()
+                || surface.mission_ref.trim().is_empty()
+                || surface.title.trim().is_empty()
+                || surface.surface_kind.trim().is_empty()
+                || surface.pane_id.trim().is_empty()
+                || surface.canonical_state_refs.is_empty()
+                || surface.idempotency_key.trim().is_empty()
+            {
+                return Err(ReducerError::InvalidEvent("Mission Canvas Work Surface requires identity, exact scope, mission, pane/tab placement, bounded canonical refs, and idempotency".to_string()));
+            }
+            let expected_revision = state
+                .mission_canvas_surfaces
+                .iter()
+                .filter(|existing| existing.work_surface_id == surface.work_surface_id)
+                .map(|existing| existing.state_revision)
+                .max()
+                .unwrap_or(0)
+                + 1;
+            if surface.state_revision != expected_revision {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "Mission Canvas Work Surface revision must be {expected_revision}"
+                )));
+            }
+            if surface
+                .canonical_state_refs
+                .iter()
+                .any(|reference| reference.trim().is_empty())
+            {
+                return Err(ReducerError::InvalidEvent("Work Surface canonical refs must be bounded handles, never duplicated state payloads".to_string()));
+            }
+            state.mission_canvas_surfaces.push(surface);
+            state.mission_canvas_surfaces.sort_by(|left, right| {
+                left.work_surface_id
+                    .cmp(&right.work_surface_id)
+                    .then(left.state_revision.cmp(&right.state_revision))
+            });
+        }
         FocusaEvent::ContextClaimProposed { claim } => {
             if state.context_claims.iter().any(|existing| {
                 existing.claim_id == claim.claim_id
