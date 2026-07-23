@@ -14,6 +14,7 @@
   } from '$lib/api';
   import { focusStore } from '$lib/stores/focus.svelte';
   import { runtimeStore } from '$lib/stores/runtime.svelte';
+  import { runMenubarUpdate, type MenubarUpdateResult } from '$lib/updater';
 
   const initialConnections = loadSavedConnections();
   let savedConnections = $state<SavedConnection[]>(initialConnections);
@@ -25,6 +26,8 @@
   let showRemoteInput = $state(initialConnections.length === 0);
   let remoteUrl = $state('');
   let publicPairingUrl = $state(localStorage.getItem(PUBLIC_PAIRING_URL_KEY) || '');
+  let updateResult = $state<MenubarUpdateResult | null>(null);
+  let updateBusy = $state(false);
 
   function persistActive(nextUrl = url) {
     const normalized = nextUrl.trim().replace(/\/$/, '');
@@ -132,6 +135,18 @@
       if (url) setApiUrl(url);
     }
   }
+
+  async function updateFocusa(install: boolean) {
+    updateBusy = true;
+    try {
+      updateResult = await runMenubarUpdate({
+        install,
+        reporter: (result) => { updateResult = result; },
+      });
+    } finally {
+      updateBusy = false;
+    }
+  }
 </script>
 
 <div class="settings-view">
@@ -233,6 +248,24 @@
       <div class="status-row"><span class="status-key">Saved connections</span><span class="status-val">{savedConnections.length}</span></div>
       <div class="status-row"><span class="status-key">Events</span><span class="status-val">{runtimeStore.snapshot.recentEventCount}</span></div>
     </div>
+  </section>
+
+  <section class="section">
+    <div class="section-label">SIGNED UPDATES</div>
+    <p class="hint">Focusa verifies updater signatures before replacing the app. Automatic installation follows your daemon update policy.</p>
+    <div class="connection-actions">
+      <button class="btn secondary" onclick={() => updateFocusa(false)} disabled={updateBusy}>
+        {updateBusy ? 'Checking…' : 'Check for update'}
+      </button>
+      {#if updateResult?.phase === 'available'}
+        <button class="btn primary" onclick={() => updateFocusa(true)} disabled={updateBusy}>Install and relaunch</button>
+      {/if}
+    </div>
+    {#if updateResult}
+      <div class:ok={updateResult.phase === 'current' || updateResult.phase === 'available'} class:error={updateResult.phase === 'error'} class="test-result">
+        <span>{updateResult.message}</span>
+      </div>
+    {/if}
   </section>
 
   <section class="section help-section">

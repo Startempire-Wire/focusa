@@ -480,6 +480,8 @@ fn main() {
     tauri::Builder::default()
         .manage(Arc::new(BridgeRuntimeState::default()))
         .plugin(tauri_plugin_positioner::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .invoke_handler(tauri::generate_handler![
             focusa_save_pairing_token,
             focusa_load_pairing_token,

@@ -2,11 +2,13 @@
   import { onMount } from 'svelte';
   import type { Snippet } from 'svelte';
   import { installGlobalDiagnostics } from '$lib/stores/diagnostics.svelte';
+  import { startAutomaticMenubarUpdate } from '$lib/updater';
 
   let { children }: { children: Snippet } = $props();
 
   onMount(() => {
     installGlobalDiagnostics();
+    return startAutomaticMenubarUpdate();
   });
 </script>
 
