@@ -134,7 +134,7 @@ impl RunnerState {
     async fn apply(&mut self, request: &RunnerWireRequest) -> Result<RunnerWireResponse> {
         self.authenticate(request)?;
         match &request.operation {
-            RunnerOperation::Launch { spec } => self.launch(request, *spec).await,
+            RunnerOperation::Launch { spec } => self.launch(request, spec.as_ref()).await,
             RunnerOperation::Signal { signal } => self.signal(request, *signal).await,
             RunnerOperation::Query => self.query(request),
             RunnerOperation::Heartbeat => Ok(self.heartbeat(request)),
