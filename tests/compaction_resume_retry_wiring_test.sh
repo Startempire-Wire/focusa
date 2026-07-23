@@ -24,7 +24,7 @@ else
   log_fail "compaction retry scheduler missing"
 fi
 
-if rg -n 'if \(!S\.compactResumePending\) return;' "$COMPACTION_FILE" >/dev/null 2>&1; then
+if rg -n 'if \(!getAttachmentRuntime\(\)\.compactResumePending\) return;' "$COMPACTION_FILE" >/dev/null 2>&1; then
   log_pass "compaction retries are pending-gated"
 else
   log_fail "compaction retries missing pending gate"
@@ -48,7 +48,7 @@ else
   log_pass "no artificial compaction exhaustion warning remains"
 fi
 
-if rg -n 'S\.compactResumePending = false' "$TURNS_FILE" "$SESSION_FILE" "$COMMANDS_FILE" >/dev/null 2>&1; then
+if rg -n 'getAttachmentRuntime\(\)\.compactResumePending = false' "$COMPACTION_FILE" "$TURNS_FILE" "$SESSION_FILE" "$COMMANDS_FILE" >/dev/null 2>&1; then
   log_pass "lifecycle/governance reset gates bound retry continuation"
 else
   log_fail "lifecycle/governance reset gates missing"
