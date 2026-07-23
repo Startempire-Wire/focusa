@@ -310,12 +310,14 @@ mod tests {
         ModelBinding, SILENT_SESSION_LEASE_SCHEMA, SilentSessionId, SilentSessionLease,
         SilentSessionLeaseId, SilentSessionRunId, WorkpointBinding,
     };
-    use focusa_core::silent_session_authorization::ContextAuthorityGrant;
+    use focusa_core::silent_session_authorization::{
+        ContextAuthorityActionClass, ContextAuthorityGrant,
+    };
     use focusa_core::silent_session_bootstrap::{
         AGENT_BOOTSTRAP_PACKET_SCHEMA, AgentBootstrapPacket, BootstrapWorkspaceBinding,
         ContextBootstrapBinding, ProjectIdentityBootstrapBinding, ProjectMutationBarrierRequest,
-        TrajectoryBootstrapBinding, WorkpointBootstrapBinding, verify_agent_bootstrap_packet,
-        verify_project_mutation_barrier,
+        TrajectoryBootstrapBinding, WorkpointBootstrapBinding, context_authority_action_digest,
+        verify_agent_bootstrap_packet, verify_project_mutation_barrier,
     };
     use std::os::unix::fs::{MetadataExt, symlink};
     use std::sync::atomic::{AtomicU64, Ordering};
@@ -435,6 +437,29 @@ mod tests {
                     canonical_mutation_allowed: false,
                     selected_context: vec!["src/generated.rs".into()],
                     excluded_context: vec![],
+                    risk_refs: vec!["risk:generated-code-overwrite".into()],
+                    valid_next_tools: vec!["tool:verify-project-mutation".into()],
+                },
+                ontology: focusa_core::silent_session_bootstrap::SilentSessionOntologyBindings {
+                    agent_identity_ref: "agent:runner-test".into(),
+                    actor_instance_ref: "actor-instance:runner-mutation-test".into(),
+                    role_profile_ref: "role:runner-test".into(),
+                    capability_profile_ref: "capability:posix-mutation".into(),
+                    permission_profile_ref: "permission:isolated-worktree".into(),
+                    responsibility_ref: "responsibility:mutation-test".into(),
+                    handoff_boundary_ref: "handoff:operator".into(),
+                    execution_context_ref: "execution-context:runner-test".into(),
+                    tool_surface_ref: "tool-surface:posix-runner".into(),
+                    affordance_ref: "affordance:generated-write".into(),
+                    resource_ref: "resource:test-project".into(),
+                    cost_model_ref: "cost-model:test".into(),
+                    reliability_profile_ref: "reliability:strict".into(),
+                    reversibility_profile_ref: "reversibility:worktree".into(),
+                    work_item_ref: "focusa-a6yq6.4.4".into(),
+                    action_intent_ref: "action-intent:generated-write".into(),
+                    blocker_ref: "blocker:none".into(),
+                    verification_record_ref: "verification:runner-bootstrap".into(),
+                    evidence_artifact_ref: "evidence:runner-mutation".into(),
                 },
                 work_item_ref: Some("focusa-a6yq6.4.4".into()),
                 workspace: BootstrapWorkspaceBinding {
@@ -481,6 +506,15 @@ mod tests {
                 project_identity_ref,
                 continuity_id,
                 workpoint_ref: Some(workpoint_ref.workpoint_id),
+                action_class: ContextAuthorityActionClass::GeneratedCodeOverwrite,
+                action: "project_mutation".into(),
+                action_digest: context_authority_action_digest(
+                    &packet,
+                    ContextAuthorityActionClass::GeneratedCodeOverwrite,
+                    "project_mutation",
+                )
+                .expect("action digest should serialize"),
+                issued_at: now,
                 expires_at: now + Duration::minutes(1),
             };
             verify_project_mutation_barrier(&ProjectMutationBarrierRequest {
@@ -488,6 +522,8 @@ mod tests {
                 bootstrap_verification: &verification,
                 lease: &lease,
                 context_authority: &authority,
+                action_class: ContextAuthorityActionClass::GeneratedCodeOverwrite,
+                action: "project_mutation",
                 actor_instance_ref,
                 requested_model: &model,
                 effective_model: Some(&model),

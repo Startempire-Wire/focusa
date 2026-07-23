@@ -4,7 +4,7 @@ use crate::silent_session::{
     OperatorAskBinding, SilentSession, SilentSessionId, SilentSessionRun, SilentSessionRunId,
     WorkpointBinding,
 };
-use crate::silent_session_bootstrap::AgentBootstrapPacket;
+use crate::silent_session_bootstrap::{AgentBootstrapPacket, SilentSessionOntologyBindings};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -96,6 +96,9 @@ pub struct SilentSessionAuthorityEnvelope {
     pub workpoint_ref: WorkpointBinding,
     pub workpoint_is_action_authority: bool,
     pub exact_operator_ask: OperatorAskBinding,
+    pub ontology: SilentSessionOntologyBindings,
+    pub context_risk_refs: Vec<String>,
+    pub valid_next_tools: Vec<String>,
     pub current_direction: CurrentDirection,
     pub exact_next_action: String,
     pub active_object_refs: Vec<String>,
@@ -173,6 +176,9 @@ pub fn compose_authority_envelope(
         workpoint_ref,
         workpoint_is_action_authority: true,
         exact_operator_ask: session.operator_ask.clone(),
+        ontology: bootstrap.ontology.clone(),
+        context_risk_refs: bootstrap.context.risk_refs.clone(),
+        valid_next_tools: bootstrap.context.valid_next_tools.clone(),
         current_direction,
         exact_next_action: bootstrap.exact_next_action.clone(),
         active_object_refs: bootstrap.active_object_refs.clone(),
@@ -445,6 +451,29 @@ mod tests {
                 canonical_mutation_allowed: false,
                 selected_context: vec!["spec:133".into()],
                 excluded_context: vec![],
+                risk_refs: vec!["risk:authority-drift".into()],
+                valid_next_tools: vec!["tool:workpoint-resume".into()],
+            },
+            ontology: SilentSessionOntologyBindings {
+                agent_identity_ref: "agent:authority-test".into(),
+                actor_instance_ref: "actor-instance:authority-test".into(),
+                role_profile_ref: "role:authority-test".into(),
+                capability_profile_ref: "capability:authority-compose".into(),
+                permission_profile_ref: "permission:read-authority".into(),
+                responsibility_ref: "responsibility:authority-test".into(),
+                handoff_boundary_ref: "handoff:operator".into(),
+                execution_context_ref: "execution-context:authority-test".into(),
+                tool_surface_ref: "tool-surface:core-test".into(),
+                affordance_ref: "affordance:compose".into(),
+                resource_ref: "resource:test".into(),
+                cost_model_ref: "cost-model:test".into(),
+                reliability_profile_ref: "reliability:strict".into(),
+                reversibility_profile_ref: "reversibility:pure".into(),
+                work_item_ref: "focusa-a6yq6.7.1".into(),
+                action_intent_ref: "action-intent:compose".into(),
+                blocker_ref: "blocker:server-proof".into(),
+                verification_record_ref: "verification:authority".into(),
+                evidence_artifact_ref: "evidence:authority".into(),
             },
             work_item_ref: session.work_item_ref.clone(),
             workspace: BootstrapWorkspaceBinding {
@@ -528,6 +557,9 @@ mod tests {
         assert_eq!(envelope.active_gap, "authority envelope is not verified");
         assert_eq!(envelope.exact_next_action, "compose authority envelope");
         assert_eq!(envelope.hook_refs, vec!["hook:before-run"]);
+        assert_eq!(envelope.ontology.agent_identity_ref, "agent:authority-test");
+        assert_eq!(envelope.context_risk_refs, vec!["risk:authority-drift"]);
+        assert_eq!(envelope.valid_next_tools, vec!["tool:workpoint-resume"]);
         assert!(envelope.trajectory_is_advisory);
         assert!(envelope.workpoint_is_action_authority);
 

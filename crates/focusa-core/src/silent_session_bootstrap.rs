@@ -11,7 +11,7 @@ use crate::silent_session::{
     ModelBinding, OperatorAskBinding, SILENT_SESSION_LEASE_SCHEMA, SilentSessionId,
     SilentSessionLease, SilentSessionRunId, WorkpointBinding,
 };
-use crate::silent_session_authorization::ContextAuthorityGrant;
+use crate::silent_session_authorization::{ContextAuthorityActionClass, ContextAuthorityGrant};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -85,6 +85,61 @@ pub struct ContextBootstrapBinding {
     pub canonical_mutation_allowed: bool,
     pub selected_context: Vec<String>,
     pub excluded_context: Vec<String>,
+    pub risk_refs: Vec<String>,
+    pub valid_next_tools: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SilentSessionOntologyBindings {
+    pub agent_identity_ref: String,
+    pub actor_instance_ref: String,
+    pub role_profile_ref: String,
+    pub capability_profile_ref: String,
+    pub permission_profile_ref: String,
+    pub responsibility_ref: String,
+    pub handoff_boundary_ref: String,
+    pub execution_context_ref: String,
+    pub tool_surface_ref: String,
+    pub affordance_ref: String,
+    pub resource_ref: String,
+    pub cost_model_ref: String,
+    pub reliability_profile_ref: String,
+    pub reversibility_profile_ref: String,
+    pub work_item_ref: String,
+    pub action_intent_ref: String,
+    pub blocker_ref: String,
+    pub verification_record_ref: String,
+    pub evidence_artifact_ref: String,
+}
+
+impl SilentSessionOntologyBindings {
+    fn validate(&self) -> Result<(), AgentBootstrapBarrierError> {
+        let refs = [
+            self.agent_identity_ref.as_str(),
+            self.actor_instance_ref.as_str(),
+            self.role_profile_ref.as_str(),
+            self.capability_profile_ref.as_str(),
+            self.permission_profile_ref.as_str(),
+            self.responsibility_ref.as_str(),
+            self.handoff_boundary_ref.as_str(),
+            self.execution_context_ref.as_str(),
+            self.tool_surface_ref.as_str(),
+            self.affordance_ref.as_str(),
+            self.resource_ref.as_str(),
+            self.cost_model_ref.as_str(),
+            self.reliability_profile_ref.as_str(),
+            self.reversibility_profile_ref.as_str(),
+            self.work_item_ref.as_str(),
+            self.action_intent_ref.as_str(),
+            self.blocker_ref.as_str(),
+            self.verification_record_ref.as_str(),
+            self.evidence_artifact_ref.as_str(),
+        ];
+        if refs.iter().any(|value| value.trim().is_empty()) {
+            return Err(AgentBootstrapBarrierError::MissingField("ontology_ref"));
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -109,6 +164,7 @@ pub struct AgentBootstrapPacket {
     pub workpoint: WorkpointBootstrapBinding,
     pub operator_ask: OperatorAskBinding,
     pub context: ContextBootstrapBinding,
+    pub ontology: SilentSessionOntologyBindings,
     pub work_item_ref: Option<String>,
     pub workspace: BootstrapWorkspaceBinding,
     pub model: ModelBinding,
@@ -135,6 +191,7 @@ impl AgentBootstrapPacket {
         self.operator_ask
             .validate()
             .map_err(|_| AgentBootstrapBarrierError::ScopeMismatch("operator_ask"))?;
+        self.ontology.validate()?;
         if self.trajectory.status == TrajectoryBootstrapStatus::GenericDegraded {
             return Err(AgentBootstrapBarrierError::GenericTrajectoryBlocked);
         }
@@ -345,11 +402,117 @@ pub fn verify_agent_bootstrap_packet(
     })
 }
 
+#[derive(Serialize)]
+struct ContextAuthorityActionDigest<'a> {
+    bootstrap_packet_sha256: String,
+    action_class: ContextAuthorityActionClass,
+    action: &'a str,
+}
+
+pub fn context_authority_action_digest(
+    packet: &AgentBootstrapPacket,
+    action_class: ContextAuthorityActionClass,
+    action: &str,
+) -> Result<String, AgentBootstrapBarrierError> {
+    if action.trim().is_empty() {
+        return Err(AgentBootstrapBarrierError::ContextAuthorityDenied);
+    }
+    let material = ContextAuthorityActionDigest {
+        bootstrap_packet_sha256: packet.sha256()?,
+        action_class,
+        action,
+    };
+    let bytes = serde_json::to_vec(&material)
+        .map_err(|_| AgentBootstrapBarrierError::SerializationFailed)?;
+    Ok(hex::encode(Sha256::digest(bytes)))
+}
+
+fn verify_context_authority_for_action(
+    packet: &AgentBootstrapPacket,
+    authority: &ContextAuthorityGrant,
+    action_class: ContextAuthorityActionClass,
+    action: &str,
+    now: DateTime<Utc>,
+) -> Result<(), AgentBootstrapBarrierError> {
+    let packet_workpoint_ref = packet.workpoint.workpoint_ref.workpoint_id.as_str();
+    let expected_digest = context_authority_action_digest(packet, action_class, action)?;
+    if !authority.allowed
+        || authority.verdict_ref.trim().is_empty()
+        || authority.action_class != action_class
+        || authority.action != action
+        || authority.action_digest != expected_digest
+        || authority.issued_at > now
+        || authority.expires_at <= now
+        || authority.expires_at - authority.issued_at > chrono::Duration::minutes(5)
+        || authority.project_identity_ref != packet.project_identity.project_identity_ref
+        || authority.continuity_id != packet.continuity_id
+        || authority.workpoint_ref.as_deref() != Some(packet_workpoint_ref)
+    {
+        return Err(AgentBootstrapBarrierError::ContextAuthorityDenied);
+    }
+    Ok(())
+}
+
+pub struct MajorTransitionBarrierRequest<'a> {
+    pub packet: &'a AgentBootstrapPacket,
+    pub bootstrap_verification: &'a AgentBootstrapVerification,
+    pub context_authority: &'a ContextAuthorityGrant,
+    pub action_class: ContextAuthorityActionClass,
+    pub action: &'a str,
+    pub now: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VerifiedMajorTransitionGrant {
+    pub session_id: SilentSessionId,
+    pub run_id: SilentSessionRunId,
+    pub generation: u64,
+    pub action_class: ContextAuthorityActionClass,
+    pub action: String,
+    pub action_digest: String,
+    pub context_authority_ref: String,
+    pub valid_until: DateTime<Utc>,
+}
+
+pub fn verify_major_transition_barrier(
+    request: &MajorTransitionBarrierRequest<'_>,
+) -> Result<VerifiedMajorTransitionGrant, AgentBootstrapBarrierError> {
+    request
+        .bootstrap_verification
+        .verify_for(request.packet, request.now)?;
+    verify_context_authority_for_action(
+        request.packet,
+        request.context_authority,
+        request.action_class,
+        request.action,
+        request.now,
+    )?;
+    Ok(VerifiedMajorTransitionGrant {
+        session_id: request.packet.session_id,
+        run_id: request.packet.run_id,
+        generation: request.packet.generation,
+        action_class: request.action_class,
+        action: request.action.to_owned(),
+        action_digest: request.context_authority.action_digest.clone(),
+        context_authority_ref: request.context_authority.verdict_ref.clone(),
+        valid_until: [
+            request.packet.fresh_until,
+            request.bootstrap_verification.fresh_until,
+            request.context_authority.expires_at,
+        ]
+        .into_iter()
+        .min()
+        .expect("major transition has three expiry bounds"),
+    })
+}
+
 pub struct ProjectMutationBarrierRequest<'a> {
     pub packet: &'a AgentBootstrapPacket,
     pub bootstrap_verification: &'a AgentBootstrapVerification,
     pub lease: &'a SilentSessionLease,
     pub context_authority: &'a ContextAuthorityGrant,
+    pub action_class: ContextAuthorityActionClass,
+    pub action: &'a str,
     pub actor_instance_ref: &'a str,
     pub requested_model: &'a ModelBinding,
     pub effective_model: Option<&'a ModelBinding>,
@@ -464,16 +627,13 @@ pub fn verify_project_mutation_barrier(
     }
 
     let authority = request.context_authority;
-    let packet_workpoint_ref = packet.workpoint.workpoint_ref.workpoint_id.clone();
-    if !authority.allowed
-        || authority.verdict_ref.trim().is_empty()
-        || authority.expires_at <= request.now
-        || authority.project_identity_ref != packet.project_identity.project_identity_ref
-        || authority.continuity_id != packet.continuity_id
-        || authority.workpoint_ref.as_deref() != Some(packet_workpoint_ref.as_str())
-    {
-        return Err(AgentBootstrapBarrierError::ContextAuthorityDenied);
-    }
+    verify_context_authority_for_action(
+        packet,
+        authority,
+        request.action_class,
+        request.action,
+        request.now,
+    )?;
 
     let Some(effective_model) = request.effective_model else {
         return Err(AgentBootstrapBarrierError::ModelNotVerified);
@@ -598,12 +758,38 @@ mod tests {
                 bootstrap_verification: &self.verification,
                 lease: &self.lease,
                 context_authority: &self.authority,
+                action_class: ContextAuthorityActionClass::GeneratedCodeOverwrite,
+                action: "project_mutation",
                 actor_instance_ref: &self.actor_instance_ref,
                 requested_model: &self.requested,
                 effective_model: self.effective.as_ref(),
                 observed_model: self.observed.as_ref(),
                 now: self.now,
             }
+        }
+    }
+
+    fn ontology() -> SilentSessionOntologyBindings {
+        SilentSessionOntologyBindings {
+            agent_identity_ref: "agent:spec133".into(),
+            actor_instance_ref: "actor-instance:spec133".into(),
+            role_profile_ref: "role:implementer".into(),
+            capability_profile_ref: "capability:rust".into(),
+            permission_profile_ref: "permission:isolated-worktree".into(),
+            responsibility_ref: "responsibility:work-item".into(),
+            handoff_boundary_ref: "handoff:operator".into(),
+            execution_context_ref: "execution-context:spec133".into(),
+            tool_surface_ref: "tool-surface:runner".into(),
+            affordance_ref: "affordance:project-mutation".into(),
+            resource_ref: "resource:local-runner".into(),
+            cost_model_ref: "cost-model:test".into(),
+            reliability_profile_ref: "reliability:strict".into(),
+            reversibility_profile_ref: "reversibility:worktree".into(),
+            work_item_ref: "focusa-a6yq6.4.4".into(),
+            action_intent_ref: "action-intent:guarded-mutation".into(),
+            blocker_ref: "blocker:none".into(),
+            verification_record_ref: "verification:bootstrap".into(),
+            evidence_artifact_ref: "evidence:bootstrap".into(),
         }
     }
 
@@ -682,7 +868,10 @@ mod tests {
                 canonical_mutation_allowed: false,
                 selected_context: vec!["docs/spec133".into(), "src/adapter".into()],
                 excluded_context: vec!["unrelated/project".into()],
+                risk_refs: vec!["risk:project-mutation".into()],
+                valid_next_tools: vec!["tool:workpoint-checkpoint".into()],
             },
+            ontology: ontology(),
             work_item_ref: Some("focusa-a6yq6.4.4".into()),
             workspace: BootstrapWorkspaceBinding {
                 workspace_ref: "workspace:spec133".into(),
@@ -727,6 +916,15 @@ mod tests {
             project_identity_ref,
             continuity_id,
             workpoint_ref: Some(workpoint_ref.workpoint_id),
+            action_class: ContextAuthorityActionClass::GeneratedCodeOverwrite,
+            action: "project_mutation".into(),
+            action_digest: context_authority_action_digest(
+                &packet,
+                ContextAuthorityActionClass::GeneratedCodeOverwrite,
+                "project_mutation",
+            )
+            .unwrap(),
+            issued_at: now,
             expires_at: now + Duration::minutes(1),
         };
         Fixture {
@@ -786,6 +984,41 @@ mod tests {
         assert_eq!(
             verify_agent_bootstrap_packet(&escalated, fixture.now),
             Err(AgentBootstrapBarrierError::ContextAuthorityEscalation)
+        );
+    }
+
+    #[test]
+    fn major_transition_requires_fresh_action_specific_bootstrap_authority() {
+        let fixture = fixture();
+        let mut authority = fixture.authority.clone();
+        authority.action_class = ContextAuthorityActionClass::DaemonOrServiceRestart;
+        authority.action = "restart_daemon".into();
+        authority.action_digest = context_authority_action_digest(
+            &fixture.packet,
+            authority.action_class,
+            &authority.action,
+        )
+        .unwrap();
+        let request = MajorTransitionBarrierRequest {
+            packet: &fixture.packet,
+            bootstrap_verification: &fixture.verification,
+            context_authority: &authority,
+            action_class: ContextAuthorityActionClass::DaemonOrServiceRestart,
+            action: "restart_daemon",
+            now: fixture.now,
+        };
+        let grant = verify_major_transition_barrier(&request).unwrap();
+        assert_eq!(grant.action, "restart_daemon");
+        assert_eq!(grant.action_digest, authority.action_digest);
+
+        let wrong_action = MajorTransitionBarrierRequest {
+            action_class: ContextAuthorityActionClass::Release,
+            action: "release",
+            ..request
+        };
+        assert_eq!(
+            verify_major_transition_barrier(&wrong_action),
+            Err(AgentBootstrapBarrierError::ContextAuthorityDenied)
         );
     }
 

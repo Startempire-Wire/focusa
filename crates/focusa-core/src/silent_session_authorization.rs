@@ -63,6 +63,23 @@ pub struct SilentSessionPrincipal {
     pub scopes: BTreeSet<SilentSessionScope>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ContextAuthorityActionClass {
+    SessionLaunchMutation,
+    DaemonOrServiceRestart,
+    GitIntegration,
+    Deploy,
+    Release,
+    DatabaseMigration,
+    DestructiveFileOperation,
+    SecretOrConfigChange,
+    CrossProjectEdit,
+    GeneratedCodeOverwrite,
+    ModelOrTrustPolicyChange,
+    OtherRiskyMutation,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ContextAuthorityGrant {
     pub verdict_ref: String,
@@ -70,6 +87,10 @@ pub struct ContextAuthorityGrant {
     pub project_identity_ref: String,
     pub continuity_id: String,
     pub workpoint_ref: Option<String>,
+    pub action_class: ContextAuthorityActionClass,
+    pub action: String,
+    pub action_digest: String,
+    pub issued_at: DateTime<Utc>,
     pub expires_at: DateTime<Utc>,
 }
 
@@ -229,7 +250,14 @@ pub fn authorize_silent_session(
         let verdict = request
             .context_authority
             .ok_or(AuthorizationError::ContextAuthorityDenied)?;
-        if !verdict.allowed || verdict.expires_at <= request.now {
+        if !verdict.allowed
+            || verdict.action.trim().is_empty()
+            || verdict.action_digest != digest
+            || verdict.action != request.action.action
+            || verdict.issued_at > request.now
+            || verdict.expires_at <= request.now
+            || verdict.expires_at - verdict.issued_at > chrono::Duration::minutes(5)
+        {
             return Err(AuthorizationError::ContextAuthorityDenied);
         }
         if verdict.project_identity_ref != principal.project_identity_ref {
@@ -453,6 +481,10 @@ mod tests {
             project_identity_ref: principal.project_identity_ref.clone(),
             continuity_id: principal.continuity_id.clone(),
             workpoint_ref: principal.workpoint_ref.clone(),
+            action_class: ContextAuthorityActionClass::SessionLaunchMutation,
+            action: action.action.clone(),
+            action_digest: action.digest().unwrap(),
+            issued_at: now,
             expires_at: now + Duration::minutes(5),
         };
         let lease = SilentSessionLease {
@@ -520,6 +552,28 @@ mod tests {
         assert_eq!(
             grant.context_authority_ref.as_deref(),
             Some("context-authority:1")
+        );
+
+        let mut wrong_context_action = context.clone();
+        wrong_context_action.action = "release".into();
+        let denied_context_action = SilentSessionAuthorizationRequest {
+            context_authority: Some(&wrong_context_action),
+            ..request.clone()
+        };
+        assert_eq!(
+            authorize_silent_session(&denied_context_action),
+            Err(AuthorizationError::ContextAuthorityDenied)
+        );
+
+        let mut overlong_context = context.clone();
+        overlong_context.expires_at = overlong_context.issued_at + Duration::minutes(6);
+        let denied_overlong = SilentSessionAuthorizationRequest {
+            context_authority: Some(&overlong_context),
+            ..request.clone()
+        };
+        assert_eq!(
+            authorize_silent_session(&denied_overlong),
+            Err(AuthorizationError::ContextAuthorityDenied)
         );
 
         let mut wrong_scope = principal.clone();
