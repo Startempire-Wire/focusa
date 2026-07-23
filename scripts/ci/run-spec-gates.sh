@@ -110,3 +110,10 @@ run_gate bash ./tests/release_proof_status_route_static_test.sh
 run_gate bash ./tests/spec80_impl_parquet_export_support_test.sh
 run_gate bash ./tests/spec96_trajectory_context_tool_docs_static_test.sh
 run_gate bash ./tests/spec96_static_false_positive_guard_test.sh
+
+for gate in ./tests/spec133_*static_test.py; do
+  run_gate python3 "$gate"
+done
+for fixture_mode in harness subprocess child-leak prompt-wait output-flood model-mismatch retry-failure isolated-git entitlement runner-disconnect; do
+  run_gate python3 ./tests/spec133_fault_fixture.py "$fixture_mode" --lines 32
+done
