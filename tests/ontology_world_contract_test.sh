@@ -45,7 +45,7 @@ echo ""
 
 log_info "Seed bounded working world"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-FIXTURE_PARENT="${REPO_ROOT}/.tmp"
+FIXTURE_PARENT="${TMPDIR:-/tmp}"
 mkdir -p "${FIXTURE_PARENT}"
 WORKSPACE_ROOT="${FIXTURE_PARENT}/focusa-ontology-workspace-$(date +%s%N)"
 mkdir -p "${WORKSPACE_ROOT}/.git" "${WORKSPACE_ROOT}/.beads" "${WORKSPACE_ROOT}/src/routes" "${WORKSPACE_ROOT}/tests" "${WORKSPACE_ROOT}/migrations"
