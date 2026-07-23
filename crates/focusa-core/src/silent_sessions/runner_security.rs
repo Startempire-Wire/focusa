@@ -58,6 +58,8 @@ pub enum RunnerAuthenticationError {
     PayloadMismatch,
     #[error("runner command key must not be empty")]
     EmptyKey,
+    #[error("runner command signing payload serialization failed")]
+    Serialization,
 }
 
 impl AuthenticatedRunnerCommand {
@@ -83,7 +85,7 @@ impl AuthenticatedRunnerCommand {
             expires_at: claims.expires_at,
             auth_tag: String::new(),
         };
-        command.auth_tag = hmac_sha256_hex(key, &command.signing_bytes());
+        command.auth_tag = hmac_sha256_hex(key, &command.signing_bytes()?);
         Ok(command)
     }
 
@@ -123,7 +125,7 @@ impl AuthenticatedRunnerCommand {
         if consumed_nonces.contains(&self.nonce) {
             return Err(RunnerAuthenticationError::Replay);
         }
-        let expected = hmac_sha256_hex(key, &self.signing_bytes());
+        let expected = hmac_sha256_hex(key, &self.signing_bytes()?);
         if !constant_time_eq(expected.as_bytes(), self.auth_tag.as_bytes()) {
             return Err(RunnerAuthenticationError::InvalidTag);
         }
@@ -131,7 +133,7 @@ impl AuthenticatedRunnerCommand {
         Ok(())
     }
 
-    fn signing_bytes(&self) -> Vec<u8> {
+    fn signing_bytes(&self) -> Result<Vec<u8>, RunnerAuthenticationError> {
         serde_json::to_vec(&(
             self.command_id,
             self.session_id,
@@ -145,7 +147,7 @@ impl AuthenticatedRunnerCommand {
             self.issued_at,
             self.expires_at,
         ))
-        .expect("runner command signing payload serializes")
+        .map_err(|_| RunnerAuthenticationError::Serialization)
     }
 }
 
