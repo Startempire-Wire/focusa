@@ -16,7 +16,8 @@ use crate::identity::VerifiedExecutionContext;
 #[cfg(unix)]
 use crate::process_posix::{
     ControlledStopPolicy, ControlledStopReport, ExitedRunRecord, HeartbeatSnapshot,
-    NativeAbortDisposition, PosixProcessSupervisor, PosixSpawnRequest, SupervisorError,
+    NativeAbortDisposition, PosixProcessSupervisor, PosixSpawnRequest, ProcessControlReport,
+    SupervisorError,
 };
 #[cfg(unix)]
 use crate::protocol::{ActiveRunRecord, AdoptionDecision, AdoptionExpectation};
@@ -237,6 +238,7 @@ pub fn posix_direct_descriptor() -> ProcessBackendDescriptor {
     capabilities.detached_execution = CapabilitySupport::Native;
     capabilities.reconnect_after_client_exit = CapabilitySupport::Native;
     capabilities.process_tree_kill = CapabilitySupport::Native;
+    capabilities.hard_pause = CapabilitySupport::Native;
     ProcessBackendDescriptor {
         schema: PROCESS_BACKEND_PROTOCOL_SCHEMA.into(),
         backend_id: POSIX_DIRECT_BACKEND_ID.into(),
@@ -246,7 +248,7 @@ pub fn posix_direct_descriptor() -> ProcessBackendDescriptor {
         limitations: vec![
             "current direct backend launches null stdin/stdout/stderr; RPC capture is not yet negotiated".into(),
             "daemon restart and machine reboot survival are unsupported".into(),
-            "PTY, attach, text/key delivery, hard pause, and OS resource limits are unsupported".into(),
+            "PTY, attach, text/key delivery, and OS resource limits are unsupported".into(),
         ],
     }
 }
@@ -329,6 +331,24 @@ impl DirectProcessBackend {
         self.supervisor.evaluate_adoption(expectation, observed_at)
     }
 
+    pub fn hard_pause(
+        &mut self,
+        run_id: SilentSessionRunId,
+        generation: u64,
+        observed_at: DateTime<Utc>,
+    ) -> Result<ProcessControlReport, SupervisorError> {
+        self.supervisor.hard_pause(run_id, generation, observed_at)
+    }
+
+    pub fn hard_resume(
+        &mut self,
+        run_id: SilentSessionRunId,
+        generation: u64,
+        observed_at: DateTime<Utc>,
+    ) -> Result<ProcessControlReport, SupervisorError> {
+        self.supervisor.hard_resume(run_id, generation, observed_at)
+    }
+
     pub async fn controlled_stop<F>(
         &mut self,
         run_id: SilentSessionRunId,
@@ -384,6 +404,14 @@ mod tests {
             descriptor
                 .negotiate(&requirement(
                     ProcessBackendCapability::ProcessTreeKill,
+                    CapabilityRequirement::Native,
+                ))
+                .is_ok()
+        );
+        assert!(
+            descriptor
+                .negotiate(&requirement(
+                    ProcessBackendCapability::HardPause,
                     CapabilityRequirement::Native,
                 ))
                 .is_ok()

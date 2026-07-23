@@ -142,6 +142,27 @@ pub struct ControlledStopReport {
     pub events: Vec<ControlledStopEvent>,
 }
 
+pub const PROCESS_CONTROL_REPORT_SCHEMA: &str = "focusa.process_control_report.v1";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProcessControlAction {
+    HardPause,
+    HardResume,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProcessControlReport {
+    pub schema: String,
+    pub session_id: SilentSessionId,
+    pub run_id: SilentSessionRunId,
+    pub generation: u64,
+    pub process_instance_id: String,
+    pub action: ProcessControlAction,
+    pub process_group_id: i64,
+    pub observed_at: DateTime<Utc>,
+}
+
 struct OwnedProcess {
     child: Child,
     record: ActiveRunRecord,
@@ -374,6 +395,77 @@ impl PosixProcessSupervisor {
         expectation
             .evaluate(&owned.record)
             .map_err(SupervisorError::Protocol)
+    }
+
+    /// Suspend the complete owned process group after exact generation and
+    /// process-instance validation. Soft pause remains a daemon dispatch state;
+    /// this method is the capability-gated POSIX hard-pause implementation.
+    pub fn hard_pause(
+        &mut self,
+        run_id: SilentSessionRunId,
+        generation: u64,
+        observed_at: DateTime<Utc>,
+    ) -> Result<ProcessControlReport, SupervisorError> {
+        self.apply_process_control(
+            run_id,
+            generation,
+            ProcessControlAction::HardPause,
+            Signal::SIGSTOP,
+            observed_at,
+        )
+    }
+
+    /// Resume only the exact generation that was paused; stale controls cannot
+    /// signal a newer process that reused the logical session.
+    pub fn hard_resume(
+        &mut self,
+        run_id: SilentSessionRunId,
+        generation: u64,
+        observed_at: DateTime<Utc>,
+    ) -> Result<ProcessControlReport, SupervisorError> {
+        self.apply_process_control(
+            run_id,
+            generation,
+            ProcessControlAction::HardResume,
+            Signal::SIGCONT,
+            observed_at,
+        )
+    }
+
+    fn apply_process_control(
+        &mut self,
+        run_id: SilentSessionRunId,
+        generation: u64,
+        action: ProcessControlAction,
+        signal: Signal,
+        observed_at: DateTime<Utc>,
+    ) -> Result<ProcessControlReport, SupervisorError> {
+        let owned = self
+            .runs
+            .get_mut(&run_id)
+            .ok_or(SupervisorError::RunNotOwned(run_id))?;
+        if owned.record.generation != generation {
+            return Err(SupervisorError::RunGenerationMismatch {
+                expected: owned.record.generation,
+                actual: generation,
+            });
+        }
+        if owned.child.try_wait().map_err(io_error)?.is_some() {
+            return Err(SupervisorError::ProcessNoLongerExists);
+        }
+        validate_live_process_tree(&owned.record)?;
+        let process_group = process_group_pid(&owned.record)?;
+        signal_process_group(process_group, signal)?;
+        Ok(ProcessControlReport {
+            schema: PROCESS_CONTROL_REPORT_SCHEMA.into(),
+            session_id: owned.record.session_id,
+            run_id: owned.record.run_id,
+            generation: owned.record.generation,
+            process_instance_id: owned.record.process_tree.process_instance_id.clone(),
+            action,
+            process_group_id: i64::from(process_group.as_raw()),
+            observed_at,
+        })
     }
 
     /// Execute the Spec 133 controlled-stop ladder against the complete owned
@@ -780,6 +872,8 @@ pub enum SupervisorError {
     SessionAlreadyHasActiveRun(SilentSessionId),
     #[error("run is not owned by this runner: {0}")]
     RunNotOwned(SilentSessionRunId),
+    #[error("run generation mismatch: expected {expected}, received {actual}")]
+    RunGenerationMismatch { expected: u64, actual: u64 },
     #[error("controlled-stop policy requires a nonzero polling interval")]
     InvalidControlledStopPolicy,
     #[error("runner executable must be absolute: {0}")]
@@ -913,6 +1007,24 @@ mod tests {
         panic!("runner child did not create {}", path.display());
     }
 
+    fn read_counter(path: &Path) -> u64 {
+        fs::read_to_string(path)
+            .ok()
+            .and_then(|value| value.trim().parse().ok())
+            .unwrap_or(0)
+    }
+
+    async fn wait_for_counter_above(path: &Path, minimum: u64) -> u64 {
+        for _ in 0..200 {
+            let value = read_counter(path);
+            if value > minimum {
+                return value;
+            }
+            sleep(TokioDuration::from_millis(5)).await;
+        }
+        panic!("runner counter did not advance at {}", path.display());
+    }
+
     fn short_stop_policy() -> ControlledStopPolicy {
         ControlledStopPolicy {
             native_abort_grace: TokioDuration::from_millis(50),
@@ -1031,6 +1143,59 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn hard_pause_is_generation_fenced_and_suspends_the_complete_group() {
+        let project = TestProject::new();
+        let current = OsIdentity::current().expect("current identity should resolve");
+        let context = project.context(current.uid);
+        let counter = context
+            .authorize_mutation_path("pause-counter")
+            .expect("counter path should be workspace-scoped");
+        let script =
+            "i=0; while :; do i=$((i+1)); printf '%s' \"$i\" > pause-counter; sleep 0.01; done";
+        let request = spawn_request(script);
+        let run_id = request.run_id;
+        let generation = request.generation;
+        let mut supervisor = PosixProcessSupervisor::for_current_user("runner:hard-pause")
+            .expect("runner should initialize");
+        supervisor
+            .spawn(&context, request, Utc::now())
+            .expect("process should spawn");
+        let before_pause = wait_for_counter_above(counter.as_path(), 2).await;
+
+        let paused = supervisor
+            .hard_pause(run_id, generation, Utc::now())
+            .expect("exact generation should hard-pause");
+        assert_eq!(paused.action, ProcessControlAction::HardPause);
+        sleep(TokioDuration::from_millis(30)).await;
+        let paused_value = read_counter(counter.as_path());
+        assert!(paused_value >= before_pause);
+        sleep(TokioDuration::from_millis(100)).await;
+        assert_eq!(read_counter(counter.as_path()), paused_value);
+
+        let stale = supervisor
+            .hard_resume(run_id, generation + 1, Utc::now())
+            .expect_err("stale generation must not resume a process tree");
+        assert!(matches!(
+            stale,
+            SupervisorError::RunGenerationMismatch {
+                expected,
+                actual
+            } if expected == generation && actual == generation + 1
+        ));
+        assert_eq!(read_counter(counter.as_path()), paused_value);
+
+        let resumed = supervisor
+            .hard_resume(run_id, generation, Utc::now())
+            .expect("exact generation should resume");
+        assert_eq!(resumed.action, ProcessControlAction::HardResume);
+        wait_for_counter_above(counter.as_path(), paused_value).await;
+        supervisor
+            .force_terminate(run_id, Utc::now())
+            .await
+            .expect("test process should terminate");
+    }
+
+    #[tokio::test]
     async fn controlled_stop_prefers_harness_native_abort_and_events_every_stage() {
         let project = TestProject::new();
         let current = OsIdentity::current().expect("current identity should resolve");
@@ -1038,7 +1203,11 @@ mod tests {
         let ready = context
             .authorize_mutation_path("native-abort-ready")
             .expect("ready path should be workspace-scoped");
-        let script = "trap 'exit 0' USR1; : > native-abort-ready; while :; do sleep 1; done";
+        let abort_request = context
+            .authorize_mutation_path("native-abort-request")
+            .expect("abort path should be workspace-scoped");
+        let script =
+            ": > native-abort-ready; while [ ! -f native-abort-request ]; do sleep 0.005; done";
         let request = spawn_request(script);
         let run_id = request.run_id;
         let mut supervisor = PosixProcessSupervisor::for_current_user("runner:native-abort")
@@ -1049,9 +1218,9 @@ mod tests {
         wait_for_path(ready.as_path()).await;
 
         let report = supervisor
-            .controlled_stop(run_id, short_stop_policy(), |record| {
-                let group = process_group_pid(record).expect("group should be valid");
-                killpg(group, Signal::SIGUSR1).expect("native abort signal should be delivered");
+            .controlled_stop(run_id, short_stop_policy(), |_| {
+                fs::write(abort_request.as_path(), b"abort")
+                    .expect("native abort request should be delivered");
                 NativeAbortDisposition::Requested
             })
             .await

@@ -247,6 +247,10 @@ fn pi_rpc_negotiates_truthful_capabilities_and_builds_exact_launch() {
         CapabilitySupport::Unsupported
     );
     assert_eq!(
+        descriptor.capabilities.special_keys,
+        CapabilitySupport::Unsupported
+    );
+    assert_eq!(
         descriptor.capabilities.subscription_entitlement_probe,
         CapabilitySupport::Unsupported
     );
@@ -334,6 +338,7 @@ fn pi_rpc_control_query_and_event_translation_follow_published_jsonl_contract() 
     let responses = [
         json!({"type":"response","command":"prompt","success":true}),
         json!({"type":"response","command":"steer","success":true}),
+        json!({"type":"response","command":"follow_up","success":true}),
         state_response.clone(),
         state_response,
         json!({
@@ -372,6 +377,16 @@ fn pi_rpc_control_query_and_event_translation_follow_published_jsonl_contract() 
             },
         )
         .expect("steering should be accepted");
+    adapter
+        .send_input(
+            run.clone(),
+            InputPayload {
+                kind: InputKind::Followup,
+                message: "queue the verification summary".into(),
+                images: vec![],
+            },
+        )
+        .expect("follow-up should be accepted");
     let state = adapter
         .query_state(run.clone())
         .expect("state and native session ref should parse");
@@ -406,16 +421,19 @@ fn pi_rpc_control_query_and_event_translation_follow_published_jsonl_contract() 
         .expect("abort should be accepted");
 
     let requests = &adapter.transport().requests;
-    assert_eq!(requests.len(), 7);
+    assert_eq!(requests.len(), 8);
     assert_eq!(requests[0].0.as_ref(), Some(&run));
     assert_eq!(requests[0].1["type"], "prompt");
+    assert_eq!(requests[1].0.as_ref(), Some(&run));
     assert_eq!(requests[1].1["type"], "steer");
-    assert_eq!(requests[2].1["type"], "get_state");
+    assert_eq!(requests[2].0.as_ref(), Some(&run));
+    assert_eq!(requests[2].1["type"], "follow_up");
     assert_eq!(requests[3].1["type"], "get_state");
-    assert_eq!(requests[4].1["type"], "get_session_stats");
-    assert!(requests[5].0.is_none());
-    assert_eq!(requests[5].1["type"], "switch_session");
-    assert_eq!(requests[6].1["type"], "abort");
+    assert_eq!(requests[4].1["type"], "get_state");
+    assert_eq!(requests[5].1["type"], "get_session_stats");
+    assert!(requests[6].0.is_none());
+    assert_eq!(requests[6].1["type"], "switch_session");
+    assert_eq!(requests[7].1["type"], "abort");
 
     let text = adapter
         .parse_event(
@@ -432,6 +450,23 @@ fn pi_rpc_control_query_and_event_translation_follow_published_jsonl_contract() 
         .expect("unknown additive event should be preserved");
     assert_eq!(unknown[0].kind, "harness.unknown");
     assert_eq!(unknown[0].payload["type"], "future_pi_event");
+
+    let mut invalid = PiRpcAdapter::new(ScriptedTransport::default());
+    assert!(matches!(
+        invalid.send_input(
+            RunRef {
+                run_id: run.run_id,
+                generation: 0,
+            },
+            InputPayload {
+                kind: InputKind::Steering,
+                message: "stale control".into(),
+                images: vec![],
+            },
+        ),
+        Err(HarnessAdapterError::InvalidRunRef)
+    ));
+    assert!(invalid.transport().requests.is_empty());
 
     let mut cancelled = PiRpcAdapter::new(ScriptedTransport::with_responses([json!({
         "type":"response","command":"switch_session","success":true,"data":{"cancelled":true}
