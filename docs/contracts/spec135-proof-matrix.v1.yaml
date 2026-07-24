@@ -1758,7 +1758,7 @@
         "Every mandatory gate passes from a clean synchronized checkout"
       ],
       "bead_id": "focusa-mc-z4",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "test manifest",
         "Eval refs",
@@ -1771,7 +1771,8 @@
       "requirement_id": "SPEC135-Z4",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
-        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh"
+        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh",
+        "scripts/spec135-z4-closure-gate.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"

@@ -4793,9 +4793,9 @@
         "typescript",
         "uiai_engine_cockpit"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "closure",
       "dependencies": [
         "SPEC135-Z1",
@@ -4846,7 +4846,8 @@
       "source_spec": "135A\u2013135K acceptance sections",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
-        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh"
+        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh",
+        "scripts/spec135-z4-closure-gate.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
