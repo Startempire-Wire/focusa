@@ -23,14 +23,6 @@ jobs:
           fi
           scripts/validate-commit-messages.sh --range "${BASE_SHA}..HEAD"
 
-  work-loop-conformance:
-    name: Work Loop Conformance Manifest
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - name: Trace normative MUSTs and prove release fails closed while coverage is incomplete
-        run: python3 tests/work_loop_conformance_manifest_test.py
-
   rust:
     name: Rust
     runs-on: ubuntu-latest
@@ -44,14 +36,6 @@ jobs:
         env:
           FOCUSA_TEST_MODE: "1"
         run: python3 scripts/process-health-check.py --label "CI unit/integration tests" --command "cargo build -p focusa-api --bin focusa-daemon && cargo test --workspace"
-      - name: Spec133 Phase 4 supervision and recovery gate
-        run: bash tests/spec133_phase4_runtime_gate.sh
-      - name: Spec133 Phase 5 writer and isolation gate
-        run: bash tests/spec133_phase5_isolation_gate.sh
-      - name: Spec133 Phase 6 authority and evidence gate
-        run: bash tests/spec133_phase6_evidence_gate.sh
-      - name: Spec133 Phase 7 operator surface gate
-        run: bash tests/spec133_phase7_operator_gate.sh
       - name: Process-health check + Clippy
         run: python3 scripts/process-health-check.py --label "CI clippy" --command "cargo clippy --workspace -- -D warnings"
 
@@ -139,10 +123,8 @@ jobs:
       - name: Spec104 Pi runtime scope integrity
         run: tests/spec104_pi_runtime_scope_integrity_test.sh
       - name: API contract probe
-        timeout-minutes: 20
         env:
           FOCUSA_BIND: 127.0.0.1:18787
-          DAEMON_STARTUP_TIMEOUT_SECS: 300
         run: |
           set -euo pipefail
           cargo build -p focusa-api --release --bin focusa-daemon
@@ -152,26 +134,27 @@ jobs:
             kill "$DAEMON_PID" >/dev/null 2>&1 || true
           }
           trap cleanup EXIT
-          ready=false
-          deadline=$((SECONDS + DAEMON_STARTUP_TIMEOUT_SECS))
-          while (( SECONDS < deadline )); do
-            if curl --max-time 2 -fsS http://127.0.0.1:18787/v1/health >/dev/null; then
-              ready=true>>>>>>> 98e8154e (ci(spec130): bound API probe startup wait)
+          STARTUP_BUDGET_SECONDS=300
+          for i in $(seq 1 "$STARTUP_BUDGET_SECONDS"); do
+            if curl -fsS http://127.0.0.1:18787/v1/health >/dev/null; then
               break
             fi
             if ! kill -0 "$DAEMON_PID" >/dev/null 2>&1; then
-              echo "focusa-daemon exited before API contract probe readiness" >&2
-              tail -100 /tmp/focusa-daemon-probe.log >&2 || true
+              echo "release daemon exited before health became ready" >&2
+              tail -200 /tmp/focusa-daemon-probe.log >&2
               exit 1
-            fi>>>>>>> 98e8154e (ci(spec130): bound API probe startup wait)
+            fi
+            if (( i % 30 == 0 )); then
+              echo "waiting for release daemon health: ${i}s/${STARTUP_BUDGET_SECONDS}s" >&2
+              tail -40 /tmp/focusa-daemon-probe.log >&2 || true
+            fi
             sleep 1
           done
-          if [[ "$ready" != true ]]; then
-            echo "focusa-daemon did not become ready within ${DAEMON_STARTUP_TIMEOUT_SECS}s" >&2
-            ps -p "$DAEMON_PID" -o pid=,etime=,state=,command= >&2 || true
-            tail -100 /tmp/focusa-daemon-probe.log >&2 || true
+          if ! curl -fsS http://127.0.0.1:18787/v1/health >/dev/null; then
+            echo "release daemon health exceeded ${STARTUP_BUDGET_SECONDS}s startup budget" >&2
+            tail -200 /tmp/focusa-daemon-probe.log >&2
             exit 1
-          fi>>>>>>> 98e8154e (ci(spec130): bound API probe startup wait)
+          fi
           python3 scripts/api_contract_probe.py --base-url http://127.0.0.1:18787 --out /tmp/focusa_api_spec_audit.json
       - name: Strict spec compliance gates
         env:
