@@ -70,7 +70,8 @@ else
   exit 1
 fi
 
-if rg -n 'UNBOUND_UNSAFE_ROOT|auto-bootstrap project identity with focusa_project_identity before durable work|safeScope \? \(trajectoryProjectIdentity' "${ROOT_DIR}/apps/pi-extension/src/awareness.ts" >/dev/null; then
+if rg -n 'Scope: unverified|isProjectRootAuthoritySafe\(projectRoot\)' "${ROOT_DIR}/apps/pi-extension/src/awareness.ts" >/dev/null \
+  && ! rg -n 'Scope: unverified.*\$\{projectRoot' "${ROOT_DIR}/apps/pi-extension/src/awareness.ts" >/dev/null; then
   echo "✓ PASS: Utility Card does not label unsafe roots as a concrete project"
 else
   echo "✗ FAIL: Utility Card can label unsafe roots as a concrete project" >&2
@@ -85,8 +86,8 @@ else
   exit 1
 fi
 
-if rg -n 'const projectUrls = trajectoryFallback|const deployment = trajectoryFallback|\? projectIdentity\.project_urls|\? projectIdentity\.deployment' "${ROOT_DIR}/apps/pi-extension/src/awareness.ts" >/dev/null; then
-  echo "✓ PASS: prior trajectory fallback cannot override current ProjectIdentity env facts"
+if ! rg -n 'trajectoryFallback|projectUrls|const deployment' "${ROOT_DIR}/apps/pi-extension/src/awareness.ts" >/dev/null; then
+  echo "✓ PASS: concise Utility Card cannot import prior-trajectory environment facts"
 else
   echo "✗ FAIL: prior trajectory fallback may bleed environment facts into Utility Card" >&2
   exit 1

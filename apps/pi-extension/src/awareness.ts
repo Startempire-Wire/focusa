@@ -69,7 +69,7 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
     `Status: ${getFocusaAvailable() ? "available" : "degraded"}`,
     scopeVerified
       ? `Scope: verified · ${projectName} · ${projectRoot} · continuity=${continuity || "not checkpointed"}`
-      : `Scope: unverified · ${projectRoot || "unknown"}`,
+      : "Scope: unverified",
     `Mission: ${mission}`,
     `Next: ${next}`,
     scopeVerified
