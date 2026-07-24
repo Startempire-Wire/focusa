@@ -11,6 +11,7 @@ def main():
     ).read_text()
     runtime = (R / "apps/menubar/src/lib/components/RuntimeView.svelte").read_text()
     store = (R / "apps/menubar/src/lib/stores/runtime.svelte.ts").read_text()
+    scope = (R / "apps/menubar/src/lib/workLoopScope.js").read_text()
     api = (R / "apps/menubar/src/lib/api.ts").read_text()
     assert (
         "MissionCanvasView" in page
@@ -38,7 +39,7 @@ def main():
         "/v1/work-loop/health",
         "/v1/telemetry/memory",
     ]:
-        assert route in page + store
+        assert route in page + store + scope
     assert "fetchJson" in api and "mission-canvas-grid" in runtime
     for forbidden in [
         'localStorage.setItem("canonical',
