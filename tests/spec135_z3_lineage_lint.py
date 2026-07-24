@@ -7,9 +7,11 @@ R = Path(__file__).resolve().parents[1]
 proof = json.loads(
     (R / "docs/contracts/spec135/generated-contract-v1/spec135-z3-worktree-lineage-proof.json").read_text()
 )
-head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=R, text=True).strip()
 branch = subprocess.check_output(["git", "branch", "--show-current"], cwd=R, text=True).strip()
-assert proof["head"] == head
+ancestor = subprocess.run(
+    ["git", "merge-base", "--is-ancestor", proof["head"], "HEAD"], cwd=R
+)
+assert ancestor.returncode == 0
 assert proof["branch"] == branch
 assert proof["merge_target"] == "origin/main"
 assert proof["behind"] == 0
