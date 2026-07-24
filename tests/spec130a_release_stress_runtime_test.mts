@@ -87,7 +87,7 @@ for (const boundary of boundaries) {
   const baseDigest = semanticPersistenceDigest(base);
   const written = writeRecoverySidecar(base, baseDigest, 1);
   const dir = join(faultRoot, "pi-session-state");
-  const source = readdirSync(dir).find((name) => name.includes(".1."));
+  const source = readdirSync(dir).find((name) => name.includes(".r1."));
   assert(source, `source generation missing for ${boundary}`);
   const sourceBytes = readFileSync(join(dir, source));
   const next = { ...base, revision: 2, receipt: "r2" };
