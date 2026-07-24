@@ -63,7 +63,7 @@ type RolloverNewSession = (options: {
   setup?: (sessionManager: { appendMessage?: (message: any) => void }) => Promise<void>;
   withSession?: (ctx: RolloverReplacementContext) => Promise<void>;
 }) => Promise<{ cancelled?: boolean }>;
->>>>>>> d0d6839d (feat(work-loop): version typed status and replay states)
+
 function nonEmptyLines(items: any[] | undefined): string[] {
   return (items || []).map((v) => String(v || "").trim()).filter(Boolean);
 }

@@ -3646,7 +3646,7 @@ async fn start_pi_driver(
         "cancellation": {"abort_route": "/v1/work-loop/driver/abort", "stop_route": "/v1/work-loop/driver/stop"},
         "authority": "focusa.spec133.work_loop",
         "tool_result": agent_execution_tool_result("Pi RPC execution started or resumed", "process_started"),
-    })))>>>>>>> 9013ac47 (fix(work-loop): terminate supervised process trees)
+    })))
 }
 
 async fn prompt_pi_driver(
@@ -3725,7 +3725,7 @@ async fn abort_pi_driver(
         "process_tree_terminated": true,
         "authority": "focusa.spec133.work_loop",
         "tool_result": agent_execution_tool_result("Pi RPC turn aborted", "turn_aborted"),
-    })))>>>>>>> 9013ac47 (fix(work-loop): terminate supervised process trees)
+    })))
 }
 
 async fn stop_pi_driver(
@@ -3753,7 +3753,7 @@ async fn stop_pi_driver(
         "process_tree_terminated": true,
         "authority": "focusa.spec133.work_loop",
         "tool_result": agent_execution_tool_result("Pi RPC execution stopped", "process_stopped"),
-    })))>>>>>>> 9013ac47 (fix(work-loop): terminate supervised process trees)
+    })))
 }
 
 async fn attach_session(
@@ -5673,5 +5673,5 @@ FOCUSA_WORK_LOOP_OUTCOME {"schema":"focusa.work_loop_outcome.v1","work_item_id":
     fn mismatched_or_unknown_receipt_schema_is_rejected() {
         let output = r#"FOCUSA_WORK_LOOP_OUTCOME {"schema":"focusa.work_loop_outcome.v2","work_item_id":"focusa-1","status":"completed","spec_conformant":true,"evidence_citations":[]}"#;
         assert!(parse_work_loop_outcome_receipt(output).is_none());
-    }>>>>>>> 700ee048 (feat(work-loop): gate closure on typed evidence lifecycle)
+    }
 }

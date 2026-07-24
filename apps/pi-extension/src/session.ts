@@ -186,7 +186,7 @@ function queueUnboundProjectNag(pi: ExtensionAPI, ctx: any, reason: string): voi
       outcome,
       trigger_turn: false,
     },
-  });>>>>>>> 49043546 (fix(pi): avoid lifecycle prompt reentrancy)
+  });
 }
 
 function vitalPromptSurfaceEnabled(surface: string): boolean {
@@ -354,9 +354,9 @@ function queueProjectIdentityBootstrapTurn(
       session_id: getAttachmentRuntime().sessionFrameKey,
       outcome,
       trigger_turn: false,
-    },>>>>>>> 49043546 (fix(pi): avoid lifecycle prompt reentrancy)
+    },
   });
->>>>>>> 49043546 (fix(pi): avoid lifecycle prompt reentrancy)
+
 }
 
 type TrajectoryGoalDraft = {

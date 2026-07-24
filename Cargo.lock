@@ -1413,7 +1413,7 @@ name = "focusa-session-runner"
 version = "0.9.121-dev"
 dependencies = [
  "anyhow",
- "base64",
+ "base64 0.22.1",
  "chrono",
  "clap",
  "ed25519-dalek",

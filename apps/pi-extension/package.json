@@ -23,7 +23,7 @@
     "test:spec104-attachment": "node tests/spec104-attachment-runtime-isolation.test.mjs",
     "test:cache-safe-context": "node tests/cache-safe-context.test.mjs",
     "test:work-rail-width": "node tests/work-rail-widget-width.test.mjs",
-    "test:lifecycle-advisory": "node tests/session-lifecycle-advisory.test.mjs">>>>>>> 49043546 (fix(pi): avoid lifecycle prompt reentrancy)
+    "test:lifecycle-advisory": "node tests/session-lifecycle-advisory.test.mjs"
   },
   "dependencies": {
     "@sinclair/typebox": "^0.34.0"

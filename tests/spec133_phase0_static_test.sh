@@ -17,16 +17,16 @@ pass() { echo "✓ PASS: $*"; }
 [[ -f "$BASELINE" && -f "$TRACE" && -f "$RELEASE" ]] || fail "Phase 0 evidence files missing"
 pass "Phase 0 evidence files exist"
 
-rg -n 'legacy/non-durable|not the canonical Spec133|SILENT_SESSION_LEGACY_POSTURE|legacy_silent_session_wrapper_used' "$TOOLS_TS" "$TOOL_DOC" "$CONTRACTS_TS" >/dev/null \
-  || fail "legacy/non-durable labels or telemetry missing"
-pass "legacy wrapper is labeled and telemetry-instrumented"
+rg -ni 'daemon-native Spec133|legacy action compatibility' "$TOOLS_TS" "$TOOL_DOC" "$CONTRACTS_TS" >/dev/null \
+  || fail "daemon-native migration posture or bounded legacy compatibility missing"
+pass "tool is daemon-native and legacy compatibility is explicitly bounded"
 
-rg -n 'stored_legacy_command_rejected|stored legacy shell `command` values are not auto-executed' "$TOOLS_TS" "$TOOL_DOC" >/dev/null \
-  || fail "stored legacy command rejection not documented/implemented"
-if rg -n 'p\.command \|\|\s*priorMeta\.command|priorMeta\.command \|\|' "$TOOLS_TS" >/dev/null; then
-  fail "restart can still auto-reuse priorMeta.command"
+if rg -n 'p\.command \|\|\s*priorMeta\.command|priorMeta\.command \|\||tmux new-session|spawn\(' "$TOOLS_TS" >/dev/null; then
+  fail "daemon facade can still auto-reuse or execute a stored legacy shell command"
 fi
-pass "stored legacy shell commands are not auto-reused on restart"
+rg -n '/v1/silent-sessions|daemon facade|Daemon-native' "$TOOLS_TS" "$TOOL_DOC" >/dev/null \
+  || fail "canonical daemon facade route is not documented/implemented"
+pass "legacy shell commands are not executed by the daemon facade"
 
 rg -n 'focusa-a6yq6\.2\.1|focusa-a6yq6\.10\.9|Gap closure mapping|0\.1:|0\.2:|0\.3:|0\.4:' "$TRACE" >/dev/null \
   || fail "traceability matrix incomplete"
