@@ -90,7 +90,9 @@ fn route_scope(method: &Method, path: &str) -> &'static str {
             return "silent_sessions:config";
         }
         if method == Method::GET {
-            return if path.ends_with("/events") || path.ends_with("/output") {
+            return if path.contains("/forensics") || path.contains("/raw-output") {
+                "silent_sessions:forensics"
+            } else if path.ends_with("/events") || path.ends_with("/output") {
                 "silent_sessions:stream"
             } else {
                 "silent_sessions:read"

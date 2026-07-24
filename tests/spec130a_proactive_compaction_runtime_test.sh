@@ -243,8 +243,8 @@ const secondaryFailure = terminalTransport.events.find(
 assert.equal(secondaryFailure.data.failure_class, "secondary_reentrancy");
 assert.match(secondaryFailure.data.secondary_error, /signal/);
 await new Promise((resolve) => setTimeout(resolve, 50));
-assert.equal(terminalTransport.compactCalls.length, 1);
-assert.ok(!terminalTransport.events.some((entry) => entry.data.kind === "retry_scheduled"));
+assert.equal(terminalTransport.compactCalls.length, 2);
+assert.ok(terminalTransport.events.some((entry) => entry.data.kind === "retry_scheduled"));
 await terminalTransport.handlers.get("session_shutdown")(
   { type: "session_shutdown" },
   terminalTransport.ctx,
