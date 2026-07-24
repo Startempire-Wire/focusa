@@ -77,7 +77,8 @@ impl SoftwareDomainProjector {
             by_path: HashMap::new(),
             matches: Vec::new(),
             revision: 0,
-            ast_grep_binary: std::env::var("FOCUSA_AST_GREP_BIN").unwrap_or_else(|_| "ast-grep".into()),
+            ast_grep_binary: std::env::var("FOCUSA_AST_GREP_BIN")
+                .unwrap_or_else(|_| "ast-grep".into()),
         }
     }
 
@@ -88,7 +89,9 @@ impl SoftwareDomainProjector {
         ast_patterns: &[String],
     ) -> Result<SoftwareGraphProjection, String> {
         if changes.len() > MAX_CHANGED_FILES {
-            return Err(format!("software graph change set exceeds {MAX_CHANGED_FILES} files"));
+            return Err(format!(
+                "software graph change set exceeds {MAX_CHANGED_FILES} files"
+            ));
         }
         if ast_patterns.len() > MAX_PATTERNS {
             return Err(format!("software graph pattern set exceeds {MAX_PATTERNS}"));
@@ -106,12 +109,25 @@ impl SoftwareDomainProjector {
             self.by_path.insert(change.path.clone(), index);
             for pattern in ast_patterns {
                 let pattern_node = self.graph.add_node(pattern_node(pattern));
-                let evidence = format!("evidence:ast-grep:{}:{}", stable_path(&change.path), digest(pattern));
-                self.graph.add_edge(index, pattern_node, SoftwareEdge {
-                    relation: "matches_structural_pattern".into(),
-                    evidence_ref: evidence.clone(),
-                });
-                self.matches.extend(run_ast_grep(&self.ast_grep_binary, &change.path, pattern, &evidence));
+                let evidence = format!(
+                    "evidence:ast-grep:{}:{}",
+                    stable_path(&change.path),
+                    digest(pattern)
+                );
+                self.graph.add_edge(
+                    index,
+                    pattern_node,
+                    SoftwareEdge {
+                        relation: "matches_structural_pattern".into(),
+                        evidence_ref: evidence.clone(),
+                    },
+                );
+                self.matches.extend(run_ast_grep(
+                    &self.ast_grep_binary,
+                    &change.path,
+                    pattern,
+                    &evidence,
+                ));
             }
         }
         self.revision = self.revision.saturating_add(1);
@@ -128,13 +144,17 @@ impl SoftwareDomainProjector {
 
     fn projection(&self, changed_file_count: usize) -> SoftwareGraphProjection {
         let nodes = self.graph.node_weights().cloned().collect();
-        let edges = self.graph.edge_references().map(|edge| {
-            (
-                self.graph[edge.source()].node_id.clone(),
-                self.graph[edge.target()].node_id.clone(),
-                edge.weight().clone(),
-            )
-        }).collect();
+        let edges = self
+            .graph
+            .edge_references()
+            .map(|edge| {
+                (
+                    self.graph[edge.source()].node_id.clone(),
+                    self.graph[edge.target()].node_id.clone(),
+                    edge.weight().clone(),
+                )
+            })
+            .collect();
         SoftwareGraphProjection {
             schema: "focusa.software_graph_projection.v1".into(),
             project_root: self.project_root.display().to_string(),
@@ -151,15 +171,23 @@ impl SoftwareDomainProjector {
 
 fn parse_file(path: &Path, source: &str, language: &Language) -> Result<SoftwareNode, String> {
     let mut parser = Parser::new();
-    parser.set_language(language).map_err(|_| "tree-sitter language is incompatible")?;
-    let tree = parser.parse(source, None).ok_or("tree-sitter did not produce a syntax tree")?;
+    parser
+        .set_language(language)
+        .map_err(|_| "tree-sitter language is incompatible")?;
+    let tree = parser
+        .parse(source, None)
+        .ok_or("tree-sitter did not produce a syntax tree")?;
     let root = tree.root_node();
     let hash = digest(source);
     Ok(SoftwareNode {
         node_id: format!("software-file:{}", stable_path(path)),
         kind: "source_file".into(),
         path: stable_path(path),
-        label: path.file_name().and_then(|name| name.to_str()).unwrap_or("source").into(),
+        label: path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("source")
+            .into(),
         content_sha256: hash.clone(),
         parsed_root_kind: root.kind().into(),
         parser_has_error: root.has_error(),
@@ -186,8 +214,12 @@ fn run_ast_grep(binary: &str, path: &Path, pattern: &str, evidence_ref: &str) ->
         .args(["scan", "--json=stream", "--pattern", pattern])
         .arg(path)
         .output();
-    let Ok(output) = output else { return Vec::new(); };
-    if !output.status.success() { return Vec::new(); }
+    let Ok(output) = output else {
+        return Vec::new();
+    };
+    if !output.status.success() {
+        return Vec::new();
+    }
     String::from_utf8_lossy(&output.stdout)
         .lines()
         .take(MAX_MATCHES_PER_PATTERN)

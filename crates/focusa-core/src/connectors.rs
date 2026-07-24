@@ -132,17 +132,36 @@ impl HttpJsonConnector {
             || descriptor.attachment_id.trim().is_empty()
             || descriptor.rate_policy.requests_per_second == 0
         {
-            return Err(error(&descriptor.connector_id, "invalid_config", "Connector scope and rate policy are required", false, None));
+            return Err(error(
+                &descriptor.connector_id,
+                "invalid_config",
+                "Connector scope and rate policy are required",
+                false,
+                None,
+            ));
         }
         let client = Client::builder()
             .timeout(Duration::from_secs(20))
             .build()
-            .map_err(|_| error(&descriptor.connector_id, "client_init", "Connector HTTP client initialization failed", false, None))?;
-        Ok(Self { descriptor, client, last_request: Arc::new(Mutex::new(None)) })
+            .map_err(|_| {
+                error(
+                    &descriptor.connector_id,
+                    "client_init",
+                    "Connector HTTP client initialization failed",
+                    false,
+                    None,
+                )
+            })?;
+        Ok(Self {
+            descriptor,
+            client,
+            last_request: Arc::new(Mutex::new(None)),
+        })
     }
 
     async fn apply_rate_policy(&self) {
-        let interval = Duration::from_secs_f64(1.0 / self.descriptor.rate_policy.requests_per_second as f64);
+        let interval =
+            Duration::from_secs_f64(1.0 / self.descriptor.rate_policy.requests_per_second as f64);
         let mut last = self.last_request.lock().await;
         if let Some(previous) = *last {
             let elapsed = previous.elapsed();
@@ -154,7 +173,10 @@ impl HttpJsonConnector {
     }
 
     fn capability(&self, capability_id: &str) -> Option<&ConnectorCapability> {
-        self.descriptor.capabilities.iter().find(|item| item.capability_id == capability_id)
+        self.descriptor
+            .capabilities
+            .iter()
+            .find(|item| item.capability_id == capability_id)
     }
 
     fn origin_allowed(&self, url: &str) -> bool {
@@ -168,16 +190,35 @@ impl HttpJsonConnector {
 
 #[async_trait]
 impl ConnectorAdapter for HttpJsonConnector {
-    fn descriptor(&self) -> &ConnectorDescriptor { &self.descriptor }
+    fn descriptor(&self) -> &ConnectorDescriptor {
+        &self.descriptor
+    }
 
     async fn health(&self) -> ConnectorHealth {
         let started = Instant::now();
         let response = self.client.get(&self.descriptor.health_url).send().await;
         let (status, message) = match response {
-            Ok(value) if value.status().is_success() => (ConnectorHealthStatus::Ready, "Connector health check passed"),
-            Ok(value) if value.status() == StatusCode::UNAUTHORIZED || value.status() == StatusCode::FORBIDDEN => (ConnectorHealthStatus::Unauthorized, "Connector authorization required"),
-            Ok(_) => (ConnectorHealthStatus::Degraded, "Connector health check returned a non-success status"),
-            Err(_) => (ConnectorHealthStatus::Offline, "Connector health check failed"),
+            Ok(value) if value.status().is_success() => (
+                ConnectorHealthStatus::Ready,
+                "Connector health check passed",
+            ),
+            Ok(value)
+                if value.status() == StatusCode::UNAUTHORIZED
+                    || value.status() == StatusCode::FORBIDDEN =>
+            {
+                (
+                    ConnectorHealthStatus::Unauthorized,
+                    "Connector authorization required",
+                )
+            }
+            Ok(_) => (
+                ConnectorHealthStatus::Degraded,
+                "Connector health check returned a non-success status",
+            ),
+            Err(_) => (
+                ConnectorHealthStatus::Offline,
+                "Connector health check failed",
+            ),
         };
         ConnectorHealth {
             status,
@@ -187,50 +228,116 @@ impl ConnectorAdapter for HttpJsonConnector {
         }
     }
 
-    async fn execute(&self, capability_id: &str, method: Method, url: &str, body: Option<Value>) -> Result<ConnectorResult, ConnectorErrorEnvelope> {
-        let capability = self.capability(capability_id).ok_or_else(|| error(&self.descriptor.connector_id, "capability_missing", "Connector capability is not declared", false, None))?;
+    async fn execute(
+        &self,
+        capability_id: &str,
+        method: Method,
+        url: &str,
+        body: Option<Value>,
+    ) -> Result<ConnectorResult, ConnectorErrorEnvelope> {
+        let capability = self.capability(capability_id).ok_or_else(|| {
+            error(
+                &self.descriptor.connector_id,
+                "capability_missing",
+                "Connector capability is not declared",
+                false,
+                None,
+            )
+        })?;
         if capability.operation != method.as_str() {
-            return Err(error(&self.descriptor.connector_id, "method_denied", "Connector method is outside the declared capability", false, None));
+            return Err(error(
+                &self.descriptor.connector_id,
+                "method_denied",
+                "Connector method is outside the declared capability",
+                false,
+                None,
+            ));
         }
         if !self.origin_allowed(url) {
-            return Err(error(&self.descriptor.connector_id, "origin_denied", "Connector target is outside the allowed origin", false, None));
+            return Err(error(
+                &self.descriptor.connector_id,
+                "origin_denied",
+                "Connector target is outside the allowed origin",
+                false,
+                None,
+            ));
         }
         let policy = &self.descriptor.retry_policy;
         let mut backoff = policy.initial_backoff_ms;
         for attempt in 1..=policy.max_attempts.max(1) {
             self.apply_rate_policy().await;
             let mut request = self.client.request(method.clone(), url);
-            if let Some(value) = body.clone() { request = request.json(&value); }
+            if let Some(value) = body.clone() {
+                request = request.json(&value);
+            }
             match request.send().await {
                 Ok(response) if response.status().is_success() => {
-                    let value = response.json::<Value>().await.map_err(|_| error(&self.descriptor.connector_id, "invalid_response", "Connector response was not valid JSON", false, None))?;
+                    let value = response.json::<Value>().await.map_err(|_| {
+                        error(
+                            &self.descriptor.connector_id,
+                            "invalid_response",
+                            "Connector response was not valid JSON",
+                            false,
+                            None,
+                        )
+                    })?;
                     return Ok(ConnectorResult {
                         schema: "focusa.connector_result.v1".into(),
                         connector_id: self.descriptor.connector_id.clone(),
                         capability_id: capability_id.into(),
                         status: "completed".into(),
                         value,
-                        evidence_refs: vec![format!("connector:{}:{}", self.descriptor.connector_id, capability_id)],
+                        evidence_refs: vec![format!(
+                            "connector:{}:{}",
+                            self.descriptor.connector_id, capability_id
+                        )],
                     });
                 }
                 Ok(response) => {
                     let code = response.status().as_u16();
-                    let retriable = policy.retry_statuses.contains(&code) && attempt < policy.max_attempts;
+                    let retriable =
+                        policy.retry_statuses.contains(&code) && attempt < policy.max_attempts;
                     if !retriable {
-                        return Err(error(&self.descriptor.connector_id, "http_status", "Connector returned a non-success status", false, None));
+                        return Err(error(
+                            &self.descriptor.connector_id,
+                            "http_status",
+                            "Connector returned a non-success status",
+                            false,
+                            None,
+                        ));
                     }
                 }
-                Err(_) if attempt >= policy.max_attempts => return Err(error(&self.descriptor.connector_id, "transport", "Connector request failed", false, None)),
+                Err(_) if attempt >= policy.max_attempts => {
+                    return Err(error(
+                        &self.descriptor.connector_id,
+                        "transport",
+                        "Connector request failed",
+                        false,
+                        None,
+                    ));
+                }
                 Err(_) => {}
             }
             tokio::time::sleep(Duration::from_millis(backoff)).await;
             backoff = (backoff.saturating_mul(2)).min(policy.maximum_backoff_ms);
         }
-        Err(error(&self.descriptor.connector_id, "retry_exhausted", "Connector retry policy exhausted", false, None))
+        Err(error(
+            &self.descriptor.connector_id,
+            "retry_exhausted",
+            "Connector retry policy exhausted",
+            false,
+            None,
+        ))
     }
 }
 
-fn error(connector_id: &str, class: &str, message: &str, retriable: bool, retry_after_ms: Option<u64>) -> ConnectorErrorEnvelope {
+fn error(
+    connector_id: &str,
+    class: &str,
+    message: &str,
+    retriable: bool,
+    retry_after_ms: Option<u64>,
+) -> ConnectorErrorEnvelope {
     ConnectorErrorEnvelope {
         schema: "focusa.connector_error.v1".into(),
         connector_id: connector_id.into(),
