@@ -275,7 +275,7 @@ console.log(
       native_automatic_events: nativeAutomatic.events.map((entry) => entry.data.kind),
       native_manual_events: nativeManual.events.map((entry) => entry.data.kind),
       terminal_transport_events: terminalTransport.events.map((entry) => entry.data.kind),
-      retry_events: retried.events.map((entry) => entry.data.kind),
+      retry_events: terminalTransport.events.map((entry) => entry.data.kind),
     },
     null,
     2,
