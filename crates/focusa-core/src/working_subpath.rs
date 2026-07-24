@@ -329,7 +329,7 @@ fn collect_parent_binding_candidates(
         let Some(path) = current else { break };
         let markers = binding_markers(&path);
         if !markers.is_empty() {
-            let marker_score = if markers.iter().any(|value| value == "focusa_marker") {
+            let marker_score: u16 = if markers.iter().any(|value| value == "focusa_marker") {
                 950
             } else if markers.iter().any(|value| value == "git") {
                 900
@@ -372,7 +372,7 @@ fn collect_child_binding_candidates(
             }
             let markers = binding_markers(&path);
             if !markers.is_empty() {
-                let score = if markers.iter().any(|value| value == "focusa_marker") {
+                let score: u16 = if markers.iter().any(|value| value == "focusa_marker") {
                     860
                 } else if markers.iter().any(|value| value == "git") {
                     810
