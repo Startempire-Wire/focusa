@@ -338,9 +338,6 @@ enum Commands {
     #[command(subcommand)]
     Skills(commands::skills::SkillsCmd),
 
-    /// Daemon-native durable Silent Session operations (Spec 133).
-    #[command(subcommand)]
-    Silent(commands::silent::SilentCmd),
 
     /// Thread operations (docs/38).
     #[command(subcommand)]
@@ -1081,7 +1078,6 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::Metacognition(cmd) => commands::metacognition::run(cmd, cli.json).await,
         Commands::Ontology(cmd) => commands::ontology::run(cmd, cli.json).await,
         Commands::Skills(cmd) => commands::skills::run(cmd, cli.json).await,
-        Commands::Silent(cmd) => commands::silent::run(cmd, cli.json).await,
         Commands::Thread(cmd) => {
             commands::threads::run(cmd, cli.json, &api_client::ApiClient::new()).await
         }
@@ -1115,10 +1111,6 @@ async fn async_main() -> anyhow::Result<()> {
     };
 
     if let Err(err) = result {
-        if let Some(rejection) = err.downcast_ref::<commands::silent::DaemonRejection>() {
-            commands::silent::render_rejection(rejection, cli.json)?;
-            std::process::exit(1);
-        }
         if cli.json {
             let error_message = err.to_string();
             let (code, what_failed, likely_why, safe_recovery) = classify_cli_error(&error_message);
