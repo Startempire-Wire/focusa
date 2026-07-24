@@ -32,6 +32,18 @@ require 'focusa-installer-|install-focusa\.sh' .github/workflows/release.yml 're
 require 'latest\.json|updater' .github/workflows/release.yml 'release publishes signed menubar updater metadata'
 require 'focusa-daemon' .github/workflows/release.yml 'release packages daemon/API surface'
 require 'focusa-tui' .github/workflows/release.yml 'release packages TUI surface'
+bash tests/spec132_public_uninstall_preservation_test.sh
+pass 'public uninstall preserves user data unless purge is explicit'
+
+# Every Focusa Pi tool, skill, runbook, machine projection, and public agent
+# entry point must remain one-to-one and release-current.
+python3 scripts/generate-agent-skills.py --check
+bun scripts/generate-agent-capability-descriptors.ts --check
+bun scripts/generate-agent-tool-docs.ts --check
+bun tests/spec141_agent_conformance_test.ts
+python3 tests/spec141_agent_first_tool_audit_test.py
+bash tests/spec129_agent_docs_surface_static_test.sh
+pass 'all-Pi-tool, Agent Card, skill/runbook, and onboarding documentation gates'
 
 # Worktree/authority aggregate proof.
 bash tests/authority_scope_static_test.sh

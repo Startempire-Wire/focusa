@@ -72,10 +72,10 @@ Likely next: `focusa_evidence_capture`, `focusa_predict_evaluate`, `focusa_metac
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`, `skill:focusa-metacognition`
+- Skills: `skill:focusa`, `skill:focusa-metacognition`, `skill:predictive-power`
 - Runbooks: `runbook:metacognition`
 - Pi: `focusa_predict_record`; MCP: `focusa.predict.record`; OpenAI: `focusa_predict_record`.
 - CLI: `focusa predict record`.
 - REST: `POST /v1/predictions`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:a54c5710550bbcf1d318ff608c9c29210e7e4784e683ad0692527b241a93ae03`.
+- Descriptor digest: `sha256:4169d1a04f08ee9af5502e1602f5453a31478d98c7ad108c244cb12f0a245945`.

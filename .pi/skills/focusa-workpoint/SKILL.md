@@ -7,6 +7,10 @@ description: "Use when preserving or recovering Focusa Workpoint continuity: che
 
 Use when preserving or recovering Focusa Workpoint continuity: checkpoint/resume after compaction, link evidence, resolve active objects, or run drift-safe handoffs.
 
+## Progressive disclosure
+
+Read `references/01-focusa-workpoint-runbook.md` for exact-scope resume, action authority, evidence linkage, and continuation checkpoints.
+
 ## Start here
 
 1. Load the main Focusa skill if you need the whole system model: `/skill:focusa`.

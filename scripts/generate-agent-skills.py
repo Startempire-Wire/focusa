@@ -64,6 +64,14 @@ Stable evidence or receipt refs must support any completion claim.
 
 def runbook_body(skill: dict) -> str:
     tools = skill["tools"]
+    notes = skill.get("runbook_notes", [])
+    domain_procedure = ""
+    if notes:
+        domain_procedure = (
+            "## Current domain procedure\n\n"
+            + "\n".join(f"{index}. {note}" for index, note in enumerate(notes, 1))
+            + "\n\n"
+        )
     return f"""# {skill["name"].replace("-", " ").title()} Runbook
 
 ## Preconditions
@@ -83,7 +91,7 @@ def runbook_body(skill: dict) -> str:
 
 {chr(10).join(f"{index}. Call `{tool}` with only required bounded inputs." for index, tool in enumerate(tools, 1))}
 
-## Branches
+{domain_procedure}## Branches
 
 - Unknown tool/schema: `focusa_tool_search` → `focusa_tool_describe`.
 - Scope conflict: `focusa_project_verify` → `focusa_workpoint_checkpoint`.
@@ -147,24 +155,55 @@ def main() -> int:
         path.parent.name for path in PACKAGED_SKILLS.glob("*/SKILL.md")
     )
     parity_drift = []
+    skill_inventory = []
+    runbook_coverage_gaps = []
     for name in sorted(set(root_names) | set(packaged_names)):
-        root_path = ROOT_SKILLS / name / "SKILL.md"
-        package_path = PACKAGED_SKILLS / name / "SKILL.md"
-        if (
-            not root_path.exists()
-            or not package_path.exists()
-            or root_path.read_bytes() != package_path.read_bytes()
-        ):
+        root_dir = ROOT_SKILLS / name
+        package_dir = PACKAGED_SKILLS / name
+        root_files = {
+            str(path.relative_to(root_dir)): path.read_bytes()
+            for path in root_dir.rglob("*")
+            if path.is_file()
+        } if root_dir.exists() else {}
+        package_files = {
+            str(path.relative_to(package_dir)): path.read_bytes()
+            for path in package_dir.rglob("*")
+            if path.is_file()
+        } if package_dir.exists() else {}
+        if root_files != package_files:
             parity_drift.append(name)
+        runbooks = sorted(
+            str(path.relative_to(ROOT))
+            for path in (root_dir / "references").glob("*.md")
+        )
+        if not runbooks:
+            runbook_coverage_gaps.append(name)
+        generated_entry = next(
+            (item for item in generated if item["name"] == name), None
+        )
+        skill_inventory.append(
+            {
+                "name": name,
+                "manifest": f".pi/skills/{name}/SKILL.md",
+                "packaged_manifest": f"apps/pi-extension/skills/{name}/SKILL.md",
+                "runbooks": runbooks,
+                "declared_tools": generated_entry["tools"] if generated_entry else [],
+                "generated": generated_entry is not None,
+            }
+        )
     evidence = {
         "schema": "focusa.agent_skill_runbook_coverage.v1",
         "registry_version": registry["version"],
         "generated_skill_count": len(generated),
         "installed_root_skill_count": len(root_names),
         "packaged_skill_count": len(packaged_names),
+        "runbook_count": sum(len(item["runbooks"]) for item in skill_inventory),
+        "runbook_coverage_complete": not runbook_coverage_gaps,
+        "runbook_coverage_gaps": runbook_coverage_gaps,
         "root_packaged_parity": not parity_drift,
         "parity_drift": parity_drift,
         "skills": generated,
+        "installed_skill_inventory": skill_inventory,
     }
     evidence_body = json.dumps(evidence, indent=2) + "\n"
     md = [
@@ -173,6 +212,8 @@ def main() -> int:
         f"- Generated domain skills: `{len(generated)}`",
         f"- Installed root skills: `{len(root_names)}`",
         f"- Packaged skills: `{len(packaged_names)}`",
+        f"- Runbooks: `{sum(len(item['runbooks']) for item in skill_inventory)}`",
+        f"- Complete runbook coverage: `{not runbook_coverage_gaps}`",
         f"- Root/package parity: `{not parity_drift}`",
         "",
         "## Generated coverage",
@@ -184,6 +225,18 @@ def main() -> int:
     )
     md.extend(
         [
+            "",
+            "## Installed skill and runbook inventory",
+            "",
+            *(
+                f"- `{item['name']}` → "
+                + (", ".join(f"`{ref}`" for ref in item["runbooks"]) or "**missing runbook**")
+                for item in skill_inventory
+            ),
+            "",
+            "## Runbook coverage gaps",
+            "",
+            *(f"- `{name}`" for name in runbook_coverage_gaps or ["none"]),
             "",
             "## Parity drift",
             "",

@@ -22,6 +22,12 @@ focusa_evidence_capture -> focusa_active_object_resolve
 3. Call `focusa_evidence_capture` with only required bounded inputs.
 4. Call `focusa_active_object_resolve` with only required bounded inputs.
 
+## Current domain procedure
+
+1. Use the current Spec135 manifest for Mission Canvas, Work Rail, Work Surfaces, CRIST interviews, connectors, domain projections, and adaptive generated UI.
+2. Bind UI actions to canonical operation registry entries; never create a parallel hand-coded authority path.
+3. Keep UIAI browser capabilities bound to one session and origin, and preserve attachment-scoped context isolation.
+
 ## Branches
 
 - Unknown tool/schema: `focusa_tool_search` → `focusa_tool_describe`.

@@ -9,6 +9,11 @@
       "non_triggers": ["one already-selected tool call", "unrelated repository work"],
       "tools": ["focusa_agent_card", "focusa_project_identity", "focusa_workpoint_resume", "focusa_trajectory_view", "focusa_tool_search"],
       "recovery": ["focusa_tool_doctor", "focusa_project_verify", "focusa_workpoint_checkpoint"],
+      "runbook_notes": [
+        "Call `focusa_agent_card` and verify workspace version, registry digest, all-Pi-tool count, installed skills, and runbooks.",
+        "Use `focusa_tool_search` and `focusa_tool_describe`; never hot-load or invent the complete tool schema set.",
+        "Follow `docs/agent/01-focusa-agent-docs-index.md` for current architecture, lifecycle, and recovery routes."
+      ],
       "done": "Agent has verified scope, current Workpoint/Trajectory orientation, and only the schemas needed for the next action."
     },
     {
@@ -18,6 +23,11 @@
       "non_triggers": ["exact tool and schema already loaded", "request to load all schemas"],
       "tools": ["focusa_tool_search", "focusa_tool_describe", "focusa_tool_graph", "focusa_tool_bundle", "focusa_agent_card"],
       "recovery": ["focusa_tool_search", "focusa_tool_doctor"],
+      "runbook_notes": [
+        "Treat `docs/contracts/spec141/generated-capability-v2/pi-tools.json` as the complete machine-readable Pi registry.",
+        "Use the matching `docs/focusa-tools/tools/focusa_<name>.md` reference and skill/runbook route for the selected tool.",
+        "Release parity requires runtime tools = contracts = Pi descriptors = per-tool docs."
+      ],
       "done": "The narrowest valid capability and dependency sequence are selected under token budget."
     },
     {
@@ -36,6 +46,11 @@
       "non_triggers": ["transcript-tail guess", "routine stateless call"],
       "tools": ["focusa_workpoint_resume", "focusa_trajectory_resume", "focusa_session_transfer", "focusa_tree_snapshot_state", "focusa_tree_restore_state"],
       "recovery": ["focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_tool_doctor"],
+      "runbook_notes": [
+        "Checkpoint both Workpoint and Trajectory before compaction, context overflow, model switch, or session rollover.",
+        "Preserve cache-safe stable prefix plus newest operator tail; transcript tail is never continuation authority.",
+        "After bounded transport retry exhaustion, use governed automatic rollover and verify the canonical resume packet."
+      ],
       "done": "A canonical Workpoint packet supplies mission, action, evidence, blockers, and exact next action."
     },
     {
@@ -54,6 +69,12 @@
       "non_triggers": ["unplanned system mutation", "Mac validation from VPS"],
       "tools": ["focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_evidence_capture", "focusa_tool_doctor"],
       "recovery": ["focusa_tool_doctor", "focusa_workpoint_resume", "focusa_evidence_capture"],
+      "runbook_notes": [
+        "Inspect with `bash scripts/install-focusa.sh --dry-run --eval`, then install or repair by rerunning the signed public bootstrapper.",
+        "Use `focusa update --help` and release metadata for trusted OTA/update verification and rollback evidence.",
+        "Public `--uninstall` preserves user data by default; destructive removal requires explicit `--uninstall --purge-data`.",
+        "After each lifecycle transition, verify health, version, Pi tool discovery, Mission Canvas, and Workpoint resume."
+      ],
       "done": "The requested lifecycle state passes end-to-end proof with rollback/preservation evidence."
     },
     {
@@ -72,6 +93,11 @@
       "non_triggers": ["unbounded full payload", "premature generic context loading"],
       "tools": ["focusa_resource_mode", "focusa_bloatgaurd_report", "focusa_bloatgaurd_tokenbloat_report", "focusa_traverse", "focusa_tool_bundle"],
       "recovery": ["focusa_resource_mode", "focusa_traverse", "focusa_tool_doctor"],
+      "runbook_notes": [
+        "Use cache-safe context selection: stable prefix, current operator tail, explicit miss classification, and bounded fallback.",
+        "Use proactive compaction only when net token savings are positive; preserve canonical continuation packets.",
+        "Activate LowMem through `focusa_resource_mode` and prefer bounded traversal over full payloads."
+      ],
       "done": "Work completes inside declared memory/token/latency budgets with bounded payloads."
     },
     {
@@ -81,6 +107,11 @@
       "non_triggers": ["hand-coded parallel UI contract", "invented operation binding"],
       "tools": ["focusa_call_stack_design", "focusa_context_cognition", "focusa_evidence_capture", "focusa_active_object_resolve"],
       "recovery": ["focusa_call_stack_verify", "focusa_tool_doctor", "focusa_workpoint_resume"],
+      "runbook_notes": [
+        "Use the current Spec135 manifest for Mission Canvas, Work Rail, Work Surfaces, CRIST interviews, connectors, domain projections, and adaptive generated UI.",
+        "Bind UI actions to canonical operation registry entries; never create a parallel hand-coded authority path.",
+        "Keep UIAI browser capabilities bound to one session and origin, and preserve attachment-scoped context isolation."
+      ],
       "done": "Generated UI binds canonical operations and durable workspace evidence without semantic drift."
     },
     {
@@ -90,6 +121,11 @@
       "non_triggers": ["development-time CI without authorization", "claiming unverified platform proof"],
       "tools": ["focusa_evidence_capture", "focusa_workpoint_link_evidence", "focusa_predict_stats", "focusa_metacog_doctor"],
       "recovery": ["focusa_tool_doctor", "focusa_workpoint_resume", "focusa_project_verify"],
+      "runbook_notes": [
+        "Audit AGENTS, public docs, onboarding, every Pi tool projection/doc, complete skill/runbook parity, and recent architecture before release.",
+        "Run generated drift, Spec141 conformance, version-surface, Markdown, lifecycle, Mission Canvas, and final release gap gates.",
+        "Publish only after one green final CI; verify release assets, checksums, deployment health, updater rollback, and customer lifecycle evidence."
+      ],
       "done": "Every acceptance criterion, issue, changelog entry, platform boundary, and evidence ref is verified before authorized release action."
     },
     {

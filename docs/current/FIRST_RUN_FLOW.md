@@ -30,6 +30,16 @@ The Focusa menubar first-run flow is Mac-like, phone-mediated, and recovery-orie
 - Token storage belongs in OS/Keychain/Tauri storage via app runtime, not docs/chat.
 - Failed pairing should surface recovery text, not trigger binary install/update assumptions.
 
+## Post-pairing walkthrough
+
+1. Confirm daemon health and displayed version.
+2. Open Mission Canvas and verify the current project, Trajectory gap, Workpoint, Work Rail, and Work Surface scope.
+3. Confirm Agent Card discovery reports the complete Pi tool, skill, and runbook inventory without loading every schema.
+4. Use `focusa_tool_search`/`focusa_tool_describe` for one bounded action and verify the matching skill/runbook can be opened.
+5. Start background work only through daemon-native Silent Sessions; show session/run/generation and receipt state.
+6. Verify updater policy and rollback status; uninstall guidance must state that user data is preserved unless purge is explicit.
+7. If context compacts or a worktree is resumed, verify canonical project scope and Workpoint continuation rather than transcript-tail inference.
+
 ## Proof
 
 - Component: `apps/menubar/src/lib/components/FirstRunWizard.svelte`

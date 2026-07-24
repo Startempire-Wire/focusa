@@ -36,6 +36,13 @@ for flag in 'pub target: InstallTarget' 'pub dry_run: bool' 'pub license_key: Op
 done
 pass "existing install flags retained (--target/--dry-run/--license-key/--eval)"
 
+# Public uninstall is non-destructive by default; purge requires explicit intent.
+for marker in '--uninstall' '--purge-data' 'PURGE_DATA' 'uninstall_args+=(--keep-data)' '--purge-data requires --uninstall'; do
+  grep -qF -- "$marker" "$SH" \
+    || fail "install-focusa.sh missing preserve-by-default uninstall marker: $marker"
+done
+pass "public uninstall preserves user data unless explicit purge is requested"
+
 # Target allowlist is explicit and matches current public CLI surface.
 # Future CI assets (musl/windows-arm64) may expand build matrix, but the
 # install CLI must not accept arbitrary target strings.

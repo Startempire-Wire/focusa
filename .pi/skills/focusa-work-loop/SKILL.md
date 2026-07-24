@@ -7,6 +7,10 @@ description: "Use when controlling Focusa continuous work-loop state, checking w
 
 Use when controlling Focusa continuous work-loop state, checking writer ownership, preflighting pause/resume/stop, or selecting next ready work.
 
+## Progressive disclosure
+
+Read `references/01-focusa-work-loop-runbook.md` for writer ownership, preflighted mutation, Silent Session handoff, rollover, and evidence closure.
+
 ## Start here
 
 1. Load the main Focusa skill if you need the whole system model: `/skill:focusa`.

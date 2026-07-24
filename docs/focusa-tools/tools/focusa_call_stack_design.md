@@ -70,10 +70,10 @@ Likely next: `focusa_call_stack_verify`, `focusa_workpoint_link_evidence`, `focu
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`, `skill:focusa-spec-implementation`
 - Runbooks: `runbook:workpoint`
 - Pi: `focusa_call_stack_design`; MCP: `focusa.call.stack.design`; OpenAI: `focusa_call_stack_design`.
 - CLI: `focusa call-stack design`.
 - REST: `POST /v1/call-stack/design`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:70f2f0c5060395cdcda7b10d80e21c5cd63e705747a4eccbeb4da82189d2b474`.
+- Descriptor digest: `sha256:aa0b85d05395111ce43a13cc709c8087f734b4ddd6e1cfcea5a2cb579ad96a90`.

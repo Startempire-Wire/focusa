@@ -60,10 +60,10 @@ Likely next: `focusa_device_pair_status`, `focusa_device_pair_list`.
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`, `skill:focusa-session-recovery`
+- Skills: `skill:focusa`, `skill:focusa-session-recovery`, `skill:focusa-security-auth-licensing`
 - Runbooks: `runbook:session_transfer`
 - Pi: `focusa_device_pair_qr`; MCP: `focusa.device.pair.qr`; OpenAI: `focusa_device_pair_qr`.
 - CLI: `focusa device pair-qr`.
 - REST: `POST /v1/device/pair/start`.
 - Specification: `docs/53-focusa-device-pairing-spec.md`.
-- Descriptor digest: `sha256:a41104bbdcacf24f805ff6ffb623a1b5fcbd27aaf0b3ac39370f7ff41045779e`.
+- Descriptor digest: `sha256:d952478a194ddc6c49d8ea961b1a1709874ba24a7ca8cab51affb19699688673`.

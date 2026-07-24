@@ -1,6 +1,6 @@
 {
   "schema": "focusa.openai_tool_projection.v2",
-  "registry_digest": "sha256:ddc78f685c7d284d1f38cd974e04bb82e662c06e433e6a777fbd1fd325596922",
+  "registry_digest": "sha256:c275433cdcc897c9d139978eb19161c009c74cec22ba516e8ddc0c10297bd841",
   "tools": [
     {
       "type": "function",

@@ -7,6 +7,10 @@ description: "Use when operating Focusa through direct CLI or HTTP API: health c
 
 Use when operating Focusa through direct CLI or HTTP API: health checks, release proof, endpoint troubleshooting, parity checks, or daemon verification.
 
+## Progressive disclosure
+
+Read `references/01-focusa-cli-api-runbook.md` for cross-interface parity, scope, retry, and evidence workflows.
+
 ## Start here
 
 1. Load the main Focusa skill if you need the whole system model: `/skill:focusa`.

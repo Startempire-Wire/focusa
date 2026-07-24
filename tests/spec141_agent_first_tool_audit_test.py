@@ -11,7 +11,10 @@ RELEASE_WORKFLOW = ROOT / ".github/workflows/release.yml"
 workflow = RELEASE_WORKFLOW.read_text()
 assert "open-issue-release-gate:" in workflow
 assert 'startswith("release-gate:")' in workflow
-assert "needs: [rust-check, open-issue-release-gate]" in workflow
+assert (
+    "needs: [rust-check, final-release-gap-gate, open-issue-release-gate, pull-request-release-gate]"
+    in workflow
+)
 
 with tempfile.TemporaryDirectory(prefix="focusa-spec141-") as tmp:
     report_path = Path(tmp) / "audit.json"
@@ -54,6 +57,11 @@ with tempfile.TemporaryDirectory(prefix="focusa-spec141-") as tmp:
         == metrics["tool_contracts"]
     )
     assert metrics["agent_card_present"] is True
+    assert metrics["agent_card_pi_tool_count"] == metrics["tool_contracts"]
+    assert metrics["agent_card_pi_tool_docs_count"] == metrics["per_tool_docs"]
+    assert metrics["agent_card_skill_count"] == metrics["installed_root_skills"]
+    assert metrics["agent_card_runbook_count"] == metrics["skill_runbook_count"]
+    assert metrics["skill_runbook_coverage_complete"] is True
     assert "## Findings" in markdown_path.read_text()
     assert report["external_benchmark_refs"]
 

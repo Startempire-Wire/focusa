@@ -71,10 +71,10 @@ Likely next: `focusa_work_loop_status`, `focusa_work_loop_checkpoint`, `focusa_r
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`, `skill:focusa-work-loop`
+- Skills: `skill:focusa`, `skill:focusa-work-loop`, `skill:focusa-silent-sessions`
 - Runbooks: `runbook:work_loop`
 - Pi: `focusa_silent_sessions`; MCP: `focusa.silent.sessions`; OpenAI: `focusa_silent_sessions`.
 - CLI: `focusa silent`.
 - REST: `GET /v1/silent-sessions`, `POST /v1/silent-sessions/preflight`, `GET /v1/silent-sessions/{session_id}`, `GET /v1/silent-sessions/{session_id}/output`, `POST /v1/silent-sessions/{session_id}/input`, `POST /v1/silent-sessions/{session_id}/start`, `POST /v1/silent-sessions/{session_id}/pause`, `POST /v1/silent-sessions/{session_id}/resume`, `POST /v1/silent-sessions/{session_id}/interrupt`, `POST /v1/silent-sessions/{session_id}/cancel`, `POST /v1/silent-sessions/{session_id}/restart`, `POST /v1/silent-sessions/{session_id}/config/preview`, `GET /v1/silent-sessions/{session_id}/receipts`, `GET /v1/silent-sessions/capabilities`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:8fce35a9d3e1715f1837f3378193625a9d052feecf1a78916e571d617e168cae`.
+- Descriptor digest: `sha256:fd20968ae33d9849337b1d6c7900b6edc736af138183c641dc564cff5acbebde`.

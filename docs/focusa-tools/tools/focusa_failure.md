@@ -61,10 +61,10 @@ Likely next: `focusa_tool_doctor`, `focusa_workpoint_resume`, `focusa_metacog_ca
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Runbooks: `runbook:focus_state`
 - Pi: `focusa_failure`; MCP: `focusa.failure`; OpenAI: `focusa_failure`.
 - CLI: `focusa focus update --failure`.
 - REST: `POST /v1/focus/update`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:5178ad0514b54b5c26dcfd1cd271325b2c68b7fd49511d90514e2e1cf4529945`.
+- Descriptor digest: `sha256:2a6ba9313c05ffc141e8cad0d344a50f149f366d7b2881c852f0571d05dcb93e`.

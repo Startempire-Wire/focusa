@@ -58,10 +58,10 @@ Likely next: `focusa_tool_doctor`, `focusa_trajectory_view`, `focusa_project_ide
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Runbooks: `runbook:focus_state`
 - Pi: `focusa_agent_prompt`; MCP: `focusa.agent.prompt`; OpenAI: `focusa_agent_prompt`.
 - CLI: none.
 - REST: `GET /v1/agent/prompt`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:0ca20f4bbe85cac0abfc6627b38800e789dbe403b5cb2a9aa4be8395bcb40272`.
+- Descriptor digest: `sha256:d620b575ae48d5330b9cd3ea4cb84040b8a4c96ddc8ede034514d10e7f1314d2`.

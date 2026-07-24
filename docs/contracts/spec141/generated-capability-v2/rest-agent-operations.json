@@ -1,6 +1,6 @@
 {
   "schema": "focusa.rest_agent_operation_projection.v2",
-  "registry_digest": "sha256:ddc78f685c7d284d1f38cd974e04bb82e662c06e433e6a777fbd1fd325596922",
+  "registry_digest": "sha256:c275433cdcc897c9d139978eb19161c009c74cec22ba516e8ddc0c10297bd841",
   "operations": [
     {
       "method": "POST",
@@ -14238,6 +14238,271 @@
       "permissions": [
         {
           "route": "POST /v1/metacognition/evaluate",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/metacognition/evaluations/recent",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_metacog_evaluate_outcome.md"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/metacognition/evaluations/recent",
+      "capability_id": "focusa.metacog.evaluate.outcome",
+      "operation_id": "focusa_metacog_evaluate_outcome",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "adjustment_id"
+        ],
+        "properties": {
+          "adjustment_id": {
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9._:-]+$",
+            "description": "Adjustment id.",
+            "type": "string"
+          },
+          "observed_metrics": {
+            "maxItems": 32,
+            "description": "Observed metric ids.",
+            "type": "array",
+            "items": {
+              "maxLength": 120,
+              "description": "Observed metric id.",
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "advisory_only"
+      },
+      "permissions": [
+        {
+          "route": "POST /v1/metacognition/evaluate",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/metacognition/evaluations/recent",
           "scope": {
             "kind": "read",
             "route_family": "auto"

@@ -1,9 +1,9 @@
 # Spec141 Focusa Latest-Spec Public Documentation Alignment
 
-Snapshot: `v0.9.120-dev`
+Snapshot: `v0.9.121-dev`
 Authority: `docs/evidence/141-focusa-latest-spec-public-doc-alignment.json`
 
-Public docs now distinguish implemented-with-active-hardening direction from final release closure. Nothing below claims Spec141 behavioral conformance is complete.
+Public docs distinguish implemented-with-active-hardening direction from final release closure. Spec141 all-Pi-tool behavioral conformance and the strict agent-first audit pass; final release closure still requires the integrated CI/release evidence.
 
 | Spec | Public direction | Status |
 | --- | --- | --- |
@@ -28,11 +28,11 @@ Public docs now distinguish implemented-with-active-hardening direction from fin
 - `README.md` — agent-first progressive discovery, cross-harness projection, and browser governance.
 - `docs/README.md` — Spec141 contracts, skill/runbook evidence, and this rolling alignment matrix.
 - `docs/llms.txt` — current agent bootstrap, recovery, browser, skills, anti-patterns, and latest direction.
-- `docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md` — 21-skill inventory and generated parity gate.
+- `docs/current/PI_EXTENSION_AND_SKILLS_GUIDE.md` — 22-skill/22-runbook inventory and generated parity gate.
 
 ## Integrity gates
 
 - All 15 spec paths resolve.
 - Every entry maps to at least one public reference.
-- `v0.9.120-dev` remains active development.
-- Spec141 release closure remains blocked until behavioral conformance evidence passes.
+- `v0.9.121-dev` remains active development until the release workflow succeeds.
+- Spec141 behavioral conformance and strict audit pass with 112 Pi tools/docs, 22 skills/runbooks, and zero findings.

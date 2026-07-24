@@ -60,10 +60,10 @@ Likely next: `focusa_workpoint_checkpoint`, `focusa_active_object_resolve`, `foc
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Runbooks: `runbook:focus_state`
 - Pi: `focusa_next_step`; MCP: `focusa.next.step`; OpenAI: `focusa_next_step`.
 - CLI: `focusa focus update --next-step`.
 - REST: `POST /v1/focus/update`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:f0c533f6b6d882611e1ad578b6fdd17692dfffa241a210de0a71d2f6147245ab`.
+- Descriptor digest: `sha256:5fde8f6b6324d6c0704ab23181945483aa32a56f70e197eabcb5089e9a7860ca`.

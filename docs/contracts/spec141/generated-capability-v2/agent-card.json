@@ -2,7 +2,7 @@
   "schema": "focusa.agent_card.v1",
   "name": "Focusa",
   "description": "Agent-first cognitive infrastructure with scoped Workpoints, Trajectory, evidence, recovery, browser interoperability, and cross-harness capability contracts.",
-  "version": "0.9.120-dev",
+  "version": "0.9.121-dev",
   "interfaces": [
     "pi",
     "mcp",
@@ -22,19 +22,257 @@
     "device_pairing",
     "local_trusted"
   ],
-  "registry_digest": "sha256:ddc78f685c7d284d1f38cd974e04bb82e662c06e433e6a777fbd1fd325596922",
-  "skill_count": 10,
+  "registry_digest": "sha256:c275433cdcc897c9d139978eb19161c009c74cec22ba516e8ddc0c10297bd841",
+  "pi_tool_count": 112,
+  "pi_tool_docs_count": 112,
+  "pi_tool_registry_path": "docs/contracts/spec141/generated-capability-v2/pi-tools.json",
+  "pi_tool_docs_path": "docs/focusa-tools/tools/",
+  "skill_count": 22,
   "skills": [
     "skill:focusa",
     "skill:focusa-agent-bootstrap",
     "skill:focusa-browser-uiai",
+    "skill:focusa-cli-api",
+    "skill:focusa-docs-maintenance",
+    "skill:focusa-evidence-outcomes",
+    "skill:focusa-install-lifecycle",
     "skill:focusa-metacognition",
+    "skill:focusa-mission-canvas",
     "skill:focusa-project-scope",
+    "skill:focusa-release-proof",
+    "skill:focusa-resource-performance",
+    "skill:focusa-security-auth-licensing",
     "skill:focusa-session-recovery",
+    "skill:focusa-silent-sessions",
+    "skill:focusa-spec-implementation",
+    "skill:focusa-temporal-authority",
     "skill:focusa-tool-discovery",
     "skill:focusa-troubleshooting",
     "skill:focusa-work-loop",
-    "skill:focusa-workpoint"
+    "skill:focusa-workpoint",
+    "skill:predictive-power"
+  ],
+  "skill_manifests": [
+    {
+      "skill_ref": "skill:focusa",
+      "manifest_ref": ".pi/skills/focusa/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa/references/01-focusa-core-agent-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:focusa-agent-bootstrap",
+      "manifest_ref": ".pi/skills/focusa-agent-bootstrap/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-agent-bootstrap/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-agent-bootstrap/references/01-focusa-agent-bootstrap-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:focusa-browser-uiai",
+      "manifest_ref": ".pi/skills/focusa-browser-uiai/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-browser-uiai/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-browser-uiai/references/01-focusa-browser-uiai-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:focusa-cli-api",
+      "manifest_ref": ".pi/skills/focusa-cli-api/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-cli-api/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-cli-api/references/01-focusa-cli-api-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:focusa-docs-maintenance",
+      "manifest_ref": ".pi/skills/focusa-docs-maintenance/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-docs-maintenance/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-docs-maintenance/references/01-focusa-docs-maintenance-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:focusa-evidence-outcomes",
+      "manifest_ref": ".pi/skills/focusa-evidence-outcomes/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-evidence-outcomes/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-evidence-outcomes/references/01-focusa-evidence-outcomes-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:focusa-install-lifecycle",
+      "manifest_ref": ".pi/skills/focusa-install-lifecycle/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-install-lifecycle/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-install-lifecycle/references/01-focusa-install-lifecycle-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:focusa-metacognition",
+      "manifest_ref": ".pi/skills/focusa-metacognition/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-metacognition/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-metacognition/references/01-focusa-metacognition-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:focusa-mission-canvas",
+      "manifest_ref": ".pi/skills/focusa-mission-canvas/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-mission-canvas/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-mission-canvas/references/01-focusa-mission-canvas-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:focusa-project-scope",
+      "manifest_ref": ".pi/skills/focusa-project-scope/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-project-scope/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-project-scope/references/01-focusa-project-scope-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:focusa-release-proof",
+      "manifest_ref": ".pi/skills/focusa-release-proof/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-release-proof/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-release-proof/references/01-focusa-release-proof-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:focusa-resource-performance",
+      "manifest_ref": ".pi/skills/focusa-resource-performance/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-resource-performance/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-resource-performance/references/01-focusa-resource-performance-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:focusa-security-auth-licensing",
+      "manifest_ref": ".pi/skills/focusa-security-auth-licensing/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-security-auth-licensing/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-security-auth-licensing/references/01-focusa-security-auth-licensing-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:focusa-session-recovery",
+      "manifest_ref": ".pi/skills/focusa-session-recovery/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-session-recovery/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-session-recovery/references/01-focusa-session-recovery-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:focusa-silent-sessions",
+      "manifest_ref": ".pi/skills/focusa-silent-sessions/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-silent-sessions/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-silent-sessions/references/01-focusa-silent-sessions-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:focusa-spec-implementation",
+      "manifest_ref": ".pi/skills/focusa-spec-implementation/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-spec-implementation/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-spec-implementation/references/01-focusa-spec-implementation-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:focusa-temporal-authority",
+      "manifest_ref": ".pi/skills/focusa-temporal-authority/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-temporal-authority/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-temporal-authority/references/01-focusa-temporal-authority-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:focusa-tool-discovery",
+      "manifest_ref": ".pi/skills/focusa-tool-discovery/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-tool-discovery/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-tool-discovery/references/01-focusa-tool-discovery-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:focusa-troubleshooting",
+      "manifest_ref": ".pi/skills/focusa-troubleshooting/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-troubleshooting/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-troubleshooting/references/01-focusa-troubleshooting-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:focusa-work-loop",
+      "manifest_ref": ".pi/skills/focusa-work-loop/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-work-loop/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-work-loop/references/01-focusa-work-loop-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:focusa-workpoint",
+      "manifest_ref": ".pi/skills/focusa-workpoint/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-workpoint/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-workpoint/references/01-focusa-workpoint-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:predictive-power",
+      "manifest_ref": ".pi/skills/predictive-power/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/predictive-power/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/predictive-power/references/01-focusa-predictive-power-runbook.md"
+      ]
+    }
+  ],
+  "capability_skill_count": 16,
+  "capability_skills": [
+    "skill:focusa",
+    "skill:focusa-agent-bootstrap",
+    "skill:focusa-browser-uiai",
+    "skill:focusa-evidence-outcomes",
+    "skill:focusa-metacognition",
+    "skill:focusa-project-scope",
+    "skill:focusa-resource-performance",
+    "skill:focusa-security-auth-licensing",
+    "skill:focusa-session-recovery",
+    "skill:focusa-silent-sessions",
+    "skill:focusa-spec-implementation",
+    "skill:focusa-tool-discovery",
+    "skill:focusa-troubleshooting",
+    "skill:focusa-work-loop",
+    "skill:focusa-workpoint",
+    "skill:predictive-power"
+  ],
+  "runbook_count": 22,
+  "runbook_refs": [
+    ".pi/skills/focusa-agent-bootstrap/references/01-focusa-agent-bootstrap-runbook.md",
+    ".pi/skills/focusa-browser-uiai/references/01-focusa-browser-uiai-runbook.md",
+    ".pi/skills/focusa-cli-api/references/01-focusa-cli-api-runbook.md",
+    ".pi/skills/focusa-docs-maintenance/references/01-focusa-docs-maintenance-runbook.md",
+    ".pi/skills/focusa-evidence-outcomes/references/01-focusa-evidence-outcomes-runbook.md",
+    ".pi/skills/focusa-install-lifecycle/references/01-focusa-install-lifecycle-runbook.md",
+    ".pi/skills/focusa-metacognition/references/01-focusa-metacognition-runbook.md",
+    ".pi/skills/focusa-mission-canvas/references/01-focusa-mission-canvas-runbook.md",
+    ".pi/skills/focusa-project-scope/references/01-focusa-project-scope-runbook.md",
+    ".pi/skills/focusa-release-proof/references/01-focusa-release-proof-runbook.md",
+    ".pi/skills/focusa-resource-performance/references/01-focusa-resource-performance-runbook.md",
+    ".pi/skills/focusa-security-auth-licensing/references/01-focusa-security-auth-licensing-runbook.md",
+    ".pi/skills/focusa-session-recovery/references/01-focusa-session-recovery-runbook.md",
+    ".pi/skills/focusa-silent-sessions/references/01-focusa-silent-sessions-runbook.md",
+    ".pi/skills/focusa-spec-implementation/references/01-focusa-spec-implementation-runbook.md",
+    ".pi/skills/focusa-temporal-authority/references/01-focusa-temporal-authority-runbook.md",
+    ".pi/skills/focusa-tool-discovery/references/01-focusa-tool-discovery-runbook.md",
+    ".pi/skills/focusa-troubleshooting/references/01-focusa-troubleshooting-runbook.md",
+    ".pi/skills/focusa-work-loop/references/01-focusa-work-loop-runbook.md",
+    ".pi/skills/focusa-workpoint/references/01-focusa-workpoint-runbook.md",
+    ".pi/skills/focusa/references/01-focusa-core-agent-runbook.md",
+    ".pi/skills/predictive-power/references/01-focusa-predictive-power-runbook.md"
   ],
   "capability_families": [
     "awareness",
@@ -51,5 +289,5 @@
     "workpoint"
   ],
   "extended_card_path": "/v1/agent/card",
-  "card_digest": "sha256:af5c55bb359d9228a9bf98a153aba2189c903375fb4706e2644258f1375ff92d"
+  "card_digest": "sha256:26f8c2045f320e4235b5769d9a51641e2bacbc4b482a8fe909eb3fbc6a4cfbd7"
 }

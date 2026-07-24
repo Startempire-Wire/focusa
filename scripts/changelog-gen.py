@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Generate `CHANGELOG.md` from `release-proof/audit/audit.jsonl`.
 
-For each unique release tag in scope (here, `v0.9.42-dev` for now), the
-script emits a section listing the guard additions + self-heals that
-landed, with links to the audit rows.
+For the requested release tag (defaulting to the workspace version), the
+script emits current agent/runtime/lifecycle highlights plus guard additions
+and self-heals, with links to the audit rows.
 
 This is invoked by the release workflow and by `create-dev-release-tag.sh`.
 Idempotent: regenerating the file produces the same bytes if the audit
@@ -17,6 +17,31 @@ import json
 import os
 import sys
 from datetime import datetime, timezone
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+RELEASE_HIGHLIGHTS = [
+    "112 Focusa Pi tools with strict cross-harness descriptors and per-tool docs",
+    "22 packaged skills with 22 numbered runbooks and complete Agent Card discovery",
+    "daemon-native Silent Sessions and governed continuous work-loop execution",
+    "Mission Canvas, Work Rail, connectors, domain projections, and adaptive generated UI",
+    "cache-safe compaction, automatic rollover, verified worktree/project authority, and durable evidence",
+    "trusted install/repair/OTA rollback plus preserve-by-default public uninstall",
+    "OpenClaw Focusa awareness plugin and non-Pi Agent Awareness surfaces",
+]
+
+
+def _workspace_tag() -> str:
+    cargo = (ROOT / "Cargo.toml").read_text()
+    workspace = cargo.split("[workspace.package]", 1)[1].split("\n[", 1)[0]
+    version = next(
+        line.split('"', 2)[1]
+        for line in workspace.splitlines()
+        if line.strip().startswith("version =")
+    )
+    return f"v{version}"
+
 
 CATEGORIES_BY_LAYER = {
     "Layer 1 — Runner": ("runner",),
@@ -75,7 +100,8 @@ def _format_heal(row: dict) -> str:
     return f"- **{rid}** (`{cat}`, `{flag}`)"
 
 
-def generate(ledger_path: str, out_path: str, tag: str = "v0.9.42-dev") -> int:
+def generate(ledger_path: str, out_path: str, tag: str | None = None) -> int:
+    tag = tag or _workspace_tag()
     rows: list[dict] = []
     if os.path.exists(ledger_path):
         with open(ledger_path, "r", encoding="utf-8") as fh:
@@ -111,6 +137,10 @@ def generate(ledger_path: str, out_path: str, tag: str = "v0.9.42-dev") -> int:
     out.append("")
 
     out.append(f"## {tag} — release in scope")
+    out.append("")
+    out.append("### Release highlights")
+    out.append("")
+    out.extend(f"- {highlight}" for highlight in RELEASE_HIGHLIGHTS)
     out.append("")
     by_layer: dict[str, list[dict]] = {layer: [] for layer in CATEGORIES_BY_LAYER}
     for row in rows:
@@ -161,7 +191,7 @@ def main(argv: list[str]) -> int:
     )
     parser.add_argument("--ledger", default="release-proof/audit/audit.jsonl")
     parser.add_argument("--out", default="CHANGELOG.md")
-    parser.add_argument("--tag", default="v0.9.42-dev")
+    parser.add_argument("--tag", default=None, help="release tag; defaults to v<workspace version>")
     args = parser.parse_args(argv)
     return generate(args.ledger, args.out, args.tag)
 

@@ -9,6 +9,29 @@ Focusa installers and updates must be explicit, reversible, and guarded by Conte
 - Menubar app bundle: signed Mac app release artifact.
 - Pi extension package: versioned extension package loaded by Pi.
 
+## Customer lifecycle contract
+
+| Transition | Required behavior | Required proof |
+| --- | --- | --- |
+| inspect | `scripts/install-focusa.sh --dry-run --eval` performs no mutation | bounded install plan |
+| install | signed/checksummed release assets, atomic activation, daemon/Pi integration | health + version + first Workpoint |
+| repair/rerun | rerunning the same channel is idempotent; `--force` is explicit for downgrade/overwrite | prior state backup + repaired health |
+| OTA/update | trusted release metadata, anti-rollback, atomic replacement, extension reload/rollback | artifact checksum/signature + activated version + rollback receipt |
+| uninstall | public `--uninstall` removes managed software and preserves user data by default | managed artifacts absent + data-preservation evidence |
+| purge | destructive data removal requires `--uninstall --purge-data` | explicit operator approval + purge evidence |
+
+Public examples:
+
+```bash
+bash scripts/install-focusa.sh --dry-run --eval
+curl -fsS https://install.focusa.dev/focusa | bash -s -- --eval
+curl -fsS https://install.focusa.dev/focusa | bash -s -- --uninstall
+# Explicit destructive removal only:
+curl -fsS https://install.focusa.dev/focusa | bash -s -- --uninstall --purge-data
+```
+
+After install, repair, or update, verify daemon health/version, all-Pi-tool discovery, Mission Canvas, and canonical Workpoint resume. Uninstall must remain idempotent when binaries are already absent.
+
 ## Installer terminal UX policy
 
 Spec 132 makes `focusa install` the owner of terminal presentation. Animated UI is an event consumer only: it renders sanitized phase/download/verification/service/Pi/PATH/cancel/rollback events to stderr and never owns install truth, rollback decisions, release selection, license validation, or file mutation.
@@ -16,7 +39,7 @@ Spec 132 makes `focusa install` the owner of terminal presentation. Animated UI 
 Renderer selection:
 
 | Condition | Required behavior |
-|---|---|
+| --- | --- |
 | `--json` | silent presenter; one stdout JSON document |
 | `--quiet` | silent except durable errors |
 | `--no-animation` / `FOCUSA_INSTALL_UI=plain` | plain presenter |

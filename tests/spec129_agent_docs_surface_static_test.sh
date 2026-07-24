@@ -6,6 +6,10 @@ SPEC="$ROOT_DIR/docs/129-focusa-agent-internal-docs-and-knowledge-surface-spec.m
 DOC="$ROOT_DIR/docs/agent/01-focusa-agent-docs-index.md"
 AGENTS="$ROOT_DIR/AGENTS.md"
 INDEX="$ROOT_DIR/docs/INDEX.md"
+README="$ROOT_DIR/README.md"
+LLMS="$ROOT_DIR/docs/llms.txt"
+ONBOARDING="$ROOT_DIR/docs/current/FOCUSA_FRIENDLY_ONBOARDING.md"
+AGENT_CARD="$ROOT_DIR/docs/contracts/spec141/generated-capability-v2/agent-card.json"
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 pass() { echo "PASS: $*"; }
@@ -24,7 +28,14 @@ for required in \
   'Workpoints, Evidence, and Trajectory' \
   'Update and release policy' \
   'Public/private boundary rules' \
-  'Software layout checklist'; do
+  'Software layout checklist' \
+  'Current authority and recovery model' \
+  'All-Pi-tool and skill discovery' \
+  'Silent Sessions' \
+  'Mission Canvas' \
+  'worktrees' \
+  'automatic rollover' \
+  'preserves user data'; do
   grep -q "$required" "$DOC" || fail "agent docs missing section: $required"
 done
 
@@ -34,9 +45,44 @@ for required in \
   'focusa workpoint checkpoint' \
   'POST /v1/workpoint/resume' \
   'GET /v1/telemetry/snapshot' \
-  'scripts/guard-public-surface.sh'; do
+  'scripts/guard-public-surface.sh' \
+  'focusa_agent_card' \
+  'focusa_tool_search' \
+  'generated-capability-v2/pi-tools.json' \
+  'docs/focusa-tools/tools/focusa_<name>.md' \
+  'focusa silent --help' \
+  'focusa update --help' \
+  'focusa uninstall --dry-run --keep-data'; do
   grep -q "$required" "$DOC" || fail "agent docs missing required reference: $required"
 done
+
+for required in \
+  'Current agent-readiness fast path' \
+  'all Focusa Pi tools' \
+  'daemon-native Silent Sessions' \
+  'uninstall with user data preserved'; do
+  grep -qi "$required" "$AGENTS" || fail "AGENTS.md missing release-current boundary: $required"
+done
+
+for required in \
+  'All 112 Focusa Pi tools' \
+  'Daemon-native Silent Sessions' \
+  'Mission Canvas and Work Rail' \
+  'adaptive generated UI' \
+  'uninstall with user data preserved'; do
+  grep -qi "$required" "$README" || fail "README missing release-current public coverage: $required"
+done
+
+for required in 'Silent Sessions' 'worktrees' 'proactive compaction' 'connectors' 'uninstall with user data preserved'; do
+  grep -qi "$required" "$LLMS" || fail "llms.txt missing machine-readable architecture coverage: $required"
+done
+
+for required in 'first-agent walkthrough' 'focusa_agent_card' 'all Focusa Pi tools' 'Customer lifecycle walkthrough' '--purge-data'; do
+  grep -q -- "$required" "$ONBOARDING" || fail "onboarding missing current walkthrough coverage: $required"
+done
+
+jq -e '.pi_tool_count == 112 and .pi_tool_docs_count == 112 and .skill_count >= 22 and .runbook_count >= .skill_count' "$AGENT_CARD" >/dev/null \
+  || fail "Agent Card lacks complete Pi tool/skill/runbook inventory"
 
 if rg -n '/home/wirebot|/root/|wpuiai.com/wp-admin|signalos\.pro|raw transcript|raw transcripts|docs/evidence/transcripts|\.focusa-private' "$DOC" "$SPEC"; then
   fail "agent docs/spec contain private path/admin URL/transcript leakage"

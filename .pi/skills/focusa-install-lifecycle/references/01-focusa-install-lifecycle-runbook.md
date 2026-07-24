@@ -22,6 +22,13 @@ focusa_evidence_capture -> focusa_tool_doctor
 3. Call `focusa_evidence_capture` with only required bounded inputs.
 4. Call `focusa_tool_doctor` with only required bounded inputs.
 
+## Current domain procedure
+
+1. Inspect with `bash scripts/install-focusa.sh --dry-run --eval`, then install or repair by rerunning the signed public bootstrapper.
+2. Use `focusa update --help` and release metadata for trusted OTA/update verification and rollback evidence.
+3. Public `--uninstall` preserves user data by default; destructive removal requires explicit `--uninstall --purge-data`.
+4. After each lifecycle transition, verify health, version, Pi tool discovery, Mission Canvas, and Workpoint resume.
+
 ## Branches
 
 - Unknown tool/schema: `focusa_tool_search` → `focusa_tool_describe`.

@@ -2123,7 +2123,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     family: "metacognition",
     ontology_action: "metacognition.evaluate.outcome",
     ontology_objects: ["MetacogSignal"],
-    api_routes: ["POST /v1/metacognition/evaluate"],
+    api_routes: ["POST /v1/metacognition/evaluate", "GET /v1/metacognition/evaluations/recent"],
     cli_commands: ["focusa metacognition evaluate"],
     core_surface: "Metacognition store/retriever",
     doc_path: "docs/focusa-tools/tools/focusa_metacog_evaluate_outcome.md",

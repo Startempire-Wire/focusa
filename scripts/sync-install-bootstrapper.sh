@@ -19,7 +19,7 @@ set -euo pipefail
 
 REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 SRC="${REPO_ROOT}/scripts/install-focusa.sh"
-LIVE_DIR="/home/focusadev/public_html/install.focusa.dev/installers"
+LIVE_DIR="/home/focusadev/install.focusa.dev/public_html/installers"
 LIVE="${LIVE_DIR}/install-focusa.sh"
 
 # Live docroot is owned by focusadev; mutate it as that user so the deploy
@@ -49,11 +49,13 @@ done
 [ -f "$SRC" ] || { echo "[sync-install-bootstrapper] missing source: $SRC" >&2; exit 2; }
 
 if [ "$mode" = "check" ]; then
-  if [ ! -f "$LIVE" ]; then
+  if ! as_focusadev test -f "$LIVE"; then
     [ "$quiet" = "1" ] || echo "[sync-install-bootstrapper] live not found: $LIVE" >&2
     exit 1
   fi
-  if ! cmp -s "$SRC" "$LIVE"; then
+  source_sha="$(sha256sum "$SRC" | awk '{print $1}')"
+  live_sha="$(as_focusadev sha256sum "$LIVE" | awk '{print $1}')"
+  if [ "$source_sha" != "$live_sha" ]; then
     [ "$quiet" = "1" ] || echo "[sync-install-bootstrapper] DRIFT: $SRC != $LIVE" >&2
     exit 1
   fi

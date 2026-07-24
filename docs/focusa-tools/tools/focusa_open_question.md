@@ -60,10 +60,10 @@ Likely next: `focusa_trajectory_assess`, `focusa_traverse`, `focusa_metacog_retr
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Runbooks: `runbook:focus_state`
 - Pi: `focusa_open_question`; MCP: `focusa.open.question`; OpenAI: `focusa_open_question`.
 - CLI: `focusa focus update --open-question`.
 - REST: `POST /v1/focus/update`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:338d385effeb3ddb79746802c17e1a5d7f0df8f0e92e40a6983710c2c65ee3f5`.
+- Descriptor digest: `sha256:d2040446126f55ea8e78e27ffad884dfe616a3336ca010e57a95dc74b950f54a`.

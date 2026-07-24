@@ -7,6 +7,10 @@ description: "Use when capturing reusable learning, retrieving prior lessons, re
 
 Use when capturing reusable learning, retrieving prior lessons, reflecting on outcomes, planning adjustments, evaluating improvements, or diagnosing metacog quality.
 
+## Progressive disclosure
+
+Read `references/01-focusa-metacognition-runbook.md` for retrieve, capture, reflect, adjust, evaluate, and failure-recovery flows.
+
 ## Start here
 
 1. Load the main Focusa skill if you need the whole system model: `/skill:focusa`.

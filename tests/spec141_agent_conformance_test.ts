@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { Value } from "../apps/pi-extension/node_modules/@sinclair/typebox/build/esm/value/index.mjs";
 import { makeAttachmentKey, runWithAttachmentRuntime } from "../apps/pi-extension/src/state.ts";
@@ -16,6 +16,8 @@ const restProjection = load("docs/contracts/spec141/generated-capability-v2/rest
 const card = load("docs/contracts/spec141/generated-capability-v2/agent-card.json");
 const routes = load("docs/contracts/spec141/generated-capability-v2/route-classification.json");
 const skills = load("docs/evidence/141-focusa-skill-runbook-coverage.json");
+const workspaceCargo = readFileSync(resolve(root, "Cargo.toml"), "utf8");
+const workspaceVersion = workspaceCargo.match(/\[workspace\.package\]([\s\S]*?)(?:\n\[|$)/)?.[1]?.match(/^version\s*=\s*"([^"]+)"/m)?.[1];
 
 const captured: any[] = [];
 registerTools({ registerTool: (tool: any) => captured.push(tool), on() {} } as any);
@@ -49,9 +51,14 @@ assert(piProjection.tools.length === tools.size, "Pi projection parity");
 assert(openaiProjection.tools.length === restProjection.operations.length || openaiProjection.tools.length <= tools.size, "OpenAI projection must remain bounded by Pi catalog");
 assert(mcpProjection.tools.length === restProjection.operations.filter((operation: any, index: number, all: any[]) => all.findIndex((item: any) => item.operation_id === operation.operation_id) === index).length, "MCP and REST callable capability parity");
 assert(card.registry_digest === registry.registry_digest, "Agent Card registry digest parity");
+assert(card.version === workspaceVersion, "Agent Card version must match workspace version");
+assert(card.pi_tool_count === tools.size && card.pi_tool_docs_count === tools.size, "Agent Card must cover every Pi tool and per-tool doc");
 assert(cliProjection.registry_digest === registry.registry_digest, "CLI registry digest parity");
 assert(routes.route_count === routes.routes.length && routes.routes.every((route: any) => route.classification && route.rationale), "every API route must have explicit classification/rationale");
-assert(skills.root_packaged_parity === true && skills.installed_root_skill_count >= 21, "skill/runbook parity and coverage");
+assert(skills.root_packaged_parity === true && skills.installed_root_skill_count >= 22, "skill root/package parity and coverage");
+assert(skills.runbook_coverage_complete === true && skills.runbook_count >= skills.installed_root_skill_count, "every installed skill must have a runbook");
+assert(card.skill_count === skills.installed_root_skill_count && card.runbook_count === skills.runbook_count, "Agent Card skill/runbook inventory parity");
+assert(card.skill_manifests.length === card.skill_count && card.skills.length === card.skill_count, "Agent Card must enumerate every skill manifest");
 
 const invalidExamples: string[] = [];
 for (const [name, tool] of tools) {
@@ -61,7 +68,9 @@ for (const [name, tool] of tools) {
   strictObjects(tool.outputSchema, `${name}.output`);
   assert(descriptor.error_schema && descriptor.recovery.length > 0, `${name}: missing error/recovery contract`);
   assert(descriptor.dependencies.length > 0, `${name}: missing workflow dependencies`);
-  assert(descriptor.skill_refs.length > 0 && descriptor.docs_ref, `${name}: missing skill/docs refs`);
+  assert(descriptor.skill_refs.length > 1 && descriptor.docs_ref, `${name}: missing specialized skill/docs refs`);
+  assert(existsSync(resolve(root, descriptor.docs_ref)), `${name}: per-tool documentation missing`);
+  assert(descriptor.skill_refs.every((skillRef: string) => card.skills.includes(skillRef)), `${name}: skill routing absent from Agent Card`);
   const example = descriptor.examples[0]?.arguments;
   if (!Value.Check(tool.parameters, example)) invalidExamples.push(name);
   if (tool.parameters.type === "object") {

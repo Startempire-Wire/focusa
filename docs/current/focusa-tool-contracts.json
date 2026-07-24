@@ -479,7 +479,7 @@
     {
       "name": "focusa_project_identity",
       "label": "Project Identity",
-      "purpose": "Resolve the active project identity from marker, git, beads, workspace, cwd, daemon, and operator project signals before trusting project-bound context.",
+      "purpose": "Rank explicit, active-worktree, canonical-parent, marker/Beads, persisted-session, and bounded parent-directory project candidates; fail closed on ambiguity before trusting project-bound context.",
       "family": "project_identity",
       "ontology_action": "project.identity",
       "ontology_objects": [
@@ -499,7 +499,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus /v1/project/identity safe probe and quorum status",
+      "live_check": "contract_static plus /v1/project/identity binding_candidates, worktree-parent relation, ambiguity, and quorum status",
       "scope_requirement": {
         "kind": "read",
         "route_family": "auto"
@@ -619,7 +619,7 @@
     {
       "name": "focusa_project_verify",
       "label": "Project Verify",
-      "purpose": "Verify expected project identity fields and surface project/continuity mismatches without mutating Focusa state.",
+      "purpose": "Verify expected project identity fields against ranked worktree/session candidates and surface ambiguity or project/continuity mismatches without mutating Focusa state.",
       "family": "project_identity",
       "ontology_action": "project.verify",
       "ontology_objects": [
@@ -639,7 +639,7 @@
       "exemptions": [
         "domain_cli_only"
       ],
-      "live_check": "contract_static plus /v1/project/verify safe probe and mismatch diagnostics",
+      "live_check": "contract_static plus /v1/project/verify candidate, ambiguity, and mismatch diagnostics",
       "scope_requirement": {
         "kind": "read",
         "route_family": "auto"
@@ -1651,42 +1651,48 @@
     },
     {
       "name": "focusa_silent_sessions",
-      "label": "Focusa Silent Sessions (legacy tmux wrapper)",
-      "purpose": "Legacy/non-durable tmux compatibility wrapper for explicitly managing Pi-local background SilentSessions; not the canonical Spec133 daemon-native control plane. Default launcher requires explicit model and bounded timeout validation before command execution.",
+      "label": "Focusa Silent Sessions (daemon facade)",
+      "purpose": "Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility.",
       "family": "work_loop",
       "ontology_action": "work_loop.silent_session.control",
       "ontology_objects": [
         "SilentSession",
-        "WorkLoopStatus",
+        "SilentSessionRun",
         "ResourceMode"
       ],
-      "api_routes": [],
-      "cli_commands": [
-        "tmux list-sessions",
-        "tmux new-session",
-        "tmux attach-session",
-        "tmux capture-pane",
-        "tmux list-panes",
-        "tmux pipe-pane",
-        "tmux send-keys",
-        "tmux send-keys C-c",
-        "tmux kill-session"
+      "api_routes": [
+        "GET /v1/silent-sessions",
+        "POST /v1/silent-sessions/preflight",
+        "GET /v1/silent-sessions/{session_id}",
+        "GET /v1/silent-sessions/{session_id}/output",
+        "POST /v1/silent-sessions/{session_id}/input",
+        "POST /v1/silent-sessions/{session_id}/start",
+        "POST /v1/silent-sessions/{session_id}/pause",
+        "POST /v1/silent-sessions/{session_id}/resume",
+        "POST /v1/silent-sessions/{session_id}/interrupt",
+        "POST /v1/silent-sessions/{session_id}/cancel",
+        "POST /v1/silent-sessions/{session_id}/restart",
+        "POST /v1/silent-sessions/{session_id}/config/preview",
+        "GET /v1/silent-sessions/{session_id}/receipts",
+        "GET /v1/silent-sessions/capabilities"
       ],
-      "core_surface": "Legacy Pi-local tmux SilentSession compatibility wrapper with hardened built-in launch defaults",
+      "cli_commands": [
+        "focusa silent"
+      ],
+      "core_surface": "Daemon API facade; canonical authority, lifecycle, model, health, persistence and recovery remain server-side",
       "doc_path": "docs/focusa-tools/tools/focusa_silent_sessions.md",
       "result_envelope": "tool_result_v1",
-      "side_effect_profile": "process_control",
-      "parity_status": "pi_only",
-      "exemptions": [
-        "pi_only"
-      ],
-      "live_check": "contract_static plus optional tmux list-sessions probe; kill/send/start/restart require explicit approval flags and start/restart default mode validates model+timeout",
+      "side_effect_profile": "daemon_api_control",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus daemon route conformance; mutations require exact target, durable approval and idempotency",
       "scope_requirement": {
         "kind": "read",
         "route_family": "auto"
       },
       "authority_requirement": {
-        "kind": "advisory_only"
+        "kind": "canonical",
+        "path": "daemon:/v1/silent-sessions"
       }
     },
     {
@@ -3256,7 +3262,8 @@
         "MetacogSignal"
       ],
       "api_routes": [
-        "POST /v1/metacognition/evaluate"
+        "POST /v1/metacognition/evaluate",
+        "GET /v1/metacognition/evaluations/recent"
       ],
       "cli_commands": [
         "focusa metacognition evaluate"

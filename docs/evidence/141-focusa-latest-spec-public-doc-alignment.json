@@ -1,6 +1,6 @@
 {
   "schema": "focusa.latest_spec_public_doc_alignment.v1",
-  "snapshot": "v0.9.120-dev",
+  "snapshot": "v0.9.121-dev",
   "spec_count": 15,
   "rule": "rolling Spec135b through Spec140 set locked by Spec141",
   "entries": [

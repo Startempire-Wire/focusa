@@ -62,10 +62,10 @@ Likely next: `focusa_device_pair_status`, `focusa_device_pair_list`.
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`, `skill:focusa-session-recovery`
+- Skills: `skill:focusa`, `skill:focusa-session-recovery`, `skill:focusa-security-auth-licensing`
 - Runbooks: `runbook:session_transfer`
 - Pi: `focusa_device_pair_complete`; MCP: `focusa.device.pair.complete`; OpenAI: `focusa_device_pair_complete`.
 - CLI: `focusa device pair-complete`.
 - REST: `POST /v1/device/pair/complete`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:0de1119449d31f6dfcdc8782bd44ef0dd0baf4833640c638e5e79f97bb0cada9`.
+- Descriptor digest: `sha256:6e8a595abcc5d4ba85c85fd93a10ce96046bb4a7c63c3eac22e59bfc728f6847`.

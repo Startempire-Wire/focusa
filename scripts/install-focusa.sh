@@ -57,6 +57,7 @@ ACCEPT_LICENSE="${ACCEPT_LICENSE:-0}"
 NO_SERVICE="${NO_SERVICE:-0}"
 FORCE="${FORCE:-0}"
 UNINSTALL="${UNINSTALL:-0}"
+PURGE_DATA="${PURGE_DATA:-0}"
 LICENSE_KEY="${FOCUSA_LICENSE_KEY:-${LICENSE_KEY:-${WPUIAI_LICENSE_KEY:-}}}"
 # Customer email for receipt and reissue contact (Spec 118 §6).
 LICENSE_EMAIL="${FOCUSA_LICENSE_EMAIL:-${LICENSE_EMAIL:-}}"
@@ -100,7 +101,8 @@ Options:
   --accept-license         accept BSL 1.1 terms without prompting
   --no-service             skip systemd user unit / launchd registration
   --force                  allow downgrade or overwriting an existing install
-  --uninstall              remove an existing install; succeeds if already removed
+  --uninstall              remove managed install; preserve user data by default
+  --purge-data             with --uninstall, also remove Focusa user data
   --help                   print this help
 
 Environment overrides (lower precedence than flags):
@@ -132,6 +134,7 @@ for arg in "$@"; do
     --no-service)         NO_SERVICE=1 ;;
     --force)              FORCE=1 ;;
     --uninstall)          UNINSTALL=1 ;;
+    --purge-data)         PURGE_DATA=1 ;;
     --target=*)           TARGET="${arg#--target=}" ;;
     --channel=*)          CHANNEL="${arg#--channel=}" ;;
     --github-repo=*)      GITHUB_REPO="${arg#--github-repo=}" ;;
@@ -142,6 +145,11 @@ for arg in "$@"; do
     *) printf '[focusa-install] unknown arg: %s\n' "$arg" >&2; usage >&2; exit 64 ;;
   esac
 done
+
+if [ "$PURGE_DATA" = 1 ] && [ "$UNINSTALL" != 1 ]; then
+  echo "[focusa-install] --purge-data requires --uninstall" >&2
+  exit 64
+fi
 
 # Allow FOCUSA_LICENSE_REGISTRY env override too (matches Rust install.rs).
 LICENSE_REGISTRY="${FOCUSA_LICENSE_REGISTRY:-$LICENSE_REGISTRY}"
@@ -175,7 +183,11 @@ curl_resilient() {
 if [ "$UNINSTALL" = 1 ]; then
   uninstall_status=0
   if [ -x "$BIN_DIR/focusa" ]; then
-    "$BIN_DIR/focusa" uninstall --yes || uninstall_status=$?
+    uninstall_args=(--yes)
+    if [ "$PURGE_DATA" != 1 ]; then
+      uninstall_args+=(--keep-data)
+    fi
+    "$BIN_DIR/focusa" uninstall "${uninstall_args[@]}" || uninstall_status=$?
   else
     log "Focusa binaries are already removed."
   fi
