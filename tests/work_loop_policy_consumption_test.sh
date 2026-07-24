@@ -4,6 +4,7 @@
 set -euo pipefail
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+WORK_ITEM_ID="spec79-policy-consume"
 FAILED=0
 PASSED=0
 
@@ -23,7 +24,7 @@ http_json() { curl -sS "$@"; }
 
 CHECKPOINT_RESP=$(http_json -X POST "${BASE_URL}/v1/workpoint/checkpoint" \
   -H 'Content-Type: application/json' \
-  -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-continuation-test\",\"mission\":\"verify work-loop policy consumption\",\"current_action\":\"spec79_policy_consumption\",\"next_slice\":\"verify consumed continuation inputs\",\"canonical\":true}")
+  -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-continuation-test\",\"work_item_id\":\"${WORK_ITEM_ID}\",\"mission\":\"verify work-loop policy consumption\",\"current_action\":\"spec79_policy_consumption\",\"next_slice\":\"verify consumed continuation inputs\",\"canonical\":true}")
 WORKPOINT_ID=$(echo "$CHECKPOINT_RESP" | jq -r '.workpoint_id // empty')
 for _ in $(seq 1 40); do
   RESUME=$(http_json -X POST "${BASE_URL}/v1/workpoint/resume" -H 'Content-Type: application/json' \
@@ -32,17 +33,25 @@ for _ in $(seq 1 40); do
   sleep 0.1
 done
 
-# Create a high-risk current task under continuous loop.
-http_json -X POST "${BASE_URL}/v1/work-loop/enable" \
+# Create a high-risk current task under continuous loop with explicit writer ownership.
+ACTIVE_WRITER="spec79-policy-consume"
+ENABLE_RESP=$(http_json -X POST "${BASE_URL}/v1/work-loop/enable" \
   -H 'Content-Type: application/json' \
-  -H 'x-focusa-writer-id: spec79-policy-consume' \
+  -H "x-focusa-writer-id: ${ACTIVE_WRITER}" \
   -H 'x-focusa-approval: approved' \
-  -d '{}' >/dev/null
+  -d "{\"preset\":\"balanced\",\"root_work_item_id\":\"${WORK_ITEM_ID}\"}")
+FENCING_TOKEN=$(echo "$ENABLE_RESP" | jq -r '.fencing_token // empty')
+FENCING_HEADERS=()
+if echo "$FENCING_TOKEN" | grep -Eq '^[1-9][0-9]*$'; then
+  FENCING_HEADERS=(-H "x-focusa-fencing-token: ${FENCING_TOKEN}")
+elif ! echo "$ENABLE_RESP" | jq -e '.ok == true and .writer_id == "spec79-policy-consume"' >/dev/null 2>&1; then
+  log_fail "work-loop writer enable rejected: $ENABLE_RESP"
+fi
 
-ACTIVE_WRITER=$(http_json "${BASE_URL}/v1/work-loop" | jq -r '.active_writer // "daemon-supervisor"')
 CTX_RESP=$(http_json -X POST "${BASE_URL}/v1/work-loop/context" \
   -H 'Content-Type: application/json' \
   -H "x-focusa-writer-id: ${ACTIVE_WRITER}" \
+  "${FENCING_HEADERS[@]}" \
   -d '{"current_ask":"continue deleting legacy rows","ask_kind":"instruction","scope_kind":"mission_carryover","carryover_policy":"allow_if_relevant","excluded_context_reason":"none","excluded_context_labels":[],"source_turn_id":"spec79-policy-turn","operator_steering_detected":false}')
 if echo "$CTX_RESP" | jq -e '.status == "accepted"' >/dev/null 2>&1; then
   log_pass "work-loop context update accepted"
@@ -72,6 +81,18 @@ if echo "$STATUS" | jq -e '.continuation_inputs | has("pending_proposals_requiri
   log_pass "Consumed continuation inputs remain observable in status"
 else
   log_fail "Consumed continuation inputs not observable in status: $STATUS"
+fi
+
+STOP_RESP=$(http_json -X POST "${BASE_URL}/v1/work-loop/stop" \
+  -H 'Content-Type: application/json' \
+  -H "x-focusa-writer-id: ${ACTIVE_WRITER}" \
+  "${FENCING_HEADERS[@]}" \
+  -H 'x-focusa-approval: approved' \
+  -d '{}')
+if echo "$STOP_RESP" | jq -e '.status == "accepted" or .state == "stopped" or .ok == true' >/dev/null 2>&1; then
+  log_pass "work-loop policy writer stopped cleanly"
+else
+  log_fail "work-loop policy writer stop rejected: $STOP_RESP"
 fi
 
 echo "=== WORK-LOOP POLICY CONSUMPTION RESULTS ==="
