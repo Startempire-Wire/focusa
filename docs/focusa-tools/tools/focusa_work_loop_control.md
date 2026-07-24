@@ -14,7 +14,12 @@ Control continuous work loop: on, pause, resume, stop. Use it when Control conti
 - `reason` (optional; string): Optional operator reason (max 200 chars).
 - `preset` (optional; string | string | string | string): See the strict descriptor schema.
 - `preflight` (optional; boolean): If true, only report intended route/writer and do not mutate work-loop state.
-- `root_work_item_id` (optional; string): Optional root BD/task/item id. If omitted, tool infers from active task or bd ready.
+- `root_work_item_id` (optional; string): Optional root provider WorkItem id. If omitted, infer from the active scoped task.
+- `renew_budget` (optional; boolean): Explicitly start a fresh budget epoch when action=resume.
+- `max_turns` (optional; number; min=1): See the strict descriptor schema.
+- `max_wall_clock_ms` (optional; number; min=1000): See the strict descriptor schema.
+- `max_retries` (optional; number; min=0): See the strict descriptor schema.
+- `cooldown_ms` (optional; number; min=0): See the strict descriptor schema.
 
 Unknown object properties are rejected. Canonical schema: `agent-capability-descriptors.json#focusa_work_loop_control`.
 
@@ -70,4 +75,4 @@ Likely next: `focusa_work_loop_writer_status`, `focusa_work_loop_status`, `focus
 - CLI: none.
 - REST: `POST /v1/work-loop/enable`, `POST /v1/work-loop/pause`, `POST /v1/work-loop/resume`, `POST /v1/work-loop/stop`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:daafbec36326d8fc18a1ba681421c5847e0f2cfe8db6e19c658d0d7274ced9c2`.
+- Descriptor digest: `sha256:6afc630de27cd12e7da9a175b41bc6454026f575fefd7590b2ce25387c234efa`.

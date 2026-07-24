@@ -1940,7 +1940,7 @@ async fn execute_verified_apply_locked(
                     "schema": "focusa.pi_extension_restart_required.v1",
                     "version": plan.latest.version,
                     "installed_at": chrono_like_timestamp(),
-                    "action": "restart or /reload Pi to activate the updated Focusa extension"
+                    "action": "Focusa Pi extension queues /focusa-activate-updated-extension and reloads automatically when idle"
                 }))?,
             )?;
             package_promoted.push(part.part.to_string());
@@ -2073,7 +2073,16 @@ fn build_apply_envelope(
             effective: yes && allow_apply && !dry_run,
             note: "consent allows verified promotion only after release trust and policy gates pass",
         },
-        execution_order: vec!["cli", "tui", "daemon_last", "restart_daemon_only_if_changed_and_allowed"],
+        execution_order: vec![
+            "cli",
+            "tui",
+            "installer",
+            "pi_extension_package",
+            "daemon_last",
+            "restart_daemon_only_if_changed_and_allowed",
+            "pi_extension_runtime_auto_reload",
+            "menubar_signed_updater_auto_install_and_relaunch",
+        ],
         daemon_restart: DaemonRestartPlan {
             allowed: false,
             required: daemon_required,
@@ -2093,6 +2102,9 @@ fn build_apply_envelope(
             "tui_version_matches_target_or_not_installed",
             "daemon_health_version_matches_target_when_daemon_changed",
             "daemon_api_contract_matches_target_when_daemon_changed",
+            "installer_version_matches_target_or_not_installed",
+            "pi_extension_activation_receipt_matches_target_or_not_installed",
+            "menubar_signed_updater_install_and_relaunch_or_not_installed",
             "no_data_env_license_overwrite",
             "rollback_journal_written",
         ],
@@ -2223,11 +2235,20 @@ fn path_is_git_managed(path: &str) -> bool {
 
 fn part_plan(part: &InstalledPart, latest: &LatestVersion, order: &mut u8) -> PartPlan {
     let release_asset_available = latest.assets.iter().any(|asset| asset.part == part.part);
-    let externally_managed = part.part == "menubar"
-        || (part.part == "pi_extension"
-            && path_is_git_managed(part.resolved_path.as_deref().unwrap_or(&part.expected_path)));
+    let externally_managed = part.part == "pi_extension"
+        && path_is_git_managed(part.resolved_path.as_deref().unwrap_or(&part.expected_path));
     let action = if part.part == "installer" && !release_asset_available {
         "release_asset_unavailable"
+    } else if part.part == "menubar" {
+        if !part.exists {
+            "not_installed"
+        } else {
+            match part.stale {
+                Some(true) => "delegated_auto_update",
+                Some(false) => "no_op",
+                None => "probe_required",
+            }
+        }
     } else if externally_managed {
         if !part.exists {
             "not_installed"
@@ -3024,7 +3045,8 @@ fn inspect_installer(latest: &str) -> InstalledPart {
         stale,
         stale_reason: "public installer follows separately signed installer release proof".into(),
         notes: vec![
-            "installer metadata is updated across surfaces; local replacement requires installer release approval".into(),
+            "verified installer release assets are atomically promoted by focusa update apply"
+                .into(),
         ],
     }
 }
@@ -3035,7 +3057,7 @@ fn inspect_menubar(latest: &str) -> InstalledPart {
         configured_package_json("FOCUSA_MENUBAR_PACKAGE_JSON", "apps/menubar/package.json"),
         latest,
         vec![
-            "menubar updates remain signed Mac bundle managed and are never installed server-side"
+            "menubar delegates to its signed updater, which installs and relaunches automatically under the shared Focusa OTA policy"
                 .to_string(),
         ],
     )

@@ -624,7 +624,10 @@ fn verify_schema(connection: &rusqlite::Connection) -> anyhow::Result<()> {
         ("silent_session_daemon_runs", "run_json"),
         ("silent_session_control_leases", "lease_json"),
         ("silent_session_control_stream_indexes", "codec_version"),
-        ("silent_session_control_stream_indexes", "last_event_sequence"),
+        (
+            "silent_session_control_stream_indexes",
+            "last_event_sequence",
+        ),
         ("silent_session_control_stream_indexes", "redaction_applied"),
     ] {
         let exists: i64 = connection.query_row(

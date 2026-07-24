@@ -1,17 +1,19 @@
 # `focusa_project_identity`
 
-Resolve bounded ProjectIdentity from cwd/project_root using marker, git, beads, workspace, daemon, and operator project signals. Use it when Resolve the active project identity from marker, git, beads, workspace, cwd, daemon, and operator project signals before trusting project-bound context. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Resolve bounded ProjectIdentity from cwd/project_root using marker, git, beads, workspace, daemon, and operator project signals. Use it when Rank explicit, active-worktree, canonical-parent, marker/Beads, persisted-session, and bounded parent-directory project candidates; fail closed on ambiguity before trusting project-bound context. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Resolve the active project identity from marker, git, beads, workspace, cwd, daemon, and operator project signals before trusting project-bound context.
+- Rank explicit, active-worktree, canonical-parent, marker/Beads, persisted-session, and bounded parent-directory project candidates; fail closed on ambiguity before trusting project-bound context.
 - Capability family: `project_identity`; namespace: `focusa.project_identity`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
+- binding_candidates rank active worktree, canonical parent, marker/Beads, resumed-session, and bounded parent-directory evidence; ambiguous_project_binding fails closed.
 
 ## Parameters and strict input schema
 
 - `cwd` (optional; string): Optional cwd/project path hint; defaults to Pi session cwd.
 - `project_root` (optional; string): Optional expected project root folder.
+- `persisted_project_root` (optional; string): Project root retained by the resumed Pi session; advisory candidate only until current worktree/project evidence verifies it.
 - `remote_host` (optional; string): Remote SSH host that contains the project root; caller supplies inspected evidence.
 - `remote_user` (optional; string): Remote SSH user, if known.
 - `remote_port` (optional; integer; min=1, max=65535): Remote SSH port, if known.
@@ -72,4 +74,4 @@ Likely next: `focusa_project_card`, `focusa_project_verify`, `focusa_trajectory_
 - CLI: `focusa project identity`.
 - REST: `GET /v1/project/identity`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:b10fafd60acb259c9eff1501ea1099136b480c7194db07376a760cc162db81ba`.
+- Descriptor digest: `sha256:7de822ee3534350f76c93c89c56c3b302b123d4472befa09d90a3b8e9858c9d9`.

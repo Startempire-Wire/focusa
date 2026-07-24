@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:f15078162dc7b0f7a595abcb5ae4302f9af85f7b8de0b0ef0762cdde661215b8`
+Registry digest: `sha256:ddc78f685c7d284d1f38cd974e04bb82e662c06e433e6a777fbd1fd325596922`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -798,7 +798,7 @@ Attach a final outcome/result to a specific project-card algorithm_run_id and up
 
 ## focusa_project_identity
 
-Resolve bounded ProjectIdentity from cwd/project_root using marker, git, beads, workspace, daemon, and operator project signals. Use it when Resolve the active project identity from marker, git, beads, workspace, cwd, daemon, and operator project signals before trusting project-bound context. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Resolve bounded ProjectIdentity from cwd/project_root using marker, git, beads, workspace, daemon, and operator project signals. Use it when Rank explicit, active-worktree, canonical-parent, marker/Beads, persisted-session, and bounded parent-directory project candidates; fail closed on ambiguity before trusting project-bound context. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.project.identity`
 - Family: `project_identity`
@@ -809,7 +809,7 @@ Resolve bounded ProjectIdentity from cwd/project_root using marker, git, beads, 
 
 ## focusa_project_verify
 
-Verify active project folder against expected ProjectIdentity fields and report mismatches without mutating state. Use it when Verify expected project identity fields and surface project/continuity mismatches without mutating Focusa state. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Verify active project folder against expected ProjectIdentity fields and report mismatches without mutating state. Use it when Verify expected project identity fields against ranked worktree/session candidates and surface ambiguity or project/continuity mismatches without mutating Focusa state. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.project.verify`
 - Family: `project_identity`

@@ -7,6 +7,7 @@ Read-only surgical traversal across large Focusa surfaces. Use for bounded linea
 - Read-only surgical traversal across large Focusa surfaces using bounded selectors, cursors, field projection, tags, and cold full-payload guards.
 - Capability family: `traversal`; namespace: `focusa.traversal`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
+- Evidence, ECS references, and trajectory projections can be inspected in HLT/STG-aligned bounded slices without requesting full payloads.
 
 ## Parameters and strict input schema
 

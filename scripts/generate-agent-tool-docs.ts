@@ -20,6 +20,24 @@ function inline(value: unknown): string {
   return JSON.stringify(value);
 }
 
+const operationalNotes: Record<string, string[]> = {
+  focusa_evidence_capture: [
+    "Trajectory-aware evidence supplies proof alignment metadata for the active trajectory and its HLT, MLG, and STG context without expanding the evidence payload.",
+  ],
+  focusa_traverse: [
+    "Evidence, ECS references, and trajectory projections can be inspected in HLT/STG-aligned bounded slices without requesting full payloads.",
+  ],
+  focusa_metacog_capture: [
+    "Captures retain HLT/MLG/STG alignment within the active project_root + continuity_id scope for trajectory-context retrieval.",
+  ],
+  focusa_project_identity: [
+    "binding_candidates rank active worktree, canonical parent, marker/Beads, resumed-session, and bounded parent-directory evidence; ambiguous_project_binding fails closed.",
+  ],
+  focusa_project_verify: [
+    "Verification projects the same binding_candidates and refuses canonical authority when the candidate decision is ambiguous.",
+  ],
+};
+
 for (const descriptor of registry.descriptors) {
   const required = new Set(descriptor.input_schema?.required || []);
   const properties = Object.entries(descriptor.input_schema?.properties || {});
@@ -56,6 +74,7 @@ for (const descriptor of registry.descriptors) {
     `- ${example.description || descriptor.summary}`,
     `- Capability family: \`${descriptor.family}\`; namespace: \`${descriptor.namespace}\`.`,
     `- Load this full contract after metadata search when exact invocation or recovery semantics are needed.`,
+    ...(operationalNotes[descriptor.tool_names.pi] || []).map((note) => `- ${note}`),
     "",
     "## Parameters and strict input schema",
     "",

@@ -577,36 +577,6 @@
     },
     {
       "annex_id": "INF-01",
-      "path": "crates/focusa-api/src/routes/agent_capabilities.rs",
-      "symbol": "SPEC141_CAPABILITY_REGISTRY",
-      "classification": "infra_allowlist",
-      "authority_bearing": false,
-      "status": "infra_allowed",
-      "target": "Immutable generated Spec141 capability descriptor projection; contains no mutable project, workstream, or attachment authority",
-      "acceptance_test": "Spec141 capability registry drift checks plus Spec104 singleton inventory gate"
-    },
-    {
-      "annex_id": "INF-01",
-      "path": "crates/focusa-api/src/routes/agent_capabilities.rs",
-      "symbol": "SPEC141_AGENT_CARD",
-      "classification": "infra_allowlist",
-      "authority_bearing": false,
-      "status": "infra_allowed",
-      "target": "Immutable generated Spec141 agent card projection; contains no mutable project, workstream, or attachment authority",
-      "acceptance_test": "Spec141 agent card projection checks plus Spec104 singleton inventory gate"
-    },
-    {
-      "annex_id": "INF-01",
-      "path": "crates/focusa-api/src/routes/mcp.rs",
-      "symbol": "MCP_PROJECTION",
-      "classification": "infra_allowlist",
-      "authority_bearing": false,
-      "status": "infra_allowed",
-      "target": "Immutable generated MCP capability projection; contains no mutable project, workstream, attachment, or request authority",
-      "acceptance_test": "Spec141 MCP projection checks plus Spec104 singleton inventory gate"
-    },
-    {
-      "annex_id": "INF-01",
       "path": "crates/focusa-cli/src/commands/install_e6_failure_matrix_tests.rs",
       "symbol": "TEST_ENV_LOCK",
       "classification": "infra_allowlist",

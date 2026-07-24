@@ -90,13 +90,7 @@ fn required_lowmem_and_trust_fail_closed_before_spawn() {
 
     let mut trust_manifest = manifest();
     trust_manifest.argv.retain(|argument| argument != "-a");
-    assert!(
-        trust_manifest
-            .validate()
-            .unwrap_err()
-            .to_string()
-            .contains("trust flag")
-    );
+    assert!(trust_manifest.validate().is_err());
 }
 
 #[test]

@@ -340,6 +340,42 @@ fn print_summary(label: &str, resp: &Value) {
         "project {label}: status={status} canonical={canonical} project_status={project_status} confidence={confidence}"
     );
     println!("  project_root: {root}");
+    if let Some(binding) = resp.get("binding_decision") {
+        let binding_status = binding
+            .get("status")
+            .and_then(Value::as_str)
+            .unwrap_or("unknown");
+        let selected = binding
+            .get("selected_project_root")
+            .and_then(Value::as_str)
+            .unwrap_or("none");
+        let ambiguous = binding
+            .get("ambiguous")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        println!("  binding: status={binding_status} selected={selected} ambiguous={ambiguous}");
+        if let Some(candidates) = resp.get("binding_candidates").and_then(Value::as_array) {
+            for candidate in candidates.iter().take(5) {
+                let root = candidate
+                    .get("project_root")
+                    .and_then(Value::as_str)
+                    .unwrap_or("unknown");
+                let score = candidate.get("score").and_then(Value::as_u64).unwrap_or(0);
+                let sources = candidate
+                    .get("sources")
+                    .and_then(Value::as_array)
+                    .map(|values| {
+                        values
+                            .iter()
+                            .filter_map(Value::as_str)
+                            .collect::<Vec<_>>()
+                            .join(",")
+                    })
+                    .unwrap_or_default();
+                println!("    candidate: score={score} root={root} sources={sources}");
+            }
+        }
+    }
     if let Some(next) = resp
         .get("verification")
         .and_then(|v| v.get("required_recovery"))
@@ -395,19 +431,17 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             persisted_canonical_name,
         } => {
             ensure_project_root_scope_safe(cwd.as_deref(), "project identity: cwd")?;
-            let resolved_project_root =
-                resolve_input_project_root(cwd.as_deref(), project_root.as_deref())?;
+            let resolved_project_root = project_root
+                .as_deref()
+                .map(|root| resolve_input_project_root(cwd.as_deref(), Some(root)))
+                .transpose()?;
             ensure_project_root_scope_safe(
                 persisted_project_root.as_deref(),
                 "project identity: persisted_project_root",
             )?;
             let mut qs = Vec::new();
             push_query(&mut qs, "cwd", cwd.as_deref());
-            push_query(
-                &mut qs,
-                "project_root",
-                Some(resolved_project_root.as_str()),
-            );
+            push_query(&mut qs, "project_root", resolved_project_root.as_deref());
             push_query(&mut qs, "remote_host", remote_host.as_deref());
             push_query(&mut qs, "remote_user", remote_user.as_deref());
             if let Some(port) = remote_port {
@@ -757,8 +791,10 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             persisted_canonical_name,
         } => {
             ensure_project_root_scope_safe(cwd.as_deref(), "project verify: cwd")?;
-            let resolved_project_root =
-                resolve_input_project_root(cwd.as_deref(), project_root.as_deref())?;
+            let resolved_project_root = project_root
+                .as_deref()
+                .map(|root| resolve_input_project_root(cwd.as_deref(), Some(root)))
+                .transpose()?;
             ensure_project_root_scope_safe(
                 persisted_project_root.as_deref(),
                 "project verify: persisted_project_root",

@@ -286,7 +286,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     name: "focusa_project_identity",
     label: "Project Identity",
     purpose:
-      "Resolve the active project identity from marker, git, beads, workspace, cwd, daemon, and operator project signals before trusting project-bound context.",
+      "Rank explicit, active-worktree, canonical-parent, marker/Beads, persisted-session, and bounded parent-directory project candidates; fail closed on ambiguity before trusting project-bound context.",
     family: "project_identity",
     ontology_action: "project.identity",
     ontology_objects: ["ProjectIdentity"],
@@ -298,7 +298,8 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     side_effect_profile: "read_state",
     parity_status: "domain",
     exemptions: ["domain_cli_only"],
-    live_check: "contract_static plus /v1/project/identity safe probe and quorum status",
+    live_check:
+      "contract_static plus /v1/project/identity binding_candidates, worktree-parent relation, ambiguity, and quorum status",
     scope_requirement: { kind: "read", route_family: "auto" },
     authority_requirement: { kind: "advisory_only" },
   },
@@ -387,7 +388,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     name: "focusa_project_verify",
     label: "Project Verify",
     purpose:
-      "Verify expected project identity fields and surface project/continuity mismatches without mutating Focusa state.",
+      "Verify expected project identity fields against ranked worktree/session candidates and surface ambiguity or project/continuity mismatches without mutating Focusa state.",
     family: "project_identity",
     ontology_action: "project.verify",
     ontology_objects: ["ProjectIdentity"],
@@ -399,7 +400,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     side_effect_profile: "read_state",
     parity_status: "domain",
     exemptions: ["domain_cli_only"],
-    live_check: "contract_static plus /v1/project/verify safe probe and mismatch diagnostics",
+    live_check: "contract_static plus /v1/project/verify candidate, ambiguity, and mismatch diagnostics",
     scope_requirement: { kind: "read", route_family: "auto" },
     authority_requirement: { kind: "advisory_only" },
   },

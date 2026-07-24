@@ -67,21 +67,24 @@ async function resolveRequestScope() {
   const explicitContinuityId = process.env.FOCUSA_CONTINUITY_ID?.trim();
 
   try {
-    const identityQuery = explicitProjectRoot
-      ? `?${new URLSearchParams({ project_root: explicitProjectRoot })}`
-      : '';
+    const repositoryRoot = join(__dirname, '..', '..', '..');
+    const identityQuery = `?${new URLSearchParams({
+      cwd: repositoryRoot,
+      ...(explicitProjectRoot ? { project_root: explicitProjectRoot } : {}),
+    })}`;
     const [identityResponse, workpointResponse] = await Promise.all([
       fetch(`${DAEMON}/v1/project/identity${identityQuery}`),
       fetch(`${DAEMON}/v1/workpoint/current`),
     ]);
-    if (!identityResponse.ok || !workpointResponse.ok) return null;
+    if (!identityResponse.ok) return null;
 
     const identityBody = await identityResponse.json();
-    const workpointBody = await workpointResponse.json();
+    const workpointBody = workpointResponse.ok ? await workpointResponse.json() : {};
     const identity = identityBody.project_identity ?? identityBody;
     const workpoint = workpointBody.workpoint ?? workpointBody.packet ?? workpointBody;
     const projectRoot =
       explicitProjectRoot ??
+      identityBody.binding_decision?.selected_project_root ??
       identity.project_root ??
       workpointBody.project_root ??
       workpointBody.scope?.project_root ??
@@ -93,7 +96,8 @@ async function resolveRequestScope() {
       workpointBody.scope?.continuity_id ??
       workpoint.continuity_id ??
       workpoint.scope?.continuity_id ??
-      identity.continuity_id;
+      identity.continuity_id ??
+      'menubar-e2e-route-probe';
     if (!projectRoot || !continuityId) return null;
     return {
       projectRoot: String(projectRoot),
@@ -129,6 +133,7 @@ const EXPECTED = {
   '/v1/predictions/stats':        { expect: 200 },
   '/v1/project/identity':         { expect: 200 },
   '/v1/release/proof/status':      { expect: 200 },
+  '/v1/silent-sessions':           { expect: [200, 404], note: 'current source route; 404 accepted only from pre-release live daemon' },
   '/v1/state/dump':               { expect: 200 },
   '/v1/sync/peers':               { expect: 200 },
   '/v1/sync/pull/':               { expect: 404, note: 'needs {peer_id} param' },
@@ -137,9 +142,9 @@ const EXPECTED = {
   '/v1/telemetry/memory':          { expect: 200 },
   '/v1/telemetry/token-budget/status': { expect: 200 },
   '/v1/trajectory/view':          { expect: 200 },
-  '/v1/work-loop/checkpoints':    { expect: 200 },
-  '/v1/work-loop/health':         { expect: 200 },
-  '/v1/work-loop/status':         { expect: 200 },
+  '/v1/work-loop/checkpoints':    { expect: [200, 409], note: '409 is typed no-canonical-work-item posture' },
+  '/v1/work-loop/health':         { expect: [200, 409], note: '409 is typed no-canonical-work-item posture' },
+  '/v1/work-loop/status':         { expect: [200, 409], note: '409 is typed no-canonical-work-item posture' },
   '/v1/workpoint/checkpoint':     { expect: 405, note: 'POST endpoint' },
   '/v1/workpoint/current':        { expect: 200 },
   '/v1/workpoint/evidence/link':  { expect: 405, note: 'POST endpoint' },
@@ -158,6 +163,7 @@ async function check(ep) {
     : ep;
   const url = `${DAEMON}${requestPath}`;
   const expected = EXPECTED[ep]?.expect ?? 200;
+  const acceptable = Array.isArray(expected) ? expected : [expected];
   const isCritical = EXPECTED[ep]?.critical === true;
   const note = EXPECTED[ep]?.note ?? '';
   const t0 = performance.now();
@@ -168,12 +174,20 @@ async function check(ep) {
     }
     const r = await fetch(url, { method: 'GET' });
     actual = r.status;
-    ok = actual === expected;
+    ok = acceptable.includes(actual);
   } catch (e) {
     actual = `ERR: ${e.message?.split('\n')[0] ?? e}`;
   }
   const dt = Math.round(performance.now() - t0);
-  results.push({ ep, expected, actual, ok, dt, note, critical: isCritical });
+  results.push({
+    ep,
+    expected: acceptable.join('/'),
+    actual,
+    ok,
+    dt,
+    note,
+    critical: isCritical,
+  });
   if (ok) pass++; else { fail++; if (isCritical) criticalFail++; }
 }
 

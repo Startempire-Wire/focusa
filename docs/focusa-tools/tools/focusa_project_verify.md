@@ -1,17 +1,19 @@
 # `focusa_project_verify`
 
-Verify active project folder against expected ProjectIdentity fields and report mismatches without mutating state. Use it when Verify expected project identity fields and surface project/continuity mismatches without mutating Focusa state. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Verify active project folder against expected ProjectIdentity fields and report mismatches without mutating state. Use it when Verify expected project identity fields against ranked worktree/session candidates and surface ambiguity or project/continuity mismatches without mutating Focusa state. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Verify expected project identity fields and surface project/continuity mismatches without mutating Focusa state.
+- Verify expected project identity fields against ranked worktree/session candidates and surface ambiguity or project/continuity mismatches without mutating Focusa state.
 - Capability family: `project_identity`; namespace: `focusa.project_identity`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
+- Verification projects the same binding_candidates and refuses canonical authority when the candidate decision is ambiguous.
 
 ## Parameters and strict input schema
 
 - `cwd` (optional; string): Optional cwd/project path hint; defaults to Pi session cwd.
 - `project_root` (optional; string): Expected project root.
+- `persisted_project_root` (optional; string): Resumed-session project root to compare as an advisory binding candidate.
 - `project_id` (optional; string): Expected project id from marker/operator.
 - `canonical_name` (optional; string): Expected canonical project name.
 - `repo_remote` (optional; string): Expected git origin remote.
@@ -74,4 +76,4 @@ Likely next: `focusa_trajectory_view`, `focusa_workpoint_resume`, `focusa_tool_d
 - CLI: `focusa project verify`.
 - REST: `POST /v1/project/verify`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:d38ddf2d0fd398f26b9b6e93ebca6016357911931ddebc04688985f15f3baab6`.
+- Descriptor digest: `sha256:bb09ec069011fa1dd6e4669076544c84c6fd230c2462b7a6bbede99202efd185`.

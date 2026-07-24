@@ -420,6 +420,7 @@ export function registerAutoCompaction(
   let activeRequest: CoordinatedCompactionRequest | undefined;
   let terminalNoopContextKey: string | undefined;
   let rolloverRequired = false;
+  let rolloverCommandQueued = false;
   let lastNoticeKey: string | undefined;
 
   const setActiveEpoch = (epoch: ActiveEpoch | undefined): void => {
@@ -594,6 +595,7 @@ export function registerAutoCompaction(
         consecutiveTransientFailures = 0;
         terminalNoopContextKey = undefined;
         rolloverRequired = false;
+        rolloverCommandQueued = false;
         lastNoticeKey = undefined;
         notifyOnce(
           ctx,
@@ -721,24 +723,37 @@ export function registerAutoCompaction(
 
         const failedAttempts = consecutiveTransientFailures + 1;
         consecutiveTransientFailures = 0;
-        const recoveryInstruction = retryableFailure
-          ? ". Canonical checkpoint authority is preserved. Retry /compact after transport recovery; if hard context pressure remains, run /focusa-rollover execute before continuing."
-          : ".";
+        let automaticRolloverQueued = false;
         if (retryableFailure) {
           rolloverRequired = true;
           failedEpoch.state = "rollover_required";
+          if (!rolloverCommandQueued) {
+            try {
+              pi.sendUserMessage("/focusa-rollover execute", { deliverAs: "followUp" });
+              rolloverCommandQueued = true;
+              automaticRolloverQueued = true;
+            } catch {
+              automaticRolloverQueued = false;
+            }
+          }
           persist(
-            "rollover_required",
+            automaticRolloverQueued ? "rollover_auto_queued" : "rollover_required",
             {
               reason: "provider_transport_retry_exhausted",
               attempts: failedAttempts,
               primary_error: message,
               recovery_command: "/focusa-rollover execute",
+              recovery_mode: automaticRolloverQueued ? "automatic_follow_up" : "manual_fallback",
               canonical_checkpoint_preserved: true,
             },
             failedEpoch
           );
         }
+        const recoveryInstruction = retryableFailure
+          ? automaticRolloverQueued
+            ? ". Canonical checkpoint authority is preserved; governed rollover was queued automatically."
+            : ". Canonical checkpoint authority is preserved. Run /focusa-rollover execute after transport recovery."
+          : ".";
         setActiveEpoch(undefined);
         notifyOnce(
           ctx,
@@ -965,6 +980,7 @@ export function registerAutoCompaction(
     consecutiveTransientFailures = 0;
     terminalNoopContextKey = undefined;
     rolloverRequired = false;
+    rolloverCommandQueued = false;
     lastNoticeKey = undefined;
   });
 
@@ -981,6 +997,7 @@ export function registerAutoCompaction(
     consecutiveTransientFailures = 0;
     terminalNoopContextKey = undefined;
     rolloverRequired = false;
+    rolloverCommandQueued = false;
     lastNoticeKey = undefined;
     if (retryTimer) clearTimeout(retryTimer);
     retryTimer = undefined;
@@ -996,6 +1013,7 @@ export function registerAutoCompaction(
     setActiveEpoch(undefined);
     inFlight = false;
     rolloverRequired = false;
+    rolloverCommandQueued = false;
     if (!processLease.inFlightEpochId) {
       processLease.attemptOwnerId = undefined;
       processLease.request = undefined;

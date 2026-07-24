@@ -31,9 +31,9 @@ for i in $(seq 1 60); do
 done
 
 run_gate() {
-  curl -sS -X POST "${BASE_URL}/v1/session/close" \
+  curl -sS --max-time 2 -X POST "${BASE_URL}/v1/session/close" \
     -H "Content-Type: application/json" \
-    -d '{"reason":"ci-spec-gate-isolation"}' >/dev/null || true
+    -d '{"reason":"ci-spec-gate-isolation"}' >/dev/null 2>&1 || true
   "$@"
 }
 

@@ -16,7 +16,9 @@ use axum::{
 use chrono::Utc;
 use focusa_core::scope_safety::classify_project_root;
 use focusa_core::scoped_state::{ScopeKind, ScopeRef, WorkstreamKey};
-use focusa_core::working_subpath::{GitWorkingContext, resolve_git_working_context};
+use focusa_core::working_subpath::{
+    GitWorkingContext, resolve_git_working_context, resolve_project_binding_candidates,
+};
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
@@ -2083,7 +2085,7 @@ fn candidate_payload(
             "deployment": candidate.deployment,
             "remote_context": candidate.remote_context.clone(),
             "working_context": candidate.working_context,
-            "canonical_parent_root": candidate.project_root,
+            "canonical_parent_root": candidate.working_context.get("canonical_parent_root").cloned().unwrap_or_else(|| json!(candidate.project_root)),
             "active_worktree_root": candidate.working_context.get("active_worktree_root").cloned().unwrap_or(Value::Null),
             "project_summary": project_summary.clone(),
             "fingerprint": candidate.fingerprint,
@@ -2747,13 +2749,57 @@ async fn project_settings_update(Json(body): Json<ProjectSettingsRequest>) -> Js
 
 async fn identity(Query(query): Query<ProjectIdentityQuery>) -> Json<Value> {
     let remote_hint = RemoteProjectHint::from_query(&query);
-    Json(project_identity_payload_for_scope_with_remote(
+    let local_binding = query
+        .remote_host
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .is_none();
+    let binding = local_binding.then(|| {
+        let start = resolve_start(query.cwd.as_deref(), query.project_root.as_deref());
+        resolve_project_binding_candidates(
+            &start,
+            query.project_root.as_deref().map(Path::new),
+            query.persisted_project_root.as_deref().map(Path::new),
+        )
+    });
+    let inferred_root = binding
+        .as_ref()
+        .filter(|decision| !decision.requires_confirmation)
+        .and_then(|decision| decision.selected_project_root.as_deref());
+    let mut payload = project_identity_payload_for_scope_with_remote(
         query.cwd.as_deref(),
-        query.project_root.as_deref(),
+        query.project_root.as_deref().or(inferred_root),
         query.current_ask.as_deref(),
         remote_hint,
         None,
-    ))
+    );
+    if let Some(decision) = binding
+        && let Some(object) = payload.as_object_mut()
+    {
+        let decision_value = serde_json::to_value(&decision).unwrap_or(Value::Null);
+        object.insert("binding_decision".to_string(), decision_value.clone());
+        object.insert(
+            "binding_candidates".to_string(),
+            serde_json::to_value(&decision.candidates).unwrap_or_else(|_| json!([])),
+        );
+        if let Some(identity) = object
+            .get_mut("project_identity")
+            .and_then(Value::as_object_mut)
+        {
+            identity.insert("binding_decision".to_string(), decision_value);
+        }
+        if decision.ambiguous {
+            object.insert("status".to_string(), json!("ambiguous_project_binding"));
+            object.insert("canonical".to_string(), json!(false));
+            object.insert("degraded".to_string(), json!(true));
+            object.insert(
+                "mismatch_reason".to_string(),
+                json!("multiple equally ranked project/worktree candidates require explicit project_root"),
+            );
+        }
+    }
+    Json(payload)
 }
 
 async fn verify(
@@ -2761,7 +2807,7 @@ async fn verify(
     State(_state): State<Arc<AppState>>,
     Json(body): Json<ProjectVerifyRequest>,
 ) -> Json<Value> {
-    Json(candidate_payload(
+    let mut payload = candidate_payload(
         discover_identity(
             body.cwd.as_deref(),
             body.project_root.as_deref(),
@@ -2769,7 +2815,37 @@ async fn verify(
             RemoteProjectHint::from_verify(&body),
         ),
         Some(&body),
-    ))
+    );
+    if body
+        .remote_host
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .is_none()
+    {
+        let start = resolve_start(body.cwd.as_deref(), body.project_root.as_deref());
+        let decision = resolve_project_binding_candidates(
+            &start,
+            body.project_root.as_deref().map(Path::new),
+            body.persisted_project_root.as_deref().map(Path::new),
+        );
+        if let Some(object) = payload.as_object_mut() {
+            object.insert(
+                "binding_candidates".to_string(),
+                serde_json::to_value(&decision.candidates).unwrap_or_else(|_| json!([])),
+            );
+            object.insert(
+                "binding_decision".to_string(),
+                serde_json::to_value(&decision).unwrap_or(Value::Null),
+            );
+            if decision.ambiguous {
+                object.insert("status".to_string(), json!("ambiguous_project_binding"));
+                object.insert("canonical".to_string(), json!(false));
+                object.insert("degraded".to_string(), json!(true));
+            }
+        }
+    }
+    Json(payload)
 }
 
 fn sigmoid(z: f64) -> f64 {

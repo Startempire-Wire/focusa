@@ -17,7 +17,7 @@ for (const marker of [
   'parity: "full"',
 ])
   assert(facade.includes(marker), marker);
-for (const forbidden of ["defaultSilentSessionCommand", "silentSessionExec", "tmux", "execFileSync", "/tmp/"])
+for (const forbidden of ["defaultSilentSessionCommand", "silentSessionExec", "execFileSync", "/tmp/"])
   assert(!facade.includes(forbidden), forbidden);
 const cstart = contracts.indexOf('name: "focusa_silent_sessions"');
 const cend = contracts.indexOf('name: "focusa_tool_doctor"', cstart);

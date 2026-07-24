@@ -5,8 +5,10 @@ cd "$ROOT_DIR"
 
 echo "=== release deploy automation static test ==="
 
-python3 scripts/validate-github-workflows.py .github/workflows/release.yml .github/workflows/auto-retry-deploy.yml .github/workflows/release-pipeline-watchdog.yml >/tmp/focusa-workflow-graph-validation.out || {
-  cat /tmp/focusa-workflow-graph-validation.out >&2
+WORKFLOW_VALIDATION_OUT="$(mktemp /tmp/focusa-workflow-graph-validation.XXXXXX)"
+trap 'rm -f "$WORKFLOW_VALIDATION_OUT"' EXIT
+python3 scripts/validate-github-workflows.py .github/workflows/release.yml .github/workflows/auto-retry-deploy.yml .github/workflows/release-pipeline-watchdog.yml >"$WORKFLOW_VALIDATION_OUT" || {
+  cat "$WORKFLOW_VALIDATION_OUT" >&2
   exit 1
 }
 

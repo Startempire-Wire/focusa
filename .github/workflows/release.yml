@@ -100,11 +100,29 @@ jobs:
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
         run: python3 scripts/audit-schema.py spec104 release-proof/audit/audit.jsonl
 
+  # Final customer-lifecycle closure: all-surface OTA activation, worktree and
+  # authority isolation, compaction/recovery, and cache-safe prompt behavior.
+  final-release-gap-gate:
+    name: Final release gap gate
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Install Pi extension runtime dependencies
+        working-directory: apps/pi-extension
+        run: npm ci --ignore-scripts
+      - name: Prove OTA, authority/worktree, compaction, and cache closure
+        run: tests/final_release_gap_gate.sh
+
   # Create the GitHub Release with notes (runs once, before uploads)
   create-release:
     name: Create Release
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
-    needs: [rust-check, open-issue-release-gate, pull-request-release-gate]
+    needs: [rust-check, final-release-gap-gate, open-issue-release-gate, pull-request-release-gate]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

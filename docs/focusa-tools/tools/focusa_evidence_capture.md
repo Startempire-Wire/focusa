@@ -7,6 +7,7 @@ Capture a bounded evidence ref/result and optionally link it to the active Workp
 - Capture a bounded evidence ref/result and optionally link it to the active Workpoint.
 - Capability family: `workpoint`; namespace: `focusa.workpoint`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
+- Trajectory-aware evidence supplies proof alignment metadata for the active trajectory and its HLT, MLG, and STG context without expanding the evidence payload.
 
 ## Parameters and strict input schema
 

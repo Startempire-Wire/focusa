@@ -72,6 +72,10 @@ transcript tail = never authority
 
 Project/session merging is never allowed unless `project_root + continuity_id` match. Prior-project or cross-project context may appear only as advisory context with visible warnings.
 
+### Project/worktree binding candidates
+
+All authority surfaces use the core ranked binding decision. Precedence is explicit root → active Git worktree → marked current/ancestor root → verified persisted-session root → bounded marked child under a parent-directory launch. The decision retains `canonical_parent_root` and `active_worktree_root` separately. Equal-ranked project roots are `ambiguous_project_binding`: API and CLI expose the candidates, Pi `focusa_project_identity`/`focusa_project_verify` do not confirm them, and resumed sessions do not restore canonical state until one root is explicit. A persisted root may rebind across worktrees only when both candidates share the same canonical Git parent.
+
 ## Mutation boundary
 
 Risky mutation requires Context Authority preflight before action. Risky mutation includes daemon restart, deploy, release publish, git push, destructive file operation, database migration, broad refactor, cross-project file edit, generated-code overwrite, secret/config change, live service action, and pairing/install/update ambiguity.

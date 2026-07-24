@@ -7,6 +7,7 @@ Store a reusable learning signal so future reasoning can retrieve it instead of 
 - Store a reusable learning signal so future reasoning can retrieve it instead of rediscovering the same lesson.
 - Capability family: `metacognition`; namespace: `focusa.metacognition`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
+- Captures retain HLT/MLG/STG alignment within the active project_root + continuity_id scope for trajectory-context retrieval.
 
 ## Parameters and strict input schema
 

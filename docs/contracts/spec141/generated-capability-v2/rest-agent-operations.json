@@ -1,6 +1,6 @@
 {
   "schema": "focusa.rest_agent_operation_projection.v2",
-  "registry_digest": "sha256:f15078162dc7b0f7a595abcb5ae4302f9af85f7b8de0b0ef0762cdde661215b8",
+  "registry_digest": "sha256:ddc78f685c7d284d1f38cd974e04bb82e662c06e433e6a777fbd1fd325596922",
   "operations": [
     {
       "method": "POST",
@@ -21523,6 +21523,10 @@
             "description": "Optional expected project root folder.",
             "type": "string"
           },
+          "persisted_project_root": {
+            "description": "Project root retained by the resumed Pi session; advisory candidate only until current worktree/project evidence verifies it.",
+            "type": "string"
+          },
           "remote_host": {
             "description": "Remote SSH host that contains the project root; caller supplies inspected evidence.",
             "type": "string"
@@ -21786,6 +21790,10 @@
           },
           "project_root": {
             "description": "Expected project root.",
+            "type": "string"
+          },
+          "persisted_project_root": {
+            "description": "Resumed-session project root to compare as an advisory binding candidate.",
             "type": "string"
           },
           "project_id": {
@@ -25730,7 +25738,7 @@
             "type": "string"
           },
           "session_name": {
-            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "description": "Legacy alias for exact session_id; no legacy name normalization.",
             "type": "string"
           },
           "run_id": {
@@ -26173,7 +26181,7 @@
             "type": "string"
           },
           "session_name": {
-            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "description": "Legacy alias for exact session_id; no legacy name normalization.",
             "type": "string"
           },
           "run_id": {
@@ -26616,7 +26624,7 @@
             "type": "string"
           },
           "session_name": {
-            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "description": "Legacy alias for exact session_id; no legacy name normalization.",
             "type": "string"
           },
           "run_id": {
@@ -27059,7 +27067,7 @@
             "type": "string"
           },
           "session_name": {
-            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "description": "Legacy alias for exact session_id; no legacy name normalization.",
             "type": "string"
           },
           "run_id": {
@@ -27502,7 +27510,7 @@
             "type": "string"
           },
           "session_name": {
-            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "description": "Legacy alias for exact session_id; no legacy name normalization.",
             "type": "string"
           },
           "run_id": {
@@ -27945,7 +27953,7 @@
             "type": "string"
           },
           "session_name": {
-            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "description": "Legacy alias for exact session_id; no legacy name normalization.",
             "type": "string"
           },
           "run_id": {
@@ -28388,7 +28396,7 @@
             "type": "string"
           },
           "session_name": {
-            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "description": "Legacy alias for exact session_id; no legacy name normalization.",
             "type": "string"
           },
           "run_id": {
@@ -28831,7 +28839,7 @@
             "type": "string"
           },
           "session_name": {
-            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "description": "Legacy alias for exact session_id; no legacy name normalization.",
             "type": "string"
           },
           "run_id": {
@@ -29274,7 +29282,7 @@
             "type": "string"
           },
           "session_name": {
-            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "description": "Legacy alias for exact session_id; no legacy name normalization.",
             "type": "string"
           },
           "run_id": {
@@ -29717,7 +29725,7 @@
             "type": "string"
           },
           "session_name": {
-            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "description": "Legacy alias for exact session_id; no legacy name normalization.",
             "type": "string"
           },
           "run_id": {
@@ -30160,7 +30168,7 @@
             "type": "string"
           },
           "session_name": {
-            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "description": "Legacy alias for exact session_id; no legacy name normalization.",
             "type": "string"
           },
           "run_id": {
@@ -30603,7 +30611,7 @@
             "type": "string"
           },
           "session_name": {
-            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "description": "Legacy alias for exact session_id; no legacy name normalization.",
             "type": "string"
           },
           "run_id": {
@@ -31046,7 +31054,7 @@
             "type": "string"
           },
           "session_name": {
-            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "description": "Legacy alias for exact session_id; no legacy name normalization.",
             "type": "string"
           },
           "run_id": {
@@ -31489,7 +31497,7 @@
             "type": "string"
           },
           "session_name": {
-            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "description": "Legacy alias for exact session_id; no legacy name normalization.",
             "type": "string"
           },
           "run_id": {
@@ -39703,8 +39711,28 @@
             "type": "boolean"
           },
           "root_work_item_id": {
-            "description": "Optional root BD/task/item id. If omitted, tool infers from active task or bd ready.",
+            "description": "Optional root provider WorkItem id. If omitted, infer from the active scoped task.",
             "type": "string"
+          },
+          "renew_budget": {
+            "description": "Explicitly start a fresh budget epoch when action=resume.",
+            "type": "boolean"
+          },
+          "max_turns": {
+            "minimum": 1,
+            "type": "number"
+          },
+          "max_wall_clock_ms": {
+            "minimum": 1000,
+            "type": "number"
+          },
+          "max_retries": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "cooldown_ms": {
+            "minimum": 0,
+            "type": "number"
           }
         },
         "additionalProperties": false
@@ -40010,8 +40038,28 @@
             "type": "boolean"
           },
           "root_work_item_id": {
-            "description": "Optional root BD/task/item id. If omitted, tool infers from active task or bd ready.",
+            "description": "Optional root provider WorkItem id. If omitted, infer from the active scoped task.",
             "type": "string"
+          },
+          "renew_budget": {
+            "description": "Explicitly start a fresh budget epoch when action=resume.",
+            "type": "boolean"
+          },
+          "max_turns": {
+            "minimum": 1,
+            "type": "number"
+          },
+          "max_wall_clock_ms": {
+            "minimum": 1000,
+            "type": "number"
+          },
+          "max_retries": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "cooldown_ms": {
+            "minimum": 0,
+            "type": "number"
           }
         },
         "additionalProperties": false
@@ -40317,8 +40365,28 @@
             "type": "boolean"
           },
           "root_work_item_id": {
-            "description": "Optional root BD/task/item id. If omitted, tool infers from active task or bd ready.",
+            "description": "Optional root provider WorkItem id. If omitted, infer from the active scoped task.",
             "type": "string"
+          },
+          "renew_budget": {
+            "description": "Explicitly start a fresh budget epoch when action=resume.",
+            "type": "boolean"
+          },
+          "max_turns": {
+            "minimum": 1,
+            "type": "number"
+          },
+          "max_wall_clock_ms": {
+            "minimum": 1000,
+            "type": "number"
+          },
+          "max_retries": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "cooldown_ms": {
+            "minimum": 0,
+            "type": "number"
           }
         },
         "additionalProperties": false
@@ -40624,8 +40692,28 @@
             "type": "boolean"
           },
           "root_work_item_id": {
-            "description": "Optional root BD/task/item id. If omitted, tool infers from active task or bd ready.",
+            "description": "Optional root provider WorkItem id. If omitted, infer from the active scoped task.",
             "type": "string"
+          },
+          "renew_budget": {
+            "description": "Explicitly start a fresh budget epoch when action=resume.",
+            "type": "boolean"
+          },
+          "max_turns": {
+            "minimum": 1,
+            "type": "number"
+          },
+          "max_wall_clock_ms": {
+            "minimum": 1000,
+            "type": "number"
+          },
+          "max_retries": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "cooldown_ms": {
+            "minimum": 0,
+            "type": "number"
           }
         },
         "additionalProperties": false

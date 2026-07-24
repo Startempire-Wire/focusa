@@ -94,7 +94,7 @@
         safe(() => fetchJson('/v1/lineage/head')),
         safe(() => fetchJson('/v1/release/proof/status')),
         safe(() => fetchJson('/v1/update/notifications')),
-        safe(() => fetchJson('/v1/silent-sessions/dashboard?limit=20')),
+        safe(() => fetchJson('/v1/silent-sessions?limit=20')),
       ]);
       const workpointPacket = workpointResume?.resume_packet ?? workpointResume?.packet ?? null;
       const normalizedWorkpointResume = workpointPacket

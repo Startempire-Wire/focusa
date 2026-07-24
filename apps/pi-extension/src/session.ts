@@ -34,6 +34,7 @@ import {
   stampWorkpointPacketForCurrentPiSession,
   resetPiSessionScopedState,
   adoptPiProjectRoot,
+  resolvePiProjectRootCandidate,
   normalizeProjectRoot,
   confirmPiProjectRoot,
   projectRootConfirmationRequired,
@@ -356,7 +357,6 @@ function queueProjectIdentityBootstrapTurn(
       trigger_turn: false,
     },
   });
-
 }
 
 type TrajectoryGoalDraft = {
@@ -961,9 +961,76 @@ export function registerSession(pi: ExtensionAPI) {
     // state. Pi ALWAYS gets its own FRESH frame. Only WBM mode may reuse frames.
     const entries = ctx.sessionManager.getEntries();
     refreshNativeSessionPressure(ctx, "session_start", entries);
+    let persistedBindingRoot = "";
+    for (let i = entries.length - 1; i >= 0; i--) {
+      const entry = entries[i];
+      if (
+        entry.type === "custom" &&
+        (entry.customType === "focusa-wbm-state" || entry.customType === "focusa-state") &&
+        entry.data
+      ) {
+        const recovered = loadPersistedRecoveryState(entry.data);
+        persistedBindingRoot = persistedProjectRootFromState(recovered);
+        if (persistedBindingRoot) break;
+      }
+    }
+
+    const localBinding = resolvePiProjectRootCandidate(ctx.cwd);
+    const bindingQuery = new URLSearchParams({ cwd: String(ctx.cwd || process.cwd()) });
+    if (persistedBindingRoot) bindingQuery.set("persisted_project_root", persistedBindingRoot);
+    const bindingPayload = await focusaFetch(`/project/identity?${bindingQuery.toString()}`, {
+      method: "GET",
+    }).catch(() => null);
+    const bindingDecision = bindingPayload?.binding_decision || null;
+    const bindingCandidates = Array.isArray(bindingPayload?.binding_candidates)
+      ? bindingPayload.binding_candidates
+      : localBinding.candidates || [];
+    const bindingAmbiguous =
+      bindingDecision?.ambiguous === true || bindingPayload?.status === "ambiguous_project_binding";
+    const selectedBindingRoot = normalizeProjectRoot(
+      bindingDecision?.selected_project_root || localBinding.projectRoot
+    );
+    const selectedBindingCandidate = bindingCandidates.find(
+      (candidate: any) => normalizeProjectRoot(candidate?.project_root) === selectedBindingRoot
+    );
+    const persistedBindingCandidate = bindingCandidates.find(
+      (candidate: any) =>
+        normalizeProjectRoot(candidate?.project_root) === normalizeProjectRoot(persistedBindingRoot)
+    );
+    const sameCanonicalProject =
+      !!selectedBindingCandidate?.canonical_parent_root &&
+      normalizeProjectRoot(selectedBindingCandidate.canonical_parent_root) ===
+        normalizeProjectRoot(persistedBindingCandidate?.canonical_parent_root);
+    if (selectedBindingRoot) {
+      const score = Number(selectedBindingCandidate?.score || localBinding.confidenceScore * 1000 || 0);
+      setLastProjectRootResolution({
+        projectRoot: selectedBindingRoot,
+        confidence: score >= 900 ? "high" : score >= 700 ? "medium" : "low",
+        confidenceScore: Math.min(1, score / 1000),
+        source: "core_api_binding_candidates",
+        reason: String(bindingDecision?.reason || localBinding.reason),
+        safe: isProjectRootAuthoritySafe(selectedBindingRoot),
+        requiresOperatorConfirmation: bindingAmbiguous || bindingDecision?.requires_confirmation === true,
+        markers: Array.isArray(selectedBindingCandidate?.markers)
+          ? selectedBindingCandidate.markers.map(String)
+          : localBinding.markers,
+        candidates: bindingCandidates.map((candidate: any) => ({
+          projectRoot: normalizeProjectRoot(candidate?.project_root),
+          confidenceScore: Number(candidate?.score || 0) / 1000,
+          markers: Array.isArray(candidate?.markers) ? candidate.markers.map(String) : [],
+          source: Array.isArray(candidate?.sources)
+            ? candidate.sources.map(String).join("+")
+            : "binding_candidate",
+        })),
+      });
+    }
+
+    if (!bindingAmbiguous && selectedBindingRoot && isProjectRootAuthoritySafe(selectedBindingRoot)) {
+      getAttachmentRuntime().sessionCwd = selectedBindingRoot;
+    }
     let persistedStateFound = false;
     let persistedProjectRoot = "";
-    let projectMismatchDetected = false;
+    let projectMismatchDetected = bindingAmbiguous;
     for (let i = entries.length - 1; i >= 0; i--) {
       const e = entries[i];
       if (
@@ -974,17 +1041,16 @@ export function registerSession(pi: ExtensionAPI) {
         const d = loadPersistedRecoveryState(e.data);
         if (!d) continue;
         const candidateProjectRoot = persistedProjectRootFromState(d);
-        const currentProjectRoot = normalizeProjectRoot(ctx.cwd);
-        if (
-          candidateProjectRoot &&
-          currentProjectRoot &&
-          normalizeProjectRoot(candidateProjectRoot) !== currentProjectRoot
-        ) {
+        const currentProjectRoot = selectedBindingRoot || normalizeProjectRoot(localBinding.projectRoot);
+        const exactRootMatch =
+          normalizeProjectRoot(candidateProjectRoot) === normalizeProjectRoot(currentProjectRoot);
+        if (candidateProjectRoot && currentProjectRoot && !exactRootMatch && !sameCanonicalProject) {
           projectMismatchDetected = true;
           continue;
         }
-        persistedStateFound = true;
+        persistedStateFound = !bindingAmbiguous;
         persistedProjectRoot = candidateProjectRoot || currentProjectRoot;
+        if (bindingAmbiguous) continue;
         // §33.5 + §33.7: restore resumable session metadata and safe local shadow,
         // but do not blindly reuse stale frame identity outside WBM mode.
         getAttachmentRuntime().localDecisions = d.decisions || [];
@@ -1042,7 +1108,7 @@ export function registerSession(pi: ExtensionAPI) {
         adoptPersistedContinuityForSession(
           d,
           eventSessionId,
-          adoptPiProjectRoot(ctx.cwd, d.activeWorkpointPacket)
+          selectedBindingRoot || localBinding.projectRoot
         );
         // Explicitly clear stale pollution — do NOT carry across sessions
         getAttachmentRuntime().localConstraints = [];
@@ -1055,17 +1121,23 @@ export function registerSession(pi: ExtensionAPI) {
       ? "session_project_mismatch"
       : classifyPiSessionProject({
           reason: sessionStartReason,
-          currentProjectRoot: normalizeProjectRoot(ctx.cwd),
-          markerExists: markerExistsAtCwd(ctx.cwd),
+          currentProjectRoot: selectedBindingRoot || normalizeProjectRoot(localBinding.projectRoot),
+          markerExists:
+            (Array.isArray(selectedBindingCandidate?.markers) &&
+              selectedBindingCandidate.markers.length > 0) ||
+            markerExistsAtCwd(selectedBindingRoot || localBinding.projectRoot),
           persistedStateFound,
           persistedProjectRoot,
+          bindingAmbiguous,
+          sameCanonicalProject,
+          bindingCandidateRoots: (localBinding.candidates || []).map((candidate) => candidate.projectRoot),
           explicitContinuationMetadata: sessionStartReason === "fork",
         });
     getAttachmentRuntime().sessionProjectClassification = sessionProjectClassification;
     if (sessionProjectClassification === "new_session_new_project") {
       queueUnboundProjectNag(pi, ctx, "new_session_new_project");
     }
-    const classifiedRoot = normalizeProjectRoot(ctx.cwd);
+    const classifiedRoot = selectedBindingRoot || normalizeProjectRoot(localBinding.projectRoot);
     getAttachmentRuntime().piSessionProjectRegistry[eventSessionId] = {
       project_root: classifiedRoot,
       continuity_id: ensureContinuityId(classifiedRoot),

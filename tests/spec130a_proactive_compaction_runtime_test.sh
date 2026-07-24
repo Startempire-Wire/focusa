@@ -46,12 +46,16 @@ function harness(
   const notices = [];
   const statuses = [];
   const compactCalls = [];
+  const sentMessages = [];
   const pi = {
     on(name, handler) {
       handlers.set(name, handler);
     },
     appendEntry(type, data) {
       events.push({ type, data });
+    },
+    sendUserMessage(message, options) {
+      sentMessages.push({ message, options });
     },
   };
   const ctx = {
@@ -77,7 +81,7 @@ function harness(
     },
   };
   register(pi, () => policy);
-  return { handlers, events, notices, statuses, compactCalls, ctx };
+  return { handlers, events, notices, statuses, compactCalls, sentMessages, ctx };
 }
 
 const empty = evaluateProactiveCompactionEligibility([], usage.contextWindow);
@@ -258,6 +262,23 @@ assert.equal(
     (entry) => entry.data.native_compaction_call_count === 1,
   ),
   true,
+);
+
+await new Promise((resolve) => setTimeout(resolve, 25));
+await terminalTransport.handlers.get("agent_settled")(
+  { type: "agent_settled" },
+  terminalTransport.ctx,
+);
+terminalTransport.compactCalls[2].onError(new Error("WebSocket error"));
+await new Promise((resolve) => setTimeout(resolve, 50));
+terminalTransport.compactCalls[3].onError(new Error("WebSocket error"));
+assert.deepEqual(terminalTransport.sentMessages.at(-1), {
+  message: "/focusa-rollover execute",
+  options: { deliverAs: "followUp" },
+});
+assert.ok(
+  terminalTransport.events.some((entry) => entry.data.kind === "rollover_auto_queued"),
+  "transport retry exhaustion must queue governed rollover automatically",
 );
 await terminalTransport.handlers.get("session_shutdown")(
   { type: "session_shutdown" },

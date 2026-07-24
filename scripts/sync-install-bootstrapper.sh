@@ -19,7 +19,7 @@ set -euo pipefail
 
 REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 SRC="${REPO_ROOT}/scripts/install-focusa.sh"
-LIVE_DIR="/home/focusadev/install.focusa.dev/public_html/installers"
+LIVE_DIR="/home/focusadev/public_html/install.focusa.dev/installers"
 LIVE="${LIVE_DIR}/install-focusa.sh"
 
 # Live docroot is owned by focusadev; mutate it as that user so the deploy

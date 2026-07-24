@@ -3368,7 +3368,8 @@ export function registerTools(pi: ExtensionAPI) {
 
   async function currentWorkLoopLease(): Promise<WorkLoopWriterLease | null> {
     const cached = workLoopLeases.get(workLoopLeaseKey());
-    if (cached && cached.writerId === localWriterId && Date.parse(cached.expiresAt) > Date.now()) return cached;
+    if (cached && cached.writerId === localWriterId && Date.parse(cached.expiresAt) > Date.now())
+      return cached;
     const status = await focusaFetchDetailed("/work-loop/status?summary_only=true");
     const lease = rememberWorkLoopLease(status.body);
     return lease?.writerId === localWriterId && Date.parse(lease.expiresAt) > Date.now() ? lease : null;
@@ -3382,7 +3383,10 @@ export function registerTools(pi: ExtensionAPI) {
 
   async function requiredWriterLeaseHeaders(): Promise<Record<string, string>> {
     const lease = await currentWorkLoopLease();
-    if (!lease) throw new Error("current scoped Work Loop writer lease is missing, expired, or owned by another writer");
+    if (!lease)
+      throw new Error(
+        "current scoped Work Loop writer lease is missing, expired, or owned by another writer"
+      );
     return writerLeaseHeaders(localWriterId, lease);
   }
 
@@ -3588,8 +3592,7 @@ export function registerTools(pi: ExtensionAPI) {
           root_work_item_id: rootWorkItemId || undefined,
           policy_overrides: {
             max_turns: max_turns ?? getAttachmentRuntime().cfg?.workLoopMaxTurns,
-            max_wall_clock_ms:
-              max_wall_clock_ms ?? getAttachmentRuntime().cfg?.workLoopMaxWallClockMs,
+            max_wall_clock_ms: max_wall_clock_ms ?? getAttachmentRuntime().cfg?.workLoopMaxWallClockMs,
             max_retries: max_retries ?? getAttachmentRuntime().cfg?.workLoopMaxRetries,
             cooldown_ms: cooldown_ms ?? getAttachmentRuntime().cfg?.workLoopCooldownMs,
             allow_destructive_actions: getAttachmentRuntime().cfg?.workLoopAllowDestructiveActions,
@@ -3633,7 +3636,12 @@ export function registerTools(pi: ExtensionAPI) {
       const lease = await currentWorkLoopLease();
       if (!lease) {
         return {
-          content: [{ type: "text", text: "work-loop control blocked: current scoped writer lease is missing, expired, or owned by another writer" }],
+          content: [
+            {
+              type: "text",
+              text: "work-loop control blocked: current scoped writer lease is missing, expired, or owned by another writer",
+            },
+          ],
           details: {
             ok: false,
             status: "blocked",
@@ -4695,6 +4703,12 @@ export function registerTools(pi: ExtensionAPI) {
         Type.String({ description: "Optional cwd/project path hint; defaults to Pi session cwd." })
       ),
       project_root: Type.Optional(Type.String({ description: "Optional expected project root folder." })),
+      persisted_project_root: Type.Optional(
+        Type.String({
+          description:
+            "Project root retained by the resumed Pi session; advisory candidate only until current worktree/project evidence verifies it.",
+        })
+      ),
       remote_host: Type.Optional(
         Type.String({
           description: "Remote SSH host that contains the project root; caller supplies inspected evidence.",
@@ -4718,6 +4732,7 @@ export function registerTools(pi: ExtensionAPI) {
       const p = params as {
         cwd?: string;
         project_root?: string;
+        persisted_project_root?: string;
         remote_host?: string;
         remote_user?: string;
         remote_port?: number;
@@ -4728,6 +4743,13 @@ export function registerTools(pi: ExtensionAPI) {
       const query = new URLSearchParams();
       query.set("cwd", p.cwd || getSessionCwd() || process.cwd());
       if (p.project_root) query.set("project_root", p.project_root);
+      const persistedProjectRoot =
+        p.persisted_project_root ||
+        getActiveWorkpointPacket()?.scope?.project_root ||
+        getActiveWorkpointPacket()?.project_root ||
+        getLastProjectRootResolution()?.projectRoot ||
+        getLastProjectIdentity()?.project_root;
+      if (persistedProjectRoot) query.set("persisted_project_root", persistedProjectRoot);
       if (p.remote_host) query.set("remote_host", p.remote_host);
       if (p.remote_user) query.set("remote_user", p.remote_user);
       if (p.remote_port) query.set("remote_port", String(p.remote_port));
@@ -4828,7 +4850,13 @@ export function registerTools(pi: ExtensionAPI) {
         }
         setLastProjectIdentity(identity);
         const verifiedRoot = normalizeProjectRoot(identity.project_root);
-        if (verifiedRoot && identity.status === "verified" && isProjectRootAuthoritySafe(verifiedRoot)) {
+        if (
+          verifiedRoot &&
+          identity.status === "verified" &&
+          body.binding_decision?.ambiguous !== true &&
+          body.status !== "ambiguous_project_binding" &&
+          isProjectRootAuthoritySafe(verifiedRoot)
+        ) {
           confirmPiProjectRoot(verifiedRoot, "focusa_project_identity_verified");
           ensureContinuityId(verifiedRoot);
           persistState();
@@ -4839,9 +4867,13 @@ export function registerTools(pi: ExtensionAPI) {
         : Array.isArray(identity.project_summary?.summary_lines)
           ? identity.project_summary.summary_lines.map((line: any) => String(line)).filter(Boolean)
           : [];
+      const bindingCandidates = Array.isArray(body.binding_candidates) ? body.binding_candidates : [];
+      const bindingSummary = body.binding_decision
+        ? `binding=${String(body.binding_decision.status || "unknown")} selected=${String(body.binding_decision.selected_project_root || "none")} candidates=${bindingCandidates.length}`
+        : "binding=legacy_unavailable";
       const text = result.ok
         ? [
-            `project identity → status=${String(identity.status || body.status || "unknown")} confidence=${String(identity.confidence || "unknown")} parent=${String(identity.canonical_parent_root || identity.project_root || "unknown")} worktree=${String(identity.active_worktree_root || identity.working_context?.active_worktree_root || identity.project_root || "unknown")} subpath=${String(identity.working_context?.working_subpath?.working_subpath_id || "primary")}`,
+            `project identity → status=${String(identity.status || body.status || "unknown")} confidence=${String(identity.confidence || "unknown")} parent=${String(identity.canonical_parent_root || identity.project_root || "unknown")} worktree=${String(identity.active_worktree_root || identity.working_context?.active_worktree_root || identity.project_root || "unknown")} subpath=${String(identity.working_context?.working_subpath?.working_subpath_id || "primary")} ${bindingSummary}`,
             body.mismatch_reason ? `mismatch_reason=${body.mismatch_reason}` : null,
             Array.isArray(body.degraded_reasons) && body.degraded_reasons.length > 0
               ? `degraded_reasons=${body.degraded_reasons.map((r: any) => `${r.code}:${r.severity}`).join(", ")}`
@@ -5655,6 +5687,11 @@ export function registerTools(pi: ExtensionAPI) {
         Type.String({ description: "Optional cwd/project path hint; defaults to Pi session cwd." })
       ),
       project_root: Type.Optional(Type.String({ description: "Expected project root." })),
+      persisted_project_root: Type.Optional(
+        Type.String({
+          description: "Resumed-session project root to compare as an advisory binding candidate.",
+        })
+      ),
       project_id: Type.Optional(Type.String({ description: "Expected project id from marker/operator." })),
       canonical_name: Type.Optional(Type.String({ description: "Expected canonical project name." })),
       repo_remote: Type.Optional(Type.String({ description: "Expected git origin remote." })),
@@ -5681,6 +5718,7 @@ export function registerTools(pi: ExtensionAPI) {
       const p = params as {
         cwd?: string;
         project_root?: string;
+        persisted_project_root?: string;
         project_id?: string;
         canonical_name?: string;
         repo_remote?: string;
@@ -5691,7 +5729,16 @@ export function registerTools(pi: ExtensionAPI) {
         remote_workspace_kind?: string;
         remote_deploy_root?: string;
       };
-      const payload = { ...p, cwd: p.cwd || getSessionCwd() || process.cwd() };
+      const payload = {
+        ...p,
+        cwd: p.cwd || getSessionCwd() || process.cwd(),
+        persisted_project_root:
+          p.persisted_project_root ||
+          getActiveWorkpointPacket()?.scope?.project_root ||
+          getActiveWorkpointPacket()?.project_root ||
+          getLastProjectRootResolution()?.projectRoot ||
+          getLastProjectIdentity()?.project_root,
+      };
       const result = await focusaFetchDetailed("/project/verify", {
         method: "POST",
         body: JSON.stringify(payload),
@@ -5741,7 +5788,13 @@ export function registerTools(pi: ExtensionAPI) {
       const verified = body.verification?.verified === true;
       if (identity && Object.keys(identity).length) setLastProjectVerify(body);
       const verifiedRoot = normalizeProjectRoot(identity.project_root);
-      if (verified && verifiedRoot && isProjectRootAuthoritySafe(verifiedRoot)) {
+      if (
+        verified &&
+        verifiedRoot &&
+        body.binding_decision?.ambiguous !== true &&
+        body.status !== "ambiguous_project_binding" &&
+        isProjectRootAuthoritySafe(verifiedRoot)
+      ) {
         confirmPiProjectRoot(verifiedRoot, "focusa_project_verify_verified");
         ensureContinuityId(verifiedRoot);
         persistState();

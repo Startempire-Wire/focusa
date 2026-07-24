@@ -255,6 +255,10 @@ async fn view(
             continuity_id.as_deref(),
             query.working_subpath_id.as_deref(),
         )
+        .filter(|r| {
+            r.project_root.as_deref() == Some(project_root)
+                && r.continuity_id.as_deref() == continuity_id.as_deref()
+        })
     } else {
         None
     };

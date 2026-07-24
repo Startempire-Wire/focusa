@@ -292,6 +292,7 @@ function createAttachmentRuntime() {
       | "new_session_existing_project"
       | "resumed_session_resumed_project"
       | "resumed_session_recoverable_project"
+      | "resumed_session_worktree_rebound"
       | "session_project_mismatch"
       | "forked_compacted_continuation",
     piSessionProjectRegistry: {} as Record<
@@ -663,10 +664,14 @@ export function compatibleWorkLoopStatusState(payload: any): string {
 
 // ── HTTP helper ──────────────────────────────────────────────────────────────
 export async function focusaFetch(path: string, opts: RequestInit = {}): Promise<any> {
-  const timeout = getAttachmentRuntime().cfg?.focusaApiTimeoutMs || 5000;
-  const base = getAttachmentRuntime().cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
-  const token = getAttachmentRuntime().cfg?.focusaToken || "";
+  // Settings callbacks can run outside Pi's attachment async context. Global routes
+  // remain usable there; scoped routes receive no authority headers and must reject
+  // safely at the daemon rather than crashing Pi with attachment_runtime_key_required.
   const attachment = currentAttachmentKey();
+  const runtime = attachment ? getAttachmentRuntime(attachment) : null;
+  const timeout = runtime?.cfg?.focusaApiTimeoutMs || 5000;
+  const base = runtime?.cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
+  const token = runtime?.cfg?.focusaToken || "";
   const root = attachment?.workstream.root_scope.root_path || "";
   const continuity = attachment?.workstream.continuity_id || "";
   const typedScopeHeaders: Record<string, string> =
@@ -691,7 +696,7 @@ export async function focusaFetch(path: string, opts: RequestInit = {}): Promise
           // header + structured /v1/agent/prompt body). See
           // crates/focusa-api/src/routes/agent_reminder.rs.
           "X-Focusa-Client": "pi",
-          "X-Extension-Token": `focusa-pi-${getAttachmentRuntime().cfg?.focusaExtensionBuild || "v0"}`,
+          "X-Extension-Token": `focusa-pi-${runtime?.cfg?.focusaExtensionBuild || "v0"}`,
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
           ...typedScopeHeaders,
           ...((opts.headers as Record<string, string>) || {}),

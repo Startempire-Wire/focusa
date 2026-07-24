@@ -22,7 +22,7 @@
     "device_pairing",
     "local_trusted"
   ],
-  "registry_digest": "sha256:f15078162dc7b0f7a595abcb5ae4302f9af85f7b8de0b0ef0762cdde661215b8",
+  "registry_digest": "sha256:ddc78f685c7d284d1f38cd974e04bb82e662c06e433e6a777fbd1fd325596922",
   "skill_count": 10,
   "skills": [
     "skill:focusa",
@@ -51,5 +51,5 @@
     "workpoint"
   ],
   "extended_card_path": "/v1/agent/card",
-  "card_digest": "sha256:62b0d7d715ad8706ac26d2e76107f80c1bedbf17e1c696687245227fff4793fb"
+  "card_digest": "sha256:af5c55bb359d9228a9bf98a153aba2189c903375fb4706e2644258f1375ff92d"
 }

@@ -1,6 +1,6 @@
 {
   "schema": "focusa.cli_command_projection.v2",
-  "registry_digest": "sha256:f15078162dc7b0f7a595abcb5ae4302f9af85f7b8de0b0ef0762cdde661215b8",
+  "registry_digest": "sha256:ddc78f685c7d284d1f38cd974e04bb82e662c06e433e6a777fbd1fd325596922",
   "commands": [
     {
       "command": "focusa workpoint resolve-object",
@@ -3626,7 +3626,7 @@
     {
       "command": "focusa project identity",
       "capability_id": "focusa.project.identity",
-      "summary": "Resolve the active project identity from marker, git, beads, workspace, cwd, daemon, and operator project signals before trusting project-bound context.",
+      "summary": "Rank explicit, active-worktree, canonical-parent, marker/Beads, persisted-session, and bounded parent-directory project candidates; fail closed on ambiguity before trusting project-bound context.",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -3636,6 +3636,10 @@
           },
           "project_root": {
             "description": "Optional expected project root folder.",
+            "type": "string"
+          },
+          "persisted_project_root": {
+            "description": "Project root retained by the resumed Pi session; advisory candidate only until current worktree/project evidence verifies it.",
             "type": "string"
           },
           "remote_host": {
@@ -3673,7 +3677,7 @@
       ],
       "examples": [
         {
-          "description": "Resolve the active project identity from marker, git, beads, workspace, cwd, daemon, and operator project signals before trusting project-bound context.",
+          "description": "Rank explicit, active-worktree, canonical-parent, marker/Beads, persisted-session, and bounded parent-directory project candidates; fail closed on ambiguity before trusting project-bound context.",
           "arguments": {},
           "human_invocation": "focusa project identity",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_identity.md"
@@ -3684,7 +3688,7 @@
     {
       "command": "focusa project verify",
       "capability_id": "focusa.project.verify",
-      "summary": "Verify expected project identity fields and surface project/continuity mismatches without mutating Focusa state.",
+      "summary": "Verify expected project identity fields against ranked worktree/session candidates and surface ambiguity or project/continuity mismatches without mutating Focusa state.",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -3694,6 +3698,10 @@
           },
           "project_root": {
             "description": "Expected project root.",
+            "type": "string"
+          },
+          "persisted_project_root": {
+            "description": "Resumed-session project root to compare as an advisory binding candidate.",
             "type": "string"
           },
           "project_id": {
@@ -3743,7 +3751,7 @@
       ],
       "examples": [
         {
-          "description": "Verify expected project identity fields and surface project/continuity mismatches without mutating Focusa state.",
+          "description": "Verify expected project identity fields against ranked worktree/session candidates and surface ambiguity or project/continuity mismatches without mutating Focusa state.",
           "arguments": {},
           "human_invocation": "focusa project verify",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_verify.md"
@@ -4222,7 +4230,7 @@
             "type": "string"
           },
           "session_name": {
-            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "description": "Legacy alias for exact session_id; no legacy name normalization.",
             "type": "string"
           },
           "run_id": {
