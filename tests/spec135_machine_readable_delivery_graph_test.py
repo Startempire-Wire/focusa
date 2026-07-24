@@ -67,8 +67,9 @@ for completed in verified_requirements:
     assert row["current_status"] == "verified"
     assert row["closure_status"] == "verified"
 
-u5 = next(r for r in requirements if r["requirement_id"] == "SPEC135-U5")
-assert u5["current_status"] == "partial" and u5["closure_status"] == "open"
+for pending in ("SPEC135-U5", "SPEC135-U6"):
+    row = next(r for r in requirements if r["requirement_id"] == pending)
+    assert row["current_status"] == "partial" and row["closure_status"] == "open"
 
 node_ids = {n["requirement_id"] for n in dag["nodes"]}
 assert dag["schema"] == "focusa.spec135.delivery_dag.v1"

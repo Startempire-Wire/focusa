@@ -1352,7 +1352,7 @@
       "bead_id": "focusa-mc-u6",
       "lane": "uiai_uxp",
       "requirement_id": "SPEC135-U6",
-      "status": "missing"
+      "status": "partial"
     },
     {
       "bead_id": "focusa-mc-v1",

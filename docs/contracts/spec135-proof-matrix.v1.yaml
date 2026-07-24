@@ -959,7 +959,8 @@
       "requirement_id": "SPEC135-U6",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
-        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh"
+        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh",
+        "tests/spec135_u6_adaptive_ui_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"

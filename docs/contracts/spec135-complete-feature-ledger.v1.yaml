@@ -2562,7 +2562,7 @@
       ],
       "closure_status": "open",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "partial",
       "delivery_lane": "uiai_uxp",
       "dependencies": [
         "SPEC135-U5",
@@ -2606,7 +2606,8 @@
       "source_spec": "135K",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
-        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh"
+        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh",
+        "tests/spec135_u6_adaptive_ui_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
