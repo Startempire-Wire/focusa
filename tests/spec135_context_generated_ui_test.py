@@ -30,7 +30,6 @@ reducer = (ROOT / "crates/focusa-core/src/reducer.rs").read_text()
 route = (ROOT / "crates/focusa-api/src/routes/context_sources.rs").read_text()
 proof = (ROOT / "packages/a2ui-renderer/proof/context-commit.ts").read_text()
 ts_client = (ROOT / "packages/generated/spec135/typescript/schema.d.ts").read_text()
-go_client = (ROOT / "packages/generated/spec135/go/client.gen.go").read_text()
 
 operations = {item["operation_id"]: item for item in registry["operations"]}
 operation = operations["focusa.context.source.commit"]
@@ -81,7 +80,7 @@ for schema_id in (
     schema = json.loads((BUNDLE / "json-schema" / f"{schema_id}.json").read_text())
     assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
 assert '"/v1/context/sources/commit"' in ts_client
-assert "FocusaContextSourceCommit" in go_client
+assert 'operations["focusa.context.source.commit"]' in ts_client
 
 for marker in (
     "pub struct ContextSourceRecord",

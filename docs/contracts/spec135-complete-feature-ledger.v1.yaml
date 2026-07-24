@@ -30,8 +30,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -98,8 +97,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -165,8 +163,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -229,14 +226,13 @@
       ],
       "evidence_requirements": [
         "TypeScript check",
-        "Go client compile",
+        "portable OpenAPI/JSON Schema contract lint",
         "contract diff"
       ],
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -251,7 +247,7 @@
         "focusa-mc-f3"
       ],
       "migration_requirements": [],
-      "normative_text": "F3 Generate TypeScript and Go clients from canonical contracts. Generate openapi-typescript/openapi-fetch and oapi-codegen clients and remove hand-maintained drift.",
+      "normative_text": "F3 Generate TypeScript clients and portable OpenAPI/JSON Schema contracts from canonical contracts. Generate openapi-typescript/openapi-fetch clients and validate language-neutral OpenAPI/JSON Schema contracts to remove hand-maintained drift.",
       "primitive_owner": "Focusa Core",
       "receipt_requirements": [
         "closure Receipt",
@@ -306,8 +302,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -376,8 +371,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -444,8 +438,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -515,8 +508,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -586,8 +578,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -656,8 +647,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -726,8 +716,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -796,8 +785,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -874,8 +862,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -943,8 +930,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -1013,8 +999,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -1082,8 +1067,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -1151,8 +1135,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -1217,8 +1200,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -1280,8 +1262,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -1345,8 +1326,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -1388,7 +1368,9 @@
         "Artifacts cite source questions/evidence and support supersession",
         "Closure package feeds Spec workbench without transcript dependence"
       ],
-      "api_operations": [],
+      "api_operations": [
+        "focusa.interview.closure_package.get"
+      ],
       "client_surfaces": [
         "api",
         "cli",
@@ -1398,7 +1380,7 @@
       ],
       "closure_status": "open",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "partial",
       "delivery_lane": "role_interview",
       "dependencies": [
         "SPEC135-RI3"
@@ -1410,8 +1392,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -1441,7 +1422,8 @@
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135h_implementation_acceleration_static_test.sh",
-        "tests/spec135i_real_time_generated_ui_static_test.sh"
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135_ri4_interview_closure_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -1476,8 +1458,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -1544,8 +1525,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -1611,8 +1591,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -1679,8 +1658,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -1748,8 +1726,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -1817,8 +1794,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -1883,8 +1859,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -1949,8 +1924,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -2016,8 +1990,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -2086,8 +2059,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -2158,8 +2130,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -2231,8 +2202,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -2297,8 +2267,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -2365,8 +2334,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -2436,8 +2404,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -2507,8 +2474,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -2575,8 +2541,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -2644,8 +2609,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -2710,8 +2674,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -2775,8 +2738,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -2841,8 +2803,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -2907,8 +2868,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -2977,8 +2937,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -3046,8 +3005,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -3115,8 +3073,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -3181,8 +3138,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -3247,8 +3203,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -3318,8 +3273,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -3380,8 +3334,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [],
       "implementation_tasks": [
@@ -3435,8 +3388,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [],
       "implementation_tasks": [
@@ -3487,8 +3439,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [],
       "implementation_tasks": [
@@ -3544,8 +3495,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [],
       "implementation_tasks": [
@@ -3603,8 +3553,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [],
       "implementation_tasks": [
@@ -3657,8 +3606,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [],
       "implementation_tasks": [
@@ -3717,8 +3665,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -3785,8 +3732,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -3853,8 +3799,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -3922,8 +3867,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -3990,8 +3934,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -4059,8 +4002,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -4128,8 +4070,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -4198,8 +4139,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -4269,8 +4209,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -4337,8 +4276,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -4407,8 +4345,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -4477,8 +4414,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -4547,8 +4483,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -4624,8 +4559,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -4701,8 +4635,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -4776,8 +4709,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -4856,8 +4788,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",
@@ -4932,8 +4863,7 @@
       "generated_contracts": [
         "JSON Schema 2020-12",
         "OpenAPI 3.0.3",
-        "generated TypeScript client",
-        "generated Go client"
+        "generated TypeScript client"
       ],
       "generated_ui_surfaces": [
         "api",

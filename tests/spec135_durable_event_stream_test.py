@@ -20,7 +20,6 @@ persistence_tests = (
 sse = (ROOT / "crates/focusa-api/src/routes/sse.rs").read_text()
 routes_mod = (ROOT / "crates/focusa-api/src/routes/mod.rs").read_text()
 ts = (ROOT / "packages/generated/spec135/typescript/schema.d.ts").read_text()
-go = (ROOT / "packages/generated/spec135/go/client.gen.go").read_text()
 
 assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
 assert schema["x-focusa-schema-id"] == "focusa.stream_event.v1"
@@ -82,7 +81,6 @@ assert "Drop lagged events silently" not in sse
 assert "pub mod events_stream;" not in routes_mod
 assert not (ROOT / "crates/focusa-api/src/routes/events_stream.rs").exists()
 assert 'operations["focusa.events.stream"]' in ts
-assert "func (c *Client) FocusaEventsStream(" in go
 
 print(
     "Spec 135 durable event stream: PASS (restart replay, cursor, Last-Event-ID, de-duplicated live tail)"

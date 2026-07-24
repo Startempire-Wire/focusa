@@ -25,7 +25,6 @@ listing = json.loads(
     (B / "json-schema/focusa.workspace_artifact_list.v1.json").read_text()
 )
 ts = (ROOT / "packages/generated/spec135/typescript/schema.d.ts").read_text()
-go = (ROOT / "packages/generated/spec135/go/client.gen.go").read_text()
 ui = (ROOT / "packages/a2ui-renderer/proof/workspace-artifact.ts").read_text()
 ui_html = (ROOT / "packages/a2ui-renderer/proof/workspace-artifact.html").read_text()
 for m in [
@@ -94,10 +93,8 @@ alpha1 = next(
 u1_path = ["SPEC135-F12", "SPEC135-U1", "SPEC135-U2", "SPEC135-ALPHA1"]
 assert u1_path in alpha1["feeder_paths"]
 assert proof["critical_path"] == u1_path
-assert (
-    "focusa_workspace_artifact_intake_request_v1" in ts
-    and "FocusaWorkspaceArtifactIntake" in go
-)
+assert "focusa_workspace_artifact_intake_request_v1" in ts
+assert 'operations["focusa.workspace.artifact.intake"]' in ts
 for marker in [
     "focusa.workspace.artifact.intake",
     "FocusaSourceConnectorCard",

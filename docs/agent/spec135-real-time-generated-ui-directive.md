@@ -40,7 +40,7 @@ Contracts
   JSON Schema 2020-12
   OpenAPI 3.0.3
   openapi-typescript + openapi-fetch
-  oapi-codegen v2.7.x for UIAI Engine
+  UIAI Engine-owned adapter generated outside Focusa core from published OpenAPI
 
 Browser proof
   UIAI Engine Eval only

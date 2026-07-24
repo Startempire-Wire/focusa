@@ -142,7 +142,7 @@ Rust + Serde + Schemars + Utoipa
 → OpenAPI 3.0.3
 → Operation Registry
 → TypeScript openapi-typescript/openapi-fetch
-→ Go oapi-codegen v2.7.x
+→ external adapters generated from published OpenAPI outside Focusa core
 → A2UI catalog schemas and UI action bindings
 ```
 
@@ -395,7 +395,7 @@ Required:
 - Utoipa/OpenAPI 3.0.3 generation tests;
 - JSON Schema 2020-12 tests;
 - Operation Registry snapshots;
-- TypeScript and Go client drift gates;
+- TypeScript client and portable OpenAPI/JSON Schema drift gates;
 - action-binding tests;
 - capability/permission projection tests;
 - ToolResult compatibility tests;
@@ -415,7 +415,7 @@ Alpha 0 delivers:
 
 ```text
 JSON Schema/OpenAPI 3.0.3
-→ generated TypeScript/Go clients
+→ generated TypeScript clients and portable OpenAPI/JSON Schema contracts
 → Operation Registry and UI action bindings
 → capability snapshot
 → shared ToolResult mapping
@@ -467,10 +467,10 @@ Spec 135J is accepted when:
 11. ordinary inputs and actions are generated from schemas;
 12. deterministic surfaces need no LLM;
 13. cache and targeted invalidation are proven;
-14. TypeScript and Go client drift gates pass;
+14. TypeScript client and portable OpenAPI/JSON Schema drift gates pass;
 15. UIAI Engine Eval proves browser-facing flows;
 16. Alpha 0 establishes the shared spine used by every later slice.
 
 ## 16. Closure blockers
 
-Spec 135J cannot close while generated UI has a manual registry; a generic mutation route exists; UI routes duplicate core rules; permissions/errors have UI-specific stores; event replay is incomplete; AG-UI owns state/history or blocks native delivery; contracts drift across Rust/TypeScript/Go; a custom renderer duplicates A2UI; browser proof bypasses UIAI Engine Eval; Playwright exists in Focusa; or the complete native Alpha spine lacks Evidence and Receipt proof.
+Spec 135J cannot close while generated UI has a manual registry; a generic mutation route exists; UI routes duplicate core rules; permissions/errors have UI-specific stores; event replay is incomplete; AG-UI owns state/history or blocks native delivery; contracts drift across Rust/TypeScript or the portable OpenAPI/JSON Schema boundary; a custom renderer duplicates A2UI; browser proof bypasses UIAI Engine Eval; Playwright exists in Focusa; or the complete native Alpha spine lacks Evidence and Receipt proof.

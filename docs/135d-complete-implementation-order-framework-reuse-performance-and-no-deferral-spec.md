@@ -186,7 +186,7 @@ Backend and contracts
   Rust workspace, Tokio, Axum, SQLite, Serde, Schemars, Utoipa
   JSON Schema 2020-12, OpenAPI 3.0.3
   openapi-typescript/openapi-fetch
-  oapi-codegen v2.7.x for UIAI Engine
+  UIAI Engine-owned adapter generated outside Focusa core from published OpenAPI
 
 Generated UI
   A2UI v0.9.1
@@ -259,7 +259,7 @@ Implementation order:
 general Focusa primitive
 → reducer and canonical state
 → typed Focusa API
-→ generated TypeScript and Go clients
+→ generated TypeScript clients and portable OpenAPI/JSON Schema contracts
 → C.R.I.S.T. interaction projection
 → renderer
 → UIAI Engine Eval when browser-facing
@@ -277,7 +277,7 @@ A PR is rejected when generally reusable behavior exists only inside Project Gen
 F0 — freeze at 135K and compile the Delivery Contract
 F1 — machine-readable ledger, DAG, parity, framework, and proof matrices
 F2 — generate JSON Schema 2020-12 and OpenAPI 3.0.3
-F3 — generate TypeScript and Go clients
+F3 — generate TypeScript clients and validate portable OpenAPI/JSON Schema contracts
 F4 — generate Operation Registry, capabilities, permissions, action bindings
 F5 — centralize ToolResult/error envelopes
 F6 — implement stable event IDs and SQLite replay plus broadcast live tail
@@ -327,7 +327,7 @@ Every path terminates in the same functional integration traversal:
 
 ```text
 requirement → greater primitive → schema → reducer/event → typed API
-→ generated TypeScript/Go clients → Operation Registry action binding
+→ generated TypeScript clients and portable OpenAPI/JSON Schema contracts → Operation Registry action binding
 → A2UI/Lit + trusted Focusa Svelte element → real integration
 → focused/runtime tests → UIAI Eval when browser-facing → Evidence → Receipt → closure
 ```

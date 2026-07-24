@@ -106,7 +106,7 @@ assert all(set(r["required_clients"]) <= client_ids for r in clients["requiremen
 
 assert framework["schema"] == "focusa.spec135.framework_lock.v1"
 lock_text = json.dumps(framework)
-for marker in ("OpenAPI 3.0.3", "A2UI v0.9.1", "oapi-codegen v2.7.x", "UIAI Engine Eval", "Playwright in Focusa"):
+for marker in ("OpenAPI 3.0.3", "A2UI v0.9.1", "openapi-typescript", "UIAI Engine Eval", "Playwright in Focusa"):
     assert marker in lock_text
 assert framework["adoption_order"][-1] == "custom only after failing conformance fixture"
 

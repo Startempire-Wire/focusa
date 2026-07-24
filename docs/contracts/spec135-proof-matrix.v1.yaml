@@ -94,7 +94,7 @@
       "closure_status": "verified",
       "evidence_requirements": [
         "TypeScript check",
-        "Go client compile",
+        "portable OpenAPI/JSON Schema contract lint",
         "contract diff"
       ],
       "receipt_requirements": [
@@ -534,7 +534,8 @@
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135h_implementation_acceleration_static_test.sh",
-        "tests/spec135i_real_time_generated_ui_static_test.sh"
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135_ri4_interview_closure_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"

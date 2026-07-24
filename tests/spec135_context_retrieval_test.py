@@ -31,7 +31,6 @@ scenario = json.loads(
 result = json.loads((BUNDLE / "uiai-eval.c2-context-retrieval.result.json").read_text())
 proof = json.loads((BUNDLE / "spec135-c2-context-retrieval-proof.json").read_text())
 ts = (ROOT / "packages/generated/spec135/typescript/schema.d.ts").read_text()
-go = (ROOT / "packages/generated/spec135/go/client.gen.go").read_text()
 
 assert 'sqlite-vec = "=0.1.7"' in cargo
 assert 'context-vector-fastembed = ["dep:fastembed"]' in cargo
@@ -90,7 +89,7 @@ assert (
     == "candidate"
 )
 assert "focusa_context_retrieve_request_v1" in ts
-assert "FocusaContextRetrieve" in go
+assert 'operations["focusa.context.retrieve"]' in ts
 Draft202012Validator(scenario_schema).validate(scenario)
 Draft202012Validator(result_schema).validate(result)
 assert result["status"] == "passed" and all(

@@ -44,7 +44,7 @@ Rust types
 → JSON Schema 2020-12
 → OpenAPI 3.0.3
 → TypeScript openapi-typescript/openapi-fetch
-→ Go oapi-codegen client/models for UIAI Engine
+→ UIAI Engine-owned adapter generated outside Focusa core from the published OpenAPI contract
 → Operation Registry and A2UI action bindings
 ```
 
@@ -205,7 +205,7 @@ AG-UI translates this path for external compatibility. It does not sit between n
 1. Freeze the series at 135K and compile the Delivery Contract.
 2. Create the machine-readable feature ledger, DAG, parity, framework, and proof matrices.
 3. Add Schemars/Utoipa and generate JSON Schema 2020-12 plus OpenAPI 3.0.3.
-4. Generate TypeScript/openapi-fetch and Go/oapi-codegen clients.
+4. Generate TypeScript/openapi-fetch and external adapters generated outside Focusa core from published OpenAPI.
 5. Generate Operation Registry and UI action bindings.
 6. Centralize ToolResult/error constructors through expand-contract.
 7. Add stable event IDs and replayable SSE over SQLite plus broadcast.
@@ -247,7 +247,7 @@ Implementation order:
 general Focusa primitive
 → reducer/state
 → typed API
-→ generated TypeScript/Go contracts
+→ generated TypeScript and portable OpenAPI/JSON Schema contracts
 → C.R.I.S.T. projection
 → renderer
 → UIAI Engine Eval

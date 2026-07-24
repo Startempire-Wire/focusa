@@ -2426,7 +2426,7 @@ Create the versioned contracts that every later slice uses.
 - JSON Schemas for all core Spec 136 records;
 - Rust types and validation;
 - OpenAPI exposure for read surfaces;
-- generated TypeScript and Go models;
+- generated TypeScript models over language-neutral OpenAPI/JSON Schema contracts;
 - reason taxonomy package;
 - shared protocol block envelope;
 - event envelope extensions;

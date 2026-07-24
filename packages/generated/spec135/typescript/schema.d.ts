@@ -504,6 +504,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/interviews/closure-package": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Governed Interview Closure Package
+         * @description Get Governed Interview Closure Package — family=project_interview budget=standard_read materialization=canonical_projection_read
+         */
+        get: operations["focusa.interview.closure_package.get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/interviews/sessions": {
         parameters: {
             query?: never;
@@ -3273,6 +3293,22 @@ export interface components {
         focusa_project_identity_response_v1: {
             [key: string]: unknown;
         };
+        /** focusa.interview_closure_package.v1 */
+        focusa_interview_closure_package_v1: {
+            adr_candidates: Record<string, never>[];
+            approved_role_profile_ref?: string | null;
+            attachment_id: string;
+            closure_ref: string;
+            compendium: Record<string, never>[];
+            continuity_id: string;
+            glossary_candidates: Record<string, never>[];
+            interview_session_id: string;
+            project_root: string;
+            receipt_ref: string;
+            /** @constant */
+            schema: "focusa.interview_closure_package.v1";
+            source_state_revision: number;
+        };
         /** focusa.project_interview_session_list.request.v1 */
         focusa_project_interview_session_list_request_v1: {
             attachment_id: string;
@@ -5701,6 +5737,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["focusa_grill_interview_strategy_response_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.interview.closure_package.get": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+                interview_session_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get Governed Interview Closure Package response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_interview_closure_package_v1"];
                 };
             };
             /** @description Standard error envelope */

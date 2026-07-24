@@ -1,1 +1,70 @@
-{"schema":"focusa.spec135_ri3_interview_resume_proof.v1","requirement_id":"SPEC135-RI3","status":"passed","operations":["focusa.interview.session.list","focusa.interview.session.mutate"],"invariants":["Interview sessions are append-only canonical reducer revisions","Questions and operator answers retain provenance","Pause and close preserve active branch and current question pointers","Reopen resumes the exact retained pointers","Deferred branches remain visible and governed","Exact project, continuity, and attachment scope is enforced","Idempotency and optimistic concurrency prevent duplicate or stale writes","RI2 strategy proposes questions while RI3 owns durable state"],"runtime":{"test":"tests/spec135_interview_session_e2e_test.py","result":"passed","coverage":["open","idempotent replay","branch graph","defer","queue one question","pause","close","daemon restart","exact reopen","autosaved answer","unrelated scope suppression"]},"contracts":{"operation_count":70,"schemas":["focusa.project_interview_session_list.request.v1","focusa.project_interview_session_list.v1","focusa.project_interview_session_mutation.request.v1","focusa.project_interview_session_mutation_result.v1"],"typescript":"packages/generated/spec135/typescript/schema.d.ts","go":"packages/generated/spec135/go/client.gen.go"},"generated_ui":{"surface":"packages/a2ui-renderer/proof/interview-resume.html","controller":"packages/a2ui-renderer/proof/interview-resume.ts","scenario":"uiai-eval.ri3-interview-resume.scenario.json","result":"uiai-eval.ri3-interview-resume.result.json","session":"Iq6opjm1","desktop_screenshot":"/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/Iq6opjm1-1784665642665869000.png","mobile_screenshot":"/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/Iq6opjm1-1784665704172490000.png","diagnostics":"uiai-diagnostics:session=Iq6opjm1:seq=16","diagnostics_summary":{"console_errors":0,"console_warnings":0,"exceptions":0,"failed_requests":0,"http_4xx":0,"http_5xx":0}},"authority":{"strategy":"RI2 advisory Grill strategy","state":"Focusa canonical reducer","browser":"UIAI Engine","answers":"Operator"}}
+{
+  "authority": {
+    "answers": "Operator",
+    "browser": "UIAI Engine",
+    "state": "Focusa canonical reducer",
+    "strategy": "RI2 advisory Grill strategy"
+  },
+  "contracts": {
+    "operation_count": 70,
+    "schemas": [
+      "focusa.project_interview_session_list.request.v1",
+      "focusa.project_interview_session_list.v1",
+      "focusa.project_interview_session_mutation.request.v1",
+      "focusa.project_interview_session_mutation_result.v1"
+    ],
+    "typescript": "packages/generated/spec135/typescript/schema.d.ts"
+  },
+  "generated_ui": {
+    "controller": "packages/a2ui-renderer/proof/interview-resume.ts",
+    "desktop_screenshot": "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/Iq6opjm1-1784665642665869000.png",
+    "diagnostics": "uiai-diagnostics:session=Iq6opjm1:seq=16",
+    "diagnostics_summary": {
+      "console_errors": 0,
+      "console_warnings": 0,
+      "exceptions": 0,
+      "failed_requests": 0,
+      "http_4xx": 0,
+      "http_5xx": 0
+    },
+    "mobile_screenshot": "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/Iq6opjm1-1784665704172490000.png",
+    "result": "uiai-eval.ri3-interview-resume.result.json",
+    "scenario": "uiai-eval.ri3-interview-resume.scenario.json",
+    "session": "Iq6opjm1",
+    "surface": "packages/a2ui-renderer/proof/interview-resume.html"
+  },
+  "invariants": [
+    "Interview sessions are append-only canonical reducer revisions",
+    "Questions and operator answers retain provenance",
+    "Pause and close preserve active branch and current question pointers",
+    "Reopen resumes the exact retained pointers",
+    "Deferred branches remain visible and governed",
+    "Exact project, continuity, and attachment scope is enforced",
+    "Idempotency and optimistic concurrency prevent duplicate or stale writes",
+    "RI2 strategy proposes questions while RI3 owns durable state"
+  ],
+  "operations": [
+    "focusa.interview.session.list",
+    "focusa.interview.session.mutate"
+  ],
+  "requirement_id": "SPEC135-RI3",
+  "runtime": {
+    "coverage": [
+      "open",
+      "idempotent replay",
+      "branch graph",
+      "defer",
+      "queue one question",
+      "pause",
+      "close",
+      "daemon restart",
+      "exact reopen",
+      "autosaved answer",
+      "unrelated scope suppression"
+    ],
+    "result": "passed",
+    "test": "tests/spec135_interview_session_e2e_test.py"
+  },
+  "schema": "focusa.spec135_ri3_interview_resume_proof.v1",
+  "status": "passed"
+}

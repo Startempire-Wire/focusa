@@ -9,7 +9,7 @@
   "route_or_target": "packages/a2ui-renderer/proof/context-commit.html",
   "preconditions": [
     "focusa.context.source.commit is generated from the Operation Registry",
-    "TypeScript and Go clients are regenerated from OpenAPI 3.0.3",
+    "TypeScript clients and portable OpenAPI/JSON Schema contracts are regenerated from OpenAPI 3.0.3",
     "The proof server proxies the generated client to a real Focusa daemon"
   ],
   "steps": [

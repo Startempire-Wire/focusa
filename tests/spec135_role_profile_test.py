@@ -121,7 +121,6 @@ e2e = (ROOT / "tests/spec135_role_profile_e2e_test.py").read_text()
 ui = (ROOT / "packages/a2ui-renderer/proof/role-profile.ts").read_text()
 ui_html = (ROOT / "packages/a2ui-renderer/proof/role-profile.html").read_text()
 ts = (ROOT / "packages/generated/spec135/typescript/schema.d.ts").read_text()
-go = (ROOT / "packages/generated/spec135/go/client.gen.go").read_text()
 for marker in (
     "ProjectAgentRoleProfile",
     "RoleProfileGrounding",
@@ -177,8 +176,7 @@ for marker in (
     assert marker in ui, marker
 assert "Ground and approve the project role" in ui_html
 assert "focusa_project_agent_role_profile_draft_request_v1" in ts
-assert "FocusaProjectAgentRoleProfileDraftRequestV1" in go
-assert "FocusaRoleProfileReview" in go
+assert 'operations["focusa.role_profile.review"]' in ts
 
 print(
     "Spec 135 RI1 Role Profile: PASS (Context grounding, assumptions, redline, permission separation, explicit durable approval)"

@@ -34,7 +34,6 @@ scenario = json.loads(
 ui_result = json.loads((BUNDLE / "uiai-eval.c3-context-claims.result.json").read_text())
 proof = json.loads((BUNDLE / "spec135-c3-context-claim-graph-proof.json").read_text())
 ts = (ROOT / "packages/generated/spec135/typescript/schema.d.ts").read_text()
-go = (ROOT / "packages/generated/spec135/go/client.gen.go").read_text()
 
 for marker in [
     "ContextClaimRecord",
@@ -108,7 +107,8 @@ for key in [
 ]:
     assert key in projection
 assert "focusa_context_graph_mutation_request_v1" in ts
-assert "FocusaContextGraphMutate" in go and "FocusaContextGraphRead" in go
+assert 'operations["focusa.context.graph.mutate"]' in ts
+assert 'operations["focusa.context.graph.read"]' in ts
 Draft202012Validator(scenario_schema).validate(scenario)
 Draft202012Validator(result_schema).validate(ui_result)
 assert ui_result["status"] == "passed" and all(
