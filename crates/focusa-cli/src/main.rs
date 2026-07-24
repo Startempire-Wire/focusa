@@ -338,7 +338,6 @@ enum Commands {
     #[command(subcommand)]
     Skills(commands::skills::SkillsCmd),
 
-
     /// Thread operations (docs/38).
     #[command(subcommand)]
     Thread(commands::threads::ThreadCmd),
