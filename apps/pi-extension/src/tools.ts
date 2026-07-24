@@ -4116,7 +4116,7 @@ export function registerTools(pi: ExtensionAPI) {
       ),
       session_id: Type.Optional(Type.String({ description: "Exact durable Silent Session id." })),
       session_name: Type.Optional(
-        Type.String({ description: "Legacy alias for exact session_id; no tmux normalization." })
+        Type.String({ description: "Legacy alias for exact session_id; no legacy name normalization." })
       ),
       run_id: Type.Optional(Type.String({ description: "Exact current run id." })),
       generation: Type.Optional(Type.Integer({ minimum: 1, description: "Exact current run generation." })),
