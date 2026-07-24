@@ -112,6 +112,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
+      - uses: oven-sh/setup-bun@v2
       - name: Install Pi extension runtime dependencies
         working-directory: apps/pi-extension
         run: npm ci --ignore-scripts
