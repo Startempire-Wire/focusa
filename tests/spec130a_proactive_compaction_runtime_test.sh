@@ -245,34 +245,24 @@ assert.match(secondaryFailure.data.secondary_error, /signal/);
 await new Promise((resolve) => setTimeout(resolve, 50));
 assert.equal(terminalTransport.compactCalls.length, 2);
 assert.ok(terminalTransport.events.some((entry) => entry.data.kind === "retry_scheduled"));
-await terminalTransport.handlers.get("session_shutdown")(
-  { type: "session_shutdown" },
-  terminalTransport.ctx,
-);
-
-const retried = harness(largeBranch, {
-  ...DEFAULT_PROACTIVE_COMPACTION_POLICY,
-  cooldownMs: 20,
-});
-await retried.handlers.get("agent_settled")({ type: "agent_settled" }, retried.ctx);
-retried.compactCalls[0].onError(new Error("502 Bad Gateway"));
-await new Promise((resolve) => setTimeout(resolve, 50));
-assert.equal(retried.compactCalls.length, 2);
-const starts = retried.events.filter((entry) => entry.data.kind === "attempt_started");
+const starts = terminalTransport.events.filter((entry) => entry.data.kind === "attempt_started");
 assert.equal(starts.length, 2);
 assert.equal(starts[1].data.retry_of_epoch_id, starts[0].data.epoch_id);
-retried.compactCalls[1].onComplete({
+terminalTransport.compactCalls[1].onComplete({
   summary: "retry summary",
   firstKeptEntryId: "d",
   tokensBefore: usage.tokens,
 });
 assert.equal(
-  retried.events.filter((entry) => entry.data.kind === "attempt_started").every(
+  terminalTransport.events.filter((entry) => entry.data.kind === "attempt_started").every(
     (entry) => entry.data.native_compaction_call_count === 1,
   ),
   true,
 );
-await retried.handlers.get("session_shutdown")({ type: "session_shutdown" }, retried.ctx);
+await terminalTransport.handlers.get("session_shutdown")(
+  { type: "session_shutdown" },
+  terminalTransport.ctx,
+);
 
 console.log(
   JSON.stringify(
