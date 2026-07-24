@@ -42,10 +42,24 @@ if ! echo "$CHECKPOINT_RESP" | jq -e '.canonical == true and .workpoint_id != nu
   log_fail "canonical Workpoint checkpoint rejected: ${CHECKPOINT_RESP}"
 fi
 
-ACTIVE_WRITER=$(http_json "${BASE_URL}/v1/work-loop" | jq -r '.active_writer // "spec79-context-test"')
+ACTIVE_WRITER="spec79-context-test"
+ENABLE_RESP=$(http_json -X POST "${BASE_URL}/v1/work-loop/enable" \
+  -H 'Content-Type: application/json' \
+  -H "x-focusa-writer-id: ${ACTIVE_WRITER}" \
+  -H 'x-focusa-approval: approved' \
+  -d '{"preset":"balanced","root_work_item_id":"spec79-context-test"}')
+FENCING_TOKEN=$(echo "$ENABLE_RESP" | jq -r '.fencing_token // empty')
+FENCING_HEADERS=()
+if echo "$FENCING_TOKEN" | grep -Eq '^[1-9][0-9]*$'; then
+  FENCING_HEADERS=(-H "x-focusa-fencing-token: ${FENCING_TOKEN}")
+elif ! echo "$ENABLE_RESP" | jq -e '.ok == true and .writer_id == "spec79-context-test"' >/dev/null 2>&1; then
+  log_fail "work-loop writer enable rejected: $ENABLE_RESP"
+fi
+
 CTX_RESP=$(http_json -X POST "${BASE_URL}/v1/work-loop/context" \
   -H 'Content-Type: application/json' \
   -H "x-focusa-writer-id: ${ACTIVE_WRITER}" \
+  "${FENCING_HEADERS[@]}" \
   -d '{"current_ask":"Why did the loop pause?","ask_kind":"question","scope_kind":"fresh_question","carryover_policy":"suppress_by_default","excluded_context_reason":"fresh_scope","excluded_context_labels":["MISSION","OLD_WORKING_SET"],"source_turn_id":"spec79-turn-ctx","operator_steering_detected":true}')
 if echo "$CTX_RESP" | jq -e '.status == "accepted"' >/dev/null 2>&1; then
   log_pass "work-loop context update accepted"
@@ -71,6 +85,18 @@ if echo "$STATUS" | jq -e '(.last_continue_reason // "") | length > 0' >/dev/nul
   log_pass "operator steering/continuation policy outcome is reflected in daemon continuation state"
 else
   log_fail "continuation policy reason missing from daemon continuation state: $STATUS"
+fi
+
+STOP_RESP=$(http_json -X POST "${BASE_URL}/v1/work-loop/stop" \
+  -H 'Content-Type: application/json' \
+  -H "x-focusa-writer-id: ${ACTIVE_WRITER}" \
+  "${FENCING_HEADERS[@]}" \
+  -H 'x-focusa-approval: approved' \
+  -d '{}')
+if echo "$STOP_RESP" | jq -e '.status == "accepted" or .state == "stopped" or .ok == true' >/dev/null 2>&1; then
+  log_pass "work-loop writer stopped cleanly"
+else
+  log_fail "work-loop writer stop rejected: $STOP_RESP"
 fi
 
 echo "=== WORK-LOOP CONTINUATION INPUT RESULTS ==="
