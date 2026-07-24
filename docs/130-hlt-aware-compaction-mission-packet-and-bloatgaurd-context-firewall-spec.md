@@ -218,6 +218,22 @@ foreign project trajectory
 unverified stale continuity packet
 ```
 
+### 4.4 Spec 131 temporal preservation and refresh
+
+Compaction consumes but does not own Spec 131 temporal authority. A CompactionMissionPacket and resume projection preserve bounded refs for HumanCalendarContext, TimeAwarenessPacket, TemporalPriorityFrame, civil/fixed deadline and readiness-target revisions, boundary/uncertainty posture, deadline conflicts, TemporalExecutionGuards, material progress, no-progress/lost-time incidents, temporal claims/forecast invalidations, cancellation/reconciliation, and factual completion/operator disposition.
+
+Rules:
+
+- compaction, model switch, handoff, resume, and rehydration never move an external deadline or reset elapsed/breach history;
+- per-boot monotonic segments remain per-boot; transcript timestamps or packet generation time cannot bridge reboot as exact elapsed time;
+- the pre-compaction frame becomes stale at the compaction boundary and MUST be refreshed before new durable/consequential action;
+- a still-valid deterministic TemporalExecutionGuard may be observed/reconciled but cannot be reissued or extended by compaction;
+- raw private calendar content remains behind authorized refs; the hot packet carries only the bounded projection/context hash needed for temporal decisions;
+- degraded/missing temporal context blocks verified closure and new consequential dispatch but preserves bounded repair, cleanup, cancellation, reconciliation, evidence, and truthful operator notification;
+- provider/agent completion and operator disposition cannot replace Spec 131 verified completion.
+
+Canonical source: `docs/131-focusa-workpoint-item-timing-velocity-and-closure-authority-spec.md`.
+
 ---
 
 ## 5. Non-lazy inference rule

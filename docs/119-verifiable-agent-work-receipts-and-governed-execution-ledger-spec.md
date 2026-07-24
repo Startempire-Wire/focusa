@@ -581,10 +581,12 @@ Spec116’s ClosureClaim and provider mutation lifecycle must map into `work_ite
 The rule is:
 
 ```text
-Focusa validates closure truth.
-Providers store and display the closure.
-Receipts prove the closure validation and provider mutation result.
+Focusa validates factual completion and operator disposition separately.
+Providers store and display provider state; provider closed does not equal verified complete.
+Receipts prove the closure validation, temporal posture, disposition, rollup eligibility, and provider mutation result.
 ```
+
+An operator accepted-risk/cancelled/abandoned/scope-amended disposition may be Receipted, but it cannot manufacture evidence, rewrite failed checks, or become verified/release completion.
 
 ### 5.21 Tool Count Becomes Tool Selection
 
@@ -604,6 +606,12 @@ The receipt query model may exist for fast reads, but the canonical integrity pa
 ```text
 Receipt commit → ReceiptCommitted event → events table → event_hash_chain
 ```
+
+### 5.23 Spec131 Temporal Truth Becomes Receipt-Level Truth
+
+Receipts for consequential work preserve Spec 131 temporal authority refs: applicable clock sample/trust/precision profiles, civil/fixed deadline revision, readiness target, boundary uncertainty, deadline conflict/infeasibility, temporal claim provenance, TemporalExecutionGuard, cancellation/reconciliation, breach/opportunity posture, factual completion, operator disposition, and policy/schema versions.
+
+A Receipt cannot convert `possibly_crossed|indeterminate` into on-time, operator expectation into forecast, budget into deadline, provider success into settlement, or degraded/unverified work into completion. Public projections coarsen/redact sensitive timing and calendar data while retaining signed/hash-linked provenance.
 
 ---
 

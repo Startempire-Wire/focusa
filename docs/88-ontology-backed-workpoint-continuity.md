@@ -177,6 +177,14 @@ Action and link names must remain aligned with action/relation parity specs.
   "source_turn_id": "pi-turn-...",
   "session_id": "...",
   "checkpoint_reason": "compaction",
+  "time_awareness_ref": "timeawareness:...",
+  "temporal_priority_frame_ref": "temporalpriority:...",
+  "active_deadline_refs": [],
+  "deadline_conflict_ref": null,
+  "active_temporal_claim_refs": [],
+  "active_workpoint_item_ids": [],
+  "closure_completion_status": "incomplete",
+  "operator_disposition": "none",
   "confidence": "high",
   "canonical": true,
   "created_at": "2026-04-28T00:00:00Z",
@@ -194,6 +202,8 @@ WORKPOINT:
   Current action: <ActionType target>
   Verified evidence: <VerificationRecord refs + short summaries>
   Blockers/open loops: <typed ids + short summaries>
+  Temporal posture: <trusted-now/deadline/readiness/boundary/slack/conflict refs>
+  Completion posture: <verified status versus operator disposition>
   Next action: <one concrete action>
   Do not drift: <bounded negative boundaries>
 ```
@@ -208,9 +218,17 @@ WORKPOINT:
   Current action: verify_ui_endpoint_binding → Component:homepage.audio_widget
   Verified evidence: VerificationRecord:openrouter_processors_ok, VerificationRecord:kokoro_tts_ogg_ok, VerificationRecord:audio_today_200_ok
   Blockers/open loops: UI audio widget controls not verified.
+  Temporal posture: TimeAwareness:audio_wp; no known deadline; slack unknown.
+  Completion posture: implemented_unverified; operator disposition none.
   Next action: Inspect and patch homepage audio widget play/pause/loading/error states against /api/audio/today.
   Do not drift: No notes-only work; endpoint-only validation is insufficient.
 ```
+
+### 7.4 Spec 131 temporal projection authority
+
+Workpoint owns immediate action continuity; Spec 131 owns temporal primitives. Workpoint records/projections reference canonical HumanCalendarContext, TimeAwarenessPacket, TemporalPriorityFrame, DeadlineContract, Workpoint Item timing/progress, temporal claims, cancellation/reconciliation, and closure posture. They MUST NOT compute an independent clock, deadline, forecast, urgency level, or completion override.
+
+Compaction/resume preserves those refs and refreshes stale frames before durable action. `implemented_unverified`, `verified_complete`, provider closed state, operator disposition, and release-rollup eligibility remain separate. Missing temporal authority permits bounded repair/reconciliation/cleanup but blocks consequential dispatch, unsupported forecast display, and verified closure according to Spec 131.
 
 ---
 

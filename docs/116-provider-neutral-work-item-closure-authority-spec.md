@@ -21,7 +21,7 @@ Late detection in pre-push, CI, or deploy gates is useful, but insufficient. Clo
 Core invariant:
 
 ```text
-Focusa validates closure truth. Providers store and display the closure.
+Focusa validates closure truth. Providers store/display provider state, but provider `closed` never manufactures Focusa `verified_complete`.
 ```
 
 bd is adapter #1. Linear, Asana, GitHub Issues, and other systems remain future-compatible adapters.
@@ -37,6 +37,7 @@ This spec extends and preserves the direction of:
 | Spec 111 — Agent Context Bootstrap & Delivery | bootstrap visibility into active provider, policy, and close path |
 | Spec 112 — Install Binary Architecture | automatic install, verification, doctor, no piecemeal setup |
 | Spec 113–115 | already allocated; this feature starts at Spec 116 |
+| Spec 131 — Temporal Authority and Closure | factual completion, operator disposition, temporal breach, evidence/Receipt posture, and completion-rollup eligibility remain separate |
 
 ## 3. Non-goals
 
@@ -503,21 +504,34 @@ If guard cannot activate, installer must clearly report:
 - the exact command to inspect state;
 - whether installation can proceed under current policy.
 
-## 14. Break-glass override
+## 14. Break-glass disposition without false completion
 
-Emergency override exists but is audited.
+Emergency operator disposition exists, but it cannot override factual completion or manufacture evidence.
+
+Preferred explicit form:
+
+```bash
+focusa work-item dispose <id> --accepted-risk --reason "..."
+focusa work-item dispose <id> --cancelled --reason "..."
+```
+
+A compatibility input such as:
 
 ```bash
 focusa work-item close <id> --override --reason "..."
 ```
 
+MUST be translated into a typed non-completion disposition or rejected; it MUST NOT set Focusa `verified_complete`.
+
 Rules:
 
 - disabled by default for agents;
-- requires explicit operator policy;
-- writes `closure_override` audit event;
-- CI/deploy may still fail unless override is accepted by policy;
-- block message must explain whether override is available.
+- requires explicit operator policy, exact scope, reason, and Receipt;
+- writes `closure_disposition` with `accepted_risk|waived_waivable_policy|scope_removed_by_amendment|cancelled|abandoned`;
+- cannot waive required evidence, failed checks, outcome truth, reconciliation, safety, or immutable external obligations;
+- provider state may be closed when necessary, but Focusa retains factual `implemented_unverified|failed|cancelled` and excludes it from verified completion/release/velocity rollups;
+- CI/deploy/release gates remain blocked unless independent applicable completion requirements are verified or formally removed by specification amendment;
+- block messages explain available dispositions without calling them verified completion.
 
 ## 15. Migration and rollout
 

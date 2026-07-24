@@ -1246,6 +1246,24 @@ Budgets SHOULD be expressible at multiple levels:
 Exhausting a local budget should trigger fallback, pause, escalation, or alternate-work selection rather than blind continuation.  
 **Sources:** `docs/78-bounded-secondary-cognition-and-persistent-autonomy.md`; `docs/57-golden-tasks-and-evals.md`.
 
+### 26.4 Spec 131 Temporal Authority Integration
+
+Spec 131 exclusively owns trusted clocks, elapsed intervals, civil/fixed deadlines, readiness targets, forecast claims, material progress, no-progress/lost-time posture, TemporalExecutionGuards, and temporal breach semantics. The Work Loop consumes those canonical primitives; it MUST NOT create an independent clock, deadline store, estimator, urgency taxonomy, or completion override.
+
+Required behavior:
+
+- execution budgets remain throughput/resource controls and never become forecasts, deadlines, readiness targets, leases, or security TTLs;
+- selection and continuation consume a fresh TimeAwarenessPacket/TemporalPriorityFrame or an exact valid local TemporalExecutionGuard;
+- child agents/processes receive remaining monotonic timeout with elapsed deducted and cannot extend the parent deadline;
+- cancellation propagates through requested/observed/effective/forced/cleanup/reconciliation states;
+- uncertainty, unknown slack, simultaneous deadlines, and infeasible schedules remain explicit and cannot be treated as healthy margin;
+- definitely expired/harmful actions do not dispatch; possible external effects reconcile before retry;
+- overdue work is pinned only after evidence-backed opportunity assessment and remains subordinate to non-waivable safety/legal/authority obligations and valid operator steering;
+- lease/authority/security/evidence expiry uses its declared Spec 131 clock-domain policy, including suspend/reboot behavior;
+- provider `done`, agent completion, operator disposition, budget exhaustion, and functional success cannot substitute for Spec 116/131 verified completion and settlement.
+
+**Source:** `docs/131-focusa-workpoint-item-timing-velocity-and-closure-authority-spec.md`.
+
 ---
 
 ## 27. Intelligence Requirements

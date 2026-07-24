@@ -23,7 +23,11 @@ Every tool/action contract must define:
 - verification hooks
 - expected ontology deltas
 - timeout policy
-- retry policy
+- parent deadline/remaining-time propagation policy
+- cancellation request/observation/effectiveness/cleanup policy
+- retry policy and shared retry budget
+- possible-external-effect and reconciliation-before-retry posture
+- Spec 131 temporal context or TemporalExecutionGuard reference where applicable
 - degraded fallback behavior
 
 ## Input Schema
@@ -38,8 +42,11 @@ Inputs must be:
 The caller must be able to answer all of the following before execution:
 - what object or surface will change?
 - what evidence will prove the change occurred?
+- what parent deadline, remaining timeout, budget, and cancellation contract apply?
+- is a fresh TemporalPriorityFrame or valid local TemporalExecutionGuard required?
 - can the action be retried safely?
-- if retried, what prevents duplication or corruption?
+- could the action have produced an external effect before timeout/disconnect?
+- if retried, what prevents duplication or corruption and what reconciliation evidence exists?
 
 ## Output Schema
 
@@ -85,7 +92,7 @@ Contracts must enumerate:
 ### Ambiguous Completion Rule
 
 Timeout and connection-loss cases are not equivalent to clean failure.
-If completion is ambiguous, the caller must verify state before retrying.
+If completion is ambiguous, the caller must verify/reconcile state before retrying. Timeout is not retry authority. Child tools/processes receive remaining monotonic timeout with elapsed deducted and capped by the parent deadline; cancellation must be acknowledged and propagated. These temporal primitives are owned by Spec 131, not redefined per tool.
 If verification is impossible, the system must surface the result as unknown rather than silently assuming either success or failure.
 
 ## Idempotency Expectations
