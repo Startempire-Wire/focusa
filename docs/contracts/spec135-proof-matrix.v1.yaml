@@ -895,7 +895,7 @@
         "Accessibility checks pass for every trusted component"
       ],
       "bead_id": "focusa-mc-u4",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "moderated usability scenarios",
         "accessibility fixtures"
@@ -908,7 +908,8 @@
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135i_real_time_generated_ui_static_test.sh",
-        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh"
+        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh",
+        "tests/spec135_u4_u5_usability_friction_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -933,7 +934,8 @@
       "requirement_id": "SPEC135-U5",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
-        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh"
+        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh",
+        "tests/spec135_u4_u5_usability_friction_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"

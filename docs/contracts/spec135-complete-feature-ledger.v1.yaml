@@ -2421,9 +2421,9 @@
         "pwa",
         "uiai_engine_cockpit"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "uiai_uxp",
       "dependencies": [
         "SPEC135-U3",
@@ -2469,7 +2469,8 @@
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135i_real_time_generated_ui_static_test.sh",
-        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh"
+        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh",
+        "tests/spec135_u4_u5_usability_friction_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -2492,7 +2493,7 @@
       ],
       "closure_status": "open",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "partial",
       "delivery_lane": "uiai_uxp",
       "dependencies": [
         "SPEC135-U4",
@@ -2537,7 +2538,8 @@
       "source_spec": "135K \u00a7\u00a75\u201312",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
-        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh"
+        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh",
+        "tests/spec135_u4_u5_usability_friction_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
