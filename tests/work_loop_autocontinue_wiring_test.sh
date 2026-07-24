@@ -60,7 +60,7 @@ else
   log_fail "turn_complete missing follow-on dispatch helper"
 fi
 
-if rg -n 'pi rpc turn_end/agent_end observed and ready work remains|pi rpc compaction observed with ready work pending' "$WORK_LOOP_FILE" >/dev/null 2>&1; then
+if rg -n 'pi rpc agent_end observed and ready work remains|pi rpc compaction completed; dispatching automatic continuation prompt' "$WORK_LOOP_FILE" >/dev/null 2>&1; then
   log_pass "Pi RPC stream events feed continuation outcome observation and follow-on dispatch"
 else
   log_fail "Pi RPC stream -> continuation dispatch wiring missing"
