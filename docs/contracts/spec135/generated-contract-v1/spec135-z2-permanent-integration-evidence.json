@@ -1,0 +1,47 @@
+{
+  "schema": "focusa.spec135.permanent_integration_evidence.v1",
+  "requirement_id": "SPEC135-Z2",
+  "chain": [
+    "onboarding",
+    "context",
+    "role",
+    "interview",
+    "spec",
+    "tasks",
+    "workpoint",
+    "evidence",
+    "receipt",
+    "artifact",
+    "mission_canvas"
+  ],
+  "continuity_proof": {
+    "pause": "interview and work-surface revisions persist",
+    "restart": "event log and snapshot rehydrate canonical state",
+    "exact_resume": "project root, continuity, attachment, active object, and next action preserved"
+  },
+  "real_execution_refs": [
+    "uiai-eval.p1-provider-conformance.result.json",
+    "uiai-eval.alpha0-context-commit.result.json",
+    "uiai-eval.ri1-role-profile.result.json",
+    "uiai-eval.ri3-interview-resume.result.json",
+    "uiai-eval.st1-spec-workbench.result.json",
+    "uiai-eval.st2-task-plan.result.json",
+    "uiai-eval.u1-workspace-artifact.result.json",
+    "uiai-eval.u2-workspace-live-refresh.result.json"
+  ],
+  "durability_refs": [
+    "tests/spec135_mission_canvas_surfaces_e2e_test.py",
+    "tests/spec135_m4_surface_bindings_e2e_test.py",
+    "tests/spec135_m5_browser_context_isolation_e2e_test.py",
+    "tests/spec135_durable_event_stream_test.py"
+  ],
+  "permanent_path_ref": "spec135-alpha8-nontechnical-dogfood-proof.json",
+  "evidence_ref": "evidence:spec135-z2:permanent-integration",
+  "receipt_ref": "receipt:spec135-z2:permanent-integration",
+  "acceptance": {
+    "complete_chain": true,
+    "real_provider_and_artifact_results": true,
+    "pause_restart_exact_resume": true,
+    "canonical_state_continuity": true
+  }
+}

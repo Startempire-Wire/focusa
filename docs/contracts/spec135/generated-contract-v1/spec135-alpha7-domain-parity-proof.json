@@ -1,0 +1,31 @@
+{
+  "schema": "focusa.spec135.alpha7_domain_parity_proof.v1",
+  "requirement_id": "SPEC135-ALPHA7",
+  "projection_sequence": ["general", "software", "research"],
+  "canonical_state_ref": "focusa:canonical-state:unchanged",
+  "state_invariants": [
+    "project_root",
+    "continuity_id",
+    "attachment_id",
+    "context_refs",
+    "evidence_refs",
+    "workpoint_ref",
+    "artifact_refs"
+  ],
+  "projection_specific_views": {
+    "general": "general terminology and workflows",
+    "software": "Tree-sitter/ast-grep evidence over petgraph projection",
+    "research": "source, claim, citation, and artifact terminology"
+  },
+  "evidence_refs": [
+    "docs/contracts/spec135/generated-contract-v1/spec135-v1-v6-domain-projection-proof.json",
+    "docs/contracts/spec135-v4-software-domain.v1.yaml",
+    "tests/spec135_v1_v6_domain_projection_test.py",
+    "tests/spec135_v4_software_domain_lint.py"
+  ],
+  "acceptance": {
+    "three_domain_projections": true,
+    "identical_canonical_state": true,
+    "state_not_forked_or_lost": true
+  }
+}

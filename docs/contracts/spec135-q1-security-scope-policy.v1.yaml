@@ -1,0 +1,51 @@
+{
+  "schema": "focusa.spec135.security_scope_policy.v1",
+  "requirement_id": "SPEC135-Q1",
+  "authority_order": [
+    "operator_current_ask",
+    "verified_project_identity",
+    "canonical_workpoint",
+    "trajectory_projection",
+    "evidence"
+  ],
+  "required_scope_keys": [
+    "project_root",
+    "continuity_id",
+    "attachment_id"
+  ],
+  "protected_surfaces": {
+    "generated_actions": {
+      "fail_closed_if": ["operation_not_registered", "permission_missing", "scope_incomplete", "confirmation_missing"],
+      "evidence_refs": ["crates/focusa-api/src/routes/agent_capabilities.rs", "tests/spec135_protocol_handshake_test.py"]
+    },
+    "work_surfaces": {
+      "additional_scope_keys": ["work_surface_id"],
+      "fail_closed_if": ["attachment_mismatch", "cross_surface_target"],
+      "evidence_refs": ["crates/focusa-api/src/routes/mission_canvas_surfaces.rs", "tests/spec135_m4_surface_bindings_e2e_test.py"]
+    },
+    "connectors": {
+      "fail_closed_if": ["capability_missing", "credential_outside_keyring", "health_unknown", "project_mismatch"],
+      "secret_output_forbidden": true,
+      "evidence_refs": ["crates/focusa-api/src/routes/workspace_artifacts.rs", "tests/spec135_workspace_artifact_test.py"]
+    },
+    "events": {
+      "fail_closed_if": ["cursor_scope_mismatch", "unauthorized_subscription"],
+      "evidence_refs": ["crates/focusa-api/src/routes/sse.rs", "tests/spec135_durable_event_stream_test.py"]
+    },
+    "multi_agent_worktrees": {
+      "fail_closed_if": ["project_identity_mismatch", "working_subpath_unverified", "writer_conflict"],
+      "evidence_refs": ["tests/spec96_project_identity_quorum_static_test.sh", "tests/utility_card_session_isolation_test.mts"]
+    }
+  },
+  "operator_control": {
+    "steering_precedence": true,
+    "confirmation_required_for": ["destructive_mutation", "permission_escalation", "external_side_effect", "release"],
+    "preview_before_commit": true,
+    "receipt_after_commit": true
+  },
+  "acceptance": {
+    "trust_boundaries_explicit": true,
+    "fail_closed_rules_explicit": true,
+    "operator_authority_preserved": true
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "schema": "focusa.spec135.migration_inventory.v1",
+  "requirement_id": "SPEC135-E1",
+  "compatibility_policy": "additive_then_deprecate_with_explicit_supersession",
+  "inventory": [
+    {
+      "surface": "mission_state",
+      "old_owner": "focus_stack_and_ad_hoc_project_state",
+      "new_owner": "focusa_core_canonical_mission_state",
+      "readers": ["api", "pi", "mission_canvas", "tui"],
+      "writers": ["focusa_core_reducer"],
+      "migration_state": "compatible"
+    },
+    {
+      "surface": "work_surfaces_and_attachments",
+      "old_owner": "client_local_tabs_and_sessions",
+      "new_owner": "focusa_core_mission_canvas_revisions",
+      "readers": ["api", "typescript", "mission_canvas", "pi"],
+      "writers": ["focusa_core_reducer"],
+      "migration_state": "additive"
+    },
+    {
+      "surface": "role_and_interview",
+      "old_owner": "transcript_and_prompt_context",
+      "new_owner": "focusa_core_role_interview_records",
+      "readers": ["api", "typescript", "mission_canvas", "spec_workbench"],
+      "writers": ["focusa_core_reducer"],
+      "migration_state": "supersedes_transcript_authority"
+    },
+    {
+      "surface": "operation_catalog",
+      "old_owner": "manual_route_and_ui_action_lists",
+      "new_owner": "canonical_operation_registry",
+      "readers": ["openapi", "typescript", "generated_ui", "pi"],
+      "writers": ["focusa_api_capability_registry"],
+      "migration_state": "canonical"
+    },
+    {
+      "surface": "generated_ui",
+      "old_owner": "hand_maintained_client_forms",
+      "new_owner": "operation_registry_plus_a2ui_bindings",
+      "readers": ["mission_canvas", "pwa", "menubar"],
+      "writers": ["focusa_generated_ui_pipeline"],
+      "migration_state": "additive_with_fallback"
+    },
+    {
+      "surface": "client_contracts",
+      "old_owner": "hand_maintained_language_dtos",
+      "new_owner": "openapi_json_schema_and_typescript_binding",
+      "readers": ["typescript", "external_adapters"],
+      "writers": ["focusa_contract_projection"],
+      "migration_state": "portable_no_go_core_dependency"
+    },
+    {
+      "surface": "browser_execution",
+      "old_owner": "focusa_local_browser_automation",
+      "new_owner": "uiai_engine_external_adapter",
+      "readers": ["focusa_api", "mission_canvas"],
+      "writers": ["uiai_engine"],
+      "migration_state": "external_authority_boundary"
+    }
+  ],
+  "evidence_refs": [
+    "crates/focusa-core/src/types.rs",
+    "crates/focusa-core/src/reducer.rs",
+    "crates/focusa-api/src/routes/agent_capabilities.rs",
+    "docs/contracts/spec135/generated-contract-v1/operation-registry.json",
+    "docs/contracts/spec135/generated-contract-v1/openapi-3.0.3.json",
+    "packages/generated/spec135/typescript/schema.d.ts"
+  ],
+  "acceptance": {
+    "all_changed_surfaces_have_old_and_new_owner": true,
+    "readers_and_writers_explicit": true,
+    "migration_state_explicit": true
+  }
+}

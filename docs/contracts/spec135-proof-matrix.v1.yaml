@@ -423,7 +423,7 @@
         "Imported artifacts enter the same Context pipeline"
       ],
       "bead_id": "focusa-mc-c4",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "wiremock connector tests",
         "credential redaction audit"
@@ -435,7 +435,8 @@
       "requirement_id": "SPEC135-C4",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
-        "tests/spec135i_real_time_generated_ui_static_test.sh"
+        "tests/spec135i_real_time_generated_ui_static_test.sh",
+        "tests/spec135_c4_google_drive_connector_lint.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -521,7 +522,7 @@
         "Closure package feeds Spec workbench without transcript dependence"
       ],
       "bead_id": "focusa-mc-ri4",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "artifact snapshot tests",
         "provenance audit"
@@ -922,7 +923,7 @@
         "Learning never silently mutates canonical UI behavior"
       ],
       "bead_id": "focusa-mc-u5",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "friction event tests",
         "privacy audit",
@@ -948,7 +949,7 @@
         "Rollback restores prior artifact deterministically"
       ],
       "bead_id": "focusa-mc-u6",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "optimizer eval",
         "promotion/rollback proof"
@@ -1021,7 +1022,7 @@
         "Projection parity fixtures pass"
       ],
       "bead_id": "focusa-mc-v3",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "domain-pack conformance"
       ],
@@ -1044,7 +1045,7 @@
         "Graph updates react to bounded repository changes"
       ],
       "bead_id": "focusa-mc-v4",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "parser fixtures",
         "software projection eval"
@@ -1055,7 +1056,8 @@
       ],
       "requirement_id": "SPEC135-V4",
       "tests": [
-        "tests/spec135_delivery_contract_regression_static_test.sh"
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_v4_software_domain_lint.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -1067,7 +1069,7 @@
         "Artifacts remain attachment scoped"
       ],
       "bead_id": "focusa-mc-v5",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "research pack conformance"
       ],
@@ -1090,7 +1092,7 @@
         "Switching packs does not fork or lose state"
       ],
       "bead_id": "focusa-mc-v6",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "selection property tests",
         "three-pack Alpha proof"
@@ -1103,7 +1105,8 @@
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135h_implementation_acceleration_static_test.sh",
-        "tests/spec135_v1_v6_domain_projection_test.py"
+        "tests/spec135_v1_v6_domain_projection_test.py",
+        "tests/spec135_v4_software_domain_lint.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -1138,7 +1141,7 @@
         "Mock-only connectors cannot close requirements"
       ],
       "bead_id": "focusa-mc-p2",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "wiremock conformance",
         "connector health tests"
@@ -1149,7 +1152,8 @@
       ],
       "requirement_id": "SPEC135-P2",
       "tests": [
-        "tests/spec135_delivery_contract_regression_static_test.sh"
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_p2_connector_framework_lint.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -1161,7 +1165,7 @@
         "Revocation and expiry produce deterministic recovery"
       ],
       "bead_id": "focusa-mc-p3",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "secret scan",
         "OAuth lifecycle tests"
@@ -1172,7 +1176,8 @@
       ],
       "requirement_id": "SPEC135-P3",
       "tests": [
-        "tests/spec135_delivery_contract_regression_static_test.sh"
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_p3_connector_auth_lint.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -1184,7 +1189,7 @@
         "Native path remains authoritative"
       ],
       "bead_id": "focusa-mc-p4",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "adapter parity tests"
       ],
@@ -1196,7 +1201,8 @@
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135i_real_time_generated_ui_static_test.sh",
-        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh",
+        "tests/spec135_p4_ag_ui_adapter_lint.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -1208,7 +1214,7 @@
         "Removal occurs only after compatibility proof"
       ],
       "bead_id": "focusa-mc-p5",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "cross-client matrix",
         "migration receipts"
@@ -1219,7 +1225,8 @@
       ],
       "requirement_id": "SPEC135-P5",
       "tests": [
-        "tests/spec135_delivery_contract_regression_static_test.sh"
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_p5_parity_migration_lint.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -1231,7 +1238,7 @@
         "Operator authority and confirmation requirements are preserved"
       ],
       "bead_id": "focusa-mc-q1",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "threat model",
         "scope denial tests"
@@ -1244,7 +1251,8 @@
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh",
-        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh",
+        "tests/spec135_ready_frontier_contracts_lint.py"
       ],
       "uiai_eval_scenarios": []
     },
@@ -1254,7 +1262,7 @@
         "Auth and permission gates cover every mutation and stream"
       ],
       "bead_id": "focusa-mc-q2",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "security audit",
         "redaction tests"
@@ -1266,7 +1274,8 @@
       "requirement_id": "SPEC135-Q2",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
-        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh"
+        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh",
+        "tests/spec135_security_migration_contracts_lint.py"
       ],
       "uiai_eval_scenarios": []
     },
@@ -1276,7 +1285,7 @@
         "Large graphs/tables/artifacts virtualize and bound payloads"
       ],
       "bead_id": "focusa-mc-q3",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "benchmarks",
         "load/soak tests"
@@ -1289,7 +1298,8 @@
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh",
-        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh",
+        "tests/spec135_ready_frontier_contracts_lint.py"
       ],
       "uiai_eval_scenarios": []
     },
@@ -1299,7 +1309,7 @@
         "Every interruption has explicit recoverable state"
       ],
       "bead_id": "focusa-mc-q4",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "fault injection",
         "restart/chaos suite"
@@ -1312,7 +1322,8 @@
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh",
-        "tests/spec135j_core_api_runtime_reuse_static_test.sh"
+        "tests/spec135j_core_api_runtime_reuse_static_test.sh",
+        "tests/spec135_ready_frontier_contracts_lint.py"
       ],
       "uiai_eval_scenarios": []
     },
@@ -1322,7 +1333,7 @@
         "SBOM and notices are reproducible"
       ],
       "bead_id": "focusa-mc-q5",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "cargo-deny/about",
         "Syft artifacts"
@@ -1333,7 +1344,8 @@
       ],
       "requirement_id": "SPEC135-Q5",
       "tests": [
-        "tests/spec135_delivery_contract_regression_static_test.sh"
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_q5_supply_chain_lint.py"
       ],
       "uiai_eval_scenarios": []
     },
@@ -1343,7 +1355,7 @@
         "Gate emits bounded Evidence and actionable recovery"
       ],
       "bead_id": "focusa-mc-q6",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "consolidated regression gate",
         "public-surface guard"
@@ -1355,7 +1367,8 @@
       "requirement_id": "SPEC135-Q6",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
-        "tests/spec135h_implementation_acceleration_static_test.sh"
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135_q6_quality_gate_lint.py"
       ],
       "uiai_eval_scenarios": []
     },
@@ -1504,7 +1517,7 @@
         "Three domain projections preserve identical canonical state"
       ],
       "bead_id": "focusa-mc-alpha7",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "Cross-Functional Alpha evidence",
         "UIAI Eval where browser-facing"
@@ -1516,7 +1529,8 @@
       "requirement_id": "SPEC135-ALPHA7",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
-        "tests/spec135h_implementation_acceleration_static_test.sh"
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135_alpha7_domain_parity_lint.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -1527,7 +1541,7 @@
         "A nontechnical operator completes and recovers the full generated path"
       ],
       "bead_id": "focusa-mc-alpha8",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "Cross-Functional Alpha evidence",
         "UIAI Eval where browser-facing"
@@ -1541,7 +1555,8 @@
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135h_implementation_acceleration_static_test.sh",
         "tests/spec135i_real_time_generated_ui_static_test.sh",
-        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh"
+        "tests/spec135k_uxp_ufi_generated_ui_static_test.sh",
+        "tests/spec135_alpha8_nontechnical_dogfood_lint.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -1552,7 +1567,7 @@
         "Every changed type/route/event/client has old/new owner and migration state"
       ],
       "bead_id": "focusa-mc-e1",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "migration fixtures",
         "compatibility matrix",
@@ -1564,7 +1579,8 @@
       ],
       "requirement_id": "SPEC135-E1",
       "tests": [
-        "tests/spec135_delivery_contract_regression_static_test.sh"
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_ready_frontier_contracts_lint.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -1575,7 +1591,7 @@
         "Old and new readers coexist until replay/migration proof passes"
       ],
       "bead_id": "focusa-mc-e2",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "migration fixtures",
         "compatibility matrix",
@@ -1587,7 +1603,8 @@
       ],
       "requirement_id": "SPEC135-E2",
       "tests": [
-        "tests/spec135_delivery_contract_regression_static_test.sh"
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_security_migration_contracts_lint.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -1598,7 +1615,7 @@
         "Generated compatibility and Schemathesis workflows pass"
       ],
       "bead_id": "focusa-mc-e3",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "migration fixtures",
         "compatibility matrix",
@@ -1610,7 +1627,8 @@
       ],
       "requirement_id": "SPEC135-E3",
       "tests": [
-        "tests/spec135_delivery_contract_regression_static_test.sh"
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_security_migration_contracts_lint.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -1621,7 +1639,7 @@
         "No static/transcript-only fallback remains primary"
       ],
       "bead_id": "focusa-mc-e4",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "migration fixtures",
         "compatibility matrix",
@@ -1633,7 +1651,8 @@
       ],
       "requirement_id": "SPEC135-E4",
       "tests": [
-        "tests/spec135_delivery_contract_regression_static_test.sh"
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_security_migration_contracts_lint.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -1644,7 +1663,7 @@
         "Closure matrix has no unsupported or silently deferred rows"
       ],
       "bead_id": "focusa-mc-e5",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "migration fixtures",
         "compatibility matrix",
@@ -1656,7 +1675,8 @@
       ],
       "requirement_id": "SPEC135-E5",
       "tests": [
-        "tests/spec135_delivery_contract_regression_static_test.sh"
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_e5_rollout_closure_lint.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -1689,7 +1709,7 @@
         "The complete path succeeds with real providers/artifacts and exact state continuity"
       ],
       "bead_id": "focusa-mc-z2",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "end-to-end evidence bundle"
       ],
@@ -1700,7 +1720,8 @@
       "requirement_id": "SPEC135-Z2",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
-        "tests/spec135h_implementation_acceleration_static_test.sh"
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135_z2_permanent_integration_lint.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"

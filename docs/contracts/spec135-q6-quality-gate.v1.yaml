@@ -1,0 +1,26 @@
+{
+  "schema": "focusa.spec135.quality_gate.v1",
+  "requirement_id": "SPEC135-Q6",
+  "runner": "scripts/spec135-quality-gate.py",
+  "required_domains": ["security", "privacy", "performance", "recovery", "license", "compatibility", "docs", "public_surface"],
+  "failure_posture": "fail_closed",
+  "output": {
+    "schema": "focusa.spec135.quality_gate_result.v1",
+    "bounded_checks": 32,
+    "bounded_recovery_actions": 16,
+    "evidence_ref_required": true
+  },
+  "evidence_refs": [
+    "scripts/spec135-quality-gate.py",
+    "docs/contracts/spec135-q1-security-scope-policy.v1.yaml",
+    "docs/contracts/spec135-q2-security-privacy-gates.v1.yaml",
+    "docs/contracts/spec135-q3-performance-budgets.v1.yaml",
+    "docs/contracts/spec135-q4-recovery-matrix.v1.yaml",
+    "docs/contracts/spec135-q5-supply-chain-governance.v1.yaml",
+    "tests/spec135_q6_quality_gate_lint.py"
+  ],
+  "acceptance": {
+    "any_failure_blocks_closure": true,
+    "bounded_evidence_and_recovery": true
+  }
+}

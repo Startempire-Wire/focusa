@@ -1,0 +1,37 @@
+{
+  "schema": "focusa.spec135.connector_framework.v1",
+  "requirement_id": "SPEC135-P2",
+  "core_module": "crates/focusa-core/src/connectors.rs",
+  "canonical_types": [
+    "ConnectorCapability",
+    "ConnectorHealthStatus",
+    "ConnectorHealth",
+    "ConnectorRetryPolicy",
+    "ConnectorRatePolicy",
+    "ConnectorDescriptor",
+    "ConnectorResult",
+    "ConnectorErrorEnvelope"
+  ],
+  "adapter_contract": {
+    "trait": "ConnectorAdapter",
+    "default_adapter": "HttpJsonConnector",
+    "scope_keys": ["project_root", "continuity_id", "attachment_id"],
+    "origin_allowlist_required": true,
+    "capability_allowlist_required": true,
+    "redacted_errors": true,
+    "bounded_retry": true,
+    "bounded_rate": true
+  },
+  "canonical_envelopes": ["focusa.connector_result.v1", "focusa.connector_error.v1"],
+  "mock_only_closure_forbidden": true,
+  "evidence_refs": [
+    "crates/focusa-core/src/connectors.rs",
+    "crates/focusa-core/src/lib.rs",
+    "tests/spec135_p2_connector_framework_lint.py"
+  ],
+  "acceptance": {
+    "state_health_errors_and_recovery_typed": true,
+    "real_http_json_adapter_present": true,
+    "mock_only_not_accepted": true
+  }
+}

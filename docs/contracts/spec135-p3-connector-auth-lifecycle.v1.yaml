@@ -1,0 +1,37 @@
+{
+  "schema": "focusa.spec135.connector_auth_lifecycle.v1",
+  "requirement_id": "SPEC135-P3",
+  "core_module": "crates/focusa-core/src/connector_auth.rs",
+  "adopted_libraries": ["oauth2-rs", "keyring-rs"],
+  "secret_boundary": {
+    "storage": "operating_system_keyring",
+    "serializable_records_contain_secrets": false,
+    "logs_contain_secrets": false,
+    "evidence_contains_secrets": false,
+    "public_artifacts_contain_secrets": false
+  },
+  "lifecycle": [
+    "validate_configuration",
+    "begin_pkce_authorization",
+    "store_access_token_in_keyring",
+    "load_token_for_scoped_connector",
+    "revoke_access_pkce_and_csrf",
+    "return_deterministic_recovery_action"
+  ],
+  "recovery_states": [
+    "invalid_config",
+    "authorization_required",
+    "keyring_unavailable",
+    "revoked"
+  ],
+  "evidence_refs": [
+    "crates/focusa-core/src/connector_auth.rs",
+    "crates/focusa-core/src/connectors.rs",
+    "tests/spec135_p3_connector_auth_lint.py"
+  ],
+  "acceptance": {
+    "secret_redaction_enforced": true,
+    "revocation_deterministic": true,
+    "expiry_recovery_deterministic": true
+  }
+}

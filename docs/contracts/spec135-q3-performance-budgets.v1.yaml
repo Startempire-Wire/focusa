@@ -1,0 +1,35 @@
+{
+  "schema": "focusa.spec135.performance_budgets.v1",
+  "requirement_id": "SPEC135-Q3",
+  "budgets": {
+    "daemon_health_ms": {"target": 250, "degraded_action": "serve_cached_bounded_health"},
+    "interactive_read_ms": {"target": 1000, "degraded_action": "return_compact_projection_with_rehydrate_ref"},
+    "mutation_ack_ms": {"target": 2000, "degraded_action": "return_receipt_and_pollable_evidence_ref"},
+    "stream_replay_events": {"maximum": 1000, "degraded_action": "require_bounded_cursor_window"},
+    "graph_projection_nodes": {"maximum": 500, "degraded_action": "return_neighborhood_and_cursor"},
+    "retrieval_results": {"maximum": 100, "degraded_action": "rank_and_page"},
+    "rendered_rows": {"maximum": 200, "degraded_action": "virtualize"},
+    "artifact_inline_bytes": {"maximum": 65536, "degraded_action": "return_artifact_ref"},
+    "tool_output_bytes": {"maximum": 51200, "degraded_action": "truncate_with_rehydrate_ref"}
+  },
+  "resource_modes": ["normal", "constrained", "lowmem", "emergency"],
+  "required_properties": [
+    "bounded_outputs",
+    "cursor_pagination",
+    "virtualized_large_surfaces",
+    "graceful_degradation",
+    "stable_rehydrate_refs"
+  ],
+  "evidence_refs": [
+    "crates/focusa-api/src/routes/health.rs",
+    "tests/spec135_durable_event_stream_test.py",
+    "tests/spec135_context_retrieval_test.py",
+    "tests/spec135_workspace_live_refresh_test.py",
+    "tests/utility_card_session_isolation_test.mts"
+  ],
+  "acceptance": {
+    "measurable": true,
+    "regression_gated": true,
+    "large_surfaces_bounded": true
+  }
+}

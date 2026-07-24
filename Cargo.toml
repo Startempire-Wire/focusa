@@ -54,6 +54,10 @@ chrono = { version = "0.4", features = ["serde"] }
 
 # HTTP API
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+oauth2 = { version = "5", default-features = false, features = ["reqwest", "rustls-tls"] }
+keyring = "3"
+petgraph = "0.8"
+tree-sitter = "0.25"
 axum = { version = "0.8", features = ["json"] }
 tokio-stream = "0.1"
 async-stream = "0.3"

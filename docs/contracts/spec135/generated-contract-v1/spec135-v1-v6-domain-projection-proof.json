@@ -1,6 +1,6 @@
 {
   "schema": "focusa.spec135.domain_projection_proof.v1",
-  "status": "implemented_pending_remote_gate",
+  "status": "verified_by_strict_contract_lint",
   "canonical_state_law": "General, Software, and Research packs change terminology and projections only; Context, Evidence, Workpoint, and artifact state remain identical.",
   "ontology_core": {
     "requirements": ["SPEC135-V1", "SPEC135-V2"],
@@ -12,7 +12,8 @@
     "selection_policy": "research_citations_then_software_artifacts_then_general",
     "api_ref": "GET /v1/ontology/domain-pack",
     "bounded_artifact_limit": 64,
-    "code_graph_dependencies_pending": ["petgraph", "tree-sitter", "ast-grep"]
+    "code_graph_dependencies_pending": [],
+    "software_projection_ref": "docs/contracts/spec135-v4-software-domain.v1.yaml"
   },
   "receipt": "receipt:spec135-v1-v6:domain-projection:v1"
 }

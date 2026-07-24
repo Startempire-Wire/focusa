@@ -1,0 +1,32 @@
+{
+  "schema": "focusa.spec135.alpha8_nontechnical_dogfood_proof.v1",
+  "requirement_id": "SPEC135-ALPHA8",
+  "persona": "nontechnical_project_operator",
+  "path": [
+    {"step": "add_project_material", "action_id": "focusa.workspace.artifact.intake", "visible_result": "Material added", "recovery": "Retry safely"},
+    {"step": "draft_project_role", "action_id": "focusa.role_profile.draft", "visible_result": "Role ready for review", "recovery": "Review assumptions"},
+    {"step": "approve_project_role", "action_id": "focusa.role_profile.review", "visible_result": "Role approved", "recovery": "Revise or defer"},
+    {"step": "answer_one_question", "action_id": "focusa.interview.session.mutate", "visible_result": "Answer saved", "recovery": "Resume exact question"},
+    {"step": "shape_spec", "action_id": "focusa.spec_workbench.session.mutate", "visible_result": "Spec proposal updated", "recovery": "Restore prior revision"},
+    {"step": "approve_tasks", "action_id": "focusa.task_plan.mutate", "visible_result": "Tasks approved", "recovery": "Reject or revise"},
+    {"step": "materialize_work", "action_id": "focusa.task_plan.materialize.beads", "visible_result": "Work created", "recovery": "Replay original receipt"},
+    {"step": "open_work_rail", "action_id": "focusa.work_rail.list", "visible_result": "Next work visible", "recovery": "Refresh canonical rail"},
+    {"step": "start_agent", "action_id": "focusa.agent_execution.start", "visible_result": "Work started", "recovery": "Resume or stop safely"}
+  ],
+  "permanent_entrypoints": ["mission_canvas", "pi", "pwa", "menubar"],
+  "uiai_eval_refs": [
+    "uiai-eval.alpha0-generated-ui.result.json",
+    "uiai-eval.ri1-role-profile.result.json",
+    "uiai-eval.ri3-interview-resume.result.json",
+    "uiai-eval.st1-spec-workbench.result.json",
+    "uiai-eval.st2-task-plan.result.json",
+    "uiai-eval.u1-workspace-artifact.result.json",
+    "uiai-eval.u2-workspace-live-refresh.result.json"
+  ],
+  "acceptance": {
+    "full_generated_path": true,
+    "nontechnical_labels": true,
+    "recovery_for_every_step": true,
+    "permanent_not_demo_only": true
+  }
+}
