@@ -1316,7 +1316,7 @@
       "bead_id": "focusa-mc-m7",
       "lane": "mission_canvas",
       "requirement_id": "SPEC135-M7",
-      "status": "partial"
+      "status": "verified"
     },
     {
       "bead_id": "focusa-mc-u1",
@@ -1334,7 +1334,7 @@
       "bead_id": "focusa-mc-u3",
       "lane": "uiai_uxp",
       "requirement_id": "SPEC135-U3",
-      "status": "missing"
+      "status": "verified"
     },
     {
       "bead_id": "focusa-mc-u4",
@@ -1484,13 +1484,13 @@
       "bead_id": "focusa-mc-alpha5",
       "lane": "alpha",
       "requirement_id": "SPEC135-ALPHA5",
-      "status": "missing"
+      "status": "verified"
     },
     {
       "bead_id": "focusa-mc-alpha6",
       "lane": "alpha",
       "requirement_id": "SPEC135-ALPHA6",
-      "status": "missing"
+      "status": "verified"
     },
     {
       "bead_id": "focusa-mc-alpha7",

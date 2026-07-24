@@ -2143,9 +2143,9 @@
         "pwa",
         "tui"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "partial",
+      "current_status": "verified",
       "delivery_lane": "mission_canvas",
       "dependencies": [
         "SPEC135-M2",
@@ -2350,9 +2350,9 @@
         "pwa",
         "uiai_engine_cockpit"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "uiai_uxp",
       "dependencies": [
         "SPEC135-U2",
@@ -2399,7 +2399,8 @@
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh",
-        "tests/spec135h_implementation_acceleration_static_test.sh"
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135_u3_browser_eval_suite_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -3966,9 +3967,9 @@
         "tui",
         "uiai_engine_cockpit"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "alpha",
       "dependencies": [
         "SPEC135-ALPHA4",
@@ -4013,7 +4014,8 @@
       "source_spec": "135H Alpha 5",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
-        "tests/spec135h_implementation_acceleration_static_test.sh"
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135_alpha5_alpha6_closure_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -4034,9 +4036,9 @@
         "tui",
         "uiai_engine_cockpit"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "alpha",
       "dependencies": [
         "SPEC135-ALPHA5",
@@ -4081,7 +4083,8 @@
       "source_spec": "135H Alpha 6",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
-        "tests/spec135h_implementation_acceleration_static_test.sh"
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135_alpha5_alpha6_closure_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"

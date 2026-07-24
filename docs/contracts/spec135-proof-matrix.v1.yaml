@@ -795,7 +795,7 @@
         "No raw JSON is required for primary tasks"
       ],
       "bead_id": "focusa-mc-m7",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "accessibility audit",
         "nontechnical usability eval"
@@ -869,7 +869,7 @@
         "No Playwright dependency is introduced"
       ],
       "bead_id": "focusa-mc-u3",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "UIAI Eval matrix",
         "diagnostics intake refs"
@@ -882,7 +882,8 @@
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh",
-        "tests/spec135h_implementation_acceleration_static_test.sh"
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135_u3_browser_eval_suite_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -1446,7 +1447,7 @@
         "Artifact refreshes automatically from canonical events and retains Evidence"
       ],
       "bead_id": "focusa-mc-alpha5",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "Cross-Functional Alpha evidence",
         "UIAI Eval where browser-facing"
@@ -1458,7 +1459,8 @@
       "requirement_id": "SPEC135-ALPHA5",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
-        "tests/spec135h_implementation_acceleration_static_test.sh"
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135_alpha5_alpha6_closure_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -1469,7 +1471,7 @@
         "Multiplexed surfaces and browser contexts remain isolated and resumable"
       ],
       "bead_id": "focusa-mc-alpha6",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "Cross-Functional Alpha evidence",
         "UIAI Eval where browser-facing"
@@ -1481,7 +1483,8 @@
       "requirement_id": "SPEC135-ALPHA6",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
-        "tests/spec135h_implementation_acceleration_static_test.sh"
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135_alpha5_alpha6_closure_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
