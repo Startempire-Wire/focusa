@@ -86,7 +86,7 @@ fn route_scope(method: &Method, path: &str) -> &'static str {
         };
     }
     if path.starts_with("/v1/silent-sessions") {
-        if path.contains("/config/") || path.ends_with("/config/resolve") {
+        if path.contains("/config") {
             return "silent_sessions:config";
         }
         if method == Method::GET {

@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS silent_sessions (
 );
 CREATE INDEX IF NOT EXISTS idx_silent_sessions_authority
   ON silent_sessions(project_root, continuity_id, updated_at);
-CREATE TABLE IF NOT EXISTS silent_session_runs (
+CREATE TABLE IF NOT EXISTS silent_session_daemon_runs (
   run_id TEXT PRIMARY KEY,
   silent_session_id TEXT NOT NULL REFERENCES silent_sessions(silent_session_id),
   run_generation INTEGER NOT NULL CHECK(run_generation > 0),
@@ -47,8 +47,8 @@ CREATE TABLE IF NOT EXISTS silent_session_runs (
   ended_at TEXT,
   UNIQUE(silent_session_id, run_generation)
 );
-CREATE INDEX IF NOT EXISTS idx_silent_session_runs_session
-  ON silent_session_runs(silent_session_id, run_generation);
+CREATE INDEX IF NOT EXISTS idx_silent_session_daemon_runs_session
+  ON silent_session_daemon_runs(silent_session_id, run_generation);
 CREATE TABLE IF NOT EXISTS silent_session_config_revisions (
   config_revision_id TEXT PRIMARY KEY,
   silent_session_id TEXT NOT NULL REFERENCES silent_sessions(silent_session_id),
@@ -220,7 +220,7 @@ CREATE TABLE IF NOT EXISTS silent_session_retention_operations (
 "#;
 
 const MIGRATION_V2_SQL: &str = r#"
-ALTER TABLE silent_session_runs ADD COLUMN run_json TEXT NOT NULL DEFAULT '{}';
+ALTER TABLE silent_session_daemon_runs ADD COLUMN run_json TEXT NOT NULL DEFAULT '{}';
 ALTER TABLE silent_session_leases ADD COLUMN lease_json TEXT NOT NULL DEFAULT '{}';
 ALTER TABLE silent_session_stream_indexes ADD COLUMN codec_version INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE silent_session_stream_indexes ADD COLUMN first_event_sequence INTEGER NOT NULL DEFAULT 0;
@@ -476,7 +476,7 @@ fn append_event_projection_and_revision(
         }
         if let Some(run) = run_to_update {
             let changed = transaction.execute(
-                "UPDATE silent_session_runs SET run_json=?1,ended_at=?2 WHERE run_id=?3",
+                "UPDATE silent_session_daemon_runs SET run_json=?1,ended_at=?2 WHERE run_id=?3",
                 params![
                     serde_json::to_string(run)?,
                     run.ended_at.map(|value| value.to_rfc3339()),
@@ -489,7 +489,7 @@ fn append_event_projection_and_revision(
         }
         if let Some(run) = run_to_insert {
             transaction.execute(
-                r#"INSERT INTO silent_session_runs(
+                r#"INSERT INTO silent_session_daemon_runs(
                    run_id,silent_session_id,run_generation,actor_instance_id,config_revision_id,
                    protocol_versions_json,run_json,started_at,ended_at
                    ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)"#,
@@ -594,7 +594,7 @@ fn enum_json<T: Serialize>(value: T) -> anyhow::Result<String> {
 fn verify_schema(connection: &rusqlite::Connection) -> anyhow::Result<()> {
     const REQUIRED_TABLES: [&str; 16] = [
         "silent_sessions",
-        "silent_session_runs",
+        "silent_session_daemon_runs",
         "silent_session_config_revisions",
         "silent_session_events",
         "silent_session_stream_indexes",
@@ -621,7 +621,7 @@ fn verify_schema(connection: &rusqlite::Connection) -> anyhow::Result<()> {
         }
     }
     for (table, column) in [
-        ("silent_session_runs", "run_json"),
+        ("silent_session_daemon_runs", "run_json"),
         ("silent_session_leases", "lease_json"),
         ("silent_session_stream_indexes", "codec_version"),
         ("silent_session_stream_indexes", "last_event_sequence"),
