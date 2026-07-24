@@ -27,8 +27,8 @@ assert 'getAttachmentRuntime().vitalInfoPrompted[key]' in text
 assert 'queueUnboundProjectNag(pi, ctx, "new_session_new_project")' in text
 assert text.index('sessionProjectClassification === "new_session_new_project"') < text.index('queueUnboundProjectNag(pi, ctx, "new_session_new_project")')
 assert 'sendUserMessage(' not in text
-assert 'deferLifecycleAdvisory(ctx, key, prompt, reason)' in text
-assert 'pi_lifecycle_advisory_deferred_to_next_turn' in text
+assert 'queueLifecycleAdvisory(pi, ctx, {' in text
+assert 'pi_unbound_project_advisory_outcome' in text
 PY
 pass "Pi startup nag suppresses when marker present or already emitted"
 echo "GH7/Pi unbound nag static test: PASS"

@@ -317,7 +317,7 @@ async function promptForConfirmedProjectRoot(
 }
 
 function queueProjectIdentityBootstrapTurn(
-  _pi: ExtensionAPI,
+  pi: ExtensionAPI,
   ctx: any,
   proposedRoot: string,
   reason: string

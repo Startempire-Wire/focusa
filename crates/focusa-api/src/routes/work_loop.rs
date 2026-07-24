@@ -4162,9 +4162,9 @@ async fn checkpoint(
     let _guard = tokio::time::timeout(Duration::from_millis(1500), state.write_serial_lock.lock())
         .await
         .map_err(|_| work_loop_dispatch_timeout("work_loop_checkpoint_write_lock"))?;
-    if let Some(existing) = state
+    if state
         .persistence
-        .event_by_id(checkpoint_id)
+        .event_exists(&checkpoint_id.to_string())
         .map_err(|error| {
             work_loop_failure(
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -4174,19 +4174,6 @@ async fn checkpoint(
             )
         })?
     {
-        let same_checkpoint = matches!(
-            existing.event,
-            FocusaEvent::ContinuousLoopRecoveryCheckpointed {
-                checkpoint_id: existing_id,
-                summary: existing_summary,
-            } if existing_id == checkpoint_id && existing_summary == summary
-        );
-        if !same_checkpoint {
-            return Err(conflict(
-                "checkpoint id already committed with different content",
-                Some(writer_lease.writer_id),
-            ));
-        }
         return Ok(Json(json!({
             "ok": true,
             "idempotent_replay": true,
@@ -4236,8 +4223,8 @@ async fn checkpoint(
         is_observation: false,
     };
     state
-        .persistence
-        .persist_event_and_state_atomic(&entry, &new_state)
+        .persist_events_checkpoint(vec![entry.clone()], new_state.clone())
+        .await
         .map_err(|error| {
             work_loop_failure(
                 StatusCode::INTERNAL_SERVER_ERROR,
