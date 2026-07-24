@@ -108,9 +108,13 @@ def main() -> None:
         "static Work-loop contract validation",
         "static status renders execution_partition",
         "static writer claim functions remain mutation gates",
+        "runtime same-project different-work-item writer isolation test",
+        "runtime writer conflict same-work-item test",
     ]:
         if proof not in proofs:
             fail(f"contract missing proof requirement: {proof}")
+    if "fn writer_claim_runtime_isolates_concurrent_partitions()" not in text:
+        fail("work-loop route must retain partition isolation and same-item conflict proof")
     print("✓ PASS: Work-loop execution partition contract/status guard is present")
 
 
