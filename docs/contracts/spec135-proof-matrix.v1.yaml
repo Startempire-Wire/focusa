@@ -972,7 +972,7 @@
         "C.R.I.S.T. remains a projection, not core ownership"
       ],
       "bead_id": "focusa-mc-v1",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "ontology contract tests",
         "replay proof"
@@ -983,7 +983,8 @@
       ],
       "requirement_id": "SPEC135-V1",
       "tests": [
-        "tests/spec135_delivery_contract_regression_static_test.sh"
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_v1_v6_domain_projection_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -995,7 +996,7 @@
         "Snapshot/event migration preserves identifiers and provenance"
       ],
       "bead_id": "focusa-mc-v2",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "graph property tests",
         "migration fixtures"
@@ -1006,7 +1007,8 @@
       ],
       "requirement_id": "SPEC135-V2",
       "tests": [
-        "tests/spec135_delivery_contract_regression_static_test.sh"
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_v1_v6_domain_projection_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -1028,7 +1030,8 @@
       ],
       "requirement_id": "SPEC135-V3",
       "tests": [
-        "tests/spec135_delivery_contract_regression_static_test.sh"
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_v1_v6_domain_projection_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -1073,7 +1076,8 @@
       ],
       "requirement_id": "SPEC135-V5",
       "tests": [
-        "tests/spec135_delivery_contract_regression_static_test.sh"
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_v1_v6_domain_projection_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -1097,7 +1101,8 @@
       "requirement_id": "SPEC135-V6",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
-        "tests/spec135h_implementation_acceleration_static_test.sh"
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135_v1_v6_domain_projection_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"

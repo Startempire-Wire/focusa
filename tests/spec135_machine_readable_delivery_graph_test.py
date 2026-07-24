@@ -60,6 +60,7 @@ verified_requirements = {
     "SPEC135-P1", "SPEC135-ST1", "SPEC135-ST2", "SPEC135-ST3", "SPEC135-ST4",
     "SPEC135-M1", "SPEC135-M2", "SPEC135-M3", "SPEC135-M4", "SPEC135-M5", "SPEC135-M6", "SPEC135-M7",
     "SPEC135-U1", "SPEC135-U2", "SPEC135-U3", "SPEC135-U4",
+    "SPEC135-V1", "SPEC135-V2",
     "SPEC135-ALPHA1", "SPEC135-ALPHA2", "SPEC135-ALPHA3", "SPEC135-ALPHA4", "SPEC135-ALPHA5", "SPEC135-ALPHA6",
 }
 for completed in verified_requirements:
@@ -67,7 +68,7 @@ for completed in verified_requirements:
     assert row["current_status"] == "verified"
     assert row["closure_status"] == "verified"
 
-for pending in ("SPEC135-U5", "SPEC135-U6"):
+for pending in ("SPEC135-U5", "SPEC135-U6", "SPEC135-V3", "SPEC135-V5", "SPEC135-V6"):
     row = next(r for r in requirements if r["requirement_id"] == pending)
     assert row["current_status"] == "partial" and row["closure_status"] == "open"
 

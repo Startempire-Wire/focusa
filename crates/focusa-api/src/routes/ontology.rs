@@ -8778,6 +8778,71 @@ async fn tool_choreography() -> Json<Value> {
     Json(registry)
 }
 
+#[derive(Debug, Deserialize)]
+struct DomainPackQuery {
+    project_root: String,
+    continuity_id: String,
+}
+
+/// Deterministic General/Software/Research projection over identical canonical state.
+async fn domain_pack_projection(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<DomainPackQuery>,
+) -> Result<Json<Value>, StatusCode> {
+    if query.project_root.trim().is_empty() || query.continuity_id.trim().is_empty() {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    let snapshot = state.focusa.read().await;
+    let artifacts: Vec<_> = snapshot
+        .workspace_artifacts
+        .iter()
+        .filter(|artifact| {
+            artifact.scope.project_root == query.project_root
+                && artifact.scope.continuity_id == query.continuity_id
+        })
+        .collect();
+    let has_research = artifacts.iter().any(|artifact| {
+        matches!(artifact.artifact_kind.as_str(), "research" | "document")
+            || !artifact.semantic.citation_refs.is_empty()
+            || artifact
+                .semantic
+                .domain_pack_refs
+                .iter()
+                .any(|value| value == "research")
+    });
+    let has_software = artifacts.iter().any(|artifact| {
+        matches!(
+            artifact.artifact_kind.as_str(),
+            "code" | "software" | "repository" | "diff"
+        ) || artifact
+            .semantic
+            .domain_pack_refs
+            .iter()
+            .any(|value| value == "software")
+    });
+    let active_pack = if has_research {
+        "research"
+    } else if has_software {
+        "software"
+    } else {
+        "general"
+    };
+    let available_packs = ["general", "software", "research"];
+    Ok(Json(json!({
+        "schema": "focusa.ontology.domain_pack_projection.v1",
+        "state_version": snapshot.version,
+        "project_root": query.project_root,
+        "continuity_id": query.continuity_id,
+        "active_pack": active_pack,
+        "available_packs": available_packs,
+        "selection_policy": "research_citations_then_software_artifacts_then_general",
+        "canonical_state_unchanged": true,
+        "artifact_refs": artifacts.iter().take(64).map(|artifact| artifact.artifact_id.clone()).collect::<Vec<_>>(),
+        "ontology_refs": ["/v1/ontology/world", "/v1/ontology/slices", "/v1/ontology/adjacency"],
+        "projection_notice": "Domain packs change terminology and views only; canonical Context, Evidence, Workpoint, and artifact state remains identical."
+    })))
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/ontology/primitives", get(primitives))
@@ -8787,6 +8852,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/ontology/adjacency", get(adjacency))
         .route("/v1/ontology/working-set", get(working_set))
         .route("/v1/ontology/communities", get(graph_communities))
+        .route("/v1/ontology/domain-pack", get(domain_pack_projection))
         .route("/v1/ontology/context", post(context))
         .route("/v1/ontology/affordances", get(affordances))
         .route("/v1/ontology/retrieval-governor", post(retrieval_governor))

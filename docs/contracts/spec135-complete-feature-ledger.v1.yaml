@@ -2628,9 +2628,9 @@
         "tui",
         "typescript"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "ontology_domain",
       "dependencies": [
         "SPEC135-F4",
@@ -2674,7 +2674,8 @@
       ],
       "source_spec": "135F \u00a7\u00a74\u20138",
       "tests": [
-        "tests/spec135_delivery_contract_regression_static_test.sh"
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_v1_v6_domain_projection_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -2695,9 +2696,9 @@
         "tui",
         "typescript"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "ontology_domain",
       "dependencies": [
         "SPEC135-V1"
@@ -2739,7 +2740,8 @@
       ],
       "source_spec": "135F \u00a7\u00a79\u201316",
       "tests": [
-        "tests/spec135_delivery_contract_regression_static_test.sh"
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_v1_v6_domain_projection_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -2762,7 +2764,7 @@
       ],
       "closure_status": "open",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "partial",
       "delivery_lane": "ontology_domain",
       "dependencies": [
         "SPEC135-V2"
@@ -2803,7 +2805,8 @@
       ],
       "source_spec": "135F required packs",
       "tests": [
-        "tests/spec135_delivery_contract_regression_static_test.sh"
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_v1_v6_domain_projection_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -2892,7 +2895,7 @@
       ],
       "closure_status": "open",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "partial",
       "delivery_lane": "ontology_domain",
       "dependencies": [
         "SPEC135-V2",
@@ -2935,7 +2938,8 @@
       ],
       "source_spec": "135F",
       "tests": [
-        "tests/spec135_delivery_contract_regression_static_test.sh"
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_v1_v6_domain_projection_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
@@ -2958,7 +2962,7 @@
       ],
       "closure_status": "open",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "partial",
       "delivery_lane": "ontology_domain",
       "dependencies": [
         "SPEC135-V3",
@@ -3005,7 +3009,8 @@
       "source_spec": "135F \u00a713",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
-        "tests/spec135h_implementation_acceleration_static_test.sh"
+        "tests/spec135h_implementation_acceleration_static_test.sh",
+        "tests/spec135_v1_v6_domain_projection_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
