@@ -71,6 +71,49 @@ function buildCtx() {
   return { compact, ctx, setUsagePct: (pct) => (usagePct = pct) };
 }
 
+async function runEmergencyInput(autoCompaction, state, attachmentKey) {
+  const ctxBundle = buildCtx();
+  const handlers = new Map();
+  const entries = [];
+  const sentMessages = [];
+  const pi = {
+    on(name, handler) {
+      handlers.set(name, handler);
+    },
+    appendEntry(type, data) {
+      entries.push({ type, data });
+    },
+    sendUserMessage(message) {
+      sentMessages.push(message);
+    },
+  };
+  assert.equal(
+    autoCompaction.registerAutoCompaction(pi, () => ({
+      ...autoCompaction.DEFAULT_PROACTIVE_COMPACTION_POLICY,
+      cooldownMs: 0,
+    })),
+    true
+  );
+  state.runWithAttachmentRuntime(attachmentKey, () => {
+    const runtime = state.getAttachmentRuntime();
+    runtime.cfg = { ...runtimeCfg };
+    runtime.focusaAvailable = false;
+  });
+  ctxBundle.setUsagePct(129.5);
+  const result = await state.runWithAttachmentRuntime(attachmentKey, () =>
+    handlers.get("input")(
+      {
+        text: "Preserve this operator steering",
+        images: [{ type: "image", source: { type: "base64", data: "fixture" } }],
+        source: "interactive",
+      },
+      ctxBundle.ctx
+    )
+  );
+  await handlers.get("session_shutdown")({ type: "session_shutdown" }, ctxBundle.ctx);
+  return { result, entries, sentMessages };
+}
+
 async function runCheck(autoCompaction, compaction, state, attachmentKey, pct, canCompact) {
   const ctxBundle = buildCtx();
   const handlers = new Map();
@@ -173,6 +216,28 @@ try {
     attachmentId: "attach-pressure",
   });
   state.attachmentRuntimeRegistry.bindSessionAttachment(attachmentKey);
+
+  const scopeObservations = state.runWithAttachmentRuntime(attachmentKey, () =>
+    state.observeProjectThreadHintsFromText(
+      "Focusa pressure was 129.5; evidence is focusa-final-ci-spec-pirpc.log",
+      "pi-turn-spec142",
+      "current_ask"
+    )
+  );
+  assert(
+    scopeObservations.every(
+      (entry) => entry.project_alias !== "129.5" && !entry.project_alias.endsWith(".log")
+    ),
+    "numeric pressure and log artifacts must not become project aliases"
+  );
+
+  const emergency = await runEmergencyInput(autoCompaction, state, attachmentKey);
+  assert.deepEqual(emergency.result, { action: "continue" });
+  assert.deepEqual(emergency.sentMessages, []);
+  assert(
+    emergency.entries.some((entry) => entry.data?.kind === "input_passthrough_native_overflow_recovery"),
+    "129.5% input should record native overflow recovery without intercepting the prompt"
+  );
 
   const nativePressure = { posture: "hard_pressure", recommended_action: "rollover" };
   state.runWithAttachmentRuntime(attachmentKey, () => {

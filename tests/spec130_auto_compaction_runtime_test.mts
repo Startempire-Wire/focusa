@@ -126,13 +126,15 @@ try {
 }
 
 const handlers = new Map<string, Function[]>();
+const appendedEntries: Array<{ type: string; data: any }> = [];
 const pi = {
   on(name: string, handler: Function) {
     const current = handlers.get(name) || [];
     current.push(handler);
     handlers.set(name, current);
   },
-  appendEntry() {},
+  appendEntry(type: string, data: any) { appendedEntries.push({ type, data }); },
+  sendUserMessage() { throw new Error("auto rollover/prompt replay must not be used"); },
 };
 registerAutoCompaction(pi as any);
 assert(handlers.has("agent_end"), "agent_end fallback not registered");
@@ -141,6 +143,7 @@ assert(
   "agent_settled idle-boundary fallback not registered",
 );
 assert(handlers.has("session_compact"), "session_compact reset not registered");
+assert(handlers.has("input"), "input passthrough guard not registered");
 
 let usage: any = { tokens: 371_566, contextWindow: 372_000, percent: 99.88 };
 let compactCalls = 0;
@@ -179,6 +182,13 @@ const invoke = async (name: string, ...args: any[]) => {
   for (const handler of handlers.get(name) || []) await handler(...args);
 };
 await invoke("session_start", {}, ctx);
+const inputResults = [];
+for (const handler of handlers.get("input") || []) {
+  inputResults.push(await handler({ text: "operator steering", images: [{ type: "image" }] }, ctx));
+}
+assert(inputResults.every((result: any) => result?.action === "continue"), "high-pressure input was intercepted");
+assert(compactCalls === 0, "input hook attempted extension-owned emergency compaction");
+assert(!appendedEntries.some((entry) => entry.type === "focusa-held-critical-input"), "input was held outside Pi prompt flow");
 await invoke("agent_end", {}, ctx);
 assert(compactCalls === 0, "agent_end raced Pi native post-run compaction");
 await invoke("agent_settled", {}, ctx);

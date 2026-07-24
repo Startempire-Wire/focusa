@@ -1189,28 +1189,118 @@ fn classify_compatibility(
     }
 }
 
+const SUPPORTED_PI_NPM_PACKAGE: &str = "@earendil-works/pi-coding-agent@0.81.1";
+const UIAI_ENGINE_RELEASE_TAG: &str = "engine-vw20-multipool-20260705-2119";
+const UIAI_ENGINE_LINUX_AMD64_SHA256: &str =
+    "963883a19eec91c81ee88bc70c23e8db77f0cc12c673be872f6ee3bda3bba5b5";
+
+fn uiai_engine_url() -> String {
+    std::env::var("UIAI_ENGINE_URL").unwrap_or_else(|_| "http://127.0.0.1:7456".into())
+}
+
+fn uiai_engine_healthy() -> bool {
+    let health_url = format!("{}/v1/health", uiai_engine_url().trim_end_matches('/'));
+    std::process::Command::new("curl")
+        .args(["--max-time", "0.25", "--fail", "--silent", &health_url])
+        .status()
+        .is_ok_and(|status| status.success())
+}
+
+fn uiai_engine_install_command() -> String {
+    if !(cfg!(target_os = "linux") && cfg!(target_arch = "x86_64")) {
+        return "printf '%s\\n' 'UIAI local install is unsupported on this platform; set UIAI_ENGINE_URL to a healthy private/remote endpoint and rerun' >&2; exit 2".into();
+    }
+    let asset_url = format!(
+        "https://github.com/WPUIAI/uiai-engine/releases/download/{UIAI_ENGINE_RELEASE_TAG}/uiai-engine-linux-amd64"
+    );
+    format!(
+        "set -eu; tmp=$(mktemp -d); trap 'rm -rf \"$tmp\"' EXIT; \
+         curl -fsSLo \"$tmp/uiai-engine\" '{asset_url}'; \
+         printf '%s  %s\\n' '{UIAI_ENGINE_LINUX_AMD64_SHA256}' uiai-engine > \"$tmp/SHA256SUMS\"; \
+         (cd \"$tmp\" && sha256sum -c SHA256SUMS); \
+         install -d \"$HOME/.focusa/bin\" \"$HOME/.config/systemd/user\" \"$HOME/.local/state/focusa\"; \
+         install -m 0755 \"$tmp/uiai-engine\" \"$HOME/.focusa/bin/uiai-engine\"; \
+         printf '%s\\n' '[Unit]' 'Description=Focusa-managed UIAI Engine' 'After=network-online.target' '' '[Service]' 'Type=simple' 'ExecStart=%h/.focusa/bin/uiai-engine' 'Restart=on-failure' 'RestartSec=3' 'StandardOutput=append:%h/.local/state/focusa/uiai-engine.log' 'StandardError=append:%h/.local/state/focusa/uiai-engine.log' '' '[Install]' 'WantedBy=default.target' > \"$HOME/.config/systemd/user/focusa-uiai-engine.service\"; \
+         systemctl --user daemon-reload; systemctl --user enable --now focusa-uiai-engine.service; \
+         i=0; until curl --max-time 1 --fail --silent '{}/v1/health' >/dev/null; do i=$((i+1)); [ \"$i\" -lt 20 ] || exit 3; sleep 0.25; done",
+        uiai_engine_url().trim_end_matches('/')
+    )
+}
+
+fn command_semver(name: &str) -> Option<(u64, u64, u64)> {
+    let output = std::process::Command::new(name)
+        .arg("--version")
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let text = format!(
+        "{} {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let version = text
+        .split(|character: char| !(character.is_ascii_digit() || character == '.'))
+        .find(|value| {
+            value
+                .chars()
+                .next()
+                .is_some_and(|character| character.is_ascii_digit())
+        })?;
+    let mut parts = version
+        .split('.')
+        .filter_map(|part| part.parse::<u64>().ok());
+    Some((
+        parts.next()?,
+        parts.next().unwrap_or(0),
+        parts.next().unwrap_or(0),
+    ))
+}
+
+fn dependency_present(name: &str) -> bool {
+    match name {
+        "node" => command_semver("node").is_some_and(|version| version >= (20, 0, 0)),
+        "npm" => command_semver("npm").is_some(),
+        "pi" => command_semver("pi").is_some_and(|version| version >= (0, 81, 1)),
+        "uiai-engine" => uiai_engine_healthy(),
+        "sha256sum" => have_cmd("sha256sum") || have_cmd("shasum"),
+        _ if cfg!(windows) => false,
+        _ => have_cmd(name),
+    }
+}
+
 fn detect_dependencies(package_manager: Option<&str>) -> Vec<PreflightDependency> {
-    ["curl", "python3", "sha256sum", "tar"]
-        .into_iter()
-        .map(|name| {
-            let install_plan = dependency_install_plan(package_manager, name);
-            PreflightDependency {
-                name: name.into(),
-                present: if cfg!(windows) {
-                    false
-                } else {
-                    have_cmd(name) || (name == "sha256sum" && have_cmd("shasum"))
-                },
-                install_hint: Some(install_plan.install_command.clone()),
-                install_plan,
-            }
-        })
-        .collect()
+    [
+        "curl",
+        "python3",
+        "sha256sum",
+        "tar",
+        "node",
+        "npm",
+        "pi",
+        "uiai-engine",
+    ]
+    .into_iter()
+    .map(|name| {
+        let install_plan = dependency_install_plan(package_manager, name);
+        PreflightDependency {
+            name: name.into(),
+            present: dependency_present(name),
+            install_hint: Some(install_plan.install_command.clone()),
+            install_plan,
+        }
+    })
+    .collect()
 }
 
 fn dependency_package(manager: &str, name: &str) -> String {
     match (manager, name) {
         ("brew", "python3") => "python".into(),
+        ("brew", "node" | "npm") => "node".into(),
+        ("choco", "node" | "npm") => "nodejs-lts".into(),
+        ("winget", "node" | "npm") => "OpenJS.NodeJS.LTS".into(),
+        (_, "node") => "nodejs".into(),
         ("brew", "sha256sum") => "coreutils".into(),
         ("brew", "tar") => "gnu-tar".into(),
         ("choco", "python3") => "python312".into(),
@@ -1226,6 +1316,47 @@ fn dependency_package(manager: &str, name: &str) -> String {
 }
 
 fn dependency_install_plan(package_manager: Option<&str>, name: &str) -> DependencyInstallPlan {
+    if name == "uiai-engine" {
+        return DependencyInstallPlan {
+            manager: if cfg!(target_os = "linux") && cfg!(target_arch = "x86_64") {
+                "focusa-pinned-release"
+            } else {
+                "remote-endpoint"
+            }
+            .into(),
+            package: format!("WPUIAI/uiai-engine@{UIAI_ENGINE_RELEASE_TAG}"),
+            repository: "GitHub release with embedded pinned SHA256".into(),
+            install_mode: if cfg!(target_os = "linux") && cfg!(target_arch = "x86_64") {
+                "user_service"
+            } else {
+                "verified_remote_endpoint"
+            }
+            .into(),
+            install_command: uiai_engine_install_command(),
+            dry_run_command: format!(
+                "curl --max-time 2 --fail --silent {}/v1/health",
+                uiai_engine_url().trim_end_matches('/')
+            ),
+            privilege_required: false,
+            recovery_hint: format!(
+                "Linux/amd64 may install the pinned checksummed engine. Otherwise set UIAI_ENGINE_URL to a healthy private endpoint and verify {}/v1/health before rerunning Focusa install.",
+                uiai_engine_url().trim_end_matches('/')
+            ),
+        };
+    }
+    if name == "pi" {
+        return DependencyInstallPlan {
+            manager: "npm".into(),
+            package: SUPPORTED_PI_NPM_PACKAGE.into(),
+            repository: "npm registry".into(),
+            install_mode: "user_global".into(),
+            install_command: format!("npm install --global {SUPPORTED_PI_NPM_PACKAGE}"),
+            dry_run_command: format!("npm view {SUPPORTED_PI_NPM_PACKAGE} version"),
+            privilege_required: false,
+            recovery_hint: "If npm reports EACCES, configure a user-owned npm prefix, ensure its bin directory is on PATH, then rerun focusa install --install-dependencies."
+                .into(),
+        };
+    }
     let manager = package_manager.unwrap_or("manual");
     let package = dependency_package(manager, name);
     let (repository, install_command, dry_run_command, privilege_required) = match manager {
@@ -1315,7 +1446,7 @@ fn dependency_install_consent(args: &InstallArgs) -> Result<&'static str> {
     if args.json || !std::io::stdin().is_terminal() || !std::io::stdout().is_terminal() {
         return Ok("consent_required");
     }
-    print!("Install the missing bootstrap dependencies now? [y/N] ");
+    print!("Install the missing bootstrap and agent-workflow dependencies now? [y/N] ");
     std::io::stdout().flush()?;
     let mut answer = String::new();
     std::io::stdin().read_line(&mut answer)?;
@@ -1803,6 +1934,43 @@ pub async fn run(args: InstallArgs) -> Result<()> {
             print_plan_human(&plan);
         }
         return Ok(());
+    }
+
+    // Install/verify workflow prerequisites before touching the existing Focusa
+    // installation. These are customer-owned tools and are intentionally outside
+    // the Focusa rollback stash; explicit consent is required.
+    let dependency_report = build_preflight_report(&args, target, &install_root);
+    if !dependency_report.missing_dependencies.is_empty() {
+        if !args.install_dependencies {
+            bail!(
+                "required bootstrap/agent-workflow dependencies are missing: {}; rerun with --install-dependencies (and --assume-yes for unattended installs)",
+                dependency_report.missing_dependencies.join(", ")
+            );
+        }
+        match dependency_install_consent(&args)? {
+            "approved" => {
+                let dependencies = dependency_report.dependencies.iter().collect::<Vec<_>>();
+                let execution = execute_dependency_plans(&dependencies);
+                if !execution.failures.is_empty() {
+                    bail!(
+                        "dependency installation failed: {}; recovery: {}",
+                        execution.failures.join("; "),
+                        execution.recovery_evidence.join("; ")
+                    );
+                }
+                let refreshed = build_preflight_report(&args, target, &install_root);
+                if !refreshed.missing_dependencies.is_empty() {
+                    bail!(
+                        "dependency commands completed but required tools are still unavailable: {}; refresh PATH or follow each install recovery hint, then rerun",
+                        refreshed.missing_dependencies.join(", ")
+                    );
+                }
+            }
+            "declined" => bail!("operator declined required workflow dependency installation"),
+            _ => bail!(
+                "dependency installation consent required; rerun with --install-dependencies --assume-yes for unattended installs"
+            ),
+        }
     }
 
     // Real install wrapped in atomicity (focusa-112-atomicity, Spec 112 §6):
@@ -2968,6 +3136,19 @@ pub fn build_first_install_walkthrough(
             recovery_hint: Some("apply with `focusa workflow show <name>`".to_string()),
         },
     ];
+    let pi_extensions_root = std::env::var_os("FOCUSA_PI_EXT_DIR")
+        .map(std::path::PathBuf::from)
+        .or_else(|| {
+            std::env::var_os("HOME")
+                .map(|home| std::path::PathBuf::from(home).join(".pi/agent/extensions"))
+        });
+    let focusa_pi_extension = pi_extensions_root.as_ref().map(|root| root.join("focusa"));
+    let pi_detected = dependency_present("pi");
+    let pi_integrated = focusa_pi_extension
+        .as_ref()
+        .is_some_and(|root| root.join("package.json").is_file());
+    let uiai_url = uiai_engine_url();
+    let uiai_healthy = uiai_engine_healthy();
     let _ = target;
     let _ = channel;
     let _ = asset_count;
@@ -2975,30 +3156,63 @@ pub fn build_first_install_walkthrough(
         version: env!("CARGO_PKG_VERSION").to_string(),
         environment_summary: summary,
         next_steps,
-        agent_integrations: vec![{
-            let context_root = install_root.join("agent-context");
-            let integrated =
-                context_root.join("AGENTS.md").is_file() && context_root.join("skills").is_dir();
+        agent_integrations: vec![
+            {
+                let context_root = install_root.join("agent-context");
+                let integrated = context_root.join("AGENTS.md").is_file()
+                    && context_root.join("skills").is_dir();
+                AgentIntegration {
+                    agent: "focusa-agent-context".to_string(),
+                    detected: true,
+                    integrated,
+                    config_path: Some(context_root.display().to_string()),
+                    next_step: Some(format!(
+                        "Read {} and load the relevant skill from {}/skills",
+                        context_root.join("AGENTS.md").display(),
+                        context_root.display()
+                    )),
+                    expected_outcome: Some(
+                        "First agent session starts with Focusa rules and task-specific skills"
+                            .to_string(),
+                    ),
+                    recovery_hint: Some(
+                        "Re-run focusa install after confirming the release agent-context checksum"
+                            .to_string(),
+                    ),
+                }
+            },
             AgentIntegration {
-                agent: "focusa-agent-context".to_string(),
-                detected: true,
-                integrated,
-                config_path: Some(context_root.display().to_string()),
-                next_step: Some(format!(
-                    "Read {} and load the relevant skill from {}/skills",
-                    context_root.join("AGENTS.md").display(),
-                    context_root.display()
-                )),
+                agent: "pi-coding-agent".to_string(),
+                detected: pi_detected,
+                integrated: pi_detected && pi_integrated,
+                config_path: focusa_pi_extension
+                    .as_ref()
+                    .map(|path| path.display().to_string()),
+                next_step: Some("pi --version && pi --no-session -p \"Reply with Focusa ready\"".into()),
                 expected_outcome: Some(
-                    "First agent session starts with Focusa rules and task-specific skills"
-                        .to_string(),
+                    "Pi starts with the checksum-verified bundled Focusa extension active".into(),
                 ),
                 recovery_hint: Some(
-                    "Re-run focusa install after confirming the release agent-context checksum"
-                        .to_string(),
+                    "Run focusa install --install-dependencies --assume-yes; then verify the managed Focusa extension package and reload Pi"
+                        .into(),
                 ),
-            }
-        }],
+            },
+            AgentIntegration {
+                agent: "uiai-engine".to_string(),
+                detected: uiai_healthy,
+                integrated: uiai_healthy,
+                config_path: Some(uiai_url.clone()),
+                next_step: Some(format!(
+                    "curl --fail --silent {}/v1/health",
+                    uiai_url.trim_end_matches('/')
+                )),
+                expected_outcome: Some("UIAI Engine returns a healthy JSON envelope".into()),
+                recovery_hint: Some(
+                    "On Linux/amd64 rerun dependency installation for the pinned engine; on other platforms set UIAI_ENGINE_URL to a healthy private endpoint"
+                        .into(),
+                ),
+            },
+        ],
     }
 }
 
@@ -3015,7 +3229,18 @@ pub fn print_walkthrough_human(walkthrough: &FirstInstallWalkthrough) {
             step.recovery_hint.as_deref().unwrap_or("—"),
         );
     }
-    println!("Hint: for LLM agents, GET /llms.txt on the daemon serves the canonical primer.");
+    println!("[ agent workflow readiness ]");
+    for integration in &walkthrough.agent_integrations {
+        println!(
+            "  {}: detected={} integrated={}\n     next: {}\n     recovery: {}",
+            integration.agent,
+            integration.detected,
+            integration.integrated,
+            integration.next_step.as_deref().unwrap_or("—"),
+            integration.recovery_hint.as_deref().unwrap_or("—"),
+        );
+    }
+    println!("\nHint: for LLM agents, GET /llms.txt on the daemon serves the canonical primer.");
 }
 
 // ----- Phase 0: Atomicity (focusa-112-atomicity, Spec 112 §6) -----
@@ -4078,7 +4303,7 @@ mod tests {
         let managers = [
             "dnf", "yum", "apt-get", "brew", "pacman", "zypper", "choco", "winget",
         ];
-        let dependencies = ["curl", "python3", "sha256sum", "tar"];
+        let dependencies = ["curl", "python3", "sha256sum", "tar", "node", "npm"];
         for manager in managers {
             for dependency in dependencies {
                 let plan = dependency_install_plan(Some(manager), dependency);
@@ -4100,6 +4325,44 @@ mod tests {
         );
         assert!(dependency_install_plan(Some("apt-get"), "python3").privilege_required);
         assert!(!dependency_install_plan(Some("brew"), "python3").privilege_required);
+        assert_eq!(dependency_install_plan(Some("brew"), "npm").package, "node");
+        assert_eq!(
+            dependency_install_plan(Some("winget"), "node").package,
+            "OpenJS.NodeJS.LTS"
+        );
+    }
+
+    #[test]
+    fn agent_workflow_dependency_plans_are_pinned_ordered_and_verifiable() {
+        let dependencies = detect_dependencies(Some("dnf"));
+        assert_eq!(
+            dependencies
+                .iter()
+                .map(|dependency| dependency.name.as_str())
+                .collect::<Vec<_>>(),
+            vec![
+                "curl",
+                "python3",
+                "sha256sum",
+                "tar",
+                "node",
+                "npm",
+                "pi",
+                "uiai-engine",
+            ]
+        );
+        let pi = dependency_install_plan(Some("dnf"), "pi");
+        assert_eq!(pi.manager, "npm");
+        assert_eq!(pi.package, SUPPORTED_PI_NPM_PACKAGE);
+        assert!(pi.install_command.contains("npm install --global"));
+        let uiai = dependency_install_plan(Some("dnf"), "uiai-engine");
+        assert!(uiai.package.contains(UIAI_ENGINE_RELEASE_TAG));
+        assert!(
+            uiai.install_command
+                .contains(UIAI_ENGINE_LINUX_AMD64_SHA256)
+        );
+        assert!(!uiai.install_command.contains("/latest/"));
+        assert!(uiai.dry_run_command.contains("/v1/health"));
     }
 
     #[test]

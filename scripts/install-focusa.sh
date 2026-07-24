@@ -54,6 +54,8 @@ CHANNEL="${CHANNEL:-stable}"
 DRY_RUN="${DRY_RUN:-0}"
 EVAL="${EVAL:-0}"
 ACCEPT_LICENSE="${ACCEPT_LICENSE:-0}"
+INSTALL_DEPENDENCIES="${INSTALL_DEPENDENCIES:-1}"
+ASSUME_YES="${ASSUME_YES:-0}"
 NO_SERVICE="${NO_SERVICE:-0}"
 FORCE="${FORCE:-0}"
 UNINSTALL="${UNINSTALL:-0}"
@@ -99,6 +101,10 @@ Options:
   --license-key=KEY        commercial install with the given key
   --email=EMAIL            customer email for receipt + reissue (commercial)
   --accept-license         accept BSL 1.1 terms without prompting
+  --install-dependencies   install Node/npm/Pi workflow prerequisites (default)
+  --no-install-dependencies
+                           verify prerequisites without installing them
+  --assume-yes             approve dependency installation for unattended runs
   --no-service             skip systemd user unit / launchd registration
   --force                  allow downgrade or overwriting an existing install
   --uninstall              remove managed install; preserve user data by default
@@ -131,6 +137,9 @@ for arg in "$@"; do
     --dry-run)            DRY_RUN=1 ;;
     --eval)               EVAL=1 ;;
     --accept-license)     ACCEPT_LICENSE=1 ;;
+    --install-dependencies) INSTALL_DEPENDENCIES=1 ;;
+    --no-install-dependencies) INSTALL_DEPENDENCIES=0 ;;
+    --assume-yes)         ASSUME_YES=1 ;;
     --no-service)         NO_SERVICE=1 ;;
     --force)              FORCE=1 ;;
     --uninstall)          UNINSTALL=1 ;;
@@ -801,8 +810,21 @@ if [ "$DRY_RUN" = 1 ]; then
   exit 0
 fi
 
+# curl|bash consumes stdin, so collect explicit dependency consent through the
+# controlling terminal before handing off to the Rust orchestrator.
+if [ "$INSTALL_DEPENDENCIES" = 1 ] && [ "$ASSUME_YES" != 1 ] && [ "$DRY_RUN" != 1 ] && [ "$UNINSTALL" != 1 ] && [ -r /dev/tty ]; then
+  printf 'Install required Node/npm/Pi workflow dependencies if missing? [Y/n] ' >/dev/tty
+  IFS= read -r dependency_answer </dev/tty || dependency_answer=""
+  case "${dependency_answer:-y}" in
+    y|Y|yes|YES|Yes|"") ASSUME_YES=1 ;;
+    *) INSTALL_DEPENDENCIES=0 ;;
+  esac
+fi
+
 # Forward every relevant flag; the Rust orchestrator owns the rest.
 ARGS=(install --target="$RUST_TARGET" --github-repo="$GITHUB_REPO")
+[ "$INSTALL_DEPENDENCIES" = 1 ] && ARGS+=(--install-dependencies)
+[ "$INSTALL_DEPENDENCIES" = 1 ] && [ "$ASSUME_YES" = 1 ] && ARGS+=(--assume-yes)
 [ "$EVAL" = 1 ] && ARGS+=(--eval)
 [ "$NO_SERVICE" = 1 ] && ARGS+=(--no-service)
 [ "$ACCEPT_LICENSE" = 1 ] && ARGS+=(--accept-license)

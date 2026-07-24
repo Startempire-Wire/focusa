@@ -272,13 +272,10 @@ await terminalTransport.handlers.get("agent_settled")(
 terminalTransport.compactCalls[2].onError(new Error("WebSocket error"));
 await new Promise((resolve) => setTimeout(resolve, 50));
 terminalTransport.compactCalls[3].onError(new Error("WebSocket error"));
-assert.deepEqual(terminalTransport.sentMessages.at(-1), {
-  message: "/focusa-rollover execute",
-  options: { deliverAs: "followUp" },
-});
+assert.equal(terminalTransport.sentMessages.length, 0, "transport failure must not auto-queue rollover");
 assert.ok(
-  terminalTransport.events.some((entry) => entry.data.kind === "rollover_auto_queued"),
-  "transport retry exhaustion must queue governed rollover automatically",
+  terminalTransport.events.some((entry) => entry.data.kind === "native_recovery_deferred_to_pi"),
+  "transport retry exhaustion must defer to Pi native recovery",
 );
 await terminalTransport.handlers.get("session_shutdown")(
   { type: "session_shutdown" },

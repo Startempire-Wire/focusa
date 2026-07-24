@@ -44,6 +44,8 @@ focusa setup wizard --dry-run
 focusa doctor
 ```
 
+Interactive install offers the complete agent workflow and asks before installing missing Node.js/npm, Pi, the bundled Focusa Pi extension, and UIAI Engine. For unattended installation, pass `--install-dependencies --assume-yes`. Linux/amd64 can install the pinned checksummed UIAI binary; other platforms must set `UIAI_ENGINE_URL` to a healthy private endpoint. Focusa does not report full workflow readiness until Pi/plugin and `${UIAI_ENGINE_URL:-http://127.0.0.1:7456}/v1/health` checks pass.
+
 Safe installer/update checks before changing anything:
 
 ```bash

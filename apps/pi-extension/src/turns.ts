@@ -17,6 +17,7 @@ import {
   compatibleWorkLoopStatusState,
   extractText,
   getFocusState,
+  getCachedFocusState,
   getEffectiveFocusSnapshot,
   estimateTokens,
   wbExec,
@@ -39,7 +40,9 @@ import {
   detectForbiddenVisibleOutputLeakClasses,
   detectScopeFailureSignals,
   getSemanticMemorySummary,
+  getCachedSemanticMemorySummary,
   getEcsHandlesSummary,
+  getCachedEcsHandlesSummary,
   getScopedWorkpointPacket,
   ensureContinuityId,
   isProjectRootAuthoritySafe,
@@ -97,9 +100,10 @@ import {
 } from "./state.js";
 import { renderWorkRailWidget, workRailSnapshotFromPacket } from "./work-rail-widget.js";
 import { checkCompactionTier, checkMicroCompact, contextTierLabel } from "./compaction.js";
-import { fetchWbmContext, catalogueFromMessages } from "./wbm.js";
+import { catalogueFromMessages } from "./wbm.js";
 import { pushDelta } from "./tools.js";
 import { buildFocusaUtilityCard } from "./awareness.js";
+import { buildAwarenessPacket, renderAwarenessPacketText } from "./awareness-substrate.js";
 import {
   attachFocusSliceToNewestUser,
   CacheSafetyMonitor,
@@ -229,12 +233,10 @@ async function buildRecentTurnsSlice(n: number = 4): Promise<string> {
   if (!shouldEmitRecentTurnsSlice(currentTurn)) return "";
   const daemonTurns = await fetchRecentTurnsFromDaemon(n);
   if (daemonTurns.length === 0) {
-    // Fallback to local ring if daemon is unreachable or empty.
     const localSection = formatRecentTurnsSection(n);
     markRecentTurnsSliceEmitted(currentTurn);
     return localSection || "";
   }
-  // Use daemon data, format inline.
   const lines = [`Recent turns (last ${daemonTurns.length}, daemon source):`];
   for (const t of daemonTurns) {
     const mission =
@@ -246,6 +248,14 @@ async function buildRecentTurnsSlice(n: number = 4): Promise<string> {
   }
   markRecentTurnsSliceEmitted(currentTurn);
   return lines.join("\n");
+}
+
+function buildCachedRecentTurnsSlice(n: number = 4): string {
+  const currentTurn = getTurnCount();
+  if (!shouldEmitRecentTurnsSlice(currentTurn)) return "";
+  const localSection = formatRecentTurnsSection(n);
+  markRecentTurnsSliceEmitted(currentTurn);
+  return localSection || "";
 }
 
 // Recall-intent detection (mirrors §5.12.10 word set).
@@ -305,7 +315,7 @@ function vitalPromptSurfaceEnabled(surface: string): boolean {
     .includes(surface);
 }
 
-async function hardGateVitalProjectRoot(ctx: any): Promise<string | null> {
+function hardGateVitalProjectRoot(ctx: any): string | null {
   if (!getAttachmentRuntime().focusaAvailable || !vitalPromptSurfaceEnabled("project_root")) return null;
   const detected = adoptPiProjectRoot(ctx.cwd || getSessionCwd() || process.cwd());
   if (!projectRootConfirmationRequired(detected)) {
@@ -821,15 +831,15 @@ function getToolAffordanceFocusSliceLines(options: {
   hasOntologyAmbiguity: boolean;
 }): string[] {
   const affordances = selectFocusSliceToolAffordances(options);
-  return [
-    "TOOL_AFFORDANCES:",
-    "  best_next:",
-    ...affordances.best_next.map((item) => `    - ${item}`),
-    "  recovery:",
-    ...affordances.recovery.map((item) => `    - ${item}`),
-    "  do_not_use:",
-    ...affordances.do_not_use.map((item) => `    - ${item}`),
-  ];
+  const next = affordances.best_next.slice(0, options.hasWorkpoint ? 1 : 2);
+  const recovery = affordances.recovery.slice(0, 1);
+  return [`FOCUSA_TOOLS: next=${next.join(" | ") || "none"}; recovery=${recovery.join(" | ") || "none"}`];
+}
+
+function getCachedTrajectoryFocusSliceLines(): string[] {
+  const root = getSessionCwd() || process.cwd();
+  if (!isProjectRootAuthoritySafe(root)) return [];
+  return formatTrajectoryFallbackFocusSlice(root, "prompt_hot_path_cache");
 }
 
 async function getTrajectoryFocusSliceLines(): Promise<string[]> {
@@ -976,17 +986,18 @@ function emitCacheSafetyObservation(observation: CacheSafetyObservation, ctx: an
 
 export function registerTurns(pi: ExtensionAPI) {
   // ── before_agent_start (§35.2 behavioral + §29 WBM injection) ────────────
-  pi.on("before_agent_start", async (event, ctx) => {
+  pi.on("before_agent_start", (event, ctx) => {
     // Reconnect check
     if (!getAttachmentRuntime().focusaAvailable) {
-      const h = await focusaFetch("/health");
-      if (h?.ok) {
-        getAttachmentRuntime().focusaAvailable = true;
-        ctx.ui.setStatus("focusa", getAttachmentRuntime().wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
-      }
+      void focusaFetch("/health").then((h) => {
+        if (h?.ok) {
+          getAttachmentRuntime().focusaAvailable = true;
+          ctx.ui.setStatus("focusa", getAttachmentRuntime().wbmEnabled ? "🤖 Focusa WBM" : "🧭 Focusa");
+        }
+      });
     }
 
-    const confirmedProjectRoot = await hardGateVitalProjectRoot(ctx);
+    const confirmedProjectRoot = hardGateVitalProjectRoot(ctx);
 
     // Cache boundary: system instructions must remain byte-stable across adjacent turns.
     // Project identity, Workpoint state, recaps, recent turns, and WBM context are volatile
@@ -1014,10 +1025,8 @@ export function registerTurns(pi: ExtensionAPI) {
 
     (event as any).systemPrompt = ((event as any).systemPrompt || "") + "\n" + behavioral + workpointLaw;
     if (getAttachmentRuntime().cfg?.cacheSafePromptLayoutEnabled === false) {
-      const [legacyRecentTurns, legacyWbm] = await Promise.all([
-        buildRecentTurnsSlice(4),
-        getAttachmentRuntime().wbmEnabled ? fetchWbmContext() : Promise.resolve(""),
-      ]);
+      const legacyRecentTurns = buildCachedRecentTurnsSlice(4);
+      const legacyWbm = "";
       const visibleRecapReason = toolOutputVisibleRecapReason();
       const legacyDynamic = [
         confirmedProjectRoot
@@ -1037,30 +1046,31 @@ export function registerTurns(pi: ExtensionAPI) {
 
     if (!getAttachmentRuntime().seenFirstBeforeAgentStart) {
       getAttachmentRuntime().seenFirstBeforeAgentStart = true;
-      const visibleCard = buildFocusaUtilityCard("visible");
-      // pi's custom-message renderer reads `this.toolOutputExpanded` (see
-      // pi-coding-agent dist/modes/interactive/interactive-mode.js: case "custom":
-      //   component.setExpanded(this.toolOutputExpanded);
-      // ). Save + set false + restore around the send so the utility card
-      // emits collapsed by default (operator can ctrl+o to expand).
       if (nativeSessionAllowsNonessentialPersistence()) {
-        const ctxUi = ctx.ui as any;
-        const wasExpanded = ctxUi?.getToolsExpanded?.() ?? true;
-        ctxUi?.setToolsExpanded?.(false);
-        try {
-          pi.sendMessage(
-            { customType: "focusa-utility-card", content: visibleCard, display: true },
-            { triggerTurn: false }
-          );
-        } finally {
-          ctxUi?.setToolsExpanded?.(wasExpanded);
-        }
-        queueTraceTelemetry({
-          event_type: "focusa_utility_card_visible",
-          turn_id: `pi-turn-${getTurnCount()}`,
-          surface: "pi",
-          bytes: visibleCard.length,
-        });
+        const fallbackCard = buildFocusaUtilityCard("visible");
+        void buildAwarenessPacket("reload")
+          .then((packet) => renderAwarenessPacketText(packet))
+          .catch(() => fallbackCard)
+          .then((visibleCard) => {
+            const ctxUi = ctx.ui as any;
+            const wasExpanded = ctxUi?.getToolsExpanded?.() ?? true;
+            ctxUi?.setToolsExpanded?.(false);
+            try {
+              pi.sendMessage(
+                { customType: "focusa-utility-card", content: visibleCard, display: true },
+                { triggerTurn: false }
+              );
+            } finally {
+              ctxUi?.setToolsExpanded?.(wasExpanded);
+            }
+            queueTraceTelemetry({
+              event_type: "focusa_utility_card_visible",
+              turn_id: `pi-turn-${getTurnCount()}`,
+              surface: "pi",
+              bytes: visibleCard.length,
+              renderer: visibleCard === fallbackCard ? "cached_fallback" : "dvs_awareness_substrate",
+            });
+          });
       } else {
         queueTraceTelemetry({
           event_type: "focusa_utility_card_suppressed",
@@ -1083,7 +1093,7 @@ export function registerTurns(pi: ExtensionAPI) {
   // Per spec doc 44 §Prompt Serialization: uppercase headers + bullets for list items.
   // Per spec doc 44 §7.1: all 10 ASCC slots in compaction strategy.
   // Per spec doc 44 §33.2: compute a bounded Focusa slice for each LLM call.
-  pi.on("context", async (event: any, ctx: any) => {
+  pi.on("context", (event: any, ctx: any) => {
     const contextMessages = elideOldRehydratableToolHistory(event.messages || []);
     const cacheSafeLayoutEnabled = getAttachmentRuntime().cfg?.cacheSafePromptLayoutEnabled !== false;
     const cacheSafeDegraded = cacheSafeLayoutEnabled && cacheSafetyMonitor.isDegraded(cacheSessionKey());
@@ -1091,36 +1101,22 @@ export function registerTurns(pi: ExtensionAPI) {
       ? "newest_user_turn_tail"
       : "legacy_history_prepend";
     const [recentTurnsContext, wbmContext] =
-      !cacheSafeLayoutEnabled || cacheSafeDegraded
-        ? ["", ""]
-        : await Promise.all([
-            buildRecentTurnsSlice(4),
-            getAttachmentRuntime().wbmEnabled ? fetchWbmContext() : Promise.resolve(""),
-          ]);
+      !cacheSafeLayoutEnabled || cacheSafeDegraded ? ["", ""] : [buildCachedRecentTurnsSlice(4), ""];
     if (!getAttachmentRuntime().focusaAvailable || !getAttachmentRuntime().activeFrameId) {
-      const trajectoryLines = await getTrajectoryFocusSliceLines();
-      const toolAffordanceLines = getToolAffordanceFocusSliceLines({
-        resourceModeActive: false,
-        hasTrajectory: trajectoryLines.length > 0,
-        hasWorkpoint: Boolean(getActiveWorkpointPacket()),
-        hasOntologyAmbiguity: false,
-      });
-      const scopeKind = getAttachmentRuntime().queryScope?.scopeKind || "mission_carryover";
       const askText = getAttachmentRuntime().currentAsk?.text || "";
+      const scopeKind = getAttachmentRuntime().queryScope?.scopeKind || "mission_carryover";
       const visibleRecapReason = toolOutputVisibleRecapReason();
-      const attentionLines = formatAttentionRecallFocusSliceLines(
-        buildAttentionRecallVerdict({
-          currentAskText: askText,
-          currentAskKind: getAttachmentRuntime().currentAsk?.kind,
-          queryScopeKind: scopeKind,
-          projectRoot: getSessionCwd(),
-          workpointPacket: getScopedWorkpointPacket(),
-          visibleRecapReason,
-        })
-      );
+      const verdict = buildAttentionRecallVerdict({
+        currentAskText: askText,
+        currentAskKind: getAttachmentRuntime().currentAsk?.kind,
+        queryScopeKind: scopeKind,
+        projectRoot: getSessionCwd(),
+        workpointPacket: getScopedWorkpointPacket(),
+        visibleRecapReason,
+      });
       const lines = [
-        "[Focusa Focus Slice — minimal applicable context]",
-        ...attentionLines,
+        "[Focusa advisory — operator steering remains authoritative]",
+        ...formatAttentionRecallFocusSliceLines(verdict),
         ...formatCurrentAskScopeVerdictLines(
           buildCurrentAskScopeVerdict({
             currentAskText: askText,
@@ -1130,84 +1126,79 @@ export function registerTurns(pi: ExtensionAPI) {
           })
         ),
         ...formatToolOutputVisibleRecapLines(visibleRecapReason),
-        "PROJECTION_KIND: operator_view",
-        "VIEW_PROFILE: pi_operator_view",
-        askText ? `CURRENT_ASK: ${askText}` : "CURRENT_ASK: (none)",
-        `QUERY_SCOPE: ${scopeKind} · ${getAttachmentRuntime().queryScope?.carryoverPolicy || "allow_if_relevant"}`,
-        ...getUiaiFirstFocusSliceLines(askText),
-        `PROJECT_TRAJECTORY:\n${trajectoryLines.map((value) => `  - ${value}`).join("\n")}`,
-        ...formatWorkpointContextSections(),
-        ...toolAffordanceLines,
-        `CACHE_SAFETY: mode=${cacheSafeDegraded ? "cache_safe_degraded" : "normal"} injection=${cacheInjectionPosition}`,
-        recentTurnsContext,
-        wbmContext,
+        ...formatWorkpointContextSections().slice(0, 2),
+        ...getToolAffordanceFocusSliceLines({
+          resourceModeActive: false,
+          hasTrajectory: false,
+          hasWorkpoint: Boolean(getActiveWorkpointPacket()),
+          hasOntologyAmbiguity: false,
+        }),
       ].filter(Boolean);
-      return {
-        messages: attachCacheSafeFocusSlice(event, contextMessages, lines.join("\n")),
-      };
+      return { messages: attachCacheSafeFocusSlice(event, contextMessages, lines.join("\n")) };
     }
 
-    const data = await getFocusState();
+    const localSnapshot = getEffectiveFocusSnapshot();
+    const data = getCachedFocusState() || {
+      frame: {
+        id: getAttachmentRuntime().activeFrameId,
+        title: getAttachmentRuntime().activeFrameTitle,
+        goal: getAttachmentRuntime().activeFrameGoal,
+      },
+      fs: {
+        decisions: localSnapshot.decisions,
+        constraints: localSnapshot.constraints,
+        failures: localSnapshot.failures,
+        intent: localSnapshot.intent,
+        current_focus: localSnapshot.currentFocus,
+        current_state: localSnapshot.currentFocus,
+      },
+      stack: null,
+    };
     if (!data?.fs) {
-      const trajectoryLines = await getTrajectoryFocusSliceLines();
-      const toolAffordanceLines = getToolAffordanceFocusSliceLines({
-        resourceModeActive: false,
-        hasTrajectory: trajectoryLines.length > 0,
-        hasWorkpoint: Boolean(getActiveWorkpointPacket()),
-        hasOntologyAmbiguity: false,
-      });
+      const askText = getAttachmentRuntime().currentAsk?.text || "";
       const visibleRecapReason = toolOutputVisibleRecapReason();
-      const attentionLines = formatAttentionRecallFocusSliceLines(
-        buildAttentionRecallVerdict({
-          currentAskText: getAttachmentRuntime().currentAsk?.text,
-          currentAskKind: getAttachmentRuntime().currentAsk?.kind,
-          queryScopeKind: getAttachmentRuntime().queryScope?.scopeKind,
-          projectRoot: getSessionCwd(),
-          workpointPacket: getScopedWorkpointPacket(),
-          visibleRecapReason,
-        })
-      );
+      const verdict = buildAttentionRecallVerdict({
+        currentAskText: askText,
+        currentAskKind: getAttachmentRuntime().currentAsk?.kind,
+        queryScopeKind: getAttachmentRuntime().queryScope?.scopeKind,
+        projectRoot: getSessionCwd(),
+        workpointPacket: getScopedWorkpointPacket(),
+        visibleRecapReason,
+      });
       const lines = [
-        "[Focusa Focus Slice — minimal applicable context]",
-        ...attentionLines,
+        "[Focusa advisory — cached state unavailable; operator flow continues]",
+        ...formatAttentionRecallFocusSliceLines(verdict),
         ...formatCurrentAskScopeVerdictLines(
           buildCurrentAskScopeVerdict({
-            currentAskText: getAttachmentRuntime().currentAsk?.text,
+            currentAskText: askText,
             workpointPacket: getScopedWorkpointPacket(),
             projectRoot: getSessionCwd(),
             continuityId: getContinuityId(),
           })
         ),
         ...formatToolOutputVisibleRecapLines(visibleRecapReason),
-        "PROJECTION_KIND: operator_view",
-        "VIEW_PROFILE: pi_operator_view",
-        "FOCUS_STATE: unavailable; using project/trajectory fallback card",
-        ...getUiaiFirstFocusSliceLines(getAttachmentRuntime().currentAsk?.text),
-        `PROJECT_TRAJECTORY:\n${trajectoryLines.map((value) => `  - ${value}`).join("\n")}`,
-        ...formatWorkpointContextSections(),
-        ...toolAffordanceLines,
-        `CACHE_SAFETY: mode=${cacheSafeDegraded ? "cache_safe_degraded" : "normal"} injection=${cacheInjectionPosition}`,
-        recentTurnsContext,
-        wbmContext,
+        ...formatWorkpointContextSections().slice(0, 2),
       ].filter(Boolean);
-      return {
-        messages: attachCacheSafeFocusSlice(event, contextMessages, lines.join("\n")),
-      };
+      return { messages: attachCacheSafeFocusSlice(event, contextMessages, lines.join("\n")) };
     }
+
     const { fs, frame } = data;
-
-    // §7.1: Format each of the 10 ASCC slots per §Prompt Serialization spec
     const fmt = (label: string, items: string[] | undefined) =>
-      items?.length ? `${label}:\n${items.map((x: string) => `  - ${x}`).join("\n")}` : `${label}:\n  (none)`;
+      items?.length
+        ? `${label}:\n${items.map((item: string) => `  - ${item}`).join("\n")}`
+        : `${label}:\n  (none)`;
 
-    // §36.7: Budget check — cap injection to 15% of headroom, max 1500 tokens
+    // §36.7: Budget check — cap injection to 600 tokens, 250 under high pressure
     const usage = ctx.getContextUsage?.();
     const window = usage?.contextWindow || getAttachmentRuntime().activeContextWindow || 128000;
     if (typeof usage?.contextWindow === "number" && usage.contextWindow > 0) {
       getAttachmentRuntime().activeContextWindow = usage.contextWindow;
     }
     const headroom = usage?.tokens ? window - usage.tokens - 16384 : window;
-    const maxTokens = Math.min(Math.max(Math.floor(headroom * 0.15), 200), 1500);
+    const maxTokens =
+      (getAttachmentRuntime().currentContextPct || 0) >= 85
+        ? 250
+        : Math.min(Math.max(Math.floor(headroom * 0.08), 160), 600);
 
     const scopeKind = getAttachmentRuntime().queryScope?.scopeKind || "mission_carryover";
     const askText = getAttachmentRuntime().currentAsk?.text || "";
@@ -1284,7 +1275,7 @@ export function registerTurns(pi: ExtensionAPI) {
     });
     const includeAuxContext = maxTokens >= 350;
     const [semanticMemory, ecsHandles] = includeAuxContext
-      ? await Promise.all([getSemanticMemorySummary(), getEcsHandlesSummary()])
+      ? [getCachedSemanticMemorySummary(), getCachedEcsHandlesSummary()]
       : [null, null];
     const workingSetItems = formatWorkingSetItems(semanticMemory?.semantic);
     const relevantWorkingSet = selectRelevantRankedItems(workingSetItems, askText, {
@@ -1303,29 +1294,10 @@ export function registerTurns(pi: ExtensionAPI) {
       governingPriors: activeGoverningPriors,
     });
     const canonicalReferenceAliases = buildCanonicalReferenceAliases(relevantVerifiedDeltas.items);
-    let ontologyContext: any = null;
-    if (getAttachmentRuntime().focusaAvailable && includeAuxContext) {
-      try {
-        ontologyContext = await focusaFetch("/ontology/context", {
-          method: "POST",
-          body: JSON.stringify({
-            current_ask: getAttachmentRuntime().currentAsk?.text || askText,
-            frame_id: getAttachmentRuntime().activeFrameId,
-            workpoint_id:
-              getScopedWorkpointPacket()?.workpoint_id || getScopedWorkpointPacket()?.workpoint?.workpoint_id,
-            target_refs: canonicalReferenceAliases.slice(0, 6),
-            budget_tokens: Math.min(maxTokens, 800),
-            operator_steering_detected: isOperatorSteeringInput(
-              askText,
-              getAttachmentRuntime().currentAsk?.kind || "unknown"
-            ),
-            active_object_refs: [],
-          }),
-        });
-      } catch {
-        ontologyContext = null;
-      }
-    }
+    // Provider request hooks are latency-critical. Ontology is refreshed by
+    // background/session lifecycle work and omitted when no cached projection is
+    // available; a daemon timeout must never delay the operator's prompt.
+    const ontologyContext: any = null;
     const ontologyPayload = ontologyContext?.ontology_context || ontologyContext;
     const ontologyObjectLines = Array.isArray(ontologyPayload?.active_object_set)
       ? ontologyPayload.active_object_set
@@ -1358,8 +1330,8 @@ export function registerTurns(pi: ExtensionAPI) {
     const ontologyUncertaintyLines = Array.isArray(ontologyPayload?.uncertainty_flags)
       ? ontologyPayload.uncertainty_flags.slice(0, 6).map((item: any) => String(item))
       : [];
-    const trajectoryLines = await getTrajectoryFocusSliceLines();
-    const resourceModeLines = await getResourceModeFocusSliceLines();
+    const trajectoryLines = getCachedTrajectoryFocusSliceLines();
+    const resourceModeLines: string[] = [];
     const toolAffordanceLines = getToolAffordanceFocusSliceLines({
       resourceModeActive: resourceModeLines.length > 0,
       hasTrajectory: trajectoryLines.length > 0,
@@ -2030,7 +2002,7 @@ export function registerTurns(pi: ExtensionAPI) {
   });
 
   // ── input (§36.3 signal + §35.7 correction — single handler) ──────────────
-  pi.on("input", async (event, _ctx) => {
+  pi.on("input", (event, _ctx) => {
     const text = (event as any).text || (event as any).message || "";
     const cleanedText = stripQuotedFocusaContext(String(text));
 
@@ -2100,25 +2072,30 @@ export function registerTurns(pi: ExtensionAPI) {
       !packageUpdateCommand &&
       rootConfirmed
     ) {
-      await rescopePiFrameFromCurrentAsk(projectRoot, "pi-post-input-rescope").catch(() => null);
-      await getFocusState().catch(() => null);
+      void rescopePiFrameFromCurrentAsk(projectRoot, "pi-post-input-rescope")
+        .then(() => getFocusState())
+        .catch(() => null);
     }
 
     if (getAttachmentRuntime().focusaAvailable) {
-      focusaFetch("/work-loop/context", {
-        method: "POST",
-        headers: await turnWorkLoopWriterHeaders(),
-        body: JSON.stringify({
-          current_ask: getAttachmentRuntime().currentAsk.text,
-          ask_kind: getAttachmentRuntime().currentAsk.kind,
-          scope_kind: getAttachmentRuntime().queryScope.scopeKind,
-          carryover_policy: getAttachmentRuntime().queryScope.carryoverPolicy,
-          excluded_context_reason: getAttachmentRuntime().excludedContext.reason,
-          excluded_context_labels: [],
-          source_turn_id: sourceTurnId,
-          operator_steering_detected: steeringDetected,
-        }),
-      }).catch(() => null);
+      void turnWorkLoopWriterHeaders()
+        .then((headers) =>
+          focusaFetch("/work-loop/context", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              current_ask: getAttachmentRuntime().currentAsk.text,
+              ask_kind: getAttachmentRuntime().currentAsk.kind,
+              scope_kind: getAttachmentRuntime().queryScope.scopeKind,
+              carryover_policy: getAttachmentRuntime().queryScope.carryoverPolicy,
+              excluded_context_reason: getAttachmentRuntime().excludedContext.reason,
+              excluded_context_labels: [],
+              source_turn_id: sourceTurnId,
+              operator_steering_detected: steeringDetected,
+            }),
+          })
+        )
+        .catch(() => null);
       if (steeringDetected && rootConfirmed) {
         refreshTrajectoryClarityLifecycle("operator_steering", projectRoot).catch(() => null);
       }
@@ -2426,8 +2403,7 @@ export function registerTurns(pi: ExtensionAPI) {
 
     // §37.3 + §10.4: Widget with all badges
     const w: string[] = [];
-    let liveFocus: Awaited<ReturnType<typeof getFocusState>> = null;
-    if (getAttachmentRuntime().focusaAvailable) liveFocus = await getFocusState();
+    const liveFocus = getCachedFocusState();
     const snapshot = getEffectiveFocusSnapshot(liveFocus?.fs);
     if (snapshot.decisions.length) w.push(`📌 ${snapshot.decisions.length} decisions`);
     if (snapshot.constraints.length) w.push(`🔒 ${snapshot.constraints.length} constraints`);

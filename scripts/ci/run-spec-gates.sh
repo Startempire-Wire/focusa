@@ -1,6 +1,23 @@
 #!/bin/bash
 set -euo pipefail
 
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+EXPECTED_OWNER="$(stat -c %U "$ROOT_DIR")"
+find_owner_drift() {
+  find "$ROOT_DIR" -xdev     \( -path "$ROOT_DIR/.git" -o -path "$ROOT_DIR/target" -o -path '*/node_modules' -o -path "$ROOT_DIR/data" -o -path "$ROOT_DIR/ecs" \) -prune -o     -user root -print -quit
+}
+if [[ "$EXPECTED_OWNER" != root ]]; then
+  OWNER_DRIFT="$(find_owner_drift)"
+  if [[ -n "$OWNER_DRIFT" && ${EUID:-$(id -u)} -eq 0 && -x /usr/local/bin/fix-user-perms ]]; then
+    /usr/local/bin/fix-user-perms "$EXPECTED_OWNER"
+    OWNER_DRIFT="$(find_owner_drift)"
+  fi
+  if [[ -n "$OWNER_DRIFT" ]]; then
+    echo "workspace ownership drift: $OWNER_DRIFT is root-owned; run fix-user-perms $EXPECTED_OWNER" >&2
+    exit 1
+  fi
+fi
+
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:18787}"
 export FOCUSA_BASE_URL="$BASE_URL"
 export FOCUSA_BIND="${FOCUSA_BIND:-127.0.0.1:18787}"
@@ -42,6 +59,7 @@ run_gate ./tests/tool_contract_test.sh
 run_gate ./tests/command_write_contract_test.sh
 run_gate ./tests/trace_dimensions_test.sh
 run_gate ./tests/pi_extension_contract_test.sh
+run_gate bash ./tests/spec142_workflow_dependency_onboarding_static_test.sh
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_task_materialization_e2e_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_work_rail_e2e_test.py
 run_gate bash ./tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh

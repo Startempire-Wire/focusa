@@ -75,6 +75,7 @@ export interface PiMemoryAnchor {
   evidence_refs: string[];
   next_action: string;
   action_authority_for_current_ask: boolean;
+  durable_project_write_authority: boolean;
 }
 
 export interface PiAttentionRecallVerdict {
@@ -142,6 +143,7 @@ export interface PiCurrentAskScopeVerdict {
     evidence_ref: string;
   };
   action_authority_for_current_ask: boolean;
+  durable_project_write_authority: boolean;
   required_next: string[];
   reason: string;
 }
@@ -1097,11 +1099,7 @@ export function toolOutputVisibleRecapReason(): string {
 export function formatToolOutputVisibleRecapLines(reason = toolOutputVisibleRecapReason()): string[] {
   if (!reason) return [];
   return [
-    "VISIBLE_RECAP_REQUIRED:",
-    `  reason=${boundedAttentionText(reason, 180)}`,
-    `  latest_report_summary_ref=${getLatestReportSummary()?.handle || "none"}`,
-    "  required_before_next_action=Recap MEMORY_ANCHOR/latest report in 1-2 lines before any tool/file/API action.",
-    "END_VISIBLE_RECAP_REQUIRED",
+    `FOCUSA_MEMORY_REFRESH: reason=${boundedAttentionText(reason, 120)}; latest_report=${getLatestReportSummary()?.handle || "none"}; visibility=internal; operator_flow=continue`,
   ];
 }
 
@@ -1109,18 +1107,17 @@ export function markVisibleRecapEmittedIfPresent(assistantOutput: string): boole
   const reason = toolOutputVisibleRecapReason();
   if (!reason) return false;
   const preview = String(assistantOutput || "").slice(0, 700);
-  const recapped = /\b(recap|memory anchor|latest report|report-summary|current task|continuing)\b/i.test(
-    preview
-  );
+  const consumed = preview.trim().length > 0;
   focusaPost("/telemetry/trace", {
-    event_type: recapped ? "visible_recap_emitted" : "visible_recap_missing",
+    event_type: consumed ? "memory_refresh_consumed" : "memory_refresh_deferred",
     payload: {
       reason,
       assistant_preview: boundedAttentionText(preview, 220),
       latest_report_summary_ref: getLatestReportSummary()?.handle || "none",
+      visible_recap_forced: false,
     },
   });
-  if (!recapped) return false;
+  if (!consumed) return false;
   getAttachmentRuntime().toolOutputPressure.lastRecapAt = Date.now();
   resetToolOutputPressureWindow(Date.now());
   persistState();
@@ -1147,6 +1144,48 @@ function projectRootFromAbsolutePath(value: string): string {
   return normalizeProjectRoot(match[0]);
 }
 
+function currentAskDeclaresProjectScope(value: string): boolean {
+  const text = stripQuotedFocusaContext(String(value || ""));
+  if (!text.trim()) return false;
+  return (
+    /\b(?:wrong place|not this repo|not this project|different project|remote project|switch project)\b/i.test(
+      text
+    ) ||
+    /\b(?:switch|change|move|bind|rebind)\s+(?:to\s+)?(?:the\s+)?(?:project|repo|repository|scope|root)\b/i.test(
+      text
+    ) ||
+    /\bwork(?:ing)?\s+(?:on|in|from)\b/i.test(text) ||
+    /\b(?:project(?:\s+root)?|repo(?:sitory)?|scope)\s*(?:is|=|:|at)\b/i.test(text) ||
+    /\b(?:use|open|target)\s+(?:the\s+)?(?:remote\s+)?(?:project|repo|repository|scope)\b/i.test(text)
+  );
+}
+
+const NON_PROJECT_ARTIFACT_SUFFIXES = new Set([
+  "log",
+  "txt",
+  "md",
+  "json",
+  "jsonl",
+  "yaml",
+  "yml",
+  "toml",
+  "rs",
+  "ts",
+  "js",
+  "mjs",
+  "sh",
+  "py",
+]);
+
+function isPlausibleProjectAlias(value: string): boolean {
+  const alias = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (!alias || !/[a-z]/.test(alias) || /^\d+(?:\.\d+)+$/.test(alias)) return false;
+  const suffix = alias.includes(".") ? alias.split(".").at(-1) || "" : "";
+  return !NON_PROJECT_ARTIFACT_SUFFIXES.has(suffix);
+}
+
 function projectAliasesForText(text: string, root = ""): string[] {
   const lower = String(text || "").toLowerCase();
   const aliases = new Set<string>();
@@ -1158,6 +1197,7 @@ function projectAliasesForText(text: string, root = ""): string[] {
   if (/\bfocusa\b/i.test(lower) || /\/focusa$/i.test(root)) aliases.add("Focusa");
   for (const match of lower.matchAll(/(?:https?:\/\/)?([a-z0-9][a-z0-9-]*(?:\.[a-z0-9][a-z0-9-]*)+)/gi)) {
     const host = match[1].replace(/^www\./, "");
+    if (!isPlausibleProjectAlias(host)) continue;
     aliases.add(host);
     const firstLabel = host.split(".")[0];
     if (firstLabel && !["www", "app", "api"].includes(firstLabel)) aliases.add(firstLabel);
@@ -1427,8 +1467,9 @@ export function observeProjectThreadHintsFromText(
   action?: string
 ): PiProjectThreadObservation[] {
   const raw = String(text || "").slice(0, 2000);
-  const root = projectRootFromAbsolutePath(raw);
-  const aliases = projectAliasesForText(raw, root);
+  const scopeIntent = source !== "current_ask" || currentAskDeclaresProjectScope(raw);
+  const root = scopeIntent ? projectRootFromAbsolutePath(raw) : "";
+  const aliases = scopeIntent ? projectAliasesForText(raw, root) : [];
   const observations: PiProjectThreadObservation[] = [];
   if (root) {
     observations.push(
@@ -1480,11 +1521,19 @@ function projectSwitchLedgerCandidateForAsk(
   savedProjectRoot: string
 ): PiProjectThreadObservation | null {
   const ask = stripQuotedFocusaContext(currentAskText || "");
-  if (!ask.trim() || !getAttachmentRuntime().projectSwitchLedger.length) return null;
+  if (
+    !ask.trim() ||
+    !currentAskDeclaresProjectScope(ask) ||
+    !getAttachmentRuntime().projectSwitchLedger.length
+  )
+    return null;
   const lower = ask.toLowerCase();
   const savedRoot = normalizeProjectRoot(savedProjectRoot);
   const scored = getAttachmentRuntime()
-    .projectSwitchLedger.map((entry: PiProjectThreadObservation) => {
+    .projectSwitchLedger.filter((entry: PiProjectThreadObservation) =>
+      isPlausibleProjectAlias(entry.project_alias)
+    )
+    .map((entry: PiProjectThreadObservation) => {
       let score = entry.confidence || 0;
       const alias = entry.project_alias.toLowerCase();
       const entryRoot = normalizeProjectRoot(entry.project_root);
@@ -1592,11 +1641,12 @@ export function buildCurrentAskScopeVerdict(
       workpointValue(packet, "continuity_id") ||
       ""
   ).trim();
-  const explicitRoot = projectRootFromAbsolutePath(ask);
+  const scopeIntent = currentAskDeclaresProjectScope(ask);
+  const explicitRoot = scopeIntent ? projectRootFromAbsolutePath(ask) : "";
   const aliases = projectAliasesForText(ask, explicitRoot);
-  const ledgerCandidate = projectSwitchLedgerCandidateForAsk(ask, savedRoot);
+  const ledgerCandidate = scopeIntent ? projectSwitchLedgerCandidateForAsk(ask, savedRoot) : null;
   const alias = aliases[0] || ledgerCandidate?.project_alias || "unknown";
-  const aliasKnownRoot = rememberedProjectRootForAlias(alias);
+  const aliasKnownRoot = scopeIntent ? rememberedProjectRootForAlias(alias) : "";
   const rawCandidateRoot = normalizeProjectRoot(
     explicitRoot || ledgerCandidate?.project_root || aliasKnownRoot || ""
   );
@@ -1630,7 +1680,7 @@ export function buildCurrentAskScopeVerdict(
   } else if (sameProjectAliasMention && savedRoot && !hasCorrectionPhrase) {
     status = "aligned";
     reason = "current ask names saved project alias without competing root";
-  } else if (aliases.length || hasCorrectionPhrase) {
+  } else if (scopeIntent && (aliases.length || hasCorrectionPhrase)) {
     status = "override_candidate";
     reason = aliases.length
       ? `current ask names project alias ${alias} without verified root`
@@ -1639,7 +1689,11 @@ export function buildCurrentAskScopeVerdict(
     status = "aligned";
     reason = "no competing project signal in current ask";
   }
-  const actionAllowed = status === "aligned";
+  const actionAllowed = true;
+  const durableProjectWriteAllowed =
+    status === "aligned" &&
+    isProjectRootAuthoritySafe(savedRoot) &&
+    (!candidateRoot || candidateRoot === savedRoot);
   const verdict = {
     status,
     saved_scope: { project_root: savedRoot || "unknown", continuity_id: continuityId || "unknown" },
@@ -1650,14 +1704,10 @@ export function buildCurrentAskScopeVerdict(
       evidence_ref: evidenceRef,
     },
     action_authority_for_current_ask: actionAllowed,
-    required_next: actionAllowed
+    durable_project_write_authority: durableProjectWriteAllowed,
+    required_next: durableProjectWriteAllowed
       ? []
-      : [
-          "recap_scope_conflict",
-          "focusa_project_verify",
-          "focusa_project_identity",
-          "focusa_workpoint_checkpoint",
-        ],
+      : ["focusa_project_verify", "focusa_project_identity", "focusa_workpoint_checkpoint"],
     reason,
   };
   emitCurrentAskScopeVerdictTelemetry(verdict);
@@ -1665,16 +1715,9 @@ export function buildCurrentAskScopeVerdict(
 }
 
 export function formatCurrentAskScopeVerdictLines(verdict = buildCurrentAskScopeVerdict()): string[] {
+  if (verdict.status === "aligned" && verdict.durable_project_write_authority) return [];
   return [
-    "CURRENT_ASK_SCOPE_VERDICT:",
-    `  status=${verdict.status}`,
-    `  saved_project_root=${verdict.saved_scope.project_root}`,
-    `  current_ask_project=${verdict.current_ask_scope.project_alias}`,
-    `  current_ask_project_root=${verdict.current_ask_scope.project_root}`,
-    `  action_authority_for_current_ask=${verdict.action_authority_for_current_ask}`,
-    `  reason=${boundedAttentionText(verdict.reason, 180)}`,
-    `  required_next=${verdict.required_next.join(" -> ") || "none"}`,
-    "END_CURRENT_ASK_SCOPE_VERDICT",
+    `FOCUSA_SCOPE: status=${verdict.status}; conversation=continue; durable_writes=${verdict.durable_project_write_authority ? "allowed" : "verify_first"}; saved=${verdict.saved_scope.project_root}; candidate=${verdict.current_ask_scope.project_root}; reason=${boundedAttentionText(verdict.reason, 120)}; next=${verdict.required_next.join(" -> ") || "none"}`,
   ];
 }
 
@@ -1686,7 +1729,9 @@ function currentAskProjectConflictReason(
   const ask = stripQuotedFocusaContext(currentAskText || "");
   if (!ask.trim()) return "";
   const lower = ask.toLowerCase();
-  const explicitPath = ask.match(/\/(?:home|Users)\/[A-Za-z0-9._-]+\/[A-Za-z0-9._/-]+/);
+  const explicitPath = currentAskDeclaresProjectScope(ask)
+    ? ask.match(/\/(?:home|Users)\/[A-Za-z0-9._-]+\/[A-Za-z0-9._/-]+/)
+    : null;
   if (
     explicitPath &&
     normalizeProjectRoot(explicitPath[0]) !== normalizeProjectRoot(projectRoot || workpointProjectRoot)
@@ -1754,12 +1799,13 @@ export function buildAttentionRecallVerdict(
   const conflictReason = currentAskProjectConflictReason(askText, projectRoot, packetProjectRoot);
   const scopeStatus = conflictReason ? "conflict" : projectRoot || packetProjectRoot ? "aligned" : "unknown";
   const visibleRecapReason = cleanResumeVisibleRecapReason(options.visibleRecapReason);
-  const visibleRecapRequired = Boolean(
+  const memoryRefreshRecommended = Boolean(
     visibleRecapReason ||
     conflictReason ||
     options.queryScopeKind === "correction" ||
     options.currentAskKind === "correction"
   );
+  const visibleRecapRequired = false;
   const attentionRisks = [
     visibleRecapReason ? "tool_output_flood" : "",
     conflictReason ? "scope_conflict" : "",
@@ -1792,11 +1838,11 @@ export function buildAttentionRecallVerdict(
     .map((item) => boundedAttentionText(item, 140));
   return {
     schema: "focusa.attention_recall_verdict.v1",
-    status: conflictReason ? "conflict" : visibleRecapRequired ? "attention_risk" : "attentive",
+    status: conflictReason ? "conflict" : memoryRefreshRecommended ? "attention_risk" : "attentive",
     visible_recap_required: visibleRecapRequired,
     visible_recap_reason: visibleRecapReason || "none",
     attention_risks: attentionRisks,
-    required_next: visibleRecapRequired ? ["recap_memory_anchor"] : [],
+    required_next: conflictReason ? ["verify_project_scope_before_durable_write"] : [],
     current_ask_scope_status: scopeStatus,
     scope_conflict_reason: conflictReason || "none",
     memory_anchor: {
@@ -1804,34 +1850,22 @@ export function buildAttentionRecallVerdict(
       must_not_forget: mustNotForget.slice(0, 8),
       latest_report_summary_ref: latestReportSummaryRefFromFocusState(options.focusState),
       evidence_refs: evidenceRefs.slice(0, 5),
-      // FOCUSA_FIX-r4n9: Cut next_action when authority suppressed (scope conflict)
-      // When conflictReason is truthy, action_authority_for_current_ask=false
-      // In this case, do NOT provide a next_action — force verification before continuing
       next_action: conflictReason
-        ? "BLOCKED: scope conflict — verify project scope with focusa_project_identity before continuing"
+        ? "continue diagnosis; verify project scope before durable writes"
         : boundedAttentionText(nextAction, 180),
-      action_authority_for_current_ask: !conflictReason,
+      action_authority_for_current_ask: true,
+      durable_project_write_authority:
+        !conflictReason && isProjectRootAuthoritySafe(projectRoot || packetProjectRoot),
     },
   };
 }
 
 export function formatAttentionRecallFocusSliceLines(verdict: PiAttentionRecallVerdict): string[] {
   const anchor = verdict.memory_anchor;
-  const authorityBlocked = anchor.action_authority_for_current_ask === false;
-  const lines: string[] = [
-    "MEMORY_ANCHOR:",
-    `  task=${anchor.task}`,
-    `  must_not_forget=${anchor.must_not_forget.join(" | ") || "none"}`,
-    `  latest_report_summary_ref=${anchor.latest_report_summary_ref}`,
-    // FOCUSA_FIX-r4n9: Show blocked indicator when authority is suppressed
-    authorityBlocked
-      ? `  ⛔ next_action=${anchor.next_action}  ← EXECUTION BLOCKED`
-      : `  next_action=${anchor.next_action}`,
-    `  action_authority_for_current_ask=${anchor.action_authority_for_current_ask}`,
-    `ATTENTION_RECALL_VERDICT: schema=${verdict.schema} status=${verdict.status} visible_recap_required=${verdict.visible_recap_required} visible_recap_reason=${boundedAttentionText(verdict.visible_recap_reason || "none", 140)} attention_risks=${(verdict.attention_risks || []).join(",") || "none"} required_next=${(verdict.required_next || []).join(",") || "none"} current_ask_scope=${verdict.current_ask_scope_status} scope_conflict_reason=${boundedAttentionText(verdict.scope_conflict_reason, 140)}`,
-    "END_ATTENTION_RECALL",
+  if (verdict.status === "attentive" && !verdict.attention_risks.length) return [];
+  return [
+    `FOCUSA_ATTENTION: status=${verdict.status}; conversation=continue; durable_writes=${anchor.durable_project_write_authority ? "allowed" : "verify_first"}; risks=${verdict.attention_risks.join(",") || "none"}; next=${boundedAttentionText(anchor.next_action, 140)}; report=${anchor.latest_report_summary_ref}`,
   ];
-  return lines;
 }
 
 function assistantOutputLooksLikeReport(text: string): boolean {
@@ -2453,6 +2487,21 @@ async function loadFocusState(): Promise<{ frame: any; fs: any; stack: any } | n
 // ── Get Focus State from Focusa scoped to Pi's own frame (§33.5 isolation) ──
 // CRITICAL: Never use Focusa's global active_frame_id — that belongs to Wirebot.
 // Pi sessions must only read their own frame. If Pi has no frame, return empty.
+export function getCachedFocusState(): { frame: any; fs: any; stack: any } | null {
+  const cacheKey = `${getAttachmentRuntime().activeFrameId || ""}|${getAttachmentRuntime().sessionFrameKey || ""}`;
+  return getAttachmentRuntime().focusStateCache.key === cacheKey
+    ? getAttachmentRuntime().focusStateCache.data
+    : null;
+}
+
+export function getCachedSemanticMemorySummary(): any {
+  return getAttachmentRuntime().semanticMemoryCache.data || null;
+}
+
+export function getCachedEcsHandlesSummary(): any {
+  return getAttachmentRuntime().ecsHandlesCache.data || null;
+}
+
 export async function getFocusState(): Promise<{ frame: any; fs: any; stack: any } | null> {
   if (!getAttachmentRuntime().activeFrameId && !getAttachmentRuntime().sessionFrameKey) return null;
 

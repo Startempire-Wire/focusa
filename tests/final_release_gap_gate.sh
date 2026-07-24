@@ -11,6 +11,11 @@ require() {
   rg -n "$pattern" "$file" >/dev/null || fail "$message"
   pass "$message"
 }
+forbid() {
+  local pattern="$1" file="$2" message="$3"
+  if rg -n "$pattern" "$file" >/dev/null; then fail "$message"; fi
+  pass "$message"
+}
 
 # All-surface OTA: policy, atomic local promotion, delegated signed macOS
 # activation, automatic Pi runtime reload, rollback, and release artifacts.
@@ -61,8 +66,8 @@ pass 'worktree and authority gates'
 )
 pass 'cache miss mitigation and Pi OTA activation gates'
 
-# Compaction provider-overflow, retry, automatic rollover, persistence, crash, and rotating-agent proof.
-require 'pi\.sendUserMessage\("/focusa-rollover execute"' apps/pi-extension/src/auto-compaction.ts 'transport retry exhaustion queues governed rollover automatically'
+# Compaction provider-overflow, native recovery, persistence, crash, and rotating-agent proof.
+forbid 'pi\.sendUserMessage\("/focusa-rollover execute"' apps/pi-extension/src/auto-compaction.ts 'transport retry exhaustion must not auto-queue rollover'
 bash tests/spec130a_proactive_compaction_runtime_test.sh
 bash tests/spec130a_persistence_actor_static_test.sh
 python3 tests/spec130a_release_stress_static_test.py

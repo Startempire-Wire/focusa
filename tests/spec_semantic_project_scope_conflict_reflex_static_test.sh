@@ -39,9 +39,9 @@ jq -e '.properties.failure_class.enum | index("scope_conflict")' "$SCHEMA" >/dev
   || fail "tool_result_v1 schema does not allow scope_conflict"
 pass "tool_result_v1 schema allows scope_conflict"
 
-rg -n 'interface PiCurrentAskScopeVerdict|buildCurrentAskScopeVerdict|action_authority_for_current_ask.*false|focusa_project_verify.*focusa_project_identity.*focusa_workpoint_checkpoint' "$STATE_TS" >/dev/null \
-  || fail "CurrentScopeVerdict path cannot suppress action before API scope_mismatch"
-pass "CurrentScopeVerdict can suppress action before API scope_mismatch"
+rg -n 'interface PiCurrentAskScopeVerdict|buildCurrentAskScopeVerdict|durable_project_write_authority|focusa_project_verify.*focusa_project_identity.*focusa_workpoint_checkpoint' "$STATE_TS" >/dev/null \
+  || fail "CurrentScopeVerdict path cannot gate durable writes before API scope_mismatch"
+pass "CurrentScopeVerdict can gate durable writes before API scope_mismatch"
 
 rg -n 'detect_semantic_project_scope_conflict.*CurrentScopeVerdict.*action_authority_for_current_ask=false|G97-primitive-registry' "$SPEC97" >/dev/null \
   || fail "Spec97 does not document semantic project-scope-conflict primitive"

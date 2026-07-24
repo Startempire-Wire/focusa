@@ -924,56 +924,24 @@ export async function buildAwarenessPacket(surface: AwarenessSurface): Promise<A
 // ─── Text renderer for a packet ──────────────────────────────────────────────
 
 export function renderAwarenessPacketText(packet: AwarenessPacket): string {
-  const lines: string[] = [];
-
-  // Authority header
-  const wpLine = packet.visibleLines.find((l) => l.category === "workpoint");
-  if (wpLine) {
-    lines.push(`## Authority\n${wpLine.text}`);
-  }
-
-  // Mission / next action
-  const nextLine = packet.visibleLines.find((l) => l.category === "next_action");
-  if (nextLine) {
-    lines.push(`## Next\n${nextLine.text}`);
-  }
-
-  const missionLine = packet.visibleLines.find((l) => l.category === "mission");
-  if (missionLine && (packet.mode === "standard" || packet.mode === "rich")) {
-    lines.push(`## Mission\n${missionLine.text}`);
-  }
-
-  // Blockers
-  const blockerLines = packet.visibleLines.filter((l) => l.category === "blocker");
-  if (blockerLines.length > 0) {
-    lines.push(`## Blockers\n${blockerLines.map((l) => `- ${l.text}`).join("\n")}`);
-  }
-
-  // Risk
-  const riskLines = packet.visibleLines.filter((l) => l.layer === "risk" && l.category !== "blocker");
-  if (riskLines.length > 0) {
-    lines.push(`## Risk\n${riskLines.map((l) => `- ${l.text}`).join("\n")}`);
-  }
-
-  // Goal
-  const goalLines = packet.visibleLines.filter((l) => l.layer === "goal");
-  if (goalLines.length > 0 && (packet.mode === "rich" || packet.surface === "post_compaction")) {
-    lines.push(`## Goal\n${goalLines.map((l) => `- ${l.text}`).join("\n")}`);
-  }
-
-  // Tools
-  if (packet.nextTools.length > 0 && (packet.mode === "standard" || packet.mode === "rich")) {
-    lines.push(
-      `## Next Tools\n${packet.nextTools.map((t) => `- ${t.toolName}: ${t.whyIncluded}`).join("\n")}`
-    );
-  }
-
-  // Confidence
-  lines.push(
-    `---\n*awareness_packet v1 | mode=${packet.mode} | surface=${packet.surface} | confidence=${packet.metadata.confidence} | ${packet.visibleLines.length} lines shown*`
+  const authority = packet.visibleLines.find(
+    (line) => line.category === "workpoint" || line.category === "authority"
   );
-
-  return lines.join("\n");
+  const mission = packet.visibleLines.find((line) => line.category === "mission");
+  const next = packet.visibleLines.find((line) => line.category === "next_action");
+  const risk = packet.visibleLines.find((line) => line.category === "blocker" || line.layer === "risk");
+  const tools = packet.nextTools.slice(0, 2).map((tool) => tool.toolName);
+  return [
+    "# Focusa",
+    `Status: ${packet.status} · confidence=${packet.metadata.confidence}`,
+    authority ? `Scope: ${authority.text}` : "Scope: verification required for durable writes",
+    mission ? `Mission: ${mission.text}` : "Mission: follow the newest operator request",
+    next ? `Next: ${next.text}` : "Next: continue the newest operator request",
+    risk ? `Risk: ${risk.text}` : "Boundary: operator steering leads; scoped tools enforce durable writes",
+    tools.length ? `Tools: ${tools.join(" · ")}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 // ─── Utility ─────────────────────────────────────────────────────────────────

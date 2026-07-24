@@ -49,7 +49,7 @@ await runWithAttachmentRuntime(attachmentKey, async () => {
   const mismatched = buildFocusaUtilityCard("visible");
   assert(!mismatched.includes("STALE MISSION SHOULD NOT LEAK"), "mismatched Utility Card leaked stale mission");
   assert(!mismatched.includes("DO_NOT_DRIFT"), "mismatched Utility Card leaked stale drift boundary");
-  assert(mismatched.includes("none verified"), "mismatched Utility Card did not fail closed");
+  assert(mismatched.includes("Scope: unverified"), "mismatched Utility Card did not fail closed");
 
   runtime.sessionCwd = "/root";
   runtime.sessionFrameKey = "other-session";
@@ -64,8 +64,8 @@ await runWithAttachmentRuntime(attachmentKey, async () => {
   const unsafe = buildFocusaUtilityCard("visible");
   assert(!unsafe.includes("SPEC96 MISSION MUST NOT LEAK"), "unsafe-cwd Utility Card adopted stale Workpoint");
   assert(!unsafe.includes("spec96-lowmem-surgical"), "unsafe-cwd Utility Card leaked stale continuity");
-  assert(unsafe.includes("none verified"), "unsafe-cwd Utility Card did not fail closed");
-  assert(unsafe.includes("broad/unsafe"), "unsafe-cwd Utility Card omitted recovery posture");
+  assert(unsafe.includes("Scope: unverified"), "unsafe-cwd Utility Card did not fail closed");
+  assert(unsafe.includes("conversation and diagnosis continue"), "unsafe-cwd Utility Card omitted recovery posture");
 
   resetPiSessionScopedState("test-session-switch");
   const reset = buildFocusaUtilityCard("visible");
@@ -104,7 +104,7 @@ await runWithAttachmentRuntime(attachmentKey, async () => {
   setActiveWorkpointSummary("MATCHED MISSION");
   const matched = buildFocusaUtilityCard("visible");
   assert(matched.includes("MATCHED MISSION"), "matched Utility Card did not show scoped mission");
-  assert(matched.includes("verified project_root + continuity_id match"), "matched Utility Card omitted verified scope");
+  assert(matched.includes("Scope: verified"), "matched Utility Card omitted verified scope");
 
   console.log("utility card session isolation proof passed");
 });

@@ -877,12 +877,14 @@ become a receipt
 4. classify current pressure;
 5. defer retry when safe;
 6. use deterministic bounded fallback when supported;
-7. require rollover or stop before emergency exhaustion.
+7. yield to Pi native threshold/overflow recovery without intercepting queued operator input.
 ```
 
 A provider `WebSocket`, network, socket, timeout, connection-reset, temporary-service, or retryable HTTP failure is `primary_transport`. It receives at most one linked retry after the initiating epoch settles, with a maximum 60-second cooldown and a fresh live-context/idle/ownership check. It must never set the unchanged context as terminal or suppress all future recovery. Non-transport eligibility/no-op results remain terminal for that exact context epoch. No retry may add a second summarizer call or obscure the primary error.
 
-If that linked retry also fails, the coordinator must persist `rollover_required`, retain canonical checkpoint authority, and surface the exact `/focusa-rollover execute` command. At 95% or greater context pressure, ordinary user prompts must be persisted and handled locally instead of sending another predictably over-limit provider request; extension commands remain routable. The coordinator must start emergency compaction and automatically replay text-only input after verified completion. If recovery is unavailable or exhausted, it must explain that no provider call occurred, preserve the input in a typed session entry, and require `/focusa-rollover execute`; image-bearing input must be resent after recovery.
+If that linked retry also fails, the coordinator must persist `native_compaction_failed`, retain canonical checkpoint authority, and yield to Pi native threshold/overflow recovery. The Pi `input` event must return `continue`: Pi owns the accepted prompt, attached images, steering semantics, pre-prompt threshold compaction, and overflow compact-and-retry path. Focusa must never return `handled` merely because context pressure is high, must never require the operator to resend accepted input, and must never auto-queue `/focusa-rollover execute` as a substitute for native recovery.
+
+`/focusa-rollover execute` remains an explicit operator-invoked migration tool for a genuinely unrecoverable or intentionally replaced session. It is not part of normal pressure handling and cannot be a prerequisite for conversational flow.
 
 ---
 

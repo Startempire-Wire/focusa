@@ -44,7 +44,7 @@ pass "Foundation Train and Cross-Functional Alpha are mandatory"
 for needle in \
   'OpenAPI 3.0.3' \
   'JSON Schema 2020-12' \
-  'external adapters generated from published OpenAPI outside Focusa core' \
+  'external adapters generated outside Focusa core from the published OpenAPI contract' \
   'Docling Serve v1' \
   'Docling HybridChunker' \
   'TanStack Query' \

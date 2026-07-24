@@ -84,7 +84,7 @@ Suggested route: project_identity → trajectory_view → workpoint_resume/check
 6. Load the matching `.pi/skills/<skill>/SKILL.md`, then its numbered runbook only for the selected workflow.
 7. For Mission Canvas, use the Work Rail/Work Surface bindings and UIAI session/origin boundaries; do not create a parallel hand-coded authority path.
 8. For autonomous background work, use daemon-native Silent Sessions with exact session/run/generation and mutation approval/idempotency.
-9. Before compaction or model/session change, checkpoint Workpoint and Trajectory; governed rollover is the recovery path after bounded transport exhaustion.
+9. Before compaction or model/session change, checkpoint Workpoint and Trajectory. Pi native threshold/overflow compaction preserves and retries the operator prompt automatically; governed rollover is exceptional explicit session maintenance and never a normal command/resend prerequisite.
 10. Close work with stable Evidence, prediction evaluation when available, reusable metacognition when evidence-backed, and an exact next action.
 
 ## Customer lifecycle walkthrough
@@ -93,8 +93,13 @@ Suggested route: project_identity → trajectory_view → workpoint_resume/check
 # Inspect without mutation.
 bash scripts/install-focusa.sh --dry-run --eval
 
-# Install or idempotently repair/rerun.
+# Install or idempotently repair/rerun. Interactive runs ask before installing
+# Node.js/npm, Pi, the bundled Focusa Pi extension, and UIAI Engine.
 curl -fsS https://install.focusa.dev/focusa | bash -s -- --eval
+
+# Unattended full-workflow install requires explicit approval.
+curl -fsS https://install.focusa.dev/focusa | \
+  bash -s -- --eval --install-dependencies --assume-yes
 
 # Discover trusted updater and rollback controls.
 focusa update --help
@@ -103,4 +108,4 @@ focusa update --help
 curl -fsS https://install.focusa.dev/focusa | bash -s -- --uninstall
 ```
 
-Use `--purge-data` only for explicit destructive removal. Verify daemon health, version, Pi tool discovery, Mission Canvas, and Workpoint resume after install/update/repair.
+Use `--purge-data` only for explicit destructive removal. Verify daemon health, Node.js 20+, npm, supported Pi, the managed Focusa Pi extension, UIAI `/v1/health`, Mission Canvas, and Workpoint resume after install/update/repair. Linux/amd64 may install the pinned checksummed UIAI release; other platforms must provide a verified private endpoint through `UIAI_ENGINE_URL`. A missing dependency is a not-ready state, never a hidden partial success.

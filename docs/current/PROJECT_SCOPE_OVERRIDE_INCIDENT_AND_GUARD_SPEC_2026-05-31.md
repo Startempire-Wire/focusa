@@ -7,6 +7,18 @@ Related docs: [`WORKPOINT_SESSION_SCOPE_GUARD.md`](./WORKPOINT_SESSION_SCOPE_GUA
 
 Note: the file name is retained for continuity, but the parent failure class is broader than project scope.
 
+## Operator correction — 2026-07-24
+
+The original guard overreached by turning scope uncertainty and tool-output pressure into conversation-level blocking. The corrected boundary is:
+
+- operator steering and prompt delivery always retain authority;
+- scope arbitration gates only durable project-scoped mutations;
+- read-only diagnosis and project verification continue immediately;
+- report-summary replay is an internal attention aid, not a forced visible recap;
+- paths inside errors, stack traces, tool output, or quoted diagnostics are evidence, not project-switch intent by themselves.
+
+Where older sections say `action_authority_for_current_ask=false`, “force a visible recap,” or “blocking scope conflict,” interpret them as `durable_project_write_authority=false`, silent memory refresh, and mutation-boundary verification respectively.
+
 ## Executive summary
 
 During a compacted Pi session, Focusa preserved a canonical Workpoint under the Focusa repo scope (`project_root=<focusa-project-root>`, continuity `focusa-cont-root-8a64612b-d338-4eca-9e27-bb0e9d11c7f8`). The visible symptom was cross-project action: the operator corrected that active work was the PTM remote project, yet the assistant inspected Focusa-local state before rebinding.
@@ -92,11 +104,11 @@ Expected route:
 1. Extract critical facts from Workpoint, latest operator correction, compaction packet, and bounded session evidence.
 2. Build a short `MEMORY_ANCHOR` before verbose packets: task, must-not-forget facts, latest report/spec summary handle, evidence handles, and next action.
 3. Compute an `AttentionRecallVerdict` before Focus Slice finalization and before project-scoped tool calls.
-4. If the verdict detects project conflict, mark the active packet as `canonical_for_saved_scope=true` but `action_authority_for_current_ask=false`.
-5. If the verdict detects tool-output flood, compaction loss, or forgotten report risk, force a visible recap before continuing.
+4. If the verdict detects project conflict, mark the active packet as `canonical_for_saved_scope=true`, retain `action_authority_for_current_ask=true`, and set `durable_project_write_authority=false`.
+5. If the verdict detects tool-output flood, compaction loss, or forgotten report risk, refresh the internal memory anchor without interrupting the current response; a visible recap is optional.
 6. Route to `focusa_project_verify` / `focusa_project_identity` only for the project-conflict subtype.
-7. Checkpoint or transfer into the correct project scope before doing file, API, or evidence work.
-8. Surface concise operator-visible status, e.g. “Memory anchor: active report is X; no implementation yet; rebinding before action.”
+7. Continue direct answers, diagnosis, and read-only verification; checkpoint or transfer into the correct project scope before durable file, API mutation, or evidence writes.
+8. Surface concise status only when useful, e.g. “Scope verification pending for durable writes; continuing diagnosis.”
 
 ## Root cause analysis
 
@@ -123,16 +135,16 @@ Focusa had identity gates for Workpoint resume, but no separate gate that asks: 
 
 A packet can be canonical for its saved `project_root + continuity_id` and still be the wrong action anchor for a new or corrected operator ask.
 
-### 2. Operator steering was advisory, not blocking
+### 2. Operator steering was not converted into a mutation-boundary guard
 
-The system already treats operator steering as high priority in docs and tool guidance, but the runtime did not convert a project correction phrase into a blocking scope conflict.
+The system already treats operator steering as highest priority in docs and tool guidance, but the runtime did not convert a project correction phrase into a durable-write scope guard. The guard must not block conversation or consume the steering prompt.
 
 Examples that should trigger blocking arbitration:
 
 - “wrong place”
 - “this is the PTM remote project”
 - “use the remote server project”
-- explicit project path/domain/host that differs from current Workpoint scope
+- explicit project path/domain/host that differs from current Workpoint scope and appears in project-switch language, not merely inside diagnostics
 - “not this repo/project”
 
 ### 3. Canonicality was overloaded
@@ -181,7 +193,7 @@ The prevention point must move before Focus Slice finalization and before any to
 
 ### A0. Add an Attention/Recall Control Plane before memory injection and action
 
-Focusa needs a small mandatory layer between state retrieval and model-visible action guidance. Its job is broader than project scope: determine whether critical retrieved facts have been pinned, whether action can proceed, and whether a visible recap is required.
+Focusa needs a small mandatory layer between state retrieval and model-visible action guidance. Its job is broader than project scope: determine whether critical retrieved facts have been pinned and whether durable project writes require verification. It must not interrupt prompt delivery or require visible recap prose.
 
 Inputs:
 
@@ -216,12 +228,13 @@ Output:
     "saved_scope": {"project_root": "<focusa-project-root>", "continuity_id": "..."},
     "current_ask_scope": {"project_alias": "PTM", "project_root": "<ptm-project-root>", "confidence": "high"},
     "workpoint_canonical_for_saved_scope": true,
-    "workpoint_action_authority": false
+    "operator_steering_authority": true,
+    "durable_project_write_authority": false
   },
   "attention_risks": ["tool_output_flood", "compaction_loss", "forgotten_report"],
-  "action_allowed": false,
-  "visible_recap_required": true,
-  "required_next": ["recap_memory_anchor", "verify_current_project", "rebind_or_session_transfer"],
+  "conversation_allowed": true,
+  "visible_recap_required": false,
+  "required_next_before_durable_write": ["verify_current_project", "rebind_or_session_transfer"],
   "evidence_spans": ["current_ask:PTM remote", "session_jsonl:<ptm-project-root>", "remote_hlt:docs/HLT_LEDGER.md"]
 }
 ```
@@ -247,7 +260,7 @@ This block should be short enough to remain visible even when tool definitions, 
 
 ### A0b. Add tool-output flood recap and report replay
 
-After a bounded number of tool calls or large output bytes, Pi should force a one- or two-line recap before continuing:
+After a bounded number of tool calls or large output bytes, Pi should refresh a replayable internal memory anchor. It may emit a one- or two-line recap when naturally useful, but must not force one before continuing:
 
 ```text
 Recap: auditing/iterating the anti-forgetting spec; no source implementation; latest finding is missing AttentionRecallVerdict + MemoryAnchor.
@@ -307,8 +320,9 @@ CURRENT_ASK_SCOPE_VERDICT:
   current_workpoint_project_root: <focusa-project-root>
   operator_indicated_project: PTM remote project
   operator_indicated_project_root: <ptm-project-root>
-  action_authority_for_current_ask: false
-  required_next: focusa_project_verify -> focusa_project_identity -> focusa_workpoint_checkpoint/session_transfer
+  operator_steering_authority: true
+  durable_project_write_authority: false
+  required_next_before_durable_write: focusa_project_verify -> focusa_project_identity -> focusa_workpoint_checkpoint/session_transfer
 ```
 
 Rules:
@@ -326,7 +340,8 @@ Extend Workpoint resume rendering with separate booleans:
 {
   "canonical_for_saved_scope": true,
   "matches_current_ask_scope": false,
-  "action_authority_for_current_ask": false,
+  "operator_steering_authority": true,
+  "durable_project_write_authority": false,
   "scope_conflict_reason": "operator_declared_different_project"
 }
 ```
@@ -346,7 +361,7 @@ Detector output should include confidence and evidence spans, not raw transcript
 
 ### D. Add rebind route
 
-When `CurrentAskScopeArbitration.status=conflict`, the tool choreography should become:
+When `CurrentAskScopeArbitration.status=conflict`, conversation and read-only diagnosis continue, while durable project-write choreography becomes:
 
 ```text
 focusa_project_verify / focusa_project_identity
@@ -372,10 +387,10 @@ These should feed the existing scope/relevance review path described in `docs/69
 
 ### F. Update operator-facing wording
 
-When conflict is detected, the assistant should not continue silently. It should answer directly and act:
+When conflict is detected, the assistant should answer directly and continue safe work without pretending all execution is blocked:
 
 ```text
-Scope conflict: saved Workpoint is <focusa-project-root>; your current ask indicates PTM remote <ptm-project-root>. Rebinding before action.
+Scope change detected: continuing diagnosis; verifying PTM remote <ptm-project-root> before durable project writes.
 ```
 
 Avoid asking for permission unless the next operation is destructive or high-risk.
@@ -457,13 +472,13 @@ A live proof should demonstrate:
 - Focus Slice exposes a `MEMORY_ANCHOR` before verbose Workpoint/trajectory/tool-affordance payloads.
 - Retrieved critical facts are considered usable only after `AttentionRecallVerdict` confirms they are pinned or forces a recap.
 - A just-written report/spec summary remains replayable after compaction and tool-output flood without relying on transcript tail.
-- Tool-output bursts trigger a concise visible recap before additional action when attention risk is high.
-- A canonical packet is never treated as action-authoritative when current operator text declares a conflicting project.
+- Tool-output bursts refresh a replayable internal memory anchor without forcing visible recap prose or delaying the current ask.
+- A canonical packet never authorizes durable writes to a conflicting project, while current operator steering remains conversation-authoritative.
 - Focus Slice exposes a current-ask scope verdict before Workpoint instructions, either standalone or inside `AttentionRecallVerdict`.
 - Workpoint resume rendering distinguishes saved-scope canonicality from current-ask action authority.
 - Operator project corrections trigger bounded project verification/rebind before file/API work.
 - Same-session project history is indexed as project-thread evidence, so “single Pi session” does not collapse multiple project scopes into one active target.
-- Semantic project conflicts can suppress action before any API-level `scope_mismatch` occurs.
+- Semantic project conflicts can suppress durable project writes before any API-level `scope_mismatch` occurs without suppressing conversation or read-only diagnosis.
 - Regression tests cover Focusa-local saved scope vs PTM remote current ask, plus generic post-compaction/tool-flood forgetting.
 - Telemetry makes the event reviewable without raw transcript dependence.
 - Docs explain the difference between “stored memory,” “retrieved memory,” “attended memory,” and “action authority.”
@@ -482,10 +497,10 @@ Suggested child beads:
 
 1. Add `AttentionRecallVerdict` and `MEMORY_ANCHOR` generation in Pi Focus Slice and compaction output.
 2. Add report-summary capture/replay handles for assistant-produced specs, audits, and final reports.
-3. Add tool-output flood recap thresholds and visible recap enforcement.
-4. Add current-ask project override detector in Pi extension as a scope subtype.
-5. Add Workpoint action-authority fields to resume packet rendering.
-6. Add scope arbitration block to Focus Slice and compaction output.
+3. Add tool-output flood thresholds and silent memory-anchor refresh with optional visible recap.
+4. Add current-ask project override detector in Pi extension as a scope subtype, excluding diagnostic paths.
+5. Split operator steering authority from durable project-write authority in resume rendering.
+6. Add concise scope verification advisory to Focus Slice and compaction output.
 7. Build bounded Pi session project-switch ledger from JSONL/session entries.
 8. Add semantic project-scope-conflict Reflex Primitive.
 9. Add telemetry events and regression tests for attention loss, forgotten reports, and operator-declared project override.
