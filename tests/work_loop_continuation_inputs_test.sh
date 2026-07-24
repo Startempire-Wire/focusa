@@ -37,7 +37,7 @@ wait_for_jq() {
 
 CHECKPOINT_RESP=$(http_json -X POST "${BASE_URL}/v1/workpoint/checkpoint" \
   -H 'Content-Type: application/json' \
-  -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-continuation-test\",\"mission\":\"verify work-loop continuation inputs\",\"current_action\":\"spec79_context_contract\",\"next_slice\":\"verify continuation context persistence\",\"canonical\":true}")
+  -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-continuation-test\",\"work_item_id\":\"spec79-context-test\",\"mission\":\"verify work-loop continuation inputs\",\"current_action\":\"spec79_context_contract\",\"next_slice\":\"verify continuation context persistence\",\"canonical\":true}")
 if ! echo "$CHECKPOINT_RESP" | jq -e '.canonical == true and .workpoint_id != null' >/dev/null 2>&1; then
   log_fail "canonical Workpoint checkpoint rejected: ${CHECKPOINT_RESP}"
 fi
