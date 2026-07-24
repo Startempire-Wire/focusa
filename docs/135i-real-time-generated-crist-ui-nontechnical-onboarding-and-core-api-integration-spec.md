@@ -80,7 +80,7 @@ Rust + Serde + Schemars + Utoipa
 → JSON Schema 2020-12
 → OpenAPI 3.0.3
 → openapi-typescript + openapi-fetch
-→ oapi-codegen v2.7.x Go client/models for UIAI Engine
+→ UIAI Engine-owned adapter generated outside Focusa core from the published OpenAPI contract
 → generated A2UI catalog schemas and UI action bindings
 ```
 
@@ -588,7 +588,7 @@ authority, Evidence, and Receipt posture. Do not create a generic UI mutation
 endpoint or duplicate canonical business logic in the UI.
 
 Use OpenAPI 3.0.3, JSON Schema 2020-12, openapi-typescript/openapi-fetch, and
-oapi-codegen for UIAI Engine. Do not maintain duplicate DTOs.
+UIAI Engine owns any language-specific adapter outside Focusa core and derives it from the published OpenAPI contract. Do not maintain duplicate DTO authority.
 
 Use UIAI Engine Eval for every browser, end-to-end, responsive, visual,
 reconnect, diagnostic, and browser-accessibility proof. Do not add Playwright.
@@ -643,7 +643,7 @@ Spec 135I is accepted when:
 4. Focusa-specific Svelte Custom Elements provide domain components without duplicating the renderer.
 5. Native Focusa event replay and live tail update surfaces without manual refresh.
 6. AG-UI compatibility exists without owning state or blocking the native Alpha path.
-7. OpenAPI 3.0.3 and JSON Schema 2020-12 generate TypeScript and Go clients.
+7. OpenAPI 3.0.3 and JSON Schema 2020-12 generate TypeScript clients while remaining the language-neutral contract for external adapters.
 8. Every action resolves to a generated typed Focusa operation and exact scope.
 9. Every default screen uses plain language, one primary action, progressive disclosure, autosave, resume, and recovery.
 10. Context, Role, Interview, Spec, Tasks, Workpoint, Evidence, Receipt, and recovery operate without CLI use.

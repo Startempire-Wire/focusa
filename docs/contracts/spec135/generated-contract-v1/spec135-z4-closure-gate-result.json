@@ -1,0 +1,186 @@
+{
+  "check_count": 35,
+  "checks": [
+    {
+      "detail": "clean",
+      "gate": "clean_checkout",
+      "ok": true
+    },
+    {
+      "detail": "Spec 135 generated clients: PASS (86 operations)",
+      "gate": "tests/spec135_generated_clients_test.py",
+      "ok": true
+    },
+    {
+      "detail": "Spec 135 protocol handshake: PASS (scope exact, permission projected, incompatible clients fail closed)",
+      "gate": "tests/spec135_protocol_handshake_test.py",
+      "ok": true
+    },
+    {
+      "detail": "Spec 135 ready-frontier Q1/Q3/Q4/E1 strict contract lint: PASS",
+      "gate": "tests/spec135_ready_frontier_contracts_lint.py",
+      "ok": true
+    },
+    {
+      "detail": "Spec 135 Q2 and E2-E4 security/migration contract lint: PASS",
+      "gate": "tests/spec135_security_migration_contracts_lint.py",
+      "ok": true
+    },
+    {
+      "detail": "Spec 135 P2 typed connector framework strict lint: PASS",
+      "gate": "tests/spec135_p2_connector_framework_lint.py",
+      "ok": true
+    },
+    {
+      "detail": "Spec 135 P3 OAuth2/keyring connector lifecycle strict lint: PASS",
+      "gate": "tests/spec135_p3_connector_auth_lint.py",
+      "ok": true
+    },
+    {
+      "detail": "Spec 135 C4 Google Drive typed connector strict lint: PASS",
+      "gate": "tests/spec135_c4_google_drive_connector_lint.py",
+      "ok": true
+    },
+    {
+      "detail": "Spec 135 P4 stateless AG-UI compatibility adapter lint: PASS",
+      "gate": "tests/spec135_p4_ag_ui_adapter_lint.py",
+      "ok": true
+    },
+    {
+      "detail": "Spec 135 P5 provider/connector/client/stream parity migration lint: PASS",
+      "gate": "tests/spec135_p5_parity_migration_lint.py",
+      "ok": true
+    },
+    {
+      "detail": "Spec 135 Q5 supply-chain governance strict lint: PASS",
+      "gate": "tests/spec135_q5_supply_chain_lint.py",
+      "ok": true
+    },
+    {
+      "detail": "Spec 135 Q6 fail-closed aggregate quality gate lint: PASS",
+      "gate": "tests/spec135_q6_quality_gate_lint.py",
+      "ok": true
+    },
+    {
+      "detail": "Spec 135 E5 expand-contract rollout closure lint: PASS",
+      "gate": "tests/spec135_e5_rollout_closure_lint.py",
+      "ok": true
+    },
+    {
+      "detail": "Spec 135 V4 evidence-backed software domain strict lint: PASS",
+      "gate": "tests/spec135_v4_software_domain_lint.py",
+      "ok": true
+    },
+    {
+      "detail": "Spec 135 U4-U5 accessible UI and bounded friction learning: PASS",
+      "gate": "tests/spec135_u4_u5_usability_friction_test.py",
+      "ok": true
+    },
+    {
+      "detail": "Spec 135 U6 adaptive generated-UI proposal/evaluation/promotion/rollback: PASS",
+      "gate": "tests/spec135_u6_adaptive_ui_test.py",
+      "ok": true
+    },
+    {
+      "detail": "Spec 135 Alpha 7 General\u2192Software\u2192Research parity lint: PASS",
+      "gate": "tests/spec135_alpha7_domain_parity_lint.py",
+      "ok": true
+    },
+    {
+      "detail": "Spec 135 Alpha 8 permanent nontechnical dogfood path lint: PASS",
+      "gate": "tests/spec135_alpha8_nontechnical_dogfood_lint.py",
+      "ok": true
+    },
+    {
+      "detail": "Spec 135 Z1 complete requirement closure matrix lint: PASS",
+      "gate": "tests/spec135_z1_closure_matrix_lint.py",
+      "ok": true
+    },
+    {
+      "detail": "Spec 135 Z2 permanent integration evidence lint: PASS",
+      "gate": "tests/spec135_z2_permanent_integration_lint.py",
+      "ok": true
+    },
+    {
+      "detail": "Spec 135 Z3 restart and worktree lineage lint: PASS",
+      "gate": "tests/spec135_z3_lineage_lint.py",
+      "ok": true
+    },
+    {
+      "detail": "passed",
+      "gate": "uiai-eval.alpha0-context-commit.result.json",
+      "ok": true
+    },
+    {
+      "detail": "passed",
+      "gate": "uiai-eval.alpha0-generated-ui.result.json",
+      "ok": true
+    },
+    {
+      "detail": "passed",
+      "gate": "uiai-eval.c1-context-ingestion.result.json",
+      "ok": true
+    },
+    {
+      "detail": "passed",
+      "gate": "uiai-eval.c2-context-retrieval.result.json",
+      "ok": true
+    },
+    {
+      "detail": "passed",
+      "gate": "uiai-eval.c3-context-claims.result.json",
+      "ok": true
+    },
+    {
+      "detail": "passed",
+      "gate": "uiai-eval.p1-provider-conformance.result.json",
+      "ok": true
+    },
+    {
+      "detail": "passed",
+      "gate": "uiai-eval.ri1-role-profile.result.json",
+      "ok": true
+    },
+    {
+      "detail": "passed",
+      "gate": "uiai-eval.ri2-interview-strategy.result.json",
+      "ok": true
+    },
+    {
+      "detail": "passed",
+      "gate": "uiai-eval.ri3-interview-resume.result.json",
+      "ok": true
+    },
+    {
+      "detail": "passed",
+      "gate": "uiai-eval.st1-spec-workbench.result.json",
+      "ok": true
+    },
+    {
+      "detail": "passed",
+      "gate": "uiai-eval.st2-task-plan.result.json",
+      "ok": true
+    },
+    {
+      "detail": "passed",
+      "gate": "uiai-eval.u1-workspace-artifact.result.json",
+      "ok": true
+    },
+    {
+      "detail": "passed",
+      "gate": "uiai-eval.u2-workspace-live-refresh.result.json",
+      "ok": true
+    },
+    {
+      "detail": "operations=86",
+      "gate": "schemathesis_compatible_openapi_contract",
+      "ok": true
+    }
+  ],
+  "evidence_ref": "evidence:spec135-z4:strict-clean-checkout",
+  "failed_count": 0,
+  "recovery": [],
+  "requirement_id": "SPEC135-Z4",
+  "schema": "focusa.spec135.z4_closure_gate_result.v1",
+  "status": "passed"
+}

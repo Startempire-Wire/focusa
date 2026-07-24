@@ -1,0 +1,24 @@
+{
+  "schema": "focusa.spec135.alpha5_alpha6_closure.v1",
+  "status": "passed",
+  "alpha5": {
+    "description": "UIAI artifact, Evidence, and automatic live refresh",
+    "feeders": ["SPEC135-ALPHA4", "SPEC135-U1", "SPEC135-U2", "SPEC135-U3"],
+    "proof_refs": [
+      "uiai-eval.u1-workspace-artifact.result.json",
+      "uiai-eval.u2-workspace-live-refresh.result.json",
+      "spec135-u3-browser-eval-matrix.json"
+    ],
+    "receipt": "receipt:spec135-alpha5:artifact-evidence-live-refresh:v1"
+  },
+  "alpha6": {
+    "description": "Pi/UIAI Work Surfaces, attachments, browser isolation, and exact resume",
+    "feeders": ["SPEC135-ALPHA5", "SPEC135-M3", "SPEC135-M4", "SPEC135-M5", "SPEC135-M6", "SPEC135-M7"],
+    "remote_evidence_refs": [
+      "github:pull/27:strict-spec-gates:passed",
+      "github:pull/28:strict-spec-gates:passed",
+      "github:pull/29:strict-spec-gates:passed"
+    ],
+    "receipt": "receipt:spec135-alpha6:portable-work-surfaces:v1"
+  }
+}

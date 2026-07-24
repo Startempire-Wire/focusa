@@ -24,6 +24,10 @@ ed25519-dalek = { workspace = true }
 base64 = { workspace = true }
 hex = { workspace = true }
 reqwest = { workspace = true }
+oauth2 = { workspace = true }
+keyring = { workspace = true }
+petgraph = { workspace = true }
+tree-sitter = { workspace = true }
 rusqlite = { version = "0.32", features = ["bundled"] }
 sqlite-vec = "=0.1.7"
 fastembed = { version = "=4.9.1", optional = true, default-features = false, features = ["hf-hub-rustls-tls", "ort-download-binaries"] }

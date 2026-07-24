@@ -1,0 +1,32 @@
+{
+  "schema": "focusa.spec135.google_drive_connector.v1",
+  "requirement_id": "SPEC135-C4",
+  "core_module": "crates/focusa-core/src/google_drive_connector.rs",
+  "connector_framework": "SPEC135-P2",
+  "authorization_lifecycle": "SPEC135-P3",
+  "oauth_scopes": ["https://www.googleapis.com/auth/drive.readonly"],
+  "capabilities": ["health", "discover", "import_candidate", "revoke"],
+  "scope_keys": ["project_root", "continuity_id", "attachment_id", "connector_id"],
+  "context_pipeline_handoff": {
+    "schema": "focusa.workspace_artifact_intake.request.v1",
+    "source_system": "connector",
+    "source_ref_prefix": "google-drive:",
+    "same_pipeline": true
+  },
+  "security": {
+    "tokens_in_os_keyring": true,
+    "tokens_in_records_or_evidence": false,
+    "read_only_default": true,
+    "bounded_page_size": 100
+  },
+  "evidence_refs": [
+    "crates/focusa-core/src/google_drive_connector.rs",
+    "crates/focusa-core/src/connector_auth.rs",
+    "crates/focusa-core/src/connectors.rs",
+    "tests/spec135_c4_google_drive_connector_lint.py"
+  ],
+  "acceptance": {
+    "canonical_typed_adapter_and_permissions": true,
+    "import_enters_workspace_context_pipeline": true
+  }
+}

@@ -120,7 +120,7 @@ Generated clients:
 ```text
 Rust: Serde + Schemars + Utoipa
 TypeScript: openapi-typescript + openapi-fetch
-Go / UIAI Engine: oapi-codegen v2.7.x client and models
+UIAI Engine: external adapter owned outside Focusa core and derived from the published OpenAPI contract
 A2UI: generated catalog schemas and action bindings
 ```
 
@@ -158,7 +158,7 @@ The complete closure DAG contains every accepted requirement. The Cross-Function
 F0 — freeze the series at 135K and compile this Delivery Contract
 F1 — create machine-readable requirement, DAG, parity, framework, and proof matrices
 F2 — generate JSON Schema 2020-12 and OpenAPI 3.0.3
-F3 — generate TypeScript and Go clients
+F3 — generate TypeScript clients and validate portable OpenAPI/JSON Schema contracts
 F4 — generate the Operation Registry, capability projection, and UI action bindings
 F5 — centralize ToolResult and error-envelope construction
 F6 — implement durable replayable Focusa events over SQLite plus the broadcast tail
@@ -270,7 +270,7 @@ Every implementation PR MUST:
 1. reference stable requirement IDs;
 2. update the machine-readable ledger;
 3. submit reusable behavior to its greater Focusa primitive owner;
-4. update generated contracts and TypeScript/Go clients when contracts change;
+4. update generated contracts and TypeScript clients and portable OpenAPI/JSON Schema contracts when contracts change;
 5. include unit, contract, generated-UI, and UIAI Engine Eval proof as applicable;
 6. link Evidence and Receipt references;
 7. preserve the permanent dogfood traversal;

@@ -71,10 +71,6 @@ def main():
         "surface_binding_list"
         in (R / "packages/generated/spec135/typescript/schema.d.ts").read_text()
     )
-    assert (
-        "MissionCanvasSurfaceBinding"
-        in (R / "packages/generated/spec135/go/client.gen.go").read_text()
-    )
     print("Spec 135 M4 exact attachment-scoped Work Surface binding lint: PASS")
 
 

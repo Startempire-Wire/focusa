@@ -1,0 +1,29 @@
+{
+  "ahead": 13,
+  "behind": 0,
+  "branch": "feature/spec-135-mission-canvas-uiai-evals",
+  "clean": true,
+  "closure_gate_ref": "spec135-z4-closure-gate-result.json",
+  "evidence_ref": "evidence:spec135-final:538fa314d06d",
+  "head": "538fa314d06d72b0949d6ca02f1ab576c01e128b",
+  "lineage_ref": "spec135-z3-worktree-lineage-proof.json",
+  "merge_ready": true,
+  "merge_target": "origin/main",
+  "open_requirements": [
+    "SPEC135-Z5"
+  ],
+  "open_task_beads": [
+    "focusa-mc-z5"
+  ],
+  "project_card_outcome": {
+    "attempted": true,
+    "fallback_evidence": "repository closure proof remains authoritative",
+    "recovery_tool": "focusa_project_card_outcome",
+    "status": "degraded_timeout"
+  },
+  "receipt_ref": "receipt:spec135-final:538fa314d06d",
+  "requirement_id": "SPEC135-Z5",
+  "requirement_matrix_ref": "spec135-z1-requirement-closure-matrix.json",
+  "schema": "focusa.spec135.final_release_proof.v1",
+  "verified_requirements": 72
+}

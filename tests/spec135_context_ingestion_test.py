@@ -31,7 +31,6 @@ reducer = (ROOT / "crates/focusa-core/src/reducer.rs").read_text()
 route = (ROOT / "crates/focusa-api/src/routes/context_sources.rs").read_text()
 proof = (ROOT / "packages/a2ui-renderer/proof/context-ingest.ts").read_text()
 ts = (ROOT / "packages/generated/spec135/typescript/schema.d.ts").read_text()
-go = (ROOT / "packages/generated/spec135/go/client.gen.go").read_text()
 
 assert registry["operation_count"] >= 59
 assert bindings["binding_count"] == registry["operation_count"]
@@ -132,11 +131,10 @@ for marker in (
     "receipts=",
 ):
     assert marker in proof
-assert '"/v1/context/sources/ingest"' in ts and "FocusaContextSourceIngest" in go
-assert (
-    '"/v1/context/adapters/docling/health"' in ts
-    and "FocusaContextAdapterDoclingHealth" in go
-)
+assert '"/v1/context/sources/ingest"' in ts
+assert 'operations["focusa.context.source.ingest"]' in ts
+assert '"/v1/context/adapters/docling/health"' in ts
+assert 'operations["focusa.context.adapter.docling.health"]' in ts
 assert "playwright" not in proof.lower()
 Draft202012Validator(scenario_schema).validate(scenario)
 Draft202012Validator(result_schema).validate(result)

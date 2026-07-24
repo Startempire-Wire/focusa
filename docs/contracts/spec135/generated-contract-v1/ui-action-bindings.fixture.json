@@ -1,6 +1,6 @@
 {
   "attachment_id": "example",
-  "binding_count": 85,
+  "binding_count": 86,
   "bindings": [
     {
       "action_id": "focusa.health.check",
@@ -1522,6 +1522,52 @@
         "default_label": "List Durable Interview Session Revisions",
         "input_presentation_ref": "focusa.generated_form.v1",
         "plain_language_description": "List Durable Interview Session Revisions",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "attachment_id": "example",
+        "continuity_id": "example",
+        "project_root": "/example",
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.interview.closure_package.get",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "project_interview"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.project_interview_session_list.request.v1",
+        "output_schema_ref": "focusa.interview_closure_package.v1"
+      },
+      "control": {
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "receipt_required": false,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.interview.closure_package.get",
+      "permission_scopes": [
+        "interview:read"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Get Governed Interview Closure Package",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Get Governed Interview Closure Package",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
       },

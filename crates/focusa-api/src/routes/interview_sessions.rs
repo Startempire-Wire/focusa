@@ -16,7 +16,7 @@ use focusa_core::{
     },
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{sync::Arc, time::Duration};
 
@@ -694,8 +694,115 @@ async fn mutate(
     ))
 }
 
+/// Project approved Role/Interview state into a reusable closure package.
+async fn closure_package(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<InterviewSessionQuery>,
+) -> Result<Json<Value>, ApiError> {
+    let snapshot = state.focusa.read().await;
+    let session = snapshot
+        .project_interview_sessions
+        .iter()
+        .filter(|session| {
+            session.project_root == query.project_root
+                && session.continuity_id == query.continuity_id
+                && session.attachment_id == query.attachment_id
+                && query
+                    .interview_session_id
+                    .as_ref()
+                    .is_none_or(|id| session.interview_session_id == *id)
+        })
+        .max_by_key(|session| session.state_revision)
+        .ok_or_else(|| {
+            fail(
+                StatusCode::NOT_FOUND,
+                ToolStatus::Blocked,
+                FailureClass::NotFound,
+                "Interview closure package source session not found",
+            )
+        })?;
+    if !matches!(
+        session.status,
+        ProjectInterviewSessionStatus::Closed | ProjectInterviewSessionStatus::ReadyForSpec
+    ) {
+        return Err(fail(
+            StatusCode::CONFLICT,
+            ToolStatus::Blocked,
+            FailureClass::ValidationRejected,
+            "Interview must be closed or ready for spec before closure packaging",
+        ));
+    }
+    let glossary_candidates: Vec<_> = session
+        .questions
+        .iter()
+        .flat_map(|question| question.linked_context_refs.iter().cloned())
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .take(64)
+        .collect();
+    let adr_candidates: Vec<_> = session
+        .questions
+        .iter()
+        .filter(|question| question.decision_required)
+        .take(64)
+        .map(|question| {
+            json!({
+                "decision_ref": format!("adr-candidate:{}", question.question_id),
+                "question": question.question,
+                "recommendation": question.recommendation,
+                "basis_refs": question.recommendation_basis_refs,
+                "contradiction_refs": question.contradiction_refs
+            })
+        })
+        .collect();
+    let compendium: Vec<_> = session
+        .questions
+        .iter()
+        .take(128)
+        .map(|question| {
+            let answer = session.answers.iter().rev().find(|answer| {
+                answer.question_id == question.question_id
+                    && answer.status == ProjectInterviewAnswerStatus::Active
+            });
+            json!({
+                "question_id": question.question_id,
+                "question": question.question,
+                "answer": answer.map(|answer| &answer.answer),
+                "notes": answer.map(|answer| answer.notes.as_str()),
+                "attachment_refs": answer.map(|answer| answer.attachment_refs.as_slice()).unwrap_or_default(),
+                "context_refs": question.linked_context_refs,
+                "spec_sections": question.linked_spec_sections
+            })
+        })
+        .collect();
+    let closure_ref = stable_id(
+        "interview-closure",
+        &[
+            &session.project_root,
+            &session.continuity_id,
+            &session.interview_session_id,
+            &session.state_revision.to_string(),
+        ],
+    );
+    Ok(Json(json!({
+        "schema": "focusa.interview_closure_package.v1",
+        "closure_ref": closure_ref,
+        "project_root": session.project_root,
+        "continuity_id": session.continuity_id,
+        "attachment_id": session.attachment_id,
+        "interview_session_id": session.interview_session_id,
+        "source_state_revision": session.state_revision,
+        "approved_role_profile_ref": session.approved_role_profile_ref,
+        "glossary_candidates": glossary_candidates,
+        "adr_candidates": adr_candidates,
+        "compendium": compendium,
+        "receipt_ref": format!("receipt:interview-closure:{}:r{}", session.interview_session_id, session.state_revision)
+    })))
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/v1/interviews/sessions", get(list))
+        .route("/v1/interviews/closure-package", get(closure_package))
         .route(ENDPOINT, post(mutate))
 }

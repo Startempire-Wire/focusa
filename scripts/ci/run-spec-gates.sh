@@ -56,6 +56,11 @@ run_gate python3 ./tests/spec135_mission_canvas_portability_test.py
 run_gate python3 ./tests/spec135_m6_canvas_resume_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_m6_canvas_resume_e2e_test.py
 run_gate python3 ./tests/spec135_m7_accessibility_recovery_test.py
+run_gate python3 ./tests/spec135_u3_browser_eval_suite_test.py
+run_gate python3 ./tests/spec135_alpha5_alpha6_closure_test.py
+run_gate python3 ./tests/spec135_u4_u5_usability_friction_test.py
+run_gate python3 ./tests/spec135_u6_adaptive_ui_test.py
+run_gate python3 ./tests/spec135_v1_v6_domain_projection_test.py
 run_gate ./tests/spec130_bounded_persistence_test.sh
 run_gate ./tests/spec130_native_session_pressure_test.sh
 run_gate ./tests/spec130_auto_compaction_test.sh

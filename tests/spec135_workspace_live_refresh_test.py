@@ -40,7 +40,6 @@ ui_html = (
 ).read_text()
 e2e = (ROOT / "tests/spec135_workspace_live_refresh_e2e_test.py").read_text()
 ts = (ROOT / "packages/generated/spec135/typescript/schema.d.ts").read_text()
-go = (ROOT / "packages/generated/spec135/go/client.gen.go").read_text()
 
 for schema in (
     workspace_schema,
@@ -139,13 +138,13 @@ assert ["SPEC135-F12", "SPEC135-U1", "SPEC135-U2", "SPEC135-ALPHA1"] in alpha1[
 ]
 assert "focusa_workspace_event_v1" in ts
 for field in (
-    "ProjectRoot",
-    "ContinuityId",
-    "AttachmentId",
-    "SessionId",
-    "WorkSurfaceId",
+    "project_root",
+    "continuity_id",
+    "attachment_id",
+    "session_id",
+    "work_surface_id",
 ):
-    assert field in go
+    assert field in ts
 
 print(
     "Spec 135 U2 Workspace live refresh: PASS (bounded event, exact filters, cursor replay, targeted generated UI)"

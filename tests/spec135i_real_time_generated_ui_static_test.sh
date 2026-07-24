@@ -20,7 +20,7 @@ for needle in \
   'Focusa Svelte Custom Elements' \
   'OpenAPI 3.0.3' \
   'JSON Schema 2020-12' \
-  'oapi-codegen v2.7.x' \
+  'external adapters generated from published OpenAPI outside Focusa core' \
   'focusa.generated_surface.v1' \
   'focusa.ui_action_binding.v1' \
   'UIAI Engine Eval contract' \

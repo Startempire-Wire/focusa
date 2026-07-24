@@ -160,7 +160,7 @@ Key locked decisions:
 UIAI Engine Eval owns browser proof; Playwright is forbidden in Focusa.
 A2UI web_core + permanent Lit renderer + Focusa Svelte Custom Elements.
 Native durable Focusa stream first; AG-UI is compatibility, not authority.
-JSON Schema 2020-12 + OpenAPI 3.0.3 + generated TypeScript/Go clients.
+JSON Schema 2020-12 + OpenAPI 3.0.3 + generated TypeScript clients and portable OpenAPI/JSON Schema contracts.
 Pi RPC/Spec 133 owns model execution; Vercel AI SDK runtime is not adopted.
 Every feature submits reusable behavior to greater Focusa primitives.
 Every requirement remains in the machine-readable closure graph.

@@ -1,0 +1,35 @@
+{
+  "schema": "focusa.spec135.software_domain.v1",
+  "requirement_id": "SPEC135-V4",
+  "core_module": "crates/focusa-core/src/software_domain.rs",
+  "adopted_frameworks": ["petgraph", "Tree-sitter", "ast-grep"],
+  "projection": {
+    "schema": "focusa.software_graph_projection.v1",
+    "canonical_state_unchanged": true,
+    "maximum_changed_files": 128,
+    "maximum_patterns": 16,
+    "maximum_matches_per_pattern": 64
+  },
+  "parsed_reality": {
+    "tree_sitter_root_kind": true,
+    "tree_sitter_error_state": true,
+    "content_sha256": true,
+    "ast_grep_match_evidence": true,
+    "petgraph_nodes_and_edges": true
+  },
+  "reactivity": {
+    "bounded_change_set": true,
+    "removed_files_delete_nodes": true,
+    "changed_files_replace_nodes": true,
+    "revision_increments": true
+  },
+  "evidence_refs": [
+    "crates/focusa-core/src/software_domain.rs",
+    "crates/focusa-core/Cargo.toml",
+    "tests/spec135_v4_software_domain_lint.py"
+  ],
+  "acceptance": {
+    "code_claims_cite_parsed_reality": true,
+    "graph_updates_react_to_bounded_changes": true
+  }
+}

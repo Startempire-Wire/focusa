@@ -57,13 +57,10 @@ for marker in (
 ):
     assert marker in reducer
 
-for generated_client in (
-    ROOT / "packages/generated/spec135/typescript/schema.d.ts",
-    ROOT / "packages/generated/spec135/go/client.gen.go",
-):
-    text = generated_client.read_text()
-    assert "browser_isolation_class" in text or "BrowserIsolationClass" in text
-    assert "authentication_sharing" in text or "AuthenticationSharing" in text
-    assert "retention_policy" in text or "RetentionPolicy" in text
+generated_client = ROOT / "packages/generated/spec135/typescript/schema.d.ts"
+text = generated_client.read_text()
+assert "browser_isolation_class" in text
+assert "authentication_sharing" in text
+assert "retention_policy" in text
 
 print("Spec 135 M5 browser context isolation and UIAI ownership: PASS")

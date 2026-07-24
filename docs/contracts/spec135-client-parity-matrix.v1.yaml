@@ -33,12 +33,6 @@
     },
     {
       "canonical_state_owner": false,
-      "client_id": "go",
-      "contract_source": "generated Operation Registry/OpenAPI",
-      "required_recovery": true
-    },
-    {
-      "canonical_state_owner": false,
       "client_id": "mission_canvas",
       "contract_source": "generated Operation Registry/OpenAPI",
       "required_recovery": true

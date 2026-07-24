@@ -1328,6 +1328,29 @@ fn build_operations() -> Vec<OperationEntry> {
             None,
         ),
         op(
+            "focusa.interview.closure_package.get",
+            "Get Governed Interview Closure Package",
+            "project_interview",
+            "GET",
+            "/v1/interviews/closure-package",
+            true,
+            None,
+            "project_interview_closure_package",
+            "canonical_projection_read",
+            vec!["preview", "commit"],
+            false,
+            false,
+            false,
+            vec!["interview:read"],
+            false,
+            "standard_read",
+            vec!["compact", "standard", "debug"],
+            "focusa.project_interview_session_list.request.v1",
+            "focusa.interview_closure_package.v1",
+            "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+            None,
+        ),
+        op(
             "focusa.interview.session.mutate",
             "Mutate Durable Interview Session",
             "project_interview",
@@ -3757,6 +3780,9 @@ fn json_schema_document(schema_id: &str) -> Value {
     }
     if schema_id == "focusa.project_interview_session_list.v1" {
         return json!({"$schema": JSON_SCHEMA_DIALECT_2020_12, "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id, "type": "object", "additionalProperties": false, "required": ["schema", "state_version", "sessions"], "properties": {"schema": {"const": "focusa.project_interview_session_list.v1"}, "state_version": {"type": "integer", "minimum": 0}, "sessions": {"type": "array", "items": project_interview_session_schema()}}, "x-focusa-schema-id": schema_id, "x-focusa-generated-from": "InterviewSessionListResponse"});
+    }
+    if schema_id == "focusa.interview_closure_package.v1" {
+        return json!({"$schema": JSON_SCHEMA_DIALECT_2020_12, "$id": format!("/v1/agent/schemas/{schema_id}"), "title": schema_id, "type": "object", "additionalProperties": false, "required": ["schema", "closure_ref", "project_root", "continuity_id", "attachment_id", "interview_session_id", "source_state_revision", "glossary_candidates", "adr_candidates", "compendium", "receipt_ref"], "properties": {"schema": {"const": "focusa.interview_closure_package.v1"}, "closure_ref": {"type": "string"}, "project_root": {"type": "string"}, "continuity_id": {"type": "string"}, "attachment_id": {"type": "string"}, "interview_session_id": {"type": "string"}, "source_state_revision": {"type": "integer", "minimum": 1}, "approved_role_profile_ref": {"type": ["string", "null"]}, "glossary_candidates": {"type": "array", "maxItems": 64, "items": {"type": "object"}}, "adr_candidates": {"type": "array", "maxItems": 64, "items": {"type": "object"}}, "compendium": {"type": "array", "maxItems": 128, "items": {"type": "object"}}, "receipt_ref": {"type": "string"}}, "x-focusa-schema-id": schema_id, "x-focusa-generated-from": "ProjectInterviewClosurePackage"});
     }
     if schema_id == "focusa.project_interview_session_mutation.request.v1" {
         let mut schema = project_interview_mutation_request_schema();

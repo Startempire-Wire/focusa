@@ -1316,7 +1316,7 @@
       "bead_id": "focusa-mc-m7",
       "lane": "mission_canvas",
       "requirement_id": "SPEC135-M7",
-      "status": "partial"
+      "status": "verified"
     },
     {
       "bead_id": "focusa-mc-u1",
@@ -1334,43 +1334,43 @@
       "bead_id": "focusa-mc-u3",
       "lane": "uiai_uxp",
       "requirement_id": "SPEC135-U3",
-      "status": "missing"
+      "status": "verified"
     },
     {
       "bead_id": "focusa-mc-u4",
       "lane": "uiai_uxp",
       "requirement_id": "SPEC135-U4",
-      "status": "missing"
+      "status": "verified"
     },
     {
       "bead_id": "focusa-mc-u5",
       "lane": "uiai_uxp",
       "requirement_id": "SPEC135-U5",
-      "status": "missing"
+      "status": "partial"
     },
     {
       "bead_id": "focusa-mc-u6",
       "lane": "uiai_uxp",
       "requirement_id": "SPEC135-U6",
-      "status": "missing"
+      "status": "partial"
     },
     {
       "bead_id": "focusa-mc-v1",
       "lane": "ontology_domain",
       "requirement_id": "SPEC135-V1",
-      "status": "missing"
+      "status": "verified"
     },
     {
       "bead_id": "focusa-mc-v2",
       "lane": "ontology_domain",
       "requirement_id": "SPEC135-V2",
-      "status": "missing"
+      "status": "verified"
     },
     {
       "bead_id": "focusa-mc-v3",
       "lane": "ontology_domain",
       "requirement_id": "SPEC135-V3",
-      "status": "missing"
+      "status": "partial"
     },
     {
       "bead_id": "focusa-mc-v4",
@@ -1382,13 +1382,13 @@
       "bead_id": "focusa-mc-v5",
       "lane": "ontology_domain",
       "requirement_id": "SPEC135-V5",
-      "status": "missing"
+      "status": "partial"
     },
     {
       "bead_id": "focusa-mc-v6",
       "lane": "ontology_domain",
       "requirement_id": "SPEC135-V6",
-      "status": "missing"
+      "status": "partial"
     },
     {
       "bead_id": "focusa-mc-p1",
@@ -1484,13 +1484,13 @@
       "bead_id": "focusa-mc-alpha5",
       "lane": "alpha",
       "requirement_id": "SPEC135-ALPHA5",
-      "status": "missing"
+      "status": "verified"
     },
     {
       "bead_id": "focusa-mc-alpha6",
       "lane": "alpha",
       "requirement_id": "SPEC135-ALPHA6",
-      "status": "missing"
+      "status": "verified"
     },
     {
       "bead_id": "focusa-mc-alpha7",

@@ -14,7 +14,6 @@ core = (ROOT / "crates/focusa-core/src/tool_result.rs").read_text()
 middleware = (ROOT / "crates/focusa-api/src/middleware/error_envelope.rs").read_text()
 pi = (ROOT / "apps/pi-extension/src/tools.ts").read_text()
 ts = (ROOT / "packages/generated/spec135/typescript/schema.d.ts").read_text()
-go = (ROOT / "packages/generated/spec135/go/client.gen.go").read_text()
 
 assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
 assert schema["x-focusa-schema-id"] == "focusa.tool_result.v1"
@@ -71,6 +70,5 @@ assert "canonical_tool_result(status" in middleware
 assert 'schema: "focusa.tool_result.v1"' in pi
 assert 'schema: "focusa.tool_result.v1",' in pi
 assert "focusa_tool_result_v1:" in ts
-assert "type FocusaToolResultV1 struct" in go
 
-print("Spec 135 ToolResult envelope: PASS (core, API, Pi, TypeScript, Go)")
+print("Spec 135 ToolResult envelope: PASS (core, API, Pi, TypeScript, portable contracts)")
