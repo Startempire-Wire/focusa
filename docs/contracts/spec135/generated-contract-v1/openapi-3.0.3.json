@@ -19332,6 +19332,16 @@
           },
           "404": {
             "description": "No persisted state; no replacement identity is manufactured"
+          },
+          "default": {
+            "description": "Standard error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            }
           }
         },
         "x-focusa": {
@@ -19405,6 +19415,16 @@
           },
           "422": {
             "description": "Scope or topology validation rejected"
+          },
+          "default": {
+            "description": "Standard error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            }
           }
         },
         "x-focusa": {
