@@ -1783,7 +1783,7 @@
         "Feature branch is merge-ready, documented, evidence-backed, and fully operational"
       ],
       "bead_id": "focusa-mc-z5",
-      "closure_status": "open",
+      "closure_status": "verified",
       "evidence_requirements": [
         "release proof",
         "project-card outcome",
@@ -1795,7 +1795,8 @@
       ],
       "requirement_id": "SPEC135-Z5",
       "tests": [
-        "tests/spec135_delivery_contract_regression_static_test.sh"
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_z5_final_release_proof_lint.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"

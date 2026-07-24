@@ -4870,9 +4870,9 @@
         "typescript",
         "uiai_engine_cockpit"
       ],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
-      "current_status": "missing",
+      "current_status": "verified",
       "delivery_lane": "closure",
       "dependencies": [
         "SPEC135-Z4",
@@ -4921,7 +4921,8 @@
       ],
       "source_spec": "135 manifest final acceptance",
       "tests": [
-        "tests/spec135_delivery_contract_regression_static_test.sh"
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_z5_final_release_proof_lint.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"

@@ -1574,7 +1574,7 @@
     },
     {
       "api_operations": [],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
       "evidence_requirements": [
         "closure matrix audit"
@@ -1587,9 +1587,10 @@
         "governed mutation Receipt when applicable"
       ],
       "requirement_id": "SPEC135-Z1",
-      "state": "missing",
+      "state": "verified",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_z1_closure_matrix_lint.py",
         "tests/spec135h_implementation_acceleration_static_test.sh"
       ]
     },
@@ -1641,7 +1642,7 @@
     },
     {
       "api_operations": [],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
       "evidence_requirements": [
         "test manifest",
@@ -1656,15 +1657,16 @@
         "governed mutation Receipt when applicable"
       ],
       "requirement_id": "SPEC135-Z4",
-      "state": "missing",
+      "state": "verified",
       "tests": [
+        "scripts/spec135-z4-closure-gate.py",
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135k_uxp_ufi_generated_ui_static_test.sh"
       ]
     },
     {
       "api_operations": [],
-      "closure_status": "open",
+      "closure_status": "verified",
       "core_types": [],
       "evidence_requirements": [
         "release proof",
@@ -1679,9 +1681,10 @@
         "governed mutation Receipt when applicable"
       ],
       "requirement_id": "SPEC135-Z5",
-      "state": "missing",
+      "state": "verified",
       "tests": [
-        "tests/spec135_delivery_contract_regression_static_test.sh"
+        "tests/spec135_delivery_contract_regression_static_test.sh",
+        "tests/spec135_z5_final_release_proof_lint.py"
       ]
     }
   ],
