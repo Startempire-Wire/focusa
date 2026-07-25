@@ -73,6 +73,37 @@ pub(super) fn print_result(command: &str, result: Value, json_output: bool) -> R
         );
         return Ok(());
     }
+    if matches!(command, "send" | "steer" | "follow-up" | "key") {
+        if json_output {
+            println!("{}", serde_json::to_string_pretty(&envelope["result"])?);
+            return Ok(());
+        }
+        let result = &envelope["result"];
+        println!(
+            "Session: {}",
+            result["data"]["session_id"].as_str().unwrap_or("unknown")
+        );
+        println!(
+            "Run: {}",
+            result["data"]["run_id"].as_str().unwrap_or("unknown")
+        );
+        println!(
+            "Operation: {}",
+            result["data"]["operation"].as_str().unwrap_or(command)
+        );
+        println!(
+            "Replayed: {}",
+            result["data"]["replayed"].as_bool().unwrap_or(false)
+        );
+        println!(
+            "Side effects: {}",
+            result["side_effects"].as_array().map_or(0, Vec::len)
+        );
+        for receipt in result["receipt_refs"].as_array().into_iter().flatten() {
+            println!("{}", receipt.as_str().unwrap_or_default());
+        }
+        return Ok(());
+    }
     if json_output {
         println!("{}", serde_json::to_string_pretty(&envelope)?);
         return Ok(());
