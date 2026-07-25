@@ -774,7 +774,7 @@ function formatTrajectoryFocusSlice(view: any): string[] {
     `PROJECT_ENVIRONMENT: ${environmentBits}`,
     `PROJECT_ARCHITECTURE: ${isProjectRootAuthoritySafe(projectRoot) ? buildProjectArchitectureDigestLine(projectRoot) : "withheld_until_safe_project_root"}`,
     goals
-      ? `TRAJECTORY_LADDER: ${goals}; waypoints=${waypoints.join(" → ") || "derive_next"}; rule=operator_deference_plus_proactive_route_offers`
+      ? `TRAJECTORY_LADDER: ${goals}; waypoints=${waypoints.join(" → ") || "governed_reassessment_required"}; rule=operator_deference_plus_proactive_route_offers`
       : "TRAJECTORY_LADDER: definition_status=unclear; derive HLT→MLG→STG→Waypoints before durable work",
     `TRAJECTORY_SIMILARITY_GROUP: ${similarityBits || "advisory_only=true; authority=project_root+continuity_id; must_not_merge_sessions=true"}`,
     `CURRENT_VERIFIED_STATE: ${boundedTrajectoryText(trajectory.current_state, 220) || "unclear"}`,

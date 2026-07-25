@@ -1167,7 +1167,9 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
             None
         };
     let using_prior_project_trajectory = persisted_prior_project_trajectory.is_some();
-    let persisted_trajectory = persisted_exact_trajectory.or(persisted_prior_project_trajectory);
+    // Prior-project fallback may supply HLT lineage only. Lower Ladder fields
+    // remain exact-continuity state and require governed reassessment.
+    let persisted_trajectory = persisted_exact_trajectory;
     let project_identity_api = if project_root != "unbound" {
         project_identity_payload_for_scope(
             Some(project_root.as_str()),
@@ -1257,7 +1259,9 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
     };
 
     let fs_intent = focus_state.map(|fs| fs.intent.as_str());
-    let fs_current = focus_state.map(|fs| fs.current_state.as_str());
+    let fs_current = focus_state
+        .map(|fs| fs.current_state.as_str())
+        .filter(|value| !value.trim().is_empty());
     let frame_goal = frame.map(|frame| frame.goal.as_str());
     let frame_title = frame.map(|frame| frame.title.as_str());
     let persisted_long_term_goal =
@@ -1266,6 +1270,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         persisted_trajectory.map(|record| record.desired_end_state.as_str());
     let persisted_current_state =
         persisted_trajectory.and_then(|record| record.current_state.as_deref());
+    let persisted_gap = persisted_trajectory.and_then(|record| record.gap_summary.as_deref());
     let persisted_mid_level_goal =
         persisted_trajectory.and_then(|record| record.mid_level_goal.as_deref());
     let persisted_short_term_goal =
@@ -1278,54 +1283,32 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         .and_then(|record| record.action_intent.as_ref())
         .map(|intent| intent.action_type.as_str());
 
-    // Spec96: Workpoint/frame text may shape short-term goals and candidates,
-    // but must not silently become the project long-term goal or desired end
-    // state. Those require persisted Trajectory state or Focus State intent.
-    let mut long_term_goal = first_nonempty(&[persisted_long_term_goal, fs_intent]);
-    let mut desired_end_state = first_nonempty(&[persisted_desired_end_state, fs_intent]);
+    // Canonical Ladder fields come only from committed Trajectory records. Focus
+    // State, frames, and Workpoints remain advisory context and cannot synthesize
+    // HLT/MLG/STG/Waypoint values on read.
+    let mut long_term_goal = persisted_long_term_goal.map(str::to_string);
+    let mut desired_end_state = persisted_desired_end_state.map(str::to_string);
     let mut hlt_source = if persisted_long_term_goal.is_some() {
         "trajectory_record"
-    } else if fs_intent.is_some() {
-        "focus_state_intent"
     } else {
         "missing"
     };
-    let mut hlt_degraded_placeholder = long_term_goal
-        .as_deref()
-        .map(is_generic_bootstrap_hlt)
-        .unwrap_or(false);
     if long_term_goal
         .as_deref()
         .map(is_generic_bootstrap_hlt)
         .unwrap_or(true)
-        && let Some(history_record) = latest_valid_historical_trajectory(
-            state.trajectory.records.as_slice(),
-            Some(project_root.as_str()).filter(|root| *root != "unbound"),
-            continuity_id.as_deref(),
-        )
+        && let Some(history_record) = persisted_prior_project_trajectory
     {
         long_term_goal = Some(history_record.long_term_goal.clone());
-        desired_end_state.get_or_insert_with(|| history_record.desired_end_state.clone());
+        desired_end_state = Some(history_record.desired_end_state.clone());
         hlt_source = "hlt_history_fallback";
-        hlt_degraded_placeholder = false;
     }
     let hlt_valid = long_term_goal
         .as_deref()
-        .map(|value| !is_generic_bootstrap_hlt(value))
-        .unwrap_or(false);
-    let mut current_state = first_nonempty(&[persisted_current_state, fs_current]);
-    let short_term_goal = if hlt_valid {
-        first_nonempty(&[
-            persisted_short_term_goal,
-            fs_current,
-            workpoint_next,
-            workpoint_action,
-            frame_goal,
-            frame_title,
-        ])
-    } else {
-        first_nonempty(&[persisted_short_term_goal])
-    };
+        .is_some_and(|value| !is_generic_bootstrap_hlt(value));
+    let hlt_degraded_placeholder = !hlt_valid;
+    let current_state = persisted_current_state.map(str::to_string);
+    let short_term_goal = persisted_short_term_goal.map(str::to_string);
     // QN Addendum (2026-06-08): Reject agent runtime paths as project scope
     // Do not infer goals from agent runtime directories (pi-mono, .claude, .letta, etc.)
     if project_identity_status == "unsafe_project_root" {
@@ -1378,65 +1361,23 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         && project_bound
         && scope_match
         && project_identity_status == "verified"
-        && long_term_goal.is_none()
-        && desired_end_state.is_none();
-    if bootstrap_default_trajectory {
-        let project_label = project_identity_record
-            .get("canonical_name")
-            .and_then(Value::as_str)
-            .or_else(|| {
-                project_identity_record
-                    .get("project_id")
-                    .and_then(Value::as_str)
-            })
-            .filter(|value| !value.trim().is_empty())
-            .unwrap_or(project_root.as_str());
-        long_term_goal = Some(format!(
-            "Maintain and improve {project_label} within verified project scope"
-        ));
-        hlt_source = "bootstrap_degraded_placeholder";
-        hlt_degraded_placeholder = true;
-        desired_end_state = Some(
-            "Verified project sessions have explicit operator-defined trajectory, Workpoint, and evidence before durable work"
-                .to_string(),
-        );
-        current_state.get_or_insert_with(|| {
-            "Project identity is verified; durable trajectory goal is not operator-defined yet"
-                .to_string()
-        });
-    }
-    let mut active_gap = match (desired_end_state.as_deref(), current_state.as_deref()) {
-        (Some(desired), Some(current)) if desired == current => None,
-        (Some(_), Some(_)) => first_nonempty(&[workpoint_next, workpoint_action])
-            .map(|gap| bounded(&gap, 240))
-            .or_else(|| Some("Current verified state differs from desired end state".to_string())),
-        _ => Some("Trajectory gap unclear until desired end state and current verified state are both present".to_string()),
+        && !hlt_valid;
+    let active_gap = if !hlt_valid {
+        Some("HLT_IMPASSE: explicit operator HLT commitment required".to_string())
+    } else {
+        persisted_gap.map(str::to_string)
     };
-    if hlt_degraded_placeholder {
-        active_gap = Some("Trajectory definition required before ladder projection".to_string());
-    }
-    let projected_current_focus = first_nonempty(&[fs_current, short_term_goal.as_deref()]);
+    let projected_current_focus = fs_current.map(str::to_string);
     let focus_trajectory_sync = json!({
         "current_focus": projected_current_focus.as_deref().map(|value| bounded(value, 240)),
         "short_term_goal": short_term_goal.as_deref().map(|value| bounded(value, 240)),
-        "current_focus_source": if fs_current.is_some() { "focus_state" } else if short_term_goal.is_some() { "trajectory_short_term_goal" } else { "none" },
-        "short_term_goal_source": if persisted_short_term_goal.is_some() { "trajectory_record" } else if fs_current.is_some() { "focus_state_current_focus" } else if workpoint_next.is_some() { "workpoint_next_slice" } else if workpoint_action.is_some() { "workpoint_action" } else if frame_goal.is_some() || frame_title.is_some() { "focus_frame" } else { "none" },
+        "current_focus_source": if fs_current.is_some() { "focus_state" } else { "none" },
+        "short_term_goal_source": if persisted_short_term_goal.is_some() { "trajectory_record" } else { "none" },
         "projection_only": true,
-        "authority_boundary": "Focus State and Trajectory remain separate authorities; this projection synchronizes read-model orientation only"
+        "authority_boundary": "Focus State and Trajectory remain separate authorities; no Ladder value is synthesized from Focus State, frames, or Workpoints"
     });
-    let effective_long_term_goal_present = long_term_goal.is_some() && !hlt_degraded_placeholder;
-    let mid_level_goal = if effective_long_term_goal_present {
-        first_nonempty(&[
-            persisted_mid_level_goal,
-            short_term_goal.as_deref(),
-            workpoint_action,
-            frame_goal,
-            frame_title,
-            fs_current,
-        ])
-    } else {
-        first_nonempty(&[persisted_mid_level_goal])
-    };
+    let effective_long_term_goal_present = hlt_valid;
+    let mid_level_goal = persisted_mid_level_goal.map(str::to_string);
     let waypoints = persisted_waypoints;
     let low_level_goal = first_nonempty(&[
         workpoint_next,
@@ -1785,7 +1726,10 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
     let mut trajectory_warnings = if canonical {
         Vec::<String>::new()
     } else if bootstrap_default_trajectory {
-        vec!["trajectory bootstrap default is advisory; define or confirm the project goal before treating it as canonical".to_string()]
+        vec![
+            "HLT_IMPASSE: no committed project HLT exists; no Ladder values were synthesized"
+                .to_string(),
+        ]
     } else if using_prior_project_trajectory {
         vec!["using prior project trajectory as reload fallback; refresh short-term goal/current state when needed".to_string()]
     } else if status == "not_found" {
@@ -1858,7 +1802,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
             // Deprecated aliases — kept for backcompat, will be removed in future.
             "fallback_prior_project_trajectory": using_prior_project_trajectory,
             "_deprecated_fallback_prior_project_trajectory": "use allow_previous_valid_trajectory or previous_valid_trajectory_fallback instead",
-            "fallback_source_continuity_id": persisted_trajectory.and_then(|record| record.continuity_id.clone()),
+            "fallback_source_continuity_id": persisted_prior_project_trajectory.and_then(|record| record.continuity_id.clone()),
             "long_term_goal": long_term_goal.as_deref().map(|value| bounded(value, 240)),
             "desired_end_state": desired_end_state.as_deref().map(|value| bounded(value, 240)),
             "current_state": current_state.as_deref().map(|value| bounded(value, 240)),
@@ -3467,22 +3411,14 @@ mod tests {
                 allow_prior_project_trajectory: false,
             },
         );
-        assert_eq!(payload["status"].as_str(), Some("completed"));
+        assert_eq!(payload["status"].as_str(), Some("not_found"));
         assert_eq!(payload["canonical"].as_bool(), Some(false));
         assert_eq!(
             payload["trajectory"]["bootstrap_default"].as_bool(),
             Some(true)
         );
-        assert_eq!(
-            payload["trajectory"]["long_term_goal"].as_str(),
-            Some("Maintain and improve focusa within verified project scope")
-        );
-        assert_eq!(
-            payload["trajectory"]["desired_end_state"].as_str(),
-            Some(
-                "Verified project sessions have explicit operator-defined trajectory, Workpoint, and evidence before durable work"
-            )
-        );
+        assert_eq!(payload["trajectory"]["long_term_goal"].as_str(), None);
+        assert_eq!(payload["trajectory"]["desired_end_state"].as_str(), None);
         assert_eq!(payload["trajectory"]["short_term_goal"].as_str(), None);
         assert_eq!(
             payload["intelligence_view"]["context_sufficiency"]["proceed_posture"].as_str(),
@@ -3505,10 +3441,7 @@ mod tests {
                 .as_array()
                 .unwrap()
                 .iter()
-                .any(|warning| warning
-                    .as_str()
-                    .unwrap_or_default()
-                    .contains("bootstrap default is advisory"))
+                .any(|warning| warning.as_str().unwrap_or_default().contains("HLT_IMPASSE"))
         );
         assert!(
             payload["intelligence_view"]["relevance_rationale"]
@@ -3549,7 +3482,7 @@ mod tests {
         assert_eq!(
             payload["intelligence_view"]["focus_trajectory_sync"]["short_term_goal_source"]
                 .as_str(),
-            Some("focus_state_current_focus")
+            Some("none")
         );
 
         let mut state = state_with_workpoint("/tmp/focusa-test");
@@ -3566,11 +3499,15 @@ mod tests {
         );
         assert_eq!(
             payload["intelligence_view"]["focus_trajectory_sync"]["current_focus"].as_str(),
+            None
+        );
+        assert_eq!(
+            payload["trajectory"]["short_term_goal"].as_str(),
             Some("Use scoped short-term work")
         );
         assert_eq!(
             payload["intelligence_view"]["focus_trajectory_sync"]["current_focus_source"].as_str(),
-            Some("trajectory_short_term_goal")
+            Some("none")
         );
     }
 
@@ -3642,7 +3579,7 @@ mod tests {
                 allow_prior_project_trajectory: false,
             },
         );
-        assert_eq!(payload["status"].as_str(), Some("completed"));
+        assert_eq!(payload["status"].as_str(), Some("not_found"));
         assert_eq!(payload["canonical"].as_bool(), Some(false));
         assert_eq!(payload["degraded"].as_bool(), Some(true));
         assert_eq!(
@@ -3821,7 +3758,7 @@ mod tests {
                 allow_prior_project_trajectory: false,
             },
         );
-        assert_eq!(continuity_changed["status"].as_str(), Some("completed"));
+        assert_eq!(continuity_changed["status"].as_str(), Some("not_found"));
         assert_eq!(continuity_changed["canonical"].as_bool(), Some(false));
         assert_eq!(continuity_changed["degraded"].as_bool(), Some(true));
         assert_eq!(
@@ -3848,6 +3785,20 @@ mod tests {
         );
         assert_eq!(fallback_prior["status"].as_str(), Some("completed"));
         assert_eq!(fallback_prior["canonical"].as_bool(), Some(false));
+        assert_eq!(
+            fallback_prior["trajectory"]["mid_level_goal"].as_str(),
+            None
+        );
+        assert_eq!(
+            fallback_prior["trajectory"]["short_term_goal"].as_str(),
+            None
+        );
+        assert!(
+            fallback_prior["trajectory"]["waypoints"]
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
         assert_eq!(
             fallback_prior["trajectory"]["fallback_prior_project_trajectory"].as_bool(),
             Some(true)

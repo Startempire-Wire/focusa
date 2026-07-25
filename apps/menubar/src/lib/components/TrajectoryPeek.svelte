@@ -69,7 +69,7 @@
     </article>
     <article class="bubble-card">
       <div class="label">Waypoints</div>
-      <p>{waypoints.length ? waypoints.slice(0, 3).join(' → ') : 'concrete progress markers derive from STG'}</p>
+      <p>{waypoints.length ? waypoints.slice(0, 3).join(' → ') : 'No committed Waypoints — governed reassessment required'}</p>
     </article>
     <article class="bubble-card">
       <div class="label">Desired end state</div>
