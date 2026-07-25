@@ -2,9 +2,9 @@
 
 Generated from current Axum route registration plus the Spec135/Spec141 operation registry. This public inventory is release-gated; do not edit route rows manually.
 
-- Classified paths: `458`
+- Classified paths: `461`
 - Agent eligible: `86`
-- Operator only: `360`
+- Operator only: `363`
 - Public health/pairing: `6`
 - Internal: `6`
 
@@ -2176,17 +2176,17 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Sources: `crates/focusa-api/src/routes/project.rs`
 - Agent operations: none
 
-### `/v1/project/trajectory-guard`
-
-- Methods: `POST /v1/project/trajectory-guard`
-- Classification: `operator_only`
-- Rationale: Verification is read-only; marker migration/repair requires explicit confirmation and emits backup plus Ladder receipt.
-- Sources: `crates/focusa-api/src/routes/project.rs`
-- Agent operations: none
-
 ### `/v1/project/templates`
 
 - Methods: `GET /v1/project/templates`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/project.rs`
+- Agent operations: none
+
+### `/v1/project/trajectory-guard`
+
+- Methods: `POST /v1/project/trajectory-guard`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/project.rs`
@@ -3144,6 +3144,14 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Sources: `crates/focusa-api/src/routes/trajectory.rs`
 - Agent operations: `focusa.trajectory.define_goal`
 
+### `/v1/trajectory/history`
+
+- Methods: `GET /v1/trajectory/history`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/trajectory.rs`
+- Agent operations: none
+
 ### `/v1/trajectory/propose-workpoint`
 
 - Methods: `POST /v1/trajectory/propose-workpoint`
@@ -3152,19 +3160,11 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Sources: `crates/focusa-api/src/routes/trajectory.rs`
 - Agent operations: `focusa.trajectory.propose_workpoint`
 
-### `/v1/trajectory/history`
-
-- Methods: `GET /v1/trajectory/history`
-- Classification: `operator_only`
-- Rationale: Full project-scoped Ladder history; explicit project scope is mandatory. Pi capability registration follows the Spec141 surface wave.
-- Sources: `crates/focusa-api/src/routes/trajectory.rs`
-- Agent operations: none
-
 ### `/v1/trajectory/query`
 
 - Methods: `GET /v1/trajectory/query`
 - Classification: `operator_only`
-- Rationale: Filtered/as-of Ladder reconstruction; explicit project scope is mandatory. Pi capability registration follows the Spec141 surface wave.
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/trajectory.rs`
 - Agent operations: none
 
