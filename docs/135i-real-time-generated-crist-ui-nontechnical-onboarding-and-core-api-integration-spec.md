@@ -643,7 +643,7 @@ Spec 135I is accepted when:
 4. Focusa-specific Svelte Custom Elements provide domain components without duplicating the renderer.
 5. Native Focusa event replay and live tail update surfaces without manual refresh.
 6. AG-UI compatibility exists without owning state or blocking the native Alpha path.
-7. OpenAPI 3.0.3 and JSON Schema 2020-12 generate TypeScript clients while remaining the language-neutral contract for external adapters.
+7. OpenAPI 3.0.3 and JSON Schema 2020-12 generate TypeScript clients; external adapters generated from published OpenAPI outside Focusa core remain language-neutral contract consumers.
 8. Every action resolves to a generated typed Focusa operation and exact scope.
 9. Every default screen uses plain language, one primary action, progressive disclosure, autosave, resume, and recovery.
 10. Context, Role, Interview, Spec, Tasks, Workpoint, Evidence, Receipt, and recovery operate without CLI use.
