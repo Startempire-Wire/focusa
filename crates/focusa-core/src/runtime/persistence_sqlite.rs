@@ -1304,7 +1304,7 @@ pub struct SyncCursor {
 // HLT LEDGER — Spec98/99: scope-bounded, no singleton, CRDT-grade events
 // ═══════════════════════════════════════════════════════════════════════════════
 
-use crate::types::HltLedgerEntry;
+use crate::types::{HltLedgerEntry, TrajectoryLadderEvent};
 
 /// Compute the HLT ledger directory for a given project_root.
 /// Returns: {hlt_ledger_dir}/{project_root_hash}/
@@ -1319,6 +1319,97 @@ fn hlt_ledger_dir_for_project(data_dir: &Path, project_root: &str) -> PathBuf {
 }
 
 impl SqlitePersistence {
+    /// Append one atomic logical batch to the project-scoped Trajectory Ladder ledger.
+    /// Events must share one project scope; callers provide causal ordering and Lamport values.
+    pub fn append_trajectory_ladder_events(
+        &self,
+        events: &[TrajectoryLadderEvent],
+    ) -> anyhow::Result<()> {
+        let Some(first) = events.first() else {
+            return Ok(());
+        };
+        if events
+            .iter()
+            .any(|event| event.project_root != first.project_root)
+        {
+            anyhow::bail!("trajectory ladder batch crosses project scope");
+        }
+        let ledger_dir = trajectory_ledger_dir_for_project(&self.data_dir, &first.project_root);
+        std::fs::create_dir_all(&ledger_dir)?;
+        let ledger_file = ledger_dir.join("events.jsonl");
+        let mut payload = Vec::new();
+        for event in events {
+            serde_json::to_writer(&mut payload, event)?;
+            payload.push(b'\n');
+        }
+        let mut file = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&ledger_file)?;
+        use std::io::Write;
+        file.write_all(&payload)?;
+        file.sync_data()?;
+        debug!(
+            "Appended {} Trajectory Ladder events to {:?}",
+            events.len(),
+            ledger_file
+        );
+        Ok(())
+    }
+
+    /// Read canonical Ladder events and project legacy HLT entries into the same schema.
+    /// Corrupt canonical lines fail closed; compatibility projection never mutates on read.
+    pub fn read_trajectory_ladder_events(
+        &self,
+        project_root: &str,
+        continuity_id: Option<&str>,
+        limit: usize,
+    ) -> anyhow::Result<Vec<TrajectoryLadderEvent>> {
+        let ledger_file = self.trajectory_ledger_path_for_project(project_root);
+        let mut events = Vec::new();
+        if ledger_file.exists() {
+            let content = std::fs::read_to_string(&ledger_file)?;
+            for (index, line) in content.lines().enumerate() {
+                let event: TrajectoryLadderEvent = serde_json::from_str(line).map_err(|error| {
+                    anyhow::anyhow!(
+                        "invalid Trajectory Ladder event at {}:{}: {}",
+                        ledger_file.display(),
+                        index + 1,
+                        error
+                    )
+                })?;
+                events.push(event);
+            }
+        }
+
+        let existing_ids: std::collections::HashSet<String> =
+            events.iter().map(|event| event.event_id.clone()).collect();
+        for legacy in self.read_hlt_ledger_entries(project_root, continuity_id, 500)? {
+            let event = TrajectoryLadderEvent::from_hlt_ledger(&legacy);
+            if !existing_ids.contains(&event.event_id) {
+                events.push(event);
+            }
+        }
+        events.retain(|event| {
+            event.project_root == project_root
+                && continuity_id
+                    .is_none_or(|expected| event.continuity_id.as_deref() == Some(expected))
+        });
+        events.sort_by(|left, right| {
+            left.lamport_ts
+                .cmp(&right.lamport_ts)
+                .then_with(|| left.timestamp.cmp(&right.timestamp))
+                .then_with(|| left.event_id.cmp(&right.event_id))
+        });
+        let bounded_limit = limit.clamp(1, 500);
+        let start = events.len().saturating_sub(bounded_limit);
+        Ok(events[start..].to_vec())
+    }
+
+    pub fn trajectory_ledger_path_for_project(&self, project_root: &str) -> PathBuf {
+        trajectory_ledger_dir_for_project(&self.data_dir, project_root).join("events.jsonl")
+    }
+
     /// Append an HLT ledger entry to the scope-bounded JSONL file.
     /// Per Spec98/99: no singleton, scope-bounded by project_root.
     pub fn append_hlt_ledger_entry(&self, entry: &HltLedgerEntry) -> anyhow::Result<()> {
@@ -1377,6 +1468,12 @@ impl SqlitePersistence {
     pub fn hlt_ledger_path_for_project(&self, project_root: &str) -> PathBuf {
         hlt_ledger_dir_for_project(&self.data_dir, project_root).join("hlt.jsonl")
     }
+}
+
+fn trajectory_ledger_dir_for_project(data_dir: &Path, project_root: &str) -> PathBuf {
+    let digest = Sha256::digest(project_root.as_bytes());
+    let hash = hex::encode(&digest[..8]);
+    data_dir.join(format!("trajectory-ledger/{hash}"))
 }
 
 fn call_stack_designs_dir_for_project(data_dir: &Path, project_root: &str) -> PathBuf {
@@ -3232,4 +3329,120 @@ fn _parse_ts(ts: &str) -> Option<DateTime<Utc>> {
 #[allow(dead_code)]
 fn _exists(path: &Path) -> bool {
     path.exists()
+}
+
+#[cfg(test)]
+mod trajectory_ladder_ledger_tests {
+    use super::*;
+    use crate::types::{TrajectoryConfidence, TrajectoryLadderEventKind, TrajectoryLadderLevel};
+
+    fn test_persistence() -> (SqlitePersistence, PathBuf) {
+        let root = std::env::temp_dir().join(format!("focusa-ladder-ledger-{}", Uuid::now_v7()));
+        let mut config = FocusaConfig::default();
+        config.data_dir = root.display().to_string();
+        let persistence = SqlitePersistence::new(&config).expect("test persistence");
+        (persistence, root)
+    }
+
+    fn event(
+        project_root: &str,
+        continuity_id: &str,
+        event_id: &str,
+        level: TrajectoryLadderLevel,
+        lamport_ts: u64,
+    ) -> TrajectoryLadderEvent {
+        TrajectoryLadderEvent {
+            schema_version: TrajectoryLadderEvent::SCHEMA_VERSION.to_string(),
+            event_id: event_id.to_string(),
+            trajectory_id: "trajectory:test".to_string(),
+            project_root: project_root.to_string(),
+            continuity_id: Some(continuity_id.to_string()),
+            session_id: None,
+            hlt_version: 1,
+            causal_parent_event_id: None,
+            event_kind: TrajectoryLadderEventKind::Committed,
+            level,
+            object_id: None,
+            old_value: serde_json::Value::Null,
+            new_value: serde_json::json!("value"),
+            actor: "test".to_string(),
+            source: "test".to_string(),
+            authority: "canonical_explicit".to_string(),
+            provenance: "test".to_string(),
+            confidence: TrajectoryConfidence::High,
+            reason: None,
+            evidence_refs: vec![],
+            idempotency_key: Some(event_id.to_string()),
+            lamport_ts,
+            timestamp: Utc::now(),
+        }
+    }
+
+    #[test]
+    fn ladder_ledger_is_scope_bounded_and_deduplicates_legacy_hlt_projection() {
+        let (persistence, root) = test_persistence();
+        let project_root = "/projects/focusa";
+        let legacy = HltLedgerEntry::new(project_root.to_string(), "HLT".to_string(), "test", 1)
+            .with_scope(Some("continuity:a".to_string()), None);
+        persistence
+            .append_hlt_ledger_entry(&legacy)
+            .expect("append legacy HLT");
+        let canonical_hlt = event(
+            project_root,
+            "continuity:a",
+            &format!("legacy-hlt:{}", legacy.event_id),
+            TrajectoryLadderLevel::Hlt,
+            1,
+        );
+        let waypoint = event(
+            project_root,
+            "continuity:a",
+            "event:waypoint",
+            TrajectoryLadderLevel::Waypoint,
+            2,
+        );
+        persistence
+            .append_trajectory_ladder_events(&[canonical_hlt, waypoint])
+            .expect("append Ladder batch");
+
+        let events = persistence
+            .read_trajectory_ladder_events(project_root, Some("continuity:a"), 50)
+            .expect("read Ladder");
+        assert_eq!(events.len(), 2);
+        assert_eq!(events[0].level, TrajectoryLadderLevel::Hlt);
+        assert_eq!(events[1].level, TrajectoryLadderLevel::Waypoint);
+        assert!(
+            persistence
+                .read_trajectory_ladder_events(project_root, Some("continuity:b"), 50)
+                .expect("other continuity")
+                .is_empty()
+        );
+        drop(persistence);
+        std::fs::remove_dir_all(root).expect("clean test data");
+    }
+
+    #[test]
+    fn ladder_ledger_rejects_cross_project_batch() {
+        let (persistence, root) = test_persistence();
+        let first = event(
+            "/projects/a",
+            "continuity:a",
+            "event:a",
+            TrajectoryLadderLevel::Hlt,
+            1,
+        );
+        let second = event(
+            "/projects/b",
+            "continuity:a",
+            "event:b",
+            TrajectoryLadderLevel::Mlg,
+            2,
+        );
+        let error = persistence
+            .append_trajectory_ladder_events(&[first, second])
+            .expect_err("cross-project batch must fail");
+        assert!(error.to_string().contains("crosses project scope"));
+        drop(persistence);
+        std::fs::remove_dir_all(root).expect("clean test data");
+    }
 }

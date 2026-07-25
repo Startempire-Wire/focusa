@@ -577,7 +577,9 @@ function formatTrajectoryPacketForPrompt(packet: any): string {
   const waypoints = Array.isArray(trajectory.waypoints || packet?.waypoints)
     ? (trajectory.waypoints || packet?.waypoints)
         .slice(0, 5)
-        .map((item: any) => compactText(item, "", 100))
+        .map((item: any) =>
+          compactText(typeof item === "string" ? item : item?.title || item?.desired_state_delta, "", 100)
+        )
         .filter(Boolean)
     : [];
   if (hlt === "missing" && mlg === "missing" && stg === "missing" && desired === "missing") return "";
@@ -619,7 +621,7 @@ function formatTrajectoryPacketForPrompt(packet: any): string {
     `STG: ${stg}`,
     `DESIRED_END_STATE: ${desired}`,
     `ACTIVE_GAP: ${gap}`,
-    `WAYPOINTS: ${waypoints.join(" → ") || "derive_next"}`,
+    `WAYPOINTS: ${waypoints.join(" → ") || "governed_reassessment_required"}`,
     "AUTHORITY: TL is north-star route context; Workpoint remains immediate action authority.",
     "NEXT_TOOLS: focusa_workpoint_resume, focusa_trajectory_view, focusa_active_object_resolve, focusa_trajectory_define_goal",
     // Spec 125 §9.3: loud warning above ordinary guidance.

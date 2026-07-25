@@ -2197,7 +2197,17 @@ mod tests {
                 long_term_goal: "High-level target".to_string(),
                 mid_level_goal: Some("Mid-level target".to_string()),
                 short_term_goal: Some("Short-term target".to_string()),
-                waypoints: vec!["Waypoint A".to_string(), "Waypoint B".to_string()],
+                waypoints: ["Waypoint A", "Waypoint B"]
+                    .into_iter()
+                    .enumerate()
+                    .map(
+                        |(index, title)| focusa_core::types::TrajectoryWaypointRecord {
+                            waypoint_id: format!("waypoint:{}", index + 1),
+                            title: title.to_string(),
+                            ..focusa_core::types::TrajectoryWaypointRecord::default()
+                        },
+                    )
+                    .collect(),
                 ..focusa_core::types::TrajectoryProjectionRecord::default()
             });
         state

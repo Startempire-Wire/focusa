@@ -175,6 +175,23 @@ pub enum ProjectCmd {
         #[arg(long)]
         next_action: Option<String>,
     },
+    /// Verify, migrate, or repair the project Trajectory marker guard.
+    TrajectoryGuard {
+        #[arg(long, default_value = "verify")]
+        action: String,
+        #[arg(long)]
+        project_root: String,
+        #[arg(long)]
+        continuity_id: Option<String>,
+        #[arg(long)]
+        expected_trajectory_id: Option<String>,
+        #[arg(long)]
+        expected_hlt_version: Option<u64>,
+        #[arg(long)]
+        confirm: bool,
+        #[arg(long)]
+        idempotency_key: Option<String>,
+    },
     /// Verify expected project identity signals against discovered ProjectIdentity.
     Verify {
         #[arg(long)]
@@ -771,6 +788,34 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             (
                 "session-transfer",
                 api.post("/v1/project/session-transfer", &body).await?,
+            )
+        }
+        ProjectCmd::TrajectoryGuard {
+            action,
+            project_root,
+            continuity_id,
+            expected_trajectory_id,
+            expected_hlt_version,
+            confirm,
+            idempotency_key,
+        } => {
+            let resolved = resolve_input_project_root(None, Some(project_root.as_str()))?;
+            ensure_project_root_scope_safe(
+                Some(resolved.as_str()),
+                "project trajectory-guard: project_root",
+            )?;
+            let body = json!({
+                "action": action,
+                "project_root": resolved,
+                "continuity_id": continuity_id,
+                "expected_trajectory_id": expected_trajectory_id,
+                "expected_hlt_version": expected_hlt_version,
+                "confirm": confirm,
+                "idempotency_key": idempotency_key,
+            });
+            (
+                "trajectory-guard",
+                api.post("/v1/project/trajectory-guard", &body).await?,
             )
         }
         ProjectCmd::Verify {

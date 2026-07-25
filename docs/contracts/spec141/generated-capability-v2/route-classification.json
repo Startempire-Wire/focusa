@@ -1,10 +1,10 @@
 {
   "schema": "focusa.agent_route_classification.v1",
-  "route_count": 458,
+  "route_count": 461,
   "classification_counts": {
     "agent_eligible": 86,
     "internal": 6,
-    "operator_only": 360,
+    "operator_only": 363,
     "public_pairing": 6
   },
   "allowed_classifications": [
@@ -3292,6 +3292,18 @@
       "operation_refs": []
     },
     {
+      "path": "/v1/project/trajectory-guard",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/project.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": []
+    },
+    {
       "path": "/v1/project/use",
       "classification": "operator_only",
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
@@ -4751,6 +4763,18 @@
       ]
     },
     {
+      "path": "/v1/trajectory/history",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/trajectory.rs"
+      ],
+      "methods": [
+        "GET"
+      ],
+      "operation_refs": []
+    },
+    {
       "path": "/v1/trajectory/propose-workpoint",
       "classification": "agent_eligible",
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
@@ -4763,6 +4787,18 @@
       "operation_refs": [
         "focusa.trajectory.propose_workpoint"
       ]
+    },
+    {
+      "path": "/v1/trajectory/query",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/trajectory.rs"
+      ],
+      "methods": [
+        "GET"
+      ],
+      "operation_refs": []
     },
     {
       "path": "/v1/trajectory/resume",

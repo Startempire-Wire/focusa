@@ -251,7 +251,11 @@ focusa project card-outcome --algorithm-run-id <algorithm_run_id> --actual-outco
 focusa project session-transfer --action save --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --current-ask "Save current work like a game save" --json
 focusa project session-transfer --action continue --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --json
 focusa project verify --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --project-id focusa --json
+focusa project trajectory-guard --action verify --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --json
+focusa project trajectory-guard --action migrate --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --confirm --idempotency-key marker-migrate-1 --json
 focusa trajectory view --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --mode summary --json
+focusa trajectory history --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --limit 50 --json
+focusa trajectory query --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --level waypoint --as-of 2026-07-25T12:00:00Z --json
 focusa trajectory define-goal --long-term-goal "Ship Spec96" --desired-end-state "All Spec96 gates pass" --mid-level-goal "Close release blockers" --short-term-goal "Run current validation gates" --waypoint "CLI/API parity proof" --waypoint "Public docs proof" --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --json
 focusa traverse read --surface workpoints --selector current --limit 1 --json
 focusa traverse verify-tags --surface workpoints --tag focusa://workpoints/current/item/example --json

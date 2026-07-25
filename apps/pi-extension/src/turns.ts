@@ -461,6 +461,14 @@ function boundedTrajectoryText(value: any, max = 180): string {
   return text.length > max ? `${text.slice(0, Math.max(0, max - 1))}…` : text;
 }
 
+function trajectoryWaypointTitle(value: any): string {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object") {
+    return boundedTrajectoryText(value.title || value.desired_state_delta || "", 160);
+  }
+  return "";
+}
+
 function formatHandleTrajectorySummary(handle: any): string {
   const trajectory = handle?.trajectory || {};
   const parts = [
@@ -471,7 +479,7 @@ function formatHandleTrajectorySummary(handle: any): string {
     Array.isArray(trajectory.waypoints) && trajectory.waypoints.length
       ? `waypoints=${trajectory.waypoints
           .slice(0, 3)
-          .map((item: any) => boundedTrajectoryText(item, 80))
+          .map((item: any) => boundedTrajectoryText(trajectoryWaypointTitle(item), 80))
           .join(" | ")}`
       : "",
   ].filter(Boolean);
@@ -724,12 +732,12 @@ function formatTrajectoryFocusSlice(view: any): string[] {
   const waypoints = Array.isArray(trajectory.waypoints)
     ? trajectory.waypoints
         .slice(0, 5)
-        .map((item: any) => boundedTrajectoryText(item, 120))
+        .map((item: any) => boundedTrajectoryText(trajectoryWaypointTitle(item), 120))
         .filter(Boolean)
     : Array.isArray(trajectory.trajectory_ladder?.waypoints)
       ? trajectory.trajectory_ladder.waypoints
           .slice(0, 5)
-          .map((item: any) => boundedTrajectoryText(item, 120))
+          .map((item: any) => boundedTrajectoryText(trajectoryWaypointTitle(item), 120))
           .filter(Boolean)
       : [];
   const evidence = Array.isArray(trajectory.evidence_refs)
@@ -747,7 +755,7 @@ function formatTrajectoryFocusSlice(view: any): string[] {
   const missingFacts = Array.isArray(sufficiency.missing_facts)
     ? sufficiency.missing_facts
         .slice(0, 6)
-        .map((item: any) => boundedTrajectoryText(item, 80))
+        .map((item: any) => boundedTrajectoryText(trajectoryWaypointTitle(item), 80))
         .filter(Boolean)
     : [];
   const candidateBits = [
@@ -766,7 +774,7 @@ function formatTrajectoryFocusSlice(view: any): string[] {
     `PROJECT_ENVIRONMENT: ${environmentBits}`,
     `PROJECT_ARCHITECTURE: ${isProjectRootAuthoritySafe(projectRoot) ? buildProjectArchitectureDigestLine(projectRoot) : "withheld_until_safe_project_root"}`,
     goals
-      ? `TRAJECTORY_LADDER: ${goals}; waypoints=${waypoints.join(" → ") || "derive_next"}; rule=operator_deference_plus_proactive_route_offers`
+      ? `TRAJECTORY_LADDER: ${goals}; waypoints=${waypoints.join(" → ") || "governed_reassessment_required"}; rule=operator_deference_plus_proactive_route_offers`
       : "TRAJECTORY_LADDER: definition_status=unclear; derive HLT→MLG→STG→Waypoints before durable work",
     `TRAJECTORY_SIMILARITY_GROUP: ${similarityBits || "advisory_only=true; authority=project_root+continuity_id; must_not_merge_sessions=true"}`,
     `CURRENT_VERIFIED_STATE: ${boundedTrajectoryText(trajectory.current_state, 220) || "unclear"}`,
