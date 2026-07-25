@@ -3,7 +3,7 @@
 //! Thin client only: all authority, state transitions, idempotency, retention,
 //! receipts, and completion truth remain in daemon routes.
 
-use std::{fs, path::PathBuf, time::Duration};
+use std::{fs, path::PathBuf};
 
 use anyhow::{Context, Result, bail};
 use clap::{Args, Subcommand};
@@ -15,11 +15,12 @@ use super::silent_render::{CLI_SCHEMA, print_result};
 
 #[derive(Subcommand, Debug)]
 pub enum SilentCmd {
-    Preflight(ConfigInputArgs),
+    Preflight(PreflightArgs),
     Create(CreateArgs),
     Start(SessionMutationArgs),
     List(ListArgs),
-    Show(SessionArgs),
+    Show(ReadArgs),
+    Status(ReadArgs),
     Watch(WatchArgs),
     Output(OutputArgs),
     Send(InputArgs),
@@ -39,12 +40,12 @@ pub enum SilentCmd {
     #[command(subcommand)]
     Preset(PresetCmd),
     Checkpoints(ExactSessionArgs),
-    Evidence(ExactSessionArgs),
-    Receipt(ExactSessionArgs),
+    Evidence(ProofArgs),
+    Receipt(ProofArgs),
     Export(ExportArgs),
-    Hold(HoldArgs),
-    Delete(DeleteArgs),
-    Purge(PurgeArgs),
+    Hold(RetentionArgs),
+    Delete(RetentionArgs),
+    Purge(RetentionArgs),
     Doctor(DoctorArgs),
 }
 
@@ -73,6 +74,13 @@ pub struct SessionArgs {
 }
 
 #[derive(Args, Debug, Clone)]
+pub struct ReadArgs {
+    pub session_id: String,
+    #[arg(long, alias = "run")]
+    pub run_id: String,
+}
+
+#[derive(Args, Debug, Clone)]
 pub struct ExactSessionArgs {
     /// Exact durable Silent Session id.
     pub session_id: String,
@@ -87,17 +95,23 @@ pub struct SessionMutationArgs {
     /// Exact durable Silent Session id.
     pub session_id: String,
     /// Exact current run id; never inferred by the CLI.
-    #[arg(long)]
+    #[arg(long, alias = "run")]
     pub run_id: String,
     /// Exact current run generation; stale generations are rejected.
     #[arg(long)]
     pub generation: u64,
+    #[arg(long)]
+    pub actor_instance_ref: Option<String>,
     /// Explicit daemon approval id for the intended mutation.
     #[arg(long)]
     pub approval_id: String,
     /// Idempotency key for mutation replay safety.
     #[arg(long)]
-    pub idempotency_key: String,
+    pub idempotency_key: Option<String>,
+    #[arg(long)]
+    pub lease_file: Option<PathBuf>,
+    #[arg(long)]
+    pub reason_code: Option<String>,
 }
 
 #[derive(Args, Debug)]
@@ -111,16 +125,31 @@ pub struct ConfigInputArgs {
 }
 
 #[derive(Args, Debug)]
+pub struct PreflightArgs {
+    #[arg(long)]
+    pub actor_instance_ref: String,
+    #[arg(long)]
+    pub approval_id: String,
+    #[arg(long)]
+    pub session_owner_os_user: String,
+    #[arg(long)]
+    pub context_authority_file: PathBuf,
+}
+
+#[derive(Args, Debug)]
 pub struct CreateArgs {
     /// Complete SilentSessionConfig JSON object or envelope containing `config`.
     #[arg(long)]
-    pub config_file: PathBuf,
+    pub config_file: Option<PathBuf>,
+    /// Optional complete governed lifecycle request.
+    #[arg(long)]
+    pub request_file: Option<PathBuf>,
     /// Optional ConfigLayer JSON array.
     #[arg(long)]
     pub layers_file: Option<PathBuf>,
-    /// Required create idempotency key; safe retries must reuse it unchanged.
+    /// Required for config-based create; governed requests carry their own replay contract.
     #[arg(long)]
-    pub idempotency_key: String,
+    pub idempotency_key: Option<String>,
 }
 
 #[derive(Args, Debug)]
@@ -138,12 +167,14 @@ pub struct ListArgs {
 #[derive(Args, Debug)]
 pub struct WatchArgs {
     pub session_id: String,
-    #[arg(long)]
+    #[arg(long, alias = "run")]
     pub run_id: String,
     #[arg(long)]
-    pub generation: u64,
-    #[arg(long)]
+    pub generation: Option<u64>,
+    #[arg(long, alias = "after")]
     pub cursor: Option<String>,
+    #[arg(long)]
+    pub tools: bool,
     #[arg(long, default_value_t = false)]
     pub follow: bool,
     /// Explicit finite bound; prevents accidental unbounded automation.
@@ -158,11 +189,11 @@ pub struct WatchArgs {
 #[derive(Args, Debug)]
 pub struct OutputArgs {
     pub session_id: String,
-    #[arg(long)]
+    #[arg(long, alias = "run")]
     pub run_id: String,
     #[arg(long)]
-    pub generation: u64,
-    #[arg(long)]
+    pub generation: Option<u64>,
+    #[arg(long, alias = "after")]
     pub cursor: Option<String>,
     #[arg(long, default_value_t = 200)]
     pub limit: usize,
@@ -247,18 +278,60 @@ pub struct RollbackArgs {
 }
 
 #[derive(Args, Debug)]
-pub struct ExportArgs {
+pub struct ProofArgs {
     pub session_id: String,
-    #[arg(long)]
+    #[arg(long, alias = "run")]
     pub run_id: String,
     #[arg(long)]
-    pub generation: u64,
+    pub after: Option<String>,
+    #[arg(long, default_value_t = 200)]
+    pub limit: usize,
+}
+
+#[derive(Args, Debug)]
+pub struct ExportArgs {
+    pub session_id: String,
+    #[arg(long, alias = "run")]
+    pub run_id: String,
+    #[arg(long)]
+    pub generation: Option<u64>,
+    #[arg(long)]
+    pub after: Option<String>,
+    #[arg(long, default_value_t = 200)]
+    pub limit: usize,
     #[arg(long, default_value = "json")]
     pub format: String,
     #[arg(long)]
     pub include_output: bool,
     #[arg(long)]
-    pub idempotency_key: String,
+    pub idempotency_key: Option<String>,
+}
+
+#[derive(Args, Debug)]
+pub struct RetentionArgs {
+    pub session_id: String,
+    #[arg(long, alias = "run")]
+    pub run_id: String,
+    #[arg(long)]
+    pub generation: u64,
+    #[arg(long)]
+    pub actor_instance_ref: String,
+    #[arg(long)]
+    pub approval_id: String,
+    #[arg(long)]
+    pub context_authority_file: PathBuf,
+    #[arg(long)]
+    pub dry_run: bool,
+    #[arg(long)]
+    pub apply: bool,
+    #[arg(long)]
+    pub reason_code: String,
+    #[arg(long)]
+    pub impact_preview_ref: Option<String>,
+    #[arg(long)]
+    pub confirm_delete: Option<String>,
+    #[arg(long)]
+    pub confirm_irreversible_purge: Option<String>,
 }
 
 #[derive(Args, Debug)]
@@ -357,13 +430,376 @@ fn config_apply_body(args: &ConfigSessionArgs) -> Result<Value> {
     config_session_body(args)
 }
 
-fn mutation_body(args: &SessionMutationArgs) -> Value {
-    json!({
+fn preflight_body(args: &PreflightArgs) -> Result<Value> {
+    Ok(json!({
+        "actor_instance_ref": args.actor_instance_ref,
+        "approval_id": args.approval_id,
+        "legacy_approved": false,
+        "session_owner_os_user": args.session_owner_os_user,
+        "context_authority": read_json(&args.context_authority_file)?,
+    }))
+}
+
+fn create_body(args: &CreateArgs) -> Result<Value> {
+    if let Some(path) = &args.request_file {
+        let request = read_json(path)?;
+        let authority = request
+            .pointer("/context_authority/project_identity_ref")
+            .and_then(Value::as_str);
+        let session = request
+            .pointer("/session/project_identity_ref")
+            .and_then(Value::as_str);
+        let config = request
+            .pointer("/initial_config/identity/project_identity_ref")
+            .and_then(Value::as_str);
+        anyhow::ensure!(
+            authority.is_some() && authority == session && authority == config,
+            "[CLI_STALE_SCOPE] create request context authority does not match the exact project scope"
+        );
+        return Ok(request);
+    }
+    let config_file = args
+        .config_file
+        .clone()
+        .context("--config-file or --request-file is required")?;
+    let idempotency_key = args
+        .idempotency_key
+        .clone()
+        .context("--idempotency-key is required with --config-file")?;
+    let input = ConfigInputArgs {
+        config_file,
+        layers_file: args.layers_file.clone(),
+    };
+    let mut body = config_body(&input)?;
+    body["idempotency_key"] = Value::String(idempotency_key);
+    Ok(body)
+}
+
+fn mutation_body(args: &SessionMutationArgs) -> Result<Value> {
+    if let Some(path) = &args.lease_file {
+        let lease = read_json(path)?;
+        let actor = args
+            .actor_instance_ref
+            .as_deref()
+            .context("--actor-instance-ref is required with --lease-file")?;
+        let expires_at = lease
+            .get("expires_at")
+            .and_then(Value::as_str)
+            .and_then(|value| chrono::DateTime::parse_from_rfc3339(value).ok());
+        anyhow::ensure!(
+            lease.get("session_id").and_then(Value::as_str) == Some(args.session_id.as_str())
+                && lease
+                    .get("owner_actor_instance_ref")
+                    .and_then(Value::as_str)
+                    == Some(actor)
+                && expires_at.is_some_and(|value| value > chrono::Utc::now()),
+            "[CLI_STALE_SCOPE] lifecycle lease is stale or not bound to the exact session and actor"
+        );
+        return Ok(json!({
+            "actor_instance_ref": actor,
+            "approval_id": args.approval_id,
+            "legacy_approved": false,
+            "lease": lease,
+            "reason_code": args.reason_code,
+            "idempotency_key": args.idempotency_key,
+        }));
+    }
+    let idempotency_key = args
+        .idempotency_key
+        .clone()
+        .context("--idempotency-key or --lease-file is required")?;
+    Ok(json!({
         "run_id": args.run_id,
         "generation": args.generation,
         "approval_id": args.approval_id,
+        "idempotency_key": idempotency_key,
+    }))
+}
+
+async fn lifecycle_call(
+    client: &ApiClient,
+    args: &SessionMutationArgs,
+    operation: &str,
+) -> Result<Value> {
+    let path = if args.lease_file.is_some() {
+        format!(
+            "/silent-sessions/{}/{operation}?run_id={}&expected_generation={}",
+            args.session_id, args.run_id, args.generation
+        )
+    } else {
+        format!("/silent-sessions/{}/{operation}", args.session_id)
+    };
+    let result = client.post(&path, &mutation_body(args)?).await?;
+    if result.get("ok").and_then(Value::as_bool) == Some(false)
+        || result.get("stale").and_then(Value::as_bool) == Some(true)
+    {
+        let failure = result
+            .get("failure_class")
+            .and_then(Value::as_str)
+            .unwrap_or("lifecycle_rejected");
+        bail!("lifecycle mutation rejected: {failure}");
+    }
+    Ok(result)
+}
+
+fn validate_exact_read(result: Value, session_id: &str, run_id: &str) -> Result<Value> {
+    let response_session = result
+        .pointer("/data/session_id")
+        .and_then(Value::as_str)
+        .or_else(|| {
+            result
+                .pointer("/data/session/session_id")
+                .and_then(Value::as_str)
+        });
+    let response_run = result
+        .pointer("/data/run_id")
+        .and_then(Value::as_str)
+        .or_else(|| result.pointer("/data/run/run_id").and_then(Value::as_str));
+    anyhow::ensure!(
+        response_session.is_none_or(|value| value == session_id) && response_run == Some(run_id),
+        "[API_DECODE_ERROR] daemon response did not match the exact requested session and run"
+    );
+    Ok(result)
+}
+
+async fn watch_call(client: &ApiClient, args: &WatchArgs) -> Result<Value> {
+    anyhow::ensure!(
+        (1..=500).contains(&args.limit),
+        "--limit must be between 1-500"
+    );
+    let path = format!(
+        "/silent-sessions/{}/events?run_id={}&limit={}",
+        args.session_id,
+        urlencoding::encode(&args.run_id),
+        args.limit
+    );
+    let headers = args
+        .cursor
+        .as_deref()
+        .map(|cursor| vec![("last-event-id", cursor)])
+        .unwrap_or_default();
+    let (status, body) = client.get_text_with_headers(&path, &headers).await?;
+    anyhow::ensure!(
+        (200..300).contains(&status),
+        "watch request rejected with HTTP {status}"
+    );
+    let mut events = Vec::new();
+    let mut next_cursor = args.cursor.clone();
+    for block in body.split("\n\n").filter(|block| !block.trim().is_empty()) {
+        let id = block
+            .lines()
+            .find_map(|line| line.strip_prefix("id: "))
+            .map(str::to_string);
+        let data = block.lines().find_map(|line| line.strip_prefix("data: "));
+        if let Some(id) = id {
+            next_cursor = Some(id);
+        }
+        let Some(data) = data else { continue };
+        let value: Value = serde_json::from_str(data).context("decode silent watch event")?;
+        let kind = value
+            .pointer("/data/kind")
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        if !args.tools || kind.starts_with("tool.") {
+            events.push(value);
+        }
+    }
+    Ok(json!({
+        "ok": true, "status": "observed", "canonical": true, "advisory": false,
+        "degraded": false, "stale": false, "failure_class": Value::Null,
+        "retry": {"safe": true, "posture": "idempotent_read"}, "side_effects": [],
+        "evidence_refs": [], "receipt_refs": [], "next_tools": [],
+        "recovery_hint": Value::Null, "misuse_hint": Value::Null,
+        "data": {"session_id": args.session_id, "run_id": args.run_id, "after_cursor": args.cursor,
+                 "next_cursor": next_cursor, "event_count": events.len(), "events": events}
+    }))
+}
+
+async fn proof_call(client: &ApiClient, args: &ProofArgs, collection: &str) -> Result<Value> {
+    anyhow::ensure!(
+        (1..=1000).contains(&args.limit),
+        "--limit must be between 1-1000"
+    );
+    let mut path = format!(
+        "/silent-sessions/{}/{collection}?run_id={}&limit={}",
+        args.session_id,
+        urlencoding::encode(&args.run_id),
+        args.limit
+    );
+    if let Some(after) = &args.after {
+        path.push_str("&after=");
+        path.push_str(&urlencoding::encode(after));
+    }
+    let result = client.get(&path).await?;
+    anyhow::ensure!(
+        result.pointer("/data/run_id").and_then(Value::as_str) == Some(args.run_id.as_str())
+            && result
+                .pointer("/data/limit")
+                .and_then(Value::as_u64)
+                .is_none_or(|limit| limit <= args.limit as u64),
+        "proof response violated exact-run or bounded-limit authority"
+    );
+    Ok(result)
+}
+
+async fn export_call(client: &ApiClient, args: &ExportArgs) -> Result<Value> {
+    anyhow::ensure!(
+        (1..=1000).contains(&args.limit),
+        "--limit must be between 1-1000"
+    );
+    let path = format!(
+        "/silent-sessions/{}/export?run_id={}",
+        args.session_id,
+        urlencoding::encode(&args.run_id)
+    );
+    let body = json!({
+        "schema": "focusa.silent_session_export_request.v1",
+        "run_id": args.run_id,
+        "generation": args.generation,
+        "after_cursor": args.after,
+        "event_limit": args.limit,
+        "redaction_required": true,
+        "format": args.format,
+        "include_output": args.include_output,
         "idempotency_key": args.idempotency_key,
-    })
+    });
+    let result = client.post(&path, &body).await?;
+    anyhow::ensure!(
+        result.pointer("/data/run_id").and_then(Value::as_str) == Some(args.run_id.as_str())
+            && result.pointer("/data/redacted").and_then(Value::as_bool) == Some(true),
+        "export response violated exact-run or redaction authority"
+    );
+    Ok(result)
+}
+
+fn retention_body(args: &RetentionArgs, operation: &str) -> Result<Value> {
+    anyhow::ensure!(
+        args.dry_run ^ args.apply,
+        "choose exactly one of --dry-run or --apply"
+    );
+    let context_authority = read_json(&args.context_authority_file)?;
+    anyhow::ensure!(
+        context_authority.get("allowed").and_then(Value::as_bool) == Some(true),
+        "retention Context Authority is not allowed"
+    );
+    let scope = if operation == "purge" {
+        "silent_sessions:forensics"
+    } else {
+        "silent_sessions:admin"
+    };
+    let confirmation = if args.dry_run {
+        anyhow::ensure!(
+            args.impact_preview_ref.is_none()
+                && args.confirm_delete.is_none()
+                && args.confirm_irreversible_purge.is_none(),
+            "dry-run cannot accept apply confirmations"
+        );
+        Value::Null
+    } else if operation == "delete" {
+        let preview = args
+            .impact_preview_ref
+            .as_deref()
+            .context("--impact-preview-ref is required for delete apply")?;
+        let confirmation = args
+            .confirm_delete
+            .as_deref()
+            .context("--confirm-delete is required for delete apply")?;
+        anyhow::ensure!(
+            confirmation == args.session_id,
+            "--confirm-delete must exactly equal the canonical session_id"
+        );
+        json!({"session_id": confirmation, "active_projection_removal_acknowledged": true, "irreversible_forensic_loss_acknowledged": false, "impact_preview_ref": preview})
+    } else if operation == "purge" {
+        let preview = args
+            .impact_preview_ref
+            .as_deref()
+            .context("--impact-preview-ref is required for purge apply")?;
+        let confirmation = args
+            .confirm_irreversible_purge
+            .as_deref()
+            .context("--confirm-irreversible-purge is required for purge apply")?;
+        anyhow::ensure!(
+            confirmation == args.session_id,
+            "--confirm-irreversible-purge must exactly equal the canonical session_id"
+        );
+        json!({"session_id": confirmation, "active_projection_removal_acknowledged": false, "irreversible_forensic_loss_acknowledged": true, "impact_preview_ref": preview})
+    } else {
+        Value::Null
+    };
+    Ok(json!({
+        "operation": operation, "session_id": args.session_id, "run_id": args.run_id,
+        "expected_generation": args.generation, "actor_instance_ref": args.actor_instance_ref,
+        "approval_id": args.approval_id, "legacy_approved": false,
+        "required_authority_scope": scope, "context_authority": context_authority,
+        "dry_run": args.dry_run, "side_effect_policy": if args.dry_run { "preview" } else { "commit" },
+        "reason_code": args.reason_code, "impact_preview_ref": args.impact_preview_ref,
+        "confirmation": confirmation, "evidence_hold": operation == "hold",
+        "process_termination_allowed": false, "completion_transition_allowed": false,
+        "lifecycle_transition_allowed": false
+    }))
+}
+
+fn validate_retention_result(
+    result: Value,
+    args: &RetentionArgs,
+    operation: &str,
+) -> Result<Value> {
+    let data = result.get("data").unwrap_or(&Value::Null);
+    let unsafe_transition = data
+        .get("process_termination_performed")
+        .and_then(Value::as_bool)
+        == Some(true)
+        || data
+            .get("completion_transition_performed")
+            .and_then(Value::as_bool)
+            == Some(true);
+    let preview_effect = args.dry_run
+        && result
+            .get("side_effects")
+            .and_then(Value::as_array)
+            .is_some_and(|items| !items.is_empty());
+    let held_purge = operation == "purge"
+        && (data.get("evidence_hold_active").and_then(Value::as_bool) == Some(true)
+            || data.get("purge_eligible").and_then(Value::as_bool) == Some(false));
+    anyhow::ensure!(
+        !unsafe_transition && !preview_effect && !held_purge,
+        "retention response violated status separation, preview safety, or Evidence hold"
+    );
+    Ok(result)
+}
+
+async fn retention_call(
+    client: &ApiClient,
+    args: &RetentionArgs,
+    operation: &str,
+) -> Result<Value> {
+    let path = if operation == "delete" {
+        format!(
+            "/silent-sessions/{}?run_id={}&expected_generation={}",
+            args.session_id,
+            urlencoding::encode(&args.run_id),
+            args.generation
+        )
+    } else {
+        let route = if operation == "hold" {
+            "evidence-hold"
+        } else {
+            operation
+        };
+        format!(
+            "/silent-sessions/{}/{route}?run_id={}&expected_generation={}",
+            args.session_id,
+            urlencoding::encode(&args.run_id),
+            args.generation
+        )
+    };
+    let body = retention_body(args, operation)?;
+    let result = if operation == "delete" {
+        delete(client, &path, &body).await?
+    } else {
+        client.post(&path, &body).await?
+    };
+    validate_retention_result(result, args, operation)
 }
 
 fn query(items: &[(&str, Option<String>)]) -> String {
@@ -400,6 +836,7 @@ async fn delete(client: &ApiClient, path: &str, body: &Value) -> Result<Value> {
     Ok(body)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn interaction_body(
     session_id: &str,
     actor_instance_ref: &str,
@@ -595,14 +1032,9 @@ async fn silent_doctor_report(client: &ApiClient) -> Value {
 
 async fn execute(client: &ApiClient, command: SilentCmd, json_output: bool) -> Result<()> {
     let (name, result) = match command {
-        SilentCmd::Preflight(args) => ("preflight", client.post("/silent-sessions/preflight", &config_body(&args)?).await?),
-        SilentCmd::Create(args) => {
-            let input = ConfigInputArgs { config_file: args.config_file, layers_file: args.layers_file };
-            let mut body = config_body(&input)?;
-            body["idempotency_key"] = Value::String(args.idempotency_key);
-            ("create", client.post("/silent-sessions", &body).await?)
-        }
-        SilentCmd::Start(args) => ("start", client.post(&format!("/silent-sessions/{}/start", args.session_id), &mutation_body(&args)).await?),
+        SilentCmd::Preflight(args) => ("preflight", client.post("/silent-sessions/preflight", &preflight_body(&args)?).await?),
+        SilentCmd::Create(args) => ("create", client.post("/silent-sessions", &create_body(&args)?).await?),
+        SilentCmd::Start(args) => ("start", lifecycle_call(client, &args, "start").await?),
         SilentCmd::List(args) => {
             let query = query(&[
                 ("project_root", args.project_root),
@@ -612,23 +1044,21 @@ async fn execute(client: &ApiClient, command: SilentCmd, json_output: bool) -> R
             ]);
             ("list", client.get(&format!("/silent-sessions{query}")).await?)
         }
-        SilentCmd::Show(args) => ("show", client.get(&format!("/silent-sessions/{}", args.session_id)).await?),
-        SilentCmd::Watch(args) => {
-            let polls = if args.follow { args.max_polls.clamp(1, 10_000) } else { 1 };
-            let mut cursor = args.cursor;
-            let mut responses = Vec::new();
-            for index in 0..polls {
-                let suffix = query(&[("run_id", Some(args.run_id.clone())), ("generation", Some(args.generation.to_string())), ("cursor", cursor.clone()), ("follow", Some("false".into())), ("limit", Some(args.limit.clamp(1, 500).to_string()))]);
-                let value = client.get(&format!("/silent-sessions/{}/events{suffix}", args.session_id)).await?;
-                cursor = value.pointer("/data/next_cursor").and_then(Value::as_str).map(str::to_string).or(cursor);
-                responses.push(value);
-                if index + 1 < polls { tokio::time::sleep(Duration::from_millis(args.interval_ms.max(50))).await; }
-            }
-            ("watch", json!({"status":"completed","cursor":cursor,"polls":responses.len(),"events":responses}))
+        SilentCmd::Show(args) => {
+            let result = client.get(&format!("/silent-sessions/{}?run_id={}", args.session_id, urlencoding::encode(&args.run_id))).await?;
+            ("show", validate_exact_read(result, &args.session_id, &args.run_id)?)
         }
+        SilentCmd::Status(args) => {
+            let result = client.get(&format!("/silent-sessions/{}/status?run_id={}", args.session_id, urlencoding::encode(&args.run_id))).await?;
+            ("status", validate_exact_read(result, &args.session_id, &args.run_id)?)
+        }
+        SilentCmd::Watch(args) => ("watch", watch_call(client, &args).await?),
         SilentCmd::Output(args) => {
-            let suffix = query(&[("run_id", Some(args.run_id)), ("generation", Some(args.generation.to_string())), ("cursor", args.cursor), ("follow", Some("false".into())), ("limit", Some(args.limit.clamp(1, 1000).to_string())), ("channel", args.stream)]);
-            ("output", client.get(&format!("/silent-sessions/{}/output{suffix}", args.session_id)).await?)
+            anyhow::ensure!((1..=1000).contains(&args.limit), "--limit must be between 1-1000");
+            let mut path = format!("/silent-sessions/{}/output?run_id={}&limit={}", args.session_id, urlencoding::encode(&args.run_id), args.limit);
+            if let Some(after) = &args.cursor { path.push_str("&after="); path.push_str(&urlencoding::encode(after)); }
+            let result = client.get(&path).await?;
+            ("output", validate_exact_read(result, &args.session_id, &args.run_id)?)
         }
         SilentCmd::Send(args) => {
             let body = interaction_body(&args.session_id, &args.actor_instance_ref, &args.approval_id, &args.idempotency_key, &args.lease_file, &args.payload_file, Some(&args.text), None)?;
@@ -658,12 +1088,12 @@ async fn execute(client: &ApiClient, command: SilentCmd, json_output: bool) -> R
             validate_interaction_replay(&result)?;
             ("key", result)
         },
-        SilentCmd::Pause(args) => ("pause", client.post(&format!("/silent-sessions/{}/pause", args.session_id), &mutation_body(&args)).await?),
-        SilentCmd::Resume(args) => ("resume", client.post(&format!("/silent-sessions/{}/resume", args.session_id), &mutation_body(&args)).await?),
-        SilentCmd::Interrupt(args) => ("interrupt", client.post(&format!("/silent-sessions/{}/interrupt", args.session_id), &mutation_body(&args)).await?),
-        SilentCmd::Cancel(args) => ("cancel", client.post(&format!("/silent-sessions/{}/cancel", args.session_id), &mutation_body(&args)).await?),
-        SilentCmd::Restart(args) => ("restart", client.post(&format!("/silent-sessions/{}/restart", args.session_id), &mutation_body(&args)).await?),
-        SilentCmd::Adopt(args) => ("adopt", client.post(&format!("/silent-sessions/{}/adopt", args.session_id), &mutation_body(&args)).await?),
+        SilentCmd::Pause(args) => ("pause", lifecycle_call(client, &args, "pause").await?),
+        SilentCmd::Resume(args) => ("resume", lifecycle_call(client, &args, "resume").await?),
+        SilentCmd::Interrupt(args) => ("interrupt", lifecycle_call(client, &args, "interrupt").await?),
+        SilentCmd::Cancel(args) => ("cancel", lifecycle_call(client, &args, "cancel").await?),
+        SilentCmd::Restart(args) => ("restart", lifecycle_call(client, &args, "restart").await?),
+        SilentCmd::Adopt(args) => ("adopt", lifecycle_call(client, &args, "adopt").await?),
         SilentCmd::Config(command) => match command {
             ConfigCmd::Resolve(args) => ("config resolve", client.post("/silent-sessions/config/resolve", &config_body(&args)?).await?),
             ConfigCmd::Diff(args) => ("config diff", client.post(&format!("/silent-sessions/{}/config/preview", args.session_id), &config_session_body(&args)?).await?),
@@ -673,12 +1103,12 @@ async fn execute(client: &ApiClient, command: SilentCmd, json_output: bool) -> R
         SilentCmd::Profile(ProfileCmd::List) => ("profile list", client.get("/silent-sessions/profiles").await?),
         SilentCmd::Preset(PresetCmd::List) => ("preset list", client.get("/silent-sessions/presets").await?),
         SilentCmd::Checkpoints(args) => ("checkpoints", client.get(&format!("/silent-sessions/{}/checkpoints?run_id={}&generation={}", args.session_id, args.run_id, args.generation)).await?),
-        SilentCmd::Evidence(args) => ("evidence", client.get(&format!("/silent-sessions/{}/artifacts?run_id={}&generation={}", args.session_id, args.run_id, args.generation)).await?),
-        SilentCmd::Receipt(args) => ("receipt", client.get(&format!("/silent-sessions/{}/receipts?run_id={}&generation={}", args.session_id, args.run_id, args.generation)).await?),
-        SilentCmd::Export(args) => ("export", client.post(&format!("/silent-sessions/{}/export", args.session_id), &json!({"run_id":args.run_id,"generation":args.generation,"format":args.format,"include_output":args.include_output,"idempotency_key":args.idempotency_key})).await?),
-        SilentCmd::Hold(args) => ("hold", client.post(&format!("/silent-sessions/{}/evidence-hold", args.session_id), &json!({"run_id":args.run_id,"generation":args.generation,"reason":args.reason,"expires_at":args.expires_at,"idempotency_key":args.idempotency_key})).await?),
-        SilentCmd::Delete(args) => ("delete", delete(client, &format!("/silent-sessions/{}", args.session_id), &json!({"run_id":args.run_id,"generation":args.generation,"reason":args.reason,"idempotency_key":args.idempotency_key})).await?),
-        SilentCmd::Purge(args) => ("purge", client.post(&format!("/silent-sessions/{}/purge", args.session_id), &json!({"run_id":args.run_id,"generation":args.generation,"commit":args.commit,"reason":args.reason,"idempotency_key":args.idempotency_key})).await?),
+        SilentCmd::Evidence(args) => ("evidence", proof_call(client, &args, "artifacts").await?),
+        SilentCmd::Receipt(args) => ("receipt", proof_call(client, &args, "receipts").await?),
+        SilentCmd::Export(args) => ("export", export_call(client, &args).await?),
+        SilentCmd::Hold(args) => ("hold", retention_call(client, &args, "hold").await?),
+        SilentCmd::Delete(args) => ("delete", retention_call(client, &args, "delete").await?),
+        SilentCmd::Purge(args) => ("purge", retention_call(client, &args, "purge").await?),
         SilentCmd::Doctor(_args) => ("doctor", silent_doctor_report(client).await),
     };
     print_result(name, result, json_output)

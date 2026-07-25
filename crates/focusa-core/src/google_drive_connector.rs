@@ -62,6 +62,7 @@ pub struct GoogleDriveConnector {
 }
 
 impl GoogleDriveConnector {
+    #[allow(clippy::result_large_err)]
     pub fn new(
         connector_id: String,
         project_root: String,
@@ -258,6 +259,7 @@ impl GoogleDriveConnector {
         self.auth.revoke()
     }
 
+    #[allow(clippy::result_large_err)]
     fn token(&self) -> Result<String, ConnectorErrorEnvelope> {
         self.auth
             .access_token()

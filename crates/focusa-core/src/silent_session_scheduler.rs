@@ -120,7 +120,7 @@ pub fn select_silent_session_dispatch(
             .then_with(|| left.queued_at.cmp(&right.queued_at))
             .then_with(|| left.session_id.cmp(&right.session_id))
     });
-    deferred.sort_by(|left, right| left.session_id.cmp(&right.session_id));
+    deferred.sort_by_key(|item| item.session_id);
     let selected = eligible.first().map(|(candidate, _)| *candidate);
     let decision = SilentSessionDispatchDecision {
         schema: SILENT_SESSION_DISPATCH_SCHEMA.into(),

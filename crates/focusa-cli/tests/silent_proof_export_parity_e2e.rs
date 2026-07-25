@@ -152,7 +152,7 @@ fn evidence_and_receipts_are_bounded_redacted_and_exact_run_scoped_in_both_modes
             json!([]),
         );
         let target = format!(
-            "/v1/silent-sessions/{session_id}/artifacts?run_id={run_id}&limit=3&after=opaque%2Fcursor%3F1"
+            "/silent-sessions/{session_id}/artifacts?run_id={run_id}&limit=3&after=opaque%2Fcursor%3F1"
         );
         let cli_args = args(
             json_mode,
@@ -208,7 +208,7 @@ fn evidence_and_receipts_are_bounded_redacted_and_exact_run_scoped_in_both_modes
             json!([]),
             json!([receipt_ref]),
         );
-        let target = format!("/v1/silent-sessions/{session_id}/receipts?run_id={run_id}&limit=2");
+        let target = format!("/silent-sessions/{session_id}/receipts?run_id={run_id}&limit=2");
         let cli_args = args(
             json_mode,
             &["receipt", &session_id, "--run-id", &run_id, "--limit", "2"],
@@ -264,7 +264,7 @@ fn export_posts_only_a_redacted_bounded_exact_run_request_with_human_json_parity
             json!([artifact_ref]),
             json!(["receipt:export-proof"]),
         );
-        let target = format!("/v1/silent-sessions/{session_id}/export?run_id={run_id}");
+        let target = format!("/silent-sessions/{session_id}/export?run_id={run_id}");
         let cli_args = args(
             json_mode,
             &[
@@ -330,7 +330,7 @@ fn proof_and_export_fail_closed_on_cross_run_or_unbounded_daemon_responses() {
         json!(["artifact:wrong-run"]),
         json!([]),
     );
-    let target = format!("/v1/silent-sessions/{session_id}/artifacts?run_id={run_id}&limit=1");
+    let target = format!("/silent-sessions/{session_id}/artifacts?run_id={run_id}&limit=1");
     let cli_args = args(
         true,
         &["evidence", &session_id, "--run", &run_id, "--limit", "1"],
