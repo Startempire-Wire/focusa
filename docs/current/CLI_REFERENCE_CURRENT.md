@@ -126,12 +126,15 @@ focusa --json binary preflight-install \
 ### `focusa pair --json` additions
 
 Phone Bridge JSON includes `environment_contract`, `runtime_inventory`, and `action_preflight` in addition to transport diagnostics.
+
+```text
       --json             Output in JSON format
       --config <CONFIG>  Config file path
       --verbose          Verbose output
       --quiet            Quiet mode — suppress non-essential output
   -h, --help             Print help
   -V, --version          Print version
+
 ```
 
 ## Current agent-first command groups
@@ -168,6 +171,16 @@ Phone Bridge JSON includes `environment_contract`, `runtime_inventory`, and `act
 - `metacognition capture` / `reflect` / `adjust` / `evaluate` — print trajectory summaries when learning packets are bound to the active trajectory.
 - `metacognition recent-reflections` / `recent-adjustments` / `recent-evaluations` — read recent learning/evaluation packets.
 - `awareness card --continuity-id` — non-Pi utility card injection with trajectory orientation and logical-session scoping.
+
+### Release-current lifecycle and autonomous execution
+
+- `focusa silent --help` exposes daemon-native Silent Session list/start/reopen/tail/send/interrupt/pause/resume/restart/kill/config/receipt/capabilities operations. Mutations use exact session/run/generation plus daemon-issued approval and idempotency fields; shell/tmux aliases are not authority.
+- `focusa update --help` exposes trusted OTA inventory, policy, guarded apply, activation status, and rollback surfaces across CLI/daemon/TUI/Pi/menubar/installer release artifacts.
+- `focusa uninstall --dry-run --keep-data` previews software removal with data preservation. The public bootstrapper preserves data by default; destructive removal requires explicit `--uninstall --purge-data`.
+- `focusa tui --headless-self-test` provides structured non-TTY Mission Deck diagnostics.
+- Mission Canvas, Work Rail, connectors, generated UI, and all Focusa Pi tools are discovered through the generated Agent Card/Spec141 registries rather than an invented parallel CLI hierarchy.
+
+Machine-readable CLI bindings live in `docs/contracts/spec141/generated-capability-v2/cli-commands.json`; every Focusa Pi tool is separately projected in `pi-tools.json` and documented under `docs/focusa-tools/tools/`.
 
 ## Command hierarchy migration
 

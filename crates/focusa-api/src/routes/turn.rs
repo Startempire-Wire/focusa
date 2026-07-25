@@ -8,7 +8,9 @@
 //! Source: docs/G1-detail-04-proxy-adapter.md
 
 use crate::routes::ontology;
-use crate::routes::work_loop::maybe_dispatch_continuous_turn_prompt;
+use crate::routes::work_loop::{
+    maybe_dispatch_continuous_turn_prompt, parse_work_loop_outcome_receipt,
+};
 use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::State;
@@ -517,26 +519,43 @@ async fn turn_complete(
                 task.work_item_id
             )
         };
-        let verification_satisfied = req.errors.is_empty() && !assistant_output.is_empty();
+        let receipt = parse_work_loop_outcome_receipt(assistant_output);
+        let receipt_matches = receipt
+            .as_ref()
+            .is_some_and(|receipt| receipt.work_item_id == task.work_item_id);
+        let outcome_status = receipt
+            .as_ref()
+            .filter(|_| receipt_matches)
+            .map(|receipt| receipt.status)
+            .unwrap_or(WorkLoopOutcomeStatus::Continue);
+        let evidence_citations = receipt
+            .as_ref()
+            .filter(|_| receipt_matches)
+            .map(|receipt| receipt.evidence_citations.clone())
+            .unwrap_or_default();
         let spec_conformant = req.errors.is_empty()
-            && !assistant_output.contains("BLOCKER:")
-            && !assistant_output.contains("ESCALATE:");
-        let continue_reason = if spec_conformant {
-            Some(format!(
-                "turn completed without recorded errors; evidence: {assistant_excerpt}"
-            ))
-        } else {
-            Some(format!(
-                "turn completed with recorded errors or blocker markers; evidence: {assistant_excerpt}"
-            ))
-        };
+            && receipt
+                .as_ref()
+                .filter(|_| receipt_matches)
+                .is_some_and(|receipt| receipt.spec_conformant);
+        let verification_satisfied =
+            outcome_status == WorkLoopOutcomeStatus::Completed && !evidence_citations.is_empty();
+        let summary = receipt
+            .as_ref()
+            .filter(|_| receipt_matches)
+            .and_then(|receipt| receipt.summary.clone())
+            .unwrap_or(summary);
         let observe_action = Action::ObserveContinuousTurnOutcome {
             task_run_id: None,
             work_item_id: Some(task.work_item_id.clone()),
             summary,
-            continue_reason,
+            continue_reason: Some(format!(
+                "turn outcome observed; typed_receipt={receipt_matches}; evidence: {assistant_excerpt}"
+            )),
             verification_satisfied,
             spec_conformant,
+            outcome_status,
+            evidence_citations,
         };
         match tokio::time::timeout(
             std::time::Duration::from_millis(250),
@@ -639,6 +658,7 @@ mod tests {
             command_store: Arc::new(RwLock::new(HashMap::new())),
             token_store: Arc::new(RwLock::new(focusa_core::permissions::TokenStore::new())),
             writer_claims: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
+            next_writer_fencing_token: Arc::new(std::sync::atomic::AtomicU64::new(1)),
             focus_stack_by_scope: Arc::new(tokio::sync::RwLock::new(
                 std::collections::HashMap::new(),
             )),

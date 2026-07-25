@@ -7,6 +7,10 @@ description: "Use when Focusa is offline, degraded, stale, writer-conflicted, no
 
 Use when Focusa is offline, degraded, stale, writer-conflicted, non-canonical, or tools return pending/blocked results that need recovery.
 
+## Progressive disclosure
+
+Read `references/01-focusa-troubleshooting-runbook.md` for scoped diagnosis, contract drift, resource pressure, browser diagnostics, and safe retry posture.
+
 ## Start here
 
 1. Load the main Focusa skill if you need the whole system model: `/skill:focusa`.

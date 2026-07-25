@@ -4,7 +4,11 @@
 
 Focusa is not a coding agent. It preserves authoritative context and operational contracts across agents, sessions, harnesses, browser workflows, and machines.
 
-## Start here
+## When to use focusa
+
+Use Focusa when work must survive compaction, session/model/agent changes, worktree resumes, background execution, browser workflows, or release handoff with verifiable scope and evidence. Do not use it as a substitute for operator steering or as an unscoped global memory dump.
+
+## How to start
 
 1. `focusa_agent_card` — compact interfaces, auth, families, and discovery entry points.
 2. `focusa_project_identity` — verify the active project before trusting project-bound state.
@@ -15,7 +19,7 @@ Focusa is not a coding agent. It preserves authoritative context and operational
 
 Canonical authority boundary: `project_root + continuity_id`. Temporal Pi `session_id` is metadata.
 
-## Progressive tool discovery
+## Tool surface
 
 - `focusa_tool_search` — ranked capability metadata by action, object, failure, or workflow.
 - `focusa_tool_describe` — exact schema, side effects, authority, examples, recovery, skills, and protocol bindings.
@@ -24,6 +28,16 @@ Canonical authority boundary: `project_root + continuity_id`. Temporal Pi `sessi
 - `focusa_agent_card` — Pi, MCP, OpenAI functions, CLI, REST, auth, and capability families.
 
 Never inject every tool schema into the hot prompt. Generated machine authority: `docs/contracts/spec141/generated-capability-v2/`.
+
+## Core concepts
+
+- **Workpoint** — immediate mission/action/evidence/blockers/next-action continuation authority.
+- **Trajectory** — advisory HLT/MLG/STG/Waypoints goal, state, gap, and route context.
+- **Focus Stack** — bounded current focus frames; Focus State stores decisions, constraints, failures, and concise results.
+- **Memory** — scoped evidence and retrieval surfaces, never raw transcript authority.
+- **Constitution** — project/runtime instruction authority compiled across supported harnesses.
+- **Action Preflight** — verifies intent, environment, scope, risk, and mutation posture before side effects.
+- **Work Loop** — one governed writer with checkpoints, leases, delegation, and explicit lifecycle controls.
 
 ## Core workflows
 
@@ -54,6 +68,25 @@ Predictions guide; they never override operator steering. Evaluate only after th
 
 Treat `blocked`, `pending`, `degraded`, `canonical=false`, validation rejection, and ambiguous side effects as recovery states—not success.
 
+## Recovery
+
+- Scope conflict: `focusa_project_verify` → `focusa_project_identity` → canonical Workpoint checkpoint/resume.
+- Daemon/tool drift: `focusa_tool_doctor`; do not retry unchanged validation failures.
+- Context pressure: checkpoint Workpoint and Trajectory, use cache-safe compaction, then governed automatic rollover if bounded retries exhaust.
+- Resource pressure: `focusa_resource_mode` plus bounded `focusa_traverse`; avoid full dumps.
+- Browser failure: UIAI diagnostics → `focusa_browser_diagnostics_intake` → linked evidence.
+- Silent Session uncertainty: re-read exact session/run/generation and receipts before mutation retry.
+
+## Current architecture and lifecycle
+
+- All Focusa Pi tools are one-to-one across runtime registration, contracts, `pi-tools.json`, strict schemas, per-tool docs, and skill routing.
+- Exact authority is `project_root + continuity_id`; worktrees are verified working subpaths, not independent project identities.
+- Daemon-native Silent Sessions own durable session/run/generation state, observation, steering, approvals, idempotency, and receipts.
+- Governed work-loop recovery uses canonical Workpoint/Trajectory checkpoints, cache-safe context, proactive compaction, and automatic rollover after bounded retry exhaustion.
+- Mission Canvas and Work Rail bind scoped Work Surfaces, workspace artifacts, CRIST interviews, connectors, software/domain projections, UIAI context, and adaptive generated UI to canonical operations.
+- Customer lifecycle proof covers install and repair/rerun, trusted OTA update with rollback, and uninstall with user data preserved unless explicit purge is authorized.
+- `focusa_agent_card` exposes complete Pi tool, skill manifest, and numbered runbook inventories; load only the selected skill/runbook.
+
 ## Cross-harness contracts
 
 - Pi tools publish strict input schemas and typed output envelopes.
@@ -79,13 +112,13 @@ Use UIAI first for every URL/browser/research task. Sequence:
 
 ## Skills and runbooks
 
-Project and packaged skills live at `.pi/skills/` and `apps/pi-extension/skills/`. Twenty-one skills cover bootstrap/discovery, scope, Workpoints, Work Loop, session recovery, browser/UIAI, install lifecycle, security/auth/licensing, resources, Mission Canvas, release proof, temporal authority, spec implementation, evidence/outcomes, troubleshooting, docs, CLI/API, metacognition, and prediction.
+Project and packaged skills live at `.pi/skills/` and `apps/pi-extension/skills/`. Twenty-two skills and twenty-two numbered runbooks cover bootstrap/discovery, scope, Workpoints, Work Loop, daemon-native Silent Sessions, session recovery, browser/UIAI, install lifecycle, security/auth/licensing, resources, Mission Canvas, release proof, temporal authority, spec implementation, evidence/outcomes, troubleshooting, docs, CLI/API, metacognition, and prediction.
 
 Coverage/parity authority: `docs/evidence/141-focusa-skill-runbook-coverage.json`.
 
 ## Public status and direction
 
-Focusa remains under active development. The `v0.9.120-dev` snapshot includes descriptor V2, progressive discovery, generated cross-harness projections, governed browser capability intake, skills/runbooks, and route classification. Spec141 behavioral conformance remains release-gated until its final evidence reports pass.
+Focusa remains under active development. The `v0.9.121-dev` snapshot includes 112 all-harness Pi capability descriptors/docs, progressive discovery, 22 skill/runbook pairs, 458 classified routes, governed browser capability intake, and current lifecycle/onboarding projections. Spec141 behavioral conformance and strict agent-first audit pass with zero findings.
 
 Recent direction: CRIST genesis/interviews, UIAI rich artifacts, domain ontology packs, multiplexed Mission Canvas/browser isolation, generated nontechnical UI, durable operation registry/streams, adaptive UXP/UFI, governed proposal settlement, temporal authority, prediction/metacognitive transfer, distributed presence/placement, and runtime constitution compilation.
 

@@ -1,0 +1,17 @@
+accepted = [
+  "Apache-2.0",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "MIT",
+  "MPL-2.0",
+  "OpenSSL",
+  "Unicode-3.0",
+  "Zlib"
+]
+
+ignore-build-dependencies = false
+ignore-dev-dependencies = false
+
+[private]
+ignore = false

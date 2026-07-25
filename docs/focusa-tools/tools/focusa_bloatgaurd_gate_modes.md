@@ -58,10 +58,10 @@ Likely next: `focusa_bloatgaurd_gate_mode`, `focusa_bloatgaurd_report`, `focusa_
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`, `skill:focusa-troubleshooting`
+- Skills: `skill:focusa`, `skill:focusa-troubleshooting`, `skill:focusa-resource-performance`
 - Runbooks: `runbook:diagnostics_hygiene`
 - Pi: `focusa_bloatgaurd_gate_modes`; MCP: `focusa.bloatgaurd.gate.modes`; OpenAI: `focusa_bloatgaurd_gate_modes`.
 - CLI: `focusa bloatgaurd gate-modes`.
 - REST: `GET /v1/bloatgaurd/gate-modes/report`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:2b4b54f2e55c1fa1ce3ce2597fd7df6f2ec8c330bc3b59fab594b2a5fa48c5d0`.
+- Descriptor digest: `sha256:90e6a1ed3571f690298116f97f22e2a19bcb7339b8cd1ab9791a2f50dbf64956`.

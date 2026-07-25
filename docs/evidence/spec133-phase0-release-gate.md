@@ -1,41 +1,55 @@
 # Spec 133 Phase 0 release/deploy dependency proof
 
-Updated: 2026-07-17
-Bead: `focusa-a6yq6.1.4`
+Date: 2026-07-18
 
-## Authorization chronology
+## Release/deploy freeze
 
-The original Phase 0 slice ran under a strict release/deploy freeze and produced only local baseline, legacy-wrapper, and traceability evidence.
+Spec 133 remains local on `local/work-loop-completion`. No Spec 133 tag, release, deploy, live sync, push, merge, or canonical release artifact was created. The branch HEAD has no tag and is 17 local commits ahead of the locally known `origin/main` reference.
 
-Afterward, the operator explicitly directed completion of the pre-MVP OTA and Spec132 gates. The repository was fully linted and tested locally before publication. Spec132 closed, then the canonical release workflow published `v0.9.120-dev` and its authorized deploy completed:
+Build and test commands are permitted for local proof after Phase 0; they do not constitute release authority.
 
-- local rustfmt, Clippy `-D warnings`, workspace tests, Svelte and Pi checks: PASS;
-- final CI: `29551035631`, PASS;
-- Spec132 platform/release-target matrix: `29551308143`, PASS;
-- signed release: `29551308132`, PASS, 58 assets;
-- deploy: `29552019926`, PASS;
-- live Bash/PowerShell parity deploy: `29552998591`, PASS.
+## Canonical release gate
 
-That release closed OTA and Spec132 work. It did **not** claim Spec133 completion or authorize bypassing the remaining Spec133 dependency chain.
+Spec 133 implementation must not be released until:
 
-## Canonical Spec133 release gate
+1. Spec 132 final proof is complete and closed.
+2. Spec 133 Phase 0 gate is closed with baseline, legacy freeze, traceability, and dependency proof.
+3. Phase 1+ implementation proceeds in dependency order.
+4. Every Spec 133 normative MUST is verified by the fail-closed Work Loop conformance gate.
+5. The canonical signed release pipeline is used only after project policy permits release.
 
-Any later release claiming Spec133/MVP readiness requires:
+The tag workflow now invokes:
 
-1. Phase 0 baseline, legacy freeze, traceability, and this authorization record closed.
-2. Phases 1–9 implemented and closed in dependency order.
-3. The §32 acceptance criteria and §33 gap matrix proven at the exact candidate commit.
-4. Full local lint/tests before the first push and one bounded cross-platform acceptance sequence.
-5. Explicit operator authorization and the canonical signed release/deploy pipelines.
+```text
+python3 scripts/work_loop_conformance.py --mode release
+```
+
+That command currently returns exit 3 because Spec 133 implementation coverage is incomplete.
+
+## Prior blocker resolved
+
+The prior Spec 132 blocker is closed:
+
+- `focusa-slxpz.6.6` — `132 final gate: every binding requirement proven` — `closed`
+
+Phase 0 may therefore close after its static proof and ledger updates pass. This does **not** authorize Phase 1+ release; it only unblocks dependency-ordered implementation.
 
 ## Dependency chain
 
-- Spec132 final proof: closed (`focusa-slxpz`).
-- Spec133 Phase 0 tasks: `.1.1` → `.1.2` → `.1.3` → `.1.4`.
+- Spec132 final proof: `focusa-slxpz.6.6` — closed.
+- Spec133 Phase 0 tasks: `focusa-a6yq6.1.1` → `.1.2` → `.1.3` → `.1.4`.
 - Spec133 Phase 0 gate: `focusa-a6yq6.1.5`.
-- Phase 1 starts only after `.1.5` closes.
-- No Phase 8 or Phase 9 task may bypass the earlier phase gates.
+- Spec133 Phase 1 starts only after `.1.5` is truly closed.
+- Work Loop scheduler integration `.7` remains downstream of Spec133 Phase 1–4 and `focusa-a6yq6.6.3`.
 
-## Result
+## Evidence commands
 
-No unauthorized release/deploy occurred. The previously recorded Spec132 blocker is closed, authorization provenance is explicit, and the remaining Spec133 release freeze is bound to its full dependency and acceptance chain.
+```bash
+bd --no-db show focusa-slxpz.6.6 --json
+bash tests/spec133_phase0_static_test.sh
+python3 tests/work_loop_conformance_manifest_test.py
+python3 scripts/work_loop_conformance.py --mode release  # expected exit 3 until all MUSTs are verified
+git branch --show-current
+git tag --points-at HEAD
+git rev-list --left-right --count origin/main...HEAD
+```

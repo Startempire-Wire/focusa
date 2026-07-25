@@ -16,7 +16,9 @@ use axum::{
 use chrono::Utc;
 use focusa_core::scope_safety::classify_project_root;
 use focusa_core::scoped_state::{ScopeKind, ScopeRef, WorkstreamKey};
-use focusa_core::working_subpath::{GitWorkingContext, resolve_git_working_context};
+use focusa_core::working_subpath::{
+    GitWorkingContext, resolve_git_working_context, resolve_project_binding_candidates,
+};
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
@@ -2083,7 +2085,7 @@ fn candidate_payload(
             "deployment": candidate.deployment,
             "remote_context": candidate.remote_context.clone(),
             "working_context": candidate.working_context,
-            "canonical_parent_root": candidate.project_root,
+            "canonical_parent_root": candidate.working_context.get("canonical_parent_root").cloned().unwrap_or_else(|| json!(candidate.project_root)),
             "active_worktree_root": candidate.working_context.get("active_worktree_root").cloned().unwrap_or(Value::Null),
             "project_summary": project_summary.clone(),
             "fingerprint": candidate.fingerprint,
@@ -2747,13 +2749,57 @@ async fn project_settings_update(Json(body): Json<ProjectSettingsRequest>) -> Js
 
 async fn identity(Query(query): Query<ProjectIdentityQuery>) -> Json<Value> {
     let remote_hint = RemoteProjectHint::from_query(&query);
-    Json(project_identity_payload_for_scope_with_remote(
+    let local_binding = query
+        .remote_host
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .is_none();
+    let binding = local_binding.then(|| {
+        let start = resolve_start(query.cwd.as_deref(), query.project_root.as_deref());
+        resolve_project_binding_candidates(
+            &start,
+            query.project_root.as_deref().map(Path::new),
+            query.persisted_project_root.as_deref().map(Path::new),
+        )
+    });
+    let inferred_root = binding
+        .as_ref()
+        .filter(|decision| !decision.requires_confirmation)
+        .and_then(|decision| decision.selected_project_root.as_deref());
+    let mut payload = project_identity_payload_for_scope_with_remote(
         query.cwd.as_deref(),
-        query.project_root.as_deref(),
+        query.project_root.as_deref().or(inferred_root),
         query.current_ask.as_deref(),
         remote_hint,
         None,
-    ))
+    );
+    if let Some(decision) = binding
+        && let Some(object) = payload.as_object_mut()
+    {
+        let decision_value = serde_json::to_value(&decision).unwrap_or(Value::Null);
+        object.insert("binding_decision".to_string(), decision_value.clone());
+        object.insert(
+            "binding_candidates".to_string(),
+            serde_json::to_value(&decision.candidates).unwrap_or_else(|_| json!([])),
+        );
+        if let Some(identity) = object
+            .get_mut("project_identity")
+            .and_then(Value::as_object_mut)
+        {
+            identity.insert("binding_decision".to_string(), decision_value);
+        }
+        if decision.ambiguous {
+            object.insert("status".to_string(), json!("ambiguous_project_binding"));
+            object.insert("canonical".to_string(), json!(false));
+            object.insert("degraded".to_string(), json!(true));
+            object.insert(
+                "mismatch_reason".to_string(),
+                json!("multiple equally ranked project/worktree candidates require explicit project_root"),
+            );
+        }
+    }
+    Json(payload)
 }
 
 async fn verify(
@@ -2761,7 +2807,7 @@ async fn verify(
     State(_state): State<Arc<AppState>>,
     Json(body): Json<ProjectVerifyRequest>,
 ) -> Json<Value> {
-    Json(candidate_payload(
+    let mut payload = candidate_payload(
         discover_identity(
             body.cwd.as_deref(),
             body.project_root.as_deref(),
@@ -2769,7 +2815,37 @@ async fn verify(
             RemoteProjectHint::from_verify(&body),
         ),
         Some(&body),
-    ))
+    );
+    if body
+        .remote_host
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .is_none()
+    {
+        let start = resolve_start(body.cwd.as_deref(), body.project_root.as_deref());
+        let decision = resolve_project_binding_candidates(
+            &start,
+            body.project_root.as_deref().map(Path::new),
+            body.persisted_project_root.as_deref().map(Path::new),
+        );
+        if let Some(object) = payload.as_object_mut() {
+            object.insert(
+                "binding_candidates".to_string(),
+                serde_json::to_value(&decision.candidates).unwrap_or_else(|_| json!([])),
+            );
+            object.insert(
+                "binding_decision".to_string(),
+                serde_json::to_value(&decision).unwrap_or(Value::Null),
+            );
+            if decision.ambiguous {
+                object.insert("status".to_string(), json!("ambiguous_project_binding"));
+                object.insert("canonical".to_string(), json!(false));
+                object.insert("degraded".to_string(), json!(true));
+            }
+        }
+    }
+    Json(payload)
 }
 
 fn sigmoid(z: f64) -> f64 {
@@ -4261,10 +4337,16 @@ async fn session_transfer(
         .unwrap_or_else(|| "Continue from session-transfer packet".to_string());
     let transfer_id = uuid::Uuid::now_v7().to_string();
     let transfers_path = project_session_transfers_path(&source_scope.root_scope);
-    let latest_prior = recent_jsonl_values(transfers_path.clone(), 256)
-        .into_iter()
+    let recent_transfers = recent_jsonl_values(transfers_path.clone(), 256);
+    let latest_prior = recent_transfers
+        .iter()
         .rev()
         .find(|record| {
+            if record.get("schema").and_then(Value::as_str)
+                != Some("focusa.project_session_transfer.v2")
+            {
+                return false;
+            }
             let source_matches = record
                 .pointer("/source_scope/root_scope/root_path")
                 .and_then(Value::as_str)
@@ -4293,6 +4375,7 @@ async fn session_transfer(
                     == source_working_subpath_id.as_str();
             source_matches || target_matches
         })
+        .cloned()
         .unwrap_or(Value::Null);
     let preload_target = body.preload_target.as_deref().unwrap_or("cursor");
     let preload_mode = body.preload_mode.as_deref().unwrap_or("session_transfer");
@@ -4370,26 +4453,48 @@ async fn session_transfer(
                     .target_session_id
                     .as_deref()
                     .is_some_and(|value| !value.trim().is_empty());
-            let receipt = json!({
-                "schema": "focusa.project_session_transition_receipt.v1",
-                "receipt_id": Uuid::now_v7().to_string(),
-                "transfer_id": prior.get("transfer_id"),
-                "source_scope": prior.get("source_scope"),
-                "target_scope": prior.get("target_scope"),
-                "target_session_id": body.target_session_id,
-                "target_workpoint_id": body.target_workpoint_id,
-                "target_resume_canonical": body.target_resume_canonical,
-                "status": if verified { "target_resume_verified" } else { "target_resume_degraded" },
-                "verified_at": Utc::now().to_rfc3339(),
-                "evidence_refs": body.evidence_refs,
-            });
-            append_project_session_transfer(&source_scope.root_scope, &receipt);
-            prior["transition_receipt"] = receipt;
-            prior["transition"]["status"] = json!(if verified {
+            let expected_status = if verified {
                 "target_resume_verified"
             } else {
                 "target_resume_degraded"
+            };
+            let existing_receipt = recent_transfers.iter().rev().find(|receipt| {
+                receipt.get("schema").and_then(Value::as_str)
+                    == Some("focusa.project_session_transition_receipt.v1")
+                    && receipt.get("transfer_id") == prior.get("transfer_id")
+                    && receipt.get("target_session_id").and_then(Value::as_str)
+                        == body.target_session_id.as_deref()
+                    && receipt.get("target_workpoint_id").and_then(Value::as_str)
+                        == body.target_workpoint_id.as_deref()
+                    && receipt
+                        .get("target_resume_canonical")
+                        .and_then(Value::as_bool)
+                        == body.target_resume_canonical
+                    && receipt.get("status").and_then(Value::as_str) == Some(expected_status)
             });
+            let receipt = if let Some(existing) = existing_receipt {
+                let mut replay = existing.clone();
+                replay["idempotent_replay"] = json!(true);
+                replay
+            } else {
+                let receipt = json!({
+                    "schema": "focusa.project_session_transition_receipt.v1",
+                    "receipt_id": Uuid::now_v7().to_string(),
+                    "transfer_id": prior.get("transfer_id"),
+                    "source_scope": prior.get("source_scope"),
+                    "target_scope": prior.get("target_scope"),
+                    "target_session_id": body.target_session_id,
+                    "target_workpoint_id": body.target_workpoint_id,
+                    "target_resume_canonical": body.target_resume_canonical,
+                    "status": expected_status,
+                    "verified_at": Utc::now().to_rfc3339(),
+                    "evidence_refs": body.evidence_refs,
+                });
+                append_project_session_transfer(&source_scope.root_scope, &receipt);
+                receipt
+            };
+            prior["transition_receipt"] = receipt;
+            prior["transition"]["status"] = json!(expected_status);
         }
         prior
     } else {

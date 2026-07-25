@@ -713,9 +713,11 @@ impl EvidenceVerifier for ArtifactStub {
         // Treat the ref_ as a `path sha256:HEX` tuple. The validator
         // surface is honest: if the caller can supply an sha256 we
         // compare; if they cannot, we mark the citation as info-only.
-        let mut parts = citation.ref_.splitn(2, ' ');
-        let path = parts.next().unwrap_or("").to_string();
-        let sha = parts.next().unwrap_or("").to_string();
+        let (path, sha) = citation
+            .ref_
+            .rsplit_once(" sha256:")
+            .map(|(path, digest)| (path.to_string(), format!("sha256:{digest}")))
+            .unwrap_or_else(|| (citation.ref_.clone(), String::new()));
         let Some(p) = citation_path(&current_project_root(), &path) else {
             return VerifyResult {
                 verified: false,
@@ -860,6 +862,27 @@ mod tests {
         assert!(v.verified);
         assert!(v.result.contains("not executed"));
         let _ = std::fs::remove_file(p);
+    }
+
+    #[tokio::test]
+    async fn artifact_verifier_accepts_unhashed_paths_with_spaces() {
+        let dir = std::env::temp_dir().join(format!("focusa artifact {}", uuid::Uuid::now_v7()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("proof file.md");
+        std::fs::write(&path, "proof").unwrap();
+        let citation = EvidenceCitation {
+            kind: EvidenceKind::Artifact,
+            ref_: path.to_string_lossy().to_string(),
+            line: None,
+            line_end: None,
+            required: true,
+            result: None,
+            verified: false,
+        };
+        let result = ArtifactStub.verify(&citation).await;
+        assert!(result.verified, "{:?}", result);
+        assert!(result.result.contains("no expected sha256"));
+        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[tokio::test]

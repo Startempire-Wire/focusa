@@ -7,6 +7,7 @@ Capture a bounded evidence ref/result and optionally link it to the active Workp
 - Capture a bounded evidence ref/result and optionally link it to the active Workpoint.
 - Capability family: `workpoint`; namespace: `focusa.workpoint`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
+- Trajectory-aware evidence supplies proof alignment metadata for the active trajectory and its HLT, MLG, and STG context without expanding the evidence payload.
 
 ## Parameters and strict input schema
 
@@ -69,10 +70,10 @@ Likely next: `focusa_workpoint_link_evidence`, `focusa_trajectory_assess`, `focu
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`, `skill:focusa-evidence-outcomes`
 - Runbooks: `runbook:workpoint`
 - Pi: `focusa_evidence_capture`; MCP: `focusa.evidence.capture`; OpenAI: `focusa_evidence_capture`.
 - CLI: `focusa workpoint evidence-link`.
 - REST: `POST /v1/workpoint/evidence/link`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:bd281f1144543f8a5f0dc2be599caf4af447e6cd7ba8ade2e12be7dbeec9032e`.
+- Descriptor digest: `sha256:6b5e2211ddbe0e27ef405e8f6ebcdb8e44dab3c92506ef327ed21dd1d5c0dfb2`.

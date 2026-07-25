@@ -126,13 +126,15 @@ try {
 }
 
 const handlers = new Map<string, Function[]>();
+const appendedEntries: Array<{ type: string; data: any }> = [];
 const pi = {
-  appendEntry() {},
   on(name: string, handler: Function) {
     const current = handlers.get(name) || [];
     current.push(handler);
     handlers.set(name, current);
   },
+  appendEntry(type: string, data: any) { appendedEntries.push({ type, data }); },
+  sendUserMessage() { throw new Error("auto rollover/prompt replay must not be used"); },
 };
 registerAutoCompaction(pi as any);
 assert(handlers.has("agent_end"), "agent_end fallback not registered");
@@ -141,18 +143,21 @@ assert(
   "agent_settled idle-boundary fallback not registered",
 );
 assert(handlers.has("session_compact"), "session_compact reset not registered");
+assert(handlers.has("input"), "input passthrough guard not registered");
 
 let usage: any = { tokens: 371_566, contextWindow: 372_000, percent: 99.88 };
 let compactCalls = 0;
 let compactOptions: any;
 let idle = true;
 const statuses: Array<[string, string | undefined]> = [];
-const branchEntries = Array.from({ length: 6 }, (_, index) => ({
-  type: "message",
-  id: `spec130-entry-${index}`,
-  message: { role: "user", content: "x".repeat(200_000) },
-}));
+const branch = [
+  { type: "message", id: "a", message: { role: "user", content: "x".repeat(100_000) } },
+  { type: "message", id: "b", message: { role: "assistant", content: "x".repeat(100_000) } },
+  { type: "message", id: "c", message: { role: "user", content: "x".repeat(100_000) } },
+  { type: "message", id: "d", message: { role: "assistant", content: "x".repeat(100_000) } },
+];
 const ctx = {
+  cwd: "/tmp/spec130-auto-compaction",
   hasUI: true,
   isIdle: () => idle,
   hasPendingMessages: () => false,
@@ -160,7 +165,7 @@ const ctx = {
   sessionManager: {
     getSessionId: () => "spec130-auto-compaction-session",
     getSessionFile: () => "/tmp/spec130-auto-compaction-session.jsonl",
-    getBranch: () => branchEntries,
+    getBranch: () => branch,
   },
   compact(options: any) {
     compactCalls += 1;
@@ -176,12 +181,18 @@ const ctx = {
 const invoke = async (name: string, ...args: any[]) => {
   for (const handler of handlers.get(name) || []) await handler(...args);
 };
-const waitForTimer = () => new Promise((resolve) => setTimeout(resolve, 10));
-
 await invoke("session_start", {}, ctx);
+const inputResults = [];
+for (const handler of handlers.get("input") || []) {
+  inputResults.push(await handler({ text: "operator steering", images: [{ type: "image" }] }, ctx));
+}
+assert(inputResults.every((result: any) => result?.action === "continue"), "high-pressure input was intercepted");
+assert(compactCalls === 0, "input hook attempted extension-owned emergency compaction");
+assert(!appendedEntries.some((entry) => entry.type === "focusa-held-critical-input"), "input was held outside Pi prompt flow");
+await invoke("agent_end", {}, ctx);
+assert(compactCalls === 0, "agent_end raced Pi native post-run compaction");
 await invoke("agent_settled", {}, ctx);
-await waitForTimer();
-assert(compactCalls === 1, "settled pressure check did not invoke ctx.compact");
+assert(compactCalls === 1, "settled pressure did not invoke ctx.compact");
 assert(
   typeof compactOptions.onComplete === "function",
   "completion callback missing",
@@ -193,19 +204,16 @@ assert(
 );
 
 await invoke("agent_settled", {}, ctx);
-await waitForTimer();
 assert(compactCalls === 1, "pending compaction was duplicated");
 compactOptions.onComplete({});
 
-// Regression: agent_end can fire while Pi still owns an automatic retry or
-// queued continuation. The authoritative agent_settled boundary must retry the
-// pressure check rather than silently dropping automatic compaction.
+// A busy settled boundary remains suppressed; the next idle settled boundary
+// rechecks pressure without using agent_end as a second compaction owner.
 await invoke("session_start", {}, ctx);
 usage = { tokens: 371_566, contextWindow: 372_000, percent: 99.88 };
 idle = false;
-await invoke("agent_end", {}, ctx);
-await waitForTimer();
-assert(compactCalls === 1, "busy agent_end should not compact");
+await invoke("agent_settled", {}, ctx);
+assert(compactCalls === 1, "busy settled boundary should not compact");
 idle = true;
 await invoke("agent_settled", {}, ctx);
 assert(
@@ -214,14 +222,12 @@ assert(
 );
 compactOptions.onComplete({});
 
-// Native Pi compaction gets first chance: its completion resets Focusa state,
-// then the settled boundary observes unknown usage and must not duplicate it.
+// Native Pi gets first chance: unknown usage at the authoritative settled
+// boundary cannot issue a duplicate Focusa compaction.
 await invoke("session_start", {}, ctx);
-usage = { tokens: 371_566, contextWindow: 372_000, percent: 99.88 };
-await invoke("session_compact", {});
 usage = { tokens: null, contextWindow: 372_000, percent: null };
+await invoke("agent_end", {}, ctx);
 await invoke("agent_settled", {}, ctx);
-await waitForTimer();
-assert(compactCalls === 2, "fallback duplicated native compaction");
+assert(compactCalls === 2, "unknown settled usage duplicated native compaction");
 
 console.log("PASS: Spec 130 automatic compaction fallback");

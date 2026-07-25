@@ -3,6 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 WORKFLOW="${ROOT_DIR}/.github/workflows/release.yml"
+STALE_OUTPUT="$(mktemp /tmp/focusa-release-notes-stale.XXXXXX)"
+trap 'rm -f "$STALE_OUTPUT"' EXIT
 
 fail() {
   echo "✗ FAIL: $*" >&2
@@ -17,8 +19,8 @@ rg -n 'Functional Dogfood Release|What this release proves|Complete commit audit
   || fail "release workflow notes missing current functional dogfood proof language"
 pass "release workflow notes use current functional dogfood proof language"
 
-if rg -n '38 routes|96 unit tests|Cognitive Governance Framework|Full spec: 67|~13,000 LOC|14 command domains' "$WORKFLOW" >/tmp/focusa-release-notes-stale.txt; then
-  cat /tmp/focusa-release-notes-stale.txt >&2
+if rg -n '38 routes|96 unit tests|Cognitive Governance Framework|Full spec: 67|~13,000 LOC|14 command domains' "$WORKFLOW" >"$STALE_OUTPUT"; then
+  cat "$STALE_OUTPUT" >&2
   fail "release workflow notes contain stale fixed-count/generic claims"
 fi
 pass "release workflow notes avoid stale fixed-count/generic claims"

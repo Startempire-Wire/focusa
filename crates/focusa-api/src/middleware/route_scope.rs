@@ -86,11 +86,13 @@ fn route_scope(method: &Method, path: &str) -> &'static str {
         };
     }
     if path.starts_with("/v1/silent-sessions") {
-        if path.contains("/config/") || path.ends_with("/config/resolve") {
+        if path.contains("/config") {
             return "silent_sessions:config";
         }
         if method == Method::GET {
-            return if path.ends_with("/events") || path.ends_with("/output") {
+            return if path.contains("/forensics") || path.contains("/raw-output") {
+                "silent_sessions:forensics"
+            } else if path.ends_with("/events") || path.ends_with("/output") {
                 "silent_sessions:stream"
             } else {
                 "silent_sessions:read"
@@ -146,6 +148,45 @@ fn route_scope(method: &Method, path: &str) -> &'static str {
             "work_loop:read"
         } else {
             "work_loop:control"
+        };
+    }
+    if path == "/v1/silent-sessions"
+        || path.starts_with("/v1/silent-sessions/")
+        || path == "/v1/silent_sessions"
+        || path.starts_with("/v1/silent_sessions/")
+        || path == "/v1/harnesses"
+        || path.starts_with("/v1/harnesses/")
+        || path == "/v1/providers"
+        || path.starts_with("/v1/providers/")
+    {
+        if path.contains("/forensics") || path.contains("/raw-output") {
+            return "silent_sessions:forensics";
+        }
+        if path.contains("/admin") || path.ends_with("/adopt") || path.ends_with("/force-kill") {
+            return "silent_sessions:admin";
+        }
+        if path.contains("/events")
+            || path.contains("/output")
+            || path.ends_with("/follow")
+            || path.ends_with("/stream")
+        {
+            return "silent_sessions:stream";
+        }
+        if path.contains("/config") {
+            return "silent_sessions:config";
+        }
+        if method == Method::POST
+            && (path.ends_with("/preflight")
+                || path.ends_with("/start")
+                || path == "/v1/silent-sessions"
+                || path == "/v1/silent_sessions")
+        {
+            return "silent_sessions:create";
+        }
+        return if method == Method::GET {
+            "silent_sessions:read"
+        } else {
+            "silent_sessions:control"
         };
     }
     if path.starts_with("/v1/focus")
@@ -299,5 +340,67 @@ mod tests {
             route_scope(&Method::GET, "/v1/events/recent"),
             "events:read"
         );
+    }
+
+    #[test]
+    fn silent_session_routes_use_exact_spec_133_scopes() {
+        let cases = [
+            (Method::GET, "/v1/silent-sessions", "silent_sessions:read"),
+            (
+                Method::GET,
+                "/v1/silent-sessions/session-1",
+                "silent_sessions:read",
+            ),
+            (
+                Method::GET,
+                "/v1/silent-sessions/session-1/events",
+                "silent_sessions:stream",
+            ),
+            (
+                Method::POST,
+                "/v1/silent-sessions",
+                "silent_sessions:create",
+            ),
+            (
+                Method::POST,
+                "/v1/silent-sessions/session-1/start",
+                "silent_sessions:create",
+            ),
+            (
+                Method::POST,
+                "/v1/silent-sessions/session-1/input",
+                "silent_sessions:control",
+            ),
+            (
+                Method::PUT,
+                "/v1/silent-sessions/session-1/config",
+                "silent_sessions:config",
+            ),
+            (
+                Method::POST,
+                "/v1/silent-sessions/session-1/adopt",
+                "silent_sessions:admin",
+            ),
+            (
+                Method::GET,
+                "/v1/silent-sessions/session-1/raw-output",
+                "silent_sessions:forensics",
+            ),
+            (Method::GET, "/v1/harnesses", "silent_sessions:read"),
+            (
+                Method::POST,
+                "/v1/harnesses/pi/preflight",
+                "silent_sessions:create",
+            ),
+            (Method::GET, "/v1/providers", "silent_sessions:read"),
+            (
+                Method::POST,
+                "/v1/providers/openai/models/preflight",
+                "silent_sessions:create",
+            ),
+        ];
+        for (method, path, expected) in cases {
+            assert_eq!(route_scope(&method, path), expected, "{method} {path}");
+        }
     }
 }

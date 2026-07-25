@@ -7,6 +7,8 @@
 //! INVARIANT: If a cognition change cannot be expressed as a reducer event,
 //!            it does not belong in Focusa.
 
+use crate::scoped_state::WorkstreamKey;
+use crate::work_item::{EvidenceCitation, WorkItemProvider};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -155,6 +157,36 @@ pub enum TaskClass {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
+pub enum WorkLoopOutcomeStatus {
+    #[default]
+    Continue,
+    Completed,
+    Blocked,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkLoopBudgetDimension {
+    #[default]
+    Unknown,
+    Turns,
+    WallClock,
+    Retries,
+    ConsecutiveFailures,
+    LowProductivity,
+    SameSubproblem,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkLoopBudgetExhaustion {
+    pub dimension: WorkLoopBudgetDimension,
+    pub reason: String,
+    pub exhausted_at: DateTime<Utc>,
+    pub epoch_id: Uuid,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
 pub enum WorkItemLifecycle {
     #[default]
     Ready,
@@ -225,6 +257,8 @@ pub struct WorkerCapabilityProfile {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkLoopPolicy {
     pub preset: WorkLoopPreset,
+    #[serde(default)]
+    pub work_item_provider: WorkItemProvider,
     pub max_turns: Option<u32>,
     pub max_wall_clock_ms: Option<u64>,
     pub max_retries: u32,
@@ -243,6 +277,7 @@ pub struct WorkLoopPolicy {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct WorkLoopPolicyOverrides {
+    pub work_item_provider: Option<WorkItemProvider>,
     pub max_turns: Option<u32>,
     pub max_wall_clock_ms: Option<u64>,
     pub max_retries: Option<u32>,
@@ -264,6 +299,7 @@ impl WorkLoopPolicy {
         match preset {
             WorkLoopPreset::Conservative => Self {
                 preset,
+                work_item_provider: WorkItemProvider::None,
                 max_turns: Some(6),
                 max_wall_clock_ms: Some(15 * 60 * 1_000),
                 max_retries: 2,
@@ -281,6 +317,7 @@ impl WorkLoopPolicy {
             },
             WorkLoopPreset::Balanced => Self {
                 preset,
+                work_item_provider: WorkItemProvider::None,
                 max_turns: Some(12),
                 max_wall_clock_ms: Some(30 * 60 * 1_000),
                 max_retries: 3,
@@ -298,6 +335,7 @@ impl WorkLoopPolicy {
             },
             WorkLoopPreset::Push => Self {
                 preset,
+                work_item_provider: WorkItemProvider::None,
                 max_turns: Some(24),
                 max_wall_clock_ms: Some(60 * 60 * 1_000),
                 max_retries: 4,
@@ -315,6 +353,7 @@ impl WorkLoopPolicy {
             },
             WorkLoopPreset::Audit => Self {
                 preset,
+                work_item_provider: WorkItemProvider::None,
                 max_turns: Some(10),
                 max_wall_clock_ms: Some(20 * 60 * 1_000),
                 max_retries: 2,
@@ -335,49 +374,56 @@ impl WorkLoopPolicy {
 
     pub fn with_overrides(preset: WorkLoopPreset, overrides: WorkLoopPolicyOverrides) -> Self {
         let mut policy = Self::for_preset(preset);
+        policy.apply_overrides(overrides);
+        policy
+    }
+
+    pub fn apply_overrides(&mut self, overrides: WorkLoopPolicyOverrides) {
+        if let Some(v) = overrides.work_item_provider {
+            self.work_item_provider = v;
+        }
         if let Some(v) = overrides.max_turns {
-            policy.max_turns = Some(v);
+            self.max_turns = Some(v);
         }
         if let Some(v) = overrides.max_wall_clock_ms {
-            policy.max_wall_clock_ms = Some(v);
+            self.max_wall_clock_ms = Some(v);
         }
         if let Some(v) = overrides.max_retries {
-            policy.max_retries = v;
+            self.max_retries = v;
         }
         if let Some(v) = overrides.cooldown_ms {
-            policy.cooldown_ms = v;
+            self.cooldown_ms = v;
         }
         if let Some(v) = overrides.allow_destructive_actions {
-            policy.allow_destructive_actions = v;
+            self.allow_destructive_actions = v;
         }
         if let Some(v) = overrides.require_operator_for_governance {
-            policy.require_operator_for_governance = v;
+            self.require_operator_for_governance = v;
         }
         if let Some(v) = overrides.require_operator_for_scope_change {
-            policy.require_operator_for_scope_change = v;
+            self.require_operator_for_scope_change = v;
         }
         if let Some(v) = overrides.require_verification_before_persist {
-            policy.require_verification_before_persist = v;
+            self.require_verification_before_persist = v;
         }
         if let Some(v) = overrides.max_consecutive_low_productivity_turns {
-            policy.max_consecutive_low_productivity_turns = v;
+            self.max_consecutive_low_productivity_turns = v;
         }
         if let Some(v) = overrides.max_consecutive_failures {
-            policy.max_consecutive_failures = v;
+            self.max_consecutive_failures = v;
         }
         if let Some(v) = overrides.auto_pause_on_operator_message {
-            policy.auto_pause_on_operator_message = v;
+            self.auto_pause_on_operator_message = v;
         }
         if let Some(v) = overrides.require_explainable_continue_reason {
-            policy.require_explainable_continue_reason = v;
+            self.require_explainable_continue_reason = v;
         }
         if let Some(v) = overrides.max_same_subproblem_retries {
-            policy.max_same_subproblem_retries = v;
+            self.max_same_subproblem_retries = v;
         }
         if let Some(v) = overrides.status_heartbeat_ms {
-            policy.status_heartbeat_ms = v;
+            self.status_heartbeat_ms = v;
         }
-        policy
     }
 }
 
@@ -443,8 +489,22 @@ pub struct WorkLoopDecisionContext {
     pub operator_steering_detected: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkLoopDeferredItem {
+    pub work_item_id: String,
+    pub reason: String,
+    pub deferred_at: DateTime<Utc>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct WorkLoopState {
+    /// Canonical project/workstream authority for the active governed loop.
+    pub execution_scope: Option<WorkstreamKey>,
+    /// Stable root work-item partition for the active loop; current subtasks never re-key the writer lease.
+    pub execution_work_item_id: Option<String>,
+    /// Canonical Workpoint bound to the active execution partition.
+    #[serde(default)]
+    pub execution_workpoint_id: Option<WorkpointId>,
     pub enabled: bool,
     pub status: WorkLoopStatus,
     pub authorship_mode: AuthorshipMode,
@@ -455,17 +515,35 @@ pub struct WorkLoopState {
     pub last_recorded_bd_transition_id: Option<String>,
     pub last_blocker_class: Option<BlockerClass>,
     pub last_blocker_reason: Option<String>,
+    #[serde(default)]
+    pub deferred_items: Vec<WorkLoopDeferredItem>,
     pub last_continue_reason: Option<String>,
     pub last_observed_summary: Option<String>,
     pub last_safe_reentry_prompt_basis: Option<String>,
     pub restored_context_summary: Option<String>,
     pub transport_adapter: Option<String>,
+    #[serde(default)]
+    pub transport_session_id: Option<String>,
+    #[serde(default)]
+    pub transport_scope: Option<WorkstreamKey>,
+    #[serde(default)]
+    pub transport_work_item_id: Option<String>,
+    #[serde(default)]
+    pub transport_workpoint_id: Option<WorkpointId>,
     pub transport_session_state: Option<String>,
     pub last_transport_event_kind: Option<String>,
     pub last_transport_event_summary: Option<String>,
     pub last_transport_event_sequence: u64,
     pub transport_abort_reason: Option<String>,
     pub enabled_at: Option<DateTime<Utc>>,
+    #[serde(default)]
+    pub budget_epoch_id: Option<Uuid>,
+    #[serde(default)]
+    pub budget_epoch_started_at: Option<DateTime<Utc>>,
+    #[serde(default)]
+    pub budget_renewal_count: u32,
+    #[serde(default)]
+    pub budget_exhaustion: Option<WorkLoopBudgetExhaustion>,
     pub last_turn_requested_at: Option<DateTime<Utc>>,
     pub turn_count: u32,
     pub consecutive_failures_for_task_class: u32,
@@ -3535,6 +3613,12 @@ pub enum FocusaEvent {
     ContinuousWorkModeEnabled {
         project_run_id: ProjectRunId,
         policy: WorkLoopPolicy,
+        #[serde(default)]
+        scope: Option<WorkstreamKey>,
+        #[serde(default)]
+        work_item_id: Option<String>,
+        #[serde(default)]
+        workpoint_id: Option<WorkpointId>,
     },
     ContinuousWorkModeDisabled {
         reason: String,
@@ -3542,6 +3626,10 @@ pub enum FocusaEvent {
     ContinuousWorkItemSelected {
         task_run_id: Option<TaskRunId>,
         packet: SpecLinkedTaskPacket,
+    },
+    ContinuousWorkItemDeferred {
+        work_item_id: String,
+        reason: String,
     },
     ContinuousTurnRequested {
         task_run_id: Option<TaskRunId>,
@@ -3562,6 +3650,10 @@ pub enum FocusaEvent {
         continue_reason: Option<String>,
         verification_satisfied: bool,
         spec_conformant: bool,
+        #[serde(default)]
+        outcome_status: WorkLoopOutcomeStatus,
+        #[serde(default)]
+        evidence_citations: Vec<EvidenceCitation>,
     },
     /// Replay/audit event for doc78 secondary-loop comparative evidence.
     ContinuousSecondaryLoopOutcomeRecorded {
@@ -3589,6 +3681,7 @@ pub enum FocusaEvent {
         reason: String,
     },
     ContinuousLoopBudgetExhausted {
+        dimension: WorkLoopBudgetDimension,
         reason: String,
     },
     ContinuousLoopTransportDegraded {
@@ -3596,6 +3689,10 @@ pub enum FocusaEvent {
     },
     ContinuousLoopResumed {
         reason: String,
+        #[serde(default)]
+        budget_renewed: bool,
+        #[serde(default)]
+        policy: Option<WorkLoopPolicy>,
     },
     ContinuousAuthorshipDelegated {
         delegate_id: String,
@@ -3624,6 +3721,9 @@ pub enum FocusaEvent {
     ContinuousTransportSessionAttached {
         adapter: String,
         session_id: String,
+        scope: WorkstreamKey,
+        work_item_id: String,
+        workpoint_id: WorkpointId,
     },
     ContinuousTransportAbortForwarded {
         reason: String,
@@ -4211,12 +4311,17 @@ pub enum Action {
     EnableContinuousWork {
         project_run_id: ProjectRunId,
         policy: WorkLoopPolicy,
+        scope: WorkstreamKey,
+        work_item_id: String,
+        workpoint_id: WorkpointId,
     },
     PauseContinuousWork {
         reason: String,
     },
     ResumeContinuousWork {
         reason: String,
+        renew_budget: bool,
+        policy: Option<WorkLoopPolicy>,
     },
     StopContinuousWork {
         reason: String,
@@ -4224,6 +4329,10 @@ pub enum Action {
     SetContinuousWorkItem {
         task_run_id: Option<TaskRunId>,
         packet: SpecLinkedTaskPacket,
+    },
+    DeferContinuousWorkItem {
+        work_item_id: String,
+        reason: String,
     },
     SelectNextContinuousSubtask {
         parent_work_item_id: String,
@@ -4252,6 +4361,9 @@ pub enum Action {
     AttachContinuousTransportSession {
         adapter: String,
         session_id: String,
+        scope: WorkstreamKey,
+        work_item_id: String,
+        workpoint_id: WorkpointId,
     },
     AbortContinuousTransportSession {
         reason: String,
@@ -4281,6 +4393,8 @@ pub enum Action {
         continue_reason: Option<String>,
         verification_satisfied: bool,
         spec_conformant: bool,
+        outcome_status: WorkLoopOutcomeStatus,
+        evidence_citations: Vec<EvidenceCitation>,
     },
     CheckpointContinuousLoop {
         checkpoint_id: CheckpointId,

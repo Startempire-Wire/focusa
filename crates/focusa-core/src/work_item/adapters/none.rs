@@ -11,7 +11,7 @@ use tokio::sync::RwLock;
 
 use crate::work_item::adapter::{ProviderAdapter, RegistryResult};
 use crate::work_item::types::{
-    ProviderCapabilities, WorkItem, WorkItemProvider, WorkItemRef, WorkItemStatus,
+    ProviderCapabilities, WorkItem, WorkItemProvider, WorkItemQuery, WorkItemRef, WorkItemStatus,
 };
 
 pub struct NoneAdapter {
@@ -30,6 +30,14 @@ impl NoneAdapter {
 
     pub fn arc() -> Arc<Self> {
         Arc::new(Self::new())
+    }
+
+    fn key(work_item: &WorkItemRef) -> String {
+        format!(
+            "{}\u{1f}{}",
+            work_item.project_root.to_string_lossy(),
+            work_item.provider_item_id
+        )
     }
 }
 
@@ -68,16 +76,35 @@ impl ProviderAdapter for NoneAdapter {
     async fn resolve(&self, work_item: &WorkItemRef) -> RegistryResult<WorkItem> {
         let map = self.states.read().await;
         Ok(map
-            .get(&work_item.provider_item_id)
+            .get(&Self::key(work_item))
             .cloned()
             .unwrap_or_else(|| WorkItem {
                 provider: self.provider(),
                 provider_item_id: work_item.provider_item_id.clone(),
+                project_root: work_item.project_root.clone(),
                 provider_status: WorkItemStatus::Open,
                 title: format!("local-only: {}", work_item.provider_item_id),
+                priority: 0,
+                parent: None,
+                dependencies: vec![],
+                acceptance_criteria: vec![],
+                spec_refs: vec![],
+                blocked_reason: None,
                 url: work_item.external_url.clone(),
                 revision: None,
             }))
+    }
+
+    async fn list(&self, query: &WorkItemQuery) -> RegistryResult<Vec<WorkItem>> {
+        let map = self.states.read().await;
+        let mut items: Vec<_> = map
+            .values()
+            .filter(|item| item.project_root == query.project_root)
+            .cloned()
+            .collect();
+        items.sort_by(|left, right| left.provider_item_id.cmp(&right.provider_item_id));
+        items.truncate(query.limit.max(1));
+        Ok(items)
     }
 
     async fn validate_ref(&self, work_item: &WorkItemRef) -> RegistryResult<()> {
@@ -103,12 +130,19 @@ impl ProviderAdapter for NoneAdapter {
         let updated = WorkItem {
             provider: self.provider(),
             provider_item_id: work_item.provider_item_id.clone(),
+            project_root: work_item.project_root.clone(),
             provider_status: WorkItemStatus::Closed,
             title: format!("closed (local-only): {}", work_item.provider_item_id),
+            priority: 0,
+            parent: None,
+            dependencies: vec![],
+            acceptance_criteria: vec![],
+            spec_refs: vec![],
+            blocked_reason: None,
             url: work_item.external_url.clone(),
             revision: Some("local".into()),
         };
-        map.insert(work_item.provider_item_id.clone(), updated.clone());
+        map.insert(Self::key(work_item), updated.clone());
         Ok(updated)
     }
 }
@@ -146,5 +180,25 @@ mod tests {
         let err = a.validate_ref(&ref_id("")).await.unwrap_err();
         let s = format!("{err}");
         assert!(s.contains("non-empty"), "{s}");
+    }
+
+    #[tokio::test]
+    async fn none_adapter_state_is_project_scoped() {
+        let adapter = NoneAdapter::new();
+        let left = ref_id("same-id");
+        let mut right = ref_id("same-id");
+        right.project_root = PathBuf::from("/other");
+        adapter.submit(&left).await.unwrap();
+        adapter.submit(&right).await.unwrap();
+        let listed = adapter
+            .list(&WorkItemQuery {
+                project_root: PathBuf::from("/tmp"),
+                parent: None,
+                limit: 100,
+            })
+            .await
+            .unwrap();
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].project_root, PathBuf::from("/tmp"));
     }
 }

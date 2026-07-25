@@ -1,0 +1,25 @@
+{
+  "schema": "focusa.spec135.rollout_closure.v1",
+  "requirement_id": "SPEC135-E5",
+  "expand_contract_complete": true,
+  "closure_rows": [
+    {"surface": "canonical_storage", "readers": "migrated", "writers": "single_canonical_writer", "proof": "spec135-e2-e4-migration-plan.v1.yaml"},
+    {"surface": "events_and_cursors", "readers": "migrated", "writers": "single_canonical_writer", "proof": "tests/spec135_durable_event_stream_test.py"},
+    {"surface": "operation_registry", "readers": "migrated", "writers": "single_registry", "proof": "tests/spec135_generated_clients_test.py"},
+    {"surface": "typescript_client", "readers": "migrated", "writers": "generated_only", "proof": "tests/spec135_p5_parity_migration_lint.py"},
+    {"surface": "generated_ui", "readers": "migrated", "writers": "operation_bound", "proof": "tests/spec135_workspace_live_refresh_test.py"},
+    {"surface": "browser_execution", "readers": "migrated", "writers": "uiai_external_authority", "proof": "tests/spec135_m5_browser_context_isolation_test.py"},
+    {"surface": "attachments", "readers": "migrated", "writers": "exact_scope_only", "proof": "tests/spec135_m4_surface_bindings_e2e_test.py"},
+    {"surface": "providers_and_connectors", "readers": "migrated", "writers": "typed_adapter_only", "proof": "tests/spec135_p2_connector_framework_lint.py"}
+  ],
+  "forbidden_states": ["unsupported", "silently_deferred", "mock_only", "duplicate_authority"],
+  "legacy_forms": {
+    "status": "non_primary_compatibility_only",
+    "removal_gate": "parity_proven"
+  },
+  "acceptance": {
+    "no_unsupported_rows": true,
+    "no_silent_deferrals": true,
+    "all_readers_writers_clients_providers_and_proofs_migrated": true
+  }
+}

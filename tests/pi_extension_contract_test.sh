@@ -73,8 +73,10 @@ fi
 
 if rg -n 'focusa-wbm-state" \|\| e\.customType === "focusa-state"' "$SESSION_FILE" >/dev/null 2>&1 \
   && rg -n 'loadPersistedRecoveryState\(e\.data\)' "$SESSION_FILE" >/dev/null 2>&1 \
-  && rg -n 'normalizeProjectRoot\(candidateProjectRoot\) !== currentProjectRoot' "$SESSION_FILE" >/dev/null 2>&1; then
-  log_pass "Pi native-session restore accepts resumable Focusa/WBM state only within matching project authority"
+  && rg -n 'const exactRootMatch =' "$SESSION_FILE" >/dev/null 2>&1 \
+  && rg -n 'normalizeProjectRoot\(candidateProjectRoot\) === normalizeProjectRoot\(currentProjectRoot\)' "$SESSION_FILE" >/dev/null 2>&1 \
+  && rg -n '!exactRootMatch && !sameCanonicalProject' "$SESSION_FILE" >/dev/null 2>&1; then
+  log_pass "Pi native-session restore accepts exact-root or verified same-project worktree WBM state"
 else
   log_fail "Pi native-session restore missing project-scoped resumable WBM state support"
 fi

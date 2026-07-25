@@ -60,10 +60,10 @@ Likely next: `focusa_bloatgaurd_tokenbloat_report`, `focusa_traverse`, `focusa_e
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`, `skill:focusa-troubleshooting`
+- Skills: `skill:focusa`, `skill:focusa-troubleshooting`, `skill:focusa-resource-performance`
 - Runbooks: `runbook:diagnostics_hygiene`
 - Pi: `focusa_bloatgaurd_tokenbloat_domain`; MCP: `focusa.bloatgaurd.tokenbloat.domain`; OpenAI: `focusa_bloatgaurd_tokenbloat_domain`.
 - CLI: `focusa bloatgaurd token-domain <name>`.
 - REST: `GET /v1/bloatgaurd/tokenbloat/domain/{name}`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:c038a7b0807a426f2cdc6371082622d37d09720bab9bfd676d668e5dffcbca1e`.
+- Descriptor digest: `sha256:aa25e6a0a0a2d46596bba64dfb32e75f250eb7a0fafcb618e1faa8b935c0e4a4`.

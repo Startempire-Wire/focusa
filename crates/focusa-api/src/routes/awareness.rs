@@ -88,113 +88,38 @@ fn render_card(query: &AwarenessCardQuery, record: Option<&WorkpointRecord>) -> 
     let adapter = clean(query.adapter_id.as_deref()).unwrap_or_else(|| "non-pi-agent".to_string());
     let workspace =
         clean(query.workspace_id.as_deref()).unwrap_or_else(|| "unknown-workspace".to_string());
-    let agent = clean(query.agent_id.as_deref()).unwrap_or_else(|| adapter.clone());
-    let operator =
-        clean(query.operator_id.as_deref()).unwrap_or_else(|| "unknown-operator".to_string());
     let mission = record
-        .and_then(|r| r.mission.as_deref())
+        .and_then(|item| item.mission.as_deref())
         .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .unwrap_or("Use latest operator instruction and harness-local project/workspace context.");
+        .filter(|value| !value.is_empty())
+        .unwrap_or("Follow the newest operator request.");
     let next = record
-        .and_then(|r| r.next_slice.as_deref())
+        .and_then(|item| item.next_slice.as_deref())
         .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .unwrap_or("Fetch or create a project-bound Workpoint before risky continuation.");
+        .filter(|value| !value.is_empty())
+        .unwrap_or("Verify project scope before durable writes; continue safe diagnosis now.");
     let project_root = clean(query.project_root.as_deref())
-        .or_else(|| record.and_then(|r| r.project_root.clone()))
-        .unwrap_or_else(|| {
-            "unbound; derive from harness workspace before checkpointing".to_string()
-        });
-    let session = clean(query.session_id.as_deref())
-        .or_else(|| record.and_then(|r| r.session_id.clone()))
-        .unwrap_or_else(|| "unbound; use harness session id if available".to_string());
+        .or_else(|| record.and_then(|item| item.project_root.clone()))
+        .unwrap_or_else(|| "unverified".to_string());
     let continuity = clean(query.continuity_id.as_deref())
-        .or_else(|| record.and_then(|r| r.continuity_id.clone()))
-        .unwrap_or_else(|| {
-            "unbound; derive a stable logical workstream id before trusting same-root state"
-                .to_string()
-        });
-    let canonical = record.map(|r| r.canonical).unwrap_or(false);
-    let authority = if canonical {
-        "workpoint"
-    } else {
-        "operator_current_ask"
-    };
-    let workpoint_status = if canonical {
-        "verified"
-    } else {
-        "unavailable/not_verified"
-    };
-    let exact_next_action = if canonical {
-        next
-    } else {
-        "Call /v1/trajectory/view, then checkpoint a project-bound Workpoint before risky continuation."
-    };
-    let public_policy = public_card_policy(&project_root, &continuity, canonical);
-    let reconciliation_envelope = if canonical {
-        Vec::<String>::new()
-    } else {
-        vec![
-            "RECONCILIATION_ENVELOPE:".to_string(),
-            format!(
-                "- surface_states=workpoint:{workpoint_status}; trajectory:verify_first; focus_state:unknown; ontology:unknown; evidence:capture_after_checkpoint; doctor:unknown; work_loop:unknown"
-            ),
-            "- resolution=checkpoint_project_bound_workpoint".to_string(),
-            "- authority_for_next_action=operator_current_ask_until_checkpoint".to_string(),
-            format!(
-                "- supporting_context=project_root:{project_root}; continuity_id:{continuity}; session_id:{session}"
-            ),
-            "- blocked_or_stale_surfaces=workpoint,trajectory".to_string(),
-            "- next_repair_tool=focusa_workpoint_checkpoint".to_string(),
-        ]
-    };
-    let mut lines = vec![
-        "# Focusa Utility Card".to_string(),
-        format!("Status: available{}", if canonical { " / project-bound Workpoint found" } else { " / no project-bound Workpoint found" }),
-        format!("Agent: adapter={adapter} workspace={workspace} agent={agent} operator={operator}"),
+        .or_else(|| record.and_then(|item| item.continuity_id.clone()))
+        .unwrap_or_else(|| "unverified".to_string());
+    let canonical = record.map(|item| item.canonical).unwrap_or(false);
+
+    vec![
+        "# Focusa".to_string(),
+        format!("Status: {}", if canonical { "ready" } else { "scope verification pending" }),
+        format!("Surface: adapter={adapter} · workspace={workspace}"),
+        format!("Scope: project_root={project_root} · continuity={continuity} · workpoint={}", if canonical { "canonical" } else { "not verified" }),
         format!("Mission: {mission}"),
-        format!("Next anchor: {next}"),
-        format!("Project folder: project_root={project_root}; continuity_id={continuity}; session_id={session} (temporal metadata)"),
-        "PUBLIC_CARD:".to_string(),
-        "- schema=focusa.public_card.v1".to_string(),
-        format!("- project_identity_display_name={}", public_policy["project_identity_display_name"].as_str().unwrap_or("Focusa project")),
-        format!("- redacted_scope_id={}", public_policy["redacted_scope_id"].as_str().unwrap_or("scope:unknown")),
-        format!("- canonical_status={}", public_policy["canonical_status"].as_str().unwrap_or("advisory")),
-        "- tool_family=awareness".to_string(),
-        "- evidence_refs_public_safe=[]".to_string(),
-        "- redaction_status=redacted_scope_only".to_string(),
-        "- secret_scan_status=not_required_no_raw_payload".to_string(),
-        "- publish_allowed=false".to_string(),
-        "NOW_CARD:".to_string(),
-        format!("- authority={authority}; scope=project_root:{project_root} continuity_id:{continuity}"),
-        format!("- readiness=scope:declared workpoint:{workpoint_status} trajectory:verify_first"),
-        format!("- exact_next_action={exact_next_action}"),
-        "WHY_CARD:".to_string(),
-        format!("- why=included adapter/workspace/operator identifiers and {} ; excluded transcript_tail as authority", if canonical { "canonical scoped Workpoint" } else { "declared scope plus latest operator ask" }),
-        "- source_authority_order=operator_steering > verified_project_identity > canonical_workpoint > trajectory_projection > traverse/evidence > transcript_tail_never".to_string(),
-        "HEALTH_CARD:".to_string(),
-        format!("- scope=declared; workpoint={workpoint_status}; trajectory=verify_first; evidence=capture_after_proof; token_pressure=unknown; drift=none_known; uiai=unknown"),
-        "DO_CARD:".to_string(),
-        format!("- exact_next_action={exact_next_action}"),
-        format!("- mutates={}; rollback=checkpoint/resume packet; rehydrate_refs=/v1/workpoint/resume,/v1/trajectory/view,/v1/traverse", if canonical { "only when selected execution tool is called" } else { "workpoint checkpoint if accepted" }),
-    ];
-    lines.extend(reconciliation_envelope.clone());
-    lines.extend(vec![
-        "Trajectory: call /v1/trajectory/view before choosing work; high/mid/low similarity is advisory only and must_not_merge_sessions=true.".to_string(),
-        "Reflex affordances: if blocked/degraded, follow reflex_suggestions or traverse surface=reflex_primitives for the smallest safe next step.".to_string(),
-        String::new(),
-        "Use Focusa as agent working memory and governance:".to_string(),
-        "- First when uncertain/degraded: call /v1/doctor or run `focusa doctor --json`.".to_string(),
-        "- On project start/resume: read /v1/trajectory/view for high/mid/low goals, gap, evidence, and drift boundaries.".to_string(),
-        "- Before compaction/model switch/fork/risky continuation: checkpoint a project-bound Workpoint.".to_string(),
-        "- After compaction/reload/resume: fetch Workpoint resume; do not trust transcript tail over Workpoint.".to_string(),
-        "- After proof/tests/API/file evidence: capture or link evidence to the active Workpoint.".to_string(),
-        "- Before risky or uncertain next action: record a prediction; after outcome: evaluate it.".to_string(),
-        "- If Focusa is unavailable, mark cognition_degraded=true and continue only with explicit fallback context.".to_string(),
-        "Operator steering always wins; Focusa guides, preserves, and audits.".to_string(),
-    ]);
-    lines.join("\n")
+        format!("Next: {next}"),
+        if canonical {
+            "Boundary: operator steering leads; scoped mutation endpoints enforce durable writes.".to_string()
+        } else {
+            "Boundary: conversation and read-only diagnosis continue; durable writes require verified scope.".to_string()
+        },
+    ]
+    .join("\n")
 }
 
 async fn card(
@@ -326,37 +251,41 @@ mod tests {
     }
 
     #[test]
-    fn awareness_card_mentions_required_agent_rules() {
+    fn awareness_card_is_concise_and_preserves_operator_flow() {
         let card = render_card(
             &AwarenessCardQuery {
                 adapter_id: Some("openclaw".into()),
                 workspace_id: Some("wirebot".into()),
                 agent_id: Some("wirebot".into()),
-                operator_id: Some("verious.smith".into()),
+                operator_id: Some("operator".into()),
                 session_id: Some("session-1".into()),
                 continuity_id: Some("cont-1".into()),
-                project_root: Some("/data/wirebot/users/verious".into()),
+                project_root: Some("/data/wirebot/users/operator".into()),
             },
             None,
         );
         for needle in [
-            "Focusa Utility Card",
-            "adapter=openclaw",
-            "workspace=wirebot",
-            "/v1/doctor",
-            "/v1/trajectory/view",
-            "must_not_merge_sessions=true",
-            "Reflex affordances",
-            "reflex_suggestions",
-            "surface=reflex_primitives",
-            "checkpoint a project-bound Workpoint",
-            "fetch Workpoint resume",
-            "capture or link evidence",
-            "record a prediction",
-            "cognition_degraded=true",
-            "Operator steering always wins",
+            "# Focusa",
+            "Status: scope verification pending",
+            "Surface: adapter=openclaw",
+            "Scope: project_root=",
+            "Mission:",
+            "Next:",
+            "conversation and read-only diagnosis continue",
+            "durable writes require verified scope",
         ] {
             assert!(card.contains(needle), "missing {needle}: {card}");
+        }
+        for stale in [
+            "MISSION_PACKET",
+            "NOW_CARD",
+            "WHY_CARD",
+            "HEALTH_CARD",
+            "DO_CARD",
+            "RECONCILIATION_ENVELOPE",
+            "Friendly Focusa Q",
+        ] {
+            assert!(!card.contains(stale), "stale card section {stale}: {card}");
         }
     }
 }

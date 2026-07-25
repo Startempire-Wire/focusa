@@ -1,0 +1,33 @@
+{
+  "schema": "focusa.spec135.security_privacy_gates.v1",
+  "requirement_id": "SPEC135-Q2",
+  "data_minimization": {
+    "secrets_in_output_forbidden": true,
+    "customer_data_in_public_evidence_forbidden": true,
+    "runtime_payloads_in_public_docs_forbidden": true,
+    "bounded_handles_replace_raw_payloads": true
+  },
+  "mutation_gate": {
+    "required": ["verified_scope", "permission", "confirmation_when_sensitive", "idempotency_key", "expected_state_version"],
+    "failure_posture": "fail_closed_with_tool_result"
+  },
+  "stream_gate": {
+    "required": ["verified_scope", "permission", "bounded_cursor", "redaction_policy"],
+    "failure_posture": "deny_subscription"
+  },
+  "public_private_boundary": {
+    "private_roots": [".focusa-private", "runtime", "local_credentials"],
+    "public_export_requires": ["secret_scan", "customer_data_scan", "local_path_scan", "evidence_ref_review"]
+  },
+  "evidence_refs": [
+    "tests/authority_scope_static_test.sh",
+    "tests/e2e_scope_authority_enforcement_test.sh",
+    "tests/public_stream_redaction_policy_static_test.sh",
+    "tests/pi_extension_runtime_authority_test.sh",
+    "crates/focusa-api/src/middleware/error_envelope.rs"
+  ],
+  "acceptance": {
+    "no_secret_customer_runtime_leak": true,
+    "all_mutations_and_streams_permission_gated": true
+  }
+}

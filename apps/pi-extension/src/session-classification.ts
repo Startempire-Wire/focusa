@@ -6,6 +6,7 @@ export type PiSessionProjectClassification =
   | "new_session_existing_project"
   | "resumed_session_resumed_project"
   | "resumed_session_recoverable_project"
+  | "resumed_session_worktree_rebound"
   | "session_project_mismatch"
   | "forked_compacted_continuation";
 
@@ -15,6 +16,9 @@ export interface PiSessionProjectClassificationInput {
   markerExists: boolean;
   persistedStateFound: boolean;
   persistedProjectRoot?: string;
+  bindingAmbiguous?: boolean;
+  sameCanonicalProject?: boolean;
+  bindingCandidateRoots?: string[];
   explicitContinuationMetadata?: boolean;
 }
 
@@ -31,7 +35,12 @@ export function classifyPiSessionProject(
   const currentRoot = normalizedRoot(input.currentProjectRoot);
   const persistedRoot = normalizedRoot(input.persistedProjectRoot);
 
+  if (input.bindingAmbiguous) return "session_project_mismatch";
   if (persistedRoot && currentRoot && persistedRoot !== currentRoot) {
+    const candidateMatch = (input.bindingCandidateRoots || []).map(normalizedRoot).includes(persistedRoot);
+    if (input.sameCanonicalProject || candidateMatch) {
+      return "resumed_session_worktree_rebound";
+    }
     return "session_project_mismatch";
   }
   if (input.reason === "fork" || input.explicitContinuationMetadata) {

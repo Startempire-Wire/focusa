@@ -61,10 +61,10 @@ Likely next: `focusa_traverse`, `focusa_trajectory_view`, `focusa_workpoint_resu
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`, `skill:focusa-troubleshooting`
+- Skills: `skill:focusa`, `skill:focusa-troubleshooting`, `skill:focusa-resource-performance`
 - Runbooks: `runbook:diagnostics_hygiene`
 - Pi: `focusa_resource_mode`; MCP: `focusa.resource.mode`; OpenAI: `focusa_resource_mode`.
 - CLI: `focusa resource mode`.
 - REST: `GET /v1/resource/mode`, `POST /v1/resource/mode`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:592ea9f2b2663ad838219595cced953aadf9ff5ebf72191e6614b9afd1e19235`.
+- Descriptor digest: `sha256:47a3f2d7164ba7a2c8e825ad2e09d3a93322f683dee44c252c47367e4724e613`.

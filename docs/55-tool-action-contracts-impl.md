@@ -14,6 +14,10 @@ Current behavior is primarily implemented in:
 - `apps/pi-extension/src/session.ts`
 - `apps/pi-extension/src/turns.ts`
 
+## Spec 131 temporal contract status ⚠️ Not implemented by this note
+
+The current bridge timeout/retry behavior predates Spec 131 and does not prove remaining-monotonic-time propagation, parent deadline capping, cancellation acknowledgement/effectiveness, possible-effect reconciliation, paired clock-sample lineage, or TemporalExecutionGuard enforcement. Those fields and runtime proofs remain open until the Spec 131 ledger marks them verified. Existing timeout handling must not be reported as temporal conformance.
+
 ## Input Schema ✅
 - Focusa bridge tools use typed schemas via tool registration.
 - `focusa_decide`, `focusa_constraint`, and `focusa_failure` apply semantic validators before write.

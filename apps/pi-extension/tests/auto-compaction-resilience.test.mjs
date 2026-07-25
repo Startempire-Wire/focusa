@@ -6,18 +6,26 @@ import test from "node:test";
 const sourcePath = path.resolve(import.meta.dirname, "../src/auto-compaction.ts");
 const indexPath = path.resolve(import.meta.dirname, "../src/index.ts");
 const compactionPath = path.resolve(import.meta.dirname, "../src/compaction.ts");
+const turnsPath = path.resolve(import.meta.dirname, "../src/turns.ts");
+const statePath = path.resolve(import.meta.dirname, "../src/state.ts");
 const packagePath = path.resolve(import.meta.dirname, "../package.json");
 const source = fs.readFileSync(sourcePath, "utf8");
 const indexSource = fs.readFileSync(indexPath, "utf8");
 const compactionSource = fs.readFileSync(compactionPath, "utf8");
+const turnsSource = fs.readFileSync(turnsPath, "utf8");
+const stateSource = fs.readFileSync(statePath, "utf8");
 const packageManifest = JSON.parse(fs.readFileSync(packagePath, "utf8"));
 
-function handlerBody(eventName) {
+function handlerBodyFrom(content, eventName) {
   const marker = `pi.on("${eventName}"`;
-  const start = source.indexOf(marker);
+  const start = content.indexOf(marker);
   assert.notEqual(start, -1, `${eventName} handler must exist`);
-  const next = source.indexOf("\n  pi.on(", start + marker.length);
-  return source.slice(start, next === -1 ? source.length : next);
+  const next = content.indexOf("\n  pi.on(", start + marker.length);
+  return content.slice(start, next === -1 ? content.length : next);
+}
+
+function handlerBody(eventName) {
+  return handlerBodyFrom(source, eventName);
 }
 
 test("agent_end never races Pi native compaction with extension compaction", () => {
@@ -131,4 +139,40 @@ test("proactive compaction instructions preserve scoped continuation authority",
   assert.match(source, /verified evidence handles/);
   assert.match(source, /exact next action/);
   assert.match(source, /do-not-drift boundaries/);
+});
+
+test("emergency pressure preserves Pi native prompt and steering flow", () => {
+  const body = handlerBody("input");
+  assert.match(body, /input_passthrough_native_overflow_recovery/);
+  assert.match(body, /return \{ action: "continue" as const \}/);
+  assert.doesNotMatch(body, /action: "handled"/);
+  assert.doesNotMatch(body, /Run \/focusa-rollover execute/);
+  assert.doesNotMatch(body, /resend it in the replacement session/);
+});
+
+test("prompt-critical Focusa hooks perform no awaited daemon work", () => {
+  for (const eventName of ["before_agent_start", "context", "input"]) {
+    const body = handlerBodyFrom(turnsSource, eventName);
+    assert.doesNotMatch(body, /\bawait\b/, `${eventName} must remain non-blocking`);
+  }
+  const inputBody = handlerBodyFrom(turnsSource, "input");
+  assert.match(inputBody, /void turnWorkLoopWriterHeaders\(\)/);
+  assert.match(inputBody, /\.catch\(\(\) => null\)/);
+  assert.doesNotMatch(inputBody, /headers:\s*await turnWorkLoopWriterHeaders/);
+  assert.match(turnsSource, /getCachedFocusState\(\)/);
+  assert.match(turnsSource, /buildCachedRecentTurnsSlice\(4\)/);
+  assert.match(turnsSource, /getCachedTrajectoryFocusSliceLines\(\)/);
+});
+
+test("transport retry exhaustion defers to Pi instead of auto-queuing rollover", () => {
+  assert.match(source, /native_recovery_deferred_to_pi/);
+  assert.doesNotMatch(source, /sendUserMessage\("\/focusa-rollover execute"/);
+  assert.doesNotMatch(source, /rollover_auto_queued/);
+});
+
+test("numeric pressure and artifact filenames cannot become project aliases", () => {
+  assert.match(stateSource, /!\/\[a-z\]\//);
+  assert.match(stateSource, /\^\\d\+\(\?:\\\.\\d\+\)\+\$/);
+  assert.match(stateSource, /NON_PROJECT_ARTIFACT_SUFFIXES/);
+  assert.match(stateSource, /isPlausibleProjectAlias\(entry\.project_alias\)/);
 });

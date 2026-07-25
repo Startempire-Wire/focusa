@@ -1,1 +1,65 @@
-{"schema":"focusa.spec135_st2_task_plan_proof.v1","requirement_id":"SPEC135-ST2","status":"passed","operations":["focusa.task_plan.list","focusa.task_plan.mutate"],"invariants":["Task plans require an exact-scoped final-approved Spec Workbench","Every task preserves Spec section, requirement, acceptance, and proof links","Dependencies are in-graph and acyclic","Draft decomposition performs no provider mutation","Edits invalidate prior preview","Preview tokens bind to one revision","Only explicit operator approval unlocks materialization eligibility","Approval itself leaves materialized=false","Approved plans are immutable without an explicit revision workflow","Canonical revisions use idempotency and optimistic concurrency"],"runtime":{"test":"tests/spec135_task_plan_e2e_test.py","result":"passed","coverage":["approved Spec source","draft","two-task DAG","preview","edit invalidates preview","re-preview","wrong-token rejection","operator approval","post-approval mutation rejection","restart exactness"]},"contracts":{"operation_count":76,"schemas":["focusa.provider_neutral_task_plan_list.request.v1","focusa.provider_neutral_task_plan_list.v1","focusa.provider_neutral_task_plan_mutation.request.v1","focusa.provider_neutral_task_plan_mutation_result.v1"],"typescript":"packages/generated/spec135/typescript/schema.d.ts","go":"packages/generated/spec135/go/client.gen.go"},"generated_ui":{"surface":"packages/a2ui-renderer/proof/task-plan.html","controller":"packages/a2ui-renderer/proof/task-plan.ts","scenario":"uiai-eval.st2-task-plan.scenario.json","result":"uiai-eval.st2-task-plan.result.json","session":"uDi8UM2u","desktop_screenshot":"/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/uDi8UM2u-1784713331071038000.png","mobile_screenshot":"/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/uDi8UM2u-1784713390487208000.png","diagnostics":"uiai-diagnostics:session=uDi8UM2u:seq=15","diagnostics_summary":{"console_errors":0,"console_warnings":0,"exceptions":0,"failed_requests":0,"http_4xx":0,"http_5xx":0}}}
+{
+  "contracts": {
+    "operation_count": 76,
+    "schemas": [
+      "focusa.provider_neutral_task_plan_list.request.v1",
+      "focusa.provider_neutral_task_plan_list.v1",
+      "focusa.provider_neutral_task_plan_mutation.request.v1",
+      "focusa.provider_neutral_task_plan_mutation_result.v1"
+    ],
+    "typescript": "packages/generated/spec135/typescript/schema.d.ts"
+  },
+  "generated_ui": {
+    "controller": "packages/a2ui-renderer/proof/task-plan.ts",
+    "desktop_screenshot": "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/uDi8UM2u-1784713331071038000.png",
+    "diagnostics": "uiai-diagnostics:session=uDi8UM2u:seq=15",
+    "diagnostics_summary": {
+      "console_errors": 0,
+      "console_warnings": 0,
+      "exceptions": 0,
+      "failed_requests": 0,
+      "http_4xx": 0,
+      "http_5xx": 0
+    },
+    "mobile_screenshot": "/Volumes/Macintosh HD/Users/vsmith/.local/share/uiai-engine/shares/session-screenshots/uDi8UM2u-1784713390487208000.png",
+    "result": "uiai-eval.st2-task-plan.result.json",
+    "scenario": "uiai-eval.st2-task-plan.scenario.json",
+    "session": "uDi8UM2u",
+    "surface": "packages/a2ui-renderer/proof/task-plan.html"
+  },
+  "invariants": [
+    "Task plans require an exact-scoped final-approved Spec Workbench",
+    "Every task preserves Spec section, requirement, acceptance, and proof links",
+    "Dependencies are in-graph and acyclic",
+    "Draft decomposition performs no provider mutation",
+    "Edits invalidate prior preview",
+    "Preview tokens bind to one revision",
+    "Only explicit operator approval unlocks materialization eligibility",
+    "Approval itself leaves materialized=false",
+    "Approved plans are immutable without an explicit revision workflow",
+    "Canonical revisions use idempotency and optimistic concurrency"
+  ],
+  "operations": [
+    "focusa.task_plan.list",
+    "focusa.task_plan.mutate"
+  ],
+  "requirement_id": "SPEC135-ST2",
+  "runtime": {
+    "coverage": [
+      "approved Spec source",
+      "draft",
+      "two-task DAG",
+      "preview",
+      "edit invalidates preview",
+      "re-preview",
+      "wrong-token rejection",
+      "operator approval",
+      "post-approval mutation rejection",
+      "restart exactness"
+    ],
+    "result": "passed",
+    "test": "tests/spec135_task_plan_e2e_test.py"
+  },
+  "schema": "focusa.spec135_st2_task_plan_proof.v1",
+  "status": "passed"
+}

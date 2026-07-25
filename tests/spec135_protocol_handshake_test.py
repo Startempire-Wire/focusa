@@ -15,7 +15,6 @@ capabilities = json.loads((BUNDLE / "ui-capability-snapshot.fixture.json").read_
 openapi = json.loads((BUNDLE / "openapi-3.0.3.json").read_text())
 source = (ROOT / "crates/focusa-api/src/routes/agent_capabilities.rs").read_text()
 ts = (ROOT / "packages/generated/spec135/typescript/schema.d.ts").read_text()
-go = (ROOT / "packages/generated/spec135/go/client.gen.go").read_text()
 
 assert lock["schema"] == "focusa.compatibility_lock.v1"
 for field in (
@@ -96,8 +95,6 @@ for marker in (
     assert marker in source
 assert 'operations["focusa.protocol.handshake"]' in ts
 assert 'operations["focusa.compatibility_lock.read"]' in ts
-assert "func (c *Client) FocusaProtocolHandshake(" in go
-assert "func (c *Client) FocusaCompatibilityLockRead(" in go
 
 print(
     "Spec 135 protocol handshake: PASS (scope exact, permission projected, incompatible clients fail closed)"

@@ -23,6 +23,7 @@ const require = createRequire(import.meta.url);
 import { loadConfig } from "./config.js";
 import { registerTools } from "./tools.js";
 import { registerCommands } from "./commands.js";
+import { registerAutomaticOtaActivation } from "./ota-activation.js";
 import { registerWbm } from "./wbm.js";
 import { registerCompaction } from "./compaction.js";
 import { proactiveCompactionPolicy, registerAutoCompaction } from "./auto-compaction.js";
@@ -148,6 +149,7 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     if (!ownsCompactionCoordinator) return;
     registerTools(pi);
     registerCommands(pi);
+    registerAutomaticOtaActivation(pi);
     registerWbm(pi);
     registerCompaction(pi);
     registerSession(pi);

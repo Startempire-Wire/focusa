@@ -15,6 +15,7 @@ import {
   checkFocusa,
   focusaFetch,
   focusaPost,
+  compatibleWorkLoopStatusState,
   ensurePiFrame,
   getFocusState,
   ensureContinuityId,
@@ -3336,10 +3337,57 @@ export function registerTools(pi: ExtensionAPI) {
     } as any;
   }
 
+  type WorkLoopWriterLease = {
+    writerId: string;
+    fencingToken: number;
+    expiresAt: string;
+  };
+  const localWriterId = `pi-${process.pid}`;
+  const workLoopLeases = new Map<string, WorkLoopWriterLease>();
+
+  function workLoopLeaseKey(): string {
+    const root = resolvePiProjectRoot(getSessionCwd() || process.cwd());
+    const continuity = getContinuityId() || ensureContinuityId(root) || "unbound";
+    return `${root}|${continuity}`;
+  }
+
+  function rememberWorkLoopLease(body: any): WorkLoopWriterLease | null {
+    if (!body?.writer_id && compatibleWorkLoopStatusState(body) === "unsupported") return null;
+    const writerId = String(body?.writer_id || body?.execution_partition?.writer_key || "").trim();
+    const fencingToken = Number(body?.fencing_token ?? body?.execution_partition?.fencing_token);
+    const expiresAt = String(body?.lease_expires_at || body?.execution_partition?.lease_expires_at || "");
+    if (!writerId || !Number.isSafeInteger(fencingToken) || fencingToken <= 0 || !expiresAt) return null;
+    const lease = { writerId, fencingToken, expiresAt };
+    workLoopLeases.set(workLoopLeaseKey(), lease);
+    return lease;
+  }
+
   async function preferredWriterId(): Promise<string> {
+    return localWriterId;
+  }
+
+  async function currentWorkLoopLease(): Promise<WorkLoopWriterLease | null> {
+    const cached = workLoopLeases.get(workLoopLeaseKey());
+    if (cached && cached.writerId === localWriterId && Date.parse(cached.expiresAt) > Date.now())
+      return cached;
     const status = await focusaFetchDetailed("/work-loop/status?summary_only=true");
-    const claimed = String(status.body?.active_writer || "").trim();
-    return claimed || `pi-${process.pid}`;
+    const lease = rememberWorkLoopLease(status.body);
+    return lease?.writerId === localWriterId && Date.parse(lease.expiresAt) > Date.now() ? lease : null;
+  }
+
+  function writerLeaseHeaders(writerId: string, lease: WorkLoopWriterLease | null): Record<string, string> {
+    const headers: Record<string, string> = { "x-focusa-writer-id": writerId };
+    if (lease?.writerId === writerId) headers["x-focusa-fencing-token"] = String(lease.fencingToken);
+    return headers;
+  }
+
+  async function requiredWriterLeaseHeaders(): Promise<Record<string, string>> {
+    const lease = await currentWorkLoopLease();
+    if (!lease)
+      throw new Error(
+        "current scoped Work Loop writer lease is missing, expired, or owned by another writer"
+      );
+    return writerLeaseHeaders(localWriterId, lease);
   }
 
   function firstBdReadyIdFromText(text: string): string | null {
@@ -3473,17 +3521,40 @@ export function registerTools(pi: ExtensionAPI) {
       ),
       root_work_item_id: Type.Optional(
         Type.String({
-          description: "Optional root BD/task/item id. If omitted, tool infers from active task or bd ready.",
+          description: "Optional root provider WorkItem id. If omitted, infer from the active scoped task.",
         })
       ),
+      renew_budget: Type.Optional(
+        Type.Boolean({ description: "Explicitly start a fresh budget epoch when action=resume." })
+      ),
+      max_turns: Type.Optional(Type.Number({ minimum: 1 })),
+      max_wall_clock_ms: Type.Optional(Type.Number({ minimum: 1000 })),
+      max_retries: Type.Optional(Type.Number({ minimum: 0 })),
+      cooldown_ms: Type.Optional(Type.Number({ minimum: 0 })),
     }),
     async execute(_id, params) {
-      const { action, reason, preset, preflight, root_work_item_id } = params as {
+      const {
+        action,
+        reason,
+        preset,
+        preflight,
+        root_work_item_id,
+        renew_budget,
+        max_turns,
+        max_wall_clock_ms,
+        max_retries,
+        cooldown_ms,
+      } = params as {
         action: "on" | "pause" | "resume" | "stop";
         reason?: string;
         preset?: "conservative" | "balanced" | "push" | "audit";
         preflight?: boolean;
         root_work_item_id?: string;
+        renew_budget?: boolean;
+        max_turns?: number;
+        max_wall_clock_ms?: number;
+        max_retries?: number;
+        cooldown_ms?: number;
       };
       const writerId = await preferredWriterId();
 
@@ -3520,10 +3591,10 @@ export function registerTools(pi: ExtensionAPI) {
           preset: preset || getAttachmentRuntime().cfg?.workLoopPreset || "balanced",
           root_work_item_id: rootWorkItemId || undefined,
           policy_overrides: {
-            max_turns: getAttachmentRuntime().cfg?.workLoopMaxTurns,
-            max_wall_clock_ms: getAttachmentRuntime().cfg?.workLoopMaxWallClockMs,
-            max_retries: getAttachmentRuntime().cfg?.workLoopMaxRetries,
-            cooldown_ms: getAttachmentRuntime().cfg?.workLoopCooldownMs,
+            max_turns: max_turns ?? getAttachmentRuntime().cfg?.workLoopMaxTurns,
+            max_wall_clock_ms: max_wall_clock_ms ?? getAttachmentRuntime().cfg?.workLoopMaxWallClockMs,
+            max_retries: max_retries ?? getAttachmentRuntime().cfg?.workLoopMaxRetries,
+            cooldown_ms: cooldown_ms ?? getAttachmentRuntime().cfg?.workLoopCooldownMs,
             allow_destructive_actions: getAttachmentRuntime().cfg?.workLoopAllowDestructiveActions,
             require_operator_for_governance: getAttachmentRuntime().cfg?.workLoopRequireOperatorForGovernance,
             require_operator_for_scope_change:
@@ -3542,9 +3613,10 @@ export function registerTools(pi: ExtensionAPI) {
         };
         const res = await focusaFetchDetailed("/work-loop/enable", {
           method: "POST",
-          headers: { "x-focusa-writer-id": writerId, "x-focusa-approval": "approved" },
+          headers: { ...writerLeaseHeaders(writerId, null), "x-focusa-approval": "approved" },
           body: JSON.stringify(payload),
         });
+        if (res.ok) rememberWorkLoopLease(res.body);
         return {
           content: [
             {
@@ -3561,6 +3633,23 @@ export function registerTools(pi: ExtensionAPI) {
         };
       }
 
+      const lease = await currentWorkLoopLease();
+      if (!lease) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "work-loop control blocked: current scoped writer lease is missing, expired, or owned by another writer",
+            },
+          ],
+          details: {
+            ok: false,
+            status: "blocked",
+            failure_class: "writer_conflict",
+            next_tools: ["focusa_work_loop_writer_status", "focusa_work_loop_control"],
+          },
+        } as any;
+      }
       const route =
         action === "pause"
           ? "/work-loop/pause"
@@ -3569,11 +3658,37 @@ export function registerTools(pi: ExtensionAPI) {
             : "/work-loop/stop";
       const res = await focusaFetchDetailed(route, {
         method: "POST",
-        headers: { "x-focusa-writer-id": writerId },
+        headers: {
+          ...writerLeaseHeaders(writerId, lease),
+          ...(action === "resume" &&
+          (renew_budget ||
+            max_turns !== undefined ||
+            max_wall_clock_ms !== undefined ||
+            max_retries !== undefined ||
+            cooldown_ms !== undefined)
+            ? { "x-focusa-approval": "approved" }
+            : {}),
+        },
         body: JSON.stringify({
           reason: reason?.slice(0, 200) || `operator ${action} via focusa_work_loop_control`,
+          ...(action === "resume"
+            ? {
+                renew_budget: renew_budget || false,
+                policy_overrides:
+                  max_turns !== undefined ||
+                  max_wall_clock_ms !== undefined ||
+                  max_retries !== undefined ||
+                  cooldown_ms !== undefined
+                    ? { max_turns, max_wall_clock_ms, max_retries, cooldown_ms }
+                    : undefined,
+              }
+            : {}),
         }),
       });
+      if (res.ok) {
+        if (action === "stop") workLoopLeases.delete(workLoopLeaseKey());
+        else rememberWorkLoopLease(res.body);
+      }
       return {
         content: [
           {
@@ -3624,10 +3739,9 @@ export function registerTools(pi: ExtensionAPI) {
           details: { ok: false, status: 0, response: null },
         };
       }
-      const writerId = await preferredWriterId();
       const res = await focusaFetchDetailed("/work-loop/context", {
         method: "POST",
-        headers: { "x-focusa-writer-id": writerId },
+        headers: await requiredWriterLeaseHeaders(),
         body: JSON.stringify({
           current_ask: p.current_ask.slice(0, 240),
           ask_kind: p.ask_kind,
@@ -3660,10 +3774,9 @@ export function registerTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const { summary } = params as { summary?: string };
-      const writerId = await preferredWriterId();
       const res = await focusaFetchDetailed("/work-loop/checkpoint", {
         method: "POST",
-        headers: { "x-focusa-writer-id": writerId },
+        headers: await requiredWriterLeaseHeaders(),
         body: JSON.stringify({
           summary: (summary || "manual checkpoint via focusa_work_loop_checkpoint").slice(0, 240),
         }),
@@ -3713,7 +3826,7 @@ export function registerTools(pi: ExtensionAPI) {
       }
       const res = await focusaFetchDetailed("/work-loop/select-next", {
         method: "POST",
-        headers: { "x-focusa-writer-id": writerId },
+        headers: await requiredWriterLeaseHeaders(),
         body: JSON.stringify({ parent_work_item_id: parentWorkItemId }),
       });
       return {
@@ -4011,7 +4124,7 @@ export function registerTools(pi: ExtensionAPI) {
       ),
       session_id: Type.Optional(Type.String({ description: "Exact durable Silent Session id." })),
       session_name: Type.Optional(
-        Type.String({ description: "Legacy alias for exact session_id; no tmux normalization." })
+        Type.String({ description: "Legacy alias for exact session_id; no legacy name normalization." })
       ),
       run_id: Type.Optional(Type.String({ description: "Exact current run id." })),
       generation: Type.Optional(Type.Integer({ minimum: 1, description: "Exact current run generation." })),
@@ -4590,6 +4703,12 @@ export function registerTools(pi: ExtensionAPI) {
         Type.String({ description: "Optional cwd/project path hint; defaults to Pi session cwd." })
       ),
       project_root: Type.Optional(Type.String({ description: "Optional expected project root folder." })),
+      persisted_project_root: Type.Optional(
+        Type.String({
+          description:
+            "Project root retained by the resumed Pi session; advisory candidate only until current worktree/project evidence verifies it.",
+        })
+      ),
       remote_host: Type.Optional(
         Type.String({
           description: "Remote SSH host that contains the project root; caller supplies inspected evidence.",
@@ -4613,6 +4732,7 @@ export function registerTools(pi: ExtensionAPI) {
       const p = params as {
         cwd?: string;
         project_root?: string;
+        persisted_project_root?: string;
         remote_host?: string;
         remote_user?: string;
         remote_port?: number;
@@ -4623,6 +4743,13 @@ export function registerTools(pi: ExtensionAPI) {
       const query = new URLSearchParams();
       query.set("cwd", p.cwd || getSessionCwd() || process.cwd());
       if (p.project_root) query.set("project_root", p.project_root);
+      const persistedProjectRoot =
+        p.persisted_project_root ||
+        getActiveWorkpointPacket()?.scope?.project_root ||
+        getActiveWorkpointPacket()?.project_root ||
+        getLastProjectRootResolution()?.projectRoot ||
+        getLastProjectIdentity()?.project_root;
+      if (persistedProjectRoot) query.set("persisted_project_root", persistedProjectRoot);
       if (p.remote_host) query.set("remote_host", p.remote_host);
       if (p.remote_user) query.set("remote_user", p.remote_user);
       if (p.remote_port) query.set("remote_port", String(p.remote_port));
@@ -4723,7 +4850,13 @@ export function registerTools(pi: ExtensionAPI) {
         }
         setLastProjectIdentity(identity);
         const verifiedRoot = normalizeProjectRoot(identity.project_root);
-        if (verifiedRoot && identity.status === "verified" && isProjectRootAuthoritySafe(verifiedRoot)) {
+        if (
+          verifiedRoot &&
+          identity.status === "verified" &&
+          body.binding_decision?.ambiguous !== true &&
+          body.status !== "ambiguous_project_binding" &&
+          isProjectRootAuthoritySafe(verifiedRoot)
+        ) {
           confirmPiProjectRoot(verifiedRoot, "focusa_project_identity_verified");
           ensureContinuityId(verifiedRoot);
           persistState();
@@ -4734,9 +4867,13 @@ export function registerTools(pi: ExtensionAPI) {
         : Array.isArray(identity.project_summary?.summary_lines)
           ? identity.project_summary.summary_lines.map((line: any) => String(line)).filter(Boolean)
           : [];
+      const bindingCandidates = Array.isArray(body.binding_candidates) ? body.binding_candidates : [];
+      const bindingSummary = body.binding_decision
+        ? `binding=${String(body.binding_decision.status || "unknown")} selected=${String(body.binding_decision.selected_project_root || "none")} candidates=${bindingCandidates.length}`
+        : "binding=legacy_unavailable";
       const text = result.ok
         ? [
-            `project identity → status=${String(identity.status || body.status || "unknown")} confidence=${String(identity.confidence || "unknown")} parent=${String(identity.canonical_parent_root || identity.project_root || "unknown")} worktree=${String(identity.active_worktree_root || identity.working_context?.active_worktree_root || identity.project_root || "unknown")} subpath=${String(identity.working_context?.working_subpath?.working_subpath_id || "primary")}`,
+            `project identity → status=${String(identity.status || body.status || "unknown")} confidence=${String(identity.confidence || "unknown")} parent=${String(identity.canonical_parent_root || identity.project_root || "unknown")} worktree=${String(identity.active_worktree_root || identity.working_context?.active_worktree_root || identity.project_root || "unknown")} subpath=${String(identity.working_context?.working_subpath?.working_subpath_id || "primary")} ${bindingSummary}`,
             body.mismatch_reason ? `mismatch_reason=${body.mismatch_reason}` : null,
             Array.isArray(body.degraded_reasons) && body.degraded_reasons.length > 0
               ? `degraded_reasons=${body.degraded_reasons.map((r: any) => `${r.code}:${r.severity}`).join(", ")}`
@@ -5379,7 +5516,7 @@ export function registerTools(pi: ExtensionAPI) {
           "Resume transferred Focusa mission under the target continuity";
         targetCheckpoint = await focusaFetchDetailed("/workpoint/checkpoint", {
           method: "POST",
-          headers: { "x-focusa-writer-id": await preferredWriterId() },
+          headers: await requiredWriterLeaseHeaders(),
           body: JSON.stringify({
             scope: targetScope,
             mission: targetMission,
@@ -5550,6 +5687,11 @@ export function registerTools(pi: ExtensionAPI) {
         Type.String({ description: "Optional cwd/project path hint; defaults to Pi session cwd." })
       ),
       project_root: Type.Optional(Type.String({ description: "Expected project root." })),
+      persisted_project_root: Type.Optional(
+        Type.String({
+          description: "Resumed-session project root to compare as an advisory binding candidate.",
+        })
+      ),
       project_id: Type.Optional(Type.String({ description: "Expected project id from marker/operator." })),
       canonical_name: Type.Optional(Type.String({ description: "Expected canonical project name." })),
       repo_remote: Type.Optional(Type.String({ description: "Expected git origin remote." })),
@@ -5576,6 +5718,7 @@ export function registerTools(pi: ExtensionAPI) {
       const p = params as {
         cwd?: string;
         project_root?: string;
+        persisted_project_root?: string;
         project_id?: string;
         canonical_name?: string;
         repo_remote?: string;
@@ -5586,7 +5729,16 @@ export function registerTools(pi: ExtensionAPI) {
         remote_workspace_kind?: string;
         remote_deploy_root?: string;
       };
-      const payload = { ...p, cwd: p.cwd || getSessionCwd() || process.cwd() };
+      const payload = {
+        ...p,
+        cwd: p.cwd || getSessionCwd() || process.cwd(),
+        persisted_project_root:
+          p.persisted_project_root ||
+          getActiveWorkpointPacket()?.scope?.project_root ||
+          getActiveWorkpointPacket()?.project_root ||
+          getLastProjectRootResolution()?.projectRoot ||
+          getLastProjectIdentity()?.project_root,
+      };
       const result = await focusaFetchDetailed("/project/verify", {
         method: "POST",
         body: JSON.stringify(payload),
@@ -5636,7 +5788,13 @@ export function registerTools(pi: ExtensionAPI) {
       const verified = body.verification?.verified === true;
       if (identity && Object.keys(identity).length) setLastProjectVerify(body);
       const verifiedRoot = normalizeProjectRoot(identity.project_root);
-      if (verified && verifiedRoot && isProjectRootAuthoritySafe(verifiedRoot)) {
+      if (
+        verified &&
+        verifiedRoot &&
+        body.binding_decision?.ambiguous !== true &&
+        body.status !== "ambiguous_project_binding" &&
+        isProjectRootAuthoritySafe(verifiedRoot)
+      ) {
         confirmPiProjectRoot(verifiedRoot, "focusa_project_verify_verified");
         ensureContinuityId(verifiedRoot);
         persistState();
@@ -6789,7 +6947,7 @@ export function registerTools(pi: ExtensionAPI) {
       });
       const res = await focusaFetchDetailed("/workpoint/evidence/link", {
         method: "POST",
-        headers: { "x-focusa-writer-id": await preferredWriterId() },
+        headers: await requiredWriterLeaseHeaders(),
         body: JSON.stringify({
           workpoint_id: p.workpoint_id,
           target_ref: p.target_ref,
@@ -7054,7 +7212,7 @@ export function registerTools(pi: ExtensionAPI) {
         });
         evidenceResult = await focusaFetchDetailed("/workpoint/evidence/link", {
           method: "POST",
-          headers: { "x-focusa-writer-id": await preferredWriterId() },
+          headers: await requiredWriterLeaseHeaders(),
           body: JSON.stringify({
             workpoint_id: scopedWorkpointId,
             target_ref: targetRef,
@@ -7325,7 +7483,7 @@ export function registerTools(pi: ExtensionAPI) {
       };
       const res = await focusaFetchDetailed("/workpoint/checkpoint", {
         method: "POST",
-        headers: { "x-focusa-writer-id": await preferredWriterId() },
+        headers: await requiredWriterLeaseHeaders(),
         body: JSON.stringify(payload),
       });
       if (!res.ok && res.body?.failure_class === "hot_path_timeout") {
@@ -7491,7 +7649,7 @@ export function registerTools(pi: ExtensionAPI) {
       }
       const res = await focusaFetchDetailed("/workpoint/evidence/link", {
         method: "POST",
-        headers: { "x-focusa-writer-id": await preferredWriterId() },
+        headers: await requiredWriterLeaseHeaders(),
         body: JSON.stringify({
           workpoint_id: p.workpoint_id,
           target_ref: p.target_ref,
@@ -7959,9 +8117,10 @@ export function registerTools(pi: ExtensionAPI) {
   ): Promise<{ ok: boolean; status: number; body: any | null; writerId?: string }> {
     const method = opts.method || "POST";
     const writerId = opts.writer ? await preferredWriterId() : undefined;
+    const writerLease = writerId ? await currentWorkLoopLease() : null;
     const req: RequestInit = {
       method,
-      headers: writerId ? { "x-focusa-writer-id": writerId } : undefined,
+      headers: writerId ? writerLeaseHeaders(writerId, writerLease) : undefined,
       body: method === "POST" ? JSON.stringify(request) : undefined,
     };
     const first = await focusaFetchDetailed(endpoint, req);

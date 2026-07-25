@@ -14,7 +14,7 @@ path = "src/main.rs"
 focusa-core = { workspace = true }
 focusa-terminal-ui = { workspace = true }
 clap = { workspace = true }
-reqwest = { workspace = true }
+reqwest = { workspace = true, features = ["stream"] }
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

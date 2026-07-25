@@ -7,7 +7,7 @@ TMP="$(mktemp -d "${TMPDIR:-/tmp}/focusa-spec130a-runtime.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 
 cd "$PI_EXT"
-./node_modules/.bin/tsc -p tsconfig.json --noEmit false --outDir "$TMP/build"
+npx tsc -p tsconfig.json --noEmit false --outDir "$TMP/build"
 ln -s "$PI_EXT/node_modules" "$TMP/build/node_modules"
 
 cat >"$TMP/runtime.mjs" <<'EOF'
@@ -18,50 +18,8 @@ import {
   proactiveCompactionDecision,
   registerAutoCompaction,
 } from "./build/auto-compaction.js";
-import { classifyPiSessionProject } from "./build/session-classification.js";
 const duplicateModule = await import("./build/auto-compaction.js?duplicate-install");
 const thirdModule = await import("./build/auto-compaction.js?third-install");
-
-assert.equal(
-  classifyPiSessionProject({
-    reason: "resume",
-    currentProjectRoot: "/tmp/project",
-    markerExists: true,
-    persistedStateFound: true,
-    persistedProjectRoot: "/tmp/project",
-  }),
-  "resumed_session_resumed_project",
-);
-assert.equal(
-  classifyPiSessionProject({
-    reason: "resume",
-    currentProjectRoot: "/tmp/project",
-    markerExists: false,
-    persistedStateFound: true,
-    persistedProjectRoot: "/tmp/project",
-  }),
-  "resumed_session_recoverable_project",
-);
-assert.equal(
-  classifyPiSessionProject({
-    reason: "resume",
-    currentProjectRoot: "/tmp/other",
-    markerExists: true,
-    persistedStateFound: true,
-    persistedProjectRoot: "/tmp/project",
-  }),
-  "session_project_mismatch",
-);
-assert.equal(
-  classifyPiSessionProject({
-    reason: "fork",
-    currentProjectRoot: "/tmp/project",
-    markerExists: true,
-    persistedStateFound: true,
-    persistedProjectRoot: "/tmp/project",
-  }),
-  "forked_compacted_continuation",
-);
 
 const usage = { tokens: 190_000, contextWindow: 200_000, percent: 95 };
 const message = (id, chars) => ({
@@ -96,8 +54,8 @@ function harness(
     appendEntry(type, data) {
       events.push({ type, data });
     },
-    sendUserMessage(text) {
-      sentMessages.push(text);
+    sendUserMessage(message, options) {
+      sentMessages.push({ message, options });
     },
   };
   const ctx = {
@@ -266,96 +224,63 @@ await nativeManual.handlers.get("session_shutdown")(
   nativeManual.ctx,
 );
 
-const retried = harness(largeBranch, {
+const terminalTransport = harness(largeBranch, {
   ...DEFAULT_PROACTIVE_COMPACTION_POLICY,
   cooldownMs: 20,
 });
-await retried.handlers.get("agent_settled")({ type: "agent_settled" }, retried.ctx);
-retried.compactCalls[0].onError(new Error("Summarization failed: WebSocket error"));
-retried.compactCalls[0].onError(
+await terminalTransport.handlers.get("agent_settled")(
+  { type: "agent_settled" },
+  terminalTransport.ctx,
+);
+terminalTransport.compactCalls[0].onError(new Error("Summarization failed: WebSocket error"));
+terminalTransport.compactCalls[0].onError(
   new Error("Cannot read properties of undefined (reading 'signal')"),
 );
-const primaryFailure = retried.events.find((entry) => entry.data.kind === "attempt_failed");
+const primaryFailure = terminalTransport.events.find(
+  (entry) => entry.data.kind === "attempt_failed",
+);
 assert.equal(primaryFailure.data.primary_error, "Summarization failed: WebSocket error");
 assert.equal(primaryFailure.data.failure_class, "primary_transport");
-const secondaryFailure = retried.events.find(
+const secondaryFailure = terminalTransport.events.find(
   (entry) => entry.data.kind === "secondary_duplicate_settlement",
 );
 assert.equal(secondaryFailure.data.failure_class, "secondary_reentrancy");
 assert.match(secondaryFailure.data.secondary_error, /signal/);
 await new Promise((resolve) => setTimeout(resolve, 50));
-assert.equal(retried.compactCalls.length, 2);
-const starts = retried.events.filter((entry) => entry.data.kind === "attempt_started");
+assert.equal(terminalTransport.compactCalls.length, 2);
+assert.ok(terminalTransport.events.some((entry) => entry.data.kind === "retry_scheduled"));
+const starts = terminalTransport.events.filter((entry) => entry.data.kind === "attempt_started");
 assert.equal(starts.length, 2);
 assert.equal(starts[1].data.retry_of_epoch_id, starts[0].data.epoch_id);
-retried.compactCalls[1].onComplete({
+terminalTransport.compactCalls[1].onComplete({
   summary: "retry summary",
   firstKeptEntryId: "d",
   tokensBefore: usage.tokens,
 });
 assert.equal(
-  retried.events.filter((entry) => entry.data.kind === "attempt_started").every(
+  terminalTransport.events.filter((entry) => entry.data.kind === "attempt_started").every(
     (entry) => entry.data.native_compaction_call_count === 1,
   ),
   true,
 );
-await retried.handlers.get("session_shutdown")({ type: "session_shutdown" }, retried.ctx);
 
-const emergency = harness(largeBranch, DEFAULT_PROACTIVE_COMPACTION_POLICY);
-emergency.ctx.getContextUsage = () => ({
-  tokens: 137_000,
-  contextWindow: 100_000,
-  percent: 137,
-});
-const emergencyInput = await emergency.handlers.get("input")(
-  { type: "input", text: "finish Mission Canvas", source: "interactive", images: [] },
-  emergency.ctx,
+await new Promise((resolve) => setTimeout(resolve, 25));
+await terminalTransport.handlers.get("agent_settled")(
+  { type: "agent_settled" },
+  terminalTransport.ctx,
 );
-assert.deepEqual(emergencyInput, { action: "handled" });
-assert.equal(emergency.compactCalls.length, 1);
-const heldEmergency = emergency.events.find(
-  (entry) => entry.type === "focusa-held-critical-input",
-);
-assert.equal(heldEmergency.data.text, "finish Mission Canvas");
-assert.equal(heldEmergency.data.context_percent, 137);
-emergency.compactCalls[0].onComplete({
-  summary: "emergency summary",
-  firstKeptEntryId: "d",
-  tokensBefore: 137_000,
-});
-assert.deepEqual(emergency.sentMessages, ["finish Mission Canvas"]);
-await emergency.handlers.get("session_shutdown")({ type: "session_shutdown" }, emergency.ctx);
-
-const exhausted = harness(largeBranch, {
-  ...DEFAULT_PROACTIVE_COMPACTION_POLICY,
-  cooldownMs: 20,
-});
-await exhausted.handlers.get("agent_settled")({ type: "agent_settled" }, exhausted.ctx);
-exhausted.compactCalls[0].onError(new Error("Summarization failed: WebSocket error"));
+terminalTransport.compactCalls[2].onError(new Error("WebSocket error"));
 await new Promise((resolve) => setTimeout(resolve, 50));
-assert.equal(exhausted.compactCalls.length, 2);
-exhausted.compactCalls[1].onError(new Error("Summarization failed: WebSocket error"));
-const rollover = exhausted.events.find((entry) => entry.data.kind === "rollover_required");
-assert.equal(rollover.data.reason, "provider_transport_retry_exhausted");
-assert.equal(rollover.data.recovery_command, "/focusa-rollover execute");
-assert.equal(rollover.data.canonical_checkpoint_preserved, true);
-assert.equal(rollover.data.attempts, 2);
-exhausted.ctx.getContextUsage = () => ({
-  tokens: 137_000,
-  contextWindow: 100_000,
-  percent: 137,
-});
-const heldInput = await exhausted.handlers.get("input")(
-  { type: "input", text: "keep working", source: "interactive" },
-  exhausted.ctx,
+terminalTransport.compactCalls[3].onError(new Error("WebSocket error"));
+assert.equal(terminalTransport.sentMessages.length, 0, "transport failure must not auto-queue rollover");
+assert.ok(
+  terminalTransport.events.some((entry) => entry.data.kind === "native_recovery_deferred_to_pi"),
+  "transport retry exhaustion must defer to Pi native recovery",
 );
-assert.deepEqual(heldInput, { action: "handled" });
-const blockedInput = exhausted.events.find(
-  (entry) => entry.data.kind === "input_blocked_rollover_required",
+await terminalTransport.handlers.get("session_shutdown")(
+  { type: "session_shutdown" },
+  terminalTransport.ctx,
 );
-assert.equal(blockedInput.data.recovery_command, "/focusa-rollover execute");
-assert.equal(blockedInput.data.context_percent, 137);
-await exhausted.handlers.get("session_shutdown")({ type: "session_shutdown" }, exhausted.ctx);
 
 console.log(
   JSON.stringify(
@@ -367,7 +292,8 @@ console.log(
       terminal_events: terminal.events.map((entry) => entry.data.kind),
       native_automatic_events: nativeAutomatic.events.map((entry) => entry.data.kind),
       native_manual_events: nativeManual.events.map((entry) => entry.data.kind),
-      retry_events: retried.events.map((entry) => entry.data.kind),
+      terminal_transport_events: terminalTransport.events.map((entry) => entry.data.kind),
+      retry_events: terminalTransport.events.map((entry) => entry.data.kind),
     },
     null,
     2,

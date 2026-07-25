@@ -24,6 +24,29 @@ else
   log_fail "Pi RPC driver routes missing"
 fi
 
+if rg -n 'never push, deploy, merge, or release' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
+  && rg -n 'must not be reported as blockers' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1; then
+  log_pass "Pi turn packets exclude prohibited delivery from blocker outcomes"
+else
+  log_fail "Pi can treat prohibited delivery actions as acceptance blockers"
+fi
+
+if rg -n 'if kind == "agent_end"' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
+  && ! rg -n 'if kind == "turn_end" \|\| kind == "agent_end"' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1; then
+  log_pass "Pi outcome governance waits for the complete agent tool loop"
+else
+  log_fail "Pi outcome governance can stop at an intermediate tool turn"
+fi
+
+if rg -n '"--no-extensions"' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
+  && rg -n '"--no-skills"' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
+  && rg -n '"--no-prompt-templates"' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
+  && rg -n 'FOCUSA_PI_VITAL_INFO_PROMPT_MODE' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1; then
+  log_pass "Supervised Pi is orchestration-isolated and non-interactive"
+else
+  log_fail "Supervised Pi can load competing orchestration or block on UI"
+fi
+
 if rg -n 'process_group\(0\)' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
   && rg -n 'kill_on_drop\(true\)' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
   && rg -n 'terminate_pi_rpc_child' "$WORK_LOOP_ROUTE_FILE" >/dev/null 2>&1 \
@@ -34,13 +57,25 @@ else
 fi
 http_json -X POST "${BASE_URL}/v1/workpoint/checkpoint" \
   -H 'Content-Type: application/json' \
-  -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-continuation-test\",\"mission\":\"verify Pi RPC driver contract\",\"current_action\":\"spec79_pi_rpc_driver\",\"next_slice\":\"verify scoped driver lifecycle\",\"canonical\":true}" >/dev/null
-WRITER_ID=$(http_json "${BASE_URL}/v1/work-loop" | jq -r '.active_writer // "spec79-pi-driver"')
+  -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-continuation-test\",\"work_item_id\":\"spec79-pi-driver\",\"mission\":\"verify Pi RPC driver contract\",\"current_action\":\"spec79_pi_rpc_driver\",\"next_slice\":\"verify scoped driver lifecycle\",\"canonical\":true}" >/dev/null
+WRITER_ID="spec79-pi-driver"
+ENABLE_RESP=$(http_json -X POST "${BASE_URL}/v1/work-loop/enable" -H 'Content-Type: application/json' \
+  -H "x-focusa-writer-id: ${WRITER_ID}" -H 'x-focusa-approval: approved' \
+  -d '{"preset":"balanced","root_work_item_id":"spec79-pi-driver"}')
+FENCING_TOKEN=$(echo "$ENABLE_RESP" | jq -r '.fencing_token // empty')
+FENCING_HEADERS=()
+if echo "$FENCING_TOKEN" | grep -Eq '^[1-9][0-9]*$'; then
+  FENCING_HEADERS=(-H "x-focusa-fencing-token: ${FENCING_TOKEN}")
+elif ! echo "$ENABLE_RESP" | jq -e '.ok == true and .writer_id == "spec79-pi-driver"' >/dev/null 2>&1; then
+  log_fail "Pi RPC work-loop writer enable rejected: $ENABLE_RESP"
+fi
 START_PAYLOAD=$(jq -n \
   --arg cwd "${ROOT_DIR}" \
   --arg idempotency_key "spec79-pi-driver-work-loop-continuation-test" \
   '{cwd: $cwd, idempotency_key: $idempotency_key}')
-START=$(http_json -X POST "${BASE_URL}/v1/work-loop/driver/start" -H 'Content-Type: application/json' -H "x-focusa-writer-id: ${WRITER_ID}" -d "${START_PAYLOAD}")
+START=$(http_json -X POST "${BASE_URL}/v1/work-loop/driver/start" -H 'Content-Type: application/json' \
+  -H "x-focusa-writer-id: ${WRITER_ID}" "${FENCING_HEADERS[@]}" \
+  -H 'x-focusa-approval: approved' -d "${START_PAYLOAD}")
 DRIVER_UNAVAILABLE=0
 if echo "$START" | jq -e '(.status == "accepted" and .adapter == "pi-rpc") or ((.error // "") | test("already active"))' >/dev/null 2>&1; then
   log_pass "Pi RPC driver start accepted or already active"
@@ -60,12 +95,22 @@ if [ "$DRIVER_UNAVAILABLE" -eq 0 ]; then
     log_fail "Daemon-supervised Pi session not visible: $STATUS"
   fi
 
-  STOP=$(http_json -X POST "${BASE_URL}/v1/work-loop/driver/stop" -H 'Content-Type: application/json' -H "x-focusa-writer-id: ${WRITER_ID}")
+  STOP=$(http_json -X POST "${BASE_URL}/v1/work-loop/driver/stop" -H 'Content-Type: application/json' \
+    -H "x-focusa-writer-id: ${WRITER_ID}" "${FENCING_HEADERS[@]}" -H 'x-focusa-approval: approved')
   if echo "$STOP" | jq -e '.status == "accepted"' >/dev/null 2>&1; then
     log_pass "Pi RPC driver stop accepted"
   else
     log_fail "Pi RPC driver stop not accepted: $STOP"
   fi
+fi
+
+LOOP_STOP=$(http_json -X POST "${BASE_URL}/v1/work-loop/stop" -H 'Content-Type: application/json' \
+  -H "x-focusa-writer-id: ${WRITER_ID}" "${FENCING_HEADERS[@]}" \
+  -H 'x-focusa-approval: approved' -d '{}')
+if echo "$LOOP_STOP" | jq -e '.status == "accepted" or .state == "stopped" or .ok == true' >/dev/null 2>&1; then
+  log_pass "Pi RPC work-loop writer stopped cleanly"
+else
+  log_fail "Pi RPC work-loop writer stop rejected: $LOOP_STOP"
 fi
 
 echo "=== PI RPC DRIVER CONTRACT RESULTS ==="

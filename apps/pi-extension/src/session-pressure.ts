@@ -163,6 +163,17 @@ export function measureNativeSessionPressure(input: {
 
 export type NativeSessionMigrationMode = "dry_run" | "execute";
 
+export type NativeSessionMigrationFaultStep =
+  | "after_prepare"
+  | "after_archive_write"
+  | "after_archive_checksum"
+  | "after_archive_seal"
+  | "after_recovery_write"
+  | "after_recovery_checksum"
+  | "after_source_verify"
+  | "after_manifest_write"
+  | "after_manifest_commit";
+
 export interface NativeSessionMigrationRequest {
   source_path: string;
   output_dir: string;
@@ -170,6 +181,8 @@ export interface NativeSessionMigrationRequest {
   mode: NativeSessionMigrationMode;
   recovery_max_bytes?: number;
   entry_max_bytes?: number;
+  /** Deterministic test-only crash boundary; never inferred from runtime state. */
+  fault_injection_step?: NativeSessionMigrationFaultStep;
 }
 
 export interface NativeSessionMigrationManifestV1 {
@@ -299,8 +312,46 @@ async function scanSessionJsonlBounded(
   };
 }
 
+async function fsyncFileAndParent(path: string): Promise<void> {
+  const { closeSync, fsyncSync, openSync } = await import("fs");
+  const { dirname } = await import("path");
+  for (const target of [path, dirname(path)]) {
+    const descriptor = openSync(target, "r");
+    try {
+      fsyncSync(descriptor);
+    } finally {
+      closeSync(descriptor);
+    }
+  }
+}
+
+async function commitTemporaryFile(temporary: string, target: string): Promise<void> {
+  const { linkSync, unlinkSync } = await import("fs");
+  await fsyncFileAndParent(temporary);
+  linkSync(temporary, target);
+  await fsyncFileAndParent(target);
+  unlinkSync(temporary);
+  const { dirname } = await import("path");
+  const { closeSync, fsyncSync, openSync } = await import("fs");
+  const descriptor = openSync(dirname(target), "r");
+  try {
+    fsyncSync(descriptor);
+  } finally {
+    closeSync(descriptor);
+  }
+}
+
+function injectMigrationFault(
+  request: NativeSessionMigrationRequest,
+  step: NativeSessionMigrationFaultStep
+): void {
+  if (request.fault_injection_step === step) {
+    throw new Error(`native_session_migration_fault:${step}`);
+  }
+}
+
 async function writeBuffersAtomic(path: string, entries: Buffer[]): Promise<void> {
-  const { createWriteStream, linkSync, unlinkSync } = await import("fs");
+  const { createWriteStream, unlinkSync } = await import("fs");
   const { once } = await import("events");
   const temporary = `${path}.tmp-${process.pid}`;
   const stream = createWriteStream(temporary, { mode: 0o600, flags: "wx" });
@@ -310,8 +361,7 @@ async function writeBuffersAtomic(path: string, entries: Buffer[]): Promise<void
     }
     stream.end();
     await once(stream, "close");
-    linkSync(temporary, path);
-    unlinkSync(temporary);
+    await commitTemporaryFile(temporary, path);
   } catch (error) {
     stream.destroy();
     try {
@@ -324,7 +374,7 @@ async function writeBuffersAtomic(path: string, entries: Buffer[]): Promise<void
 }
 
 async function copyFileStreaming(source: string, target: string): Promise<void> {
-  const { createReadStream, createWriteStream, linkSync, unlinkSync } = await import("fs");
+  const { createReadStream, createWriteStream, unlinkSync } = await import("fs");
   const { pipeline } = await import("stream/promises");
   const temporary = `${target}.tmp-${process.pid}`;
   try {
@@ -332,8 +382,7 @@ async function copyFileStreaming(source: string, target: string): Promise<void> 
       createReadStream(source, { highWaterMark: 64 * 1024 }),
       createWriteStream(temporary, { flags: "wx", mode: 0o600 })
     );
-    linkSync(temporary, target);
-    unlinkSync(temporary);
+    await commitTemporaryFile(temporary, target);
   } catch (error) {
     try {
       unlinkSync(temporary);
@@ -390,16 +439,25 @@ export async function migrateNativeSessionBounded(
 
   mkdirSync(request.output_dir, { recursive: true, mode: 0o700 });
   const createdFiles: string[] = [];
+  const temporaryFiles = [archivePath, recoveryPath, manifestPath].map(
+    (path) => `${path}.tmp-${process.pid}`
+  );
   try {
+    injectMigrationFault(request, "after_prepare");
     await copyFileStreaming(request.source_path, archivePath);
     createdFiles.push(archivePath);
+    injectMigrationFault(request, "after_archive_write");
     const archiveScan = await scanSessionJsonlBounded(archivePath, 64 * 1024, entryMaxBytes);
     if (archiveScan.source_sha256 !== scan.source_sha256 || archiveScan.source_bytes !== scan.source_bytes)
       throw new Error("native_session_archive_integrity_mismatch");
+    injectMigrationFault(request, "after_archive_checksum");
     chmodSync(archivePath, 0o400);
+    injectMigrationFault(request, "after_archive_seal");
     await writeBuffersAtomic(recoveryPath, scan.recovery_entries);
     createdFiles.push(recoveryPath);
+    injectMigrationFault(request, "after_recovery_write");
     const recoveryScan = await scanSessionJsonlBounded(recoveryPath, recoveryMaxBytes, entryMaxBytes);
+    injectMigrationFault(request, "after_recovery_checksum");
     const sourceAfter = statSync(request.source_path);
     const sourceAfterScan = await scanSessionJsonlBounded(request.source_path, 64 * 1024, entryMaxBytes);
     const sourceUnchanged =
@@ -407,6 +465,7 @@ export async function migrateNativeSessionBounded(
       sourceAfter.mtimeMs === sourceBefore.mtimeMs &&
       sourceAfterScan.source_sha256 === scan.source_sha256;
     if (!sourceUnchanged) throw new Error("native_session_source_changed_during_migration");
+    injectMigrationFault(request, "after_source_verify");
 
     const manifest: NativeSessionMigrationManifestV1 = {
       ...baseManifest,
@@ -435,14 +494,25 @@ export async function migrateNativeSessionBounded(
       mode: 0o600,
       flag: "wx",
     });
+    await fsyncFileAndParent(temporaryManifest);
+    injectMigrationFault(request, "after_manifest_write");
     linkSync(temporaryManifest, manifestPath);
-    unlinkSync(temporaryManifest);
+    await fsyncFileAndParent(manifestPath);
     createdFiles.push(manifestPath);
+    injectMigrationFault(request, "after_manifest_commit");
+    unlinkSync(temporaryManifest);
     return manifest;
   } catch (error) {
     for (const path of createdFiles.reverse()) {
       try {
         chmodSync(path, 0o600);
+        unlinkSync(path);
+      } catch {
+        // Preserve the immutable source; orphan cleanup is bounded and best effort.
+      }
+    }
+    for (const path of temporaryFiles) {
+      try {
         unlinkSync(path);
       } catch {
         // Preserve the immutable source; orphan cleanup is bounded and best effort.

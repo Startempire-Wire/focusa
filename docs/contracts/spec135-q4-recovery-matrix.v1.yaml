@@ -1,0 +1,51 @@
+{
+  "schema": "focusa.spec135.recovery_matrix.v1",
+  "requirement_id": "SPEC135-Q4",
+  "recovery_contracts": [
+    {
+      "surface": "governed_mutation",
+      "mechanisms": ["preview_token", "idempotency_key", "expected_state_version", "receipt_ref"],
+      "duplicate_commit_prevented": true
+    },
+    {
+      "surface": "workpoint",
+      "mechanisms": ["checkpoint", "resume_packet", "project_root_and_continuity_scope", "exact_next_action"],
+      "interruption_state_explicit": true
+    },
+    {
+      "surface": "mission_canvas_work_surface",
+      "mechanisms": ["expected_surface_revision", "append_only_revision", "exact_attachment_scope", "restart_projection"],
+      "duplicate_commit_prevented": true
+    },
+    {
+      "surface": "event_stream",
+      "mechanisms": ["event_id", "last_event_id", "bounded_replay", "deduplicated_live_tail"],
+      "interruption_state_explicit": true
+    },
+    {
+      "surface": "generated_ui",
+      "mechanisms": ["canonical_event_refresh", "stable_action_id", "recovery_envelope", "evidence_ref"],
+      "interruption_state_explicit": true
+    }
+  ],
+  "required_failure_posture": {
+    "scope_mismatch": "fail_closed",
+    "stale_version": "conflict_with_current_version",
+    "duplicate_idempotency_key": "replay_original_receipt",
+    "read_model_lag": "bounded_retry_then_degraded_ref",
+    "restart": "rehydrate_from_event_log_and_snapshot"
+  },
+  "evidence_refs": [
+    "crates/focusa-core/src/reducer.rs",
+    "crates/focusa-api/src/routes/mission_canvas_surfaces.rs",
+    "tests/spec135_mission_canvas_surfaces_e2e_test.py",
+    "tests/spec135_m4_surface_bindings_e2e_test.py",
+    "tests/spec135_durable_event_stream_test.py",
+    "tests/spec135_workspace_live_refresh_e2e_test.py"
+  ],
+  "acceptance": {
+    "duplicate_commits_prevented": true,
+    "every_interruption_has_recoverable_state": true,
+    "restart_and_exact_resume_covered": true
+  }
+}

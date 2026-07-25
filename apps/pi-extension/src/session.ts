@@ -34,6 +34,7 @@ import {
   stampWorkpointPacketForCurrentPiSession,
   resetPiSessionScopedState,
   adoptPiProjectRoot,
+  resolvePiProjectRootCandidate,
   normalizeProjectRoot,
   confirmPiProjectRoot,
   projectRootConfirmationRequired,
@@ -61,6 +62,7 @@ import {
 } from "./state.js";
 import { loadPersistedRecoveryState } from "./persistence.js";
 import { measureNativeSessionPressure, type NativeSessionPressureV1 } from "./session-pressure.js";
+import { queueLifecycleAdvisory } from "./lifecycle-advisory.js";
 import { pushDelta } from "./tools.js";
 import { LifecycleGenerationGuard } from "./lifecycle-guard.js";
 
@@ -152,8 +154,6 @@ function queueUnboundProjectNag(pi: ExtensionAPI, ctx: any, reason: string): voi
   if (markerExistsAtCwd(cwd)) return;
   const key = `pi_unbound_project_nag:${getAttachmentRuntime().sessionFrameKey || "no-session"}:${cwd}`;
   if (getAttachmentRuntime().vitalInfoPrompted[key]) return;
-  getAttachmentRuntime().vitalInfoPrompted[key] = Date.now();
-  persistState();
   const prompt = [
     "Focusa project not bound: no .focusa-project.json marker found at this Pi session cwd.",
     `cwd: ${cwd}`,
@@ -167,13 +167,27 @@ function queueUnboundProjectNag(pi: ExtensionAPI, ctx: any, reason: string): voi
     event_type: "pi_unbound_project_nag",
     payload: { reason, cwd, session_id: getAttachmentRuntime().sessionFrameKey, suppressed: false },
   });
-  if (!ctx?.hasUI) {
-    focusaPost("/telemetry/trace", {
-      event_type: "pi_unbound_project_nag_deferred_headless",
-      payload: { reason, cwd, session_id: getAttachmentRuntime().sessionFrameKey },
-    });
-  }
-  deferLifecycleAdvisory(ctx, key, prompt, reason);
+  const outcome = queueLifecycleAdvisory(pi, ctx, {
+    advisoryKey: key,
+    advisoryKind: "unbound_project",
+    title: "Focusa project is not bound at this Pi session cwd.",
+    content: prompt,
+    reason,
+    projectRoot: cwd,
+    sessionId: getAttachmentRuntime().sessionFrameKey,
+  });
+  getAttachmentRuntime().vitalInfoPrompted[key] = Date.now();
+  persistState();
+  focusaPost("/telemetry/trace", {
+    event_type: "pi_unbound_project_advisory_outcome",
+    payload: {
+      reason,
+      cwd,
+      session_id: getAttachmentRuntime().sessionFrameKey,
+      outcome,
+      trigger_turn: false,
+    },
+  });
 }
 
 function vitalPromptSurfaceEnabled(surface: string): boolean {
@@ -304,7 +318,7 @@ async function promptForConfirmedProjectRoot(
 }
 
 function queueProjectIdentityBootstrapTurn(
-  _pi: ExtensionAPI,
+  pi: ExtensionAPI,
   ctx: any,
   proposedRoot: string,
   reason: string
@@ -313,8 +327,6 @@ function queueProjectIdentityBootstrapTurn(
   if (reason !== "session_project_mismatch" && !projectRootConfirmationRequired(proposedRoot)) return;
   const key = `project_identity_bootstrap:${getAttachmentRuntime().sessionFrameKey || "no-session"}:${normalizeProjectRoot(ctx?.cwd || proposedRoot || process.cwd())}`;
   if (getAttachmentRuntime().vitalInfoPrompted[key]) return;
-  getAttachmentRuntime().vitalInfoPrompted[key] = Date.now();
-  persistState();
   const summary = projectRootConfirmationSummary(proposedRoot);
   const prompt = [
     "Focusa auto-bootstrap: infer the correct project_root for this Pi session now.",
@@ -324,11 +336,27 @@ function queueProjectIdentityBootstrapTurn(
     "If multiple plausible project folders remain after inference, ask the operator directly in chat which project folder to bind.",
     "Do not show modal/select/input UI. Do not perform durable project-aware writes until identity is verified.",
   ].join("\n");
-  focusaPost("/telemetry/trace", {
-    event_type: "pi_vital_project_root_advisory_deferred",
-    payload: { reason, project_root: proposedRoot, session_id: getAttachmentRuntime().sessionFrameKey },
+  const outcome = queueLifecycleAdvisory(pi, ctx, {
+    advisoryKey: key,
+    advisoryKind: "project_identity_bootstrap",
+    title: "Focusa needs a verified project root before project-aware writes.",
+    content: prompt,
+    reason,
+    projectRoot: proposedRoot,
+    sessionId: getAttachmentRuntime().sessionFrameKey,
   });
-  deferLifecycleAdvisory(ctx, key, prompt, reason);
+  getAttachmentRuntime().vitalInfoPrompted[key] = Date.now();
+  persistState();
+  focusaPost("/telemetry/trace", {
+    event_type: "pi_vital_project_root_advisory_outcome",
+    payload: {
+      reason,
+      project_root: proposedRoot,
+      session_id: getAttachmentRuntime().sessionFrameKey,
+      outcome,
+      trigger_turn: false,
+    },
+  });
 }
 
 type TrajectoryGoalDraft = {
@@ -933,9 +961,76 @@ export function registerSession(pi: ExtensionAPI) {
     // state. Pi ALWAYS gets its own FRESH frame. Only WBM mode may reuse frames.
     const entries = ctx.sessionManager.getEntries();
     refreshNativeSessionPressure(ctx, "session_start", entries);
+    let persistedBindingRoot = "";
+    for (let i = entries.length - 1; i >= 0; i--) {
+      const entry = entries[i];
+      if (
+        entry.type === "custom" &&
+        (entry.customType === "focusa-wbm-state" || entry.customType === "focusa-state") &&
+        entry.data
+      ) {
+        const recovered = loadPersistedRecoveryState(entry.data);
+        persistedBindingRoot = persistedProjectRootFromState(recovered);
+        if (persistedBindingRoot) break;
+      }
+    }
+
+    const localBinding = resolvePiProjectRootCandidate(ctx.cwd);
+    const bindingQuery = new URLSearchParams({ cwd: String(ctx.cwd || process.cwd()) });
+    if (persistedBindingRoot) bindingQuery.set("persisted_project_root", persistedBindingRoot);
+    const bindingPayload = await focusaFetch(`/project/identity?${bindingQuery.toString()}`, {
+      method: "GET",
+    }).catch(() => null);
+    const bindingDecision = bindingPayload?.binding_decision || null;
+    const bindingCandidates = Array.isArray(bindingPayload?.binding_candidates)
+      ? bindingPayload.binding_candidates
+      : localBinding.candidates || [];
+    const bindingAmbiguous =
+      bindingDecision?.ambiguous === true || bindingPayload?.status === "ambiguous_project_binding";
+    const selectedBindingRoot = normalizeProjectRoot(
+      bindingDecision?.selected_project_root || localBinding.projectRoot
+    );
+    const selectedBindingCandidate = bindingCandidates.find(
+      (candidate: any) => normalizeProjectRoot(candidate?.project_root) === selectedBindingRoot
+    );
+    const persistedBindingCandidate = bindingCandidates.find(
+      (candidate: any) =>
+        normalizeProjectRoot(candidate?.project_root) === normalizeProjectRoot(persistedBindingRoot)
+    );
+    const sameCanonicalProject =
+      !!selectedBindingCandidate?.canonical_parent_root &&
+      normalizeProjectRoot(selectedBindingCandidate.canonical_parent_root) ===
+        normalizeProjectRoot(persistedBindingCandidate?.canonical_parent_root);
+    if (selectedBindingRoot) {
+      const score = Number(selectedBindingCandidate?.score || localBinding.confidenceScore * 1000 || 0);
+      setLastProjectRootResolution({
+        projectRoot: selectedBindingRoot,
+        confidence: score >= 900 ? "high" : score >= 700 ? "medium" : "low",
+        confidenceScore: Math.min(1, score / 1000),
+        source: "core_api_binding_candidates",
+        reason: String(bindingDecision?.reason || localBinding.reason),
+        safe: isProjectRootAuthoritySafe(selectedBindingRoot),
+        requiresOperatorConfirmation: bindingAmbiguous || bindingDecision?.requires_confirmation === true,
+        markers: Array.isArray(selectedBindingCandidate?.markers)
+          ? selectedBindingCandidate.markers.map(String)
+          : localBinding.markers,
+        candidates: bindingCandidates.map((candidate: any) => ({
+          projectRoot: normalizeProjectRoot(candidate?.project_root),
+          confidenceScore: Number(candidate?.score || 0) / 1000,
+          markers: Array.isArray(candidate?.markers) ? candidate.markers.map(String) : [],
+          source: Array.isArray(candidate?.sources)
+            ? candidate.sources.map(String).join("+")
+            : "binding_candidate",
+        })),
+      });
+    }
+
+    if (!bindingAmbiguous && selectedBindingRoot && isProjectRootAuthoritySafe(selectedBindingRoot)) {
+      getAttachmentRuntime().sessionCwd = selectedBindingRoot;
+    }
     let persistedStateFound = false;
     let persistedProjectRoot = "";
-    let projectMismatchDetected = false;
+    let projectMismatchDetected = bindingAmbiguous;
     for (let i = entries.length - 1; i >= 0; i--) {
       const e = entries[i];
       if (
@@ -946,17 +1041,16 @@ export function registerSession(pi: ExtensionAPI) {
         const d = loadPersistedRecoveryState(e.data);
         if (!d) continue;
         const candidateProjectRoot = persistedProjectRootFromState(d);
-        const currentProjectRoot = normalizeProjectRoot(ctx.cwd);
-        if (
-          candidateProjectRoot &&
-          currentProjectRoot &&
-          normalizeProjectRoot(candidateProjectRoot) !== currentProjectRoot
-        ) {
+        const currentProjectRoot = selectedBindingRoot || normalizeProjectRoot(localBinding.projectRoot);
+        const exactRootMatch =
+          normalizeProjectRoot(candidateProjectRoot) === normalizeProjectRoot(currentProjectRoot);
+        if (candidateProjectRoot && currentProjectRoot && !exactRootMatch && !sameCanonicalProject) {
           projectMismatchDetected = true;
           continue;
         }
-        persistedStateFound = true;
+        persistedStateFound = !bindingAmbiguous;
         persistedProjectRoot = candidateProjectRoot || currentProjectRoot;
+        if (bindingAmbiguous) continue;
         // §33.5 + §33.7: restore resumable session metadata and safe local shadow,
         // but do not blindly reuse stale frame identity outside WBM mode.
         getAttachmentRuntime().localDecisions = d.decisions || [];
@@ -1014,7 +1108,7 @@ export function registerSession(pi: ExtensionAPI) {
         adoptPersistedContinuityForSession(
           d,
           eventSessionId,
-          adoptPiProjectRoot(ctx.cwd, d.activeWorkpointPacket)
+          selectedBindingRoot || localBinding.projectRoot
         );
         // Explicitly clear stale pollution — do NOT carry across sessions
         getAttachmentRuntime().localConstraints = [];
@@ -1027,17 +1121,23 @@ export function registerSession(pi: ExtensionAPI) {
       ? "session_project_mismatch"
       : classifyPiSessionProject({
           reason: sessionStartReason,
-          currentProjectRoot: normalizeProjectRoot(ctx.cwd),
-          markerExists: markerExistsAtCwd(ctx.cwd),
+          currentProjectRoot: selectedBindingRoot || normalizeProjectRoot(localBinding.projectRoot),
+          markerExists:
+            (Array.isArray(selectedBindingCandidate?.markers) &&
+              selectedBindingCandidate.markers.length > 0) ||
+            markerExistsAtCwd(selectedBindingRoot || localBinding.projectRoot),
           persistedStateFound,
           persistedProjectRoot,
+          bindingAmbiguous,
+          sameCanonicalProject,
+          bindingCandidateRoots: (localBinding.candidates || []).map((candidate) => candidate.projectRoot),
           explicitContinuationMetadata: sessionStartReason === "fork",
         });
     getAttachmentRuntime().sessionProjectClassification = sessionProjectClassification;
     if (sessionProjectClassification === "new_session_new_project") {
       queueUnboundProjectNag(pi, ctx, "new_session_new_project");
     }
-    const classifiedRoot = normalizeProjectRoot(ctx.cwd);
+    const classifiedRoot = selectedBindingRoot || normalizeProjectRoot(localBinding.projectRoot);
     getAttachmentRuntime().piSessionProjectRegistry[eventSessionId] = {
       project_root: classifiedRoot,
       continuity_id: ensureContinuityId(classifiedRoot),

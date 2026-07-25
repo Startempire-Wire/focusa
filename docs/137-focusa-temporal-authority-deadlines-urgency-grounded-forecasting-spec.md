@@ -2201,7 +2201,7 @@ Implementation is progressive but no requirement may be silently deferred. Each 
 
 ### Slice 9 — API, Operation Registry, generated clients, CLI, and tools
 
-- Implement all canonical routes, result/block envelopes, SSE events, Operation Registry descriptors, OpenAPI schemas, generated Rust/TypeScript/Go clients where supported, tool contracts, tool choreography, CLI, Pi tools, doctor, and docs.
+- Implement all canonical routes, result/block envelopes, SSE events, Operation Registry descriptors, OpenAPI schemas, generated Rust/TypeScript clients and portable OpenAPI/JSON Schema contracts where supported, tool contracts, tool choreography, CLI, Pi tools, doctor, and docs.
 - Enforce exact scope, principal, CAS, confirmation, idempotency, and common temporal reason codes.
 - Prove human/JSON/generated-client parity and no direct adapter/client authority path.
 

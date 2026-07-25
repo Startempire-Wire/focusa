@@ -7,6 +7,10 @@ description: "Use when updating Focusa public docs, skills, evidence files, READ
 
 Use when updating Focusa public docs, skills, evidence files, README links, version snapshot language, or release-proof documentation.
 
+## Progressive disclosure
+
+Read `references/01-focusa-docs-maintenance-runbook.md` for the public, agent, skill, runbook, machine-contract, and all-Pi-tool coverage matrix.
+
 ## Start here
 
 1. Load the main Focusa skill if you need the whole system model: `/skill:focusa`.

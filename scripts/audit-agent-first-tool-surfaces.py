@@ -293,6 +293,10 @@ def main() -> int:
         "capability_descriptors_with_strict_input": strict_descriptor_inputs,
         "capability_descriptors_with_output_schema": typed_descriptor_outputs,
         "agent_card_present": agent_card is not None,
+        "agent_card_pi_tool_count": (agent_card or {}).get("pi_tool_count", 0),
+        "agent_card_pi_tool_docs_count": (agent_card or {}).get("pi_tool_docs_count", 0),
+        "agent_card_skill_count": (agent_card or {}).get("skill_count", 0),
+        "agent_card_runbook_count": (agent_card or {}).get("runbook_count", 0),
         "generic_tool_docs": generic_when,
         "docs_with_examples": docs_with_examples,
         "docs_with_explicit_input_schema": docs_with_input,
@@ -308,6 +312,9 @@ def main() -> int:
         "cli_top_level_commands": cli_top_commands,
         "cli_machine_help_inventory_entries": cli_inventory_count,
         "cli_generated_agent_commands": len(generated_cli_commands),
+        "cli_expected_agent_commands": sum(
+            bool(item["cli_commands"]) for item in contracts
+        ),
         "api_route_paths": len(route_paths),
         "agent_operation_registry_entries": len(operations),
         "agent_operation_openapi_paths": len(openapi.get("paths", {})),
@@ -327,6 +334,8 @@ def main() -> int:
         "installed_root_skills": skill_coverage.get("installed_root_skill_count", 0),
         "packaged_skills": skill_coverage.get("packaged_skill_count", 0),
         "skill_root_packaged_parity": skill_coverage.get("root_packaged_parity", False),
+        "skill_runbook_count": skill_coverage.get("runbook_count", 0),
+        "skill_runbook_coverage_complete": skill_coverage.get("runbook_coverage_complete", False),
         "latest_spec_public_alignment_count": public_alignment.get("spec_count", 0),
         "agent_conformance_passed": conformance.get("status") == "passed",
         "agent_conformance_levels": len(conformance.get("agent_levels", [])),
@@ -450,8 +459,8 @@ def main() -> int:
                 "Generate specific parameter tables, positive/negative examples, failure recovery, prerequisites, dependency chains, and workflow position for every tool.",
             )
         )
-    if cli_inventory_count < cli_top_commands and len(generated_cli_commands) < len(
-        contracts
+    if len(generated_cli_commands) < sum(
+        bool(item["cli_commands"]) for item in contracts
     ):
         findings.append(
             finding(
@@ -463,8 +472,11 @@ def main() -> int:
                     "top_level_commands": cli_top_commands,
                     "help_inventory": cli_inventory_count,
                     "generated_agent_commands": len(generated_cli_commands),
+                    "expected_agent_commands": sum(
+                        bool(item["cli_commands"]) for item in contracts
+                    ),
                 },
-                "Generate JSON command schemas, flags, defaults, examples, effects, and migration metadata from capability/Clap authority.",
+                "Generate JSON command schemas, flags, defaults, examples, effects, and migration metadata for every contract with a CLI binding.",
             )
         )
     if stale_count_docs:
@@ -562,16 +574,23 @@ def main() -> int:
         )
     if (
         not skill_coverage.get("root_packaged_parity")
-        or skill_coverage.get("installed_root_skill_count", 0) < 21
+        or not skill_coverage.get("runbook_coverage_complete")
+        or skill_coverage.get("installed_root_skill_count", 0) < 22
+        or (agent_card or {}).get("skill_count")
+        != skill_coverage.get("installed_root_skill_count")
+        or (agent_card or {}).get("runbook_count")
+        != skill_coverage.get("runbook_count")
+        or (agent_card or {}).get("pi_tool_count") != len(contracts)
+        or (agent_card or {}).get("pi_tool_docs_count") != len(tool_docs)
     ):
         findings.append(
             finding(
                 "AF-TOOL-015",
                 "high",
                 "skills_runbooks",
-                "Skill/runbook domain coverage or root/package parity is incomplete.",
+                "All-skill/runbook, Agent Card, every-Pi-tool, or root/package parity is incomplete.",
                 {"coverage": skill_coverage},
-                "Generate progressive skills, dependency-aware runbooks, and exact root/package parity proof.",
+                "Generate complete skill/runbook inventory, every-Pi-tool counts/routes, and exact root/package parity proof.",
             )
         )
     if public_alignment.get("spec_count") != 15 or not public_alignment.get(

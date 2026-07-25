@@ -11,6 +11,10 @@ PROJECT="$ROOT_DIR/crates/focusa-api/src/routes/project.rs"
 WORK_LOOP="$ROOT_DIR/crates/focusa-api/src/routes/work_loop.rs"
 PI_STATE="$ROOT_DIR/apps/pi-extension/src/state.ts"
 PI_SESSION="$ROOT_DIR/apps/pi-extension/src/session.ts"
+PI_TOOLS="$ROOT_DIR/apps/pi-extension/src/tools.ts"
+PI_CLASSIFICATION="$ROOT_DIR/apps/pi-extension/src/session-classification.ts"
+CORE_BINDING="$ROOT_DIR/crates/focusa-core/src/working_subpath.rs"
+CLI_PROJECT="$ROOT_DIR/crates/focusa-cli/src/commands/project.rs"
 
 fail(){ echo "✗ FAIL: $*" >&2; exit 1; }
 pass(){ echo "✓ PASS: $*"; }
@@ -39,5 +43,17 @@ pass "Context Cognition exact-scope guards present"
 rg -n 'isWorkpointPacketScopedToCurrentSession|currentContinuityId|packetContinuityId|projectRootAuthorityFailure|project_root.*continuity_id|continuity_id.*project_root' "$PI_STATE" "$PI_SESSION" >/dev/null \
   || fail "Pi extension missing project_root/continuity scoped packet guard"
 pass "Pi extension has scoped packet guard references"
+
+rg -n 'resolve_project_binding_candidates|ProjectBindingDecision|parent_directory_child_scan|multiple equally ranked project roots' "$CORE_BINDING" >/dev/null \
+  || fail "core missing ranked worktree/parent-directory binding candidates"
+rg -n 'binding_candidates|binding_decision|ambiguous_project_binding' "$PROJECT" >/dev/null \
+  || fail "API project identity/verify missing binding candidate projection"
+rg -n 'candidate: score=|binding: status=' "$CLI_PROJECT" >/dev/null \
+  || fail "CLI project identity missing candidate/ambiguity rendering"
+rg -n 'persisted_project_root|binding_decision.*ambiguous|ambiguous_project_binding' "$PI_TOOLS" >/dev/null \
+  || fail "Pi focusa_project_identity tool missing resumed binding candidates or ambiguity guard"
+rg -n 'sameCanonicalProject|bindingCandidateRoots|resumed_session_worktree_rebound' "$PI_CLASSIFICATION" "$PI_SESSION" >/dev/null \
+  || fail "Pi resumed-session classification missing canonical-parent/worktree rebound semantics"
+pass "core, API, CLI, Pi tools, and resumed sessions share fail-closed binding candidates"
 
 echo "authority scope static test: PASS"

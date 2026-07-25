@@ -156,6 +156,18 @@ Convergence must be one of:
 3. pending proposal/resolution window
 4. operator-required decision
 
+### 4.5 Spec 131 temporal reconciliation boundary
+
+CRDT/Lamport/vector metadata establishes causal reconciliation order; it does not prove physical clock accuracy, elapsed duration, deadline satisfaction, or temporal authority. Spec 131 owns ClockSamplePairs, per-boot monotonic segments, civil/fixed deadline semantics, uncertainty, TemporalExecutionGuards, temporal claims, and completion/disposition truth.
+
+Rules:
+
+- physical timestamps remain observations with source/profile/uncertainty; last-write-wins physical time is not authority;
+- compatible append-only temporal observations may converge, but conflicting deadline revisions, civil-time resolutions, clock corrections, guard revocations, closure facts, and operator dispositions require explicit deterministic conflict records or governed resolution;
+- CRDT merge cannot bridge boot epochs into synthetic monotonic time, clear an external deadline, extend a lease/guard, activate an optional capability, or manufacture verified completion;
+- canonical temporal mutations remain reducer/CAS/lease/fencing-owned; CRDT proof applies only to declared replicated/portable surfaces;
+- merged records preserve source schema/policy/clock/calendar/estimator versions, causal refs, and all rejected/superseded alternatives for replay and settlement.
+
 ---
 
 ## 5. Forbidden foundation patterns

@@ -68,10 +68,10 @@ Likely next: `focusa_trajectory_assess`, `focusa_workpoint_resume`, `focusa_evid
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`, `skill:focusa-evidence-outcomes`
 - Runbooks: `runbook:workpoint`
 - Pi: `focusa_workpoint_link_evidence`; MCP: `focusa.workpoint.link.evidence`; OpenAI: `focusa_workpoint_link_evidence`.
 - CLI: `focusa workpoint evidence-link`.
 - REST: `POST /v1/workpoint/evidence/link`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:a86c6abece8bce34db40fb569249c1d7e0fe5cc56b4c8975c029c8d8bce7145e`.
+- Descriptor digest: `sha256:212d8f45936dde388d94a7e98fb2de3bcb733c2c24c1794c79c527e6c58ad92c`.

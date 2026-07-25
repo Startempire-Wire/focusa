@@ -1,10 +1,31 @@
 # 79 — Focusa-Governed Continuous Work Loop (FGCWL)
 
-Status: Implemented baseline (active) — keep in sync with runtime behavior  
+Status: Active normative specification — foundational slices implemented; end-to-end acceptance remains open
 Owner: Focusa runtime / Pi integration  
-Depends on: `docs/core-reducer.md`, `docs/G1-detail-03-runtime-daemon.md`, `docs/44-pi-focusa-integration-spec.md`, `docs/52-pi-extension-contract.md`, `docs/41-proposal-resolution-engine.md`, `docs/46-ontology-core-primitives.md`, `docs/54a-operator-priority-and-subject-preservation.md`, `docs/54b-context-injection-and-attention-routing.md`, `docs/56-trace-checkpoints-recovery.md`, `docs/57-golden-tasks-and-evals.md`, `docs/61-domain-general-cognition-core.md`, `docs/67-query-scope-and-relevance-control.md`, `docs/68-current-ask-and-scope-integration.md`, `docs/70-shared-interfaces-statuses-and-lifecycle.md`, `docs/78-bounded-secondary-cognition-and-persistent-autonomy.md`, `apps/pi-extension/src/state.ts`, `apps/pi-extension/src/tools.ts`, Pi `docs/rpc.md`, Pi `docs/extensions.md`
+Depends on: `docs/116-provider-neutral-work-item-closure-authority-spec.md`, `docs/core-reducer.md`, `docs/G1-detail-03-runtime-daemon.md`, `docs/44-pi-focusa-integration-spec.md`, `docs/52-pi-extension-contract.md`, `docs/41-proposal-resolution-engine.md`, `docs/46-ontology-core-primitives.md`, `docs/54a-operator-priority-and-subject-preservation.md`, `docs/54b-context-injection-and-attention-routing.md`, `docs/56-trace-checkpoints-recovery.md`, `docs/57-golden-tasks-and-evals.md`, `docs/61-domain-general-cognition-core.md`, `docs/67-query-scope-and-relevance-control.md`, `docs/68-current-ask-and-scope-integration.md`, `docs/70-shared-interfaces-statuses-and-lifecycle.md`, `docs/78-bounded-secondary-cognition-and-persistent-autonomy.md`, `apps/pi-extension/src/state.ts`, `apps/pi-extension/src/tools.ts`, Pi `docs/rpc.md`, Pi `docs/extensions.md`
 
 ---
+
+## 0.0 Provider-Neutral WorkItem Amendment (2026-07-19)
+
+This amendment supersedes every BD-first implementation assumption in this document:
+
+- Focusa Core owns the provider-neutral `WorkItem`, `WorkItemRef`, dependency graph, lifecycle, evidence, and closure semantics.
+- Work Loop traverses and schedules core WorkItems through the configured `ProviderAdapter`.
+- `bd` is adapter #1 only. It may persist or display work, but it is never a core type, execution authority, scheduler, or required runtime dependency.
+- Projects without `bd` remain fully functional through another provider adapter or the durable internal/`none` provider.
+- Authoritative specs define correctness and acceptance; provider records are operational projections of that work.
+- Any later reference in this document to `bd`, “BD-first,” or a `bd` command means the corresponding provider-neutral WorkItem operation, with the BD adapter shown only as an example.
+
+Normative operation mapping:
+
+| Legacy wording | Core operation |
+|---|---|
+| `bd ready` | query provider-neutral ready WorkItems after dependency evaluation |
+| `bd show <id>` | resolve `WorkItemRef` through its adapter |
+| `bd update` | submit an authorized WorkItem lifecycle transition |
+| `bd close` | run Spec116 prepare → validate → authorize → submit → reconcile |
+| bead parent/child links | core WorkItem graph relationships |
 
 ## 0. Source Basis
 
@@ -1225,6 +1246,24 @@ Budgets SHOULD be expressible at multiple levels:
 Exhausting a local budget should trigger fallback, pause, escalation, or alternate-work selection rather than blind continuation.  
 **Sources:** `docs/78-bounded-secondary-cognition-and-persistent-autonomy.md`; `docs/57-golden-tasks-and-evals.md`.
 
+### 26.4 Spec 131 Temporal Authority Integration
+
+Spec 131 exclusively owns trusted clocks, elapsed intervals, civil/fixed deadlines, readiness targets, forecast claims, material progress, no-progress/lost-time posture, TemporalExecutionGuards, and temporal breach semantics. The Work Loop consumes those canonical primitives; it MUST NOT create an independent clock, deadline store, estimator, urgency taxonomy, or completion override.
+
+Required behavior:
+
+- execution budgets remain throughput/resource controls and never become forecasts, deadlines, readiness targets, leases, or security TTLs;
+- selection and continuation consume a fresh TimeAwarenessPacket/TemporalPriorityFrame or an exact valid local TemporalExecutionGuard;
+- child agents/processes receive remaining monotonic timeout with elapsed deducted and cannot extend the parent deadline;
+- cancellation propagates through requested/observed/effective/forced/cleanup/reconciliation states;
+- uncertainty, unknown slack, simultaneous deadlines, and infeasible schedules remain explicit and cannot be treated as healthy margin;
+- definitely expired/harmful actions do not dispatch; possible external effects reconcile before retry;
+- overdue work is pinned only after evidence-backed opportunity assessment and remains subordinate to non-waivable safety/legal/authority obligations and valid operator steering;
+- lease/authority/security/evidence expiry uses its declared Spec 131 clock-domain policy, including suspend/reboot behavior;
+- provider `done`, agent completion, operator disposition, budget exhaustion, and functional success cannot substitute for Spec 116/131 verified completion and settlement.
+
+**Source:** `docs/131-focusa-workpoint-item-timing-velocity-and-closure-authority-spec.md`.
+
 ---
 
 ## 27. Intelligence Requirements
@@ -1662,8 +1701,8 @@ This spec is satisfied only when:
 - the operator/spec author, or an explicitly trusted delegated spec author, is the only authority above the current spec
 - docs/specs remain the supreme authority for correctness, interpretation, and closure below the active authoring authority
 - the LLM has direct communication with the operator/spec author but no decision authority unless explicit delegated authorship is active
-- ordered `bd` items function as the execution graph in BD-first workflow mode
-- `bd` items are treated as spec-derived operational guides, and authoritative specs decide all doubt or conflict
+- ordered provider-neutral core WorkItems function as the execution graph; `bd` is one optional adapter
+- provider WorkItems are treated as spec-derived operational projections, and authoritative specs decide all doubt or conflict
 - operator/spec-author amendments cascade correctly through spec, `bd`, code, and resulting functionality
 - Focusa remains single cognitive authority
 - reducer purity is preserved

@@ -112,7 +112,7 @@ Focusa Svelte Custom Elements
 native SQLite replay + broadcast tail
 AG-UI external compatibility after native stabilization
 JSON Schema 2020-12 + OpenAPI 3.0.3
-TypeScript and Go generated clients
+TypeScript generated clients and language-neutral OpenAPI/JSON Schema contracts
 Pi RPC AgentExecutionAdapter / Spec 133 model execution
 UIAI Engine Eval for browser proof
 no Playwright in Focusa
@@ -209,7 +209,7 @@ Canonical contracts:
 JSON Schema 2020-12
 OpenAPI 3.0.3
 openapi-typescript/openapi-fetch
-Go oapi-codegen v2.7.x
+external adapters generated from published OpenAPI outside Focusa core
 Operation Registry
 A2UI catalog and action bindings
 ```
@@ -300,7 +300,7 @@ A compatibility alias cannot silently become permanent architecture.
 | Runtime | reducer-backed canonical state, exact scope, replay, recovery, restart. |
 | Mission Canvas | concurrent Work Surfaces, targeted interaction, contention, restoration. |
 | Browser | UIAI contexts/targets, isolation, artifacts, diagnostics, UIAI Engine Eval. |
-| Contracts | generated JSON Schema, OpenAPI 3.0.3, TS/Go clients, compatibility lock. |
+| Contracts | generated JSON Schema, OpenAPI 3.0.3, TypeScript clients, portable external-adapter contracts, compatibility lock. |
 | Generated UI | A2UI web core/Lit, trusted Svelte Custom Elements, typed actions, native stream. |
 | UXP/UFI | transparent nontechnical baseline, bounded adaptation, evaluator benchmark. |
 | Work | real adapters, Workpoints, Evidence, closure reconciliation, Receipts. |

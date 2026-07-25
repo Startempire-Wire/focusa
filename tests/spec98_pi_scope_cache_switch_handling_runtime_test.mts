@@ -52,7 +52,8 @@ const differentProjectVerdict = buildCurrentAskScopeVerdict({
   continuityId: "cont-pi-scope-cache-switch",
 });
 assert(differentProjectVerdict.status === "conflict", `different-project path should conflict: ${JSON.stringify(differentProjectVerdict)}`);
-assert(differentProjectVerdict.action_authority_for_current_ask === false, "different-project steering must suppress action authority");
+assert(differentProjectVerdict.action_authority_for_current_ask === true, "different-project steering must remain authoritative");
+assert(differentProjectVerdict.durable_project_write_authority === false, "different-project writes must wait for verification");
 assert(differentProjectVerdict.current_ask_scope.project_root === "/home/planmarr/plan-the-marriage", "explicit PTM root should win as current ask scope");
 
 console.log("Spec98 Pi scope cache/switch handling proof passed");

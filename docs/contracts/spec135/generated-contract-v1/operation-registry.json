@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-07-22T09:34:35.066345+00:00",
-  "operation_count": 85,
+  "operation_count": 86,
   "operations": [
     {
       "alias_of": null,
@@ -2626,6 +2626,85 @@
         "debug"
       ],
       "response_schema_ref": "focusa.project_interview_session_list.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.project_interview_session_list.request.v1",
+      "scope": {
+        "attachment_scoped": true,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_interview_session",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "List Durable Interview Session Revisions",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "List Durable Interview Session Revisions",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "standard_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.project_interview_session_list.request.v1",
+        "output_schema_ref": "focusa.interview_closure_package.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "project_interview"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "interview:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "project_interview",
+      "label": "Get Governed Interview Closure Package",
+      "materialization_mode": "canonical_read",
+      "method": "GET",
+      "operation_id": "focusa.interview.closure_package.get",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "project_interview_closure_package",
+        "subsystem": "project_interview"
+      },
+      "path": "/v1/interviews/closure-package",
+      "permissions_required": [
+        "interview:read"
+      ],
+      "request_schema_ref": "focusa.project_interview_session_list.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard",
+        "debug"
+      ],
+      "response_schema_ref": "focusa.interview_closure_package.v1",
       "schema": "focusa.operation_descriptor.v1",
       "schema_version": "focusa.project_interview_session_list.request.v1",
       "scope": {

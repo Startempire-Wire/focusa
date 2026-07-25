@@ -3,7 +3,7 @@
 **Status:** operator-mandated release gate
 **Date:** 2026-07-23
 **Authority:** operator directive plus Specs 34, 89, 90, 104, 105, 111, 129, 135J, and 140
-**Evidence baseline:** `docs/evidence/141-focusa-agent-first-tool-surface-audit-20260723.{json,md}`
+**Current release evidence:** `docs/evidence/141-focusa-agent-first-tool-surface-audit-20260724.{json,md}`
 
 ## 1. Purpose
 
@@ -75,7 +75,7 @@ These are release-gating defects, not documentation polish.
 ### 4.1 High-fit patterns — adopt
 
 | Pattern | Source | Focusa fit |
-|---|---|---|
+| --- | --- | --- |
 | Deferred tool loading and tool search | Anthropic advanced tool use; OpenAI function calling | Essential with 105+ tools; reduces prompt bloat and improves selection |
 | Namespaces and regex/search-based capability retrieval | Anthropic/OpenAI | Strong fit for Focusa families and domain packs |
 | Strict JSON Schema and structured output | OpenAI strict mode; MCP `inputSchema`, `outputSchema`, `structuredContent` | Essential; current input strictness/output schemas are incomplete |
@@ -557,8 +557,8 @@ evidence_completion_rate
 Exact files:
 
 - `scripts/audit-agent-first-tool-surfaces.py`
-- `docs/evidence/141-focusa-agent-first-tool-surface-audit-20260723.json`
-- `docs/evidence/141-focusa-agent-first-tool-surface-audit-20260723.md`
+- `docs/evidence/141-focusa-agent-first-tool-surface-audit-20260724.json`
+- `docs/evidence/141-focusa-agent-first-tool-surface-audit-20260724.md`
 - `tests/spec141_agent_first_tool_audit_test.py`
 
 ### Phase B — Canonical descriptor and generated projections
@@ -650,8 +650,8 @@ Primary surfaces:
 
 ```bash
 python3 scripts/audit-agent-first-tool-surfaces.py \
-  --json docs/evidence/141-focusa-agent-first-tool-surface-audit-20260723.json \
-  --markdown docs/evidence/141-focusa-agent-first-tool-surface-audit-20260723.md
+  --json docs/evidence/141-focusa-agent-first-tool-surface-audit-20260724.json \
+  --markdown docs/evidence/141-focusa-agent-first-tool-surface-audit-20260724.md
 python3 tests/spec141_agent_first_tool_audit_test.py
 node scripts/validate-focusa-tool-contracts.mjs
 node scripts/audit-focusa-tool-implementation-spec-gaps.mjs --json

@@ -19,7 +19,6 @@ result_schema = json.loads(
 work_loop = (ROOT / "crates/focusa-api/src/routes/work_loop.rs").read_text()
 server = (ROOT / "crates/focusa-api/src/server.rs").read_text()
 ts = (ROOT / "packages/generated/spec135/typescript/schema.d.ts").read_text()
-go = (ROOT / "packages/generated/spec135/go/client.gen.go").read_text()
 
 expected = {
     "/v1/work-loop/driver/start": "focusa.agent_execution.start",
@@ -75,8 +74,6 @@ assert 'args(["--mode", "rpc", "--no-session"])' not in work_loop
 assert "pub idempotency_key: String" in server
 assert 'operations["focusa.agent_execution.start"]' in ts
 assert 'operations["focusa.agent_execution.abort"]' in ts
-assert "func (c *Client) FocusaAgentExecutionStart(" in go
-assert "func (c *Client) FocusaAgentExecutionStop(" in go
 
 print(
     "Spec 135 Pi RPC AgentExecutionAdapter: PASS (governed, resumable, idempotent, cancellation-aware)"

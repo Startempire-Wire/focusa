@@ -13,11 +13,11 @@ use super::{SilentSession, SilentSessionConfigRevision, SilentSessionEvent, Sile
 pub const SILENT_SESSION_DB_SCHEMA_VERSION: i64 = 4;
 
 const SCHEMA_SQL: &str = r#"
-CREATE TABLE IF NOT EXISTS silent_session_schema_meta (
+CREATE TABLE IF NOT EXISTS silent_session_control_schema_meta (
   version INTEGER NOT NULL,
   migrated_at TEXT NOT NULL
 );
-CREATE TABLE IF NOT EXISTS silent_sessions (
+CREATE TABLE IF NOT EXISTS silent_session_controls (
   silent_session_id TEXT PRIMARY KEY,
   project_root TEXT NOT NULL,
   continuity_id TEXT NOT NULL,
@@ -33,11 +33,11 @@ CREATE TABLE IF NOT EXISTS silent_sessions (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_silent_sessions_authority
-  ON silent_sessions(project_root, continuity_id, updated_at);
-CREATE TABLE IF NOT EXISTS silent_session_runs (
+CREATE INDEX IF NOT EXISTS idx_silent_session_controls_authority
+  ON silent_session_controls(project_root, continuity_id, updated_at);
+CREATE TABLE IF NOT EXISTS silent_session_daemon_runs (
   run_id TEXT PRIMARY KEY,
-  silent_session_id TEXT NOT NULL REFERENCES silent_sessions(silent_session_id),
+  silent_session_id TEXT NOT NULL REFERENCES silent_session_controls(silent_session_id),
   run_generation INTEGER NOT NULL CHECK(run_generation > 0),
   actor_instance_id TEXT NOT NULL,
   config_revision_id TEXT NOT NULL,
@@ -47,11 +47,11 @@ CREATE TABLE IF NOT EXISTS silent_session_runs (
   ended_at TEXT,
   UNIQUE(silent_session_id, run_generation)
 );
-CREATE INDEX IF NOT EXISTS idx_silent_session_runs_session
-  ON silent_session_runs(silent_session_id, run_generation);
-CREATE TABLE IF NOT EXISTS silent_session_config_revisions (
+CREATE INDEX IF NOT EXISTS idx_silent_session_daemon_runs_session
+  ON silent_session_daemon_runs(silent_session_id, run_generation);
+CREATE TABLE IF NOT EXISTS silent_session_control_config_revisions (
   config_revision_id TEXT PRIMARY KEY,
-  silent_session_id TEXT NOT NULL REFERENCES silent_sessions(silent_session_id),
+  silent_session_id TEXT NOT NULL REFERENCES silent_session_controls(silent_session_id),
   revision INTEGER NOT NULL CHECK(revision > 0),
   config_schema_version INTEGER NOT NULL,
   config_json TEXT NOT NULL,
@@ -60,9 +60,9 @@ CREATE TABLE IF NOT EXISTS silent_session_config_revisions (
   created_at TEXT NOT NULL,
   UNIQUE(silent_session_id, revision)
 );
-CREATE TABLE IF NOT EXISTS silent_session_events (
+CREATE TABLE IF NOT EXISTS silent_session_control_events (
   event_id TEXT PRIMARY KEY,
-  silent_session_id TEXT NOT NULL REFERENCES silent_sessions(silent_session_id),
+  silent_session_id TEXT NOT NULL REFERENCES silent_session_controls(silent_session_id),
   run_id TEXT,
   sequence INTEGER NOT NULL CHECK(sequence > 0),
   event_schema_version INTEGER NOT NULL,
@@ -76,10 +76,10 @@ CREATE TABLE IF NOT EXISTS silent_session_events (
   UNIQUE(silent_session_id, idempotency_key),
   UNIQUE(silent_session_id, event_hash)
 );
-CREATE INDEX IF NOT EXISTS idx_silent_session_events_chain
-  ON silent_session_events(silent_session_id, sequence, event_hash);
-CREATE TABLE IF NOT EXISTS silent_session_stream_indexes (
-  silent_session_id TEXT NOT NULL REFERENCES silent_sessions(silent_session_id),
+CREATE INDEX IF NOT EXISTS idx_silent_session_control_events_chain
+  ON silent_session_control_events(silent_session_id, sequence, event_hash);
+CREATE TABLE IF NOT EXISTS silent_session_control_stream_indexes (
+  silent_session_id TEXT NOT NULL REFERENCES silent_session_controls(silent_session_id),
   run_id TEXT NOT NULL,
   stream_name TEXT NOT NULL,
   chunk_sequence INTEGER NOT NULL,
@@ -97,9 +97,9 @@ CREATE TABLE IF NOT EXISTS silent_session_stream_indexes (
   created_at TEXT NOT NULL,
   PRIMARY KEY(silent_session_id, run_id, stream_name, chunk_sequence)
 );
-CREATE TABLE IF NOT EXISTS silent_session_checkpoints (
+CREATE TABLE IF NOT EXISTS silent_session_control_checkpoints (
   checkpoint_id TEXT PRIMARY KEY,
-  silent_session_id TEXT NOT NULL REFERENCES silent_sessions(silent_session_id),
+  silent_session_id TEXT NOT NULL REFERENCES silent_session_controls(silent_session_id),
   run_id TEXT,
   checkpoint_kind TEXT NOT NULL,
   event_sequence INTEGER NOT NULL,
@@ -107,11 +107,11 @@ CREATE TABLE IF NOT EXISTS silent_session_checkpoints (
   checkpoint_hash TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_silent_session_checkpoints_latest
-  ON silent_session_checkpoints(silent_session_id, run_id, event_sequence DESC);
-CREATE TABLE IF NOT EXISTS silent_session_leases (
+CREATE INDEX IF NOT EXISTS idx_silent_session_control_checkpoints_latest
+  ON silent_session_control_checkpoints(silent_session_id, run_id, event_sequence DESC);
+CREATE TABLE IF NOT EXISTS silent_session_control_leases (
   lease_id TEXT PRIMARY KEY,
-  silent_session_id TEXT NOT NULL REFERENCES silent_sessions(silent_session_id),
+  silent_session_id TEXT NOT NULL REFERENCES silent_session_controls(silent_session_id),
   run_id TEXT NOT NULL,
   owner_actor_instance_id TEXT NOT NULL,
   fencing_token INTEGER NOT NULL CHECK(fencing_token > 0),
@@ -121,11 +121,11 @@ CREATE TABLE IF NOT EXISTS silent_session_leases (
   expires_at TEXT NOT NULL,
   UNIQUE(silent_session_id, fencing_token)
 );
-CREATE INDEX IF NOT EXISTS idx_silent_session_leases_active
-  ON silent_session_leases(silent_session_id, status, expires_at);
-CREATE TABLE IF NOT EXISTS silent_session_notifications (
+CREATE INDEX IF NOT EXISTS idx_silent_session_control_leases_active
+  ON silent_session_control_leases(silent_session_id, status, expires_at);
+CREATE TABLE IF NOT EXISTS silent_session_control_notifications (
   notification_id TEXT PRIMARY KEY,
-  silent_session_id TEXT NOT NULL REFERENCES silent_sessions(silent_session_id),
+  silent_session_id TEXT NOT NULL REFERENCES silent_session_controls(silent_session_id),
   event_id TEXT,
   notification_type TEXT NOT NULL,
   channel TEXT NOT NULL,
@@ -134,9 +134,9 @@ CREATE TABLE IF NOT EXISTS silent_session_notifications (
   created_at TEXT NOT NULL,
   delivered_at TEXT
 );
-CREATE TABLE IF NOT EXISTS silent_session_completion_evaluations (
+CREATE TABLE IF NOT EXISTS silent_session_control_completion_evaluations (
   completion_evaluation_id TEXT PRIMARY KEY,
-  silent_session_id TEXT NOT NULL REFERENCES silent_sessions(silent_session_id),
+  silent_session_id TEXT NOT NULL REFERENCES silent_session_controls(silent_session_id),
   run_id TEXT NOT NULL,
   decision TEXT NOT NULL,
   evaluation_json TEXT NOT NULL,
@@ -144,10 +144,10 @@ CREATE TABLE IF NOT EXISTS silent_session_completion_evaluations (
   evaluated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_silent_session_completion_latest
-  ON silent_session_completion_evaluations(silent_session_id, evaluated_at DESC);
-CREATE TABLE IF NOT EXISTS silent_session_backend_bindings (
+  ON silent_session_control_completion_evaluations(silent_session_id, evaluated_at DESC);
+CREATE TABLE IF NOT EXISTS silent_session_control_backend_bindings (
   binding_id TEXT PRIMARY KEY,
-  silent_session_id TEXT NOT NULL REFERENCES silent_sessions(silent_session_id),
+  silent_session_id TEXT NOT NULL REFERENCES silent_session_controls(silent_session_id),
   run_id TEXT NOT NULL,
   backend_kind TEXT NOT NULL,
   backend_identity TEXT NOT NULL,
@@ -157,7 +157,7 @@ CREATE TABLE IF NOT EXISTS silent_session_backend_bindings (
   released_at TEXT,
   UNIQUE(silent_session_id, run_id, backend_kind)
 );
-CREATE TABLE IF NOT EXISTS silent_session_principals (
+CREATE TABLE IF NOT EXISTS silent_session_control_principals (
   principal_id TEXT PRIMARY KEY,
   actor TEXT NOT NULL,
   os_user TEXT NOT NULL,
@@ -165,7 +165,7 @@ CREATE TABLE IF NOT EXISTS silent_session_principals (
   principal_json TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
-CREATE TABLE IF NOT EXISTS silent_session_approvals (
+CREATE TABLE IF NOT EXISTS silent_session_control_approvals (
   approval_id TEXT PRIMARY KEY,
   operator_actor TEXT NOT NULL,
   action TEXT NOT NULL,
@@ -177,8 +177,8 @@ CREATE TABLE IF NOT EXISTS silent_session_approvals (
   expires_at TEXT NOT NULL,
   approval_json TEXT NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_silent_session_approvals_scope
-  ON silent_session_approvals(project_root,continuity_id,expires_at);
+CREATE INDEX IF NOT EXISTS idx_silent_session_control_approvals_scope
+  ON silent_session_control_approvals(project_root,continuity_id,expires_at);
 CREATE TABLE IF NOT EXISTS silent_session_control_audits (
   audit_id TEXT PRIMARY KEY,
   actor TEXT NOT NULL,
@@ -190,7 +190,7 @@ CREATE TABLE IF NOT EXISTS silent_session_control_audits (
   audit_json TEXT NOT NULL,
   occurred_at TEXT NOT NULL
 );
-CREATE TABLE IF NOT EXISTS silent_session_runner_nonces (
+CREATE TABLE IF NOT EXISTS silent_session_control_runner_nonces (
   runner_principal_id TEXT NOT NULL,
   nonce TEXT NOT NULL,
   command_id TEXT NOT NULL,
@@ -198,8 +198,8 @@ CREATE TABLE IF NOT EXISTS silent_session_runner_nonces (
   consumed_at TEXT NOT NULL,
   PRIMARY KEY(runner_principal_id,nonce)
 );
-CREATE TABLE IF NOT EXISTS silent_session_retention (
-  session_id TEXT PRIMARY KEY REFERENCES silent_sessions(silent_session_id) ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS silent_session_control_retention (
+  session_id TEXT PRIMARY KEY REFERENCES silent_session_controls(silent_session_id) ON DELETE CASCADE,
   evidence_hold INTEGER NOT NULL DEFAULT 0,
   hold_reason TEXT,
   hold_expires_at TEXT,
@@ -207,7 +207,7 @@ CREATE TABLE IF NOT EXISTS silent_session_retention (
   delete_reason TEXT,
   updated_at TEXT NOT NULL
 );
-CREATE TABLE IF NOT EXISTS silent_session_retention_operations (
+CREATE TABLE IF NOT EXISTS silent_session_control_retention_operations (
   session_id TEXT NOT NULL,
   action TEXT NOT NULL,
   idempotency_key TEXT NOT NULL,
@@ -220,15 +220,15 @@ CREATE TABLE IF NOT EXISTS silent_session_retention_operations (
 "#;
 
 const MIGRATION_V2_SQL: &str = r#"
-ALTER TABLE silent_session_runs ADD COLUMN run_json TEXT NOT NULL DEFAULT '{}';
-ALTER TABLE silent_session_leases ADD COLUMN lease_json TEXT NOT NULL DEFAULT '{}';
-ALTER TABLE silent_session_stream_indexes ADD COLUMN codec_version INTEGER NOT NULL DEFAULT 1;
-ALTER TABLE silent_session_stream_indexes ADD COLUMN first_event_sequence INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE silent_session_stream_indexes ADD COLUMN last_event_sequence INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE silent_session_stream_indexes ADD COLUMN event_count INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE silent_session_stream_indexes ADD COLUMN uncompressed_bytes INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE silent_session_stream_indexes ADD COLUMN compressed_bytes INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE silent_session_stream_indexes ADD COLUMN redaction_applied INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE silent_session_daemon_runs ADD COLUMN run_json TEXT NOT NULL DEFAULT '{}';
+ALTER TABLE silent_session_control_leases ADD COLUMN lease_json TEXT NOT NULL DEFAULT '{}';
+ALTER TABLE silent_session_control_stream_indexes ADD COLUMN codec_version INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE silent_session_control_stream_indexes ADD COLUMN first_event_sequence INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE silent_session_control_stream_indexes ADD COLUMN last_event_sequence INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE silent_session_control_stream_indexes ADD COLUMN event_count INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE silent_session_control_stream_indexes ADD COLUMN uncompressed_bytes INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE silent_session_control_stream_indexes ADD COLUMN compressed_bytes INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE silent_session_control_stream_indexes ADD COLUMN redaction_applied INTEGER NOT NULL DEFAULT 1;
 "#;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -259,13 +259,13 @@ pub fn migrate_silent_session_schema(
     persistence.with_connection_mut(|connection| {
         connection.pragma_update(None, "foreign_keys", "ON")?;
         let meta_exists: i64 = connection.query_row(
-            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='silent_session_schema_meta'",
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='silent_session_control_schema_meta'",
             [],
             |row| row.get(0),
         )?;
         let previous_version = if meta_exists == 1 {
             connection.query_row(
-                "SELECT version FROM silent_session_schema_meta LIMIT 1",
+                "SELECT version FROM silent_session_control_schema_meta LIMIT 1",
                 [],
                 |row| row.get::<_, i64>(0),
             )?
@@ -303,9 +303,9 @@ pub fn migrate_silent_session_schema(
         if previous_version == 1 {
             transaction.execute_batch(MIGRATION_V2_SQL)?;
         }
-        transaction.execute("DELETE FROM silent_session_schema_meta", [])?;
+        transaction.execute("DELETE FROM silent_session_control_schema_meta", [])?;
         transaction.execute(
-            "INSERT INTO silent_session_schema_meta(version, migrated_at) VALUES (?1, ?2)",
+            "INSERT INTO silent_session_control_schema_meta(version, migrated_at) VALUES (?1, ?2)",
             params![SILENT_SESSION_DB_SCHEMA_VERSION, Utc::now().to_rfc3339()],
         )?;
         verify_schema(&transaction)?;
@@ -418,7 +418,7 @@ fn append_event_projection_and_revision(
         let transaction = connection.transaction()?;
         let replayed = transaction
             .query_row(
-                "SELECT event_hash,kind,payload_json FROM silent_session_events WHERE silent_session_id=?1 AND idempotency_key=?2",
+                "SELECT event_hash,kind,payload_json FROM silent_session_control_events WHERE silent_session_id=?1 AND idempotency_key=?2",
                 params![projection.id.to_string(), event.idempotency_key],
                 |row| {
                     Ok((
@@ -442,7 +442,7 @@ fn append_event_projection_and_revision(
 
         let chain_head = transaction
             .query_row(
-                "SELECT sequence,event_hash FROM silent_session_events WHERE silent_session_id=?1 ORDER BY sequence DESC LIMIT 1",
+                "SELECT sequence,event_hash FROM silent_session_control_events WHERE silent_session_id=?1 ORDER BY sequence DESC LIMIT 1",
                 [projection.id.to_string()],
                 |row| Ok((row.get::<_, u64>(0)?, row.get::<_, String>(1)?)),
             )
@@ -458,7 +458,7 @@ fn append_event_projection_and_revision(
         upsert_projection(&transaction, projection)?;
         if let Some(revision) = revision {
             transaction.execute(
-                r#"INSERT INTO silent_session_config_revisions(
+                r#"INSERT INTO silent_session_control_config_revisions(
                    config_revision_id,silent_session_id,revision,config_schema_version,config_json,
                    redacted_config_hash,created_by,created_at
                    ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8)"#,
@@ -476,7 +476,7 @@ fn append_event_projection_and_revision(
         }
         if let Some(run) = run_to_update {
             let changed = transaction.execute(
-                "UPDATE silent_session_runs SET run_json=?1,ended_at=?2 WHERE run_id=?3",
+                "UPDATE silent_session_daemon_runs SET run_json=?1,ended_at=?2 WHERE run_id=?3",
                 params![
                     serde_json::to_string(run)?,
                     run.ended_at.map(|value| value.to_rfc3339()),
@@ -489,7 +489,7 @@ fn append_event_projection_and_revision(
         }
         if let Some(run) = run_to_insert {
             transaction.execute(
-                r#"INSERT INTO silent_session_runs(
+                r#"INSERT INTO silent_session_daemon_runs(
                    run_id,silent_session_id,run_generation,actor_instance_id,config_revision_id,
                    protocol_versions_json,run_json,started_at,ended_at
                    ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)"#,
@@ -507,7 +507,7 @@ fn append_event_projection_and_revision(
             )?;
         }
         transaction.execute(
-            r#"INSERT INTO silent_session_events(
+            r#"INSERT INTO silent_session_control_events(
               event_id,silent_session_id,run_id,sequence,event_schema_version,kind,payload_json,
               idempotency_key,previous_event_hash,event_hash,occurred_at
             ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)"#,
@@ -535,7 +535,7 @@ fn upsert_projection(
     projection: &SilentSession,
 ) -> anyhow::Result<()> {
     let changed = transaction.execute(
-        r#"INSERT INTO silent_sessions(
+        r#"INSERT INTO silent_session_controls(
           silent_session_id,project_root,continuity_id,display_name,work_item_ref,mission,
           active_config_revision_id,current_run_generation,lifecycle,health,semantic_activity,
           snapshot_json,created_at,updated_at
@@ -546,8 +546,8 @@ fn upsert_projection(
           current_run_generation=excluded.current_run_generation,lifecycle=excluded.lifecycle,
           health=excluded.health,semantic_activity=excluded.semantic_activity,
           snapshot_json=excluded.snapshot_json,updated_at=excluded.updated_at
-        WHERE silent_sessions.project_root=excluded.project_root
-          AND silent_sessions.continuity_id=excluded.continuity_id"#,
+        WHERE silent_session_controls.project_root=excluded.project_root
+          AND silent_session_controls.continuity_id=excluded.continuity_id"#,
         params![
             projection.id.to_string(),
             projection.authority.project_root,
@@ -593,22 +593,22 @@ fn enum_json<T: Serialize>(value: T) -> anyhow::Result<String> {
 
 fn verify_schema(connection: &rusqlite::Connection) -> anyhow::Result<()> {
     const REQUIRED_TABLES: [&str; 16] = [
-        "silent_sessions",
-        "silent_session_runs",
-        "silent_session_config_revisions",
-        "silent_session_events",
-        "silent_session_stream_indexes",
-        "silent_session_checkpoints",
-        "silent_session_leases",
-        "silent_session_notifications",
-        "silent_session_completion_evaluations",
-        "silent_session_backend_bindings",
-        "silent_session_principals",
-        "silent_session_approvals",
+        "silent_session_controls",
+        "silent_session_daemon_runs",
+        "silent_session_control_config_revisions",
+        "silent_session_control_events",
+        "silent_session_control_stream_indexes",
+        "silent_session_control_checkpoints",
+        "silent_session_control_leases",
+        "silent_session_control_notifications",
+        "silent_session_control_completion_evaluations",
+        "silent_session_control_backend_bindings",
+        "silent_session_control_principals",
+        "silent_session_control_approvals",
         "silent_session_control_audits",
-        "silent_session_runner_nonces",
-        "silent_session_retention",
-        "silent_session_retention_operations",
+        "silent_session_control_runner_nonces",
+        "silent_session_control_retention",
+        "silent_session_control_retention_operations",
     ];
     for table in REQUIRED_TABLES {
         let exists: i64 = connection.query_row(
@@ -621,11 +621,14 @@ fn verify_schema(connection: &rusqlite::Connection) -> anyhow::Result<()> {
         }
     }
     for (table, column) in [
-        ("silent_session_runs", "run_json"),
-        ("silent_session_leases", "lease_json"),
-        ("silent_session_stream_indexes", "codec_version"),
-        ("silent_session_stream_indexes", "last_event_sequence"),
-        ("silent_session_stream_indexes", "redaction_applied"),
+        ("silent_session_daemon_runs", "run_json"),
+        ("silent_session_control_leases", "lease_json"),
+        ("silent_session_control_stream_indexes", "codec_version"),
+        (
+            "silent_session_control_stream_indexes",
+            "last_event_sequence",
+        ),
+        ("silent_session_control_stream_indexes", "redaction_applied"),
     ] {
         let exists: i64 = connection.query_row(
             "SELECT COUNT(*) FROM pragma_table_info(?1) WHERE name=?2",

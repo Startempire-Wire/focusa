@@ -1,0 +1,17 @@
+[package]
+name = "focusa-harness-adapters"
+description = "Versioned harness adapter contracts for daemon-native Focusa Silent Sessions"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license-file.workspace = true
+
+[dependencies]
+chrono = { workspace = true }
+focusa-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true

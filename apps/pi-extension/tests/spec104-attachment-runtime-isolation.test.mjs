@@ -228,6 +228,22 @@ try {
     globalThis.fetch = originalFetch;
   }
 
+  state.attachmentRuntimeRegistry.reset();
+  const attachmentlessFetch = globalThis.fetch;
+  const attachmentlessRequests = [];
+  globalThis.fetch = async (url, init) => {
+    attachmentlessRequests.push({ url: String(url), headers: new Headers(init.headers) });
+    return new Response(JSON.stringify({ status: "completed" }), { status: 200 });
+  };
+  try {
+    assert.deepEqual(await state.focusaFetch("/update/policy"), { status: "completed" });
+    assert.equal(attachmentlessRequests.length, 1);
+    assert.equal(attachmentlessRequests[0].url, "http://127.0.0.1:8787/v1/update/policy");
+    assert.equal(attachmentlessRequests[0].headers.has("X-Scope-Project-Root"), false);
+  } finally {
+    globalThis.fetch = attachmentlessFetch;
+  }
+
   const legacyPredictionText = scopedState.renderScopedResultHuman({
     status: "ok",
     predictions: [{ prediction_id: "p1" }],

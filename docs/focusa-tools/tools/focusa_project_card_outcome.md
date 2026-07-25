@@ -68,10 +68,10 @@ Likely next: `focusa_project_card`, `focusa_predict_record`, `focusa_metacog_cap
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`, `skill:focusa-project-scope`
+- Skills: `skill:focusa`, `skill:focusa-project-scope`, `skill:focusa-evidence-outcomes`
 - Runbooks: `runbook:project_identity`
 - Pi: `focusa_project_card_outcome`; MCP: `focusa.project.card.outcome`; OpenAI: `focusa_project_card_outcome`.
 - CLI: `focusa project card-outcome`.
 - REST: `POST /v1/project/card/outcome`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:0ae2780401554a0a537a69eab44dd021aebb242df05c663f5cc27b5618c82eb8`.
+- Descriptor digest: `sha256:3cb8f527e693d1fc8da65c79f3ed92a1a022a3d3c859d7d78d81cbd42656001b`.

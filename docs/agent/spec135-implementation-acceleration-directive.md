@@ -28,7 +28,7 @@ The Alpha is implemented first. It does not remove any requirement from the clos
 F0 — freeze series at 135K and compile the Delivery Contract
 F1 — feature ledger, delivery DAG, parity, framework, and proof matrices
 F2 — JSON Schema 2020-12 and OpenAPI 3.0.3
-F3 — generated TypeScript and Go clients
+F3 — generated TypeScript clients and portable OpenAPI/JSON Schema contracts
 F4 — Operation Registry, capability projection, UI action bindings
 F5 — shared ToolResult/error envelopes
 F6 — durable SQLite replay plus broadcast live tail
@@ -57,7 +57,7 @@ requirement ID
 → schema
 → reducer/persistence
 → typed API and Operation Registry
-→ generated TypeScript/Go clients
+→ generated TypeScript clients and portable OpenAPI/JSON Schema contracts
 → generated UI
 → real integration
 → UIAI Engine Eval when browser-facing
@@ -96,7 +96,7 @@ Contracts
   JSON Schema 2020-12
   OpenAPI 3.0.3
   openapi-typescript + openapi-fetch
-  oapi-codegen v2.7.x for UIAI Engine
+  UIAI Engine-owned adapter generated outside Focusa core from published OpenAPI
   Focusa Operation Registry
 
 Generated UI

@@ -58,10 +58,10 @@ Likely next: `focusa_bloatgaurd_profile`, `focusa_bloatgaurd_routines`, `focusa_
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`, `skill:focusa-troubleshooting`
+- Skills: `skill:focusa`, `skill:focusa-troubleshooting`, `skill:focusa-resource-performance`
 - Runbooks: `runbook:diagnostics_hygiene`
 - Pi: `focusa_bloatgaurd_profiles`; MCP: `focusa.bloatgaurd.profiles`; OpenAI: `focusa_bloatgaurd_profiles`.
 - CLI: `focusa bloatgaurd profiles`.
 - REST: `GET /v1/bloatgaurd/profiles/report`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:f3e78a2dad10bc8f685ab4286c8bfb1f1e19cc5e6f696a8a3912499efd245b51`.
+- Descriptor digest: `sha256:83faf34f71ce550e1516abea6202c09595aec5624f8250b37a6873327316f203`.

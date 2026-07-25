@@ -20,6 +20,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { predictionScopedPath, projectScopedPath } from '../src/lib/workLoopScope.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DAEMON = process.env.FOCUSA_DAEMON_URL || 'http://127.0.0.1:8787';
@@ -49,6 +50,64 @@ async function extractEndpoints() {
 }
 
 const ENDPOINTS = await extractEndpoints();
+const SCOPED_ENDPOINTS = new Set([
+  '/v1/focus/snapshots/recent',
+  '/v1/metacognition/evaluations/recent',
+  '/v1/metacognition/status',
+  '/v1/predictions/recent',
+  '/v1/predictions/stats',
+  '/v1/work-loop/status',
+  '/v1/work-loop/health',
+  '/v1/work-loop/checkpoints',
+]);
+const REQUEST_SCOPE = await resolveRequestScope();
+
+async function resolveRequestScope() {
+  const explicitProjectRoot = process.env.FOCUSA_PROJECT_ROOT?.trim();
+  const explicitContinuityId = process.env.FOCUSA_CONTINUITY_ID?.trim();
+
+  try {
+    const repositoryRoot = join(__dirname, '..', '..', '..');
+    const identityQuery = `?${new URLSearchParams({
+      cwd: repositoryRoot,
+      ...(explicitProjectRoot ? { project_root: explicitProjectRoot } : {}),
+    })}`;
+    const [identityResponse, workpointResponse] = await Promise.all([
+      fetch(`${DAEMON}/v1/project/identity${identityQuery}`),
+      fetch(`${DAEMON}/v1/workpoint/current`),
+    ]);
+    if (!identityResponse.ok) return null;
+
+    const identityBody = await identityResponse.json();
+    const workpointBody = workpointResponse.ok ? await workpointResponse.json() : {};
+    const identity = identityBody.project_identity ?? identityBody;
+    const workpoint = workpointBody.workpoint ?? workpointBody.packet ?? workpointBody;
+    const projectRoot =
+      explicitProjectRoot ??
+      identityBody.binding_decision?.selected_project_root ??
+      identity.project_root ??
+      workpointBody.project_root ??
+      workpointBody.scope?.project_root ??
+      workpoint.project_root ??
+      workpoint.scope?.project_root;
+    const continuityId =
+      explicitContinuityId ??
+      workpointBody.continuity_id ??
+      workpointBody.scope?.continuity_id ??
+      workpoint.continuity_id ??
+      workpoint.scope?.continuity_id ??
+      identity.continuity_id ??
+      'menubar-e2e-route-probe';
+    if (!projectRoot || !continuityId) return null;
+    return {
+      projectRoot: String(projectRoot),
+      continuityId: String(continuityId),
+      projectIdentity: { ...identity, project_root: String(projectRoot) },
+    };
+  } catch {
+    return null;
+  }
+}
 
 // Per-endpoint expected behavior. Anything not listed here defaults to
 // "200 for GET, 405 for POST". 4xx is treated as success when the menubar
@@ -74,6 +133,7 @@ const EXPECTED = {
   '/v1/predictions/stats':        { expect: 200 },
   '/v1/project/identity':         { expect: 200 },
   '/v1/release/proof/status':      { expect: 200 },
+  '/v1/silent-sessions':           { expect: [200, 404], note: 'current source route; 404 accepted only from pre-release live daemon' },
   '/v1/state/dump':               { expect: 200 },
   '/v1/sync/peers':               { expect: 200 },
   '/v1/sync/pull/':               { expect: 404, note: 'needs {peer_id} param' },
@@ -82,9 +142,9 @@ const EXPECTED = {
   '/v1/telemetry/memory':          { expect: 200 },
   '/v1/telemetry/token-budget/status': { expect: 200 },
   '/v1/trajectory/view':          { expect: 200 },
-  '/v1/work-loop/checkpoints':    { expect: 200 },
-  '/v1/work-loop/health':         { expect: 200 },
-  '/v1/work-loop/status':         { expect: 200 },
+  '/v1/work-loop/checkpoints':    { expect: [200, 409], note: '409 is typed no-canonical-work-item posture' },
+  '/v1/work-loop/health':         { expect: [200, 409], note: '409 is typed no-canonical-work-item posture' },
+  '/v1/work-loop/status':         { expect: [200, 409], note: '409 is typed no-canonical-work-item posture' },
   '/v1/workpoint/checkpoint':     { expect: 405, note: 'POST endpoint' },
   '/v1/workpoint/current':        { expect: 200 },
   '/v1/workpoint/evidence/link':  { expect: 405, note: 'POST endpoint' },
@@ -95,21 +155,39 @@ let pass = 0, fail = 0, criticalFail = 0;
 const results = [];
 
 async function check(ep) {
-  const url = `${DAEMON}${ep}`;
+  const scopeRequired = SCOPED_ENDPOINTS.has(ep);
+  const requestPath = scopeRequired && REQUEST_SCOPE
+    ? ep.startsWith('/v1/predictions/')
+      ? predictionScopedPath(ep, REQUEST_SCOPE.projectIdentity, REQUEST_SCOPE.continuityId)
+      : projectScopedPath(ep, REQUEST_SCOPE.projectRoot, REQUEST_SCOPE.continuityId)
+    : ep;
+  const url = `${DAEMON}${requestPath}`;
   const expected = EXPECTED[ep]?.expect ?? 200;
+  const acceptable = Array.isArray(expected) ? expected : [expected];
   const isCritical = EXPECTED[ep]?.critical === true;
   const note = EXPECTED[ep]?.note ?? '';
   const t0 = performance.now();
   let actual, ok = false;
   try {
+    if (scopeRequired && !REQUEST_SCOPE) {
+      throw new Error('canonical project_root + continuity_id unavailable');
+    }
     const r = await fetch(url, { method: 'GET' });
     actual = r.status;
-    ok = actual === expected;
+    ok = acceptable.includes(actual);
   } catch (e) {
     actual = `ERR: ${e.message?.split('\n')[0] ?? e}`;
   }
   const dt = Math.round(performance.now() - t0);
-  results.push({ ep, expected, actual, ok, dt, note, critical: isCritical });
+  results.push({
+    ep,
+    expected: acceptable.join('/'),
+    actual,
+    ok,
+    dt,
+    note,
+    critical: isCritical,
+  });
   if (ok) pass++; else { fail++; if (isCritical) criticalFail++; }
 }
 

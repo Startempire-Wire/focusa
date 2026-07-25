@@ -15,7 +15,9 @@ use std::path::PathBuf;
 pub const RECLAIMED_BY_OPERATOR: &str = "operator.override";
 
 /// Provider kind. Provider-neutral: bd is one of many.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum WorkItemProvider {
     /// Beads (`bd`). Adapter #1, not the sole authority.
@@ -33,6 +35,7 @@ pub enum WorkItemProvider {
     /// No provider configured for this work item. Used for repos that
     /// do not host a tracker. The `none` adapter is a no-op submit
     /// that records the closure locally without mutating any backend.
+    #[default]
     None,
 }
 
@@ -143,13 +146,69 @@ pub struct WorkItemRef {
 pub struct WorkItem {
     pub provider: WorkItemProvider,
     pub provider_item_id: String,
+    /// Canonical project scope of this provider snapshot. Scheduler identity is
+    /// `(provider, project_root, provider_item_id)`, never the provider ID alone.
+    #[serde(default)]
+    pub project_root: PathBuf,
     pub provider_status: WorkItemStatus,
     pub title: String,
+    /// Lower numbers are scheduled first. Provider-specific priorities are
+    /// normalized by the adapter; zero is the highest default priority.
+    #[serde(default)]
+    pub priority: i32,
+    /// Optional parent in the provider-neutral execution graph.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent: Option<WorkItemRef>,
+    /// WorkItems that must be Done/Closed before this item is ready.
+    #[serde(default)]
+    pub dependencies: Vec<WorkItemRef>,
+    /// Spec-derived acceptance criteria. Providers only persist projections.
+    #[serde(default)]
+    pub acceptance_criteria: Vec<String>,
+    /// Normative specification references governing this item.
+    #[serde(default)]
+    pub spec_refs: Vec<String>,
+    /// Typed provider-reported blocker, if any.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub blocked_reason: Option<String>,
     #[serde(default)]
     pub url: Option<String>,
     /// SHA / revision / version returned by the provider when meaningful.
     #[serde(default)]
     pub revision: Option<String>,
+}
+
+impl WorkItem {
+    pub fn reference(&self) -> WorkItemRef {
+        WorkItemRef {
+            provider: self.provider,
+            provider_item_id: self.provider_item_id.clone(),
+            project_root: self.project_root.clone(),
+            external_url: self.url.clone(),
+        }
+    }
+
+    pub fn is_terminal(&self) -> bool {
+        matches!(
+            self.provider_status,
+            WorkItemStatus::Done | WorkItemStatus::Closed | WorkItemStatus::Cancelled
+        )
+    }
+}
+
+/// Provider-neutral graph query used by Work Loop. No provider command or
+/// identifier is permitted to become scheduler authority.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkItemQuery {
+    pub project_root: PathBuf,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent: Option<WorkItemRef>,
+    #[serde(default = "default_work_item_query_limit")]
+    pub limit: usize,
+}
+
+fn default_work_item_query_limit() -> usize {
+    100
 }
 
 /// Work item status returned by the provider.
@@ -233,6 +292,7 @@ pub struct EvidenceCitation {
     /// - workpoint: `019f3b0f-7068-7a11-aabc-26969ee39dde`
     /// - ci:      `gh run 28845429408 pass`
     /// - deploy:   `version 0.9.74-dev uptime_ms 1494 ok=true`
+    #[serde(rename = "ref", alias = "ref_")]
     pub ref_: String,
     /// Optional 1-based line range for code/spec artifacts.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -372,6 +432,15 @@ impl ProviderCapabilities {
     pub fn none() -> Self {
         Self::default()
     }
+}
+
+/// Typed authority scope required when autonomous execution requests closure.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ClosureAuthorityContext {
+    pub continuity_id: String,
+    pub workpoint_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent_session_id: Option<String>,
 }
 
 /// Top-level typed closure claim (Spec 116 §7.4). Serialized verbatim

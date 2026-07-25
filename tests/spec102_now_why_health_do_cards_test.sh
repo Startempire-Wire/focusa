@@ -8,33 +8,18 @@ fail(){ echo "✗ FAIL: $*" >&2; exit 1; }
 pass(){ echo "✓ PASS: $*"; }
 
 for file in "$PI_CARD" "$API_CARD"; do
-  for section in NOW_CARD WHY_CARD HEALTH_CARD DO_CARD; do
-    rg -F "$section" "$file" >/dev/null || fail "$file missing $section"
+  if [[ "$file" == "$API_CARD" ]]; then
+    source_window=$(awk '/^fn render_card/{on=1} /^async fn card/{on=0} on' "$file")
+  else
+    source_window=$(awk '/^export function buildFocusaUtilityCard/{on=1} on' "$file")
+  fi
+  for section in MISSION_PACKET NOW_CARD WHY_CARD HEALTH_CARD DO_CARD RECONCILIATION_ENVELOPE 'Friendly Focusa Q'; do
+    if rg -F "$section" <<<"$source_window" >/dev/null; then fail "$file retained stale default card section: $section"; fi
   done
-  for term in authority scope readiness why exact_next_action mutates rollback rehydrate_refs source_authority_order; do
-    rg -F "$term" "$file" >/dev/null || fail "$file missing card contract term: $term"
+  for term in 'Status:' 'Scope:' 'Mission:' 'Next:' 'Boundary:'; do
+    rg -F "$term" <<<"$source_window" >/dev/null || fail "$file missing concise card term: $term"
   done
-  pass "$file exposes Now/Why/Health/Do contract terms"
+  pass "$file exposes concise Spec108 awareness contract"
 done
 
-# Happy path contract: no repair/history/scar wording in the card section source.
-python3 - <<'PY'
-from pathlib import Path
-for path in ['apps/pi-extension/src/awareness.ts','crates/focusa-api/src/routes/awareness.rs']:
-    src = Path(path).read_text()
-    card_terms = ['NOW_CARD', 'WHY_CARD', 'HEALTH_CARD', 'DO_CARD']
-    windows = []
-    for term in card_terms:
-        i = src.index(term)
-        windows.append(src[i:i+2200].lower())
-    text = '\n'.join(windows)
-    banned = ['previous issue', 'fixed', 'repair history', 'temporary warning', 'debug label']
-    for b in banned:
-        if b in text:
-            raise SystemExit(f'{path} card section contains happy-path scar wording: {b}')
-    if ' scar ' in text or 'scar text' in text:
-        raise SystemExit(f'{path} card section contains happy-path scar wording: scar')
-print('✓ PASS: card contracts avoid repair/scar narration')
-PY
-
-echo "SPEC102 Now/Why/Health/Do card contract test: PASS"
+echo "Spec102 legacy card supersession / Spec108 concise card test: PASS"

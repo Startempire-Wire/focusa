@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = (
     ROOT / "docs/contracts/spec141/generated-capability-v2/route-classification.json"
 )
+API_REFERENCE = ROOT / "docs/current/API_REFERENCE_CURRENT.md"
 
 
 def main() -> int:
@@ -21,10 +22,18 @@ def main() -> int:
 
     source_files = sorted((ROOT / "crates/focusa-api/src").rglob("*.rs"))
     paths: dict[str, set[str]] = {}
+    methods: dict[str, set[str]] = {}
     for source in source_files:
         body = source.read_text(errors="replace")
+        relative_source = str(source.relative_to(ROOT))
         for path in re.findall(r'\.route\(\s*"([^"]+)"', body, re.S):
-            paths.setdefault(path, set()).add(str(source.relative_to(ROOT)))
+            paths.setdefault(path, set()).add(relative_source)
+        for path, method in re.findall(
+            r'\.route\(\s*"([^"]+)"\s*,\s*(get|post|patch|delete|put)\(',
+            body,
+            re.S,
+        ):
+            methods.setdefault(path, set()).add(method.upper())
 
     registry = json.loads(
         (
@@ -33,6 +42,10 @@ def main() -> int:
         ).read_text()
     )
     agent_paths = {item["path"] for item in registry["operations"]}
+    for operation in registry["operations"]:
+        method = operation.get("method")
+        if method:
+            methods.setdefault(operation["path"], set()).add(method.upper())
     spec141_agent_paths = {
         "/mcp",
         "/v1/mcp",
@@ -92,6 +105,7 @@ def main() -> int:
                 "classification": classification,
                 "rationale": rationale,
                 "sources": sorted(paths[path]),
+                "methods": sorted(methods.get(path, set())),
                 "operation_refs": sorted(
                     item["operation_id"]
                     for item in registry["operations"]
@@ -118,13 +132,57 @@ def main() -> int:
         "routes": classifications,
     }
     body = json.dumps(report, indent=2) + "\n"
+    api_lines = [
+        "# Current API Route Inventory",
+        "",
+        "Generated from current Axum route registration plus the Spec135/Spec141 operation registry. This public inventory is release-gated; do not edit route rows manually.",
+        "",
+        f"- Classified paths: `{len(classifications)}`",
+        f"- Agent eligible: `{counts.get('agent_eligible', 0)}`",
+        f"- Operator only: `{counts.get('operator_only', 0)}`",
+        f"- Public health/pairing: `{counts.get('public_health', 0) + counts.get('public_pairing', 0)}`",
+        f"- Internal: `{counts.get('internal', 0)}`",
+        "",
+        "## Release-current architecture",
+        "",
+        "Exact authority is `project_root + continuity_id`; worktrees are typed working subpaths. Agent discovery is progressive through the Agent Card, tool search/describe/graph/bundle, and strict schemas. Silent Sessions are daemon-native. Mission Canvas and Work Rail bind scoped Work Surfaces, connectors, domain projections, UIAI context, and adaptive generated UI to canonical operations.",
+        "",
+        "Machine authority: [`route-classification.json`](../contracts/spec141/generated-capability-v2/route-classification.json), [`rest-agent-operations.json`](../contracts/spec141/generated-capability-v2/rest-agent-operations.json), and [`pi-tools.json`](../contracts/spec141/generated-capability-v2/pi-tools.json). Human per-tool references: [`docs/focusa-tools/tools/`](../focusa-tools/tools/).",
+        "",
+        "## Registered routes",
+        "",
+    ]
+    for item in classifications:
+        method_labels = item["methods"] or ["ROUTE"]
+        routes = ", ".join(f"`{method} {item['path']}`" for method in method_labels)
+        source_refs = ", ".join(f"`{source}`" for source in item["sources"])
+        api_lines.extend(
+            [
+                f"### `{item['path']}`",
+                "",
+                f"- Methods: {routes}",
+                f"- Classification: `{item['classification']}`",
+                f"- Rationale: {item['rationale']}",
+                f"- Sources: {source_refs}",
+                f"- Agent operations: {', '.join(f'`{ref}`' for ref in item['operation_refs']) or 'none'}",
+                "",
+            ]
+        )
+    api_body = "\n".join(api_lines).rstrip() + "\n"
     if args.check:
+        drift = []
         if not OUTPUT.exists() or OUTPUT.read_text() != body:
-            print("Spec141 route classification drift", flush=True)
+            drift.append(str(OUTPUT.relative_to(ROOT)))
+        if not API_REFERENCE.exists() or API_REFERENCE.read_text() != api_body:
+            drift.append(str(API_REFERENCE.relative_to(ROOT)))
+        if drift:
+            print(f"Spec141 route/API reference drift: {', '.join(drift)}", flush=True)
             return 1
     else:
         OUTPUT.parent.mkdir(parents=True, exist_ok=True)
         OUTPUT.write_text(body)
+        API_REFERENCE.parent.mkdir(parents=True, exist_ok=True)
+        API_REFERENCE.write_text(api_body)
     print(
         json.dumps(
             {

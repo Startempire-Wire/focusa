@@ -24,6 +24,12 @@ focusa_traverse -> focusa_tool_bundle
 4. Call `focusa_traverse` with only required bounded inputs.
 5. Call `focusa_tool_bundle` with only required bounded inputs.
 
+## Current domain procedure
+
+1. Use cache-safe context selection: stable prefix, current operator tail, explicit miss classification, and bounded fallback.
+2. Use proactive compaction only when net token savings are positive; preserve canonical continuation packets.
+3. Activate LowMem through `focusa_resource_mode` and prefer bounded traversal over full payloads.
+
 ## Branches
 
 - Unknown tool/schema: `focusa_tool_search` → `focusa_tool_describe`.

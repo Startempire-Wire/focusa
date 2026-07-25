@@ -267,7 +267,7 @@ The Delivery Contract locks:
 - native durable Focusa event replay plus broadcast tail;
 - AG-UI as external compatibility after native stabilization;
 - JSON Schema 2020-12 and OpenAPI 3.0.3;
-- generated TypeScript and Go clients;
+- generated TypeScript clients over portable OpenAPI and JSON Schema contracts;
 - Pi RPC AgentExecutionAdapter and Spec 133 sessions for model work;
 - UIAI Engine Eval for all browser proof;
 - no Playwright in Focusa;
@@ -304,7 +304,7 @@ Implementation order:
 general Focusa primitive
 → reducer and canonical state
 → typed Focusa API
-→ generated TypeScript/Go contracts
+→ generated TypeScript and portable OpenAPI/JSON Schema contracts
 → C.R.I.S.T. projection
 → renderer
 → UIAI Engine Eval when browser-facing

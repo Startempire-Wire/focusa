@@ -1737,7 +1737,13 @@ pub fn reduce_with_meta(
         FocusaEvent::ContinuousWorkModeEnabled {
             project_run_id,
             policy,
+            scope,
+            work_item_id,
+            workpoint_id,
         } => {
+            state.work_loop.execution_scope = scope;
+            state.work_loop.execution_work_item_id = work_item_id;
+            state.work_loop.execution_workpoint_id = workpoint_id;
             state.work_loop.enabled = true;
             state.work_loop.status = WorkLoopStatus::Idle;
             state.work_loop.policy = policy;
@@ -1752,7 +1758,12 @@ pub fn reduce_with_meta(
                 "project mission active; constraints and verification posture inherited from current state"
                     .to_string(),
             );
-            state.work_loop.enabled_at = Some(Utc::now());
+            let now = Utc::now();
+            state.work_loop.enabled_at = Some(now);
+            state.work_loop.budget_epoch_id = Some(Uuid::now_v7());
+            state.work_loop.budget_epoch_started_at = Some(now);
+            state.work_loop.budget_renewal_count = 0;
+            state.work_loop.budget_exhaustion = None;
             state.work_loop.last_turn_requested_at = None;
             state.work_loop.turn_count = 0;
             state.work_loop.consecutive_failures_for_task_class = 0;
@@ -1761,11 +1772,21 @@ pub fn reduce_with_meta(
             state.work_loop.last_observed_work_item_id = None;
         }
         FocusaEvent::ContinuousWorkModeDisabled { reason } => {
+            state.work_loop.execution_scope = None;
+            state.work_loop.execution_work_item_id = None;
+            state.work_loop.execution_workpoint_id = None;
+            state.work_loop.transport_session_id = None;
+            state.work_loop.transport_scope = None;
+            state.work_loop.transport_work_item_id = None;
+            state.work_loop.transport_workpoint_id = None;
             state.work_loop.enabled = false;
             state.work_loop.status = WorkLoopStatus::Idle;
             state.work_loop.current_task = None;
             state.work_loop.last_continue_reason = Some(reason);
             state.work_loop.enabled_at = None;
+            state.work_loop.budget_epoch_id = None;
+            state.work_loop.budget_epoch_started_at = None;
+            state.work_loop.budget_exhaustion = None;
             state.work_loop.last_turn_requested_at = None;
         }
         FocusaEvent::ContinuousPauseFlagsUpdated {
@@ -1839,8 +1860,15 @@ pub fn reduce_with_meta(
         FocusaEvent::ContinuousTransportSessionAttached {
             adapter,
             session_id,
+            scope,
+            work_item_id,
+            workpoint_id,
         } => {
             state.work_loop.transport_adapter = Some(adapter);
+            state.work_loop.transport_session_id = Some(session_id.clone());
+            state.work_loop.transport_scope = Some(scope);
+            state.work_loop.transport_work_item_id = Some(work_item_id);
+            state.work_loop.transport_workpoint_id = Some(workpoint_id);
             state.work_loop.run.worker_session_id = Some(session_id.clone());
             state.work_loop.transport_session_state = Some("attached".to_string());
             state.work_loop.last_transport_event_kind = Some("session_attached".to_string());
@@ -1944,6 +1972,31 @@ pub fn reduce_with_meta(
             ));
             state.work_loop.current_task = Some(packet);
         }
+        FocusaEvent::ContinuousWorkItemDeferred {
+            work_item_id,
+            reason,
+        } => {
+            state
+                .work_loop
+                .deferred_items
+                .retain(|item| item.work_item_id != work_item_id);
+            state.work_loop.deferred_items.push(WorkLoopDeferredItem {
+                work_item_id: work_item_id.clone(),
+                reason: reason.clone(),
+                deferred_at: Utc::now(),
+            });
+            state.work_loop.last_blocker_reason = Some(reason);
+            if state
+                .work_loop
+                .current_task
+                .as_ref()
+                .map(|task| task.work_item_id.as_str())
+                == Some(work_item_id.as_str())
+            {
+                state.work_loop.current_task = None;
+            }
+            state.work_loop.status = WorkLoopStatus::SelectingReadyWork;
+        }
         FocusaEvent::ContinuousTurnRequested {
             task_run_id,
             work_item_id: _,
@@ -1978,18 +2031,31 @@ pub fn reduce_with_meta(
             continue_reason,
             verification_satisfied: _,
             spec_conformant: _,
+            outcome_status,
+            ..
         } => {
-            state.work_loop.status = WorkLoopStatus::AdvancingTask;
             state.work_loop.run.task_run_id = task_run_id;
-            state.work_loop.last_completed_task_id = work_item_id.clone();
-            state.work_loop.last_recorded_bd_transition_id = work_item_id.clone();
             state.work_loop.last_continue_reason = continue_reason;
-            state.work_loop.consecutive_failures_for_task_class = 0;
-            state.work_loop.consecutive_low_productivity_turns = 0;
-            state.work_loop.consecutive_same_work_item_retries = 0;
             state.work_loop.last_observed_work_item_id = work_item_id.clone();
-            state.work_loop.run.worker_session_id = None;
-            state.work_loop.current_task = None;
+            match outcome_status {
+                WorkLoopOutcomeStatus::Completed => {
+                    state.work_loop.status = WorkLoopStatus::AdvancingTask;
+                    state.work_loop.last_completed_task_id = work_item_id.clone();
+                    state.work_loop.last_recorded_bd_transition_id = work_item_id;
+                    state.work_loop.consecutive_failures_for_task_class = 0;
+                    state.work_loop.consecutive_low_productivity_turns = 0;
+                    state.work_loop.consecutive_same_work_item_retries = 0;
+                    state.work_loop.deferred_items.clear();
+                    state.work_loop.run.worker_session_id = None;
+                    state.work_loop.current_task = None;
+                }
+                WorkLoopOutcomeStatus::Blocked => {
+                    state.work_loop.status = WorkLoopStatus::Blocked;
+                }
+                WorkLoopOutcomeStatus::Continue => {
+                    state.work_loop.status = WorkLoopStatus::Idle;
+                }
+            }
         }
         FocusaEvent::ContinuousSecondaryLoopOutcomeRecorded { .. } => {
             // Runtime updates secondary-loop telemetry eagerly in daemon state.
@@ -2034,19 +2100,43 @@ pub fn reduce_with_meta(
             state.work_loop.last_continue_reason = Some(reason);
             state.work_loop.run.tranche_run_id = None;
         }
-        FocusaEvent::ContinuousLoopBudgetExhausted { reason } => {
+        FocusaEvent::ContinuousLoopBudgetExhausted { dimension, reason } => {
             state.work_loop.status = WorkLoopStatus::Paused;
-            state.work_loop.last_blocker_reason = Some(reason);
+            state.work_loop.last_blocker_reason = Some(reason.clone());
+            state.work_loop.budget_exhaustion = Some(WorkLoopBudgetExhaustion {
+                dimension,
+                reason,
+                exhausted_at: Utc::now(),
+                epoch_id: state.work_loop.budget_epoch_id.unwrap_or_else(Uuid::now_v7),
+            });
         }
         FocusaEvent::ContinuousLoopTransportDegraded { reason } => {
             state.work_loop.status = WorkLoopStatus::TransportDegraded;
             state.work_loop.last_blocker_reason = Some(reason);
         }
-        FocusaEvent::ContinuousLoopResumed { reason } => {
+        FocusaEvent::ContinuousLoopResumed {
+            reason,
+            budget_renewed,
+            policy,
+        } => {
             state.work_loop.status = WorkLoopStatus::Idle;
             state.work_loop.pause_flags = WorkLoopPauseFlags::default();
             state.work_loop.last_safe_reentry_prompt_basis = Some(reason.clone());
             state.work_loop.last_continue_reason = Some(reason);
+            if let Some(policy) = policy {
+                state.work_loop.policy = policy;
+            }
+            if budget_renewed {
+                state.work_loop.budget_epoch_id = Some(Uuid::now_v7());
+                state.work_loop.budget_epoch_started_at = Some(Utc::now());
+                state.work_loop.budget_renewal_count =
+                    state.work_loop.budget_renewal_count.saturating_add(1);
+                state.work_loop.budget_exhaustion = None;
+                state.work_loop.turn_count = 0;
+                state.work_loop.consecutive_failures_for_task_class = 0;
+                state.work_loop.consecutive_low_productivity_turns = 0;
+                state.work_loop.consecutive_same_work_item_retries = 0;
+            }
         }
         FocusaEvent::ContinuousLoopRecoveryCheckpointed {
             checkpoint_id,
@@ -5713,6 +5803,236 @@ mod tests {
         assert_eq!(
             first.root_goal_stability,
             TrajectoryRootGoalStability::Superseded
+        );
+    }
+
+    #[test]
+    fn work_loop_execution_scope_is_reducer_owned_and_cleared_on_stop() {
+        let project = crate::scoped_state::ScopeRef::project(
+            "project:focusa",
+            "/repo/focusa",
+            "Focusa",
+            "sha256:focusa",
+        )
+        .unwrap();
+        let scope = crate::scoped_state::WorkstreamKey::new(project, "cont-focusa").unwrap();
+        let workpoint_id = Uuid::now_v7();
+        let enabled = reduce(
+            fresh_state(),
+            FocusaEvent::ContinuousWorkModeEnabled {
+                project_run_id: Uuid::now_v7(),
+                policy: WorkLoopPolicy::default(),
+                scope: Some(scope.clone()),
+                work_item_id: Some("focusa-workloop-completion.2".to_string()),
+                workpoint_id: Some(workpoint_id),
+            },
+        )
+        .unwrap()
+        .new_state;
+        assert_eq!(enabled.work_loop.execution_scope, Some(scope));
+        assert_eq!(
+            enabled.work_loop.execution_work_item_id.as_deref(),
+            Some("focusa-workloop-completion.2")
+        );
+        assert_eq!(enabled.work_loop.execution_workpoint_id, Some(workpoint_id));
+
+        let stopped = reduce(
+            enabled,
+            FocusaEvent::ContinuousWorkModeDisabled {
+                reason: "operator stop".to_string(),
+            },
+        )
+        .unwrap()
+        .new_state;
+        assert_eq!(stopped.work_loop.execution_scope, None);
+        assert_eq!(stopped.work_loop.execution_work_item_id, None);
+        assert_eq!(stopped.work_loop.execution_workpoint_id, None);
+    }
+
+    #[test]
+    fn deferred_blocker_yields_and_continue_outcome_keeps_current_task() {
+        let mut state = fresh_state();
+        state.work_loop.current_task = Some(SpecLinkedTaskPacket {
+            work_item_id: "blocked".to_string(),
+            title: "blocked".to_string(),
+            ..SpecLinkedTaskPacket::default()
+        });
+        let deferred = reduce(
+            state,
+            FocusaEvent::ContinuousWorkItemDeferred {
+                work_item_id: "blocked".to_string(),
+                reason: "dependency unavailable".to_string(),
+            },
+        )
+        .unwrap()
+        .new_state;
+        assert!(deferred.work_loop.current_task.is_none());
+        assert_eq!(deferred.work_loop.deferred_items.len(), 1);
+        assert_eq!(
+            deferred.work_loop.status,
+            WorkLoopStatus::SelectingReadyWork
+        );
+
+        let mut continuing = deferred;
+        continuing.work_loop.current_task = Some(SpecLinkedTaskPacket {
+            work_item_id: "alternate".to_string(),
+            title: "alternate".to_string(),
+            ..SpecLinkedTaskPacket::default()
+        });
+        let continued = reduce(
+            continuing,
+            FocusaEvent::ContinuousTurnCompleted {
+                task_run_id: None,
+                work_item_id: Some("alternate".to_string()),
+                continue_reason: Some("more work remains".to_string()),
+                verification_satisfied: false,
+                spec_conformant: true,
+                outcome_status: WorkLoopOutcomeStatus::Continue,
+                evidence_citations: vec![],
+            },
+        )
+        .unwrap()
+        .new_state;
+        assert_eq!(continued.work_loop.status, WorkLoopStatus::Idle);
+        assert_eq!(
+            continued
+                .work_loop
+                .current_task
+                .as_ref()
+                .map(|task| task.work_item_id.as_str()),
+            Some("alternate")
+        );
+        assert_eq!(continued.work_loop.deferred_items.len(), 1);
+    }
+
+    #[test]
+    fn budget_exhaustion_and_explicit_renewal_create_new_epoch() {
+        let mut state = fresh_state();
+        let initial_epoch = Uuid::now_v7();
+        state.work_loop.budget_epoch_id = Some(initial_epoch);
+        state.work_loop.budget_epoch_started_at = Some(Utc::now() - chrono::Duration::minutes(5));
+        state.work_loop.turn_count = 30;
+        let exhausted = reduce(
+            state,
+            FocusaEvent::ContinuousLoopBudgetExhausted {
+                dimension: WorkLoopBudgetDimension::WallClock,
+                reason: "max_wall_clock_ms budget exhausted".to_string(),
+            },
+        )
+        .unwrap()
+        .new_state;
+        assert_eq!(exhausted.work_loop.status, WorkLoopStatus::Paused);
+        assert_eq!(
+            exhausted
+                .work_loop
+                .budget_exhaustion
+                .as_ref()
+                .map(|entry| entry.dimension),
+            Some(WorkLoopBudgetDimension::WallClock)
+        );
+        let renewed = reduce(
+            exhausted,
+            FocusaEvent::ContinuousLoopResumed {
+                reason: "approved renewal".to_string(),
+                budget_renewed: true,
+                policy: None,
+            },
+        )
+        .unwrap()
+        .new_state;
+        assert_eq!(renewed.work_loop.status, WorkLoopStatus::Idle);
+        assert!(renewed.work_loop.budget_exhaustion.is_none());
+        assert_ne!(renewed.work_loop.budget_epoch_id, Some(initial_epoch));
+        assert_eq!(renewed.work_loop.budget_renewal_count, 1);
+        assert_eq!(renewed.work_loop.turn_count, 0);
+    }
+
+    #[test]
+    fn transport_attachment_materializes_exact_execution_partition() {
+        let project = crate::scoped_state::ScopeRef::project(
+            "project:focusa",
+            "/repo/focusa",
+            "Focusa",
+            "sha256:focusa",
+        )
+        .unwrap();
+        let scope = crate::scoped_state::WorkstreamKey::new(project, "cont-focusa").unwrap();
+        let workpoint_id = Uuid::now_v7();
+        let attached = reduce(
+            fresh_state(),
+            FocusaEvent::ContinuousTransportSessionAttached {
+                adapter: "pi-rpc".to_string(),
+                session_id: "session-1".to_string(),
+                scope: scope.clone(),
+                work_item_id: "focusa-root".to_string(),
+                workpoint_id,
+            },
+        )
+        .unwrap()
+        .new_state;
+        assert_eq!(
+            attached.work_loop.transport_session_id.as_deref(),
+            Some("session-1")
+        );
+        assert_eq!(attached.work_loop.transport_scope, Some(scope));
+        assert_eq!(
+            attached.work_loop.transport_work_item_id.as_deref(),
+            Some("focusa-root")
+        );
+        assert_eq!(
+            attached.work_loop.transport_workpoint_id,
+            Some(workpoint_id)
+        );
+    }
+
+    #[test]
+    fn decision_context_source_turn_never_repartitions_execution_scope() {
+        let project = crate::scoped_state::ScopeRef::project(
+            "project:focusa",
+            "/repo/focusa",
+            "Focusa",
+            "sha256:focusa",
+        )
+        .unwrap();
+        let scope =
+            crate::scoped_state::WorkstreamKey::new(project, "workloop-completion").unwrap();
+        let enabled = reduce(
+            fresh_state(),
+            FocusaEvent::ContinuousWorkModeEnabled {
+                project_run_id: Uuid::now_v7(),
+                policy: WorkLoopPolicy::default(),
+                scope: Some(scope.clone()),
+                work_item_id: Some("focusa-a6yq6.2.3".to_string()),
+                workpoint_id: Some(Uuid::now_v7()),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        let updated = reduce(
+            enabled,
+            FocusaEvent::ContinuousDecisionContextUpdated {
+                current_ask: Some("verify the loop".to_string()),
+                ask_kind: Some("instruction".to_string()),
+                scope_kind: Some("mission_carryover".to_string()),
+                carryover_policy: Some("allow_if_relevant".to_string()),
+                excluded_context_reason: None,
+                excluded_context_labels: None,
+                source_turn_id: Some("pi-turn-686".to_string()),
+                operator_steering_detected: Some(true),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        assert_eq!(updated.work_loop.execution_scope, Some(scope));
+        assert_eq!(
+            updated.work_loop.execution_work_item_id.as_deref(),
+            Some("focusa-a6yq6.2.3")
+        );
+        assert_eq!(
+            updated.work_loop.decision_context.source_turn_id.as_deref(),
+            Some("pi-turn-686")
         );
     }
 

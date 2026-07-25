@@ -30,7 +30,7 @@ assert_has apps/menubar/src/routes/+page.svelte "WorkpointPeek|activeTab === 'wo
 assert_has apps/menubar/src/routes/+page.svelte '/v1/predictions/recent|/v1/predictions/stats|/v1/metacognition/evaluations/recent|/v1/focus/snapshots/recent|/v1/lineage/head' 'menubar poll includes proof hot surfaces'
 assert_has apps/menubar/src/lib/components/ProofPeek.svelte 'Workpoint evidence|Predictions|Metacognition|Snapshots|Lineage head' 'proof peek renders evidence/prediction/metacog/snapshot surfaces calmly'
 assert_has apps/menubar/src/routes/+page.svelte "ProofPeek|activeTab === 'proof'" 'proof peek is reachable from menubar shell'
-assert_has apps/menubar/src/routes/+page.svelte '/v1/work-loop/checkpoints' 'menubar poll includes work-loop checkpoints surface'
+assert_has apps/menubar/src/lib/workLoopScope.js '/v1/work-loop/checkpoints' 'menubar scoped poll includes work-loop checkpoints surface'
 assert_has apps/menubar/src/lib/components/WorkLoopPeek.svelte 'Dispatch posture|Active task|Pause flags|Recent checkpoints|writer' 'work-loop peek renders readiness and checkpoint surfaces calmly'
 assert_has apps/menubar/src/routes/+page.svelte "WorkLoopPeek|activeTab === 'workloop'" 'work-loop peek is reachable from menubar shell'
 assert_has apps/menubar/src/routes/+page.svelte 'aria-label="Focusa peeks"|tab-mark|icon-only|quiet|scrollbar-width: none' 'menubar navigation uses calm aesthetic peek tabs only where needed'

@@ -69,10 +69,10 @@ Likely next: `focusa_context_cognition_optimizer_artifacts`, `focusa_predict_rec
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`, `skill:focusa-agent-bootstrap`
 - Runbooks: `runbook:trajectory`
 - Pi: `focusa_context_cognition_curate_optimize`; MCP: `focusa.context.cognition.curate.optimize`; OpenAI: `focusa_context_cognition_curate_optimize`.
 - CLI: `focusa context-cognition curate-optimize`.
 - REST: `POST /v1/context-cognition/curate/optimize`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:7a685042cf483354bbfd964ce52209f7d7884d288c3f6e85776b579be7569b78`.
+- Descriptor digest: `sha256:e49ed0f7e1c6f195bb38edde4ab9df4d80ad89fbf6bb8c0b8b8bbdd307216ad3`.

@@ -60,10 +60,10 @@ Likely next: `focusa_device_pair_list`.
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`, `skill:focusa-session-recovery`
+- Skills: `skill:focusa`, `skill:focusa-session-recovery`, `skill:focusa-security-auth-licensing`
 - Runbooks: `runbook:session_transfer`
 - Pi: `focusa_device_pair_revoke`; MCP: `focusa.device.pair.revoke`; OpenAI: `focusa_device_pair_revoke`.
 - CLI: `focusa device pair-revoke`.
 - REST: `POST /v1/device/pair/revoke`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:f9b9fe3dcd8f5ac60410c139e6a6f88daff2da2518e0e8408d2bbcab40178854`.
+- Descriptor digest: `sha256:95b3b946a4856a8cf91afe618f3ac1d88b20c1ee124fd2138b910659ef349698`.

@@ -8,7 +8,9 @@ use async_trait::async_trait;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use crate::work_item::types::{ProviderCapabilities, WorkItem, WorkItemProvider, WorkItemRef};
+use crate::work_item::types::{
+    ProviderCapabilities, WorkItem, WorkItemProvider, WorkItemQuery, WorkItemRef,
+};
 
 /// Behaviors shared by all provider adapters.
 pub type RegistryResult<T> = Result<T, RegistryError>;
@@ -98,6 +100,15 @@ pub trait ProviderAdapter: Send + Sync {
     /// Look up a work item in the provider. Returns the current status
     /// so `reconcile` can verify the post-submit state.
     async fn resolve(&self, work_item: &WorkItemRef) -> RegistryResult<WorkItem>;
+
+    /// List provider snapshots for core dependency evaluation. Providers do
+    /// not decide readiness or ordering; Work Loop calls the core scheduler.
+    async fn list(&self, _query: &WorkItemQuery) -> RegistryResult<Vec<WorkItem>> {
+        Err(RegistryError::CapabilityUnsupported {
+            provider: self.provider(),
+            capability: "list_work_items",
+        })
+    }
 
     /// Validate that a `provider_item_id` exists and is in a state that
     /// can be closed (e.g. not already closed, not archived).
@@ -197,8 +208,15 @@ mod tests {
             Ok(WorkItem {
                 provider: self.kind,
                 provider_item_id: "id".into(),
+                project_root: std::path::PathBuf::from("/tmp/project"),
                 provider_status: crate::work_item::types::WorkItemStatus::Open,
                 title: "stub".into(),
+                priority: 0,
+                parent: None,
+                dependencies: vec![],
+                acceptance_criteria: vec![],
+                spec_refs: vec![],
+                blocked_reason: None,
                 url: None,
                 revision: None,
             })

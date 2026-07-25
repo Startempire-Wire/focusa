@@ -1130,7 +1130,8 @@
         "focusa_project_identity"
       ],
       "skill_refs": [
-        "skill:focusa"
+        "skill:focusa",
+        "skill:focusa-workpoint"
       ],
       "runbook_refs": [
         "runbook:focus_state"
@@ -1158,7 +1159,7 @@
         "snippet": "Use at session start or when tool routing drifts.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:0ca20f4bbe85cac0abfc6627b38800e789dbe403b5cb2a9aa4be8395bcb40272"
+      "descriptor_digest": "sha256:d620b575ae48d5330b9cd3ea4cb84040b8a4c96ddc8ede034514d10e7f1314d2"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -1978,7 +1979,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-troubleshooting"
+        "skill:focusa-troubleshooting",
+        "skill:focusa-resource-performance"
       ],
       "runbook_refs": [
         "runbook:diagnostics_hygiene"
@@ -2007,7 +2009,7 @@
         "snippet": "Use when a gap maps to one budget domain such as output-firewall, docs-diet, or dead-code-safety.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:5ea925069d08e3a9c9238d64e5a4832b82c59272b4be0d89be31749e79edfb52"
+      "descriptor_digest": "sha256:611f8c57dfec8078466e90ef7f8fe9e83a75062aff22f0d00d1180cb48df0bbe"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -2371,7 +2373,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-troubleshooting"
+        "skill:focusa-troubleshooting",
+        "skill:focusa-resource-performance"
       ],
       "runbook_refs": [
         "runbook:diagnostics_hygiene"
@@ -2400,7 +2403,7 @@
         "snippet": "Use to inspect a gate mode such as A/advisory, B/warning, or C/fail-candidate before enforcing it.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:de90e3b856f499b2e71a3a183e5fbfc20610d9bfff5589cba6f6174cf8049e85"
+      "descriptor_digest": "sha256:9545e3353d3e5762496b5328c9e5e3cb483ce7a9bcf96d1bea80815f7877c626"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -2752,7 +2755,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-troubleshooting"
+        "skill:focusa-troubleshooting",
+        "skill:focusa-resource-performance"
       ],
       "runbook_refs": [
         "runbook:diagnostics_hygiene"
@@ -2782,7 +2786,7 @@
         "snippet": "Use before enabling warning/fail-candidate Bloatgaurd gates; this tool is read-only.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:2b4b54f2e55c1fa1ce3ce2597fd7df6f2ec8c330bc3b59fab594b2a5fa48c5d0"
+      "descriptor_digest": "sha256:90e6a1ed3571f690298116f97f22e2a19bcb7339b8cd1ab9791a2f50dbf64956"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -3146,7 +3150,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-troubleshooting"
+        "skill:focusa-troubleshooting",
+        "skill:focusa-resource-performance"
       ],
       "runbook_refs": [
         "runbook:diagnostics_hygiene"
@@ -3174,7 +3179,7 @@
         "snippet": "Use to inspect a profile such as daily_driver or tightwad.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:ff28a016e62491520abd65226c937d4fac3bb32773c60a3e70f6e0426670018b"
+      "descriptor_digest": "sha256:90f018209e8e82e17e14787d0c8f1a6a5c8fa9e6aa26fcacafe5a7ef889ae02a"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -3526,7 +3531,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-troubleshooting"
+        "skill:focusa-troubleshooting",
+        "skill:focusa-resource-performance"
       ],
       "runbook_refs": [
         "runbook:diagnostics_hygiene"
@@ -3555,7 +3561,7 @@
         "snippet": "Use to inspect Daily Driver, Beast Mode, Speedy, Neat Freak, and Tightwad profile settings.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:f3e78a2dad10bc8f685ab4286c8bfb1f1e19cc5e6f696a8a3912499efd245b51"
+      "descriptor_digest": "sha256:83faf34f71ce550e1516abea6202c09595aec5624f8250b37a6873327316f203"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -3907,7 +3913,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-troubleshooting"
+        "skill:focusa-troubleshooting",
+        "skill:focusa-resource-performance"
       ],
       "runbook_refs": [
         "runbook:diagnostics_hygiene"
@@ -3937,7 +3944,7 @@
         "snippet": "Use before cleanup or context-budget work to inspect Bloatgaurd budget domains and full-payload/deletion gates.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:b3873999bca1131eaed30f23d1f5b60de3d25a15eb7425c421db6f0844e698dd"
+      "descriptor_digest": "sha256:5685127337527a5bdd77e28fd38a78b8f7b3dd2711a7f1c75abd4d8df2d12a9a"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -4289,7 +4296,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-troubleshooting"
+        "skill:focusa-troubleshooting",
+        "skill:focusa-resource-performance"
       ],
       "runbook_refs": [
         "runbook:diagnostics_hygiene"
@@ -4317,7 +4325,7 @@
         "snippet": "Use to verify rollout hardening acceptance/proof for Bloatgaurd MVP.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:5cafe996a6e75835559fea4f28df701ee1d248e50eb9f8488ac033f3599148b2"
+      "descriptor_digest": "sha256:883997b01a1ae11e41d68b2874c052c59a29b11308e3ad62165fb1964cb959c2"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -4681,7 +4689,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-troubleshooting"
+        "skill:focusa-troubleshooting",
+        "skill:focusa-resource-performance"
       ],
       "runbook_refs": [
         "runbook:diagnostics_hygiene"
@@ -4709,7 +4718,7 @@
         "snippet": "Use to inspect a routine such as patrol, gatekeeper, or scout.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a7b27bee3ade91ebcbf281023b846b40a71ccde8ed599c2e864ba3f4cfbc53c0"
+      "descriptor_digest": "sha256:75c584ab37eab87393d570ed660b2bd441a681e07463f0d250c39696367dd4a3"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -5061,7 +5070,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-troubleshooting"
+        "skill:focusa-troubleshooting",
+        "skill:focusa-resource-performance"
       ],
       "runbook_refs": [
         "runbook:diagnostics_hygiene"
@@ -5090,7 +5100,7 @@
         "snippet": "Use to inspect Patrol through Scout automation policy.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:6f636792402fb050f48b477531e892d49e21b5a57c10e3b8c9edbff07a1801ef"
+      "descriptor_digest": "sha256:900ee46df34a22aa6a3960ba0bed8e95094c2cad774d1d13cfc63b9832255764"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -5454,7 +5464,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-troubleshooting"
+        "skill:focusa-troubleshooting",
+        "skill:focusa-resource-performance"
       ],
       "runbook_refs": [
         "runbook:diagnostics_hygiene"
@@ -5482,7 +5493,7 @@
         "snippet": "Use when a gap maps to tokenbloat-control or tool-call-history-elision.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:c038a7b0807a426f2cdc6371082622d37d09720bab9bfd676d668e5dffcbca1e"
+      "descriptor_digest": "sha256:aa25e6a0a0a2d46596bba64dfb32e75f250eb7a0fafcb618e1faa8b935c0e4a4"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -5834,7 +5845,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-troubleshooting"
+        "skill:focusa-troubleshooting",
+        "skill:focusa-resource-performance"
       ],
       "runbook_refs": [
         "runbook:diagnostics_hygiene"
@@ -5863,7 +5875,7 @@
         "snippet": "Use to inspect prompt/runtime tokenbloat controls before reducing context or eliding tool history.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:1ae21fdd6ff6716c9084c5129d7e90a0827435d2adf5c6d36b0e5f334444fded"
+      "descriptor_digest": "sha256:d7ce34842178257ab08e75e45f0350e49ed1dd2b9ef6d84fd3aba05a8e65011d"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -7622,7 +7634,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-workpoint"
+        "skill:focusa-workpoint",
+        "skill:focusa-spec-implementation"
       ],
       "runbook_refs": [
         "runbook:workpoint"
@@ -7654,7 +7667,7 @@
         "snippet": "Use when designing a new feature or refactor that will be implemented by an AI agent. The design is a typed artifact, not free-form prose.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:70f2f0c5060395cdcda7b10d80e21c5cd63e705747a4eccbeb4da82189d2b474"
+      "descriptor_digest": "sha256:aa0b85d05395111ce43a13cc709c8087f734b4ddd6e1cfcea5a2cb579ad96a90"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -8053,7 +8066,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-workpoint"
+        "skill:focusa-workpoint",
+        "skill:focusa-spec-implementation"
       ],
       "runbook_refs": [
         "runbook:workpoint"
@@ -8083,7 +8097,7 @@
         "snippet": "Use after focusa_call_stack_design or before implementation review to detect design-vs-code drift without mutating Focus State.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:7527d053bb4d4c1736354ad2f6d28c78a751fc15cdb3d360dd918294168e7b42"
+      "descriptor_digest": "sha256:03725708b2c2655f3f829065d65fa4d8f229ce058d1db1750e0a60ecdeed82c7"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -8448,7 +8462,8 @@
         "focusa_workpoint_resume"
       ],
       "skill_refs": [
-        "skill:focusa"
+        "skill:focusa",
+        "skill:focusa-workpoint"
       ],
       "runbook_refs": [
         "runbook:focus_state"
@@ -8487,7 +8502,7 @@
           "Example INVALID: 'Need to fix the scratchpad path' (self-imposed task)"
         ]
       },
-      "descriptor_digest": "sha256:0608c0f5d3e727641eb7d706bdc4cecf2c2a087054396c2c3ce9555f79708de6"
+      "descriptor_digest": "sha256:6e03795f4c9c089d9f199c82703bd52443f3e6eb8eb712b3522942deec677093"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -8859,7 +8874,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-workpoint"
+        "skill:focusa-workpoint",
+        "skill:focusa-agent-bootstrap"
       ],
       "runbook_refs": [
         "runbook:trajectory"
@@ -8890,7 +8906,7 @@
         "snippet": "Use when an operator or agent needs a structured, bounded view of the current project context before making decisions. The packet is advisory and never overrides Workpoint or Trajectory.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:1f0b3227996b3d49f98fc220f6e500ec82b55d38cea39724c888193c08979c6d"
+      "descriptor_digest": "sha256:b9559f6d690f0356209df51524205980378e1d5d28b875bea4ba2d3b8efff868"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -9305,7 +9321,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-workpoint"
+        "skill:focusa-workpoint",
+        "skill:focusa-agent-bootstrap"
       ],
       "runbook_refs": [
         "runbook:trajectory"
@@ -9336,7 +9353,7 @@
         "snippet": "Use when the agent or operator has a candidate list (files, docs, diffs, evidence) and needs a token-budgeted selection that maximizes relevance to a target (workpoint next_slice, mission, or query).",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:12cb82efda06bfa998a6b36969030ec99a3f44afc6a37cbca2b979c8e418bb19"
+      "descriptor_digest": "sha256:b8da0b293a2a814f04a60f6bd08874880789b54df183d790e771180d53c1ae68"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -9778,7 +9795,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-workpoint"
+        "skill:focusa-workpoint",
+        "skill:focusa-agent-bootstrap"
       ],
       "runbook_refs": [
         "runbook:trajectory"
@@ -9811,7 +9829,7 @@
         "snippet": "Use when measuring whether the curator's selection matches an operator's expected selection. Captures the result as a focusa_metacog_capture lesson and a focusa_predict_record prediction.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:018155e866364a5e200a3f9770c1aa7b7d0341d90250082dbe55051d0ba20527"
+      "descriptor_digest": "sha256:067e7f50f9a862b7e331529192aff01ed08fa96987bf39488d7bd74cae7df5cb"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -10217,7 +10235,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-workpoint"
+        "skill:focusa-workpoint",
+        "skill:focusa-agent-bootstrap"
       ],
       "runbook_refs": [
         "runbook:trajectory"
@@ -10250,7 +10269,7 @@
         "snippet": "Use after focusa_context_cognition_curate_eval when the operator has a candidate prompt/module artifact and wants the curator's promotion/rollback decision.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:7a685042cf483354bbfd964ce52209f7d7884d288c3f6e85776b579be7569b78"
+      "descriptor_digest": "sha256:e49ed0f7e1c6f195bb38edde4ab9df4d80ad89fbf6bb8c0b8b8bbdd307216ad3"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -10608,7 +10627,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-workpoint"
+        "skill:focusa-workpoint",
+        "skill:focusa-agent-bootstrap"
       ],
       "runbook_refs": [
         "runbook:trajectory"
@@ -10638,7 +10658,7 @@
         "snippet": "Use when checking which Cognition Optimizer artifact is currently promoted for a project, or when reviewing the artifact history for rollback decisions.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:49c3ea1c1710a1f19665b79ebbcdd7de54bee87852059052803021b02ca9a6ca"
+      "descriptor_digest": "sha256:f51ae1ddc6cf2f85cc2258512789025ed8f27dca573baa3b3aeef21e4994bc44"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -11001,7 +11021,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-workpoint"
+        "skill:focusa-workpoint",
+        "skill:focusa-agent-bootstrap"
       ],
       "runbook_refs": [
         "runbook:trajectory"
@@ -11031,7 +11052,7 @@
         "snippet": "Use when an operator wants a one-shot proof bundle for the context cognition packet: curl health, project identity, trajectory, workpoint; focusa CLI; node audit scripts.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:8fa45b5097da48d9033c9c8a0ff5ac726029cc5cc8dfea4c13404a0ccb0cddf6"
+      "descriptor_digest": "sha256:79c8bfe1a3fd16bab414694b813b5af7355516f749cc683e33dad1ee2cae5ddf"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -11389,7 +11410,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-workpoint"
+        "skill:focusa-workpoint",
+        "skill:focusa-agent-bootstrap"
       ],
       "runbook_refs": [
         "runbook:trajectory"
@@ -11419,7 +11441,7 @@
         "snippet": "Use when an operator or agent needs a human-readable view of the context cognition packet without parsing JSON.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:33e72ed295853a325e3aeca78c9c634c25dd086f250b02d6fd4c6e72fcbb742b"
+      "descriptor_digest": "sha256:b7983543268f09abf507d186c32e90b84e2fa737b00e6522bffff359092b7db0"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -11780,7 +11802,8 @@
         "focusa_evidence_capture"
       ],
       "skill_refs": [
-        "skill:focusa"
+        "skill:focusa",
+        "skill:focusa-workpoint"
       ],
       "runbook_refs": [
         "runbook:focus_state"
@@ -11810,7 +11833,7 @@
         "snippet": "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:f3c95d18abbcb07cb0a2bae03bfd4f727f095c5b200c64ab2455963c04af05cd"
+      "descriptor_digest": "sha256:c85faf0637e544fd338bf1baa48245b303a050ed1481cf6a93610cc92560d777"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -12175,7 +12198,8 @@
         "focusa_workpoint_resume"
       ],
       "skill_refs": [
-        "skill:focusa"
+        "skill:focusa",
+        "skill:focusa-workpoint"
       ],
       "runbook_refs": [
         "runbook:focus_state"
@@ -12213,7 +12237,7 @@
           "Example INVALID: 'Fix all pi-extension spec gaps in priority order...' (task list, not decision)"
         ]
       },
-      "descriptor_digest": "sha256:4d09cf2e06a3fda046221b510eb13b2ddc8740225fc3b5cd0ed97b4ed8f0fac5"
+      "descriptor_digest": "sha256:2f08af152eee475c2172a81b22cc20c0564bad8c7dac9f876ab613b2851f0d20"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -12582,7 +12606,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-session-recovery"
+        "skill:focusa-session-recovery",
+        "skill:focusa-security-auth-licensing"
       ],
       "runbook_refs": [
         "runbook:session_transfer"
@@ -12614,7 +12639,7 @@
         "snippet": "Use on the VPS side to complete a pending pairing initiated by focusa_device_pair_start. Returns the long-lived token that the Mac app will use for subsequent calls.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:0de1119449d31f6dfcdc8782bd44ef0dd0baf4833640c638e5e79f97bb0cada9"
+      "descriptor_digest": "sha256:6e8a595abcc5d4ba85c85fd93a10ce96046bb4a7c63c3eac22e59bfc728f6847"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -12972,7 +12997,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-session-recovery"
+        "skill:focusa-session-recovery",
+        "skill:focusa-security-auth-licensing"
       ],
       "runbook_refs": [
         "runbook:session_transfer"
@@ -13000,7 +13026,7 @@
         "snippet": "Use to see which devices are currently paired with this Focusa daemon, and which have been revoked.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a7f094b89d780b5b3f35ff205a9ad57b542c55e5e53763a4175de06e8a0d6e0a"
+      "descriptor_digest": "sha256:c50c6371970a5d3873f7c86590166ad02460e2d5ddcf8ad9393c71870f274030"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -13368,7 +13394,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-session-recovery"
+        "skill:focusa-session-recovery",
+        "skill:focusa-security-auth-licensing"
       ],
       "runbook_refs": [
         "runbook:session_transfer"
@@ -13401,7 +13428,7 @@
         "snippet": "Use when the operator wants the Mac to display a QR for phone-based pairing. Requires FOCUSA_PAIRING_URL set on the VPS to a public URL, otherwise pair_url falls back to daemon_base_url (local-only).",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a41104bbdcacf24f805ff6ffb623a1b5fcbd27aaf0b3ac39370f7ff41045779e"
+      "descriptor_digest": "sha256:d952478a194ddc6c49d8ea961b1a1709874ba24a7ca8cab51affb19699688673"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -13765,7 +13792,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-session-recovery"
+        "skill:focusa-session-recovery",
+        "skill:focusa-security-auth-licensing"
       ],
       "runbook_refs": [
         "runbook:session_transfer"
@@ -13795,7 +13823,7 @@
         "snippet": "Use to remove a paired device (lost laptop, rotation, security incident). The device will need to re-pair.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:f9b9fe3dcd8f5ac60410c139e6a6f88daff2da2518e0e8408d2bbcab40178854"
+      "descriptor_digest": "sha256:95b3b946a4856a8cf91afe618f3ac1d88b20c1ee124fd2138b910659ef349698"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -14169,7 +14197,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-session-recovery"
+        "skill:focusa-session-recovery",
+        "skill:focusa-security-auth-licensing"
       ],
       "runbook_refs": [
         "runbook:session_transfer"
@@ -14202,7 +14231,7 @@
         "snippet": "Use when the operator wants to connect the Focusa Mac menubar app to a remote Focusa daemon. Generates a pairing code; the operator runs the corresponding focusa device pair-complete on the VPS to mint a token.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:71349cd5a326c39de2fce33f7e8589b84ae0520761e81a5fd13838ba59ae66a3"
+      "descriptor_digest": "sha256:8ce387830383659dc736e6a829181e75588fde43ff4e3c13090700c55f588954"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -14558,7 +14587,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-session-recovery"
+        "skill:focusa-session-recovery",
+        "skill:focusa-security-auth-licensing"
       ],
       "runbook_refs": [
         "runbook:session_transfer"
@@ -14587,7 +14617,7 @@
         "snippet": "Use to poll whether a focusa_device_pair_start code has been completed by the VPS, or to look up the long-lived token for a known device_id.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:961b35b9d8faad4f9a9657929df1c1938ed90a355b83669851282d75aa9f6ea1"
+      "descriptor_digest": "sha256:c6cacbf47d30811ed4ae1d7c84a9934ca0e24e79a21059f631b00abdcfd341bb"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -16527,7 +16557,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-workpoint"
+        "skill:focusa-workpoint",
+        "skill:focusa-evidence-outcomes"
       ],
       "runbook_refs": [
         "runbook:workpoint"
@@ -16558,7 +16589,7 @@
         "snippet": "Use after tests, stress runs, or proof collection to keep handles instead of transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:bd281f1144543f8a5f0dc2be599caf4af447e6cd7ba8ade2e12be7dbeec9032e"
+      "descriptor_digest": "sha256:6b5e2211ddbe0e27ef405e8f6ebcdb8e44dab3c92506ef327ed21dd1d5c0dfb2"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -16923,7 +16954,8 @@
         "focusa_metacog_capture"
       ],
       "skill_refs": [
-        "skill:focusa"
+        "skill:focusa",
+        "skill:focusa-workpoint"
       ],
       "runbook_refs": [
         "runbook:focus_state"
@@ -16959,7 +16991,7 @@
           "recovery = what was done to fix or work around (optional)."
         ]
       },
-      "descriptor_digest": "sha256:5178ad0514b54b5c26dcfd1cd271325b2c68b7fd49511d90514e2e1cf4529945"
+      "descriptor_digest": "sha256:2a6ba9313c05ffc141e8cad0d344a50f149f366d7b2881c852f0571d05dcb93e"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -17732,7 +17764,8 @@
         "focusa_workpoint_checkpoint"
       ],
       "skill_refs": [
-        "skill:focusa"
+        "skill:focusa",
+        "skill:focusa-workpoint"
       ],
       "runbook_refs": [
         "runbook:focus_state"
@@ -17762,7 +17795,7 @@
         "snippet": "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a914e04746a394e56186b05b022e17d2d646892d4d5323698d5ef828f4356a6b"
+      "descriptor_digest": "sha256:ee88f6b23b18299d0bd7fd0ac75e16569d3fda9473a8f5ea5b0aabdcdc3d815f"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -19404,6 +19437,10 @@
           {
             "method": "POST",
             "path": "/v1/metacognition/evaluate"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/metacognition/evaluations/recent"
           }
         ]
       },
@@ -19672,6 +19709,13 @@
             "kind": "read",
             "route_family": "auto"
           }
+        },
+        {
+          "route": "GET /v1/metacognition/evaluations/recent",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
         }
       ],
       "annotations": {
@@ -19763,7 +19807,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-metacognition"
+        "skill:focusa-metacognition",
+        "skill:focusa-evidence-outcomes"
       ],
       "runbook_refs": [
         "runbook:metacognition"
@@ -19793,7 +19838,7 @@
         "snippet": "Use for reusable learning signals; store concise evidence-backed lessons, not raw transcript blobs.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:6acdd64b2561b6ce03812c721a7367df94b58c4dfb2f1c1c1da670befb8d4d17"
+      "descriptor_digest": "sha256:dc81f2700f3cd52f51c2c548c32ca060a76fbe769bc3f60c7e7c06efce28c90e"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -22657,7 +22702,8 @@
         "focusa_evidence_capture"
       ],
       "skill_refs": [
-        "skill:focusa"
+        "skill:focusa",
+        "skill:focusa-workpoint"
       ],
       "runbook_refs": [
         "runbook:focus_state"
@@ -22687,7 +22733,7 @@
         "snippet": "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:f0c533f6b6d882611e1ad578b6fdd17692dfffa241a210de0a71d2f6147245ab"
+      "descriptor_digest": "sha256:5fde8f6b6324d6c0704ab23181945483aa32a56f70e197eabcb5089e9a7860ca"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -23048,7 +23094,8 @@
         "focusa_workpoint_resume"
       ],
       "skill_refs": [
-        "skill:focusa"
+        "skill:focusa",
+        "skill:focusa-workpoint"
       ],
       "runbook_refs": [
         "runbook:focus_state"
@@ -23078,7 +23125,7 @@
         "snippet": "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:d2bfcf71d4210cc88acc6ffc60ac3d6f71dd8aa69fdd1b3c13e1ff4314de9c9c"
+      "descriptor_digest": "sha256:8d1e5bc09823926b8232ff1528a600492f6bc32f8803e3086b83fb870cccb652"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -23439,7 +23486,8 @@
         "focusa_metacog_retrieve"
       ],
       "skill_refs": [
-        "skill:focusa"
+        "skill:focusa",
+        "skill:focusa-workpoint"
       ],
       "runbook_refs": [
         "runbook:focus_state"
@@ -23469,7 +23517,7 @@
         "snippet": "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:338d385effeb3ddb79746802c17e1a5d7f0df8f0e92e40a6983710c2c65ee3f5"
+      "descriptor_digest": "sha256:d2040446126f55ea8e78e27ffad884dfe616a3336ca010e57a95dc74b950f54a"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -23853,7 +23901,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-metacognition"
+        "skill:focusa-metacognition",
+        "skill:predictive-power"
       ],
       "runbook_refs": [
         "runbook:metacognition"
@@ -23884,7 +23933,7 @@
         "snippet": "Record/evaluate bounded predictions; predictions guide actions but never override operator steering.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:251b3504f0a2d05ad1d8f5f095b75dd11508fccbff9ea29af4b9ce5717c3f39b"
+      "descriptor_digest": "sha256:09076043a72e6c0ca4a088a682b0a030f35d8687fcc653fdfa8b2988500a508a"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -24249,7 +24298,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-metacognition"
+        "skill:focusa-metacognition",
+        "skill:predictive-power"
       ],
       "runbook_refs": [
         "runbook:metacognition"
@@ -24278,7 +24328,7 @@
         "snippet": "Record/evaluate bounded predictions; predictions guide actions but never override operator steering.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:310a5510549063230d3787eb4b8ea5b9dc3a12d52ee90e1b34df6c638a5fc7a1"
+      "descriptor_digest": "sha256:75277bc1e12cc453adad7ba627248cdea3d4b183509c189867868fd3748bd294"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -24682,7 +24732,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-metacognition"
+        "skill:focusa-metacognition",
+        "skill:predictive-power"
       ],
       "runbook_refs": [
         "runbook:metacognition"
@@ -24713,7 +24764,7 @@
         "snippet": "Record/evaluate bounded predictions; predictions guide actions but never override operator steering.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a54c5710550bbcf1d318ff608c9c29210e7e4784e683ad0692527b241a93ae03"
+      "descriptor_digest": "sha256:4169d1a04f08ee9af5502e1602f5453a31478d98c7ad108c244cb12f0a245945"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -25074,7 +25125,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-metacognition"
+        "skill:focusa-metacognition",
+        "skill:predictive-power"
       ],
       "runbook_refs": [
         "runbook:metacognition"
@@ -25103,7 +25155,7 @@
         "snippet": "Record/evaluate bounded predictions; predictions guide actions but never override operator steering.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:000d0bd114be94e17732bdb150e42da7b1f48645db1717988b3534fa6be8651a"
+      "descriptor_digest": "sha256:813d215824f30da38528e203d86bd2b70fb27b5c93197403382ce5aefd2b47d9"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -29173,7 +29225,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-project-scope"
+        "skill:focusa-project-scope",
+        "skill:focusa-evidence-outcomes"
       ],
       "runbook_refs": [
         "runbook:project_identity"
@@ -29206,7 +29259,7 @@
         "snippet": "Use after a project-card-guided action is verified, so future bootstrap/sequence planning learns from the result.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:0ae2780401554a0a537a69eab44dd021aebb242df05c663f5cc27b5618c82eb8"
+      "descriptor_digest": "sha256:3cb8f527e693d1fc8da65c79f3ed92a1a022a3d3c859d7d78d81cbd42656001b"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -29227,8 +29280,8 @@
       },
       "version": "2.0.0",
       "title": "Focusa Project Identity",
-      "summary": "Resolve the active project identity from marker, git, beads, workspace, cwd, daemon, and operator project signals before trusting project-bound context.",
-      "description": "Resolve bounded ProjectIdentity from cwd/project_root using marker, git, beads, workspace, daemon, and operator project signals. Use it when Resolve the active project identity from marker, git, beads, workspace, cwd, daemon, and operator project signals before trusting project-bound context. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "Rank explicit, active-worktree, canonical-parent, marker/Beads, persisted-session, and bounded parent-directory project candidates; fail closed on ambiguity before trusting project-bound context.",
+      "description": "Resolve bounded ProjectIdentity from cwd/project_root using marker, git, beads, workspace, daemon, and operator project signals. Use it when Rank explicit, active-worktree, canonical-parent, marker/Beads, persisted-session, and bounded parent-directory project candidates; fail closed on ambiguity before trusting project-bound context. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "project_identity",
       "namespace": "focusa.project_identity",
       "availability": {
@@ -29254,6 +29307,10 @@
           },
           "project_root": {
             "description": "Optional expected project root folder.",
+            "type": "string"
+          },
+          "persisted_project_root": {
+            "description": "Project root retained by the resumed Pi session; advisory candidate only until current worktree/project evidence verifies it.",
             "type": "string"
           },
           "remote_host": {
@@ -29542,7 +29599,7 @@
       },
       "examples": [
         {
-          "description": "Resolve the active project identity from marker, git, beads, workspace, cwd, daemon, and operator project signals before trusting project-bound context.",
+          "description": "Rank explicit, active-worktree, canonical-parent, marker/Beads, persisted-session, and bounded parent-directory project candidates; fail closed on ambiguity before trusting project-bound context.",
           "arguments": {},
           "human_invocation": "focusa project identity",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_identity.md"
@@ -29628,7 +29685,7 @@
         "snippet": "Use before trusting cross-project Workpoints, Trajectory packets, or project-sensitive context.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:b10fafd60acb259c9eff1501ea1099136b480c7194db07376a760cc162db81ba"
+      "descriptor_digest": "sha256:7de822ee3534350f76c93c89c56c3b302b123d4472befa09d90a3b8e9858c9d9"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -29649,8 +29706,8 @@
       },
       "version": "2.0.0",
       "title": "Focusa Project Verify",
-      "summary": "Verify expected project identity fields and surface project/continuity mismatches without mutating Focusa state.",
-      "description": "Verify active project folder against expected ProjectIdentity fields and report mismatches without mutating state. Use it when Verify expected project identity fields and surface project/continuity mismatches without mutating Focusa state. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "Verify expected project identity fields against ranked worktree/session candidates and surface ambiguity or project/continuity mismatches without mutating Focusa state.",
+      "description": "Verify active project folder against expected ProjectIdentity fields and report mismatches without mutating state. Use it when Verify expected project identity fields against ranked worktree/session candidates and surface ambiguity or project/continuity mismatches without mutating Focusa state. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "project_identity",
       "namespace": "focusa.project_identity",
       "availability": {
@@ -29676,6 +29733,10 @@
           },
           "project_root": {
             "description": "Expected project root.",
+            "type": "string"
+          },
+          "persisted_project_root": {
+            "description": "Resumed-session project root to compare as an advisory binding candidate.",
             "type": "string"
           },
           "project_id": {
@@ -29976,7 +30037,7 @@
       },
       "examples": [
         {
-          "description": "Verify expected project identity fields and surface project/continuity mismatches without mutating Focusa state.",
+          "description": "Verify expected project identity fields against ranked worktree/session candidates and surface ambiguity or project/continuity mismatches without mutating Focusa state.",
           "arguments": {},
           "human_invocation": "focusa project verify",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_verify.md"
@@ -30057,7 +30118,7 @@
         "snippet": "Use when project folder or session identity is ambiguous before accepting a Workpoint/Trajectory packet as canonical.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:d38ddf2d0fd398f26b9b6e93ebca6016357911931ddebc04688985f15f3baab6"
+      "descriptor_digest": "sha256:bb09ec069011fa1dd6e4669076544c84c6fd230c2462b7a6bbede99202efd185"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -30418,7 +30479,8 @@
         "focusa_workpoint_checkpoint"
       ],
       "skill_refs": [
-        "skill:focusa"
+        "skill:focusa",
+        "skill:focusa-workpoint"
       ],
       "runbook_refs": [
         "runbook:focus_state"
@@ -30448,7 +30510,7 @@
         "snippet": "Write concise Focus State slot updates; use focusa_scratch for working notes and verbose reasoning.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:04248bd05413871112aa42e0a78bdae9247267363cca89a1f23b471ad102492b"
+      "descriptor_digest": "sha256:d205d47351eaab35aa77a492473d555ec66c57c22b941080217bf54915f36a93"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -31280,7 +31342,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-troubleshooting"
+        "skill:focusa-troubleshooting",
+        "skill:focusa-resource-performance"
       ],
       "runbook_refs": [
         "runbook:diagnostics_hygiene"
@@ -31312,7 +31375,7 @@
         "snippet": "Use when resources are low, daemon hot paths risk timeouts, or operator says Activate/Deactivate LowMem mode.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:592ea9f2b2663ad838219595cced953aadf9ff5ebf72191e6614b9afd1e19235"
+      "descriptor_digest": "sha256:47a3f2d7164ba7a2c8e825ad2e09d3a93322f683dee44c252c47367e4724e613"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -31660,7 +31723,8 @@
         "focusa_workpoint_resume"
       ],
       "skill_refs": [
-        "skill:focusa"
+        "skill:focusa",
+        "skill:focusa-workpoint"
       ],
       "runbook_refs": [
         "runbook:focus_state"
@@ -31696,7 +31760,7 @@
           "Run: ls /tmp/pi-scratch/ | cat /tmp/pi-scratch/turn-NNNN/notes.txt"
         ]
       },
-      "descriptor_digest": "sha256:3c8dc1366f199288a377a14fb9b529ed618a7e8c09cb72b31249ced0c2ffa3b3"
+      "descriptor_digest": "sha256:1c1b9a97ccaeb944a901cae05b3e4ae08d85e258f88cc66b2c9598b85d2a1de7"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -32536,7 +32600,7 @@
             "type": "string"
           },
           "session_name": {
-            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "description": "Legacy alias for exact session_id; no legacy name normalization.",
             "type": "string"
           },
           "run_id": {
@@ -32988,7 +33052,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-work-loop"
+        "skill:focusa-work-loop",
+        "skill:focusa-silent-sessions"
       ],
       "runbook_refs": [
         "runbook:work_loop"
@@ -33020,7 +33085,7 @@
         "snippet": "Use as a thin daemon API client. Supply exact session_id/run_id/generation and durable approval/idempotency fields for mutations; the daemon remains canonical authority.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:25211f3637fcd5f4fd15eee821df0f17448238a87bd0657c0b03b6631a0945e8"
+      "descriptor_digest": "sha256:fd20968ae33d9849337b1d6c7900b6edc736af138183c641dc564cff5acbebde"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -43348,8 +43413,28 @@
             "type": "boolean"
           },
           "root_work_item_id": {
-            "description": "Optional root BD/task/item id. If omitted, tool infers from active task or bd ready.",
+            "description": "Optional root provider WorkItem id. If omitted, infer from the active scoped task.",
             "type": "string"
+          },
+          "renew_budget": {
+            "description": "Explicitly start a fresh budget epoch when action=resume.",
+            "type": "boolean"
+          },
+          "max_turns": {
+            "minimum": 1,
+            "type": "number"
+          },
+          "max_wall_clock_ms": {
+            "minimum": 1000,
+            "type": "number"
+          },
+          "max_retries": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "cooldown_ms": {
+            "minimum": 0,
+            "type": "number"
           }
         },
         "additionalProperties": false
@@ -43717,7 +43802,7 @@
         "snippet": "Check writer/status first; preflight pause/resume/stop unless operator explicitly authorized mutation.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:daafbec36326d8fc18a1ba681421c5847e0f2cfe8db6e19c658d0d7274ced9c2"
+      "descriptor_digest": "sha256:6afc630de27cd12e7da9a175b41bc6454026f575fefd7590b2ce25387c234efa"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -45721,7 +45806,8 @@
       ],
       "skill_refs": [
         "skill:focusa",
-        "skill:focusa-workpoint"
+        "skill:focusa-workpoint",
+        "skill:focusa-evidence-outcomes"
       ],
       "runbook_refs": [
         "runbook:workpoint"
@@ -45752,7 +45838,7 @@
         "snippet": "Link proof/evidence to active Workpoint instead of keeping it only in transcript.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:a86c6abece8bce34db40fb569249c1d7e0fe5cc56b4c8975c029c8d8bce7145e"
+      "descriptor_digest": "sha256:212d8f45936dde388d94a7e98fb2de3bcb733c2c24c1794c79c527e6c58ad92c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -46165,5 +46251,5 @@
       "descriptor_digest": "sha256:ab9c9bbe2ed5cd1be3c2be60126fbc6114de34d72116a188fdd0b734de5b3e68"
     }
   ],
-  "registry_digest": "sha256:f15078162dc7b0f7a595abcb5ae4302f9af85f7b8de0b0ef0762cdde661215b8"
+  "registry_digest": "sha256:c275433cdcc897c9d139978eb19161c009c74cec22ba516e8ddc0c10297bd841"
 }

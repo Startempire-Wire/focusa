@@ -61,10 +61,10 @@ Likely next: `focusa_call_stack_design`, `focusa_workpoint_link_evidence`, `focu
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`, `skill:focusa-spec-implementation`
 - Runbooks: `runbook:workpoint`
 - Pi: `focusa_call_stack_verify`; MCP: `focusa.call.stack.verify`; OpenAI: `focusa_call_stack_verify`.
 - CLI: `focusa call-stack verify`, `focusa call-stack list`, `focusa call-stack show`.
 - REST: `POST /v1/call-stack/verify`, `GET /v1/call-stack/list`, `GET /v1/call-stack/show`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:7527d053bb4d4c1736354ad2f6d28c78a751fc15cdb3d360dd918294168e7b42`.
+- Descriptor digest: `sha256:03725708b2c2655f3f829065d65fa4d8f229ce058d1db1750e0a60ecdeed82c7`.

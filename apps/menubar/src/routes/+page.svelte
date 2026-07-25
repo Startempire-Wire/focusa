@@ -1,6 +1,7 @@
 <script lang="ts">
   import { fetchJson, focusaPost, hasEverConnected } from '$lib/api';
   import { getProjectContext } from '$lib/projectContext.svelte';
+  import { predictionScopedPath, projectScopedPath, workLoopScopedPaths } from '$lib/workLoopScope.js';
   import { focusStore } from '$lib/stores/focus.svelte';
   import { gateStore } from '$lib/stores/gate.svelte';
   import { runtimeStore } from '$lib/stores/runtime.svelte';
@@ -13,6 +14,7 @@
   import WorkpointPeek from '$lib/components/WorkpointPeek.svelte';
   import ProofPeek from '$lib/components/ProofPeek.svelte';
   import WorkLoopPeek from '$lib/components/WorkLoopPeek.svelte';
+  import SilentSessionsPeek from '$lib/components/SilentSessionsPeek.svelte';
   import { onMount } from 'svelte';
 
   import SyncPanel from '$lib/components/SyncPanel.svelte';
@@ -42,7 +44,11 @@
       const activeWorkpointRecord = state?.workpoint?.active ?? state?.workpoint?.records?.find?.((record: any) => record?.workpoint_id === activeWorkpointId) ?? null;
       const projectIdentityRecord = projectIdentityRaw?.project_identity ?? projectIdentityRaw ?? {};
       // Spec104 MEN-02: derive typed scope from one source of truth (projectContext.svelte.ts).
-      const typedScope = getProjectContext({ projectIdentity: projectIdentityRecord, workpointResume: state?.workpointResume, workpoint: state?.workpoint });
+      const typedScope = getProjectContext({
+        projectIdentity: projectIdentityRecord,
+        workpointResume: state?.workpointResume,
+        workpoint: activeWorkpointRecord ?? state?.workpoint,
+      });
       const projectRoot = typedScope.projectRoot || null;
       const continuityId = typedScope.continuityId || null;
       const projectIdentity = {
@@ -57,7 +63,15 @@
       const scopedQuery = scopedParams.toString();
       const scopedSuffix = scopedQuery ? `&${scopedQuery}` : '';
       const scopedPathSuffix = scopedQuery ? `?${scopedQuery}` : '';
-      const [health, doctor, contracts, focusFrame, trajectory, workpoint, workpointResume, workLoop, workLoopHealth, workLoopCheckpoints, memoryTelemetry, events, tokenBudget, cacheMetadata, predictionsRecent, predictionsStats, metacogStatus, metacogEvaluations, snapshotsRecent, lineageHead, releaseProof, updateNotifications] = await Promise.all([
+      const workLoopPaths = workLoopScopedPaths(projectRoot, continuityId);
+      const scopedObservabilityPaths = {
+        predictionsRecent: predictionScopedPath('/v1/predictions/recent?limit=5', projectIdentityRecord, continuityId),
+        predictionsStats: predictionScopedPath('/v1/predictions/stats', projectIdentityRecord, continuityId),
+        metacogStatus: projectScopedPath('/v1/metacognition/status', projectRoot, continuityId),
+        metacogEvaluations: projectScopedPath('/v1/metacognition/evaluations/recent?limit=5', projectRoot, continuityId),
+        snapshotsRecent: projectScopedPath('/v1/focus/snapshots/recent?limit=5', projectRoot, continuityId),
+      };
+      const [health, doctor, contracts, focusFrame, trajectory, workpoint, workpointResume, workLoop, workLoopHealth, workLoopCheckpoints, memoryTelemetry, events, tokenBudget, cacheMetadata, predictionsRecent, predictionsStats, metacogStatus, metacogEvaluations, snapshotsRecent, lineageHead, releaseProof, updateNotifications, silentSessionDashboard] = await Promise.all([
         safe(() => fetchJson('/v1/health')),
         safe(() => fetchJson('/v1/doctor', 5000)),
         safe(() => fetchJson('/v1/ontology/tool-contracts')),
@@ -65,21 +79,22 @@
         safe(() => fetchJson(`/v1/trajectory/view?mode=summary${scopedSuffix}`)),
         safe(() => fetchJson(`/v1/workpoint/current${scopedPathSuffix}`)),
         safe(() => focusaPost('/v1/workpoint/resume', scopedQuery ? { project_root: projectRoot, continuity_id: continuityId } : {}, { projectRoot: projectRoot || undefined, continuityId: continuityId || undefined }, 5000)),
-        safe(() => fetchJson('/v1/work-loop/status?summary_only=true')),
-        safe(() => fetchJson('/v1/work-loop/health')),
-        safe(() => fetchJson('/v1/work-loop/checkpoints')),
+        safe(() => workLoopPaths ? fetchJson(workLoopPaths.status) : Promise.resolve(null)),
+        safe(() => workLoopPaths ? fetchJson(workLoopPaths.health) : Promise.resolve(null)),
+        safe(() => workLoopPaths ? fetchJson(workLoopPaths.checkpoints) : Promise.resolve(null)),
         safe(() => fetchJson('/v1/telemetry/memory')),
         safe(() => fetchJson('/v1/events/recent?limit=5')),
         safe(() => fetchJson('/v1/telemetry/token-budget/status?limit=5')),
         safe(() => fetchJson('/v1/telemetry/cache-metadata/status?limit=5')),
-        safe(() => fetchJson('/v1/predictions/recent?limit=5')),
-        safe(() => fetchJson('/v1/predictions/stats')),
-        safe(() => fetchJson('/v1/metacognition/status')),
-        safe(() => fetchJson('/v1/metacognition/evaluations/recent?limit=5')),
-        safe(() => fetchJson('/v1/focus/snapshots/recent?limit=5')),
+        safe(() => scopedObservabilityPaths.predictionsRecent ? fetchJson(scopedObservabilityPaths.predictionsRecent) : Promise.resolve(null)),
+        safe(() => scopedObservabilityPaths.predictionsStats ? fetchJson(scopedObservabilityPaths.predictionsStats) : Promise.resolve(null)),
+        safe(() => scopedObservabilityPaths.metacogStatus ? fetchJson(scopedObservabilityPaths.metacogStatus) : Promise.resolve(null)),
+        safe(() => scopedObservabilityPaths.metacogEvaluations ? fetchJson(scopedObservabilityPaths.metacogEvaluations) : Promise.resolve(null)),
+        safe(() => scopedObservabilityPaths.snapshotsRecent ? fetchJson(scopedObservabilityPaths.snapshotsRecent) : Promise.resolve(null)),
         safe(() => fetchJson('/v1/lineage/head')),
         safe(() => fetchJson('/v1/release/proof/status')),
         safe(() => fetchJson('/v1/update/notifications')),
+        safe(() => fetchJson('/v1/silent-sessions?limit=20')),
       ]);
       const workpointPacket = workpointResume?.resume_packet ?? workpointResume?.packet ?? null;
       const normalizedWorkpointResume = workpointPacket
@@ -132,6 +147,7 @@
           summary: 'Release-proof endpoint unavailable; run focusa release prove --tag <tag> before publish.',
         },
         updateNotifications,
+        silentSessionDashboard,
       });
     } catch (e: any) {
       const msg = e?.message || 'Failed to connect';
@@ -227,6 +243,7 @@
     <ProofPeek />
   {:else if activeTab === 'workloop'}
     <WorkLoopPeek />
+    <SilentSessionsPeek />
   {:else if activeTab === 'gate'}
     <GatePanel />
   {:else if activeTab === 'sync'}

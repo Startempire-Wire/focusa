@@ -1,0 +1,35 @@
+{
+  "schema": "focusa.spec135.supply_chain_governance.v1",
+  "requirement_id": "SPEC135-Q5",
+  "inputs": ["Cargo.lock", "deny.toml", "about.toml", "package-lock.json files", "container and repository filesystem"],
+  "tools": ["cargo-deny", "cargo-about", "Syft"],
+  "outputs": [
+    "THIRD_PARTY_NOTICES.generated.html",
+    "focusa.cdx.json",
+    "focusa.spdx.json",
+    "manifest.json"
+  ],
+  "reproducibility": {
+    "script": "scripts/generate-supply-chain-artifacts.sh",
+    "hash_algorithm": "sha256",
+    "manifest_sorted": true,
+    "unknown_tool_failure": "fail_closed"
+  },
+  "license_policy": {
+    "deny_config": "deny.toml",
+    "notice_config": "about.toml",
+    "forbidden_or_unknown_dependency_ships": false
+  },
+  "evidence_refs": [
+    "deny.toml",
+    "about.toml",
+    "config/cargo-about.hbs",
+    "scripts/generate-supply-chain-artifacts.sh",
+    "tests/spec_sbom_license_gate_static_test.sh",
+    "tests/spec135_q5_supply_chain_lint.py"
+  ],
+  "acceptance": {
+    "forbidden_or_unknown_dependency_blocked": true,
+    "sbom_and_notices_reproducible": true
+  }
+}

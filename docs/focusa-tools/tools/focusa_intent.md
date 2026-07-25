@@ -60,10 +60,10 @@ Likely next: `focusa_project_identity`, `focusa_trajectory_view`, `focusa_workpo
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Runbooks: `runbook:focus_state`
 - Pi: `focusa_intent`; MCP: `focusa.intent`; OpenAI: `focusa_intent`.
 - CLI: `focusa focus update --intent`.
 - REST: `POST /v1/focus/update`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:a914e04746a394e56186b05b022e17d2d646892d4d5323698d5ef828f4356a6b`.
+- Descriptor digest: `sha256:ee88f6b23b18299d0bd7fd0ac75e16569d3fda9473a8f5ea5b0aabdcdc3d815f`.

@@ -17,9 +17,13 @@ Authority-bearing tool docs should align with the canonical [Authority Model](..
 - [Stability audit 2026-05-22](./stability-audit-2026-05-22.md)
 - [Context Authority Current Guide](../current/CONTEXT_AUTHORITY_CURRENT.md)
 
-## Current counts
+## Current counts and machine discovery
 
-- See `../current/generated/tool-surface-summary.md` for current generated tool counts, families, parity, and docs coverage.
+- Release parity requires all Focusa Pi tools to match runtime registration, tool contracts, generated Pi descriptors, capability descriptors, and per-tool docs one-to-one.
+- Machine registry: [`../contracts/spec141/generated-capability-v2/pi-tools.json`](../contracts/spec141/generated-capability-v2/pi-tools.json).
+- Complete Agent Card skill/runbook/tool inventory: [`../contracts/spec141/generated-capability-v2/agent-card.json`](../contracts/spec141/generated-capability-v2/agent-card.json).
+- Human agent fast start: [`../agent/01-focusa-agent-docs-index.md`](../agent/01-focusa-agent-docs-index.md).
+- See `../current/generated/tool-surface-summary.md` for generated tool counts, families, parity, and docs coverage.
 - Prediction tools are first-class (`record`, `recent`, `evaluate`, `stats`).
 - Tool contracts are validated by `node scripts/validate-focusa-tool-contracts.mjs` and live-proofed by `node scripts/prove-focusa-tool-contracts-live.mjs --safe-fixtures`.
 - Tool result envelopes include `failure_class`; degraded/noncanonical outputs are recovery states, not success; bounded `reflex_suggestions` point to Spec97 recovery primitives when applicable.

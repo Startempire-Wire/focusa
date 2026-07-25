@@ -69,7 +69,9 @@ jq -e '
 ' "$MANIFEST" >/dev/null || fail "Pi posture does not match measured command/RPC boundary"
 rg -F 'pi.on("session_before_compact"' "$ROOT_DIR/apps/pi-extension/src/compaction.ts" >/dev/null || fail "Pi compaction hook evidence missing"
 rg -F 'pi.registerCommand("focusa-rollover"' "$ROOT_DIR/apps/pi-extension/src/commands.ts" >/dev/null || fail "Pi rollover command evidence missing"
-rg -F 'await ctx.newSession({' "$ROOT_DIR/apps/pi-extension/src/commands.ts" >/dev/null || fail "Pi command-context replacement evidence missing"
+rg -F 'ctx.newSession as unknown as RolloverNewSession' "$ROOT_DIR/apps/pi-extension/src/commands.ts" >/dev/null || fail "Pi typed command-context replacement evidence missing"
+rg -F 'newSessionWithReplacement({' "$ROOT_DIR/apps/pi-extension/src/commands.ts" >/dev/null || fail "Pi replacement invocation evidence missing"
+rg -F 'withSession: async (replacementCtx)' "$ROOT_DIR/apps/pi-extension/src/commands.ts" >/dev/null || fail "Pi replacement attachment binding evidence missing"
 rg -F 'pi_launch_migration.rs' "$ROOT_DIR/crates/focusa-cli/src/commands/pi_launch.rs" >/dev/null || fail "Pi streaming migration module evidence missing"
 pass "Pi Tier B posture matches compaction, command, preflight, and migration surfaces"
 

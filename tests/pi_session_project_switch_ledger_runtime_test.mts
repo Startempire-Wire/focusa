@@ -79,10 +79,8 @@ await runWithAttachmentRuntime(key, async () => {
     verdict.scope_conflict_reason.includes("project_switch_ledger"),
     `ledger did not drive conflict: ${verdict.scope_conflict_reason}`,
   );
-  assert(
-    verdict.memory_anchor.action_authority_for_current_ask === false,
-    "action authority not suppressed",
-  );
+  assert(verdict.memory_anchor.action_authority_for_current_ask === true, "operator steering was suppressed");
+  assert(verdict.memory_anchor.durable_project_write_authority === false, "conflicting durable writes were allowed");
   assert(
     verdict.memory_anchor.evidence_refs.some((ref) =>
       ref.includes("project_thread:PTM"),

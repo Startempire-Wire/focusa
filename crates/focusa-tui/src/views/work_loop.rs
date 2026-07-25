@@ -46,6 +46,8 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         });
 
     let mut lines: Vec<Line<'static>> = Vec::new();
+    let typed_scope = typed_scope_from_status(loop_status);
+    lines.push(typed_scope_line(typed_scope.as_ref()));
 
     if loop_status.is_none() && replay_consumer.is_none() {
         lines.push(Line::from("  No work-loop replay data").style(theme::label()));
@@ -56,6 +58,38 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         {
             lines.push(metric("  Closure bundle doc", doc, theme::value()));
         }
+
+        let schema = loop_status
+            .and_then(|value| value.get("schema"))
+            .and_then(Value::as_str);
+        let typed_state = loop_status
+            .and_then(|value| value.get("state"))
+            .and_then(Value::as_str)
+            .filter(|state| {
+                schema == Some("focusa.work_loop_status.v3")
+                    && [
+                        "absent",
+                        "unavailable",
+                        "stale",
+                        "unsupported",
+                        "blocked",
+                        "zero",
+                        "healthy",
+                    ]
+                    .contains(state)
+            })
+            .unwrap_or("unsupported");
+        lines.push(metric(
+            "  Typed state",
+            typed_state,
+            if typed_state == "healthy" || typed_state == "zero" {
+                theme::status_ok()
+            } else if typed_state == "unsupported" || typed_state == "unavailable" {
+                theme::status_err()
+            } else {
+                theme::status_warn()
+            },
+        ));
 
         let enabled = loop_status
             .and_then(|value| value.get("enabled"))
@@ -85,6 +119,71 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         ));
         lines.push(metric("  Project", project, theme::value()));
         lines.push(metric("  Tranche", tranche, theme::value()));
+
+        if let Some(partition) = loop_status.and_then(|value| value.get("execution_partition")) {
+            for (label, field) in [
+                ("  Project root", "project_root_key"),
+                ("  Continuity", "workstream_key"),
+                ("  Root work item", "work_item_key"),
+                ("  WorkItem provider", "work_item_provider"),
+                ("  Workpoint", "workpoint_id"),
+                ("  Transport session", "transport_session_id"),
+                ("  Transport WorkItem", "transport_work_item_id"),
+                ("  Writer", "writer_key"),
+                ("  Lease freshness", "lease_freshness"),
+                ("  Lease expiry", "lease_expires_at"),
+            ] {
+                if let Some(value) = partition.get(field).and_then(Value::as_str) {
+                    let style = if field == "lease_freshness" && value != "current" {
+                        theme::status_err()
+                    } else {
+                        theme::value()
+                    };
+                    lines.push(metric(label, value, style));
+                }
+            }
+            if let Some(token) = partition.get("fencing_token").and_then(Value::as_u64) {
+                lines.push(metric("  Fencing token", token.to_string(), theme::value()));
+            }
+        }
+
+        if let Some(budget) = loop_status.and_then(|value| value.get("budget_remaining")) {
+            let budget_state = budget
+                .get("state")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown");
+            lines.push(metric(
+                "  Budget state",
+                budget_state,
+                if budget_state == "exhausted" {
+                    theme::status_err()
+                } else {
+                    theme::value()
+                },
+            ));
+            if let Some(remaining) = budget.get("remaining_wall_clock_ms") {
+                lines.push(metric(
+                    "  Wall-clock remaining",
+                    remaining.to_string(),
+                    theme::value(),
+                ));
+            }
+            if let Some(dimension) = budget
+                .pointer("/exhaustion/dimension")
+                .and_then(Value::as_str)
+            {
+                lines.push(metric(
+                    "  Exhausted dimension",
+                    dimension,
+                    theme::status_err(),
+                ));
+                lines.push(metric(
+                    "  Budget recovery",
+                    "approved resume with renew_budget=true",
+                    theme::highlight(),
+                ));
+            }
+        }
 
         if let Some(task) = loop_status
             .and_then(|value| value.get("current_task"))
@@ -224,6 +323,29 @@ fn metric(label: &str, value: impl Into<String>, style: Style) -> Line<'static> 
         Span::styled(format!("{label}: "), theme::label()),
         Span::styled(value.into(), style),
     ])
+}
+
+fn typed_scope_from_status(status: Option<&Value>) -> Option<crate::api::TypedScope> {
+    let partition = status?.get("execution_partition")?;
+    let project_root = partition.get("project_root_key")?.as_str()?.to_string();
+    let continuity_id = partition.get("workstream_key")?.as_str()?.to_string();
+    let partition_status = partition
+        .get("partition_status")
+        .and_then(Value::as_str)
+        .unwrap_or("blocked");
+    let scope_status = match partition_status {
+        "work_item_pinned" => "ok",
+        "advisory" => "advisory",
+        _ => "blocked",
+    };
+    Some(crate::api::TypedScope {
+        project_root,
+        continuity_id,
+        session_id: None,
+        scope_status: Some(scope_status.to_string()),
+        scope_source: Some("work_loop_execution_partition.v2".to_string()),
+        canonical_scope: Some(scope_status == "ok"),
+    })
 }
 
 /// Spec104 WL-02: format typed scope + advisory/blocked status for TUI display.

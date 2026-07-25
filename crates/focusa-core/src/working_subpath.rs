@@ -1,4 +1,6 @@
 use std::{
+    collections::BTreeMap,
+    fs,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -238,6 +240,239 @@ fn read_parent_beads_prefix(beads_root: &Path) -> Option<String> {
     None
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ProjectBindingCandidate {
+    pub project_root: String,
+    pub active_worktree_root: Option<String>,
+    pub canonical_parent_root: Option<String>,
+    pub score: u16,
+    pub sources: Vec<String>,
+    pub markers: Vec<String>,
+    pub relationship: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ProjectBindingDecision {
+    pub status: String,
+    pub selected_project_root: Option<String>,
+    pub selected_active_worktree_root: Option<String>,
+    pub canonical_parent_root: Option<String>,
+    pub ambiguous: bool,
+    pub requires_confirmation: bool,
+    pub reason: String,
+    pub candidates: Vec<ProjectBindingCandidate>,
+}
+
+fn binding_markers(path: &Path) -> Vec<String> {
+    let mut markers = Vec::new();
+    if path.join(".focusa-project.json").is_file() {
+        markers.push("focusa_marker".to_string());
+    }
+    if path.join(".git").exists() {
+        markers.push("git".to_string());
+    }
+    if path.join(".beads").is_dir() {
+        markers.push("beads".to_string());
+    }
+    markers
+}
+
+fn insert_binding_candidate(
+    candidates: &mut BTreeMap<String, ProjectBindingCandidate>,
+    path: &Path,
+    source: &str,
+    score: u16,
+    relationship: &str,
+) {
+    let root = canonical(path);
+    let root_text = path_text(&root);
+    let git = resolve_git_working_context(&root).ok().flatten();
+    let active_worktree_root = git
+        .as_ref()
+        .map(|context| context.active_worktree_root.clone());
+    let canonical_parent_root = git
+        .as_ref()
+        .map(|context| context.canonical_parent_root.clone())
+        .or_else(|| Some(root_text.clone()));
+    let authoritative_root = active_worktree_root
+        .clone()
+        .unwrap_or_else(|| root_text.clone());
+    let markers = binding_markers(&root);
+    let entry = candidates
+        .entry(authoritative_root.clone())
+        .or_insert_with(|| ProjectBindingCandidate {
+            project_root: authoritative_root,
+            active_worktree_root,
+            canonical_parent_root,
+            score,
+            sources: Vec::new(),
+            markers: Vec::new(),
+            relationship: relationship.to_string(),
+        });
+    entry.score = entry.score.max(score);
+    if !entry.sources.iter().any(|value| value == source) {
+        entry.sources.push(source.to_string());
+    }
+    for marker in markers {
+        if !entry.markers.contains(&marker) {
+            entry.markers.push(marker);
+        }
+    }
+}
+
+fn collect_parent_binding_candidates(
+    start: &Path,
+    candidates: &mut BTreeMap<String, ProjectBindingCandidate>,
+) {
+    let mut current = Some(canonical(start));
+    for depth in 0..12 {
+        let Some(path) = current else { break };
+        let markers = binding_markers(&path);
+        if !markers.is_empty() {
+            let marker_score: u16 = if markers.iter().any(|value| value == "focusa_marker") {
+                950
+            } else if markers.iter().any(|value| value == "git") {
+                900
+            } else {
+                800
+            };
+            insert_binding_candidate(
+                candidates,
+                &path,
+                "cwd_ancestor_markers",
+                marker_score.saturating_sub(depth * 5),
+                "ancestor_or_current",
+            );
+        }
+        current = path.parent().map(Path::to_path_buf);
+    }
+}
+
+fn collect_child_binding_candidates(
+    start: &Path,
+    candidates: &mut BTreeMap<String, ProjectBindingCandidate>,
+) {
+    let mut frontier = vec![(canonical(start), 0_u8)];
+    let mut inspected = 0_usize;
+    while let Some((directory, depth)) = frontier.pop() {
+        if depth >= 2 || inspected >= 64 {
+            continue;
+        }
+        let Ok(entries) = fs::read_dir(&directory) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            if inspected >= 64 {
+                break;
+            }
+            inspected += 1;
+            let path = entry.path();
+            if !path.is_dir() || entry.file_name().to_string_lossy().starts_with('.') {
+                continue;
+            }
+            let markers = binding_markers(&path);
+            if !markers.is_empty() {
+                let score: u16 = if markers.iter().any(|value| value == "focusa_marker") {
+                    860
+                } else if markers.iter().any(|value| value == "git") {
+                    810
+                } else {
+                    720
+                };
+                insert_binding_candidate(
+                    candidates,
+                    &path,
+                    "parent_directory_child_scan",
+                    score.saturating_sub(u16::from(depth) * 10),
+                    "bounded_child",
+                );
+            } else {
+                frontier.push((path, depth + 1));
+            }
+        }
+    }
+}
+
+/// Rank project/worktree authority candidates for resumed sessions and broad cwd starts.
+///
+/// Active Git worktrees outrank their canonical parent, explicit roots outrank
+/// inferred roots, and a persisted root is promoted only when it remains marked
+/// or shares the current Git common directory. Equal-ranked child projects fail
+/// closed and require explicit confirmation.
+pub fn resolve_project_binding_candidates(
+    start: &Path,
+    explicit_project_root: Option<&Path>,
+    persisted_project_root: Option<&Path>,
+) -> ProjectBindingDecision {
+    let mut candidates = BTreeMap::new();
+    collect_parent_binding_candidates(start, &mut candidates);
+    collect_child_binding_candidates(start, &mut candidates);
+
+    if let Some(explicit) = explicit_project_root {
+        insert_binding_candidate(
+            &mut candidates,
+            explicit,
+            "explicit_project_root",
+            1000,
+            "explicit",
+        );
+    }
+    if let Some(persisted) = persisted_project_root {
+        let marked = !binding_markers(persisted).is_empty();
+        insert_binding_candidate(
+            &mut candidates,
+            persisted,
+            "persisted_session_project_root",
+            if marked { 930 } else { 620 },
+            if marked {
+                "persisted_marked_root"
+            } else {
+                "persisted_unverified_root"
+            },
+        );
+    }
+
+    let mut ranked = candidates.into_values().collect::<Vec<_>>();
+    ranked.sort_by(|left, right| {
+        right
+            .score
+            .cmp(&left.score)
+            .then_with(|| left.project_root.cmp(&right.project_root))
+    });
+    let ambiguous = ranked.len() > 1
+        && ranked[0].score == ranked[1].score
+        && ranked[0].project_root != ranked[1].project_root;
+    let selected = (!ambiguous).then(|| ranked.first()).flatten();
+    ProjectBindingDecision {
+        status: if ambiguous {
+            "ambiguous"
+        } else if selected.is_some() {
+            "selected"
+        } else {
+            "unbound"
+        }
+        .to_string(),
+        selected_project_root: selected.map(|candidate| candidate.project_root.clone()),
+        selected_active_worktree_root: selected
+            .and_then(|candidate| candidate.active_worktree_root.clone()),
+        canonical_parent_root: selected
+            .and_then(|candidate| candidate.canonical_parent_root.clone()),
+        ambiguous,
+        requires_confirmation: ambiguous
+            || selected.is_none()
+            || selected.is_some_and(|value| value.score < 800),
+        reason: if ambiguous {
+            "multiple equally ranked project roots; explicit confirmation required"
+        } else if selected.is_some() {
+            "highest-ranked evidence-backed project/worktree candidate selected"
+        } else {
+            "no marked project binding candidate found"
+        }
+        .to_string(),
+        candidates: ranked,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -324,6 +559,64 @@ mod tests {
             resolve_git_working_context(&worktree),
             Err(WorkingSubpathError::MissingPath(_))
         ));
+        std::fs::remove_dir_all(base).unwrap();
+    }
+
+    #[test]
+    fn binding_candidates_select_one_marked_child_from_parent_directory() {
+        let base =
+            std::env::temp_dir().join(format!("focusa-binding-parent-{}", uuid::Uuid::now_v7()));
+        let project = base.join("focusa");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::write(project.join(".focusa-project.json"), b"{}\n").unwrap();
+
+        let decision = resolve_project_binding_candidates(&base, None, None);
+        let expected = path_text(&canonical(&project));
+        assert_eq!(decision.status, "selected");
+        assert_eq!(
+            decision.selected_project_root.as_deref(),
+            Some(expected.as_str())
+        );
+        assert!(!decision.requires_confirmation);
+        std::fs::remove_dir_all(base).unwrap();
+    }
+
+    #[test]
+    fn binding_candidates_fail_closed_for_multiple_equal_children() {
+        let base =
+            std::env::temp_dir().join(format!("focusa-binding-ambiguous-{}", uuid::Uuid::now_v7()));
+        for name in ["project-a", "project-b"] {
+            let project = base.join(name);
+            std::fs::create_dir_all(&project).unwrap();
+            std::fs::write(project.join(".focusa-project.json"), b"{}\n").unwrap();
+        }
+
+        let decision = resolve_project_binding_candidates(&base, None, None);
+        assert_eq!(decision.status, "ambiguous");
+        assert!(decision.ambiguous);
+        assert!(decision.selected_project_root.is_none());
+        assert!(decision.requires_confirmation);
+        std::fs::remove_dir_all(base).unwrap();
+    }
+
+    #[test]
+    fn binding_candidates_prefer_explicit_active_root_over_persisted_root() {
+        let base =
+            std::env::temp_dir().join(format!("focusa-binding-resume-{}", uuid::Uuid::now_v7()));
+        let current = base.join("current");
+        let persisted = base.join("persisted");
+        for project in [&current, &persisted] {
+            std::fs::create_dir_all(project).unwrap();
+            std::fs::write(project.join(".focusa-project.json"), b"{}\n").unwrap();
+        }
+
+        let decision = resolve_project_binding_candidates(&base, Some(&current), Some(&persisted));
+        let expected = path_text(&canonical(&current));
+        assert_eq!(
+            decision.selected_project_root.as_deref(),
+            Some(expected.as_str())
+        );
+        assert_eq!(decision.candidates[0].sources[0], "explicit_project_root");
         std::fs::remove_dir_all(base).unwrap();
     }
 

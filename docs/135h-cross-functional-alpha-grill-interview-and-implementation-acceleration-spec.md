@@ -205,7 +205,7 @@ The Alpha is not reduced scope. It establishes the integration spine used by the
 F0 — freeze Spec 135 at 135K and compile the Delivery Contract
 F1 — create machine-readable requirement, DAG, parity, framework, and proof matrices
 F2 — generate JSON Schema 2020-12 and OpenAPI 3.0.3
-F3 — generate TypeScript and Go clients
+F3 — generate TypeScript clients and validate portable OpenAPI/JSON Schema contracts
 F4 — generate Operation Registry, capability projection, and UI action bindings
 F5 — centralize ToolResult and error-envelope construction
 F6 — implement durable SQLite replay plus the broadcast live tail
@@ -325,7 +325,7 @@ schema
 → reusable Focusa primitive
 → reducer/persistence
 → typed API
-→ generated TypeScript/Go clients
+→ generated TypeScript clients and portable OpenAPI/JSON Schema contracts
 → generated UI
 → real integration
 → UIAI Engine Eval when browser-facing
@@ -359,7 +359,7 @@ Serde + Schemars + Utoipa
 → JSON Schema 2020-12
 → OpenAPI 3.0.3
 → openapi-typescript + openapi-fetch
-→ oapi-codegen v2.7.x Go client/models
+→ external adapters generated outside Focusa core from the published OpenAPI contract
 → generated A2UI catalogs and action bindings
 ```
 
@@ -574,7 +574,7 @@ Build the Alpha first while retaining every remaining requirement in the DAG.
 Open all unblocked parallel lanes after generated operation contracts stabilize.
 
 Use vertical tracer-bullet tickets. Each ticket must cross the reusable Focusa
-primitive, reducer, API, generated TypeScript/Go clients, generated UI, real
+primitive, reducer, API, generated TypeScript clients and portable OpenAPI/JSON Schema contracts, generated UI, real
 integration, tests, UIAI Engine Eval when browser-facing, Evidence, and Receipt.
 
 Use focusa.interview.strategy.grill-with-docs.v1. Retrieve discoverable facts,

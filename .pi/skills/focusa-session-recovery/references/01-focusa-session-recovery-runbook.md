@@ -24,6 +24,12 @@ focusa_tree_snapshot_state -> focusa_tree_restore_state
 4. Call `focusa_tree_snapshot_state` with only required bounded inputs.
 5. Call `focusa_tree_restore_state` with only required bounded inputs.
 
+## Current domain procedure
+
+1. Checkpoint both Workpoint and Trajectory before compaction, context overflow, model switch, or session rollover.
+2. Preserve cache-safe stable prefix plus newest operator tail; transcript tail is never continuation authority.
+3. After bounded transport retry exhaustion, use governed automatic rollover and verify the canonical resume packet.
+
 ## Branches
 
 - Unknown tool/schema: `focusa_tool_search` → `focusa_tool_describe`.

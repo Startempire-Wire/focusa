@@ -14,22 +14,42 @@
 //!    the final audit row
 
 use chrono::{DateTime, Utc};
+use sha2::{Digest, Sha256};
 use std::path::PathBuf;
 use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::work_item::adapter::{ProviderAdapter, ProviderRegistry, RegistryError, RegistryResult};
+use crate::work_item::adapters::{BdAdapter, NoneAdapter};
 use crate::work_item::audit::{ClosureAuditEvent, ClosureAuditLog};
 use crate::work_item::evidence::{
     ArtifactStub, CiVerifier, CodeVerifier, DeployVerifier, EndpointVerifier, EvidenceVerifier,
     SpecVerifier, TestVerifier, VerifyResult, WorkpointVerifier,
 };
-use crate::work_item::policy::{ClosurePolicy, ClosureProfile};
+use crate::work_item::policy::{ClosurePolicy, ClosureProfile, default_profile_for};
 use crate::work_item::storage::ClaimStorage;
 use crate::work_item::types::{
-    ClaimStatus, ClosureBlock, ClosureClaim, ClosureClaimBuilder, ClosureError, ClosureKind,
-    EvidenceCitation, EvidenceKind, LifecycleStage, RECLAIMED_BY_OPERATOR, WorkItem, WorkItemRef,
+    ClaimStatus, ClosureAuthorityContext, ClosureBlock, ClosureClaim, ClosureClaimBuilder,
+    ClosureError, ClosureKind, EvidenceCitation, EvidenceKind, LifecycleStage,
+    RECLAIMED_BY_OPERATOR, WorkItem, WorkItemRef,
 };
+
+fn closure_idempotency_key(
+    work_item: &WorkItemRef,
+    closure_summary: &str,
+    authority: Option<&ClosureAuthorityContext>,
+) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(work_item.provider.to_string());
+    hasher.update(work_item.project_root.to_string_lossy().as_bytes());
+    hasher.update(work_item.provider_item_id.as_bytes());
+    hasher.update(closure_summary.as_bytes());
+    if let Some(scope) = authority {
+        hasher.update(scope.continuity_id.as_bytes());
+        hasher.update(scope.workpoint_id.as_bytes());
+    }
+    format!("closure:{:x}", hasher.finalize())
+}
 
 /// Result of `prepare`.
 #[derive(Clone, Debug)]
@@ -100,12 +120,23 @@ impl Lifecycle {
     /// default policy. The provider registry is empty; callers must
     /// register adapters (or use `Lifecycle::with_default_adapters`).
     pub fn open_default() -> Self {
+        Self::open_for_kind(ClosureKind::Code)
+    }
+
+    /// Open the durable lifecycle with built-in adapters and the profile
+    /// appropriate for the requested closure kind.
+    pub fn open_for_kind(closure_kind: ClosureKind) -> Self {
+        let mut registry = ProviderRegistry::empty();
+        registry.register(Arc::new(BdAdapter::new()));
+        registry.register(Arc::new(NoneAdapter::new()));
+        let mut policy = ClosurePolicy::load();
+        policy.active_profile = default_profile_for(closure_kind).to_string();
         Self::new(
             ClaimStorage::open_default(),
             ClosureAuditLog::open_default(),
-            ClosurePolicy::load(),
+            policy,
             ClosureProfile::load_all(&crate::work_item::policy::default_profiles_dir()),
-            ProviderRegistry::empty(),
+            registry,
         )
     }
 
@@ -156,7 +187,114 @@ impl Lifecycle {
         Ok(reconciled.claim)
     }
 
-    /// Stage 1: prepare.
+    /// Run all lifecycle stages with canonical Work Loop authority scope.
+    #[allow(clippy::result_large_err)]
+    pub async fn run_scoped(
+        &self,
+        actor: &str,
+        work_item: WorkItemRef,
+        closure_summary: &str,
+        closure_kind: ClosureKind,
+        citations: Vec<EvidenceCitation>,
+        authority: ClosureAuthorityContext,
+    ) -> Result<ClosureClaim, ClosureBlock> {
+        let idempotency_key =
+            closure_idempotency_key(&work_item, closure_summary, Some(&authority));
+        if let Some(existing) = self
+            .storage
+            .find_by_idempotency_key(&idempotency_key)
+            .map_err(|error| {
+                ClosureBlock::new(
+                    "storage_failure",
+                    "closure_claim_lookup_failed",
+                    error.to_string(),
+                    "repair closure claim storage and retry",
+                    LifecycleStage::Prepare,
+                )
+            })?
+        {
+            return self.advance_claim(actor, existing).await;
+        }
+        let prepared = self
+            .prepare_scoped(
+                actor,
+                work_item,
+                closure_summary,
+                closure_kind,
+                citations,
+                authority,
+            )
+            .map_err(|error| error.into_block())?;
+        if let Some(block) = prepared.block {
+            return Err(block);
+        }
+        self.advance_claim(actor, prepared.claim).await
+    }
+
+    #[allow(clippy::result_large_err)]
+    async fn advance_claim(
+        &self,
+        actor: &str,
+        mut claim: ClosureClaim,
+    ) -> Result<ClosureClaim, ClosureBlock> {
+        loop {
+            claim = match claim.status {
+                ClaimStatus::Draft => {
+                    let result = self
+                        .validate(claim.claim_id.clone())
+                        .await
+                        .map_err(|error| error.into_block())?;
+                    if let Some(block) = result.block {
+                        return Err(block);
+                    }
+                    result.claim
+                }
+                ClaimStatus::Valid => {
+                    let result = self
+                        .authorize(actor, claim.claim_id.clone())
+                        .map_err(|error| error.into_block())?;
+                    if let Some(block) = result.block {
+                        return Err(block);
+                    }
+                    result.claim
+                }
+                ClaimStatus::Authorized => {
+                    let result = self
+                        .submit(claim.claim_id.clone())
+                        .await
+                        .map_err(|error| error.into_block())?;
+                    if let Some(block) = result.block {
+                        return Err(block);
+                    }
+                    result.claim
+                }
+                ClaimStatus::Submitted => {
+                    let result = self
+                        .reconcile(claim.claim_id.clone())
+                        .await
+                        .map_err(|error| error.into_block())?;
+                    if let Some(block) = result.block {
+                        return Err(block);
+                    }
+                    result.claim
+                }
+                ClaimStatus::Reconciled => return Ok(claim),
+                ClaimStatus::Blocked | ClaimStatus::Expired => {
+                    let mut block = ClosureBlock::new(
+                        "closure_not_resumable",
+                        "closure_claim_terminal_block",
+                        format!("closure claim {} is {}", claim.claim_id, claim.status),
+                        "supply fresh evidence and prepare a new closure summary",
+                        LifecycleStage::Prepare,
+                    );
+                    block.claim_id = Some(claim.claim_id);
+                    return Err(block);
+                }
+            };
+        }
+    }
+
+    /// Stage 1: prepare for legacy/manual callers without typed Work Loop scope.
     pub fn prepare(
         &self,
         actor: &str,
@@ -165,17 +303,62 @@ impl Lifecycle {
         closure_kind: ClosureKind,
         citations: Vec<EvidenceCitation>,
     ) -> Result<PrepareResult, ClosureError> {
+        self.prepare_with_authority(
+            actor,
+            work_item,
+            closure_summary,
+            closure_kind,
+            citations,
+            None,
+        )
+    }
+
+    /// Stage 1 with explicit project/workstream/Workpoint authority.
+    pub fn prepare_scoped(
+        &self,
+        actor: &str,
+        work_item: WorkItemRef,
+        closure_summary: &str,
+        closure_kind: ClosureKind,
+        citations: Vec<EvidenceCitation>,
+        authority: ClosureAuthorityContext,
+    ) -> Result<PrepareResult, ClosureError> {
+        if authority.continuity_id.trim().is_empty() || authority.workpoint_id.trim().is_empty() {
+            return Err(ClosureError {
+                stage: LifecycleStage::Prepare,
+                failure_class: "authority_scope_invalid".into(),
+                code: "closure_scope_required".into(),
+                why: "scoped closure requires non-empty continuity_id and workpoint_id".into(),
+                recovery_hint: "bind a canonical Workpoint and typed WorkstreamKey before closure"
+                    .into(),
+            });
+        }
+        self.prepare_with_authority(
+            actor,
+            work_item,
+            closure_summary,
+            closure_kind,
+            citations,
+            Some(authority),
+        )
+    }
+
+    fn prepare_with_authority(
+        &self,
+        actor: &str,
+        work_item: WorkItemRef,
+        closure_summary: &str,
+        closure_kind: ClosureKind,
+        citations: Vec<EvidenceCitation>,
+        authority: Option<ClosureAuthorityContext>,
+    ) -> Result<PrepareResult, ClosureError> {
         let claim_id = format!(
             "claim_{}_{}",
             work_item.provider,
             &Uuid::now_v7().to_string().replace('-', "")[..16]
         );
-        let idempotency_key = format!(
-            "{}:{}:{}",
-            work_item.provider,
-            work_item.provider_item_id,
-            closure_summary.len()
-        );
+        let idempotency_key =
+            closure_idempotency_key(&work_item, closure_summary, authority.as_ref());
         let profile_name = self.policy.active_profile.clone();
         let now = Utc::now();
         let claim = ClosureClaim {
@@ -184,10 +367,15 @@ impl Lifecycle {
             idempotency_key,
             work_item: work_item.clone(),
             project_root: work_item.project_root.clone(),
-            continuity_id: format!("focusa-cont-{}", &Uuid::now_v7().to_string()[..8]),
-            workpoint_id: None,
+            continuity_id: authority
+                .as_ref()
+                .map(|scope| scope.continuity_id.clone())
+                .unwrap_or_else(|| format!("focusa-cont-{}", &Uuid::now_v7().to_string()[..8])),
+            workpoint_id: authority.as_ref().map(|scope| scope.workpoint_id.clone()),
             actor_id: actor.to_string(),
-            agent_session_id: None,
+            agent_session_id: authority
+                .as_ref()
+                .and_then(|scope| scope.agent_session_id.clone()),
             closure_summary: closure_summary.to_string(),
             closure_kind,
             code_refs: citations
@@ -264,6 +452,7 @@ impl Lifecycle {
     pub async fn validate(&self, claim_id: String) -> Result<ValidateResult, ClosureError> {
         let mut claim = self.load_claim(&claim_id, LifecycleStage::Validate)?;
         let mut verify_results = Vec::new();
+        let project_root = claim.project_root.clone();
         // Run verifier on every citation across every field.
         for citation in claim
             .code_refs
@@ -273,7 +462,7 @@ impl Lifecycle {
             .chain(claim.deploy_refs.iter_mut())
             .chain(claim.artifact_refs.iter_mut())
         {
-            let res = run_verifier_for(citation).await;
+            let res = run_verifier_for_in_project(citation, &project_root).await;
             citation.result = Some(res.result.clone());
             citation.verified = res.verified;
             verify_results.push(res.clone());
@@ -663,6 +852,31 @@ impl Lifecycle {
     }
 }
 
+async fn run_verifier_for_in_project(
+    citation: &mut EvidenceCitation,
+    project_root: &std::path::Path,
+) -> VerifyResult {
+    if matches!(
+        citation.kind,
+        EvidenceKind::Code | EvidenceKind::Spec | EvidenceKind::Test | EvidenceKind::Artifact
+    ) {
+        let split_at = citation
+            .ref_
+            .find(" sha256:")
+            .or_else(|| citation.ref_.find('#'))
+            .unwrap_or(citation.ref_.len());
+        let (path_part, suffix) = citation.ref_.split_at(split_at);
+        if !path_part.trim().is_empty() && std::path::Path::new(path_part).is_relative() {
+            citation.ref_ = format!(
+                "{}{}",
+                project_root.join(path_part).to_string_lossy(),
+                suffix
+            );
+        }
+    }
+    run_verifier_for(citation).await
+}
+
 /// Run the matching verifier for a citation. This is the dispatch
 /// table referenced by Spec 116 §7.3.
 pub async fn run_verifier_for(citation: &mut EvidenceCitation) -> VerifyResult {
@@ -952,6 +1166,272 @@ mod tests {
         );
         assert_eq!(parse_http_code("http FAIL 500"), Some(500));
         assert_eq!(parse_http_code("no http here"), None);
+    }
+
+    #[test]
+    fn scoped_prepare_preserves_authority_and_stable_idempotency() {
+        let root = std::env::temp_dir().join(format!("focusa-scoped-{}", Uuid::now_v7()));
+        let lifecycle = Lifecycle::new(
+            ClaimStorage::new(root.join("claims")),
+            ClosureAuditLog::open(root.join("audit.jsonl")).unwrap(),
+            ClosurePolicy::default_policy(),
+            ClosureProfile::all_builtins(),
+            ProviderRegistry::empty(),
+        );
+        let work_item = WorkItemRef {
+            provider: WorkItemProvider::None,
+            provider_item_id: "local-1".into(),
+            project_root: root.clone(),
+            external_url: None,
+        };
+        let authority = ClosureAuthorityContext {
+            continuity_id: "continuity-1".into(),
+            workpoint_id: Uuid::now_v7().to_string(),
+            agent_session_id: Some("session-1".into()),
+        };
+        let first = lifecycle
+            .prepare_scoped(
+                "agent",
+                work_item.clone(),
+                "verified",
+                ClosureKind::Code,
+                vec![],
+                authority.clone(),
+            )
+            .unwrap()
+            .claim;
+        let second = lifecycle
+            .prepare_scoped(
+                "agent",
+                work_item,
+                "verified",
+                ClosureKind::Code,
+                vec![],
+                authority,
+            )
+            .unwrap()
+            .claim;
+        assert_eq!(first.continuity_id, "continuity-1");
+        assert_eq!(first.workpoint_id, second.workpoint_id);
+        assert_eq!(first.agent_session_id.as_deref(), Some("session-1"));
+        assert_eq!(first.idempotency_key, second.idempotency_key);
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[tokio::test]
+    async fn scoped_run_replays_reconciled_claim_without_double_submit() {
+        let root = std::env::temp_dir().join(format!("focusa-idempotent-{}", Uuid::now_v7()));
+        std::fs::create_dir_all(root.join("src")).unwrap();
+        std::fs::create_dir_all(root.join("tests")).unwrap();
+        std::fs::write(root.join("src/lib.rs"), "fn proven() {}\n").unwrap();
+        std::fs::write(root.join("tests/proof.rs"), "// proof\n").unwrap();
+        let mut registry = ProviderRegistry::empty();
+        registry.register(Arc::new(NoneAdapter::new()));
+        let mut policy = ClosurePolicy::default_policy();
+        policy.active_profile = "code_with_test".into();
+        let lifecycle = Lifecycle::new(
+            ClaimStorage::new(root.join("claims")),
+            ClosureAuditLog::open(root.join("audit.jsonl")).unwrap(),
+            policy,
+            ClosureProfile::all_builtins(),
+            registry,
+        );
+        let work_item = WorkItemRef {
+            provider: WorkItemProvider::None,
+            provider_item_id: "local-1".into(),
+            project_root: root.clone(),
+            external_url: None,
+        };
+        let authority = ClosureAuthorityContext {
+            continuity_id: "continuity-1".into(),
+            workpoint_id: Uuid::now_v7().to_string(),
+            agent_session_id: Some("session-1".into()),
+        };
+        let citations = vec![
+            sample_cite(EvidenceKind::Code, "src/lib.rs"),
+            sample_cite(EvidenceKind::Test, "tests/proof.rs"),
+        ];
+        let first = lifecycle
+            .run_scoped(
+                "agent",
+                work_item.clone(),
+                "verified",
+                ClosureKind::Code,
+                citations.clone(),
+                authority.clone(),
+            )
+            .await
+            .unwrap();
+        let snapshots_after_first = lifecycle.storage.list().unwrap().len();
+        let second = lifecycle
+            .run_scoped(
+                "agent",
+                work_item,
+                "verified",
+                ClosureKind::Code,
+                citations,
+                authority,
+            )
+            .await
+            .unwrap();
+        assert_eq!(first.claim_id, second.claim_id);
+        assert_eq!(second.status, ClaimStatus::Reconciled);
+        assert_eq!(
+            lifecycle.storage.list().unwrap().len(),
+            snapshots_after_first
+        );
+        assert_eq!(
+            lifecycle
+                .storage
+                .list()
+                .unwrap()
+                .iter()
+                .filter(|claim_id| !claim_id.contains('.'))
+                .count(),
+            1
+        );
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn spec79_canary_advances_ordered_bd_graph_without_manual_reprompt() {
+        use crate::work_item::{BdAdapter, ProviderAdapter, WorkItemQuery, select_next_ready};
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = std::env::temp_dir().join(format!("focusa-spec79-canary-{}", Uuid::now_v7()));
+        std::fs::create_dir_all(root.join(".beads")).unwrap();
+        std::fs::create_dir_all(root.join("src")).unwrap();
+        std::fs::create_dir_all(root.join("tests")).unwrap();
+        std::fs::write(root.join(".beads/issues.jsonl"), "").unwrap();
+        std::fs::write(root.join("src/lib.rs"), "fn canary() {}\n").unwrap();
+        std::fs::write(root.join("tests/proof.rs"), "// passing canary proof\n").unwrap();
+        std::fs::write(
+            root.join("state.json"),
+            serde_json::to_vec(&serde_json::json!([
+                {"id":"root","title":"root","status":"closed","priority":0},
+                {"id":"a","title":"first","status":"open","priority":0,
+                 "dependencies":[{"depends_on_id":"root","type":"parent-child"}]},
+                {"id":"b","title":"second","status":"open","priority":1,
+                 "dependencies":[{"depends_on_id":"root","type":"parent-child"},
+                                 {"depends_on_id":"a","type":"blocks"}]}
+            ]))
+            .unwrap(),
+        )
+        .unwrap();
+        let script = root.join("fake-bd");
+        std::fs::write(
+            &script,
+            r#"#!/bin/sh
+set -eu
+DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+[ "${1:-}" = "--no-db" ] && shift
+case "${1:-}" in
+  --version) echo 'bd fake 1';;
+  list) cat "$DIR/state.json";;
+  show) python3 - "$DIR/state.json" "$2" <<'PY'
+import json,sys
+xs=json.load(open(sys.argv[1])); print(json.dumps([x for x in xs if x['id']==sys.argv[2]]))
+PY
+  ;;
+  close) python3 - "$DIR/state.json" "$2" <<'PY'
+import json,sys
+p=sys.argv[1]; xs=json.load(open(p))
+for x in xs:
+ if x['id']==sys.argv[2]: x['status']='closed'
+open(p,'w').write(json.dumps(xs))
+PY
+  ;;
+  *) echo 'unsupported fake bd command' >&2; exit 2;;
+esac
+"#,
+        )
+        .unwrap();
+        let mut permissions = std::fs::metadata(&script).unwrap().permissions();
+        permissions.set_mode(0o755);
+        std::fs::set_permissions(&script, permissions).unwrap();
+
+        let adapter = Arc::new(BdAdapter::with_bd_path(script.to_string_lossy()));
+        let mut registry = ProviderRegistry::empty();
+        registry.register(adapter.clone());
+        let mut policy = ClosurePolicy::default_policy();
+        policy.active_profile = "code_with_test".into();
+        let lifecycle = Lifecycle::new(
+            ClaimStorage::new(root.join("claims")),
+            ClosureAuditLog::open(root.join("audit.jsonl")).unwrap(),
+            policy,
+            ClosureProfile::all_builtins(),
+            registry,
+        );
+        let query = WorkItemQuery {
+            project_root: root.clone(),
+            parent: Some(WorkItemRef {
+                provider: WorkItemProvider::Bd,
+                provider_item_id: "root".into(),
+                project_root: root.clone(),
+                external_url: None,
+            }),
+            limit: 100,
+        };
+        let authority = ClosureAuthorityContext {
+            continuity_id: "canary-continuity".into(),
+            workpoint_id: Uuid::now_v7().to_string(),
+            agent_session_id: Some("pi-rpc-canary".into()),
+        };
+        let citations = vec![
+            sample_cite(EvidenceKind::Code, "src/lib.rs"),
+            sample_cite(EvidenceKind::Test, "tests/proof.rs"),
+        ];
+        let mut order = Vec::new();
+        while let Some(item) = select_next_ready(&adapter.list(&query).await.unwrap(), &query) {
+            order.push(item.provider_item_id.clone());
+            lifecycle
+                .run_scoped(
+                    "focusa-work-loop-canary",
+                    item.reference(),
+                    &format!("verified {}", item.provider_item_id),
+                    ClosureKind::Code,
+                    citations.clone(),
+                    authority.clone(),
+                )
+                .await
+                .unwrap();
+        }
+        assert_eq!(order, vec!["a", "b"]);
+        assert!(
+            adapter
+                .list(&query)
+                .await
+                .unwrap()
+                .iter()
+                .all(WorkItem::is_terminal)
+        );
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn scoped_prepare_rejects_missing_workpoint_authority() {
+        let lifecycle = Lifecycle::open_for_kind(ClosureKind::Code);
+        let error = lifecycle
+            .prepare_scoped(
+                "agent",
+                WorkItemRef {
+                    provider: WorkItemProvider::None,
+                    provider_item_id: "local-1".into(),
+                    project_root: PathBuf::from("/tmp/project"),
+                    external_url: None,
+                },
+                "verified",
+                ClosureKind::Code,
+                vec![],
+                ClosureAuthorityContext {
+                    continuity_id: "continuity-1".into(),
+                    workpoint_id: String::new(),
+                    agent_session_id: None,
+                },
+            )
+            .unwrap_err();
+        assert_eq!(error.code, "closure_scope_required");
     }
 
     fn sample_cite(kind: EvidenceKind, ref_: &str) -> EvidenceCitation {

@@ -30,8 +30,7 @@
     "pi_extension",
     "native_tui",
     "menubar",
-    "typescript_sdk",
-    "go_sdk"
+    "typescript_sdk"
   ],
   "runtime_contract": {
     "canonical_runtime": "focusa_rust_daemon",
@@ -48,6 +47,6 @@
     "A self-hosted installation can expose the same Mission Canvas APIs by changing only the daemon base URL.",
     "Restart and exact resume use the selected installation's canonical event log and snapshot state.",
     "Optional managed SaaS uses the same public contracts and does not create a second Mission Canvas authority.",
-    "TypeScript and Go SDKs are optional integration clients and are never runtime prerequisites."
+    "The TypeScript SDK is optional at runtime; external language adapters consume the same OpenAPI/JSON Schema contracts outside Focusa core."
   ]
 }

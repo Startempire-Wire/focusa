@@ -1,0 +1,27 @@
+{
+  "$id": "/v1/agent/schemas/focusa.interview_closure_package.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "adr_candidates": { "items": { "type": "object" }, "maxItems": 64, "type": "array" },
+    "approved_role_profile_ref": { "type": ["string", "null"] },
+    "attachment_id": { "type": "string" },
+    "closure_ref": { "type": "string" },
+    "compendium": { "items": { "type": "object" }, "maxItems": 128, "type": "array" },
+    "continuity_id": { "type": "string" },
+    "glossary_candidates": { "items": { "type": "object" }, "maxItems": 64, "type": "array" },
+    "interview_session_id": { "type": "string" },
+    "project_root": { "type": "string" },
+    "receipt_ref": { "type": "string" },
+    "schema": { "const": "focusa.interview_closure_package.v1" },
+    "source_state_revision": { "minimum": 1, "type": "integer" }
+  },
+  "required": [
+    "schema", "closure_ref", "project_root", "continuity_id", "attachment_id",
+    "interview_session_id", "source_state_revision", "glossary_candidates", "adr_candidates",
+    "compendium", "receipt_ref"
+  ],
+  "title": "focusa.interview_closure_package.v1",
+  "type": "object",
+  "x-focusa-schema-id": "focusa.interview_closure_package.v1"
+}

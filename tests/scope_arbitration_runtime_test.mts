@@ -53,10 +53,8 @@ await runWithAttachmentRuntime(key, async () => {
     verdict.status === "aligned",
     `aligned Focusa ask blocked: ${JSON.stringify(verdict)}`,
   );
-  assert(
-    verdict.action_authority_for_current_ask === true,
-    "aligned Focusa ask should allow action",
-  );
+  assert(verdict.action_authority_for_current_ask === true, "aligned steering authority missing");
+  assert(verdict.durable_project_write_authority === true, "aligned durable writes should be allowed");
   assert(
     verdict.required_next.length === 0,
     `aligned ask should not require rebind: ${JSON.stringify(verdict.required_next)}`,
@@ -78,10 +76,8 @@ await runWithAttachmentRuntime(key, async () => {
     verdict.status === "conflict",
     `conflicting PTM ask not conflict: ${JSON.stringify(verdict)}`,
   );
-  assert(
-    verdict.action_authority_for_current_ask === false,
-    "conflicting PTM ask should suppress action",
-  );
+  assert(verdict.action_authority_for_current_ask === true, "operator steering should remain active");
+  assert(verdict.durable_project_write_authority === false, "conflicting PTM writes should require verification");
   assert(
     verdict.required_next.includes("focusa_project_verify"),
     `conflict missing verify route: ${JSON.stringify(verdict.required_next)}`,

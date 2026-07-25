@@ -24,6 +24,12 @@ focusa_trajectory_view -> focusa_tool_search
 4. Call `focusa_trajectory_view` with only required bounded inputs.
 5. Call `focusa_tool_search` with only required bounded inputs.
 
+## Current domain procedure
+
+1. Call `focusa_agent_card` and verify workspace version, registry digest, all-Pi-tool count, installed skills, and runbooks.
+2. Use `focusa_tool_search` and `focusa_tool_describe`; never hot-load or invent the complete tool schema set.
+3. Follow `docs/agent/01-focusa-agent-docs-index.md` for current architecture, lifecycle, and recovery routes.
+
 ## Branches
 
 - Unknown tool/schema: `focusa_tool_search` → `focusa_tool_describe`.

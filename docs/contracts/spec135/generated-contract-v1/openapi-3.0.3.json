@@ -11358,6 +11358,78 @@
           "receipt_ref",
           "tool_result"
         ]
+      },
+      "focusa_interview_closure_package_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "adr_candidates": {
+            "items": {
+              "type": "object"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "approved_role_profile_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "attachment_id": {
+            "type": "string"
+          },
+          "closure_ref": {
+            "type": "string"
+          },
+          "compendium": {
+            "items": {
+              "type": "object"
+            },
+            "maxItems": 128,
+            "type": "array"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "glossary_candidates": {
+            "items": {
+              "type": "object"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "interview_session_id": {
+            "type": "string"
+          },
+          "project_root": {
+            "type": "string"
+          },
+          "receipt_ref": {
+            "type": "string"
+          },
+          "schema": {
+            "const": "focusa.interview_closure_package.v1"
+          },
+          "source_state_revision": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "schema",
+          "closure_ref",
+          "project_root",
+          "continuity_id",
+          "attachment_id",
+          "interview_session_id",
+          "source_state_revision",
+          "glossary_candidates",
+          "adr_candidates",
+          "compendium",
+          "receipt_ref"
+        ],
+        "title": "focusa.interview_closure_package.v1",
+        "type": "object"
       }
     }
   },
@@ -19332,6 +19404,16 @@
           },
           "404": {
             "description": "No persisted state; no replacement identity is manufactured"
+          },
+          "default": {
+            "description": "Standard error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            }
           }
         },
         "x-focusa": {
@@ -19405,6 +19487,16 @@
           },
           "422": {
             "description": "Scope or topology validation rejected"
+          },
+          "default": {
+            "description": "Standard error envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            }
           }
         },
         "x-focusa": {
@@ -19447,6 +19539,104 @@
         ],
         "x-focusa-sensitive": "scoped_mutation",
         "x-focusa-subsystem": "mission_canvas"
+      }
+    },
+    "/v1/interviews/closure-package": {
+      "get": {
+        "description": "Get Governed Interview Closure Package \u2014 family=project_interview budget=standard_read materialization=canonical_read",
+        "operationId": "focusa.interview.closure_package.get",
+        "parameters": [
+          {
+            "description": "Required Focusa scope key: project_root",
+            "in": "query",
+            "name": "project_root",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: continuity_id",
+            "in": "query",
+            "name": "continuity_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required Focusa scope key: attachment_id",
+            "in": "query",
+            "name": "attachment_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_interview_closure_package_v1"
+                }
+              }
+            },
+            "description": "Get Governed Interview Closure Package response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_tool_result_v1"
+                }
+              }
+            },
+            "description": "Standard error envelope"
+          }
+        },
+        "summary": "Get Governed Interview Closure Package",
+        "tags": [
+          "project_interview"
+        ],
+        "x-focusa": {
+          "budget_profile": "standard_read",
+          "canonical": true,
+          "deprecation": null,
+          "family": "project_interview",
+          "materialization_mode": "canonical_read",
+          "requires_preview_token": false,
+          "side_effect_profile": "read_interview_session",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ]
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "project_interview"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "none",
+        "x-focusa-core-action": "focusa.interview.closure_package.get",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": false,
+        "x-focusa-mode": "read",
+        "x-focusa-permissions": [
+          "interview:read"
+        ],
+        "x-focusa-plain-label": "Get Governed Interview Closure Package",
+        "x-focusa-receipt": false,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id",
+          "attachment_id"
+        ],
+        "x-focusa-sensitive": "routine",
+        "x-focusa-subsystem": "project_interview"
       }
     }
   },

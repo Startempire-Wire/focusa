@@ -65,11 +65,14 @@ def main() -> None:
         if required not in helper:
             fail(f"execution partition payload missing {required}")
     if not re.search(
-        r"wl\s*\.current_task\s*\.as_ref\(\)\s*\.map\(\|task\|\s*task\.work_item_id\.clone\(\)\)",
+        r'"current_task_work_item_id"\s*:\s*wl\s*\.current_task\s*\.as_ref\(\)\s*\.map\(\|task\|\s*task\.work_item_id\.as_str\(\)\)',
         helper,
     ):
+        fail("execution partition must project current_task.work_item_id")
+    claim_helper = function_body(text, "writer_claim_key_from_scope")
+    if "execution_work_item_id" not in claim_helper:
         fail(
-            "execution partition must derive WorkItemKey from current_task.work_item_id"
+            "writer claim WorkItemKey must derive from the requested root/parent execution work item"
         )
     if (
         'legacy_active_writer_global": true' in helper
@@ -93,8 +96,11 @@ def main() -> None:
         fail("context writes must require matching claimed writer")
 
     server = SERVER.read_text()
-    if "pub writer_claims: Arc<TokioRwLock<HashMap<String, String>>>" not in server:
-        fail("server must store scoped writer_claims map")
+    if (
+        "pub writer_claims: Arc<TokioRwLock<HashMap<String, WriterLease>>>"
+        not in server
+    ):
+        fail("server must store scoped writer lease claims map")
     if "pub active_writer: Arc<TokioRwLock<Option<String>>>" in server:
         fail("legacy daemon-global active_writer storage must be removed")
     proofs = set(data.get("proof_requirements") or [])
@@ -102,9 +108,13 @@ def main() -> None:
         "static Work-loop contract validation",
         "static status renders execution_partition",
         "static writer claim functions remain mutation gates",
+        "runtime same-project different-work-item writer isolation test",
+        "runtime writer conflict same-work-item test",
     ]:
         if proof not in proofs:
             fail(f"contract missing proof requirement: {proof}")
+    if "fn writer_claim_runtime_isolates_concurrent_partitions()" not in text:
+        fail("work-loop route must retain partition isolation and same-item conflict proof")
     print("✓ PASS: Work-loop execution partition contract/status guard is present")
 
 

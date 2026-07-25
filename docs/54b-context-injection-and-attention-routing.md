@@ -31,7 +31,7 @@ Instead, it should inject a **minimal applicable slice** chosen after operator-i
 4. compute applicable constraints/decisions/working-set members
 5. compute an attention/recall verdict for critical facts that can change action authority
 6. inject only the minimal supporting slice plus any required non-droppable memory anchor
-7. generate response/action only when the verdict permits action or requires a recap/rebind first
+7. preserve the newest operator input and continue conversational/read-only reasoning; gate only durable project-scoped mutation until required verification completes
 
 ## Minimal Applicable Slice
 
@@ -83,6 +83,13 @@ When operator input clearly changes the task, Focusa must:
 - suppress unrelated prior focus state
 - compute a current-ask scope/action-authority verdict before Workpoint carryover
 - rebuild a new task-relevant slice
+
+## Non-Interruption Rule
+
+- Focusa context injection must never cancel, consume, replace, or delay the newest operator prompt.
+- Scope uncertainty can gate durable project writes; it cannot suppress operator steering, direct answers, diagnosis, or read-only verification.
+- Tool-output pressure may refresh an internal memory anchor, but a visible recap is optional and must not be a prerequisite for the next action.
+- Injected context is advisory to the model. Enforcement belongs at the scoped mutation boundary, not in imperative prose that tells the model to stop.
 
 ## Success Condition
 

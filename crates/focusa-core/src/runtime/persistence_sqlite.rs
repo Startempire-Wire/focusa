@@ -7,6 +7,14 @@
 //! ECS objects remain filesystem-backed (see reference::store).
 
 use crate::clt::retain_hot_window;
+use crate::silent_session::{
+    SilentSession, SilentSessionConfigRevision, SilentSessionConfigRevisionId, SilentSessionEvent,
+    SilentSessionEventId, SilentSessionId, SilentSessionLifecycleState, SilentSessionRun,
+    SilentSessionRunId,
+};
+use crate::silent_session_authorization::{SilentSessionApproval, SilentSessionPrincipal};
+use crate::silent_session_config::redacted_config_hash;
+use crate::silent_session_writer::WriterLeaseRegistry;
 use crate::sync::{CrdtEvent, VectorClock};
 use crate::types::{
     CallStackDesign, CognitionOptimizerArtifact, CuratorEvalRun, DeviceRecord, EventLogEntry,
@@ -20,7 +28,7 @@ use std::sync::{Arc, Mutex};
 use tracing::debug;
 use uuid::Uuid;
 
-const SCHEMA_VERSION: i64 = 2;
+const SCHEMA_VERSION: i64 = 6;
 
 fn hot_clt_snapshot_max_nodes() -> usize {
     std::env::var("FOCUSA_HOT_CLT_MAX_NODES")
@@ -268,6 +276,97 @@ impl SqlitePersistence {
                 last_event_ts TEXT,
                 updated_at TEXT NOT NULL,
                 FOREIGN KEY (peer_id) REFERENCES peers(peer_id) ON DELETE CASCADE
+            );
+
+            -- V3: Spec 133 canonical SilentSession projections and append-only event chain.
+            CREATE TABLE IF NOT EXISTS silent_sessions (
+              session_id TEXT PRIMARY KEY,
+              project_root TEXT NOT NULL,
+              continuity_id TEXT NOT NULL,
+              lifecycle_state TEXT NOT NULL,
+              projection_json TEXT NOT NULL,
+              projection_version INTEGER NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_silent_sessions_scope
+              ON silent_sessions(project_root, continuity_id);
+
+            -- V5: exact durable run projection and generation guard source.
+            CREATE TABLE IF NOT EXISTS silent_session_runs (
+              run_id TEXT PRIMARY KEY,
+              session_id TEXT NOT NULL,
+              generation INTEGER NOT NULL CHECK(generation > 0),
+              run_json TEXT NOT NULL,
+              updated_at TEXT NOT NULL,
+              UNIQUE(session_id, generation),
+              FOREIGN KEY(session_id) REFERENCES silent_sessions(session_id) ON DELETE RESTRICT
+            );
+            CREATE INDEX IF NOT EXISTS idx_silent_session_runs_target
+              ON silent_session_runs(session_id, run_id, generation);
+
+            CREATE TABLE IF NOT EXISTS silent_session_events (
+              event_id TEXT PRIMARY KEY,
+              session_id TEXT NOT NULL,
+              run_id TEXT NOT NULL,
+              seq INTEGER NOT NULL,
+              occurred_at TEXT NOT NULL,
+              event_json TEXT NOT NULL,
+              payload_sha256 TEXT NOT NULL,
+              previous_hash TEXT NOT NULL,
+              event_hash TEXT NOT NULL,
+              UNIQUE(session_id, run_id, seq),
+              FOREIGN KEY(session_id) REFERENCES silent_sessions(session_id) ON DELETE RESTRICT
+            );
+            CREATE INDEX IF NOT EXISTS idx_silent_session_events_order
+              ON silent_session_events(session_id, run_id, seq);
+
+            -- V6: append-only transactional Silent Session config authority.
+            CREATE TABLE IF NOT EXISTS silent_session_config_revisions (
+              revision_id TEXT PRIMARY KEY,
+              session_id TEXT NOT NULL,
+              parent_revision_id TEXT,
+              revision_json TEXT NOT NULL,
+              effective_hash TEXT NOT NULL,
+              applied_at TEXT NOT NULL,
+              FOREIGN KEY(session_id) REFERENCES silent_sessions(session_id) ON DELETE RESTRICT
+            );
+            CREATE INDEX IF NOT EXISTS idx_silent_session_config_revisions_history
+              ON silent_session_config_revisions(session_id, applied_at, revision_id);
+
+            -- V4: durable Spec 133 control-plane identities and one-shot approvals.
+            CREATE TABLE IF NOT EXISTS silent_session_principals (
+              actor_instance_ref TEXT PRIMARY KEY,
+              actor_ref TEXT NOT NULL,
+              principal_json TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS silent_session_approvals (
+              approval_id TEXT PRIMARY KEY,
+              action_digest TEXT NOT NULL,
+              approval_json TEXT NOT NULL,
+              expires_at TEXT NOT NULL,
+              consumed_at TEXT
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_silent_session_approval_digest
+              ON silent_session_approvals(action_digest);
+            CREATE TABLE IF NOT EXISTS silent_session_action_redemptions (
+              action_digest TEXT PRIMARY KEY,
+              approval_id TEXT NOT NULL,
+              redeemed_at TEXT NOT NULL,
+              FOREIGN KEY(approval_id) REFERENCES silent_session_approvals(approval_id) ON DELETE RESTRICT
+            );
+            CREATE TABLE IF NOT EXISTS silent_session_runner_identities (
+              runner_id TEXT PRIMARY KEY,
+              verifying_key_base64 TEXT NOT NULL,
+              os_user TEXT NOT NULL,
+              project_identity_ref TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS silent_session_writer_lease_registry (
+              singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+              revision INTEGER NOT NULL,
+              registry_json TEXT NOT NULL,
+              updated_at TEXT NOT NULL
             );
 
             CREATE TABLE IF NOT EXISTS snapshots (
@@ -2113,6 +2212,979 @@ impl SqlitePersistence {
         use std::io::Write;
         writeln!(file, "{}", line)?;
         debug!("Appended CognitionOptimizerArtifact to {:?}", ledger_file);
+        Ok(())
+    }
+
+    pub fn put_silent_session_principal(
+        &self,
+        principal: &SilentSessionPrincipal,
+    ) -> anyhow::Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        conn.execute(
+            r#"INSERT INTO silent_session_principals(actor_instance_ref, actor_ref, principal_json, updated_at)
+               VALUES (?1, ?2, ?3, ?4)
+               ON CONFLICT(actor_instance_ref) DO UPDATE SET actor_ref=excluded.actor_ref,
+                 principal_json=excluded.principal_json, updated_at=excluded.updated_at"#,
+            params![principal.actor_instance_ref, principal.actor_ref, serde_json::to_string(principal)?, Utc::now().to_rfc3339()],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_silent_session_principal(
+        &self,
+        actor_instance_ref: &str,
+    ) -> anyhow::Result<Option<SilentSessionPrincipal>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let json: Option<String> = conn
+            .query_row(
+                "SELECT principal_json FROM silent_session_principals WHERE actor_instance_ref=?1",
+                [actor_instance_ref],
+                |row| row.get(0),
+            )
+            .optional()?;
+        json.map(|value| serde_json::from_str(&value).map_err(Into::into))
+            .transpose()
+    }
+
+    pub fn put_silent_session_approval(
+        &self,
+        approval: &SilentSessionApproval,
+    ) -> anyhow::Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let changed = conn.execute(
+            r#"INSERT INTO silent_session_approvals(approval_id, action_digest, approval_json, expires_at, consumed_at)
+               VALUES (?1, ?2, ?3, ?4, NULL)
+               ON CONFLICT(approval_id) DO UPDATE SET action_digest=excluded.action_digest,
+                 approval_json=excluded.approval_json, expires_at=excluded.expires_at
+               WHERE silent_session_approvals.consumed_at IS NULL"#,
+            params![approval.approval_id, approval.action_digest, serde_json::to_string(approval)?, approval.expires_at.to_rfc3339()],
+        )?;
+        anyhow::ensure!(
+            changed == 1,
+            "consumed silent-session approval is immutable"
+        );
+        Ok(())
+    }
+
+    pub fn load_silent_session_approval(
+        &self,
+        approval_id: &str,
+    ) -> anyhow::Result<Option<SilentSessionApproval>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let json: Option<String> = conn
+            .query_row(
+                "SELECT approval_json FROM silent_session_approvals WHERE approval_id=?1 AND consumed_at IS NULL",
+                [approval_id],
+                |row| row.get(0),
+            )
+            .optional()?;
+        json.map(|value| serde_json::from_str(&value).map_err(Into::into))
+            .transpose()
+    }
+
+    pub fn redeem_silent_session_approval(
+        &self,
+        approval_id: &str,
+        action_digest: &str,
+        now: DateTime<Utc>,
+    ) -> anyhow::Result<SilentSessionApproval> {
+        let mut conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let tx = conn.transaction()?;
+        let (json, stored_digest, expires_at, consumed_at): (String, String, String, Option<String>) = tx.query_row(
+            "SELECT approval_json, action_digest, expires_at, consumed_at FROM silent_session_approvals WHERE approval_id=?1",
+            [approval_id], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)))?;
+        anyhow::ensure!(
+            consumed_at.is_none(),
+            "silent-session approval already consumed"
+        );
+        anyhow::ensure!(
+            stored_digest == action_digest,
+            "silent-session approval digest mismatch"
+        );
+        let expiry = DateTime::parse_from_rfc3339(&expires_at)?.with_timezone(&Utc);
+        anyhow::ensure!(expiry > now, "silent-session approval expired");
+        tx.execute(
+            "INSERT INTO silent_session_action_redemptions(action_digest, approval_id, redeemed_at) VALUES (?1,?2,?3)",
+            params![action_digest, approval_id, now.to_rfc3339()],
+        )?;
+        tx.execute(
+            "UPDATE silent_session_approvals SET consumed_at=?2 WHERE approval_id=?1 AND consumed_at IS NULL",
+            params![approval_id, now.to_rfc3339()],
+        )?;
+        tx.commit()?;
+        Ok(serde_json::from_str(&json)?)
+    }
+
+    pub fn put_silent_session_runner_identity(
+        &self,
+        runner_id: &str,
+        verifying_key_base64: &str,
+        os_user: &str,
+        project_identity_ref: &str,
+    ) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            !runner_id.trim().is_empty() && !verifying_key_base64.trim().is_empty(),
+            "runner identity and key are required"
+        );
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        conn.execute(
+            r#"INSERT INTO silent_session_runner_identities(runner_id, verifying_key_base64, os_user, project_identity_ref, updated_at)
+               VALUES (?1,?2,?3,?4,?5)
+               ON CONFLICT(runner_id) DO UPDATE SET verifying_key_base64=excluded.verifying_key_base64,
+                 os_user=excluded.os_user, project_identity_ref=excluded.project_identity_ref,
+                 updated_at=excluded.updated_at"#,
+            params![runner_id, verifying_key_base64, os_user, project_identity_ref, Utc::now().to_rfc3339()],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_silent_session_runner_identity(
+        &self,
+        runner_id: &str,
+    ) -> anyhow::Result<Option<(String, String, String)>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        conn.query_row(
+            "SELECT verifying_key_base64, os_user, project_identity_ref FROM silent_session_runner_identities WHERE runner_id=?1",
+            [runner_id], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?))).optional().map_err(Into::into)
+    }
+
+    pub fn load_silent_session_writer_lease_registry(
+        &self,
+    ) -> anyhow::Result<(u64, WriterLeaseRegistry)> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let stored = conn
+            .query_row(
+                "SELECT revision, registry_json FROM silent_session_writer_lease_registry WHERE singleton=1",
+                [],
+                |row| Ok((row.get::<_, u64>(0)?, row.get::<_, String>(1)?)),
+            )
+            .optional()?;
+        match stored {
+            Some((revision, json)) => {
+                let registry: WriterLeaseRegistry = serde_json::from_str(&json)?;
+                registry.validate()?;
+                Ok((revision, registry))
+            }
+            None => Ok((0, WriterLeaseRegistry::default())),
+        }
+    }
+
+    pub fn persist_silent_session_writer_lease_registry_cas(
+        &self,
+        expected_revision: u64,
+        registry: &WriterLeaseRegistry,
+    ) -> anyhow::Result<u64> {
+        registry.validate()?;
+        let json = serde_json::to_string(registry)?;
+        let mut conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let tx = conn.transaction()?;
+        let current = tx
+            .query_row(
+                "SELECT revision FROM silent_session_writer_lease_registry WHERE singleton=1",
+                [],
+                |row| row.get::<_, u64>(0),
+            )
+            .optional()?
+            .unwrap_or(0);
+        anyhow::ensure!(
+            current == expected_revision,
+            "silent-session writer lease registry CAS conflict"
+        );
+        let next = current
+            .checked_add(1)
+            .ok_or_else(|| anyhow::anyhow!("writer lease registry revision exhausted"))?;
+        tx.execute(
+            r#"INSERT INTO silent_session_writer_lease_registry(singleton, revision, registry_json, updated_at)
+               VALUES (1,?1,?2,?3)
+               ON CONFLICT(singleton) DO UPDATE SET revision=excluded.revision,
+                 registry_json=excluded.registry_json, updated_at=excluded.updated_at"#,
+            params![next, json, Utc::now().to_rfc3339()],
+        )?;
+        tx.commit()?;
+        Ok(next)
+    }
+
+    /// Atomically append a Spec 133 event and advance its session projection.
+    pub fn persist_silent_session_event(
+        &self,
+        session: &SilentSession,
+        event: &SilentSessionEvent,
+    ) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            event.session_id == session.session_id,
+            "silent-session event scope mismatch"
+        );
+        let projection_json = serde_json::to_string(session)?;
+        let event_json = serde_json::to_string(event)?;
+        let payload_sha256 = sha256_hex(event_json.as_bytes());
+        let mut conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let tx = conn.transaction()?;
+        tx.execute(
+            r#"INSERT INTO silent_sessions(session_id, project_root, continuity_id, lifecycle_state, projection_json, projection_version, updated_at)
+               VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+               ON CONFLICT(session_id) DO UPDATE SET project_root=excluded.project_root,
+                 continuity_id=excluded.continuity_id, lifecycle_state=excluded.lifecycle_state,
+                 projection_json=excluded.projection_json, projection_version=excluded.projection_version,
+                 updated_at=excluded.updated_at"#,
+            params![session.session_id.to_string(), session.project_root.to_string_lossy(),
+                session.continuity_id, format!("{:?}", session.lifecycle_state), projection_json,
+                i64::try_from(event.seq)?, Utc::now().to_rfc3339()],
+        )?;
+        let replay: Option<String> = tx
+            .query_row(
+                "SELECT event_json FROM silent_session_events WHERE event_id=?1",
+                [event.event_id.to_string()],
+                |row| row.get(0),
+            )
+            .optional()?;
+        if let Some(existing) = replay {
+            anyhow::ensure!(
+                existing == event_json,
+                "silent-session event id replay conflict"
+            );
+            tx.commit()?;
+            return Ok(());
+        }
+        let previous: Option<(i64, String)> = tx.query_row(
+            "SELECT seq, event_hash FROM silent_session_events WHERE session_id=?1 AND run_id=?2 ORDER BY seq DESC LIMIT 1",
+            params![event.session_id.to_string(), event.run_id.to_string()],
+            |row| Ok((row.get(0)?, row.get(1)?))).optional()?;
+        if let Some((last_seq, _)) = previous.as_ref() {
+            anyhow::ensure!(
+                i64::try_from(event.seq)? == last_seq + 1,
+                "silent-session event sequence gap"
+            );
+        }
+        let previous_hash = previous
+            .map(|(_, hash)| hash)
+            .unwrap_or_else(|| "GENESIS".into());
+        let event_hash = event_chain_hash(
+            &previous_hash,
+            &event.event_id.to_string(),
+            &event.occurred_at.to_rfc3339(),
+            &payload_sha256,
+        );
+        tx.execute(
+            "INSERT INTO silent_session_events(event_id, session_id, run_id, seq, occurred_at, event_json, payload_sha256, previous_hash, event_hash) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
+            params![event.event_id.to_string(), event.session_id.to_string(), event.run_id.to_string(),
+                i64::try_from(event.seq)?, event.occurred_at.to_rfc3339(), event_json,
+                payload_sha256, previous_hash, event_hash],
+        )?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    /// Atomically create a canonical draft session, its first run generation,
+    /// and genesis event while redeeming the exact durable approval.
+    #[allow(clippy::too_many_arguments)]
+    pub fn persist_silent_session_create(
+        &self,
+        approval_id: &str,
+        action_digest: &str,
+        authorized_at: DateTime<Utc>,
+        session: &SilentSession,
+        run: &SilentSessionRun,
+        event: &SilentSessionEvent,
+        initial_config_revision: &SilentSessionConfigRevision,
+        effective_config_hash: &str,
+    ) -> anyhow::Result<()> {
+        session
+            .validate()
+            .map_err(|error| anyhow::anyhow!("invalid silent-session projection: {error:?}"))?;
+        run.validate(session)
+            .map_err(|error| anyhow::anyhow!("invalid silent-session run: {error:?}"))?;
+        event
+            .validate(session, run)
+            .map_err(|error| anyhow::anyhow!("invalid silent-session event: {error:?}"))?;
+        anyhow::ensure!(
+            session.lifecycle_state == SilentSessionLifecycleState::Draft,
+            "silent-session create requires draft lifecycle"
+        );
+        anyhow::ensure!(
+            session.active_run_id == Some(run.run_id)
+                && run.generation == 1
+                && run.current_event_seq == 1
+                && event.seq == 1,
+            "silent-session create requires generation-one genesis event"
+        );
+        anyhow::ensure!(
+            initial_config_revision.session_id == session.session_id
+                && initial_config_revision.revision_id == session.config_revision_id
+                && initial_config_revision.parent_revision_id.is_none()
+                && initial_config_revision.applied_at.is_some(),
+            "silent-session create requires matching initial config revision"
+        );
+        anyhow::ensure!(
+            redacted_config_hash(&initial_config_revision.config)? == effective_config_hash,
+            "silent-session initial config hash mismatch"
+        );
+
+        let projection_json = serde_json::to_string(session)?;
+        let run_json = serde_json::to_string(run)?;
+        let event_json = serde_json::to_string(event)?;
+        let config_revision_json = serde_json::to_string(initial_config_revision)?;
+        let payload_sha256 = sha256_hex(event_json.as_bytes());
+        let event_hash = event_chain_hash(
+            "GENESIS",
+            &event.event_id.to_string(),
+            &event.occurred_at.to_rfc3339(),
+            &payload_sha256,
+        );
+        let mut conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let tx = conn.transaction()?;
+        let (stored_digest, expires_at, consumed_at): (String, String, Option<String>) = tx
+            .query_row(
+                "SELECT action_digest, expires_at, consumed_at FROM silent_session_approvals WHERE approval_id=?1",
+                [approval_id],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )?;
+        anyhow::ensure!(
+            consumed_at.is_none(),
+            "silent-session approval already consumed"
+        );
+        anyhow::ensure!(
+            stored_digest == action_digest,
+            "silent-session approval digest mismatch"
+        );
+        let expiry = DateTime::parse_from_rfc3339(&expires_at)?.with_timezone(&Utc);
+        anyhow::ensure!(expiry > authorized_at, "silent-session approval expired");
+
+        tx.execute(
+            "INSERT INTO silent_session_action_redemptions(action_digest, approval_id, redeemed_at) VALUES (?1,?2,?3)",
+            params![action_digest, approval_id, authorized_at.to_rfc3339()],
+        )?;
+        let consumed = tx.execute(
+            "UPDATE silent_session_approvals SET consumed_at=?2 WHERE approval_id=?1 AND consumed_at IS NULL",
+            params![approval_id, authorized_at.to_rfc3339()],
+        )?;
+        anyhow::ensure!(consumed == 1, "silent-session approval redemption conflict");
+        tx.execute(
+            "INSERT INTO silent_sessions(session_id, project_root, continuity_id, lifecycle_state, projection_json, projection_version, updated_at) VALUES (?1,?2,?3,?4,?5,?6,?7)",
+            params![session.session_id.to_string(), session.project_root.to_string_lossy(),
+                session.continuity_id, format!("{:?}", session.lifecycle_state), projection_json,
+                i64::try_from(event.seq)?, authorized_at.to_rfc3339()],
+        )?;
+        tx.execute(
+            "INSERT INTO silent_session_config_revisions(revision_id, session_id, parent_revision_id, revision_json, effective_hash, applied_at) VALUES (?1,?2,NULL,?3,?4,?5)",
+            params![initial_config_revision.revision_id.to_string(), session.session_id.to_string(),
+                config_revision_json, effective_config_hash, authorized_at.to_rfc3339()],
+        )?;
+        tx.execute(
+            "INSERT INTO silent_session_runs(run_id, session_id, generation, run_json, updated_at) VALUES (?1,?2,?3,?4,?5)",
+            params![run.run_id.to_string(), session.session_id.to_string(),
+                i64::try_from(run.generation)?, run_json, authorized_at.to_rfc3339()],
+        )?;
+        tx.execute(
+            "INSERT INTO silent_session_events(event_id, session_id, run_id, seq, occurred_at, event_json, payload_sha256, previous_hash, event_hash) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
+            params![event.event_id.to_string(), event.session_id.to_string(), event.run_id.to_string(),
+                i64::try_from(event.seq)?, event.occurred_at.to_rfc3339(), event_json,
+                payload_sha256, "GENESIS", event_hash],
+        )?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    /// Atomically compare-and-swap one lifecycle projection and append its
+    /// canonical event. Both the lifecycle state and run event cursor fence
+    /// concurrent controls; the run generation fences controls delayed across
+    /// restart/adoption.
+    #[allow(clippy::too_many_arguments)]
+    pub fn persist_silent_session_lifecycle_cas(
+        &self,
+        expected_lifecycle: SilentSessionLifecycleState,
+        expected_generation: u64,
+        expected_run_id: SilentSessionRunId,
+        approval_id: &str,
+        action_digest: &str,
+        authorized_at: DateTime<Utc>,
+        session: &SilentSession,
+        run: &SilentSessionRun,
+        event: &SilentSessionEvent,
+    ) -> anyhow::Result<()> {
+        session
+            .validate()
+            .map_err(|error| anyhow::anyhow!("invalid silent-session projection: {error:?}"))?;
+        run.validate(session)
+            .map_err(|error| anyhow::anyhow!("invalid silent-session run: {error:?}"))?;
+        event
+            .validate(session, run)
+            .map_err(|error| anyhow::anyhow!("invalid silent-session event: {error:?}"))?;
+        let creates_generation = run.run_id != expected_run_id;
+        anyhow::ensure!(
+            (!creates_generation && run.generation == expected_generation)
+                || (creates_generation && run.generation == expected_generation.saturating_add(1)),
+            "silent-session generation conflict"
+        );
+        anyhow::ensure!(
+            run.current_event_seq == event.seq && (!creates_generation || event.seq == 1),
+            "silent-session run cursor must advance to event sequence"
+        );
+
+        let projection_json = serde_json::to_string(session)?;
+        let run_json = serde_json::to_string(run)?;
+        let event_json = serde_json::to_string(event)?;
+        let payload_sha256 = sha256_hex(event_json.as_bytes());
+        let mut conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let tx = conn.transaction()?;
+
+        let (stored_digest, expires_at, consumed_at): (String, String, Option<String>) = tx
+            .query_row(
+                "SELECT action_digest, expires_at, consumed_at FROM silent_session_approvals WHERE approval_id=?1",
+                [approval_id],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )?;
+        anyhow::ensure!(
+            consumed_at.is_none(),
+            "silent-session approval already consumed"
+        );
+        anyhow::ensure!(
+            stored_digest == action_digest,
+            "silent-session approval digest mismatch"
+        );
+        let expiry = DateTime::parse_from_rfc3339(&expires_at)?.with_timezone(&Utc);
+        anyhow::ensure!(expiry > authorized_at, "silent-session approval expired");
+
+        let stored_session_json: String = tx.query_row(
+            "SELECT projection_json FROM silent_sessions WHERE session_id=?1",
+            [session.session_id.to_string()],
+            |row| row.get(0),
+        )?;
+        let stored_session: SilentSession = serde_json::from_str(&stored_session_json)?;
+        anyhow::ensure!(
+            stored_session.lifecycle_state == expected_lifecycle,
+            "silent-session lifecycle conflict"
+        );
+        anyhow::ensure!(
+            stored_session.project_root == session.project_root
+                && stored_session.project_identity_ref == session.project_identity_ref
+                && stored_session.continuity_id == session.continuity_id,
+            "silent-session scope mutation"
+        );
+
+        let (stored_generation, stored_run_json): (i64, String) = tx.query_row(
+            "SELECT generation, run_json FROM silent_session_runs WHERE session_id=?1 AND run_id=?2",
+            params![session.session_id.to_string(), expected_run_id.to_string()],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )?;
+        let stored_run: SilentSessionRun = serde_json::from_str(&stored_run_json)?;
+        let latest_generation: i64 = tx.query_row(
+            "SELECT MAX(generation) FROM silent_session_runs WHERE session_id=?1",
+            [session.session_id.to_string()],
+            |row| row.get(0),
+        )?;
+        anyhow::ensure!(
+            u64::try_from(stored_generation)? == expected_generation
+                && stored_run.generation == expected_generation
+                && u64::try_from(latest_generation)? == expected_generation,
+            "silent-session generation conflict"
+        );
+        anyhow::ensure!(
+            (creates_generation && event.seq == 1)
+                || (!creates_generation
+                    && event.seq == stored_run.current_event_seq.saturating_add(1)),
+            "silent-session event cursor conflict"
+        );
+
+        let previous: Option<(i64, String)> = tx
+            .query_row(
+                "SELECT seq, event_hash FROM silent_session_events WHERE session_id=?1 AND run_id=?2 ORDER BY seq DESC LIMIT 1",
+                params![event.session_id.to_string(), event.run_id.to_string()],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?;
+        let (last_seq, previous_hash) = previous.unwrap_or((0, "GENESIS".into()));
+        anyhow::ensure!(
+            i64::try_from(event.seq)? == last_seq + 1,
+            "silent-session event sequence gap"
+        );
+        let event_hash = event_chain_hash(
+            &previous_hash,
+            &event.event_id.to_string(),
+            &event.occurred_at.to_rfc3339(),
+            &payload_sha256,
+        );
+
+        tx.execute(
+            "INSERT INTO silent_session_action_redemptions(action_digest, approval_id, redeemed_at) VALUES (?1,?2,?3)",
+            params![action_digest, approval_id, authorized_at.to_rfc3339()],
+        )?;
+        let consumed = tx.execute(
+            "UPDATE silent_session_approvals SET consumed_at=?2 WHERE approval_id=?1 AND consumed_at IS NULL",
+            params![approval_id, authorized_at.to_rfc3339()],
+        )?;
+        anyhow::ensure!(consumed == 1, "silent-session approval redemption conflict");
+        tx.execute(
+            "UPDATE silent_sessions SET lifecycle_state=?2, projection_json=?3, projection_version=?4, updated_at=?5 WHERE session_id=?1",
+            params![session.session_id.to_string(), format!("{:?}", session.lifecycle_state), projection_json,
+                i64::try_from(event.seq)?, Utc::now().to_rfc3339()],
+        )?;
+        if creates_generation {
+            tx.execute(
+                "INSERT INTO silent_session_runs(run_id, session_id, generation, run_json, updated_at) VALUES (?1,?2,?3,?4,?5)",
+                params![run.run_id.to_string(), session.session_id.to_string(),
+                    i64::try_from(run.generation)?, run_json, Utc::now().to_rfc3339()],
+            )?;
+        } else {
+            tx.execute(
+                "UPDATE silent_session_runs SET run_json=?3, updated_at=?4 WHERE session_id=?1 AND run_id=?2 AND generation=?5",
+                params![session.session_id.to_string(), run.run_id.to_string(), run_json,
+                    Utc::now().to_rfc3339(), i64::try_from(expected_generation)?],
+            )?;
+        }
+        tx.execute(
+            "INSERT INTO silent_session_events(event_id, session_id, run_id, seq, occurred_at, event_json, payload_sha256, previous_hash, event_hash) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
+            params![event.event_id.to_string(), event.session_id.to_string(), event.run_id.to_string(),
+                i64::try_from(event.seq)?, event.occurred_at.to_rfc3339(), event_json,
+                payload_sha256, previous_hash, event_hash],
+        )?;
+        tx.commit()?;
+        Ok(())
+    }
+
+    pub fn load_silent_session(
+        &self,
+        session_id: SilentSessionId,
+    ) -> anyhow::Result<Option<SilentSession>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let json: Option<String> = conn
+            .query_row(
+                "SELECT projection_json FROM silent_sessions WHERE session_id=?1",
+                [session_id.to_string()],
+                |row| row.get(0),
+            )
+            .optional()?;
+        json.map(|value| serde_json::from_str(&value).map_err(Into::into))
+            .transpose()
+    }
+
+    /// Return a bounded newest-first projection of durable logical sessions.
+    /// Callers receive canonical records only; process runs remain separate and
+    /// must be addressed by their exact run identity.
+    pub fn list_silent_sessions(&self, limit: usize) -> anyhow::Result<Vec<SilentSession>> {
+        anyhow::ensure!(limit > 0, "silent-session list limit must be positive");
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let mut statement = conn.prepare(
+            "SELECT projection_json FROM silent_sessions ORDER BY updated_at DESC, session_id DESC LIMIT ?1",
+        )?;
+        let rows = statement.query_map([i64::try_from(limit)?], |row| row.get::<_, String>(0))?;
+        rows.map(|row| Ok(serde_json::from_str(&row?)?)).collect()
+    }
+
+    /// Insert the initial config authority record for an existing session.
+    /// The revision identity must match the session projection so config reads
+    /// can never silently fall back to an unversioned request.
+    pub fn put_initial_silent_session_config_revision(
+        &self,
+        session: &SilentSession,
+        revision: &SilentSessionConfigRevision,
+        effective_hash: &str,
+    ) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            revision.session_id == session.session_id
+                && revision.revision_id == session.config_revision_id
+                && revision.parent_revision_id.is_none(),
+            "invalid initial silent-session config revision"
+        );
+        let revision_json = serde_json::to_string(revision)?;
+        let applied_at = revision
+            .applied_at
+            .ok_or_else(|| anyhow::anyhow!("config revision must have applied_at"))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let stored_projection: String = conn.query_row(
+            "SELECT projection_json FROM silent_sessions WHERE session_id=?1",
+            [session.session_id.to_string()],
+            |row| row.get(0),
+        )?;
+        let stored: SilentSession = serde_json::from_str(&stored_projection)?;
+        anyhow::ensure!(
+            stored.config_revision_id == revision.revision_id,
+            "silent-session config projection conflict"
+        );
+        conn.execute(
+            "INSERT INTO silent_session_config_revisions(revision_id, session_id, parent_revision_id, revision_json, effective_hash, applied_at) VALUES (?1,?2,NULL,?3,?4,?5)",
+            params![revision.revision_id.to_string(), session.session_id.to_string(), revision_json,
+                effective_hash, applied_at.to_rfc3339()],
+        )?;
+        Ok(())
+    }
+
+    /// Atomically compare-and-swap the current config revision and session
+    /// projection. A stale writer cannot append history or move the projection.
+    #[allow(clippy::too_many_arguments)]
+    pub fn persist_silent_session_config_revision_cas(
+        &self,
+        expected_revision_id: SilentSessionConfigRevisionId,
+        approval_id: &str,
+        action_digest: &str,
+        authorized_at: DateTime<Utc>,
+        session: &SilentSession,
+        revision: &SilentSessionConfigRevision,
+        effective_hash: &str,
+    ) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            revision.session_id == session.session_id
+                && revision.revision_id == session.config_revision_id
+                && revision.parent_revision_id == Some(expected_revision_id),
+            "invalid silent-session config revision transition"
+        );
+        let revision_json = serde_json::to_string(revision)?;
+        let projection_json = serde_json::to_string(session)?;
+        let applied_at = revision
+            .applied_at
+            .ok_or_else(|| anyhow::anyhow!("config revision must have applied_at"))?;
+        let mut conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let tx = conn.transaction()?;
+        let (stored_digest, expires_at, consumed_at): (String, String, Option<String>) = tx
+            .query_row(
+                "SELECT action_digest, expires_at, consumed_at FROM silent_session_approvals WHERE approval_id=?1",
+                [approval_id],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )?;
+        anyhow::ensure!(
+            consumed_at.is_none(),
+            "silent-session approval already consumed"
+        );
+        anyhow::ensure!(
+            stored_digest == action_digest,
+            "silent-session approval digest mismatch"
+        );
+        let expiry = DateTime::parse_from_rfc3339(&expires_at)?.with_timezone(&Utc);
+        anyhow::ensure!(expiry > authorized_at, "silent-session approval expired");
+        let stored_projection: String = tx.query_row(
+            "SELECT projection_json FROM silent_sessions WHERE session_id=?1",
+            [session.session_id.to_string()],
+            |row| row.get(0),
+        )?;
+        let stored: SilentSession = serde_json::from_str(&stored_projection)?;
+        anyhow::ensure!(
+            stored.config_revision_id == expected_revision_id,
+            "silent-session config revision conflict"
+        );
+        let parent_exists: Option<String> = tx
+            .query_row(
+                "SELECT revision_id FROM silent_session_config_revisions WHERE session_id=?1 AND revision_id=?2",
+                params![session.session_id.to_string(), expected_revision_id.to_string()],
+                |row| row.get(0),
+            )
+            .optional()?;
+        anyhow::ensure!(
+            parent_exists.is_some(),
+            "silent-session config parent missing"
+        );
+        tx.execute(
+            "INSERT INTO silent_session_action_redemptions(action_digest, approval_id, redeemed_at) VALUES (?1,?2,?3)",
+            params![action_digest, approval_id, authorized_at.to_rfc3339()],
+        )?;
+        let consumed = tx.execute(
+            "UPDATE silent_session_approvals SET consumed_at=?2 WHERE approval_id=?1 AND consumed_at IS NULL",
+            params![approval_id, authorized_at.to_rfc3339()],
+        )?;
+        anyhow::ensure!(consumed == 1, "silent-session approval redemption conflict");
+        tx.execute(
+            "INSERT INTO silent_session_config_revisions(revision_id, session_id, parent_revision_id, revision_json, effective_hash, applied_at) VALUES (?1,?2,?3,?4,?5,?6)",
+            params![revision.revision_id.to_string(), session.session_id.to_string(),
+                expected_revision_id.to_string(), revision_json, effective_hash,
+                applied_at.to_rfc3339()],
+        )?;
+        let changed = tx.execute(
+            "UPDATE silent_sessions SET projection_json=?3, updated_at=?4 WHERE session_id=?1 AND json_extract(projection_json, '$.config_revision_id')=?2",
+            params![session.session_id.to_string(), expected_revision_id.to_string(),
+                projection_json, Utc::now().to_rfc3339()],
+        )?;
+        anyhow::ensure!(changed == 1, "silent-session config revision conflict");
+        tx.commit()?;
+        Ok(())
+    }
+
+    pub fn load_silent_session_config_revision(
+        &self,
+        session_id: SilentSessionId,
+        revision_id: SilentSessionConfigRevisionId,
+    ) -> anyhow::Result<Option<(SilentSessionConfigRevision, String)>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let row: Option<(String, String)> = conn
+            .query_row(
+                "SELECT revision_json, effective_hash FROM silent_session_config_revisions WHERE session_id=?1 AND revision_id=?2",
+                params![session_id.to_string(), revision_id.to_string()],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?;
+        row.map(|(json, hash)| Ok((serde_json::from_str(&json)?, hash)))
+            .transpose()
+    }
+
+    pub fn load_silent_session_config_history(
+        &self,
+        session_id: SilentSessionId,
+    ) -> anyhow::Result<Vec<(SilentSessionConfigRevision, String)>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let mut statement = conn.prepare(
+            "SELECT revision_json, effective_hash FROM silent_session_config_revisions WHERE session_id=?1 ORDER BY applied_at, revision_id",
+        )?;
+        let rows = statement.query_map([session_id.to_string()], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?;
+        rows.map(|row| {
+            let (json, hash) = row?;
+            Ok((serde_json::from_str(&json)?, hash))
+        })
+        .collect()
+    }
+
+    /// Persist the exact process-run projection used by API generation guards.
+    /// The owning session must already be durable, and a generation can never
+    /// be rebound to another run identity.
+    pub fn put_silent_session_run(
+        &self,
+        session: &SilentSession,
+        run: &SilentSessionRun,
+    ) -> anyhow::Result<()> {
+        run.validate(session)
+            .map_err(|error| anyhow::anyhow!("invalid silent-session run: {error:?}"))?;
+        let run_json = serde_json::to_string(run)?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let durable_session: Option<String> = conn
+            .query_row(
+                "SELECT session_id FROM silent_sessions WHERE session_id=?1",
+                [session.session_id.to_string()],
+                |row| row.get(0),
+            )
+            .optional()?;
+        anyhow::ensure!(
+            durable_session.is_some(),
+            "silent-session run requires durable owning session"
+        );
+        let changed = conn.execute(
+            r#"INSERT INTO silent_session_runs(run_id, session_id, generation, run_json, updated_at)
+               VALUES (?1, ?2, ?3, ?4, ?5)
+               ON CONFLICT(run_id) DO UPDATE SET run_json=excluded.run_json,
+                 updated_at=excluded.updated_at
+               WHERE silent_session_runs.session_id=excluded.session_id
+                 AND silent_session_runs.generation=excluded.generation"#,
+            params![
+                run.run_id.to_string(),
+                run.session_id.to_string(),
+                i64::try_from(run.generation)?,
+                run_json,
+                Utc::now().to_rfc3339()
+            ],
+        )?;
+        anyhow::ensure!(changed == 1, "silent-session run identity conflict");
+        Ok(())
+    }
+
+    pub fn load_silent_session_run(
+        &self,
+        session_id: SilentSessionId,
+        run_id: SilentSessionRunId,
+    ) -> anyhow::Result<Option<SilentSessionRun>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let json: Option<String> = conn
+            .query_row(
+                "SELECT run_json FROM silent_session_runs WHERE session_id=?1 AND run_id=?2",
+                params![session_id.to_string(), run_id.to_string()],
+                |row| row.get(0),
+            )
+            .optional()?;
+        json.map(|value| serde_json::from_str(&value).map_err(Into::into))
+            .transpose()
+    }
+
+    /// Load one exact run's event stream after an optional emitted event ID.
+    /// Unknown or cross-run cursors fail closed instead of silently replaying
+    /// from genesis, which makes `Last-Event-ID` retries unambiguous.
+    pub fn load_silent_session_run_events_after(
+        &self,
+        session_id: SilentSessionId,
+        run_id: SilentSessionRunId,
+        after_event_id: Option<SilentSessionEventId>,
+    ) -> anyhow::Result<Vec<SilentSessionEvent>> {
+        self.load_silent_session_run_events_after_bounded(
+            session_id,
+            run_id,
+            after_event_id,
+            usize::MAX,
+        )
+    }
+
+    /// Load a bounded exact-run event page after an opaque emitted event ID.
+    /// Unknown and cross-run cursors fail closed rather than replaying genesis.
+    pub fn load_silent_session_run_events_after_bounded(
+        &self,
+        session_id: SilentSessionId,
+        run_id: SilentSessionRunId,
+        after_event_id: Option<SilentSessionEventId>,
+        limit: usize,
+    ) -> anyhow::Result<Vec<SilentSessionEvent>> {
+        anyhow::ensure!(limit > 0, "silent-session event limit must be positive");
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let after_seq = match after_event_id {
+            Some(event_id) => Some(
+                conn.query_row(
+                    "SELECT seq FROM silent_session_events WHERE session_id=?1 AND run_id=?2 AND event_id=?3",
+                    params![
+                        session_id.to_string(),
+                        run_id.to_string(),
+                        event_id.to_string()
+                    ],
+                    |row| row.get::<_, i64>(0),
+                )
+                .optional()?
+                .ok_or_else(|| anyhow::anyhow!("silent-session event cursor not found for exact run"))?,
+            ),
+            None => None,
+        };
+        let mut statement = conn.prepare(
+            "SELECT event_json FROM silent_session_events WHERE session_id=?1 AND run_id=?2 AND seq>?3 ORDER BY seq LIMIT ?4",
+        )?;
+        let sql_limit = i64::try_from(limit).unwrap_or(i64::MAX);
+        let rows = statement.query_map(
+            params![
+                session_id.to_string(),
+                run_id.to_string(),
+                after_seq.unwrap_or(0),
+                sql_limit
+            ],
+            |row| row.get::<_, String>(0),
+        )?;
+        rows.map(|row| Ok(serde_json::from_str(&row?)?)).collect()
+    }
+
+    pub fn load_silent_session_events(
+        &self,
+        session_id: SilentSessionId,
+    ) -> anyhow::Result<Vec<SilentSessionEvent>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let mut statement = conn.prepare(
+            "SELECT event_json FROM silent_session_events WHERE session_id=?1 ORDER BY run_id, seq",
+        )?;
+        let rows = statement.query_map([session_id.to_string()], |row| row.get::<_, String>(0))?;
+        rows.map(|row| Ok(serde_json::from_str(&row?)?)).collect()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn corrupt_silent_session_event_hash_for_test(
+        &self,
+        event_id: &str,
+    ) -> anyhow::Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        conn.execute(
+            "UPDATE silent_session_events SET event_hash='tampered' WHERE event_id=?1",
+            [event_id],
+        )?;
+        Ok(())
+    }
+
+    pub fn verify_silent_session_event_chain(
+        &self,
+        session_id: SilentSessionId,
+    ) -> anyhow::Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let mut statement = conn.prepare(
+            "SELECT event_id, run_id, seq, occurred_at, payload_sha256, previous_hash, event_hash FROM silent_session_events WHERE session_id=?1 ORDER BY run_id, seq")?;
+        let mut rows = statement.query([session_id.to_string()])?;
+        let mut prior_run = String::new();
+        let mut prior_hash = "GENESIS".to_string();
+        let mut prior_seq: Option<i64> = None;
+        while let Some(row) = rows.next()? {
+            let (event_id, run_id, seq, occurred_at, payload_sha256, stored_previous, stored_hash):
+                (String, String, i64, String, String, String, String) =
+                (row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?, row.get(6)?);
+            if run_id != prior_run {
+                prior_run = run_id;
+                prior_hash = "GENESIS".into();
+                prior_seq = None;
+            }
+            anyhow::ensure!(
+                stored_previous == prior_hash,
+                "silent-session event chain predecessor mismatch"
+            );
+            if let Some(previous_seq) = prior_seq {
+                anyhow::ensure!(
+                    seq == previous_seq + 1,
+                    "silent-session event chain sequence gap"
+                );
+            }
+            let expected = event_chain_hash(&prior_hash, &event_id, &occurred_at, &payload_sha256);
+            anyhow::ensure!(
+                stored_hash == expected,
+                "silent-session event chain hash mismatch"
+            );
+            prior_hash = stored_hash;
+            prior_seq = Some(seq);
+        }
         Ok(())
     }
 

@@ -59,10 +59,10 @@ Likely next: `focusa_context_cognition`, `focusa_context_cognition_render`, `foc
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`, `skill:focusa-agent-bootstrap`
 - Runbooks: `runbook:trajectory`
 - Pi: `focusa_context_cognition_proof`; MCP: `focusa.context.cognition.proof`; OpenAI: `focusa_context_cognition_proof`.
 - CLI: `focusa context-cognition proof`.
 - REST: `GET /v1/context-cognition/proof`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:8fa45b5097da48d9033c9c8a0ff5ac726029cc5cc8dfea4c13404a0ccb0cddf6`.
+- Descriptor digest: `sha256:79c8bfe1a3fd16bab414694b813b5af7355516f749cc683e33dad1ee2cae5ddf`.

@@ -114,7 +114,7 @@ fi
 curl -sS -X POST "${BASE_URL}/v1/ecs/store" -H "Content-Type: application/json" \
   -d '{"kind":"text","label":"ontology-artifact","content":"artifact for ontology world contract","surface":"test"}' >/dev/null
 WORKPOINT=$(curl -sS -X POST "${BASE_URL}/v1/workpoint/checkpoint" -H "Content-Type: application/json" \
-  -d "{\"project_root\":\"${WORKSPACE_ROOT}\",\"continuity_id\":\"ontology-world\",\"mission\":\"verify ontology world contract\",\"current_action\":\"ontology_world_projection\",\"next_slice\":\"verify bounded ontology context\",\"canonical\":true}")
+  -d "{\"project_root\":\"${WORKSPACE_ROOT}\",\"continuity_id\":\"ontology-world\",\"work_item_id\":\"ontology-001\",\"mission\":\"verify ontology world contract\",\"current_action\":\"ontology_world_projection\",\"next_slice\":\"verify bounded ontology context\",\"canonical\":true}")
 WORKPOINT_ID=$(echo "$WORKPOINT" | jq -r '.workpoint_id // empty')
 for _ in $(seq 1 40); do
   RESUME=$(curl -sS -X POST "${BASE_URL}/v1/workpoint/resume" -H "Content-Type: application/json" \
@@ -122,11 +122,21 @@ for _ in $(seq 1 40); do
   echo "$RESUME" | jq -e --arg id "$WORKPOINT_ID" '.canonical == true and .workpoint_id == $id' >/dev/null 2>&1 && break
   sleep 0.1
 done
-ACTIVE_WRITER=$(curl -sS "${BASE_URL}/v1/work-loop" | jq -r '.active_writer // "ontology-world-contract"')
+ACTIVE_WRITER="ontology-world-contract"
+ENABLE_RESP=$(curl -sS -X POST "${BASE_URL}/v1/work-loop/enable" -H "Content-Type: application/json" \
+  -H "x-focusa-writer-id: ${ACTIVE_WRITER}" -H 'x-focusa-approval: approved' \
+  -d '{"preset":"balanced","root_work_item_id":"ontology-001"}')
+FENCING_TOKEN=$(echo "$ENABLE_RESP" | jq -r '.fencing_token // empty')
+FENCING_HEADERS=()
+if echo "$FENCING_TOKEN" | grep -Eq '^[1-9][0-9]*$'; then
+  FENCING_HEADERS=(-H "x-focusa-fencing-token: ${FENCING_TOKEN}")
+elif ! echo "$ENABLE_RESP" | jq -e '.ok == true and .writer_id == "ontology-world-contract"' >/dev/null 2>&1; then
+  log_fail "Ontology work-loop writer enable rejected: $ENABLE_RESP"
+fi
 curl -sS -X POST "${BASE_URL}/v1/work-loop/checkpoint" -H "Content-Type: application/json" -H "x-focusa-writer-id: ${ACTIVE_WRITER}" \
-  -d '{"summary":"ontology world contract seed"}' >/dev/null
+  "${FENCING_HEADERS[@]}" -d '{"summary":"ontology world contract seed"}' >/dev/null
 curl -sS -X POST "${BASE_URL}/v1/work-loop/context" -H "Content-Type: application/json" -H "x-focusa-writer-id: ${ACTIVE_WRITER}" \
-  -d "{\"current_ask\":\"${ASK_TEXT}\",\"ask_kind\":\"verification\",\"scope_kind\":\"fresh_question\",\"carryover_policy\":\"strict\",\"excluded_context_reason\":\"exclude unrelated history\",\"excluded_context_labels\":[\"legacy\",\"unrelated\"],\"source_turn_id\":\"test-turn-ontology-world\"}" >/dev/null
+  "${FENCING_HEADERS[@]}" -d "{\"current_ask\":\"${ASK_TEXT}\",\"ask_kind\":\"verification\",\"scope_kind\":\"fresh_question\",\"carryover_policy\":\"strict\",\"excluded_context_reason\":\"exclude unrelated history\",\"excluded_context_labels\":[\"legacy\",\"unrelated\"],\"source_turn_id\":\"test-turn-ontology-world\"}" >/dev/null
 seeded=0
 for _ in $(seq 1 60); do
   curl -sS -X POST "${BASE_URL}/v1/ascc/update-delta" -H "Content-Type: application/json" \
@@ -238,6 +248,15 @@ if [ "$code" = "200" ]; then
   json_assert '.slice_type == "debugging" and (.members | any(.object_type == "failure" or .object_type == "verification"))' "Debugging slice returns runtime failure/verification members"
 else
   log_fail "Debugging slice endpoint failed with HTTP ${code}"
+fi
+
+STOP_RESP=$(curl -sS -X POST "${BASE_URL}/v1/work-loop/stop" -H "Content-Type: application/json" \
+  -H "x-focusa-writer-id: ${ACTIVE_WRITER}" "${FENCING_HEADERS[@]}" \
+  -H 'x-focusa-approval: approved' -d '{}')
+if echo "$STOP_RESP" | jq -e '.status == "accepted" or .state == "stopped" or .ok == true' >/dev/null 2>&1; then
+  log_pass "Ontology work-loop writer stopped cleanly"
+else
+  log_fail "Ontology work-loop writer stop rejected: $STOP_RESP"
 fi
 
 echo ""

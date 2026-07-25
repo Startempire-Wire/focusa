@@ -103,7 +103,6 @@ type CompactionCoordinatorState =
   | "resume_pending"
   | "resume_delivered"
   | "deferred_to_next_turn"
-  | "rollover_required"
   | "blocked"
   | "cooldown";
 
@@ -148,7 +147,7 @@ type ProcessCompactionLease = {
 };
 
 const PROCESS_LEASE_SYMBOL = Symbol.for("focusa.compaction.coordinator.v1");
-const EXTENSION_BUILD = "focusa-pi-bridge@0.9.120-dev";
+const EXTENSION_BUILD = "focusa-pi-bridge@0.9.121-dev";
 const REGISTRATION_SOURCE = import.meta.url;
 const REGISTERED_HANDLERS = [
   "session_before_compact",
@@ -419,7 +418,6 @@ export function registerAutoCompaction(
   let activeEpoch: ActiveEpoch | undefined;
   let activeRequest: CoordinatedCompactionRequest | undefined;
   let terminalNoopContextKey: string | undefined;
-  let rolloverRequired = false;
   let lastNoticeKey: string | undefined;
 
   const setActiveEpoch = (epoch: ActiveEpoch | undefined): void => {
@@ -593,7 +591,6 @@ export function registerAutoCompaction(
         setActiveEpoch(undefined);
         consecutiveTransientFailures = 0;
         terminalNoopContextKey = undefined;
-        rolloverRequired = false;
         lastNoticeKey = undefined;
         notifyOnce(
           ctx,
@@ -721,30 +718,30 @@ export function registerAutoCompaction(
 
         const failedAttempts = consecutiveTransientFailures + 1;
         consecutiveTransientFailures = 0;
-        const recoveryInstruction = retryableFailure
-          ? ". Canonical checkpoint authority is preserved. Retry /compact after transport recovery; if hard context pressure remains, run /focusa-rollover execute before continuing."
-          : ".";
         if (retryableFailure) {
-          rolloverRequired = true;
-          failedEpoch.state = "rollover_required";
+          failedEpoch.state = "native_compaction_failed";
           persist(
-            "rollover_required",
+            "native_recovery_deferred_to_pi",
             {
               reason: "provider_transport_retry_exhausted",
               attempts: failedAttempts,
               primary_error: message,
-              recovery_command: "/focusa-rollover execute",
+              recovery_owner: "pi_native_threshold_or_overflow_compaction",
+              operator_input_preserved: true,
               canonical_checkpoint_preserved: true,
             },
             failedEpoch
           );
         }
+        const recoveryInstruction = retryableFailure
+          ? ". Pi retains operator input and owns native threshold/overflow recovery; Focusa will not force session rollover."
+          : ".";
         setActiveEpoch(undefined);
         notifyOnce(
           ctx,
           `failed:${failedEpoch.contextKey}:${message}`,
           `Focusa proactive compaction failed after ${failedAttempts} attempt(s): ${message}${recoveryInstruction}`,
-          "error"
+          retryableFailure ? "warning" : "error"
         );
         const failedRequest = activeRequest;
         activeRequest = undefined;
@@ -895,62 +892,20 @@ export function registerAutoCompaction(
     const percent = proactiveCompactionDecision(usage, getPolicy()).percent ?? 0;
     if (percent < 95) return { action: "continue" as const };
 
-    // At emergency pressure, never spend another predictable provider failure.
-    // Preserve the operator's text outside model context and either compact then
-    // replay it, or keep slash-command rollover available after bounded failure.
-    pi.appendEntry("focusa-held-critical-input", {
-      schema: "focusa.held_critical_input.v1",
-      text: event.text,
+    // Pi owns threshold/overflow compaction and retries the accepted prompt with
+    // its text, images, and steering semantics intact. Focusa must never return
+    // `handled` here: doing so drops Pi's native retry path and forces the operator
+    // to run a command and resend steering manually.
+    persist("input_passthrough_native_overflow_recovery", {
+      context_percent: percent,
+      input_preserved_by: "pi_native_prompt_queue",
       image_count: event.images?.length ?? 0,
-      context_percent: percent,
-      recorded_at: new Date().toISOString(),
-    });
-
-    if (!rolloverRequired) {
-      const result = maybeCompact(ctx, {
-        triggerClass: "hard_pressure",
-        customInstructions: INSTRUCTIONS,
-        onComplete: () => {
-          if (event.images?.length) {
-            if (ctx.hasUI) {
-              ctx.ui.notify(
-                "Focusa compacted the session; resend the held prompt with its image attachments.",
-                "warning"
-              );
-            }
-            return;
-          }
-          pi.sendUserMessage(event.text);
-        },
-      });
-      if (result === "requested") {
-        if (ctx.hasUI) {
-          ctx.ui.setStatus("focusa-auto-compaction", "🧭 emergency recovery");
-          ctx.ui.notify(
-            `Focusa held this ${percent.toFixed(1)}% prompt locally, started emergency compaction, and will replay it after verified completion.`,
-            "warning"
-          );
-        }
-        return { action: "handled" as const };
-      }
-    }
-
-    persist("input_blocked_rollover_required", {
-      context_percent: percent,
-      recovery_command: "/focusa-rollover execute",
-      input_preserved: true,
-      reason: rolloverRequired
-        ? "provider_transport_retry_exhausted_at_hard_pressure"
-        : "emergency_compaction_unavailable",
+      recovery_owner: "pi_native_threshold_or_overflow_compaction",
     });
     if (ctx.hasUI) {
-      ctx.ui.setStatus("focusa-auto-compaction", "⛔ rollover required");
-      ctx.ui.notify(
-        `Focusa preserved this prompt instead of sending another over-limit model request (${percent.toFixed(1)}%). Run /focusa-rollover execute; then resend it in the replacement session.`,
-        "error"
-      );
+      ctx.ui.setStatus("focusa-auto-compaction", "🧭 Pi native compaction");
     }
-    return { action: "handled" as const };
+    return { action: "continue" as const };
   });
 
   pi.on("session_compact", async () => {
@@ -964,7 +919,6 @@ export function registerAutoCompaction(
     setActiveEpoch(undefined);
     consecutiveTransientFailures = 0;
     terminalNoopContextKey = undefined;
-    rolloverRequired = false;
     lastNoticeKey = undefined;
   });
 
@@ -980,7 +934,6 @@ export function registerAutoCompaction(
     setActiveEpoch(undefined);
     consecutiveTransientFailures = 0;
     terminalNoopContextKey = undefined;
-    rolloverRequired = false;
     lastNoticeKey = undefined;
     if (retryTimer) clearTimeout(retryTimer);
     retryTimer = undefined;
@@ -995,7 +948,6 @@ export function registerAutoCompaction(
     clearProcessRetry();
     setActiveEpoch(undefined);
     inFlight = false;
-    rolloverRequired = false;
     if (!processLease.inFlightEpochId) {
       processLease.attemptOwnerId = undefined;
       processLease.request = undefined;

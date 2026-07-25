@@ -9,14 +9,41 @@ Focusa is the local-first proof and continuity layer for AI coding agents. It ke
 ## 2. Architecture map
 
 | Layer | Purpose | Key locations |
-|---|---|---|
+| --- | --- | --- |
 | CLI | Operator and agent command surface | `crates/focusa-cli/src/commands/` |
 | API daemon | Local typed HTTP API | `crates/focusa-api/src/routes/` |
 | Core | reducers, Workpoints, Evidence, runtime state, persistence | `crates/focusa-core/src/` |
+| Work loop + Silent Sessions | governed execution, durable runs, steering, receipts | `crates/focusa-core/src/silent_sessions/`, `docs/133-silent-sessions-final-release-proof.md` |
+| Mission Canvas + Work Rail | scoped work surfaces, interviews, artifacts, generated UI | `docs/135-series-current-manifest.md`, `apps/menubar/` |
+| Connectors + domains | provider-neutral context, auth lifecycle, software/domain projections | `crates/focusa-core/src/connectors.rs`, `docs/contracts/spec135/` |
 | TUI / Mission Deck | terminal cockpit | `crates/focusa-tui/` |
-| Pi extension | Pi tool bridge | `apps/pi-extension/` |
-| Menubar preview | macOS/Tauri cockpit preview | `apps/menubar/` |
-| Public docs | current reference and specs | `docs/`, `docs/current/` |
+| Pi extension | all Focusa Pi tools, authority hooks, compaction/OTA/runtime bridge | `apps/pi-extension/` |
+| Agent machine contracts | Pi/MCP/OpenAI/CLI/REST schemas and Agent Card | `docs/contracts/spec141/generated-capability-v2/` |
+| Skills + runbooks | progressive agent onboarding and recovery playbooks | `.pi/skills/`, `apps/pi-extension/skills/` |
+| Menubar preview | macOS/Tauri Mission Canvas and lifecycle cockpit | `apps/menubar/` |
+| Public docs | current reference, onboarding, lifecycle, and specs | `README.md`, `docs/`, `docs/current/` |
+
+### 2.1 Current authority and recovery model
+
+- Exact authority is `project_root + continuity_id`; parent repositories and worktrees are ranked binding candidates, then verified before mutation.
+- Workpoint is immediate action authority; Trajectory supplies destination, current state, gap, and waypoints.
+- Focus State is the bounded decision/constraint/failure journal, not a transcript replacement.
+- Silent Sessions are daemon-native. Exact `session_id`, `run_id`, `generation`, approval, and idempotency values govern mutations.
+- Proactive compaction preserves canonical Workpoint/Trajectory packets and queues governed automatic rollover after bounded transport exhaustion.
+- Cache-safe context keeps stable prefixes and current user-tail authority while classifying degraded fallbacks explicitly.
+- Mission Canvas binds Work Surfaces to canonical operations and project scope; browser/UIAI capabilities remain session-and-origin bound.
+- Customer lifecycle requires verified install/repair, trusted update or OTA rollback, and uninstall that preserves user data unless purge is explicit.
+
+### 2.2 All-Pi-tool and skill discovery
+
+1. `focusa_agent_card` reports the runtime tool count, complete installed skill/runbook inventory, interfaces, auth, and registry digest.
+2. `focusa_tool_search` finds the narrowest capability without hot-loading every schema.
+3. `focusa_tool_describe` cold-loads one strict contract; `focusa_tool_graph` or `focusa_tool_bundle` expands only the selected workflow.
+4. `docs/contracts/spec141/generated-capability-v2/pi-tools.json` is the machine projection for every Focusa Pi tool.
+5. `docs/focusa-tools/tools/focusa_<name>.md` is the human reference for each tool.
+6. Load the matched `.pi/skills/<skill>/SKILL.md`, then its numbered runbook under `references/`.
+
+A release gate must prove runtime tool count = contracts = Pi descriptors = per-tool docs, and installed skills/runbooks = packaged skill/runbook copies.
 
 ## 3. Canonical command surface
 
@@ -37,6 +64,17 @@ Core continuity commands:
 focusa workpoint checkpoint --project-root "$PWD" --continuity-id demo --mission "Mission" --next-action "Next slice" --json
 focusa workpoint evidence-link --target-ref tests --result "smoke passed" --evidence-ref "test:smoke" --json
 focusa workpoint resume --project-root "$PWD" --continuity-id demo --copy-prompt
+```
+
+Background execution and lifecycle discovery:
+
+```bash
+focusa silent --help
+focusa tui --headless-self-test
+focusa update --help
+bash scripts/install-focusa.sh --dry-run --eval
+bash scripts/install-focusa.sh --uninstall        # preserves user data
+focusa uninstall --dry-run --keep-data
 ```
 
 Safety and proof commands:
@@ -90,7 +128,7 @@ Do not add:
 Use public-safe replacements:
 
 | Unsafe category | Public-safe wording |
-|---|---|
+| --- | --- |
 | host-specific paths | `~/projects/focusa-demo` or `$PWD` |
 | backend/admin URLs | `https://focusa.dev/support` or `https://install.focusa.dev/license` |
 | full conversation dumps | bounded proof summaries or Evidence refs |

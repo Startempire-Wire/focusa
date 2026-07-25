@@ -24,6 +24,12 @@ focusa_tool_bundle -> focusa_agent_card
 4. Call `focusa_tool_bundle` with only required bounded inputs.
 5. Call `focusa_agent_card` with only required bounded inputs.
 
+## Current domain procedure
+
+1. Treat `docs/contracts/spec141/generated-capability-v2/pi-tools.json` as the complete machine-readable Pi registry.
+2. Use the matching `docs/focusa-tools/tools/focusa_<name>.md` reference and skill/runbook route for the selected tool.
+3. Release parity requires runtime tools = contracts = Pi descriptors = per-tool docs.
+
 ## Branches
 
 - Unknown tool/schema: `focusa_tool_search` → `focusa_tool_describe`.

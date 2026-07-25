@@ -1,6 +1,6 @@
 {
   "schema": "focusa.mcp_tool_projection.v2",
-  "registry_digest": "sha256:f15078162dc7b0f7a595abcb5ae4302f9af85f7b8de0b0ef0762cdde661215b8",
+  "registry_digest": "sha256:c275433cdcc897c9d139978eb19161c009c74cec22ba516e8ddc0c10297bd841",
   "tools": [
     {
       "name": "focusa.active.object.resolve",
@@ -579,7 +579,8 @@
         "capability_id": "focusa.agent.prompt",
         "version": "2.0.0",
         "skill_refs": [
-          "skill:focusa"
+          "skill:focusa",
+          "skill:focusa-workpoint"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_agent_prompt.md",
         "rest": [
@@ -1044,7 +1045,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-troubleshooting"
+          "skill:focusa-troubleshooting",
+          "skill:focusa-resource-performance"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_domain.md",
         "rest": [
@@ -1248,7 +1250,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-troubleshooting"
+          "skill:focusa-troubleshooting",
+          "skill:focusa-resource-performance"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_gate_mode.md",
         "rest": [
@@ -1442,7 +1445,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-troubleshooting"
+          "skill:focusa-troubleshooting",
+          "skill:focusa-resource-performance"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_gate_modes.md",
         "rest": [
@@ -1646,7 +1650,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-troubleshooting"
+          "skill:focusa-troubleshooting",
+          "skill:focusa-resource-performance"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_profile.md",
         "rest": [
@@ -1840,7 +1845,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-troubleshooting"
+          "skill:focusa-troubleshooting",
+          "skill:focusa-resource-performance"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_profiles.md",
         "rest": [
@@ -2034,7 +2040,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-troubleshooting"
+          "skill:focusa-troubleshooting",
+          "skill:focusa-resource-performance"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_report.md",
         "rest": [
@@ -2228,7 +2235,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-troubleshooting"
+          "skill:focusa-troubleshooting",
+          "skill:focusa-resource-performance"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_rollout.md",
         "rest": [
@@ -2432,7 +2440,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-troubleshooting"
+          "skill:focusa-troubleshooting",
+          "skill:focusa-resource-performance"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_routine.md",
         "rest": [
@@ -2626,7 +2635,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-troubleshooting"
+          "skill:focusa-troubleshooting",
+          "skill:focusa-resource-performance"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_routines.md",
         "rest": [
@@ -2830,7 +2840,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-troubleshooting"
+          "skill:focusa-troubleshooting",
+          "skill:focusa-resource-performance"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_domain.md",
         "rest": [
@@ -3024,7 +3035,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-troubleshooting"
+          "skill:focusa-troubleshooting",
+          "skill:focusa-resource-performance"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_report.md",
         "rest": [
@@ -4018,7 +4030,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-workpoint"
+          "skill:focusa-workpoint",
+          "skill:focusa-spec-implementation"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_call_stack_design.md",
         "rest": [
@@ -4233,7 +4246,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-workpoint"
+          "skill:focusa-workpoint",
+          "skill:focusa-spec-implementation"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_call_stack_verify.md",
         "rest": [
@@ -4446,7 +4460,8 @@
         "capability_id": "focusa.constraint",
         "version": "2.0.0",
         "skill_refs": [
-          "skill:focusa"
+          "skill:focusa",
+          "skill:focusa-workpoint"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_constraint.md",
         "rest": [
@@ -4660,7 +4675,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-workpoint"
+          "skill:focusa-workpoint",
+          "skill:focusa-agent-bootstrap"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition.md",
         "rest": [
@@ -4917,7 +4933,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-workpoint"
+          "skill:focusa-workpoint",
+          "skill:focusa-agent-bootstrap"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_curate.md",
         "rest": [
@@ -5189,7 +5206,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-workpoint"
+          "skill:focusa-workpoint",
+          "skill:focusa-agent-bootstrap"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_curate_eval.md",
         "rest": [
@@ -5438,7 +5456,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-workpoint"
+          "skill:focusa-workpoint",
+          "skill:focusa-agent-bootstrap"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_curate_optimize.md",
         "rest": [
@@ -5648,7 +5667,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-workpoint"
+          "skill:focusa-workpoint",
+          "skill:focusa-agent-bootstrap"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_optimizer_artifacts.md",
         "rest": [
@@ -5853,7 +5873,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-workpoint"
+          "skill:focusa-workpoint",
+          "skill:focusa-agent-bootstrap"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_proof.md",
         "rest": [
@@ -6058,7 +6079,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-workpoint"
+          "skill:focusa-workpoint",
+          "skill:focusa-agent-bootstrap"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_context_cognition_render.md",
         "rest": [
@@ -6259,7 +6281,8 @@
         "capability_id": "focusa.current.focus",
         "version": "2.0.0",
         "skill_refs": [
-          "skill:focusa"
+          "skill:focusa",
+          "skill:focusa-workpoint"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_current_focus.md",
         "rest": [
@@ -6464,7 +6487,8 @@
         "capability_id": "focusa.decide",
         "version": "2.0.0",
         "skill_refs": [
-          "skill:focusa"
+          "skill:focusa",
+          "skill:focusa-workpoint"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_decide.md",
         "rest": [
@@ -6678,7 +6702,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-session-recovery"
+          "skill:focusa-session-recovery",
+          "skill:focusa-security-auth-licensing"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_complete.md",
         "rest": [
@@ -6883,7 +6908,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-session-recovery"
+          "skill:focusa-session-recovery",
+          "skill:focusa-security-auth-licensing"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_list.md",
         "rest": [
@@ -7098,7 +7124,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-session-recovery"
+          "skill:focusa-session-recovery",
+          "skill:focusa-security-auth-licensing"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_qr.md",
         "rest": [
@@ -7308,7 +7335,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-session-recovery"
+          "skill:focusa-session-recovery",
+          "skill:focusa-security-auth-licensing"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_revoke.md",
         "rest": [
@@ -7523,7 +7551,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-session-recovery"
+          "skill:focusa-session-recovery",
+          "skill:focusa-security-auth-licensing"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_start.md",
         "rest": [
@@ -7726,7 +7755,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-session-recovery"
+          "skill:focusa-session-recovery",
+          "skill:focusa-security-auth-licensing"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_device_pair_status.md",
         "rest": [
@@ -8754,7 +8784,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-workpoint"
+          "skill:focusa-workpoint",
+          "skill:focusa-evidence-outcomes"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_evidence_capture.md",
         "rest": [
@@ -8959,7 +8990,8 @@
         "capability_id": "focusa.failure",
         "version": "2.0.0",
         "skill_refs": [
-          "skill:focusa"
+          "skill:focusa",
+          "skill:focusa-workpoint"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_failure.md",
         "rest": [
@@ -9381,7 +9413,8 @@
         "capability_id": "focusa.intent",
         "version": "2.0.0",
         "skill_refs": [
-          "skill:focusa"
+          "skill:focusa",
+          "skill:focusa-workpoint"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_intent.md",
         "rest": [
@@ -10462,13 +10495,18 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-metacognition"
+          "skill:focusa-metacognition",
+          "skill:focusa-evidence-outcomes"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_metacog_evaluate_outcome.md",
         "rest": [
           {
             "method": "POST",
             "path": "/v1/metacognition/evaluate"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/metacognition/evaluations/recent"
           }
         ],
         "authority": {
@@ -12007,7 +12045,8 @@
         "capability_id": "focusa.next.step",
         "version": "2.0.0",
         "skill_refs": [
-          "skill:focusa"
+          "skill:focusa",
+          "skill:focusa-workpoint"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_next_step.md",
         "rest": [
@@ -12208,7 +12247,8 @@
         "capability_id": "focusa.note",
         "version": "2.0.0",
         "skill_refs": [
-          "skill:focusa"
+          "skill:focusa",
+          "skill:focusa-workpoint"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_note.md",
         "rest": [
@@ -12409,7 +12449,8 @@
         "capability_id": "focusa.open.question",
         "version": "2.0.0",
         "skill_refs": [
-          "skill:focusa"
+          "skill:focusa",
+          "skill:focusa-workpoint"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_open_question.md",
         "rest": [
@@ -12632,7 +12673,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-metacognition"
+          "skill:focusa-metacognition",
+          "skill:predictive-power"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_predict_evaluate.md",
         "rest": [
@@ -12839,7 +12881,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-metacognition"
+          "skill:focusa-metacognition",
+          "skill:predictive-power"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_predict_recent.md",
         "rest": [
@@ -13079,7 +13122,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-metacognition"
+          "skill:focusa-metacognition",
+          "skill:predictive-power"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_predict_record.md",
         "rest": [
@@ -13282,7 +13326,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-metacognition"
+          "skill:focusa-metacognition",
+          "skill:predictive-power"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_predict_stats.md",
         "rest": [
@@ -15520,7 +15565,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-project-scope"
+          "skill:focusa-project-scope",
+          "skill:focusa-evidence-outcomes"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_project_card_outcome.md",
         "rest": [
@@ -15537,7 +15583,7 @@
     {
       "name": "focusa.project.identity",
       "title": "Focusa Project Identity",
-      "description": "Resolve bounded ProjectIdentity from cwd/project_root using marker, git, beads, workspace, daemon, and operator project signals. Use it when Resolve the active project identity from marker, git, beads, workspace, cwd, daemon, and operator project signals before trusting project-bound context. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "description": "Resolve bounded ProjectIdentity from cwd/project_root using marker, git, beads, workspace, daemon, and operator project signals. Use it when Rank explicit, active-worktree, canonical-parent, marker/Beads, persisted-session, and bounded parent-directory project candidates; fail closed on ambiguity before trusting project-bound context. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -15547,6 +15593,10 @@
           },
           "project_root": {
             "description": "Optional expected project root folder.",
+            "type": "string"
+          },
+          "persisted_project_root": {
+            "description": "Project root retained by the resumed Pi session; advisory candidate only until current worktree/project evidence verifies it.",
             "type": "string"
           },
           "remote_host": {
@@ -15766,7 +15816,7 @@
     {
       "name": "focusa.project.verify",
       "title": "Focusa Project Verify",
-      "description": "Verify active project folder against expected ProjectIdentity fields and report mismatches without mutating state. Use it when Verify expected project identity fields and surface project/continuity mismatches without mutating Focusa state. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "description": "Verify active project folder against expected ProjectIdentity fields and report mismatches without mutating state. Use it when Verify expected project identity fields against ranked worktree/session candidates and surface ambiguity or project/continuity mismatches without mutating Focusa state. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -15776,6 +15826,10 @@
           },
           "project_root": {
             "description": "Expected project root.",
+            "type": "string"
+          },
+          "persisted_project_root": {
+            "description": "Resumed-session project root to compare as an advisory binding candidate.",
             "type": "string"
           },
           "project_id": {
@@ -16191,7 +16245,8 @@
         "capability_id": "focusa.recent.result",
         "version": "2.0.0",
         "skill_refs": [
-          "skill:focusa"
+          "skill:focusa",
+          "skill:focusa-workpoint"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_recent_result.md",
         "rest": [
@@ -16665,7 +16720,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-troubleshooting"
+          "skill:focusa-troubleshooting",
+          "skill:focusa-resource-performance"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_resource_mode.md",
         "rest": [
@@ -17216,7 +17272,7 @@
             "type": "string"
           },
           "session_name": {
-            "description": "Legacy alias for exact session_id; no tmux normalization.",
+            "description": "Legacy alias for exact session_id; no legacy name normalization.",
             "type": "string"
           },
           "run_id": {
@@ -17437,7 +17493,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-work-loop"
+          "skill:focusa-work-loop",
+          "skill:focusa-silent-sessions"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_silent_sessions.md",
         "rest": [
@@ -22633,8 +22690,28 @@
             "type": "boolean"
           },
           "root_work_item_id": {
-            "description": "Optional root BD/task/item id. If omitted, tool infers from active task or bd ready.",
+            "description": "Optional root provider WorkItem id. If omitted, infer from the active scoped task.",
             "type": "string"
+          },
+          "renew_budget": {
+            "description": "Explicitly start a fresh budget epoch when action=resume.",
+            "type": "boolean"
+          },
+          "max_turns": {
+            "minimum": 1,
+            "type": "number"
+          },
+          "max_wall_clock_ms": {
+            "minimum": 1000,
+            "type": "number"
+          },
+          "max_retries": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "cooldown_ms": {
+            "minimum": 0,
+            "type": "number"
           }
         },
         "additionalProperties": false
@@ -23911,7 +23988,8 @@
         "version": "2.0.0",
         "skill_refs": [
           "skill:focusa",
-          "skill:focusa-workpoint"
+          "skill:focusa-workpoint",
+          "skill:focusa-evidence-outcomes"
         ],
         "docs_ref": "docs/focusa-tools/tools/focusa_workpoint_link_evidence.md",
         "rest": [

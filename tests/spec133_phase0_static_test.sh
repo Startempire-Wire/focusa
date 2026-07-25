@@ -17,26 +17,24 @@ pass() { echo "✓ PASS: $*"; }
 [[ -f "$BASELINE" && -f "$TRACE" && -f "$RELEASE" ]] || fail "Phase 0 evidence files missing"
 pass "Phase 0 evidence files exist"
 
-rg -n 'legacy/non-durable|not the canonical Spec133|SILENT_SESSION_LEGACY_POSTURE|legacy_silent_session_wrapper_used' "$TOOLS_TS" "$TOOL_DOC" "$CONTRACTS_TS" >/dev/null \
-  || fail "legacy/non-durable labels or telemetry missing"
-pass "legacy wrapper is labeled and telemetry-instrumented"
+rg -ni 'daemon-native Spec133|legacy action compatibility' "$TOOLS_TS" "$TOOL_DOC" "$CONTRACTS_TS" >/dev/null \
+  || fail "daemon-native migration posture or bounded legacy compatibility missing"
+pass "tool is daemon-native and legacy compatibility is explicitly bounded"
 
-rg -n 'stored_legacy_command_rejected|stored legacy shell `command` values are not auto-executed' "$TOOLS_TS" "$TOOL_DOC" >/dev/null \
-  || fail "stored legacy command rejection not documented/implemented"
-if rg -n 'p\.command \|\|\s*priorMeta\.command|priorMeta\.command \|\|' "$TOOLS_TS" >/dev/null; then
-  fail "restart can still auto-reuse priorMeta.command"
+if rg -n 'p\.command \|\|\s*priorMeta\.command|priorMeta\.command \|\||tmux new-session|spawn\(' "$TOOLS_TS" >/dev/null; then
+  fail "daemon facade can still auto-reuse or execute a stored legacy shell command"
 fi
-pass "stored legacy shell commands are not auto-reused on restart"
+rg -n '/v1/silent-sessions|daemon facade|Daemon-native' "$TOOLS_TS" "$TOOL_DOC" >/dev/null \
+  || fail "canonical daemon facade route is not documented/implemented"
+pass "legacy shell commands are not executed by the daemon facade"
 
 rg -n 'focusa-a6yq6\.2\.1|focusa-a6yq6\.10\.9|Gap closure mapping|0\.1:|0\.2:|0\.3:|0\.4:' "$TRACE" >/dev/null \
   || fail "traceability matrix incomplete"
 pass "traceability maps Phase 0 through final gate and gap closures"
 
-rg -n 'No unauthorized release/deploy occurred|No release, deploy, tag, push, remote fetch/pull, cargo build/check/test' "$RELEASE" >/dev/null \
-  || fail "release/deploy authorization provenance not recorded"
-rg -n 'Spec132 final proof: closed|focusa-slxpz\.5\.6.*open' "$RELEASE" >/dev/null \
-  || fail "Spec132 dependency status not recorded"
-pass "release/deploy authorization and Spec132 dependency status recorded"
+rg -n 'No Spec 133 tag, release, deploy, live sync, push, merge|focusa-slxpz\.6\.6.*closed|work_loop_conformance\.py --mode release|expected exit 3' "$RELEASE" >/dev/null \
+  || fail "release freeze, resolved Spec132 gate, or fail-closed conformance gate not recorded"
+pass "release freeze, resolved Spec132 gate, and fail-closed conformance gate recorded"
 
 required_docs=(
   docs/G1-detail-03-runtime-daemon.md

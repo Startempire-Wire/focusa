@@ -1,10 +1,10 @@
 {
   "schema": "focusa.agent_route_classification.v1",
-  "route_count": 452,
+  "route_count": 458,
   "classification_counts": {
-    "agent_eligible": 84,
+    "agent_eligible": 86,
     "internal": 6,
-    "operator_only": 356,
+    "operator_only": 360,
     "public_pairing": 6
   },
   "allowed_classifications": [
@@ -23,6 +23,7 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -32,6 +33,7 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -41,6 +43,7 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -50,6 +53,7 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -58,6 +62,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/llms_txt.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -68,6 +75,9 @@
       "sources": [
         "crates/focusa-api/src/routes/mcp.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -77,6 +87,7 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -86,6 +97,7 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -95,6 +107,7 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -103,6 +116,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/proxy.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -113,6 +129,9 @@
       "sources": [
         "crates/focusa-api/src/routes/proxy.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -121,6 +140,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/proxy.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -131,6 +153,9 @@
       "sources": [
         "crates/focusa-api/src/routes/health.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -139,6 +164,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/agent_capabilities.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -149,6 +177,9 @@
       "sources": [
         "crates/focusa-api/src/routes/agent_capabilities.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -158,6 +189,9 @@
       "sources": [
         "crates/focusa-api/src/routes/agent_capabilities.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -166,6 +200,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/agent_capabilities.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": [
         "focusa.compatibility_lock.read"
@@ -178,6 +215,9 @@
       "sources": [
         "crates/focusa-api/src/routes/agent_capabilities.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": [
         "focusa.protocol.handshake"
       ]
@@ -188,6 +228,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/agent_capabilities.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": [
         "focusa.operation_registry.read"
@@ -200,6 +243,7 @@
       "sources": [
         "crates/focusa-api/src/routes/agent_reminder.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -208,6 +252,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/agent_capabilities.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -218,6 +265,9 @@
       "sources": [
         "crates/focusa-api/src/routes/agent_capabilities.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -226,6 +276,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/agent_capabilities.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -236,6 +289,9 @@
       "sources": [
         "crates/focusa-api/src/routes/agent_capabilities.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -244,6 +300,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/agent_capabilities.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -254,6 +313,9 @@
       "sources": [
         "crates/focusa-api/src/routes/agent_capabilities.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -263,6 +325,9 @@
       "sources": [
         "crates/focusa-api/src/routes/agent_capabilities.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -271,6 +336,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/agent_capabilities.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": [
         "focusa.ui_action_bindings.read"
@@ -283,6 +351,9 @@
       "sources": [
         "crates/focusa-api/src/routes/agent_capabilities.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": [
         "focusa.ui_capability_snapshot.read"
       ]
@@ -294,6 +365,9 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -302,6 +376,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/capabilities.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -312,6 +389,9 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -320,6 +400,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/capabilities.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -330,6 +413,9 @@
       "sources": [
         "crates/focusa-api/src/routes/ascc.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -338,6 +424,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/ascc.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -348,6 +437,9 @@
       "sources": [
         "crates/focusa-api/src/routes/ascc.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -356,6 +448,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/attachments.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -366,6 +461,9 @@
       "sources": [
         "crates/focusa-api/src/routes/attachments.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -374,6 +472,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/attachments.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -384,6 +485,9 @@
       "sources": [
         "crates/focusa-api/src/routes/autonomy.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -392,6 +496,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -402,6 +509,9 @@
       "sources": [
         "crates/focusa-api/src/routes/autonomy.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -410,6 +520,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -420,6 +533,9 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -429,6 +545,9 @@
       "sources": [
         "crates/focusa-api/src/routes/awareness.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -437,6 +556,10 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/utility.rs"
+      ],
+      "methods": [
+        "GET",
+        "POST"
       ],
       "operation_refs": [
         "focusa.awareness.packet"
@@ -449,6 +572,9 @@
       "sources": [
         "crates/focusa-api/src/routes/utility.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -457,6 +583,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/bloatgaurd.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -467,6 +596,9 @@
       "sources": [
         "crates/focusa-api/src/routes/bloatgaurd.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -475,6 +607,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/bloatgaurd.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -485,6 +620,9 @@
       "sources": [
         "crates/focusa-api/src/routes/bloatgaurd_optical.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -493,6 +631,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/bloatgaurd_optical.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -503,6 +644,9 @@
       "sources": [
         "crates/focusa-api/src/routes/bloatgaurd_optical.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -511,6 +655,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/bloatgaurd_optical.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -521,6 +668,9 @@
       "sources": [
         "crates/focusa-api/src/routes/bloatgaurd_optical.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -529,6 +679,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/bloatgaurd_optical.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -539,6 +692,9 @@
       "sources": [
         "crates/focusa-api/src/routes/bloatgaurd.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -548,6 +704,9 @@
       "sources": [
         "crates/focusa-api/src/routes/bloatgaurd.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -556,6 +715,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/bloatgaurd.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": [
         "focusa.bloatgaurd.report"
@@ -568,6 +730,9 @@
       "sources": [
         "crates/focusa-api/src/routes/bloatgaurd.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -576,6 +741,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/bloatgaurd.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -586,6 +754,9 @@
       "sources": [
         "crates/focusa-api/src/routes/bloatgaurd.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -594,6 +765,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/bloatgaurd.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -604,6 +778,9 @@
       "sources": [
         "crates/focusa-api/src/routes/bloatgaurd.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -612,6 +789,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/browser_interop.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -622,6 +802,9 @@
       "sources": [
         "crates/focusa-api/src/routes/browser_interop.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -630,6 +813,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/browser_interop.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -640,6 +826,9 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -648,6 +837,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -658,6 +850,9 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -666,6 +861,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/call_stack.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": [
         "focusa.call_stack.design"
@@ -678,6 +876,7 @@
       "sources": [
         "crates/focusa-api/src/routes/call_stack.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -687,6 +886,7 @@
       "sources": [
         "crates/focusa-api/src/routes/call_stack.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -695,6 +895,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/call_stack.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": [
         "focusa.call_stack.verify"
@@ -707,6 +910,9 @@
       "sources": [
         "crates/focusa-api/src/routes/clt.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -715,6 +921,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/clt.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -725,6 +934,9 @@
       "sources": [
         "crates/focusa-api/src/routes/clt.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -733,6 +945,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/commands.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -743,6 +958,9 @@
       "sources": [
         "crates/focusa-api/src/routes/commands.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -751,6 +969,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/commands.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -761,6 +982,9 @@
       "sources": [
         "crates/focusa-api/src/routes/compaction.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -769,6 +993,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/compaction.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -779,6 +1006,9 @@
       "sources": [
         "crates/focusa-api/src/routes/compaction.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -787,6 +1017,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/compaction.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -797,6 +1030,9 @@
       "sources": [
         "crates/focusa-api/src/routes/compaction.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -805,6 +1041,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/compaction.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -815,6 +1054,7 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -824,6 +1064,7 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -833,6 +1074,7 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -842,6 +1084,7 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -851,6 +1094,7 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -860,6 +1104,7 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -869,6 +1114,7 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -878,6 +1124,7 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -887,6 +1134,7 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -896,6 +1144,7 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -905,6 +1154,7 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -913,6 +1163,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/constitution.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -923,6 +1176,9 @@
       "sources": [
         "crates/focusa-api/src/routes/constitution.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -931,6 +1187,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -941,6 +1200,9 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -949,6 +1211,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/constitution.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -959,6 +1224,9 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -967,6 +1235,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/constitution.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -977,6 +1248,7 @@
       "sources": [
         "crates/focusa-api/src/routes/context_cognition.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -985,6 +1257,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/context_cognition.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": [
         "focusa.context_cognition.curate"
@@ -997,6 +1272,7 @@
       "sources": [
         "crates/focusa-api/src/routes/context_cognition.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -1006,6 +1282,7 @@
       "sources": [
         "crates/focusa-api/src/routes/context_cognition.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -1015,6 +1292,7 @@
       "sources": [
         "crates/focusa-api/src/routes/context_cognition.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -1024,6 +1302,7 @@
       "sources": [
         "crates/focusa-api/src/routes/context_cognition.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -1033,6 +1312,7 @@
       "sources": [
         "crates/focusa-api/src/routes/context_cognition.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -1042,6 +1322,7 @@
       "sources": [
         "crates/focusa-api/src/routes/context_cognition.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -1050,6 +1331,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/context_sources.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": [
         "focusa.context.adapter.docling.health"
@@ -1062,6 +1346,9 @@
       "sources": [
         "crates/focusa-api/src/routes/context_claims.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": [
         "focusa.context.graph.read"
       ]
@@ -1072,6 +1359,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/context_claims.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": [
         "focusa.context.graph.mutate"
@@ -1084,6 +1374,9 @@
       "sources": [
         "crates/focusa-api/src/routes/context_sources.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": [
         "focusa.context.retrieve"
       ]
@@ -1094,6 +1387,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/context_sources.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": [
         "focusa.context.source.list"
@@ -1106,6 +1402,9 @@
       "sources": [
         "crates/focusa-api/src/routes/context_sources.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": [
         "focusa.context.source.commit"
       ]
@@ -1116,6 +1415,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/context_sources.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": [
         "focusa.context.source.ingest"
@@ -1128,6 +1430,9 @@
       "sources": [
         "crates/focusa-api/src/routes/training.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -1136,6 +1441,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/training.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -1146,6 +1454,9 @@
       "sources": [
         "crates/focusa-api/src/routes/training.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -1154,6 +1465,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -1164,6 +1478,9 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1172,6 +1489,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -1182,6 +1502,9 @@
       "sources": [
         "crates/focusa-api/src/routes/training.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -1190,6 +1513,9 @@
       "rationale": "Runtime/operator diagnostic surface not projected as an agent capability.",
       "sources": [
         "crates/focusa-api/src/routes/telemetry.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -1200,6 +1526,9 @@
       "sources": [
         "crates/focusa-api/src/routes/deck.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1208,6 +1537,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/deck.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -1218,6 +1550,9 @@
       "sources": [
         "crates/focusa-api/src/routes/deck.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1226,6 +1561,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/deck.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -1236,6 +1574,9 @@
       "sources": [
         "crates/focusa-api/src/routes/deck.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1245,6 +1586,7 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -1254,6 +1596,7 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -1263,6 +1606,7 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
+      "methods": [],
       "operation_refs": []
     },
     {
@@ -1271,6 +1615,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": [
         "focusa.device_pair.start"
@@ -1283,6 +1630,9 @@
       "sources": [
         "crates/focusa-api/src/routes/device_pairing.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": [
         "focusa.device_pair.status"
       ]
@@ -1294,6 +1644,9 @@
       "sources": [
         "crates/focusa-api/src/routes/health.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1302,6 +1655,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/work_items.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -1312,6 +1668,9 @@
       "sources": [
         "crates/focusa-api/src/routes/dxux.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1321,6 +1680,9 @@
       "sources": [
         "crates/focusa-api/src/routes/dxux.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1329,6 +1691,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/dxux.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": [
         "focusa.dxux.report"
@@ -1341,6 +1706,9 @@
       "sources": [
         "crates/focusa-api/src/routes/dxux.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1349,6 +1717,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/ecs.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -1359,6 +1730,9 @@
       "sources": [
         "crates/focusa-api/src/routes/ecs.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1367,6 +1741,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/ecs.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -1377,6 +1754,9 @@
       "sources": [
         "crates/focusa-api/src/routes/ecs.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1385,6 +1765,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/ecs.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -1395,6 +1778,9 @@
       "sources": [
         "crates/focusa-api/src/routes/env.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1404,6 +1790,9 @@
       "sources": [
         "crates/focusa-api/src/routes/sse.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1412,6 +1801,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/turn_recent.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -1423,6 +1815,9 @@
         "crates/focusa-api/src/routes/events.rs",
         "crates/focusa-api/src/routes/events_sqlite.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1432,6 +1827,9 @@
       "sources": [
         "crates/focusa-api/src/routes/events.rs",
         "crates/focusa-api/src/routes/sse.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": [
         "focusa.events.stream"
@@ -1445,6 +1843,9 @@
         "crates/focusa-api/src/routes/events.rs",
         "crates/focusa-api/src/routes/events_sqlite.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1453,6 +1854,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -1463,6 +1867,9 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1471,6 +1878,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/training.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -1481,6 +1891,9 @@
       "sources": [
         "crates/focusa-api/src/routes/training.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1489,6 +1902,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/gate.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -1499,6 +1915,9 @@
       "sources": [
         "crates/focusa-api/src/routes/gate.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -1507,6 +1926,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/gate.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -1517,6 +1939,9 @@
       "sources": [
         "crates/focusa-api/src/routes/gate.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -1525,6 +1950,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/gate.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -1535,6 +1963,9 @@
       "sources": [
         "crates/focusa-api/src/routes/focus.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1543,6 +1974,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/focus.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -1553,6 +1987,9 @@
       "sources": [
         "crates/focusa-api/src/routes/focus.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -1561,6 +1998,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/focus.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -1571,6 +2011,9 @@
       "sources": [
         "crates/focusa-api/src/routes/snapshots.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -1579,6 +2022,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/snapshots.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -1589,6 +2035,9 @@
       "sources": [
         "crates/focusa-api/src/routes/snapshots.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1597,6 +2046,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/snapshots.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -1607,6 +2059,9 @@
       "sources": [
         "crates/focusa-api/src/routes/focus.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1615,6 +2070,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/focus.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -1625,6 +2083,10 @@
       "sources": [
         "crates/focusa-api/src/routes/focus.rs"
       ],
+      "methods": [
+        "GET",
+        "PATCH"
+      ],
       "operation_refs": []
     },
     {
@@ -1633,6 +2095,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -1643,6 +2108,9 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1651,6 +2119,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -1661,6 +2132,9 @@
       "sources": [
         "crates/focusa-api/src/routes/gate.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -1669,6 +2143,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions_capabilities.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -1679,6 +2156,9 @@
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions_capabilities.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1688,6 +2168,9 @@
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions_capabilities.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -1696,6 +2179,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/health.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": [
         "focusa.health.check"
@@ -1708,6 +2194,9 @@
       "sources": [
         "crates/focusa-api/src/routes/trajectory.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1716,6 +2205,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/info.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -1726,6 +2218,9 @@
       "sources": [
         "crates/focusa-api/src/routes/instances.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -1734,6 +2229,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/instances.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -1744,6 +2242,9 @@
       "sources": [
         "crates/focusa-api/src/routes/instances.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1753,8 +2254,25 @@
       "sources": [
         "crates/focusa-api/src/routes/interview_strategy.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": [
         "focusa.interview.strategy.grill_with_docs.next_question"
+      ]
+    },
+    {
+      "path": "/v1/interviews/closure-package",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
+      "sources": [
+        "crates/focusa-api/src/routes/interview_sessions.rs"
+      ],
+      "methods": [
+        "GET"
+      ],
+      "operation_refs": [
+        "focusa.interview.closure_package.get"
       ]
     },
     {
@@ -1763,6 +2281,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/interview_sessions.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": [
         "focusa.interview.session.list"
@@ -1775,6 +2296,9 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1783,6 +2307,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -1793,6 +2320,9 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -1801,6 +2331,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/license.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -1811,6 +2344,9 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1819,6 +2355,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/capabilities.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": [
         "focusa.lineage.head"
@@ -1831,6 +2370,9 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1839,6 +2381,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/capabilities.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -1849,6 +2394,9 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1858,6 +2406,9 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1866,6 +2417,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/capabilities.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": [
         "focusa.lineage.tree"
@@ -1878,6 +2432,9 @@
       "sources": [
         "crates/focusa-api/src/routes/mcp.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -1886,6 +2443,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/memory.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": [
         "focusa.memory.procedural.read"
@@ -1898,6 +2458,9 @@
       "sources": [
         "crates/focusa-api/src/routes/memory.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": [
         "focusa.memory.procedural.reinforce"
       ]
@@ -1908,6 +2471,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/memory.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": [
         "focusa.memory.semantic.read"
@@ -1920,6 +2486,9 @@
       "sources": [
         "crates/focusa-api/src/routes/memory.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": [
         "focusa.memory.semantic.upsert"
       ]
@@ -1931,6 +2500,9 @@
       "sources": [
         "crates/focusa-api/src/routes/metacognition.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -1940,6 +2512,9 @@
       "sources": [
         "crates/focusa-api/src/routes/metacognition.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1948,6 +2523,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/metacognition.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": [
         "focusa.metacog.capture"
@@ -1960,6 +2538,9 @@
       "sources": [
         "crates/focusa-api/src/routes/metacognition.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1968,6 +2549,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/metacognition.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -1978,6 +2562,9 @@
       "sources": [
         "crates/focusa-api/src/routes/metacognition.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -1986,6 +2573,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/metacognition.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": [
         "focusa.metacog.reflect"
@@ -1998,6 +2588,9 @@
       "sources": [
         "crates/focusa-api/src/routes/metacognition.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2006,6 +2599,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/metacognition.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": [
         "focusa.metacog.retrieve"
@@ -2018,6 +2614,9 @@
       "sources": [
         "crates/focusa-api/src/routes/metacognition.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2026,6 +2625,9 @@
       "rationale": "Runtime/operator diagnostic surface not projected as an agent capability.",
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -2036,6 +2638,9 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2044,6 +2649,9 @@
       "rationale": "Runtime/operator diagnostic surface not projected as an agent capability.",
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -2054,7 +2662,24 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
+    },
+    {
+      "path": "/v1/mission-canvas/state",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
+      "sources": [
+        "crates/focusa-api/src/routes/mission_canvas_surfaces.rs"
+      ],
+      "methods": [
+        "GET"
+      ],
+      "operation_refs": [
+        "focusa.mission_canvas.state.get"
+      ]
     },
     {
       "path": "/v1/mission-canvas/surface-bindings",
@@ -2062,6 +2687,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/mission_canvas_surfaces.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": [
         "focusa.mission_canvas.surface_binding.list"
@@ -2074,6 +2702,9 @@
       "sources": [
         "crates/focusa-api/src/routes/mission_canvas_surfaces.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": [
         "focusa.mission_canvas.surface_binding.mutate"
       ]
@@ -2084,6 +2715,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/mission_canvas_surfaces.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": [
         "focusa.mission_canvas.surface.list"
@@ -2096,6 +2730,9 @@
       "sources": [
         "crates/focusa-api/src/routes/ontology.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -2104,6 +2741,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/ontology.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -2114,6 +2754,9 @@
       "sources": [
         "crates/focusa-api/src/routes/ontology.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2122,6 +2765,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/ontology.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -2132,6 +2778,9 @@
       "sources": [
         "crates/focusa-api/src/routes/ontology.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -2140,6 +2789,21 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/ontology.rs"
+      ],
+      "methods": [
+        "GET"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/ontology/domain-pack",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/ontology.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -2150,6 +2814,9 @@
       "sources": [
         "crates/focusa-api/src/routes/ontology.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -2158,6 +2825,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/ontology.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -2168,6 +2838,9 @@
       "sources": [
         "crates/focusa-api/src/routes/ontology.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -2176,6 +2849,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/ontology.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -2186,6 +2862,9 @@
       "sources": [
         "crates/focusa-api/src/routes/ontology.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -2194,6 +2873,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/ontology.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -2204,6 +2886,9 @@
       "sources": [
         "crates/focusa-api/src/routes/ontology.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2212,6 +2897,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/ontology.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -2222,6 +2910,9 @@
       "sources": [
         "crates/focusa-api/src/routes/ontology.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2230,6 +2921,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/ontology.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -2240,6 +2934,9 @@
       "sources": [
         "crates/focusa-api/src/routes/ontology.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2248,6 +2945,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/ontology.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -2258,6 +2958,9 @@
       "sources": [
         "crates/focusa-api/src/routes/agent_capabilities.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2266,6 +2969,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/predictions.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -2276,6 +2982,9 @@
       "sources": [
         "crates/focusa-api/src/routes/predictions.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -2284,6 +2993,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/predictions.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": [
         "focusa.prediction.recent"
@@ -2296,6 +3008,9 @@
       "sources": [
         "crates/focusa-api/src/routes/predictions.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2304,6 +3019,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/predictions.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -2314,6 +3032,9 @@
       "sources": [
         "crates/focusa-api/src/routes/preload.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2322,6 +3043,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/preload.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -2332,6 +3056,9 @@
       "sources": [
         "crates/focusa-api/src/routes/preload.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2340,6 +3067,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/preload.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -2350,6 +3080,9 @@
       "sources": [
         "crates/focusa-api/src/routes/preload.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2358,6 +3091,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/preload.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -2368,6 +3104,9 @@
       "sources": [
         "crates/focusa-api/src/routes/preload.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2376,6 +3115,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/preload.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -2386,6 +3128,9 @@
       "sources": [
         "crates/focusa-api/src/routes/project.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -2394,6 +3139,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/project.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -2404,6 +3152,9 @@
       "sources": [
         "crates/focusa-api/src/routes/project.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -2412,6 +3163,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/project.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -2422,6 +3176,9 @@
       "sources": [
         "crates/focusa-api/src/routes/project.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2430,6 +3187,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/project.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": [
         "focusa.project.identity"
@@ -2442,6 +3202,9 @@
       "sources": [
         "crates/focusa-api/src/routes/project.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2450,6 +3213,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/project.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -2460,6 +3226,9 @@
       "sources": [
         "crates/focusa-api/src/routes/project.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -2468,6 +3237,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/project.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -2478,6 +3250,9 @@
       "sources": [
         "crates/focusa-api/src/routes/project.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2486,6 +3261,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/project.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -2496,6 +3274,9 @@
       "sources": [
         "crates/focusa-api/src/routes/project.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -2504,6 +3285,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/project.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -2514,6 +3298,9 @@
       "sources": [
         "crates/focusa-api/src/routes/project.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -2522,6 +3309,10 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/project.rs"
+      ],
+      "methods": [
+        "GET",
+        "POST"
       ],
       "operation_refs": [
         "focusa.project.verify"
@@ -2534,6 +3325,9 @@
       "sources": [
         "crates/focusa-api/src/routes/turn.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -2542,6 +3336,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/proposals.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -2552,6 +3349,9 @@
       "sources": [
         "crates/focusa-api/src/routes/proposals.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -2560,6 +3360,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/proposals.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -2570,6 +3373,9 @@
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions_capabilities.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2578,6 +3384,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/provider_execution.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": [
         "focusa.provider.conformance.evaluate"
@@ -2590,6 +3399,9 @@
       "sources": [
         "crates/focusa-api/src/routes/provider_execution.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": [
         "focusa.provider.contract.list"
       ]
@@ -2601,6 +3413,9 @@
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions_capabilities.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2609,6 +3424,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions_capabilities.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -2619,6 +3437,9 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2627,6 +3448,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -2637,6 +3461,9 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2645,6 +3472,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -2655,6 +3485,9 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2663,6 +3496,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/capabilities.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -2673,6 +3509,9 @@
       "sources": [
         "crates/focusa-api/src/routes/reflection.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2681,6 +3520,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/reflection.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -2691,6 +3533,9 @@
       "sources": [
         "crates/focusa-api/src/routes/reflection.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2699,6 +3544,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/reflection.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -2709,6 +3557,9 @@
       "sources": [
         "crates/focusa-api/src/routes/reflection.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2717,6 +3568,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/reflex.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -2727,6 +3581,9 @@
       "sources": [
         "crates/focusa-api/src/routes/release.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2735,6 +3592,10 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/resource.rs"
+      ],
+      "methods": [
+        "GET",
+        "POST"
       ],
       "operation_refs": [
         "focusa.resource_mode"
@@ -2747,6 +3608,9 @@
       "sources": [
         "crates/focusa-api/src/routes/rfm.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2755,6 +3619,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/role_profiles.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": [
         "focusa.role_profile.list"
@@ -2767,6 +3634,9 @@
       "sources": [
         "crates/focusa-api/src/routes/role_profiles.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": [
         "focusa.role_profile.draft"
       ]
@@ -2777,6 +3647,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/role_profiles.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": [
         "focusa.role_profile.review"
@@ -2789,6 +3662,9 @@
       "sources": [
         "crates/focusa-api/src/routes/session.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -2797,6 +3673,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/session.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -2807,6 +3686,9 @@
       "sources": [
         "crates/focusa-api/src/routes/session.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2815,6 +3697,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/session.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -2825,6 +3710,9 @@
       "sources": [
         "crates/focusa-api/src/routes/session.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -2833,6 +3721,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -2843,6 +3734,9 @@
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions_capabilities.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2851,6 +3745,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions_config_read.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -2861,6 +3758,9 @@
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -2869,6 +3769,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions_config_read.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -2879,6 +3782,9 @@
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions_config_read.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -2887,6 +3793,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -2897,6 +3806,9 @@
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -2905,6 +3817,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions_projection.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -2915,6 +3830,9 @@
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -2923,6 +3841,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions_projection.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -2933,6 +3854,9 @@
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions_config_read.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -2941,6 +3865,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions_config_mutation.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -2951,6 +3878,9 @@
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions_config_mutation.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -2959,6 +3889,33 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions.rs"
+      ],
+      "methods": [
+        "GET"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/silent-sessions/{session_id}/evidence-hold",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/silent_sessions_retention.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/silent-sessions/{session_id}/export",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/silent_sessions_retention.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -2969,6 +3926,9 @@
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions_input.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -2977,6 +3937,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions_input.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -2987,6 +3950,9 @@
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -2995,6 +3961,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions_input.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -3005,6 +3974,9 @@
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3013,6 +3985,21 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/silent-sessions/{session_id}/purge",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/silent_sessions_retention.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -3023,6 +4010,9 @@
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions_projection.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3031,6 +4021,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -3041,6 +4034,9 @@
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -3049,6 +4045,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -3059,6 +4058,9 @@
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3067,6 +4069,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions_input.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -3077,6 +4082,9 @@
       "sources": [
         "crates/focusa-api/src/routes/silent_sessions_projection.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3086,6 +4094,9 @@
       "sources": [
         "crates/focusa-api/src/routes/skills.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3094,6 +4105,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/spec_workbench.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": [
         "focusa.spec_workbench.session.list"
@@ -3106,6 +4120,9 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": [
         "focusa.state.current"
       ]
@@ -3117,6 +4134,9 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3125,6 +4145,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/session.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -3135,6 +4158,9 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3143,6 +4169,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/capabilities.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -3153,6 +4182,9 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3161,6 +4193,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/session.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -3171,6 +4206,9 @@
       "sources": [
         "crates/focusa-api/src/routes/session.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3179,6 +4217,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/subagent.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -3189,6 +4230,9 @@
       "sources": [
         "crates/focusa-api/src/routes/sync.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3197,6 +4241,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/sync.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -3207,6 +4254,9 @@
       "sources": [
         "crates/focusa-api/src/routes/sync.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3215,6 +4265,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/sync.rs"
+      ],
+      "methods": [
+        "DELETE"
       ],
       "operation_refs": []
     },
@@ -3225,6 +4278,9 @@
       "sources": [
         "crates/focusa-api/src/routes/sync.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -3233,6 +4289,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/sync.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -3243,6 +4302,9 @@
       "sources": [
         "crates/focusa-api/src/routes/sync.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -3251,6 +4313,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/sync.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -3261,6 +4326,9 @@
       "sources": [
         "crates/focusa-api/src/routes/sync.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -3269,6 +4337,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/task_plans.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": [
         "focusa.task_plan.list"
@@ -3281,6 +4352,9 @@
       "sources": [
         "crates/focusa-api/src/routes/task_plans.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": [
         "focusa.task_plan.materialize.beads"
       ]
@@ -3292,6 +4366,9 @@
       "sources": [
         "crates/focusa-api/src/routes/telemetry.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -3300,6 +4377,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/telemetry.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -3310,6 +4390,9 @@
       "sources": [
         "crates/focusa-api/src/routes/telemetry.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -3318,6 +4401,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/telemetry.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -3328,6 +4414,9 @@
       "sources": [
         "crates/focusa-api/src/routes/telemetry.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3336,6 +4425,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/telemetry.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -3346,6 +4438,9 @@
       "sources": [
         "crates/focusa-api/src/routes/telemetry.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3354,6 +4449,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/telemetry.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -3364,6 +4462,9 @@
       "sources": [
         "crates/focusa-api/src/routes/telemetry.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -3372,6 +4473,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -3382,6 +4486,9 @@
       "sources": [
         "crates/focusa-api/src/routes/telemetry.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3390,6 +4497,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/telemetry.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -3400,6 +4510,9 @@
       "sources": [
         "crates/focusa-api/src/routes/telemetry.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -3408,6 +4521,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/telemetry.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -3418,6 +4534,9 @@
       "sources": [
         "crates/focusa-api/src/routes/telemetry.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3426,6 +4545,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/telemetry.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -3436,6 +4558,9 @@
       "sources": [
         "crates/focusa-api/src/routes/telemetry.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3444,6 +4569,10 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/telemetry.rs"
+      ],
+      "methods": [
+        "GET",
+        "POST"
       ],
       "operation_refs": []
     },
@@ -3454,6 +4583,9 @@
       "sources": [
         "crates/focusa-api/src/routes/telemetry.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -3462,6 +4594,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/telemetry.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -3472,6 +4607,9 @@
       "sources": [
         "crates/focusa-api/src/routes/capabilities_extra.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3480,6 +4618,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/threads.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -3490,6 +4631,9 @@
       "sources": [
         "crates/focusa-api/src/routes/threads.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3498,6 +4642,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/threads.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -3508,6 +4655,9 @@
       "sources": [
         "crates/focusa-api/src/routes/threads.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -3516,6 +4666,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/tokens.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -3526,6 +4679,9 @@
       "sources": [
         "crates/focusa-api/src/routes/tokens.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3534,6 +4690,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/tokens.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -3544,6 +4703,9 @@
       "sources": [
         "crates/focusa-api/src/routes/training.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3552,6 +4714,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/trajectory.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": [
         "focusa.trajectory.assess"
@@ -3564,6 +4729,9 @@
       "sources": [
         "crates/focusa-api/src/routes/trajectory.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": [
         "focusa.trajectory.checkpoint"
       ]
@@ -3574,6 +4742,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/trajectory.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": [
         "focusa.trajectory.define_goal"
@@ -3586,6 +4757,9 @@
       "sources": [
         "crates/focusa-api/src/routes/trajectory.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": [
         "focusa.trajectory.propose_workpoint"
       ]
@@ -3596,6 +4770,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/trajectory.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": [
         "focusa.trajectory.resume"
@@ -3608,6 +4785,9 @@
       "sources": [
         "crates/focusa-api/src/routes/trajectory.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": [
         "focusa.trajectory.view"
       ]
@@ -3618,6 +4798,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/traverse.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": [
         "focusa.traverse"
@@ -3630,6 +4813,9 @@
       "sources": [
         "crates/focusa-api/src/routes/traverse.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -3639,6 +4825,9 @@
       "sources": [
         "crates/focusa-api/src/routes/trust.rs"
       ],
+      "methods": [
+        "PATCH"
+      ],
       "operation_refs": []
     },
     {
@@ -3647,6 +4836,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/turn.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": [
         "focusa.turn.append"
@@ -3659,6 +4851,9 @@
       "sources": [
         "crates/focusa-api/src/routes/turn.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": [
         "focusa.turn.complete"
       ]
@@ -3669,6 +4864,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/turn.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": [
         "focusa.turn.start"
@@ -3681,6 +4879,9 @@
       "sources": [
         "crates/focusa-api/src/routes/turn_recent.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3689,6 +4890,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/uxp.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -3699,6 +4903,9 @@
       "sources": [
         "crates/focusa-api/src/routes/update.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -3707,6 +4914,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/update.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -3717,6 +4927,9 @@
       "sources": [
         "crates/focusa-api/src/routes/update.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3725,6 +4938,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/update.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -3735,6 +4951,9 @@
       "sources": [
         "crates/focusa-api/src/routes/update.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3743,6 +4962,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/update.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -3753,6 +4975,9 @@
       "sources": [
         "crates/focusa-api/src/routes/update.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3761,6 +4986,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/update.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -3771,6 +4999,9 @@
       "sources": [
         "crates/focusa-api/src/routes/update.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3779,6 +5010,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/update.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -3789,6 +5023,9 @@
       "sources": [
         "crates/focusa-api/src/routes/utility.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3797,6 +5034,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/utility.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -3807,6 +5047,9 @@
       "sources": [
         "crates/focusa-api/src/routes/utility.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3815,6 +5058,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/uxp.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -3825,6 +5071,9 @@
       "sources": [
         "crates/focusa-api/src/routes/visual_workflow.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3833,6 +5082,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/visual_workflow.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -3843,6 +5095,9 @@
       "sources": [
         "crates/focusa-api/src/routes/work_items.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -3851,6 +5106,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/work_items.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -3861,6 +5119,9 @@
       "sources": [
         "crates/focusa-api/src/routes/work_items.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -3869,6 +5130,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/work_items.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -3879,6 +5143,9 @@
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3887,6 +5154,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -3897,6 +5167,9 @@
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -3905,6 +5178,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -3915,6 +5191,9 @@
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -3923,6 +5202,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -3933,6 +5215,9 @@
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -3941,6 +5226,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": [
         "focusa.agent_execution.abort"
@@ -3953,6 +5241,9 @@
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": [
         "focusa.agent_execution.prompt"
       ]
@@ -3963,6 +5254,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": [
         "focusa.agent_execution.start"
@@ -3975,6 +5269,9 @@
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": [
         "focusa.agent_execution.stop"
       ]
@@ -3986,6 +5283,9 @@
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -3994,6 +5294,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -4004,6 +5307,9 @@
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -4012,6 +5318,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -4022,6 +5331,9 @@
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -4030,6 +5342,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -4040,6 +5355,9 @@
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -4048,6 +5366,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": []
     },
@@ -4058,6 +5379,9 @@
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -4066,6 +5390,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -4076,6 +5403,9 @@
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -4085,6 +5415,9 @@
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -4093,6 +5426,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": [
         "focusa.work_loop.status"
@@ -4105,6 +5441,9 @@
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -4114,6 +5453,9 @@
       "sources": [
         "crates/focusa-api/src/routes/work_loop.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -4122,6 +5464,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/work_rail.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": [
         "focusa.work_rail.list"
@@ -4134,6 +5479,9 @@
       "sources": [
         "crates/focusa-api/src/routes/workpoint.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -4142,6 +5490,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/workpoint.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": [
         "focusa.workpoint.checkpoint"
@@ -4154,6 +5505,9 @@
       "sources": [
         "crates/focusa-api/src/routes/workpoint.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -4162,6 +5516,9 @@
       "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
       "sources": [
         "crates/focusa-api/src/routes/workpoint.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },
@@ -4172,6 +5529,9 @@
       "sources": [
         "crates/focusa-api/src/routes/workpoint.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -4181,6 +5541,9 @@
       "sources": [
         "crates/focusa-api/src/routes/workpoint.rs"
       ],
+      "methods": [
+        "GET"
+      ],
       "operation_refs": []
     },
     {
@@ -4189,6 +5552,10 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/workpoint.rs"
+      ],
+      "methods": [
+        "GET",
+        "POST"
       ],
       "operation_refs": [
         "focusa.workpoint.resume"
@@ -4201,6 +5568,9 @@
       "sources": [
         "crates/focusa-api/src/routes/workpoint.rs"
       ],
+      "methods": [
+        "POST"
+      ],
       "operation_refs": []
     },
     {
@@ -4209,6 +5579,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/workspace_artifacts.rs"
+      ],
+      "methods": [
+        "GET"
       ],
       "operation_refs": [
         "focusa.workspace.artifact.list"
@@ -4220,6 +5593,9 @@
       "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/workspace_artifacts.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": [
         "focusa.workspace.artifact.intake"

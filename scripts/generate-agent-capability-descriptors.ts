@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 /** Generate Spec141 Agent Capability Descriptor V2 and cross-harness projections. */
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import process from "node:process";
 import { registerTools } from "../apps/pi-extension/src/tools.ts";
@@ -16,6 +16,13 @@ const ROOT = resolve(import.meta.dir, "..");
 const OUT = join(ROOT, "docs/contracts/spec141/generated-capability-v2");
 const CHECK = process.argv.includes("--check");
 const WRITE = process.argv.includes("--write") || !CHECK;
+const WORKSPACE_VERSION = (() => {
+  const cargo = readFileSync(join(ROOT, "Cargo.toml"), "utf8");
+  const workspacePackage = cargo.match(/\[workspace\.package\]([\s\S]*?)(?:\n\[|$)/)?.[1] ?? "";
+  const version = workspacePackage.match(/^version\s*=\s*"([^"]+)"/m)?.[1];
+  if (!version) throw new Error("workspace package version missing from Cargo.toml");
+  return version;
+})();
 
 interface RegisteredTool {
   name: string;
@@ -120,6 +127,7 @@ function skillRefs(contract: FocusaToolContract): string[] {
   const byFamily: Record<string, string> = {
     workpoint: "skill:focusa-workpoint",
     work_loop: "skill:focusa-work-loop",
+    focus_state: "skill:focusa-workpoint",
     metacognition: "skill:focusa-metacognition",
     tree_lineage: "skill:focusa-session-recovery",
     diagnostics_hygiene: "skill:focusa-troubleshooting",
@@ -131,7 +139,14 @@ function skillRefs(contract: FocusaToolContract): string[] {
     preload: "skill:focusa-agent-bootstrap",
   };
   if (byFamily[contract.family]) refs.add(byFamily[contract.family]);
+  if (contract.name.includes("silent_sessions")) refs.add("skill:focusa-silent-sessions");
   if (contract.name.includes("browser")) refs.add("skill:focusa-browser-uiai");
+  if (contract.name.includes("predict")) refs.add("skill:predictive-power");
+  if (contract.name.includes("evidence") || contract.name.includes("outcome")) refs.add("skill:focusa-evidence-outcomes");
+  if (contract.name.includes("bloatgaurd") || contract.name.includes("resource_mode")) refs.add("skill:focusa-resource-performance");
+  if (contract.name.includes("context_cognition")) refs.add("skill:focusa-agent-bootstrap");
+  if (contract.name.includes("device_pair")) refs.add("skill:focusa-security-auth-licensing");
+  if (contract.name.includes("call_stack")) refs.add("skill:focusa-spec-implementation");
   return [...refs];
 }
 
@@ -284,17 +299,49 @@ const rest = {
   operations: descriptors.flatMap((d) => d.tool_names.rest.map((route) => ({ ...route, capability_id: d.capability_id, operation_id: d.tool_names.pi, input_schema: d.input_schema, output_schema: d.output_schema, error_schema: d.error_schema, authority: d.authority, permissions: d.permissions, docs_ref: d.docs_ref }))),
 };
 
+const capabilitySkills = [...new Set(descriptors.flatMap((d) => d.skill_refs))].sort();
+const skillManifests = readdirSync(join(ROOT, ".pi/skills"), { withFileTypes: true })
+  .filter((entry) => entry.isDirectory() && existsSync(join(ROOT, ".pi/skills", entry.name, "SKILL.md")))
+  .map((entry) => {
+    const skillRef = `skill:${entry.name}`;
+    const referencesDir = join(ROOT, ".pi/skills", entry.name, "references");
+    const runbookRefs = existsSync(referencesDir)
+      ? readdirSync(referencesDir)
+          .filter((name) => name.endsWith(".md"))
+          .sort()
+          .map((name) => relative(ROOT, join(referencesDir, name)))
+      : [];
+    return {
+      skill_ref: skillRef,
+      manifest_ref: relative(ROOT, join(ROOT, ".pi/skills", entry.name, "SKILL.md")),
+      packaged_manifest_ref: relative(ROOT, join(ROOT, "apps/pi-extension/skills", entry.name, "SKILL.md")),
+      runbook_refs: runbookRefs,
+    };
+  })
+  .sort((a, b) => a.skill_ref.localeCompare(b.skill_ref));
+const runbookRefs = [...new Set(skillManifests.flatMap((skill) => skill.runbook_refs))].sort();
+const piToolDocCount = readdirSync(join(ROOT, "docs/focusa-tools/tools")).filter((name) => /^focusa_.*\.md$/.test(name)).length;
+
 const agentCardBase = {
   schema: "focusa.agent_card.v1",
   name: "Focusa",
   description: "Agent-first cognitive infrastructure with scoped Workpoints, Trajectory, evidence, recovery, browser interoperability, and cross-harness capability contracts.",
-  version: "0.9.120-dev",
+  version: WORKSPACE_VERSION,
   interfaces: ["pi", "mcp", "openai-functions", "cli", "rest"],
   capabilities: { streaming: true, durable_tasks: true, list_changed: true, progressive_discovery: true, structured_output: true },
   authentication: ["bearer", "device_pairing", "local_trusted"],
   registry_digest: registry.registry_digest,
-  skill_count: new Set(descriptors.flatMap((d) => d.skill_refs)).size,
-  skills: [...new Set(descriptors.flatMap((d) => d.skill_refs))].sort(),
+  pi_tool_count: descriptors.length,
+  pi_tool_docs_count: piToolDocCount,
+  pi_tool_registry_path: "docs/contracts/spec141/generated-capability-v2/pi-tools.json",
+  pi_tool_docs_path: "docs/focusa-tools/tools/",
+  skill_count: skillManifests.length,
+  skills: skillManifests.map((skill) => skill.skill_ref),
+  skill_manifests: skillManifests,
+  capability_skill_count: capabilitySkills.length,
+  capability_skills: capabilitySkills,
+  runbook_count: runbookRefs.length,
+  runbook_refs: runbookRefs,
   capability_families: [...new Set(descriptors.map((d) => d.family))].sort(),
   extended_card_path: "/v1/agent/card",
 };

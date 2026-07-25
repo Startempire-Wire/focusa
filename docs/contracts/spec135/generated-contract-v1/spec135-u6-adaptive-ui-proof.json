@@ -1,0 +1,21 @@
+{
+  "schema": "focusa.spec135.adaptive_generated_ui_proof.v1",
+  "requirement_id": "SPEC135-U6",
+  "status": "implemented_pending_remote_gate",
+  "canonical_primitive": "focusa_context_cognition_curate_optimize",
+  "module_name": "mission_canvas_generated_ui",
+  "contract": {
+    "proposal_artifact_required": true,
+    "evaluation_score_required": true,
+    "promotion_requires_baseline_improvement": true,
+    "promotion_requires_threshold": true,
+    "explicit_rollback_overrides_promotion": true,
+    "artifact_history_is_append_only": true,
+    "operator_control_preserved": true
+  },
+  "api_refs": [
+    "POST /v1/context-cognition/curate/optimize",
+    "GET /v1/context-cognition/curate/optimizer-artifacts"
+  ],
+  "receipt": "receipt:spec135-u6:adaptive-generated-ui:v1"
+}

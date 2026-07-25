@@ -1,6 +1,7 @@
 <script lang="ts">
   import { runtimeStore } from '$lib/stores/runtime.svelte';
-  import { formatScopeForDisplay, type ScopeContext } from '$lib/projectContext.svelte';
+  import { formatScopeForDisplay, getProjectContext, type ScopeContext } from '$lib/projectContext.svelte';
+  import { compatibleWorkLoopStatusState, evaluateWorkLoopAuthority } from '$lib/workLoopScope.js';
 
   let s = $derived(runtimeStore.snapshot);
   let health = $derived(s.workLoopHealth ?? {});
@@ -30,11 +31,22 @@
   let pauseFlags = $derived(records(health.pause_flags ?? status.pause_flags, ['flags', 'items']));
   let checkpoints = $derived(records(checkpointsPayload, ['checkpoints', 'items', 'records']));
   let activeTask = $derived(status.current_task ?? status.work_loop?.current_task ?? {});
-  let writer = $derived(health.writer_owner ?? status.writer_owner ?? status.active_writer ?? health.active_writer ?? status.writer?.owner);
-  let projectRoot = $derived(s.projectIdentity?.project_root ?? s.workpointResume?.project_root ?? s.session?.project_root);
+  let partition = $derived(status.execution_partition ?? health.execution_partition ?? {});
+  let budget = $derived(status.budget_remaining ?? health.budget_remaining ?? {});
+  let typedState = $derived(compatibleWorkLoopStatusState(status.schema, status.state));
+  let writer = $derived(partition.writer_key ?? health.writer_owner ?? status.writer_owner ?? status.active_writer ?? health.active_writer ?? status.writer?.owner);
+  let leaseFreshness = $derived(partition.lease_freshness ?? 'unclaimed');
+  let currentScope = $derived(getProjectContext(s));
   let loopWorkpoint = $derived(status.active_workpoint?.active ?? status.active_workpoint ?? {});
-  let loopProjectRoot = $derived(loopWorkpoint.project_root);
-  let loopTaskStale = $derived(Boolean(status.authority?.canonical === false || (loopProjectRoot && projectRoot && loopProjectRoot !== projectRoot)));
+  let loopAuthority = $derived(evaluateWorkLoopAuthority(
+    { project_root: currentScope.projectRoot, continuity_id: currentScope.continuityId },
+    {
+      project_root: partition.project_root_key ?? loopWorkpoint.project_root,
+      continuity_id: partition.workstream_key ?? loopWorkpoint.continuity_id,
+      canonical: loopWorkpoint.canonical,
+    },
+  ));
+  let loopTaskStale = $derived(loopAuthority.stale);
   let currentWorkpoint = $derived(s.workpointResume ?? {});
 </script>
 
@@ -51,7 +63,9 @@
     <div class="label">Dispatch posture</div>
     <p>{text(boundary, dispatchReady === true ? 'No active boundary' : 'No boundary reason surfaced')}</p>
     <div class="chips">
+      <span class="chip" class:stale-chip={typedState === 'unsupported' || typedState === 'unavailable'}>typed {typedState}</span>
       <span class="chip">writer {text(writer, 'unknown')}</span>
+      <span class="chip" class:stale-chip={leaseFreshness !== 'current'}>lease {text(leaseFreshness, 'unclaimed')}</span>
       <span class="chip">status {text(status.status ?? status.work_loop?.status, 'unknown')}</span>
       <span class="chip">transport {text(transport.status, 'unknown')}</span>
     </div>
@@ -59,11 +73,24 @@
 
   <div class="grid">
     <article class="panel">
+      <div class="label">Execution partition</div>
+      <p>{text(partition.project_root_key, 'unbound project')}</p>
+      <p class="muted">continuity {text(partition.workstream_key, 'unbound')} · work item {text(partition.work_item_key, 'unbound')}</p>
+      <p class="muted">provider {text(partition.work_item_provider, 'unknown')} · workpoint {text(partition.workpoint_id, 'unbound')}</p>
+      <p class="muted">transport {text(partition.transport_session_id, 'detached')} · item {text(partition.transport_work_item_id, 'unbound')}</p>
+      <p class="muted">fence {text(partition.fencing_token, 'none')} · expires {text(partition.lease_expires_at, 'not leased')}</p>
+      <p class="muted">budget {text(budget.state, 'unknown')} · wall clock {text(budget.remaining_wall_clock_ms, 'unbounded')} ms</p>
+      {#if budget.exhaustion}
+        <p class="warn">{text(budget.exhaustion.dimension)} exhausted · approved renew_budget resume required</p>
+      {/if}
+    </article>
+
+    <article class="panel">
       <div class="label">Active task</div>
       {#if loopTaskStale}
         <p><span class="stale-chip">stale/unscoped</span> {text(activeTask.work_item_id ?? activeTask.id ?? status.current_work_item_id, 'no active task')}</p>
         <p class="muted">Hidden from current scope: {text(activeTask.title ?? activeTask.summary ?? status.current_task?.summary, 'no summary')}</p>
-        <p class="muted">Loop authority is advisory or out-of-scope; current project root {text(projectRoot, 'not surfaced')}.</p>
+        <p class="muted">Loop authority rejected: {loopAuthority.reason}; current {text(loopAuthority.currentProjectRoot, 'unbound')} ({text(loopAuthority.currentContinuityId, 'unbound')}) · loop {text(loopAuthority.loopProjectRoot, 'unbound')} ({text(loopAuthority.loopContinuityId, 'unbound')}).</p>
       {:else}
         <p>{text(activeTask.work_item_id ?? activeTask.id ?? status.current_work_item_id, 'no active task')}</p>
         <p class="muted">{text(activeTask.title ?? activeTask.summary ?? status.current_task?.summary, 'no summary')}</p>

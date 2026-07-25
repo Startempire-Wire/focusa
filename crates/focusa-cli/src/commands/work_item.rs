@@ -20,11 +20,11 @@ use focusa_core::work_item::{
     policy::{ClosurePolicy, ClosureProfile, default_profile_for},
     storage::ClaimStorage,
     types::{
-        ClaimStatus, ClosureBlock, ClosureClaim, ClosureKind, EvidenceCitation, EvidenceKind,
-        LifecycleStage, WorkItemProvider, WorkItemRef,
+        ClaimStatus, ClosureAuthorityContext, ClosureBlock, ClosureClaim, ClosureKind,
+        EvidenceCitation, EvidenceKind, LifecycleStage, WorkItemProvider, WorkItemRef,
     },
 };
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 // ---------------------------------------------------------------------------
@@ -103,7 +103,19 @@ pub struct CloseArgs {
     #[arg(long)]
     pub from_workpoint: String,
     #[arg(long)]
+    pub continuity_id: String,
+    #[arg(long)]
+    pub agent_session_id: String,
+    #[arg(long, required = true)]
+    pub code_ref: Vec<String>,
+    #[arg(long, required = true)]
+    pub test_ref: Vec<String>,
+    #[arg(long)]
+    pub evidence_ref: Vec<String>,
+    #[arg(long)]
     pub profile: Option<String>,
+    #[arg(long)]
+    pub summary: Option<String>,
     /// Break glass and bypass normal evidence validation. Requires --reason.
     #[arg(long)]
     pub override_: bool,
@@ -130,6 +142,12 @@ pub struct PrepareArgs {
     pub kind: String,
     #[arg(long, default_value = "closed via focusa")]
     pub summary: String,
+    #[arg(long, required = true)]
+    pub code_ref: Vec<String>,
+    #[arg(long, required = true)]
+    pub test_ref: Vec<String>,
+    #[arg(long)]
+    pub evidence_ref: Vec<String>,
 }
 
 #[derive(Args, Debug)]
@@ -243,62 +261,34 @@ fn build_work_item_ref(id: &str) -> WorkItemRef {
     }
 }
 
-fn build_citations_from_recent_tests(project_root: &Path) -> Vec<EvidenceCitation> {
-    let mut out = Vec::new();
-    // Code citation: the work_item implementation itself.
-    let code_path = "crates/focusa-core/src/work_item/mod.rs";
-    if project_root.join(code_path).exists() {
-        out.push(EvidenceCitation {
-            kind: EvidenceKind::Code,
-            ref_: code_path.into(),
+fn build_explicit_citations(
+    code_refs: &[String],
+    test_refs: &[String],
+    evidence_refs: &[String],
+) -> Vec<EvidenceCitation> {
+    code_refs
+        .iter()
+        .map(|reference| (EvidenceKind::Code, reference))
+        .chain(
+            test_refs
+                .iter()
+                .map(|reference| (EvidenceKind::Test, reference)),
+        )
+        .chain(
+            evidence_refs
+                .iter()
+                .map(|reference| (EvidenceKind::Artifact, reference)),
+        )
+        .map(|(kind, reference)| EvidenceCitation {
+            kind,
+            ref_: reference.clone(),
             line: None,
             line_end: None,
             required: true,
             result: None,
             verified: false,
-        });
-    }
-    // Test files: find related test files.
-    let test_dir = project_root.join("tests");
-    if let Ok(entries) = std::fs::read_dir(&test_dir) {
-        for entry in entries.flatten() {
-            let name = entry.file_name().to_string_lossy().to_string();
-            if name.contains("work_item") || name.contains("closure") || name.contains("eviden") {
-                out.push(EvidenceCitation {
-                    kind: EvidenceKind::Test,
-                    ref_: format!("tests/{name}"),
-                    line: None,
-                    line_end: None,
-                    required: true,
-                    result: None,
-                    verified: false,
-                });
-                if out.len() >= 3 {
-                    break;
-                }
-            }
-        }
-    }
-    // Always add a health endpoint.
-    out.push(EvidenceCitation {
-        kind: EvidenceKind::Endpoint,
-        ref_: "http://127.0.0.1:8787/v1/health".into(),
-        line: None,
-        line_end: None,
-        required: true,
-        result: None,
-        verified: false,
-    });
-    out.push(EvidenceCitation {
-        kind: EvidenceKind::Endpoint,
-        ref_: "http://127.0.0.1:8787/v1/workpoint/current".into(),
-        line: None,
-        line_end: None,
-        required: false,
-        result: None,
-        verified: false,
-    });
-    out
+        })
+        .collect()
 }
 
 // ---------------------------------------------------------------------------
@@ -319,17 +309,20 @@ pub async fn run(cmd: WorkItemCmd) -> Result<()> {
 // ---------------------------------------------------------------------------
 
 async fn run_close(args: CloseArgs) -> Result<()> {
-    let actor = resolve_actor(args.actor);
+    let actor = resolve_actor(args.actor.clone());
     let work_item = build_work_item_ref(&args.id);
     let kind = ClosureKind::Code;
-    let summary = format!("closed via focusa (workpoint: {})", args.from_workpoint);
+    let summary = args
+        .summary
+        .clone()
+        .unwrap_or_else(|| format!("closed via focusa (workpoint: {})", args.from_workpoint));
 
     let selected_profile = args
         .profile
         .as_deref()
         .unwrap_or_else(|| default_profile_for(kind));
     let lifecycle = default_lifecycle_with_profile(Some(selected_profile));
-    let citations = build_citations_from_recent_tests(&work_item.project_root);
+    let citations = build_explicit_citations(&args.code_ref, &args.test_ref, &args.evidence_ref);
 
     if args.override_ {
         let reason = args.reason.as_deref().unwrap_or_default().trim();
@@ -368,7 +361,18 @@ async fn run_close(args: CloseArgs) -> Result<()> {
     eprintln!();
 
     match lifecycle
-        .run(&actor, work_item, &summary, kind, citations)
+        .run_scoped(
+            &actor,
+            work_item,
+            &summary,
+            kind,
+            citations,
+            ClosureAuthorityContext {
+                continuity_id: args.continuity_id,
+                workpoint_id: args.from_workpoint,
+                agent_session_id: Some(args.agent_session_id),
+            },
+        )
         .await
     {
         Ok(claim) => {
@@ -400,7 +404,8 @@ async fn run_closure(cmd: ClosureCmd) -> Result<()> {
         ClosureCmd::Prepare(args) => {
             let kind = parse_closure_kind(&args.kind);
             let work_item = build_work_item_ref(&args.provider_item_id);
-            let citations = build_citations_from_recent_tests(&work_item.project_root);
+            let citations =
+                build_explicit_citations(&args.code_ref, &args.test_ref, &args.evidence_ref);
 
             match lifecycle.prepare(&actor, work_item, &args.summary, kind, citations) {
                 Ok(result) => {

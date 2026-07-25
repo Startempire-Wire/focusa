@@ -134,7 +134,8 @@ prepare    -> walk the Workpoint, the project state, and the spec; build the
 validate   -> run every verifier; produce per-citation VerifyResult; flip
              claim.status to "valid" only if all required citations pass
 authorize  -> check ClosurePolicy, actor, agent_session, git state; require
-             FOCUSA_OPERATOR=1 (or override) for non-allow-listed actors
+             FOCUSA_OPERATOR=1 for operator-only completion authority; a
+             non-completion disposition cannot bypass failed validation
 submit     -> call provider adapter submit_claim(); provider mutates the
              task manager only after authorization
 reconcile  -> re-fetch the work item from the provider, verify status changed
@@ -150,7 +151,8 @@ concrete action.
 ```bash
 focusa work-item close <id> --from-workpoint <WP_ID>           # full lifecycle
 focusa work-item close <id> --from-workpoint <WP_ID> --profile release_proof
-focusa work-item close <id> --override --reason "..."          # break-glass
+focusa work-item dispose <id> --accepted-risk --reason "..."   # non-completion disposition
+focusa work-item dispose <id> --cancelled --reason "..."       # non-completion disposition
 focusa work-item closure prepare <id>                            # stage 1 only
 focusa work-item closure validate <claim_id>                      # stage 2 only
 focusa work-item closure authorize <claim_id>                     # stage 3 only
@@ -242,22 +244,21 @@ code.min_lines_changed = 1
 #   pre_mvp_polish, doc_change, deploy_only
 ```
 
-### 9. Break-glass override (matches spec §14)
+### 9. Break-glass disposition without false completion (Spec 116 §14; Spec 131)
 
 ```bash
-focusa work-item close <id> --override --reason "..." --actor-token $OPS_TOKEN
+focusa work-item dispose <id> --accepted-risk --reason "..." --actor-token $OPS_TOKEN
+focusa work-item dispose <id> --cancelled --reason "..." --actor-token $OPS_TOKEN
 ```
 
-Always writes `closure_override` row to closure-audit.jsonl. Disabled by
-default for agents (only `FOCUSA_OPERATOR=1` or a real ops token can
-issue the override). The provider guard shim checks the same gate.
+This always writes a typed `closure_disposition` row to `closure-audit.jsonl`. It is disabled by default for agents; only `FOCUSA_OPERATOR=1` or a valid operator token may issue it, and the provider guard checks the same gate. The disposition may cancel, abandon, accept disclosed risk, waive only an explicitly waivable policy, or remove future scope through an approved amendment. It cannot create evidence, change failed verification, set `verified_complete`, or satisfy release/velocity rollups. A legacy `close --override` input must translate to one of these non-completion dispositions or fail.
 
 ### 10. Storage layout
 
 ```
 ~/.focusa/
   policy/
-    closure.toml                       # ClosurePolicy (active profile, override policy, agent block list)
+    closure.toml                       # ClosurePolicy (active profile, disposition policy, agent block list)
     providers/
       bd.toml
       linear.toml                      # API key, team, OAuth refresh token
@@ -270,7 +271,7 @@ issue the override). The provider guard shim checks the same gate.
       ...
   state/
     closure-claims/<claim_id>.json     # durable ClosureClaim records
-    closure-audit.jsonl                # append-only audit (every stage, every override)
+    closure-audit.jsonl                # append-only audit (every stage, every disposition)
     workpoints/<wp_id>/evidence.json   # existing Workpoint evidence (used by prepare)
 ```
 

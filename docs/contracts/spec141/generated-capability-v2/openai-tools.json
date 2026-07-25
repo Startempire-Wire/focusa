@@ -1,6 +1,6 @@
 {
   "schema": "focusa.openai_tool_projection.v2",
-  "registry_digest": "sha256:f15078162dc7b0f7a595abcb5ae4302f9af85f7b8de0b0ef0762cdde661215b8",
+  "registry_digest": "sha256:c275433cdcc897c9d139978eb19161c009c74cec22ba516e8ddc0c10297bd841",
   "tools": [
     {
       "type": "function",
@@ -2466,7 +2466,7 @@
       "type": "function",
       "function": {
         "name": "focusa_project_identity",
-        "description": "Resolve bounded ProjectIdentity from cwd/project_root using marker, git, beads, workspace, daemon, and operator project signals. Use it when Resolve the active project identity from marker, git, beads, workspace, cwd, daemon, and operator project signals before trusting project-bound context. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Resolve bounded ProjectIdentity from cwd/project_root using marker, git, beads, workspace, daemon, and operator project signals. Use it when Rank explicit, active-worktree, canonical-parent, marker/Beads, persisted-session, and bounded parent-directory project candidates; fail closed on ambiguity before trusting project-bound context. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2477,6 +2477,10 @@
             },
             "project_root": {
               "description": "Optional expected project root folder.",
+              "type": "string"
+            },
+            "persisted_project_root": {
+              "description": "Project root retained by the resumed Pi session; advisory candidate only until current worktree/project evidence verifies it.",
               "type": "string"
             },
             "remote_host": {
@@ -2514,7 +2518,7 @@
       "type": "function",
       "function": {
         "name": "focusa_project_verify",
-        "description": "Verify active project folder against expected ProjectIdentity fields and report mismatches without mutating state. Use it when Verify expected project identity fields and surface project/continuity mismatches without mutating Focusa state. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Verify active project folder against expected ProjectIdentity fields and report mismatches without mutating state. Use it when Verify expected project identity fields against ranked worktree/session candidates and surface ambiguity or project/continuity mismatches without mutating Focusa state. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -2525,6 +2529,10 @@
             },
             "project_root": {
               "description": "Expected project root.",
+              "type": "string"
+            },
+            "persisted_project_root": {
+              "description": "Resumed-session project root to compare as an advisory binding candidate.",
               "type": "string"
             },
             "project_id": {
@@ -3041,7 +3049,7 @@
               "type": "string"
             },
             "session_name": {
-              "description": "Legacy alias for exact session_id; no tmux normalization.",
+              "description": "Legacy alias for exact session_id; no legacy name normalization.",
               "type": "string"
             },
             "run_id": {
@@ -4033,8 +4041,28 @@
               "type": "boolean"
             },
             "root_work_item_id": {
-              "description": "Optional root BD/task/item id. If omitted, tool infers from active task or bd ready.",
+              "description": "Optional root provider WorkItem id. If omitted, infer from the active scoped task.",
               "type": "string"
+            },
+            "renew_budget": {
+              "description": "Explicitly start a fresh budget epoch when action=resume.",
+              "type": "boolean"
+            },
+            "max_turns": {
+              "minimum": 1,
+              "type": "number"
+            },
+            "max_wall_clock_ms": {
+              "minimum": 1000,
+              "type": "number"
+            },
+            "max_retries": {
+              "minimum": 0,
+              "type": "number"
+            },
+            "cooldown_ms": {
+              "minimum": 0,
+              "type": "number"
             }
           },
           "additionalProperties": false

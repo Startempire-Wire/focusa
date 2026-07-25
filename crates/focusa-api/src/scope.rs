@@ -9,7 +9,7 @@
 /// async fn handler(ScopeContext { project_root, continuity_id, .. }: ScopeContext) { ... }
 /// ```
 use axum::{
-    extract::FromRequestParts,
+    extract::{FromRequestParts, Query},
     http::{HeaderMap, StatusCode, request::Parts},
     response::{IntoResponse, Response},
 };
@@ -17,7 +17,7 @@ use focusa_core::scoped_state::{ScopeRef, WorkstreamKey};
 use focusa_core::working_subpath::resolve_git_working_context;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::fmt;
+use std::{collections::HashMap, fmt};
 
 /// Canonical request scope parameters.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -129,10 +129,13 @@ where
     type Rejection = ScopeRejection;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let Query(query) = Query::<HashMap<String, String>>::try_from_uri(&parts.uri)
+            .map_err(|error| ScopeRejection::Internal(format!("invalid scope query: {error}")))?;
+
         // Try headers first
         let requested_project_root = header_or_query(
             &parts.headers,
-            parts.uri.query().unwrap_or(""),
+            &query,
             "x-scope-project-root",
             "project_root",
         );
@@ -154,16 +157,12 @@ where
             .or(requested_project_root.clone());
         let continuity_id = header_or_query(
             &parts.headers,
-            parts.uri.query().unwrap_or(""),
+            &query,
             "x-scope-continuity-id",
             "continuity_id",
         );
-        let session_id = header_or_query(
-            &parts.headers,
-            parts.uri.query().unwrap_or(""),
-            "x-scope-session-id",
-            "session_id",
-        );
+        let session_id =
+            header_or_query(&parts.headers, &query, "x-scope-session-id", "session_id");
 
         let source = if parts.headers.contains_key("x-scope-project-root") {
             ScopeSource::Header
@@ -191,7 +190,7 @@ where
 
 fn header_or_query(
     headers: &HeaderMap,
-    query_str: &str,
+    query: &HashMap<String, String>,
     header_name: &str,
     query_key: &str,
 ) -> Option<String> {
@@ -200,16 +199,7 @@ fn header_or_query(
             return Some(s.to_string());
         }
     }
-    // Parse query parameters
-    for pair in query_str.split('&') {
-        let mut parts = pair.splitn(2, '=');
-        if let (Some(k), Some(v)) = (parts.next(), parts.next()) {
-            if k == query_key {
-                return Some(v.to_string()); // simple ASCII-safe query values
-            }
-        }
-    }
-    None
+    query.get(query_key).cloned()
 }
 
 #[derive(Debug)]
@@ -227,6 +217,24 @@ impl IntoResponse for ScopeRejection {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn query_scope_values_are_form_decoded() {
+        let uri = "/v1/work-loop/status?project_root=%2FVolumes%2FMacintosh+HD%2Ffocusa&continuity_id=workloop-completion"
+            .parse()
+            .expect("valid URI");
+        let Query(query) =
+            Query::<HashMap<String, String>>::try_from_uri(&uri).expect("valid form query");
+        let headers = HeaderMap::new();
+        assert_eq!(
+            header_or_query(&headers, &query, "x-scope-project-root", "project_root").as_deref(),
+            Some("/Volumes/Macintosh HD/focusa")
+        );
+        assert_eq!(
+            header_or_query(&headers, &query, "x-scope-continuity-id", "continuity_id").as_deref(),
+            Some("workloop-completion")
+        );
+    }
 
     #[test]
     fn missing_or_cross_workstream_scope_never_matches() {

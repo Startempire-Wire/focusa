@@ -25,6 +25,25 @@ export interface MenubarUpdateResult {
 
 export type MenubarUpdateReporter = (result: MenubarUpdateResult) => void;
 
+export const MENUBAR_ACTIVATION_RECEIPT_KEY = 'focusa.menubar.ota.activation.v1';
+
+function recordActivationReceipt(version: string): void {
+  try {
+    window.localStorage.setItem(
+      MENUBAR_ACTIVATION_RECEIPT_KEY,
+      JSON.stringify({
+        schema: 'focusa.menubar_activation_receipt.v1',
+        status: 'installed_relaunching',
+        version,
+        activated_at: new Date().toISOString(),
+        activation: 'signed_updater_install_and_relaunch',
+      }),
+    );
+  } catch {
+    // Receipt storage is advisory; signature verification and install remain authoritative.
+  }
+}
+
 function report(reporter: MenubarUpdateReporter | undefined, result: MenubarUpdateResult) {
   reporter?.(result);
   window.dispatchEvent(new CustomEvent('focusa-menubar-update', { detail: result }));
@@ -117,6 +136,7 @@ export async function runMenubarUpdate(options: {
         });
       }
     });
+    recordActivationReceipt(update.version);
     await relaunch();
     return report(reporter, {
       phase: 'installing',

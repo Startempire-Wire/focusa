@@ -12,7 +12,7 @@ Daemon-native Spec133 Silent Session client for status, observation, steering, c
 
 - `action` (optional; string | string | string | string | string | string | string | string | string | string | string | string | string | string | string | string): See the strict descriptor schema.
 - `session_id` (optional; string): Exact durable Silent Session id.
-- `session_name` (optional; string): Legacy alias for exact session_id; no tmux normalization.
+- `session_name` (optional; string): Legacy alias for exact session_id; no legacy name normalization.
 - `run_id` (optional; string): Exact current run id.
 - `generation` (optional; integer; min=1): Exact current run generation.
 - `approval_id` (optional; string): Durable daemon approval id for mutations.
@@ -71,10 +71,10 @@ Likely next: `focusa_work_loop_status`, `focusa_work_loop_checkpoint`, `focusa_r
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`, `skill:focusa-work-loop`
+- Skills: `skill:focusa`, `skill:focusa-work-loop`, `skill:focusa-silent-sessions`
 - Runbooks: `runbook:work_loop`
 - Pi: `focusa_silent_sessions`; MCP: `focusa.silent.sessions`; OpenAI: `focusa_silent_sessions`.
 - CLI: `focusa silent`.
 - REST: `GET /v1/silent-sessions`, `POST /v1/silent-sessions/preflight`, `GET /v1/silent-sessions/{session_id}`, `GET /v1/silent-sessions/{session_id}/output`, `POST /v1/silent-sessions/{session_id}/input`, `POST /v1/silent-sessions/{session_id}/start`, `POST /v1/silent-sessions/{session_id}/pause`, `POST /v1/silent-sessions/{session_id}/resume`, `POST /v1/silent-sessions/{session_id}/interrupt`, `POST /v1/silent-sessions/{session_id}/cancel`, `POST /v1/silent-sessions/{session_id}/restart`, `POST /v1/silent-sessions/{session_id}/config/preview`, `GET /v1/silent-sessions/{session_id}/receipts`, `GET /v1/silent-sessions/capabilities`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:25211f3637fcd5f4fd15eee821df0f17448238a87bd0657c0b03b6631a0945e8`.
+- Descriptor digest: `sha256:fd20968ae33d9849337b1d6c7900b6edc736af138183c641dc564cff5acbebde`.

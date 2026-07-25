@@ -1,0 +1,52 @@
+{
+  "schema": "focusa.spec135.migration_plan.v1",
+  "requirements": ["SPEC135-E2", "SPEC135-E3", "SPEC135-E4"],
+  "expand_contract_phases": [
+    {
+      "phase": "expand",
+      "storage": "old and new readers accept additive fields",
+      "events": "stable event IDs and cursors survive restart",
+      "contracts": "Operation Registry, OpenAPI, JSON Schema, and TypeScript project the same operations",
+      "ui": "native Focusa/A2UI path consumes canonical events",
+      "attachments": "exact project/workstream/attachment scope preserved"
+    },
+    {
+      "phase": "prove",
+      "storage": "snapshot plus event replay reproduces current state",
+      "events": "Last-Event-ID replay is bounded and de-duplicated",
+      "contracts": "compatibility lock and portable contract lint pass",
+      "ui": "generated actions retain recovery and evidence refs",
+      "attachments": "cross-surface and cross-project targeting fail closed"
+    },
+    {
+      "phase": "contract",
+      "storage": "legacy projections become read-only compatibility views",
+      "events": "legacy cursor aliases carry explicit deprecation metadata",
+      "contracts": "duplicate DTO and route catalogs are removed",
+      "ui": "static or transcript-only fallback is non-primary",
+      "attachments": "client-local attachment authority is removed"
+    }
+  ],
+  "compatibility_guarantees": {
+    "old_and_new_readers_coexist_until_proof": true,
+    "single_canonical_writer": "focusa_core_reducer",
+    "single_operation_authority": "focusa_operation_registry",
+    "portable_client_authority": ["openapi_3_0_3", "json_schema_2020_12", "typescript_binding"],
+    "external_browser_authority": "uiai_engine"
+  },
+  "evidence_refs": [
+    "tests/migration_backup_policy_static_test.sh",
+    "tests/spec135_durable_event_stream_test.py",
+    "tests/spec135_generated_clients_test.py",
+    "tests/spec135_protocol_handshake_test.py",
+    "tests/spec135_workspace_live_refresh_test.py",
+    "tests/spec135_m4_surface_bindings_e2e_test.py",
+    "docs/contracts/spec135-client-parity-matrix.v1.yaml"
+  ],
+  "acceptance": {
+    "replay_and_migration_proof_present": true,
+    "contract_authority_not_duplicated": true,
+    "native_ui_path_primary": true,
+    "proof_continuity_preserved": true
+  }
+}

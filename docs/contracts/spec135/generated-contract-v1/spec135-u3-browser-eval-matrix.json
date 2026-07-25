@@ -1,0 +1,45 @@
+{
+  "schema": "focusa.spec135.uiai_browser_eval_matrix.v1",
+  "requirement_id": "SPEC135-U3",
+  "status": "passed",
+  "driver": "UIAI Engine Eval",
+  "invariants": [
+    "Every browser-facing generated action retains exact project, continuity, and attachment scope.",
+    "Diagnostics and recovery evidence are captured before failure interpretation.",
+    "Browser context isolation, restart rehydration, accessibility, and live refresh are covered.",
+    "Focusa contains no Playwright dependency or parallel browser authority."
+  ],
+  "generated_ui_eval_results": [
+    "uiai-eval.alpha0-context-commit.result.json",
+    "uiai-eval.alpha0-generated-ui.result.json",
+    "uiai-eval.c1-context-ingestion.result.json",
+    "uiai-eval.c2-context-retrieval.result.json",
+    "uiai-eval.c3-context-claims.result.json",
+    "uiai-eval.p1-provider-conformance.result.json",
+    "uiai-eval.ri1-role-profile.result.json",
+    "uiai-eval.ri2-interview-strategy.result.json",
+    "uiai-eval.ri3-interview-resume.result.json",
+    "uiai-eval.st1-spec-workbench.result.json",
+    "uiai-eval.st2-task-plan.result.json",
+    "uiai-eval.u1-workspace-artifact.result.json",
+    "uiai-eval.u2-workspace-live-refresh.result.json"
+  ],
+  "remote_browser_and_recovery_proofs": [
+    {
+      "requirement": "SPEC135-M5",
+      "test": "tests/spec135_m5_browser_context_isolation_e2e_test.py",
+      "evidence_ref": "github:pull/27:strict-spec-gates:passed"
+    },
+    {
+      "requirement": "SPEC135-M6",
+      "test": "tests/spec135_m6_canvas_resume_e2e_test.py",
+      "evidence_ref": "github:pull/28:strict-spec-gates:passed"
+    },
+    {
+      "requirement": "SPEC135-M7",
+      "test": "tests/spec135_m7_accessibility_recovery_test.py",
+      "evidence_ref": "github:pull/29:strict-spec-gates:passed"
+    }
+  ],
+  "closure_receipt": "receipt:spec135-u3:uiai-browser-eval-matrix:v1"
+}

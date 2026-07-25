@@ -1,0 +1,26 @@
+{
+  "schema": "focusa.spec135.usability_friction_proof.v1",
+  "status": "passed",
+  "u4": {
+    "description": "Generated UI accessibility and nontechnical usability",
+    "feeders": ["SPEC135-U3", "SPEC135-M7"],
+    "proof_refs": [
+      "spec135-u3-browser-eval-matrix.json",
+      "github:pull/29:strict-spec-gates:passed"
+    ],
+    "receipt": "receipt:spec135-u4:accessible-nontechnical-ui:v1"
+  },
+  "u5": {
+    "description": "Bounded UXP/UFI friction learning without surveillance",
+    "signal_contract": "type_timestamp_optional_session_weight_only",
+    "raw_user_content_retained": false,
+    "surveillance_authority": false,
+    "maximum_read_signals": 100,
+    "proof_refs": [
+      "crates/focusa-core/src/types.rs#UfiSignal",
+      "crates/focusa-core/src/workers/executor.rs#detect_ufi_signals",
+      "crates/focusa-api/src/routes/uxp.rs#/v1/ufi"
+    ],
+    "receipt": "receipt:spec135-u5:bounded-friction-learning:v1"
+  }
+}

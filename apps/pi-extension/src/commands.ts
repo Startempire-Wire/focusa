@@ -8,6 +8,7 @@ import { Container, Text, type SettingItem, SettingsList } from "@earendil-works
 import {
   getAttachmentRuntime,
   focusaFetch,
+  compatibleWorkLoopStatusState,
   getFocusState,
   getEffectiveFocusSnapshot,
   persistState,
@@ -30,6 +31,38 @@ import { buildProjectWorkstreamKey, type WorkstreamKey } from "./scoped-state.js
 import { measureNativeSessionPressure, migrateNativeSessionBounded } from "./session-pressure.js";
 import { prepareCompactionRollover } from "./compaction.js";
 import { dirname, resolve } from "path";
+
+async function commandWorkLoopWriterHeaders(): Promise<Record<string, string>> {
+  const writerId = `pi-${process.pid}`;
+  const status = await focusaFetch("/work-loop/status?summary_only=true");
+  const partition = status?.execution_partition;
+  const token = Number(partition?.fencing_token);
+  const expiresAt = Date.parse(String(partition?.lease_expires_at || ""));
+  if (
+    compatibleWorkLoopStatusState(status) === "unsupported" ||
+    partition?.writer_key !== writerId ||
+    partition?.lease_freshness !== "current" ||
+    !Number.isSafeInteger(token) ||
+    token <= 0 ||
+    !(expiresAt > Date.now())
+  ) {
+    throw new Error("current scoped Work Loop lease is missing, expired, or owned by another Pi writer");
+  }
+  return {
+    "x-focusa-writer-id": writerId,
+    "x-focusa-fencing-token": String(token),
+  };
+}
+
+type RolloverReplacementContext = {
+  ui: { notify(message: string, level: "info" | "warning" | "error"): void };
+};
+
+type RolloverNewSession = (options: {
+  parentSession?: string;
+  setup?: (sessionManager: { appendMessage?: (message: any) => void }) => Promise<void>;
+  withSession?: (ctx: RolloverReplacementContext) => Promise<void>;
+}) => Promise<{ cancelled?: boolean }>;
 
 function nonEmptyLines(items: any[] | undefined): string[] {
   return (items || []).map((v) => String(v || "").trim()).filter(Boolean);
@@ -1009,6 +1042,14 @@ export function registerCommands(pi: ExtensionAPI) {
       const missionLine = snapshot.intent ? `\nMission: ${snapshot.intent}` : "";
       const focusLine = snapshot.currentFocus ? `\nFocus: ${snapshot.currentFocus}` : "";
       const updateNotifications = await focusaFetch("/update/notifications");
+      const silentSessionDashboard = await focusaFetch("/silent-sessions/dashboard?limit=20");
+      const silentSessions = Array.isArray(silentSessionDashboard?.data?.sessions)
+        ? silentSessionDashboard.data.sessions
+        : Array.isArray(silentSessionDashboard?.sessions)
+          ? silentSessionDashboard.sessions
+          : [];
+      const silentAttention = silentSessions.filter((session: any) => Boolean(session?.attention));
+      const silentLine = `\nSilent sessions: ${silentSessions.length} visible | attention=${silentAttention.length} | source=daemon`;
       const staleUpdateParts = Array.isArray(updateNotifications?.stale_parts)
         ? updateNotifications.stale_parts
         : [];
@@ -1026,6 +1067,7 @@ export function registerCommands(pi: ExtensionAPI) {
           objectiveLine +
           missionLine +
           focusLine +
+          silentLine +
           updateLine +
           `\n` +
           `Decisions: ${snapshot.decisions.length} | Constraints: ${snapshot.constraints.length} | Failures: ${snapshot.failures.length}` +

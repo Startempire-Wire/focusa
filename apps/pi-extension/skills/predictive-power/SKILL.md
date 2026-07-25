@@ -7,6 +7,10 @@ description: "Use when recording, evaluating, or interpreting Focusa predictions
 
 Use this skill when recording, evaluating, or interpreting Focusa predictions.
 
+## Progressive disclosure
+
+Read `references/01-focusa-predictive-power-runbook.md` for scoped record, evaluation, calibration, and contract-drift recovery.
+
 ## Rules
 
 1. Predictions guide; they never override operator steering.

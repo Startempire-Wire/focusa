@@ -65,7 +65,13 @@ pub(super) fn print_result(command: &str, result: Value, json_output: bool) -> R
     {
         println!("side_effects={}", serde_json::to_string(side_effects)?);
     }
-    if command == "list" || command == "show" || command == "doctor" {
+    if command == "list"
+        || command == "show"
+        || command == "doctor"
+        || command.starts_with("profile ")
+        || command.starts_with("preset ")
+        || command.starts_with("config ")
+    {
         println!("{}", serde_json::to_string_pretty(&envelope["result"])?);
     }
     Ok(())

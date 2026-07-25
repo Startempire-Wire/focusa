@@ -165,12 +165,10 @@ fn core_color_for_angle(angle: f32, dist: f32, _seed: u64) -> (Color, bool) {
         } else {
             TrueColorPalette::VIOLET
         }
+    } else if normalized > 0.25 {
+        TrueColorPalette::ELECTRIC_BLUE
     } else {
-        if normalized > 0.25 {
-            TrueColorPalette::ELECTRIC_BLUE
-        } else {
-            TrueColorPalette::CYAN
-        }
+        TrueColorPalette::CYAN
     };
 
     if is_spark {

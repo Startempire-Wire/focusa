@@ -12,15 +12,26 @@
 <p align="center">
   <a href="https://github.com/Startempire-Wire/focusa/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Startempire-Wire/focusa/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/Startempire-Wire/focusa/actions/workflows/release.yml"><img alt="Release" src="https://github.com/Startempire-Wire/focusa/actions/workflows/release.yml/badge.svg"></a>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.9.120--dev-blue">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.9.121--dev-blue">
   <img alt="Rust" src="https://img.shields.io/badge/rust-1.91%2B-dea584?logo=rust">
   <img alt="License" src="https://img.shields.io/badge/license-BSL--1.1-orange">
   <img alt="Local first" src="https://img.shields.io/badge/local--first-proof%20layer-2b82ff">
 </p>
 
-Focusa is the local-first proof and continuity layer for AI coding agents.
+Focusa is the local-first proof and continuity layer for AI coding agents. Current source version: `v0.9.121-dev`.
 
 When a coding session gets long, context compacts, the mission drifts, proof gets buried, or another agent takes over, Focusa preserves the work as a proof-backed **Workpoint** with linked **Evidence** and a **next safe action**. The next agent should not have to guess from transcript memory.
+
+### Current release architecture
+
+- **Exact scope and worktrees:** authority is `project_root + continuity_id`; worktrees are verified working subpaths, not accidental new projects.
+- **Daemon-native Silent Sessions:** durable background runs support observation, steering, pause/resume/restart, approvals, idempotency, and receipts.
+- **Governed work loop and recovery:** one writer, canonical checkpoints, proactive compaction, cache-safe context, and automatic rollover after bounded transport exhaustion.
+- **Mission Canvas and Work Rail:** scoped Work Surfaces, CRIST interviews, workspace artifacts, UIAI browser context, live refresh, connectors, software/domain projections, and adaptive generated UI.
+- **Customer lifecycle:** idempotent install/repair, trusted Linux/macOS/Windows release assets, OTA/update rollback, and uninstall with user data preserved unless purge is explicit.
+- **Agent-ready by construction:** every Focusa Pi tool has a runtime contract, generated machine schema, per-tool document, skill routing, and a progressively disclosed runbook.
+
+Trajectory ladder: **HLT** (High-Level Trajectory) → **MLG** (Mid-Level Goal) → **STG** (Short-Term Goal) → **Waypoints** (concrete progress markers). Workpoint remains immediate action authority. The operator has authority; agents actively offer HLT-aligned Waypoints, STGs, and MLGs without silently changing the root goal.
 
 ## Install
 
@@ -32,6 +43,8 @@ focusa start
 focusa setup wizard --dry-run
 focusa doctor
 ```
+
+Interactive install offers the complete agent workflow and asks before installing missing Node.js/npm, Pi, the bundled Focusa Pi extension, and UIAI Engine. For unattended installation, pass `--install-dependencies --assume-yes`. Linux/amd64 can install the pinned checksummed UIAI binary; other platforms must set `UIAI_ENGINE_URL` to a healthy private endpoint. Focusa does not report full workflow readiness until Pi/plugin and `${UIAI_ENGINE_URL:-http://127.0.0.1:7456}/v1/health` checks pass.
 
 Safe installer/update checks before changing anything:
 
@@ -77,6 +90,8 @@ focusa workpoint resume \
   --continuity-id demo-continuity \
   --copy-prompt
 ```
+
+For the complete non-destructive Operator Preview path, run `scripts/demo-workpoint-happy-path.sh`.
 
 Expected result: a typed resume packet with mission, scope, proof handle, and next action. If scope is unsafe or unclear, Focusa returns a blocked envelope instead of pretending the work is canonical.
 
@@ -181,7 +196,7 @@ bash tests/spec_cli_cross_phase_smoke_test.sh
 
 ## Agent-first capability discovery
 
-Focusa publishes one generated Agent Capability Descriptor V2 across Pi, MCP, OpenAI-compatible functions, CLI JSON help, REST, skills, and browser workflows. Agents start with metadata—not 100+ hot schemas—and progressively load only what the next action needs:
+Focusa publishes one generated Agent Capability Descriptor V2 across Pi, MCP, OpenAI-compatible functions, CLI JSON help, REST, skills, and browser workflows. All 112 Focusa Pi tools are projected one-to-one into strict machine contracts and per-tool docs. Agents start with metadata—not 112 hot schemas—and progressively load only what the next action needs:
 
 1. `focusa_agent_card` — interfaces, auth, families, capability count, and discovery entry points.
 2. `focusa_tool_search` — ranked metadata by action, object, failure, or workflow.
@@ -191,7 +206,7 @@ Focusa publishes one generated Agent Capability Descriptor V2 across Pi, MCP, Op
 
 MCP exposes the generated callable catalog with pagination, `listChanged`, strict schemas, structured output, safety annotations, and scoped REST authority. UIAI/WebMCP capabilities are bound to one browser session and origin; page safety claims remain untrusted, mutations require governance, and results become evidence.
 
-Machine contracts: [`docs/contracts/spec141/generated-capability-v2/`](docs/contracts/spec141/generated-capability-v2/) · Skills/runbooks: [`.pi/skills/`](.pi/skills/) · Release gate: [`docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md`](docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md)
+Machine contracts: [`docs/contracts/spec141/generated-capability-v2/`](docs/contracts/spec141/generated-capability-v2/) · Every Pi tool: [`docs/focusa-tools/tools/`](docs/focusa-tools/tools/) · Skills/runbooks: [`.pi/skills/`](.pi/skills/) · Agent fast start: [`docs/agent/01-focusa-agent-docs-index.md`](docs/agent/01-focusa-agent-docs-index.md) · Release gate: [`docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md`](docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md)
 
 ## Core commands
 
@@ -203,6 +218,9 @@ focusa first-mission --project-root "$PWD" --dry-run --json
 focusa status operator --json
 focusa workpoint checkpoint --project-root "$PWD" --continuity-id demo --mission "Ship proof" --next-action "Run smoke" --json
 focusa workpoint resume --project-root "$PWD" --continuity-id demo --copy-prompt
+focusa silent --help
+focusa update --help
+focusa tui --headless-self-test
 focusa cleanup --safe --project-root "$PWD" --dry-run --json
 ```
 
@@ -243,7 +261,17 @@ The cross-phase smoke suite checks project dashboard commands, first-mission dry
 - Troubleshooting: [`docs/current/TROUBLESHOOTING_CURRENT.md`](docs/current/TROUBLESHOOTING_CURRENT.md)
 - Spec-first lifecycle and claim discipline: [`docs/107-spec-first-feature-lifecycle-and-claim-discipline-spec.md`](docs/107-spec-first-feature-lifecycle-and-claim-discipline-spec.md)
 - Complete Focusa tool documentation index: [`docs/focusa-tools/README.md`](docs/focusa-tools/README.md)
+- Agent architecture, every-Pi-tool discovery, and skill/runbook onboarding: [`docs/agent/01-focusa-agent-docs-index.md`](docs/agent/01-focusa-agent-docs-index.md)
+- Friendly onboarding walkthrough: [`docs/current/FOCUSA_FRIENDLY_ONBOARDING.md`](docs/current/FOCUSA_FRIENDLY_ONBOARDING.md)
+- Install/update/rollback/uninstall policy: [`docs/current/INSTALLER_UPDATE_POLICY.md`](docs/current/INSTALLER_UPDATE_POLICY.md)
+- Mission Canvas and generated-UI manifest: [`docs/135-series-current-manifest.md`](docs/135-series-current-manifest.md)
+- Public shipped/planned status map: [`docs/PUBLIC_DOCS_SYNC.md`](docs/PUBLIC_DOCS_SYNC.md)
+- Agent Awareness Quickstart: [`docs/current/AGENT_AWARENESS_QUICKSTART.md`](docs/current/AGENT_AWARENESS_QUICKSTART.md)
+- Friendly Focusa Onboarding Q: [`docs/current/FOCUSA_FRIENDLY_ONBOARDING.md`](docs/current/FOCUSA_FRIENDLY_ONBOARDING.md)
+- Tool Implementation-to-Spec Audit: [`docs/current/FOCUSA_TOOL_IMPLEMENTATION_SPEC_AUDIT.md`](docs/current/FOCUSA_TOOL_IMPLEMENTATION_SPEC_AUDIT.md)
+- Model-Visible Awareness Surfaces: [`docs/current/FOCUSA_MODEL_VISIBLE_AWARENESS.md`](docs/current/FOCUSA_MODEL_VISIBLE_AWARENESS.md)
+- Non-Pi Agent Focusa Usage: [`docs/current/NON_PI_AGENT_FOCUSA_USAGE.md`](docs/current/NON_PI_AGENT_FOCUSA_USAGE.md)
 
 ## License
 
-Focusa is source-available under the Business Source License 1.1. See [`LICENSE`](LICENSE).
+Focusa is source-available under the Business Source License 1.1. See [`LICENSE.md`](LICENSE.md).

@@ -22,6 +22,12 @@ focusa_predict_stats -> focusa_metacog_doctor
 3. Call `focusa_predict_stats` with only required bounded inputs.
 4. Call `focusa_metacog_doctor` with only required bounded inputs.
 
+## Current domain procedure
+
+1. Audit AGENTS, public docs, onboarding, every Pi tool projection/doc, complete skill/runbook parity, and recent architecture before release.
+2. Run generated drift, Spec141 conformance, version-surface, Markdown, lifecycle, Mission Canvas, and final release gap gates.
+3. Publish only after one green final CI; verify release assets, checksums, deployment health, updater rollback, and customer lifecycle evidence.
+
 ## Branches
 
 - Unknown tool/schema: `focusa_tool_search` → `focusa_tool_describe`.

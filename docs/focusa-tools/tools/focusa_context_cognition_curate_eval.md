@@ -67,10 +67,10 @@ Likely next: `focusa_context_cognition_curate_optimize`, `focusa_metacog_capture
 
 ## Skills, protocols, and source authority
 
-- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`, `skill:focusa-agent-bootstrap`
 - Runbooks: `runbook:trajectory`
 - Pi: `focusa_context_cognition_curate_eval`; MCP: `focusa.context.cognition.curate.eval`; OpenAI: `focusa_context_cognition_curate_eval`.
 - CLI: `focusa context-cognition curate-eval`, `focusa context-cognition curate-eval-runs`.
 - REST: `POST /v1/context-cognition/curate/eval`, `GET /v1/context-cognition/curate/eval/runs`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:018155e866364a5e200a3f9770c1aa7b7d0341d90250082dbe55051d0ba20527`.
+- Descriptor digest: `sha256:067e7f50f9a862b7e331529192aff01ed08fa96987bf39488d7bd74cae7df5cb`.

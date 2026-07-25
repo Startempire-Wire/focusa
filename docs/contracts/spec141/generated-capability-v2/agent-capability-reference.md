@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:f15078162dc7b0f7a595abcb5ae4302f9af85f7b8de0b0ef0762cdde661215b8`
+Registry digest: `sha256:c275433cdcc897c9d139978eb19161c009c74cec22ba516e8ddc0c10297bd841`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -33,7 +33,7 @@ Read canonical Pi guidance; prefer focusa_* tools over raw daemon calls. Use it 
 - Capability: `focusa.agent.prompt`
 - Family: `focus_state`
 - Side effects: `read_only`, `read_only`
-- Skills: `skill:focusa`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Dependencies/next: `focusa_tool_doctor`, `focusa_trajectory_view`, `focusa_project_identity`
 - Documentation: `docs/focusa-tools/tools/focusa_agent_prompt.md`
 
@@ -55,7 +55,7 @@ Spec 101 — read one Bloatgaurd budget domain and its checks/findings. Use it w
 - Capability: `focusa.bloatgaurd.domain`
 - Family: `diagnostics_hygiene`
 - Side effects: `read_state`, `read_state`
-- Skills: `skill:focusa`, `skill:focusa-troubleshooting`
+- Skills: `skill:focusa`, `skill:focusa-troubleshooting`, `skill:focusa-resource-performance`
 - Dependencies/next: `focusa_bloatgaurd_report`, `focusa_traverse`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_bloatgaurd_domain.md`
 
@@ -66,7 +66,7 @@ Spec 101 — read one Bloatgaurd gate mode by code/name. Use it when Spec 101 �
 - Capability: `focusa.bloatgaurd.gate.mode`
 - Family: `diagnostics_hygiene`
 - Side effects: `read_state`, `read_state`
-- Skills: `skill:focusa`, `skill:focusa-troubleshooting`
+- Skills: `skill:focusa`, `skill:focusa-troubleshooting`, `skill:focusa-resource-performance`
 - Dependencies/next: `focusa_bloatgaurd_gate_modes`, `focusa_traverse`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_bloatgaurd_gate_mode.md`
 
@@ -77,7 +77,7 @@ Spec 101 — read gate modes A/B/C thresholds, allowlist, and report schema. Use
 - Capability: `focusa.bloatgaurd.gate.modes`
 - Family: `diagnostics_hygiene`
 - Side effects: `read_state`, `read_state`
-- Skills: `skill:focusa`, `skill:focusa-troubleshooting`
+- Skills: `skill:focusa`, `skill:focusa-troubleshooting`, `skill:focusa-resource-performance`
 - Dependencies/next: `focusa_bloatgaurd_gate_mode`, `focusa_bloatgaurd_report`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_bloatgaurd_gate_modes.md`
 
@@ -88,7 +88,7 @@ Spec 101 — read one profile preset by name. Use it when Spec 101 — read one 
 - Capability: `focusa.bloatgaurd.profile`
 - Family: `diagnostics_hygiene`
 - Side effects: `read_state`, `read_state`
-- Skills: `skill:focusa`, `skill:focusa-troubleshooting`
+- Skills: `skill:focusa`, `skill:focusa-troubleshooting`, `skill:focusa-resource-performance`
 - Dependencies/next: `focusa_bloatgaurd_profiles`, `focusa_bloatgaurd_routines`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_bloatgaurd_profile.md`
 
@@ -99,7 +99,7 @@ Spec 101 — read profile presets and operator switches. Use it when Spec 101 �
 - Capability: `focusa.bloatgaurd.profiles`
 - Family: `diagnostics_hygiene`
 - Side effects: `read_state`, `read_state`
-- Skills: `skill:focusa`, `skill:focusa-troubleshooting`
+- Skills: `skill:focusa`, `skill:focusa-troubleshooting`, `skill:focusa-resource-performance`
 - Dependencies/next: `focusa_bloatgaurd_profile`, `focusa_bloatgaurd_routines`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_bloatgaurd_profiles.md`
 
@@ -110,7 +110,7 @@ Spec 101 — read the compact Bloatgaurd budget report for domains 5.1-5.8. Use 
 - Capability: `focusa.bloatgaurd.report`
 - Family: `diagnostics_hygiene`
 - Side effects: `read_state`, `read_state`
-- Skills: `skill:focusa`, `skill:focusa-troubleshooting`
+- Skills: `skill:focusa`, `skill:focusa-troubleshooting`, `skill:focusa-resource-performance`
 - Dependencies/next: `focusa_bloatgaurd_domain`, `focusa_context_cognition_render`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_bloatgaurd_report.md`
 
@@ -121,7 +121,7 @@ Spec 101 — read rollout phases, acceptance checks, and proof commands. Use it 
 - Capability: `focusa.bloatgaurd.rollout`
 - Family: `diagnostics_hygiene`
 - Side effects: `read_state`, `read_state`
-- Skills: `skill:focusa`, `skill:focusa-troubleshooting`
+- Skills: `skill:focusa`, `skill:focusa-troubleshooting`, `skill:focusa-resource-performance`
 - Dependencies/next: `focusa_bloatgaurd_profiles`, `focusa_bloatgaurd_routines`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_bloatgaurd_rollout.md`
 
@@ -132,7 +132,7 @@ Spec 101 — read one named routine by name. Use it when Spec 101 — read one n
 - Capability: `focusa.bloatgaurd.routine`
 - Family: `diagnostics_hygiene`
 - Side effects: `read_state`, `read_state`
-- Skills: `skill:focusa`, `skill:focusa-troubleshooting`
+- Skills: `skill:focusa`, `skill:focusa-troubleshooting`, `skill:focusa-resource-performance`
 - Dependencies/next: `focusa_bloatgaurd_routines`, `focusa_bloatgaurd_profiles`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_bloatgaurd_routine.md`
 
@@ -143,7 +143,7 @@ Spec 101 — read named routines and automation matrix. Use it when Spec 101 —
 - Capability: `focusa.bloatgaurd.routines`
 - Family: `diagnostics_hygiene`
 - Side effects: `read_state`, `read_state`
-- Skills: `skill:focusa`, `skill:focusa-troubleshooting`
+- Skills: `skill:focusa`, `skill:focusa-troubleshooting`, `skill:focusa-resource-performance`
 - Dependencies/next: `focusa_bloatgaurd_routine`, `focusa_bloatgaurd_profiles`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_bloatgaurd_routines.md`
 
@@ -154,7 +154,7 @@ Spec 101 — read one Tokenbloat Control domain and its prompt-visible fields/bo
 - Capability: `focusa.bloatgaurd.tokenbloat.domain`
 - Family: `diagnostics_hygiene`
 - Side effects: `read_state`, `read_state`
-- Skills: `skill:focusa`, `skill:focusa-troubleshooting`
+- Skills: `skill:focusa`, `skill:focusa-troubleshooting`, `skill:focusa-resource-performance`
 - Dependencies/next: `focusa_bloatgaurd_tokenbloat_report`, `focusa_traverse`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_domain.md`
 
@@ -165,7 +165,7 @@ Spec 101 — read Tokenbloat Control report for domains 5.9-5.10. Use it when Sp
 - Capability: `focusa.bloatgaurd.tokenbloat.report`
 - Family: `diagnostics_hygiene`
 - Side effects: `read_state`, `read_state`
-- Skills: `skill:focusa`, `skill:focusa-troubleshooting`
+- Skills: `skill:focusa`, `skill:focusa-troubleshooting`, `skill:focusa-resource-performance`
 - Dependencies/next: `focusa_bloatgaurd_tokenbloat_domain`, `focusa_bloatgaurd_report`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_bloatgaurd_tokenbloat_report.md`
 
@@ -209,7 +209,7 @@ Write a typed, append-only Call Stack Design for a feature before implementation
 - Capability: `focusa.call.stack.design`
 - Family: `workpoint`
 - Side effects: `write_call_stack_design`, `write_call_stack_design`
-- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`, `skill:focusa-spec-implementation`
 - Dependencies/next: `focusa_call_stack_verify`, `focusa_workpoint_link_evidence`, `focusa_trajectory_assess`
 - Documentation: `docs/focusa-tools/tools/focusa_call_stack_design.md`
 
@@ -220,7 +220,7 @@ Verify a Call Stack Design against bounded implementation surfaces and report dr
 - Capability: `focusa.call.stack.verify`
 - Family: `workpoint`
 - Side effects: `read_call_stack_design_verify_drift`, `read_call_stack_design_verify_drift`
-- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`, `skill:focusa-spec-implementation`
 - Dependencies/next: `focusa_call_stack_design`, `focusa_workpoint_link_evidence`, `focusa_trajectory_assess`
 - Documentation: `docs/focusa-tools/tools/focusa_call_stack_verify.md`
 
@@ -231,7 +231,7 @@ Record a DISCOVERED REQUIREMENT in Focus State. Constraints are hard boundaries 
 - Capability: `focusa.constraint`
 - Family: `focus_state`
 - Side effects: `write_state`, `write_state`
-- Skills: `skill:focusa`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Dependencies/next: `focusa_project_identity`, `focusa_trajectory_view`, `focusa_workpoint_resume`
 - Documentation: `docs/focusa-tools/tools/focusa_constraint.md`
 
@@ -242,7 +242,7 @@ Build the bounded, advisory Spec 100 ContextCognitionPacket for the current proj
 - Capability: `focusa.context.cognition`
 - Family: `trajectory`
 - Side effects: `read_state`, `read_state`
-- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`, `skill:focusa-agent-bootstrap`
 - Dependencies/next: `focusa_active_object_resolve`, `focusa_workpoint_checkpoint`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_context_cognition.md`
 
@@ -253,7 +253,7 @@ Spec 100 Phase 3 — token-budgeted context selection. Takes candidates (files/d
 - Capability: `focusa.context.cognition.curate`
 - Family: `trajectory`
 - Side effects: `read_state`, `read_state`
-- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`, `skill:focusa-agent-bootstrap`
 - Dependencies/next: `focusa_context_cognition`, `focusa_context_cognition_render`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_context_cognition_curate.md`
 
@@ -264,7 +264,7 @@ Spec 100 Phase 4 — run a curator eval case. Computes precision/recall/F1 vs. e
 - Capability: `focusa.context.cognition.curate.eval`
 - Family: `trajectory`
 - Side effects: `write_curator_eval`, `write_curator_eval`
-- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`, `skill:focusa-agent-bootstrap`
 - Dependencies/next: `focusa_context_cognition_curate_optimize`, `focusa_metacog_capture`, `focusa_predict_record`
 - Documentation: `docs/focusa-tools/tools/focusa_context_cognition_curate_eval.md`
 
@@ -275,7 +275,7 @@ Spec 100 Phase 5 — submit a Cognition Optimizer artifact and get the promote/r
 - Capability: `focusa.context.cognition.curate.optimize`
 - Family: `trajectory`
 - Side effects: `write_cognition_optimizer_artifact`, `write_cognition_optimizer_artifact`
-- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`, `skill:focusa-agent-bootstrap`
 - Dependencies/next: `focusa_context_cognition_optimizer_artifacts`, `focusa_predict_record`, `focusa_metacog_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_context_cognition_curate_optimize.md`
 
@@ -286,7 +286,7 @@ Spec 100 Phase 5 — list Cognition Optimizer artifacts (versioned JSONL) for a 
 - Capability: `focusa.context.cognition.optimizer.artifacts`
 - Family: `trajectory`
 - Side effects: `read_state`, `read_state`
-- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`, `skill:focusa-agent-bootstrap`
 - Dependencies/next: `focusa_context_cognition_curate_optimize`
 - Documentation: `docs/focusa-tools/tools/focusa_context_cognition_optimizer_artifacts.md`
 
@@ -297,7 +297,7 @@ Map Spec 100 ContextCognitionPacket surfaces to proof commands (curl + focusa + 
 - Capability: `focusa.context.cognition.proof`
 - Family: `trajectory`
 - Side effects: `read_state`, `read_state`
-- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`, `skill:focusa-agent-bootstrap`
 - Dependencies/next: `focusa_context_cognition`, `focusa_context_cognition_render`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_context_cognition_proof.md`
 
@@ -308,7 +308,7 @@ Render the Spec 100 ContextCognitionPacket as compact text (for prompt/CLI/menub
 - Capability: `focusa.context.cognition.render`
 - Family: `trajectory`
 - Side effects: `read_state`, `read_state`
-- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`, `skill:focusa-agent-bootstrap`
 - Dependencies/next: `focusa_context_cognition`, `focusa_context_cognition_proof`
 - Documentation: `docs/focusa-tools/tools/focusa_context_cognition_render.md`
 
@@ -319,7 +319,7 @@ Update current focus — what you are actively working on right now (1-3 sentenc
 - Capability: `focusa.current.focus`
 - Family: `focus_state`
 - Side effects: `write_state`, `write_state`
-- Skills: `skill:focusa`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Dependencies/next: `focusa_trajectory_view`, `focusa_workpoint_checkpoint`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_current_focus.md`
 
@@ -330,7 +330,7 @@ Record a crystallized architectural decision in Focus State. Use focusa_scratch 
 - Capability: `focusa.decide`
 - Family: `focus_state`
 - Side effects: `write_state`, `write_state`
-- Skills: `skill:focusa`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Dependencies/next: `focusa_project_identity`, `focusa_trajectory_view`, `focusa_workpoint_resume`
 - Documentation: `docs/focusa-tools/tools/focusa_decide.md`
 
@@ -341,7 +341,7 @@ Complete a pending pairing (run on the VPS side; returns the long-lived token). 
 - Capability: `focusa.device.pair.complete`
 - Family: `session_transfer`
 - Side effects: `write_device_pair_complete`, `write_device_pair_complete`
-- Skills: `skill:focusa`, `skill:focusa-session-recovery`
+- Skills: `skill:focusa`, `skill:focusa-session-recovery`, `skill:focusa-security-auth-licensing`
 - Dependencies/next: `focusa_device_pair_status`, `focusa_device_pair_list`
 - Documentation: `docs/focusa-tools/tools/focusa_device_pair_complete.md`
 
@@ -352,7 +352,7 @@ List paired devices for a host (append-only JSONL ledger, scope-bounded). Return
 - Capability: `focusa.device.pair.list`
 - Family: `session_transfer`
 - Side effects: `read_state`, `read_state`
-- Skills: `skill:focusa`, `skill:focusa-session-recovery`
+- Skills: `skill:focusa`, `skill:focusa-session-recovery`, `skill:focusa-security-auth-licensing`
 - Dependencies/next: `focusa_device_pair_revoke`, `focusa_session_transfer`
 - Documentation: `docs/focusa-tools/tools/focusa_device_pair_list.md`
 
@@ -363,7 +363,7 @@ Mac menubar OAuth-like device pairing with QR handoff (Spec focusa-ui0y, Mode B)
 - Capability: `focusa.device.pair.qr`
 - Family: `session_transfer`
 - Side effects: `write_device_pair`, `write_device_pair`
-- Skills: `skill:focusa`, `skill:focusa-session-recovery`
+- Skills: `skill:focusa`, `skill:focusa-session-recovery`, `skill:focusa-security-auth-licensing`
 - Dependencies/next: `focusa_device_pair_status`, `focusa_device_pair_list`
 - Documentation: `docs/focusa-tools/tools/focusa_device_pair_qr.md`
 
@@ -374,7 +374,7 @@ Revoke a paired device. Appends a new entry with revoked=true to the append-only
 - Capability: `focusa.device.pair.revoke`
 - Family: `session_transfer`
 - Side effects: `write_device_pair_revoke`, `write_device_pair_revoke`
-- Skills: `skill:focusa`, `skill:focusa-session-recovery`
+- Skills: `skill:focusa`, `skill:focusa-session-recovery`, `skill:focusa-security-auth-licensing`
 - Dependencies/next: `focusa_device_pair_list`
 - Documentation: `docs/focusa-tools/tools/focusa_device_pair_revoke.md`
 
@@ -385,7 +385,7 @@ Mac menubar OAuth-like device pairing (Spec focusa-ui0y). Generate an 8-char pai
 - Capability: `focusa.device.pair.start`
 - Family: `session_transfer`
 - Side effects: `write_device_pair`, `write_device_pair`
-- Skills: `skill:focusa`, `skill:focusa-session-recovery`
+- Skills: `skill:focusa`, `skill:focusa-session-recovery`, `skill:focusa-security-auth-licensing`
 - Dependencies/next: `focusa_device_pair_status`, `focusa_device_pair_list`, `focusa_device_pair_qr`
 - Documentation: `docs/focusa-tools/tools/focusa_device_pair_start.md`
 
@@ -396,7 +396,7 @@ Check the status of a pending or completed pairing by code OR by device_id. Retu
 - Capability: `focusa.device.pair.status`
 - Family: `session_transfer`
 - Side effects: `read_state`, `read_state`
-- Skills: `skill:focusa`, `skill:focusa-session-recovery`
+- Skills: `skill:focusa`, `skill:focusa-session-recovery`, `skill:focusa-security-auth-licensing`
 - Dependencies/next: `focusa_device_pair_list`, `focusa_device_pair_revoke`
 - Documentation: `docs/focusa-tools/tools/focusa_device_pair_status.md`
 
@@ -451,7 +451,7 @@ Capture a bounded evidence ref/result and optionally link it to the active Workp
 - Capability: `focusa.evidence.capture`
 - Family: `workpoint`
 - Side effects: `evidence_link`, `evidence_link`
-- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`, `skill:focusa-evidence-outcomes`
 - Dependencies/next: `focusa_workpoint_link_evidence`, `focusa_trajectory_assess`, `focusa_recent_result`
 - Documentation: `docs/focusa-tools/tools/focusa_evidence_capture.md`
 
@@ -462,7 +462,7 @@ Record a specific failure with diagnosis in Focus State. Must identify WHAT fail
 - Capability: `focusa.failure`
 - Family: `focus_state`
 - Side effects: `write_state`, `write_state`
-- Skills: `skill:focusa`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Dependencies/next: `focusa_tool_doctor`, `focusa_workpoint_resume`, `focusa_metacog_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_failure.md`
 
@@ -484,7 +484,7 @@ Set the frame intent — what this session is trying to achieve (1-3 sentences, 
 - Capability: `focusa.intent`
 - Family: `focus_state`
 - Side effects: `write_state`, `write_state`
-- Skills: `skill:focusa`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Dependencies/next: `focusa_project_identity`, `focusa_trajectory_view`, `focusa_workpoint_checkpoint`
 - Documentation: `docs/focusa-tools/tools/focusa_intent.md`
 
@@ -539,7 +539,7 @@ Judge whether an adjustment improved results and whether the learning should be 
 - Capability: `focusa.metacog.evaluate.outcome`
 - Family: `metacognition`
 - Side effects: `write_state`, `write_state`
-- Skills: `skill:focusa`, `skill:focusa-metacognition`
+- Skills: `skill:focusa`, `skill:focusa-metacognition`, `skill:focusa-evidence-outcomes`
 - Dependencies/next: `focusa_metacog_capture`, `focusa_predict_stats`, `focusa_decide`
 - Documentation: `docs/focusa-tools/tools/focusa_metacog_evaluate_outcome.md`
 
@@ -616,7 +616,7 @@ Record what you plan to do next (max 160 chars). Use it when Record what you pla
 - Capability: `focusa.next.step`
 - Family: `focus_state`
 - Side effects: `write_state`, `write_state`
-- Skills: `skill:focusa`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Dependencies/next: `focusa_workpoint_checkpoint`, `focusa_active_object_resolve`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_next_step.md`
 
@@ -627,7 +627,7 @@ Miscellaneous note (max 180 chars). Bounded at 20, oldest decay first. Use it wh
 - Capability: `focusa.note`
 - Family: `focus_state`
 - Side effects: `write_state`, `write_state`
-- Skills: `skill:focusa`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Dependencies/next: `focusa_project_identity`, `focusa_trajectory_view`, `focusa_workpoint_resume`
 - Documentation: `docs/focusa-tools/tools/focusa_note.md`
 
@@ -638,7 +638,7 @@ Record an open question that needs to be answered (max 180 chars). Use it when R
 - Capability: `focusa.open.question`
 - Family: `focus_state`
 - Side effects: `write_state`, `write_state`
-- Skills: `skill:focusa`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Dependencies/next: `focusa_trajectory_assess`, `focusa_traverse`, `focusa_metacog_retrieve`
 - Documentation: `docs/focusa-tools/tools/focusa_open_question.md`
 
@@ -649,7 +649,7 @@ Evaluate a prediction inside its exact typed project/workstream scope. Use it wh
 - Capability: `focusa.predict.evaluate`
 - Family: `metacognition`
 - Side effects: `write_prediction_evaluation`, `write_prediction_evaluation`
-- Skills: `skill:focusa`, `skill:focusa-metacognition`
+- Skills: `skill:focusa`, `skill:focusa-metacognition`, `skill:predictive-power`
 - Dependencies/next: `focusa_metacog_capture`, `focusa_metacog_reflect`, `focusa_predict_stats`
 - Documentation: `docs/focusa-tools/tools/focusa_predict_evaluate.md`
 
@@ -660,7 +660,7 @@ List recent predictions from one typed project/workstream scope. Use it when Lis
 - Capability: `focusa.predict.recent`
 - Family: `metacognition`
 - Side effects: `read_state`, `read_state`
-- Skills: `skill:focusa`, `skill:focusa-metacognition`
+- Skills: `skill:focusa`, `skill:focusa-metacognition`, `skill:predictive-power`
 - Dependencies/next: `focusa_predict_stats`, `focusa_predict_evaluate`, `focusa_metacog_retrieve`
 - Documentation: `docs/focusa-tools/tools/focusa_predict_recent.md`
 
@@ -671,7 +671,7 @@ Record a bounded, inspectable Focusa prediction. Predictions guide decisions; th
 - Capability: `focusa.predict.record`
 - Family: `metacognition`
 - Side effects: `write_prediction`, `write_prediction`
-- Skills: `skill:focusa`, `skill:focusa-metacognition`
+- Skills: `skill:focusa`, `skill:focusa-metacognition`, `skill:predictive-power`
 - Dependencies/next: `focusa_evidence_capture`, `focusa_predict_evaluate`, `focusa_metacog_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_predict_record.md`
 
@@ -682,7 +682,7 @@ Report prediction calibration for one typed project/workstream scope. Use it whe
 - Capability: `focusa.predict.stats`
 - Family: `metacognition`
 - Side effects: `read_state`, `read_state`
-- Skills: `skill:focusa`, `skill:focusa-metacognition`
+- Skills: `skill:focusa`, `skill:focusa-metacognition`, `skill:predictive-power`
 - Dependencies/next: `focusa_predict_recent`, `focusa_metacog_doctor`, `focusa_tool_doctor`
 - Documentation: `docs/focusa-tools/tools/focusa_predict_stats.md`
 
@@ -792,13 +792,13 @@ Attach a final outcome/result to a specific project-card algorithm_run_id and up
 - Capability: `focusa.project.card.outcome`
 - Family: `project_identity`
 - Side effects: `write_project_card_outcome`, `write_project_card_outcome`
-- Skills: `skill:focusa`, `skill:focusa-project-scope`
+- Skills: `skill:focusa`, `skill:focusa-project-scope`, `skill:focusa-evidence-outcomes`
 - Dependencies/next: `focusa_project_card`, `focusa_predict_record`, `focusa_metacog_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_project_card_outcome.md`
 
 ## focusa_project_identity
 
-Resolve bounded ProjectIdentity from cwd/project_root using marker, git, beads, workspace, daemon, and operator project signals. Use it when Resolve the active project identity from marker, git, beads, workspace, cwd, daemon, and operator project signals before trusting project-bound context. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Resolve bounded ProjectIdentity from cwd/project_root using marker, git, beads, workspace, daemon, and operator project signals. Use it when Rank explicit, active-worktree, canonical-parent, marker/Beads, persisted-session, and bounded parent-directory project candidates; fail closed on ambiguity before trusting project-bound context. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.project.identity`
 - Family: `project_identity`
@@ -809,7 +809,7 @@ Resolve bounded ProjectIdentity from cwd/project_root using marker, git, beads, 
 
 ## focusa_project_verify
 
-Verify active project folder against expected ProjectIdentity fields and report mismatches without mutating state. Use it when Verify expected project identity fields and surface project/continuity mismatches without mutating Focusa state. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Verify active project folder against expected ProjectIdentity fields and report mismatches without mutating state. Use it when Verify expected project identity fields against ranked worktree/session candidates and surface ambiguity or project/continuity mismatches without mutating Focusa state. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 - Capability: `focusa.project.verify`
 - Family: `project_identity`
@@ -825,7 +825,7 @@ Record a completed result, output, or reference (max 180 chars). Use it when Rec
 - Capability: `focusa.recent.result`
 - Family: `focus_state`
 - Side effects: `write_state`, `write_state`
-- Skills: `skill:focusa`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Dependencies/next: `focusa_evidence_capture`, `focusa_trajectory_assess`, `focusa_workpoint_checkpoint`
 - Documentation: `docs/focusa-tools/tools/focusa_recent_result.md`
 
@@ -847,7 +847,7 @@ Read or control Focusa resource mode, including activating/deactivating LowMem m
 - Capability: `focusa.resource.mode`
 - Family: `diagnostics_hygiene`
 - Side effects: `control_state`, `control_state`
-- Skills: `skill:focusa`, `skill:focusa-troubleshooting`
+- Skills: `skill:focusa`, `skill:focusa-troubleshooting`, `skill:focusa-resource-performance`
 - Dependencies/next: `focusa_traverse`, `focusa_trajectory_view`, `focusa_workpoint_resume`
 - Documentation: `docs/focusa-tools/tools/focusa_resource_mode.md`
 
@@ -858,7 +858,7 @@ Write working notes to /tmp/pi-scratch/ — agent's notebook, no Focus State. Tr
 - Capability: `focusa.scratch`
 - Family: `focus_state`
 - Side effects: `local_note`, `local_note`
-- Skills: `skill:focusa`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Dependencies/next: `focusa_project_identity`, `focusa_trajectory_view`, `focusa_workpoint_resume`
 - Documentation: `docs/focusa-tools/tools/focusa_scratch.md`
 
@@ -880,7 +880,7 @@ Daemon-native Spec133 Silent Session client for status, observation, steering, c
 - Capability: `focusa.silent.sessions`
 - Family: `work_loop`
 - Side effects: `daemon_api_control`, `daemon_api_control`
-- Skills: `skill:focusa`, `skill:focusa-work-loop`
+- Skills: `skill:focusa`, `skill:focusa-work-loop`, `skill:focusa-silent-sessions`
 - Dependencies/next: `focusa_work_loop_status`, `focusa_work_loop_checkpoint`, `focusa_resource_mode`
 - Documentation: `docs/focusa-tools/tools/focusa_silent_sessions.md`
 
@@ -1221,7 +1221,7 @@ Attach a stable evidence reference or verification result to the active canonica
 - Capability: `focusa.workpoint.link.evidence`
 - Family: `workpoint`
 - Side effects: `evidence_link`, `evidence_link`
-- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`, `skill:focusa-evidence-outcomes`
 - Dependencies/next: `focusa_trajectory_assess`, `focusa_workpoint_resume`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_workpoint_link_evidence.md`
 
