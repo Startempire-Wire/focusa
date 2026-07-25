@@ -567,41 +567,54 @@ async fn watch_call(client: &ApiClient, args: &WatchArgs) -> Result<Value> {
         (1..=500).contains(&args.limit),
         "--limit must be between 1-500"
     );
-    let path = format!(
-        "/silent-sessions/{}/events?run_id={}&limit={}",
-        args.session_id,
-        urlencoding::encode(&args.run_id),
-        args.limit
-    );
-    let headers = args
-        .cursor
-        .as_deref()
-        .map(|cursor| vec![("last-event-id", cursor)])
-        .unwrap_or_default();
-    let (status, body) = client.get_text_with_headers(&path, &headers).await?;
-    anyhow::ensure!(
-        (200..300).contains(&status),
-        "watch request rejected with HTTP {status}"
-    );
+    let generation = args
+        .generation
+        .context("--generation is required for exact-run watch")?;
+    let max_polls = args.max_polls.clamp(1, 10_000);
+    let poll_count = if args.follow { max_polls } else { 1 };
     let mut events = Vec::new();
     let mut next_cursor = args.cursor.clone();
-    for block in body.split("\n\n").filter(|block| !block.trim().is_empty()) {
-        let id = block
-            .lines()
-            .find_map(|line| line.strip_prefix("id: "))
-            .map(str::to_string);
-        let data = block.lines().find_map(|line| line.strip_prefix("data: "));
-        if let Some(id) = id {
-            next_cursor = Some(id);
-        }
-        let Some(data) = data else { continue };
-        let value: Value = serde_json::from_str(data).context("decode silent watch event")?;
-        let kind = value
-            .pointer("/data/kind")
+    for poll in 0..poll_count {
+        let path = format!(
+            "/silent-sessions/{}/events{}",
+            args.session_id,
+            query(&[
+                ("run_id", Some(args.run_id.clone())),
+                ("generation", Some(generation.to_string())),
+                ("cursor", next_cursor.clone()),
+                ("limit", Some(args.limit.to_string())),
+                ("follow", Some("false".into())),
+            ])
+        );
+        let page = client.get(&path).await?;
+        let page_events = page
+            .pointer("/data/events")
+            .and_then(Value::as_array)
+            .context("watch response omitted event page")?;
+        events.extend(
+            page_events
+                .iter()
+                .filter(|event| {
+                    if !args.tools {
+                        return true;
+                    }
+                    event
+                        .get("kind")
+                        .and_then(Value::as_str)
+                        .is_some_and(|kind| kind.starts_with("tool."))
+                })
+                .cloned(),
+        );
+        next_cursor = page
+            .pointer("/data/next_cursor")
             .and_then(Value::as_str)
-            .unwrap_or_default();
-        if !args.tools || kind.starts_with("tool.") {
-            events.push(value);
+            .map(str::to_string)
+            .or(next_cursor);
+        if args.follow && poll + 1 < poll_count {
+            tokio::time::sleep(std::time::Duration::from_millis(
+                args.interval_ms.clamp(10, 60_000),
+            ))
+            .await;
         }
     }
     Ok(json!({
@@ -610,8 +623,9 @@ async fn watch_call(client: &ApiClient, args: &WatchArgs) -> Result<Value> {
         "retry": {"safe": true, "posture": "idempotent_read"}, "side_effects": [],
         "evidence_refs": [], "receipt_refs": [], "next_tools": [],
         "recovery_hint": Value::Null, "misuse_hint": Value::Null,
-        "data": {"session_id": args.session_id, "run_id": args.run_id, "after_cursor": args.cursor,
-                 "next_cursor": next_cursor, "event_count": events.len(), "events": events}
+        "data": {"session_id": args.session_id, "run_id": args.run_id, "generation": generation,
+                 "after_cursor": args.cursor, "next_cursor": next_cursor,
+                 "event_count": events.len(), "events": events}
     }))
 }
 
@@ -620,9 +634,15 @@ async fn proof_call(client: &ApiClient, args: &ProofArgs, collection: &str) -> R
         (1..=1000).contains(&args.limit),
         "--limit must be between 1-1000"
     );
+    let route = match collection {
+        "artifacts" => "/artifacts",
+        "receipts" => "/receipts",
+        _ => anyhow::bail!("unsupported proof collection"),
+    };
     let mut path = format!(
-        "/silent-sessions/{}/{collection}?run_id={}&limit={}",
+        "/silent-sessions/{}{}?run_id={}&limit={}",
         args.session_id,
+        route,
         urlencoding::encode(&args.run_id),
         args.limit
     );
@@ -781,14 +801,15 @@ async fn retention_call(
             args.generation
         )
     } else {
-        let route = if operation == "hold" {
-            "evidence-hold"
-        } else {
-            operation
+        let route = match operation {
+            "hold" => "/evidence-hold",
+            "purge" => "/purge",
+            _ => anyhow::bail!("unsupported retention operation"),
         };
         format!(
-            "/silent-sessions/{}/{route}?run_id={}&expected_generation={}",
+            "/silent-sessions/{}{}?run_id={}&expected_generation={}",
             args.session_id,
+            route,
             urlencoding::encode(&args.run_id),
             args.generation
         )
@@ -946,7 +967,11 @@ async fn silent_doctor_report(client: &ApiClient) -> Value {
     let provider = client.get_probe("/providers").await;
     let profiles = client.get_probe("/silent-sessions/profiles").await;
     let presets = client.get_probe("/silent-sessions/presets").await;
+    let capabilities = client.get_probe("/silent-sessions/capabilities").await;
 
+    let capabilities_ok = capabilities
+        .as_ref()
+        .is_ok_and(|(status, _)| (200..300).contains(status));
     let daemon_ok = health.get("status").and_then(Value::as_str) == Some("ok");
     let harness_ok = harness.as_ref().is_ok_and(|(status, value)| {
         (200..300).contains(status)
@@ -1012,8 +1037,15 @@ async fn silent_doctor_report(client: &ApiClient) -> Value {
             "Profile and preset probes completed.",
             "Repair profile and preset catalogs, then repeat `focusa silent doctor`.",
         ),
+        doctor_check(
+            "capabilities",
+            capabilities_ok,
+            (!capabilities_ok).then_some("capability_catalog_unavailable"),
+            "Silent Session capability probe completed.",
+            "Restore the Silent Session capability catalog, then repeat `focusa silent doctor`.",
+        ),
     ];
-    let ready = daemon_ok && harness_ok && provider_ok && config_ok;
+    let ready = daemon_ok && harness_ok && provider_ok && config_ok && capabilities_ok;
     json!({
         "schema": "focusa.silent_cli_doctor.v1",
         "status": if ready { "ready" } else { "blocked" },
