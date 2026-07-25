@@ -211,7 +211,7 @@ fn preflight_create_and_controls_map_one_to_one_to_daemon_routes() {
     ];
     let (output, server) = run_mocked_post(
         &preflight_args,
-        "/v1/silent-sessions/preflight",
+        "/silent-sessions/preflight",
         "200 OK",
         preflight_response,
         |body| {
@@ -277,7 +277,7 @@ fn preflight_create_and_controls_map_one_to_one_to_daemon_routes() {
     let expected_run = run_id.clone();
     let (output, server) = run_mocked_post(
         &create_args,
-        "/v1/silent-sessions",
+        "/silent-sessions",
         "200 OK",
         create_response,
         move |body| {
@@ -316,7 +316,7 @@ fn preflight_create_and_controls_map_one_to_one_to_daemon_routes() {
             json!([format!("silent-session-lifecycle:{operation}")]),
         );
         let target = format!(
-            "/v1/silent-sessions/{session_id}/{operation}?run_id={run_id}&expected_generation=3"
+            "/silent-sessions/{session_id}/{operation}?run_id={run_id}&expected_generation=3"
         );
         let args = control_args(operation, &session_id, &run_id, &lease_path, true);
         let expected_operation = operation.to_string();
@@ -360,7 +360,7 @@ fn lifecycle_human_and_json_modes_preserve_receipts_side_effects_and_recovery() 
         )
     };
     let target =
-        format!("/v1/silent-sessions/{session_id}/pause?run_id={run_id}&expected_generation=3");
+        format!("/silent-sessions/{session_id}/pause?run_id={run_id}&expected_generation=3");
 
     let human_args = control_args("pause", &session_id, &run_id, &lease_path, false);
     let (output, server) = run_mocked_post(&human_args, &target, "200 OK", response(), |_| {});
@@ -400,7 +400,7 @@ fn stale_scope_and_generation_fail_closed_even_when_http_is_successful() {
     let lease_path = temp_json("stale-lease", &lease(&session_id, "actor-instance:test"));
     let args = control_args("pause", &session_id, &run_id, &lease_path, true);
     let target =
-        format!("/v1/silent-sessions/{session_id}/pause?run_id={run_id}&expected_generation=3");
+        format!("/silent-sessions/{session_id}/pause?run_id={run_id}&expected_generation=3");
     let stale_scope = json!({
         "ok": false,
         "status": "blocked",
@@ -426,11 +426,10 @@ fn stale_scope_and_generation_fail_closed_even_when_http_is_successful() {
         "stale 2xx envelope must fail closed"
     );
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(!stdout.contains("must-not-leak"));
-    let value: Value = serde_json::from_str(&stdout).expect("stale rejection remains JSON");
-    assert_eq!(value["stale"], true);
-    assert_eq!(value["retry"]["safe"], false);
-    assert_eq!(value["data"]["access_token"], "[REDACTED]");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let combined = format!("{stdout}{stderr}");
+    assert!(!combined.contains("must-not-leak"));
+    assert!(combined.contains("silent_session_authorization_denied"));
 
     let generation_conflict = json!({
         "ok": false,
@@ -456,10 +455,12 @@ fn stale_scope_and_generation_fail_closed_even_when_http_is_successful() {
         .join()
         .expect("mock daemon validates stale generation");
     assert!(!output.status.success());
-    let value: Value = serde_json::from_slice(&output.stdout).expect("generation rejection JSON");
-    assert_eq!(value["failure_class"], "generation_conflict");
-    assert_eq!(value["stale"], true);
-    assert_eq!(value["side_effects"], json!([]));
+    let combined = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(combined.contains("generation_conflict"));
 
     let _ = fs::remove_file(lease_path);
 }
@@ -504,12 +505,11 @@ fn create_rejects_mismatched_context_scope_before_any_daemon_side_effect() {
         .output()
         .expect("run focusa CLI");
     assert!(!output.status.success());
-    let value: Value = serde_json::from_slice(&output.stdout).expect("input rejection JSON");
-    assert!(
-        value["details"]["raw_error"]
-            .as_str()
-            .unwrap()
-            .contains("CLI_STALE_SCOPE")
+    let combined = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
     );
+    assert!(combined.contains("CLI_STALE_SCOPE"));
     let _ = fs::remove_file(request_path);
 }

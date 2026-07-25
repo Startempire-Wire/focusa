@@ -106,7 +106,7 @@ fn render_card(query: &AwarenessCardQuery, record: Option<&WorkpointRecord>) -> 
         .unwrap_or_else(|| "unverified".to_string());
     let canonical = record.map(|item| item.canonical).unwrap_or(false);
 
-    vec![
+    [
         "# Focusa".to_string(),
         format!("Status: {}", if canonical { "ready" } else { "scope verification pending" }),
         format!("Surface: adapter={adapter} · workspace={workspace}"),

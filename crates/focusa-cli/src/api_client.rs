@@ -131,6 +131,28 @@ impl ApiClient {
         self.get_with_headers(path, &[]).await
     }
 
+    pub async fn get_text_with_headers(
+        &self,
+        path: &str,
+        headers: &[(&str, &str)],
+    ) -> anyhow::Result<(u16, String)> {
+        let url = format!("{}{}", self.base, path);
+        let mut request = self.client.get(&url);
+        for (name, value) in headers {
+            request = request.header(*name, *value);
+        }
+        let resp = request
+            .send()
+            .await
+            .map_err(|err| classify_reqwest_error(err, &url))?;
+        let status = resp.status().as_u16();
+        let body = resp
+            .text()
+            .await
+            .map_err(|err| classify_reqwest_error(err, &url))?;
+        Ok((status, body))
+    }
+
     pub async fn get_probe(&self, path: &str) -> anyhow::Result<(u16, Value)> {
         let url = format!("{}{}", self.base, path);
         let resp = self

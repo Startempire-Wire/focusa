@@ -193,7 +193,7 @@ fn target_mode(
                     actual_uid: stat.st_uid,
                 });
             }
-            let mode = u32::from(stat.st_mode & 0o777);
+            let mode = stat.st_mode & 0o777;
             validate_mode(mode)?;
             Ok(mode)
         }

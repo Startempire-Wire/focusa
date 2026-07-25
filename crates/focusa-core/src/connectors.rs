@@ -125,6 +125,7 @@ pub struct HttpJsonConnector {
 }
 
 impl HttpJsonConnector {
+    #[allow(clippy::result_large_err)]
     pub fn new(descriptor: ConnectorDescriptor) -> Result<Self, ConnectorErrorEnvelope> {
         if descriptor.connector_id.trim().is_empty()
             || descriptor.project_root.trim().is_empty()
