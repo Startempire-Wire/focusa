@@ -173,33 +173,45 @@ pub struct OutputArgs {
 #[derive(Args, Debug)]
 pub struct InputArgs {
     pub session_id: String,
-    #[arg(long)]
+    #[arg(long, alias = "run")]
     pub run_id: String,
     #[arg(long)]
     pub generation: u64,
     #[arg(long)]
+    pub actor_instance_ref: String,
+    #[arg(long)]
     pub approval_id: String,
+    #[arg(long)]
+    pub idempotency_key: String,
+    #[arg(long)]
+    pub lease_file: PathBuf,
+    #[arg(long)]
+    pub payload_file: PathBuf,
     /// Foreground input or steering text; never interpreted as a shell command by this CLI.
     #[arg(long)]
     pub text: String,
-    #[arg(long)]
-    pub idempotency_key: String,
 }
 
 #[derive(Args, Debug)]
 pub struct KeyArgs {
     pub session_id: String,
-    #[arg(long)]
+    #[arg(long, alias = "run")]
     pub run_id: String,
     #[arg(long)]
     pub generation: u64,
     #[arg(long)]
+    pub actor_instance_ref: String,
+    #[arg(long)]
     pub approval_id: String,
+    #[arg(long)]
+    pub idempotency_key: String,
+    #[arg(long)]
+    pub lease_file: PathBuf,
+    #[arg(long)]
+    pub payload_file: PathBuf,
     /// Named key, e.g. Enter, Escape, ArrowUp, Ctrl-C.
     #[arg(long = "key", required = true)]
     pub keys: Vec<String>,
-    #[arg(long)]
-    pub idempotency_key: String,
 }
 
 #[derive(Args, Debug)]
@@ -388,6 +400,55 @@ async fn delete(client: &ApiClient, path: &str, body: &Value) -> Result<Value> {
     Ok(body)
 }
 
+fn interaction_body(
+    session_id: &str,
+    actor_instance_ref: &str,
+    approval_id: &str,
+    idempotency_key: &str,
+    lease_file: &PathBuf,
+    payload_file: &PathBuf,
+    text: Option<&str>,
+    keys: Option<&[String]>,
+) -> Result<Value> {
+    let lease = read_json(lease_file)?;
+    let payload = read_json(payload_file)?;
+    let lease_session = lease.get("session_id").and_then(Value::as_str);
+    let lease_actor = lease
+        .get("owner_actor_instance_ref")
+        .and_then(Value::as_str);
+    let expires_at = lease
+        .get("expires_at")
+        .and_then(Value::as_str)
+        .and_then(|value| chrono::DateTime::parse_from_rfc3339(value).ok());
+    let lease_current = expires_at.is_some_and(|value| value > chrono::Utc::now());
+    anyhow::ensure!(
+        lease_session == Some(session_id)
+            && lease_actor == Some(actor_instance_ref)
+            && lease_current,
+        "[CLI_STALE_SCOPE] interaction lease is stale or not bound to the exact session and actor"
+    );
+    Ok(json!({
+        "actor_instance_ref": actor_instance_ref,
+        "approval_id": approval_id,
+        "legacy_approved": false,
+        "idempotency_key": idempotency_key,
+        "lease": lease,
+        "payload": payload,
+        "text": text,
+        "keys": keys,
+    }))
+}
+
+fn validate_interaction_replay(result: &Value) -> Result<()> {
+    let replayed = result.pointer("/data/replayed").and_then(Value::as_bool) == Some(true);
+    let reason = result.pointer("/retry/reason").and_then(Value::as_str);
+    anyhow::ensure!(
+        !replayed || reason == Some("idempotent_replay"),
+        "interaction response lacks unambiguous replay safety"
+    );
+    Ok(())
+}
+
 fn doctor_check(
     component: &str,
     ok: bool,
@@ -569,10 +630,34 @@ async fn execute(client: &ApiClient, command: SilentCmd, json_output: bool) -> R
             let suffix = query(&[("run_id", Some(args.run_id)), ("generation", Some(args.generation.to_string())), ("cursor", args.cursor), ("follow", Some("false".into())), ("limit", Some(args.limit.clamp(1, 1000).to_string())), ("channel", args.stream)]);
             ("output", client.get(&format!("/silent-sessions/{}/output{suffix}", args.session_id)).await?)
         }
-        SilentCmd::Send(args) => ("send", client.post(&format!("/silent-sessions/{}/input", args.session_id), &json!({"run_id":args.run_id,"generation":args.generation,"approval_id":args.approval_id,"idempotency_key":args.idempotency_key,"text":args.text})).await?),
-        SilentCmd::Steer(args) => ("steer", client.post(&format!("/silent-sessions/{}/steer", args.session_id), &json!({"run_id":args.run_id,"generation":args.generation,"approval_id":args.approval_id,"idempotency_key":args.idempotency_key,"instruction":args.text})).await?),
-        SilentCmd::FollowUp(args) => ("follow-up", client.post(&format!("/silent-sessions/{}/follow-up", args.session_id), &json!({"run_id":args.run_id,"generation":args.generation,"approval_id":args.approval_id,"idempotency_key":args.idempotency_key,"prompt":args.text})).await?),
-        SilentCmd::Key(args) => ("key", client.post(&format!("/silent-sessions/{}/keys", args.session_id), &json!({"run_id":args.run_id,"generation":args.generation,"approval_id":args.approval_id,"idempotency_key":args.idempotency_key,"keys":args.keys})).await?),
+        SilentCmd::Send(args) => {
+            let body = interaction_body(&args.session_id, &args.actor_instance_ref, &args.approval_id, &args.idempotency_key, &args.lease_file, &args.payload_file, Some(&args.text), None)?;
+            let path = format!("/silent-sessions/{}/input?run_id={}&expected_generation={}", args.session_id, args.run_id, args.generation);
+            let result = client.post(&path, &body).await?;
+            validate_interaction_replay(&result)?;
+            ("send", result)
+        }
+        SilentCmd::Steer(args) => {
+            let body = interaction_body(&args.session_id, &args.actor_instance_ref, &args.approval_id, &args.idempotency_key, &args.lease_file, &args.payload_file, Some(&args.text), None)?;
+            let path = format!("/silent-sessions/{}/steer?run_id={}&expected_generation={}", args.session_id, args.run_id, args.generation);
+            let result = client.post(&path, &body).await?;
+            validate_interaction_replay(&result)?;
+            ("steer", result)
+        }
+        SilentCmd::FollowUp(args) => {
+            let body = interaction_body(&args.session_id, &args.actor_instance_ref, &args.approval_id, &args.idempotency_key, &args.lease_file, &args.payload_file, Some(&args.text), None)?;
+            let path = format!("/silent-sessions/{}/follow-up?run_id={}&expected_generation={}", args.session_id, args.run_id, args.generation);
+            let result = client.post(&path, &body).await?;
+            validate_interaction_replay(&result)?;
+            ("follow-up", result)
+        }
+        SilentCmd::Key(args) => {
+            let body = interaction_body(&args.session_id, &args.actor_instance_ref, &args.approval_id, &args.idempotency_key, &args.lease_file, &args.payload_file, None, Some(&args.keys))?;
+            let path = format!("/silent-sessions/{}/keys?run_id={}&expected_generation={}", args.session_id, args.run_id, args.generation);
+            let result = client.post(&path, &body).await?;
+            validate_interaction_replay(&result)?;
+            ("key", result)
+        },
         SilentCmd::Pause(args) => ("pause", client.post(&format!("/silent-sessions/{}/pause", args.session_id), &mutation_body(&args)).await?),
         SilentCmd::Resume(args) => ("resume", client.post(&format!("/silent-sessions/{}/resume", args.session_id), &mutation_body(&args)).await?),
         SilentCmd::Interrupt(args) => ("interrupt", client.post(&format!("/silent-sessions/{}/interrupt", args.session_id), &mutation_body(&args)).await?),
