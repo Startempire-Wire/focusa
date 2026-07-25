@@ -131,6 +131,22 @@ impl ApiClient {
         self.get_with_headers(path, &[]).await
     }
 
+    pub async fn get_probe(&self, path: &str) -> anyhow::Result<(u16, Value)> {
+        let url = format!("{}{}", self.base, path);
+        let resp = self
+            .client
+            .get(&url)
+            .send()
+            .await
+            .map_err(|err| classify_reqwest_error(err, &url))?;
+        let status = resp.status().as_u16();
+        let value = resp
+            .json()
+            .await
+            .map_err(|err| classify_reqwest_error(err, &url))?;
+        Ok((status, value))
+    }
+
     pub async fn get_scoped(
         &self,
         path: &str,

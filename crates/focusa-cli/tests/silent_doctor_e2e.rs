@@ -66,7 +66,7 @@ fn blocked_envelope(failure_class: &str, recovery_hint: &str) -> Value {
 fn healthy_responses() -> Vec<MockResponse> {
     vec![
         MockResponse {
-            target: "/v1/health",
+            target: "/health",
             status: "200 OK",
             body: json!({
                 "status": "ok",
@@ -74,7 +74,7 @@ fn healthy_responses() -> Vec<MockResponse> {
             }),
         },
         MockResponse {
-            target: "/v1/harnesses",
+            target: "/harnesses",
             status: "200 OK",
             body: envelope(
                 true,
@@ -90,7 +90,7 @@ fn healthy_responses() -> Vec<MockResponse> {
             ),
         },
         MockResponse {
-            target: "/v1/providers",
+            target: "/providers",
             status: "200 OK",
             body: envelope(
                 true,
@@ -108,7 +108,7 @@ fn healthy_responses() -> Vec<MockResponse> {
             ),
         },
         MockResponse {
-            target: "/v1/silent-sessions/profiles",
+            target: "/silent-sessions/profiles",
             status: "200 OK",
             body: envelope(
                 true,
@@ -122,7 +122,7 @@ fn healthy_responses() -> Vec<MockResponse> {
             ),
         },
         MockResponse {
-            target: "/v1/silent-sessions/presets",
+            target: "/silent-sessions/presets",
             status: "200 OK",
             body: envelope(
                 true,
@@ -235,7 +235,7 @@ fn doctor_has_stable_human_and_json_readiness_parity() {
 fn doctor_reports_harness_provider_and_config_faults_with_exact_recovery() {
     let mut responses = healthy_responses();
     responses[1] = MockResponse {
-        target: "/v1/harnesses",
+        target: "/harnesses",
         status: "503 Service Unavailable",
         body: blocked_envelope(
             "transport_degraded",
@@ -243,7 +243,7 @@ fn doctor_reports_harness_provider_and_config_faults_with_exact_recovery() {
         ),
     };
     responses[2] = MockResponse {
-        target: "/v1/providers",
+        target: "/providers",
         status: "200 OK",
         body: envelope(
             false,
@@ -261,7 +261,7 @@ fn doctor_reports_harness_provider_and_config_faults_with_exact_recovery() {
         ),
     };
     responses[3] = MockResponse {
-        target: "/v1/silent-sessions/profiles",
+        target: "/silent-sessions/profiles",
         status: "200 OK",
         body: envelope(true, "observed", json!({"profiles": []})),
     };
