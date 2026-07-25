@@ -19,7 +19,7 @@ use focusa_core::types::{
     EventLogEntry, FocusState, FocusaEvent, FocusaSessionIdentity, FocusaState, FrameRecord,
     HltLedgerEntry, HltStatus, SignalOrigin, TrajectoryConfidence,
     TrajectoryDefinitionOfDoneRecord, TrajectoryDefinitionStatus, TrajectoryGoalProvenanceRecord,
-    TrajectoryMilestoneRecord, TrajectoryMilestoneStatus, TrajectoryProjectionRecord,
+    TrajectoryProjectionRecord, TrajectoryWaypointRecord, TrajectoryWaypointStatus,
     WorkpointRecord, WorkpointStatus, classify_hlt, trajectory_caps,
 };
 use serde::Deserialize;
@@ -463,7 +463,7 @@ fn scoped_trajectory_history(
                     .as_ref()
                     .map(|value| value.to_rfc3339()),
                 "goal_provenance_count": record.goal_provenance.len(),
-                "milestones_count": record.milestones.len(),
+                "waypoints_count": record.waypoints.len(),
                 "supersedes_trajectory_id": record.supersedes_trajectory_id,
             })
         })
@@ -486,6 +486,30 @@ fn prior_project_trajectory<'a>(
             && !record.long_term_goal.trim().is_empty()
             && !record.desired_end_state.trim().is_empty()
     })
+}
+
+fn trajectory_waypoint_records(
+    trajectory_id: &str,
+    values: Option<Vec<String>>,
+) -> Vec<TrajectoryWaypointRecord> {
+    values
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|value| clean(Some(&value)).map(|cleaned| bounded(&cleaned, 160)))
+        .take(trajectory_caps::WAYPOINTS)
+        .enumerate()
+        .map(|(index, title)| TrajectoryWaypointRecord {
+            waypoint_id: format!("{trajectory_id}:waypoint:{}", index + 1),
+            desired_state_delta: title.clone(),
+            title,
+            status: if index == 0 {
+                TrajectoryWaypointStatus::Active
+            } else {
+                TrajectoryWaypointStatus::NotStarted
+            },
+            ..TrajectoryWaypointRecord::default()
+        })
+        .collect()
 }
 
 fn trajectory_definition_of_done_record(
@@ -650,7 +674,10 @@ fn trajectory_record_from_define_payload(
             confidence,
         });
     }
-    let milestone_id = format!("{trajectory_id}:milestone:active");
+    let waypoints = trajectory_waypoint_records(&trajectory_id, body.waypoints.clone());
+    let active_waypoint_id = waypoints
+        .first()
+        .map(|waypoint| waypoint.waypoint_id.clone());
     let definition_of_done = trajectory_definition_of_done_record(body, &desired_end_state);
     Some(TrajectoryProjectionRecord {
         trajectory_id: trajectory_id.clone(),
@@ -668,14 +695,7 @@ fn trajectory_record_from_define_payload(
             .short_term_goal
             .as_deref()
             .map(|value| bounded(value, 240)),
-        waypoints: body
-            .waypoints
-            .clone()
-            .unwrap_or_default()
-            .into_iter()
-            .filter_map(|value| clean(Some(&value)).map(|cleaned| bounded(&cleaned, 160)))
-            .take(trajectory_caps::MILESTONES)
-            .collect(),
+        waypoints,
         current_state: body
             .current_state
             .as_deref()
@@ -684,18 +704,7 @@ fn trajectory_record_from_define_payload(
         definition_status,
         confidence,
         goal_provenance,
-        milestones: vec![TrajectoryMilestoneRecord {
-            milestone_id: milestone_id.clone(),
-            title: body
-                .short_term_goal
-                .as_deref()
-                .map(|value| bounded(value, 160))
-                .unwrap_or_else(|| "Active trajectory milestone".to_string()),
-            desired_state_delta: desired_end_state.clone(),
-            status: TrajectoryMilestoneStatus::Active,
-            ..TrajectoryMilestoneRecord::default()
-        }],
-        active_milestone_id: Some(milestone_id),
+        active_waypoint_id,
         source_refs: json!({
             "project_identity": payload.get("project_identity").cloned().unwrap_or(Value::Null),
             "goal_source": source,
@@ -1318,19 +1327,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
     } else {
         first_nonempty(&[persisted_mid_level_goal])
     };
-    let mut waypoints = persisted_waypoints;
-    if waypoints.is_empty() {
-        if let Some(gap) = active_gap.as_deref() {
-            waypoints.push(format!("Close active gap: {}", bounded(gap, 120)));
-        }
-        if let Some(stg) = short_term_goal.as_deref() {
-            waypoints.push(format!("Advance STG: {}", bounded(stg, 120)));
-        }
-        if let Some(mlg) = mid_level_goal.as_deref() {
-            waypoints.push(format!("Validate MLG: {}", bounded(mlg, 120)));
-        }
-        waypoints.truncate(4);
-    }
+    let waypoints = persisted_waypoints;
     let low_level_goal = first_nonempty(&[
         workpoint_next,
         workpoint_action,
@@ -1793,7 +1790,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
                 "state_deltas": lifecycle_state_deltas,
                 "definition_of_done": persisted_trajectory.and_then(|record| record.definition_of_done.clone()),
                 "goal_provenance": persisted_trajectory.map(|record| record.goal_provenance.clone()).unwrap_or_default(),
-                "milestones": persisted_trajectory.map(|record| record.milestones.clone()).unwrap_or_default(),
+                "waypoints": persisted_trajectory.map(|record| record.waypoints.clone()).unwrap_or_default(),
             },
             "lifecycle": {
                 "clarity_gate": clarity_gate,
@@ -1897,7 +1894,7 @@ fn define_goal_payload(state: &FocusaState, body: &TrajectoryDefineGoalRequest) 
             "desired_end_state": bounded(&body.desired_end_state, 240),
             "mid_level_goal": body.mid_level_goal.as_deref().map(|value| bounded(value, 240)),
             "short_term_goal": body.short_term_goal.as_deref().map(|value| bounded(value, 240)),
-            "waypoints": body.waypoints.clone().unwrap_or_default().into_iter().filter_map(|value| clean(Some(&value)).map(|cleaned| bounded(&cleaned, 160))).take(trajectory_caps::MILESTONES).collect::<Vec<_>>(),
+            "waypoints": trajectory_waypoint_records(&trajectory_id, body.waypoints.clone()),
             "current_state": body.current_state.as_deref().map(|value| bounded(value, 240)),
             "goal_source": body.goal_source.as_deref().unwrap_or("operator"),
             "operator_confirmed": body.operator_confirmed.unwrap_or_else(|| body.goal_source.as_deref().unwrap_or("operator") == "operator"),
@@ -3681,13 +3678,13 @@ mod tests {
                 inferred: false,
                 confidence: TrajectoryConfidence::High,
             }],
-            milestones: vec![TrajectoryMilestoneRecord {
-                milestone_id: "m1".to_string(),
+            waypoints: vec![TrajectoryWaypointRecord {
+                waypoint_id: "m1".to_string(),
                 title: "Expose lifecycle".to_string(),
                 desired_state_delta: "history queryable".to_string(),
                 current_state_evidence_refs: vec!["evidence:current".to_string()],
                 completion_evidence_refs: vec!["evidence:done".to_string()],
-                status: TrajectoryMilestoneStatus::Active,
+                status: TrajectoryWaypointStatus::Active,
                 next_workpoint_candidate: Value::Null,
             }],
             definition_of_done: Some(TrajectoryDefinitionOfDoneRecord {
@@ -3738,7 +3735,7 @@ mod tests {
         assert_eq!(lifecycle["checkpoint_count"].as_u64(), Some(1));
         assert_eq!(lifecycle["state_delta_count"].as_u64(), Some(1));
         assert_eq!(lifecycle["goal_provenance"].as_array().unwrap().len(), 1);
-        assert_eq!(lifecycle["milestones"].as_array().unwrap().len(), 1);
+        assert_eq!(lifecycle["waypoints"].as_array().unwrap().len(), 1);
         assert_eq!(lifecycle["checkpoints"].as_array().unwrap().len(), 1);
         assert_eq!(lifecycle["state_deltas"].as_array().unwrap().len(), 1);
         assert_eq!(

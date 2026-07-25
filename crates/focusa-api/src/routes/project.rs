@@ -3719,7 +3719,12 @@ async fn card(
         hlt_status: record.hlt_status,
         mlg: record.mid_level_goal.clone(),
         stg: record.short_term_goal.clone(),
-        waypoints: record.waypoints.iter().take(8).cloned().collect(),
+        waypoints: record
+            .waypoints
+            .iter()
+            .take(8)
+            .map(|waypoint| waypoint.title.clone())
+            .collect(),
         active_workpoint_id: record.active_workpoint_id,
     });
     let active_trajectory_record = trajectory_record

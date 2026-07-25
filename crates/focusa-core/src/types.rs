@@ -802,7 +802,7 @@ pub struct WorkpointState {
 
 pub mod trajectory_caps {
     pub const RECORDS: usize = 32;
-    pub const MILESTONES: usize = 32;
+    pub const WAYPOINTS: usize = 32;
     pub const PROVENANCE: usize = 32;
     pub const EVIDENCE_REFS: usize = 32;
     pub const STATE_DELTAS: usize = 64;
@@ -916,7 +916,7 @@ pub enum TrajectoryRootGoalStability {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
-pub enum TrajectoryMilestoneStatus {
+pub enum TrajectoryWaypointStatus {
     #[default]
     NotStarted,
     Active,
@@ -944,17 +944,25 @@ pub struct TrajectoryGoalProvenanceRecord {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct TrajectoryMilestoneRecord {
-    pub milestone_id: String,
+pub struct TrajectoryWaypointRecord {
+    #[serde(alias = "milestone_id")]
+    pub waypoint_id: String,
     pub title: String,
     pub desired_state_delta: String,
     #[serde(default)]
     pub current_state_evidence_refs: Vec<String>,
     #[serde(default)]
     pub completion_evidence_refs: Vec<String>,
-    pub status: TrajectoryMilestoneStatus,
+    pub status: TrajectoryWaypointStatus,
     #[serde(default)]
     pub next_workpoint_candidate: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+enum TrajectoryWaypointInput {
+    Title(String),
+    Record(TrajectoryWaypointRecord),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -978,7 +986,7 @@ pub struct TrajectoryDefinitionOfDoneRecord {
     pub not_done_if: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct TrajectoryProjectionRecord {
     pub trajectory_id: String,
     pub session_identity: Option<FocusaSessionIdentity>,
@@ -990,14 +998,12 @@ pub struct TrajectoryProjectionRecord {
     pub mid_level_goal: Option<String>,
     pub short_term_goal: Option<String>,
     #[serde(default)]
-    pub waypoints: Vec<String>,
+    pub waypoints: Vec<TrajectoryWaypointRecord>,
     pub current_state: Option<String>,
     pub root_goal_stability: TrajectoryRootGoalStability,
     pub session_clarity_status: TrajectoryDefinitionStatus,
     pub gap_summary: Option<String>,
-    #[serde(default)]
-    pub milestones: Vec<TrajectoryMilestoneRecord>,
-    pub active_milestone_id: Option<String>,
+    pub active_waypoint_id: Option<String>,
     pub active_workpoint_id: Option<WorkpointId>,
     #[serde(default)]
     pub source_refs: serde_json::Value,
@@ -1019,6 +1025,162 @@ pub struct TrajectoryProjectionRecord {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
+#[derive(Debug, Deserialize, Default)]
+struct TrajectoryProjectionWireRecord {
+    #[serde(default)]
+    trajectory_id: String,
+    session_identity: Option<FocusaSessionIdentity>,
+    project_root: Option<String>,
+    continuity_id: Option<String>,
+    #[serde(default)]
+    root_long_term_goal: String,
+    #[serde(default)]
+    long_term_goal: String,
+    #[serde(default)]
+    desired_end_state: String,
+    mid_level_goal: Option<String>,
+    short_term_goal: Option<String>,
+    #[serde(default)]
+    waypoints: Vec<TrajectoryWaypointInput>,
+    current_state: Option<String>,
+    #[serde(default)]
+    root_goal_stability: TrajectoryRootGoalStability,
+    #[serde(default)]
+    session_clarity_status: TrajectoryDefinitionStatus,
+    gap_summary: Option<String>,
+    #[serde(default)]
+    milestones: Vec<TrajectoryWaypointRecord>,
+    active_waypoint_id: Option<String>,
+    active_milestone_id: Option<String>,
+    active_workpoint_id: Option<WorkpointId>,
+    #[serde(default)]
+    source_refs: serde_json::Value,
+    #[serde(default)]
+    blockers: Vec<String>,
+    #[serde(default)]
+    open_questions: Vec<String>,
+    #[serde(default)]
+    definition_status: TrajectoryDefinitionStatus,
+    #[serde(default)]
+    hlt_status: HltStatus,
+    #[serde(default)]
+    confidence: TrajectoryConfidence,
+    #[serde(default)]
+    goal_provenance: Vec<TrajectoryGoalProvenanceRecord>,
+    definition_of_done: Option<TrajectoryDefinitionOfDoneRecord>,
+    supersedes_trajectory_id: Option<String>,
+    #[serde(default)]
+    canonical: bool,
+    created_at: Option<DateTime<Utc>>,
+    updated_at: Option<DateTime<Utc>>,
+}
+
+fn merge_unique_refs(target: &mut Vec<String>, incoming: Vec<String>) {
+    for value in incoming {
+        if !target.contains(&value) {
+            target.push(value);
+        }
+    }
+}
+
+fn merge_legacy_waypoint(
+    waypoints: &mut Vec<TrajectoryWaypointRecord>,
+    mut legacy: TrajectoryWaypointRecord,
+) {
+    let matching_index = waypoints.iter().position(|candidate| {
+        (!legacy.waypoint_id.is_empty() && candidate.waypoint_id == legacy.waypoint_id)
+            || (candidate.waypoint_id.starts_with("legacy-waypoint-")
+                && candidate.title == legacy.title)
+    });
+    if let Some(index) = matching_index {
+        let existing = &mut waypoints[index];
+        if existing.waypoint_id.starts_with("legacy-waypoint-") && !legacy.waypoint_id.is_empty() {
+            existing.waypoint_id = std::mem::take(&mut legacy.waypoint_id);
+        }
+        if existing.title.is_empty() {
+            existing.title = std::mem::take(&mut legacy.title);
+        }
+        if existing.desired_state_delta.is_empty() {
+            existing.desired_state_delta = std::mem::take(&mut legacy.desired_state_delta);
+        }
+        merge_unique_refs(
+            &mut existing.current_state_evidence_refs,
+            legacy.current_state_evidence_refs,
+        );
+        merge_unique_refs(
+            &mut existing.completion_evidence_refs,
+            legacy.completion_evidence_refs,
+        );
+        if existing.status == TrajectoryWaypointStatus::NotStarted {
+            existing.status = legacy.status;
+        }
+        if existing.next_workpoint_candidate.is_null() {
+            existing.next_workpoint_candidate = legacy.next_workpoint_candidate;
+        }
+    } else {
+        waypoints.push(legacy);
+    }
+}
+
+impl<'de> Deserialize<'de> for TrajectoryProjectionRecord {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire = TrajectoryProjectionWireRecord::deserialize(deserializer)?;
+        let mut waypoints = Vec::with_capacity(wire.waypoints.len() + wire.milestones.len());
+        for (index, input) in wire.waypoints.into_iter().enumerate() {
+            let waypoint = match input {
+                TrajectoryWaypointInput::Title(title) => TrajectoryWaypointRecord {
+                    waypoint_id: format!("legacy-waypoint-{}", index + 1),
+                    title,
+                    ..TrajectoryWaypointRecord::default()
+                },
+                TrajectoryWaypointInput::Record(mut record) => {
+                    if record.waypoint_id.is_empty() {
+                        record.waypoint_id = format!("legacy-waypoint-{}", index + 1);
+                    }
+                    record
+                }
+            };
+            merge_legacy_waypoint(&mut waypoints, waypoint);
+        }
+        for legacy in wire.milestones {
+            merge_legacy_waypoint(&mut waypoints, legacy);
+        }
+        Ok(Self {
+            trajectory_id: wire.trajectory_id,
+            session_identity: wire.session_identity,
+            project_root: wire.project_root,
+            continuity_id: wire.continuity_id,
+            root_long_term_goal: wire.root_long_term_goal,
+            long_term_goal: wire.long_term_goal,
+            desired_end_state: wire.desired_end_state,
+            mid_level_goal: wire.mid_level_goal,
+            short_term_goal: wire.short_term_goal,
+            waypoints,
+            current_state: wire.current_state,
+            root_goal_stability: wire.root_goal_stability,
+            session_clarity_status: wire.session_clarity_status,
+            gap_summary: wire.gap_summary,
+            active_waypoint_id: wire.active_waypoint_id.or(wire.active_milestone_id),
+            active_workpoint_id: wire.active_workpoint_id,
+            source_refs: wire.source_refs,
+            blockers: wire.blockers,
+            open_questions: wire.open_questions,
+            definition_status: wire.definition_status,
+            hlt_status: wire.hlt_status,
+            confidence: wire.confidence,
+            goal_provenance: wire.goal_provenance,
+            definition_of_done: wire.definition_of_done,
+            supersedes_trajectory_id: wire.supersedes_trajectory_id,
+            canonical: wire.canonical,
+            created_at: wire.created_at,
+            updated_at: wire.updated_at,
+        })
+    }
+}
+
 impl Default for TrajectoryProjectionRecord {
     fn default() -> Self {
         Self {
@@ -1036,8 +1198,7 @@ impl Default for TrajectoryProjectionRecord {
             root_goal_stability: TrajectoryRootGoalStability::Stable,
             session_clarity_status: TrajectoryDefinitionStatus::Unclear,
             gap_summary: None,
-            milestones: vec![],
-            active_milestone_id: None,
+            active_waypoint_id: None,
             active_workpoint_id: None,
             source_refs: serde_json::Value::Null,
             blockers: vec![],
@@ -2834,7 +2995,12 @@ impl FocusaState {
             hlt_status: trajectory.hlt_status,
             mlg: trajectory.mid_level_goal.clone(),
             stg: trajectory.short_term_goal.clone(),
-            waypoints: trajectory.waypoints.iter().take(8).cloned().collect(),
+            waypoints: trajectory
+                .waypoints
+                .iter()
+                .take(8)
+                .map(|waypoint| waypoint.title.clone())
+                .collect(),
             active_workpoint_id: trajectory.active_workpoint_id,
         })
     }
@@ -2912,7 +3078,13 @@ mod focusa_state_tests {
             desired_end_state: "Active desired".to_string(),
             mid_level_goal: Some("Active MLG".to_string()),
             short_term_goal: Some("Active STG".to_string()),
-            waypoints: vec!["one".to_string(); 10],
+            waypoints: (0..10)
+                .map(|index| TrajectoryWaypointRecord {
+                    waypoint_id: format!("waypoint-{index}"),
+                    title: "one".to_string(),
+                    ..TrajectoryWaypointRecord::default()
+                })
+                .collect(),
             ..TrajectoryProjectionRecord::default()
         });
         state.trajectory.active_trajectory_id = Some("active".to_string());
@@ -2923,6 +3095,71 @@ mod focusa_state_tests {
         assert_eq!(context.mlg.as_deref(), Some("Active MLG"));
         assert_eq!(context.stg.as_deref(), Some("Active STG"));
         assert_eq!(context.waypoints.len(), 8);
+    }
+
+    #[test]
+    fn trajectory_projection_reads_legacy_waypoints_and_milestones_losslessly() {
+        let legacy = serde_json::json!({
+            "trajectory_id": "trajectory:test",
+            "long_term_goal": "HLT",
+            "desired_end_state": "Done",
+            "waypoints": ["First", "Second"],
+            "milestones": [{
+                "milestone_id": "milestone:first",
+                "title": "First",
+                "desired_state_delta": "First delta",
+                "current_state_evidence_refs": ["evidence:current"],
+                "completion_evidence_refs": ["evidence:done"],
+                "status": "active",
+                "next_workpoint_candidate": {"id": "workpoint:next"}
+            }],
+            "active_milestone_id": "milestone:first"
+        });
+
+        let record: TrajectoryProjectionRecord =
+            serde_json::from_value(legacy).expect("legacy projection should migrate");
+        assert_eq!(record.waypoints.len(), 2);
+        assert_eq!(record.waypoints[0].waypoint_id, "milestone:first");
+        assert_eq!(record.waypoints[0].title, "First");
+        assert_eq!(
+            record.waypoints[0].current_state_evidence_refs,
+            vec!["evidence:current"]
+        );
+        assert_eq!(
+            record.active_waypoint_id.as_deref(),
+            Some("milestone:first")
+        );
+
+        let canonical = serde_json::to_value(&record).expect("canonical projection");
+        assert!(canonical.get("milestones").is_none());
+        assert!(canonical.get("active_milestone_id").is_none());
+        assert_eq!(canonical["waypoints"][0]["waypoint_id"], "milestone:first");
+        assert_eq!(canonical["active_waypoint_id"], "milestone:first");
+    }
+
+    #[test]
+    fn trajectory_projection_round_trips_typed_waypoints() {
+        let record = TrajectoryProjectionRecord {
+            trajectory_id: "trajectory:typed".to_string(),
+            waypoints: vec![TrajectoryWaypointRecord {
+                waypoint_id: "waypoint:one".to_string(),
+                title: "One".to_string(),
+                desired_state_delta: "Delta".to_string(),
+                status: TrajectoryWaypointStatus::Verified,
+                ..TrajectoryWaypointRecord::default()
+            }],
+            active_waypoint_id: Some("waypoint:one".to_string()),
+            ..TrajectoryProjectionRecord::default()
+        };
+        let encoded = serde_json::to_value(&record).expect("serialize");
+        let decoded: TrajectoryProjectionRecord =
+            serde_json::from_value(encoded).expect("deserialize");
+        assert_eq!(decoded.waypoints.len(), 1);
+        assert_eq!(decoded.waypoints[0].waypoint_id, "waypoint:one");
+        assert_eq!(
+            decoded.waypoints[0].status,
+            TrajectoryWaypointStatus::Verified
+        );
     }
 
     #[test]

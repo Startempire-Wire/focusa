@@ -219,7 +219,13 @@ export async function gatherAwarenessInput(surface: AwarenessSurface): Promise<A
           stg: tv.stg || null,
           desiredEndState: tv.desired_end_state || tv.desiredEndState || null,
           activeGap: tv.active_gap || tv.activeGap || null,
-          waypoints: Array.isArray(tv.waypoints) ? tv.waypoints : [],
+          waypoints: Array.isArray(tv.waypoints)
+            ? tv.waypoints
+                .map((item: any) =>
+                  typeof item === "string" ? item : String(item?.title || item?.desired_state_delta || "")
+                )
+                .filter(Boolean)
+            : [],
           clarityGate: (tv.clarity_gate || tv.clarityGate || "provisional") as
             "clear" | "unclear" | "provisional",
           nextTools: Array.isArray(tv.next_tools || tv.nextTools) ? tv.next_tools || tv.nextTools : [],

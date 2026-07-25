@@ -577,7 +577,9 @@ function formatTrajectoryPacketForPrompt(packet: any): string {
   const waypoints = Array.isArray(trajectory.waypoints || packet?.waypoints)
     ? (trajectory.waypoints || packet?.waypoints)
         .slice(0, 5)
-        .map((item: any) => compactText(item, "", 100))
+        .map((item: any) =>
+          compactText(typeof item === "string" ? item : item?.title || item?.desired_state_delta, "", 100)
+        )
         .filter(Boolean)
     : [];
   if (hlt === "missing" && mlg === "missing" && stg === "missing" && desired === "missing") return "";

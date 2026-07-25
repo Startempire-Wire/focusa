@@ -871,11 +871,16 @@ function normalizeToolTrajectoryLadder(source: unknown, sourceLabel: string): Re
   const mlg = firstNonEmptyText(obj.mid_level_goal, obj.mlg, ladder.mlg, ladder.mid);
   const stg = firstNonEmptyText(obj.short_term_goal, obj.stg, ladder.stg, ladder.short);
   const activeGap = firstNonEmptyText(obj.active_gap, ladder.active_gap);
-  const waypoints = Array.isArray(obj.waypoints)
+  const waypointValues = Array.isArray(obj.waypoints)
     ? obj.waypoints
     : Array.isArray(ladder.waypoints)
       ? ladder.waypoints
       : [];
+  const waypoints = waypointValues
+    .map((item: any) =>
+      typeof item === "string" ? item : firstNonEmptyText(item?.title, item?.desired_state_delta)
+    )
+    .filter(Boolean);
   if (!hlt && !mlg && !stg && !activeGap && !waypoints.length) return null;
   return {
     schema: "focusa.trajectory_ladder.v1",
