@@ -23,14 +23,14 @@ pub fn load_usage_summary(
 ) -> anyhow::Result<SilentSessionUsageSummary> {
     persistence.with_connection_mut(|connection| {
         let lifecycle_event_count = connection.query_row(
-            "SELECT COUNT(*) FROM silent_session_events WHERE silent_session_id=?1 AND run_id=?2",
+            "SELECT COUNT(*) FROM silent_session_control_events WHERE silent_session_id=?1 AND run_id=?2",
             params![session_id.to_string(), run_id.to_string()],
             |row| row.get::<_, i64>(0),
         )?;
         let (chunks, events, uncompressed, compressed) = connection.query_row(
             r#"SELECT COUNT(*),COALESCE(SUM(event_count),0),
                COALESCE(SUM(uncompressed_bytes),0),COALESCE(SUM(compressed_bytes),0)
-               FROM silent_session_stream_indexes WHERE silent_session_id=?1 AND run_id=?2"#,
+               FROM silent_session_control_stream_indexes WHERE silent_session_id=?1 AND run_id=?2"#,
             params![session_id.to_string(), run_id.to_string()],
             |row| {
                 Ok((

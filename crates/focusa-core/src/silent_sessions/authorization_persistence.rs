@@ -15,7 +15,7 @@ pub fn save_authorization_principal(
 ) -> anyhow::Result<()> {
     persistence.with_connection_mut(|connection| {
         connection.execute(
-            r#"INSERT INTO silent_session_principals(
+            r#"INSERT INTO silent_session_control_principals(
                principal_id,actor,os_user,role,principal_json,updated_at
                ) VALUES (?1,?2,?3,?4,?5,?6)
                ON CONFLICT(principal_id) DO UPDATE SET
@@ -40,7 +40,7 @@ pub fn load_authorization_principal(
 ) -> anyhow::Result<Option<AuthenticatedPrincipal>> {
     load_json(
         persistence,
-        "SELECT principal_json FROM silent_session_principals WHERE principal_id=?1",
+        "SELECT principal_json FROM silent_session_control_principals WHERE principal_id=?1",
         principal_id,
     )
 }
@@ -51,7 +51,7 @@ pub fn save_durable_approval(
 ) -> anyhow::Result<()> {
     persistence.with_connection_mut(|connection| {
         connection.execute(
-            r#"INSERT INTO silent_session_approvals(
+            r#"INSERT INTO silent_session_control_approvals(
                approval_id,operator_actor,action,project_root,continuity_id,session_id,run_id,
                action_digest,expires_at,approval_json
                ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)"#,
@@ -78,7 +78,7 @@ pub fn load_durable_approval(
 ) -> anyhow::Result<Option<DurableApprovalRecord>> {
     load_json(
         persistence,
-        "SELECT approval_json FROM silent_session_approvals WHERE approval_id=?1",
+        "SELECT approval_json FROM silent_session_control_approvals WHERE approval_id=?1",
         &approval_id.to_string(),
     )
 }
@@ -126,7 +126,7 @@ pub fn consume_runner_nonce(
 ) -> anyhow::Result<bool> {
     persistence.with_connection_mut(|connection| {
         let inserted = connection.execute(
-            r#"INSERT OR IGNORE INTO silent_session_runner_nonces(
+            r#"INSERT OR IGNORE INTO silent_session_control_runner_nonces(
                runner_principal_id,nonce,command_id,expires_at,consumed_at
                ) VALUES (?1,?2,?3,?4,?5)"#,
             params![

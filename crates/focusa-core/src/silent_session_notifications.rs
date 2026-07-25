@@ -398,7 +398,8 @@ mod tests {
     #[test]
     fn dedupe_suppresses_same_condition_until_cooldown_or_resolution() {
         let now = Utc::now();
-        let first = evaluate_notifications(&policy(), &observation(), &[], now).unwrap();
+        let observation = observation();
+        let first = evaluate_notifications(&policy(), &observation, &[], now).unwrap();
         let history = first
             .iter()
             .map(|delivery| NotificationHistoryEntry {
@@ -411,7 +412,7 @@ mod tests {
         assert!(
             evaluate_notifications(
                 &policy(),
-                &observation(),
+                &observation,
                 &history,
                 now + Duration::seconds(1)
             )
@@ -421,7 +422,7 @@ mod tests {
         assert!(
             !evaluate_notifications(
                 &policy(),
-                &observation(),
+                &observation,
                 &history,
                 now + Duration::seconds(301),
             )

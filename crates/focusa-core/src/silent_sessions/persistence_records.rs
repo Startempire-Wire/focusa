@@ -17,7 +17,7 @@ pub fn load_session(
     persistence.with_connection_mut(|connection| {
         let json = connection
             .query_row(
-                "SELECT snapshot_json FROM silent_sessions WHERE silent_session_id=?1",
+                "SELECT snapshot_json FROM silent_session_controls WHERE silent_session_id=?1",
                 [id.to_string()],
                 |row| row.get::<_, String>(0),
             )
@@ -29,7 +29,7 @@ pub fn load_session(
 pub fn list_sessions(persistence: &SqlitePersistence) -> anyhow::Result<Vec<SilentSession>> {
     persistence.with_connection_mut(|connection| {
         let mut statement = connection.prepare(
-            "SELECT s.snapshot_json FROM silent_sessions s LEFT JOIN silent_session_retention r ON r.session_id=s.silent_session_id WHERE r.deleted_at IS NULL ORDER BY s.updated_at DESC, s.silent_session_id",
+            "SELECT s.snapshot_json FROM silent_session_controls s LEFT JOIN silent_session_control_retention r ON r.session_id=s.silent_session_id WHERE r.deleted_at IS NULL ORDER BY s.updated_at DESC, s.silent_session_id",
         )?;
         let rows = statement.query_map([], |row| row.get::<_, String>(0))?;
         rows.map(|row| {
@@ -54,8 +54,8 @@ pub fn load_session_by_idempotency_key(
     persistence.with_connection_mut(|connection| {
         let mut statement = connection.prepare(
             r#"SELECT s.snapshot_json,e.payload_json
-               FROM silent_session_events e
-               JOIN silent_sessions s ON s.silent_session_id=e.silent_session_id
+               FROM silent_session_control_events e
+               JOIN silent_session_controls s ON s.silent_session_id=e.silent_session_id
                WHERE e.idempotency_key=?1 ORDER BY e.occurred_at,e.event_id"#,
         )?;
         let rows = statement.query_map([idempotency_key], |row| {
@@ -85,7 +85,7 @@ pub fn load_session_events(
         let mut statement = connection.prepare(
             r#"SELECT event_id,run_id,sequence,event_schema_version,kind,payload_json,
                idempotency_key,previous_event_hash,event_hash,occurred_at
-               FROM silent_session_events WHERE silent_session_id=?1 ORDER BY sequence"#,
+               FROM silent_session_control_events WHERE silent_session_id=?1 ORDER BY sequence"#,
         )?;
         let rows = statement.query_map([id.to_string()], |row| {
             let event_id: String = row.get(0)?;
@@ -139,7 +139,7 @@ pub fn load_session_events(
 pub fn save_run(persistence: &SqlitePersistence, run: &SilentSessionRun) -> anyhow::Result<()> {
     persistence.with_connection_mut(|connection| {
         connection.execute(
-            r#"INSERT INTO silent_session_runs(
+            r#"INSERT INTO silent_session_daemon_runs(
                run_id,silent_session_id,run_generation,actor_instance_id,config_revision_id,
                protocol_versions_json,run_json,started_at,ended_at
                ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)
@@ -166,7 +166,7 @@ pub fn load_run(
 ) -> anyhow::Result<Option<SilentSessionRun>> {
     load_json_by_id(
         persistence,
-        "SELECT run_json FROM silent_session_runs WHERE run_id=?1",
+        "SELECT run_json FROM silent_session_daemon_runs WHERE run_id=?1",
         id.to_string(),
     )
 }
@@ -177,7 +177,7 @@ pub fn save_config_revision(
 ) -> anyhow::Result<()> {
     persistence.with_connection_mut(|connection| {
         connection.execute(
-            r#"INSERT OR IGNORE INTO silent_session_config_revisions(
+            r#"INSERT OR IGNORE INTO silent_session_control_config_revisions(
                config_revision_id,silent_session_id,revision,config_schema_version,config_json,
                redacted_config_hash,created_by,created_at
                ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8)"#,
@@ -205,7 +205,7 @@ pub fn load_config_revision(
             .query_row(
                 r#"SELECT silent_session_id,revision,config_schema_version,config_json,
                    redacted_config_hash,created_by,created_at
-                   FROM silent_session_config_revisions WHERE config_revision_id=?1"#,
+                   FROM silent_session_control_config_revisions WHERE config_revision_id=?1"#,
                 [id.to_string()],
                 |row| {
                     Ok((
@@ -245,7 +245,7 @@ pub fn load_runtime_checkpoint(
 ) -> anyhow::Result<Option<RuntimeCheckpoint>> {
     load_json_by_id(
         persistence,
-        "SELECT checkpoint_json FROM silent_session_checkpoints WHERE checkpoint_id=?1 AND checkpoint_kind='runtime'",
+        "SELECT checkpoint_json FROM silent_session_control_checkpoints WHERE checkpoint_id=?1 AND checkpoint_kind='runtime'",
         id.to_string(),
     )
 }
@@ -256,7 +256,7 @@ pub fn load_workpoint_checkpoint(
 ) -> anyhow::Result<Option<SilentSessionWorkpointCheckpoint>> {
     load_json_by_id(
         persistence,
-        "SELECT checkpoint_json FROM silent_session_checkpoints WHERE checkpoint_id=?1 AND checkpoint_kind='workpoint'",
+        "SELECT checkpoint_json FROM silent_session_control_checkpoints WHERE checkpoint_id=?1 AND checkpoint_kind='workpoint'",
         id.to_string(),
     )
 }
@@ -301,7 +301,7 @@ pub fn save_lease(
 ) -> anyhow::Result<()> {
     persistence.with_connection_mut(|connection| {
         connection.execute(
-            r#"INSERT INTO silent_session_leases(
+            r#"INSERT INTO silent_session_control_leases(
                lease_id,silent_session_id,run_id,owner_actor_instance_id,fencing_token,status,
                lease_json,issued_at,expires_at) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)
                ON CONFLICT(lease_id) DO UPDATE SET status=excluded.status,
@@ -328,7 +328,7 @@ pub fn load_lease(
 ) -> anyhow::Result<Option<SilentSessionLease>> {
     load_json_by_id(
         persistence,
-        "SELECT lease_json FROM silent_session_leases WHERE lease_id=?1",
+        "SELECT lease_json FROM silent_session_control_leases WHERE lease_id=?1",
         id.to_string(),
     )
 }
@@ -339,7 +339,7 @@ pub fn save_completion_evaluation(
 ) -> anyhow::Result<()> {
     persistence.with_connection_mut(|connection| {
         connection.execute(
-            r#"INSERT OR IGNORE INTO silent_session_completion_evaluations(
+            r#"INSERT OR IGNORE INTO silent_session_control_completion_evaluations(
                completion_evaluation_id,silent_session_id,run_id,decision,evaluation_json,
                receipt_ready,evaluated_at) VALUES (?1,?2,?3,?4,?5,?6,?7)"#,
             params![
@@ -362,7 +362,7 @@ pub fn load_completion_evaluation(
 ) -> anyhow::Result<Option<CompletionEvaluation>> {
     load_json_by_id(
         persistence,
-        "SELECT evaluation_json FROM silent_session_completion_evaluations WHERE completion_evaluation_id=?1",
+        "SELECT evaluation_json FROM silent_session_control_completion_evaluations WHERE completion_evaluation_id=?1",
         id.to_string(),
     )
 }
@@ -374,7 +374,7 @@ pub fn list_checkpoint_values(
 ) -> anyhow::Result<Vec<serde_json::Value>> {
     persistence.with_connection_mut(|connection| {
         let mut statement = connection.prepare(
-            r#"SELECT checkpoint_json FROM silent_session_checkpoints
+            r#"SELECT checkpoint_json FROM silent_session_control_checkpoints
                WHERE silent_session_id=?1 AND (run_id=?2 OR run_id IS NULL)
                ORDER BY event_sequence DESC,created_at DESC"#,
         )?;
@@ -393,7 +393,7 @@ pub fn list_completion_evaluations(
 ) -> anyhow::Result<Vec<CompletionEvaluation>> {
     persistence.with_connection_mut(|connection| {
         let mut statement = connection.prepare(
-            r#"SELECT evaluation_json FROM silent_session_completion_evaluations
+            r#"SELECT evaluation_json FROM silent_session_control_completion_evaluations
                WHERE silent_session_id=?1 AND run_id=?2 ORDER BY evaluated_at DESC"#,
         )?;
         let rows = statement
@@ -418,7 +418,7 @@ fn save_checkpoint<T: Serialize>(
 ) -> anyhow::Result<()> {
     persistence.with_connection_mut(|connection| {
         connection.execute(
-            r#"INSERT OR IGNORE INTO silent_session_checkpoints(
+            r#"INSERT OR IGNORE INTO silent_session_control_checkpoints(
                checkpoint_id,silent_session_id,run_id,checkpoint_kind,event_sequence,
                checkpoint_json,checkpoint_hash,created_at) VALUES (?1,?2,?3,?4,?5,?6,?7,?8)"#,
             params![

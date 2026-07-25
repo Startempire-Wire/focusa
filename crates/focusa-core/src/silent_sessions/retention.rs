@@ -41,7 +41,7 @@ pub fn load_retention_operation(
     persistence.with_connection_mut(|connection| {
         connection
             .query_row(
-                "SELECT request_hash,response_json FROM silent_session_retention_operations WHERE session_id=?1 AND action=?2 AND idempotency_key=?3 AND principal_id=?4",
+                "SELECT request_hash,response_json FROM silent_session_control_retention_operations WHERE session_id=?1 AND action=?2 AND idempotency_key=?3 AND principal_id=?4",
                 params![session_id.to_string(), action, idempotency_key, principal_id],
                 |row| {
                     let request_hash: String = row.get(0)?;
@@ -72,7 +72,7 @@ pub fn save_retention_operation(
 ) -> anyhow::Result<()> {
     persistence.with_connection_mut(|connection| {
         connection.execute(
-            "INSERT INTO silent_session_retention_operations(session_id,action,idempotency_key,principal_id,request_hash,response_json,created_at) VALUES (?1,?2,?3,?4,?5,?6,?7)",
+            "INSERT INTO silent_session_control_retention_operations(session_id,action,idempotency_key,principal_id,request_hash,response_json,created_at) VALUES (?1,?2,?3,?4,?5,?6,?7)",
             params![session_id.to_string(), action, idempotency_key, principal_id, request_hash, serde_json::to_string(response)?, Utc::now().to_rfc3339()],
         )?;
         Ok(())
@@ -86,7 +86,7 @@ pub fn load_retention_record(
     persistence.with_connection_mut(|connection| {
         connection
             .query_row(
-                "SELECT session_id,evidence_hold,hold_reason,hold_expires_at,deleted_at,delete_reason,updated_at FROM silent_session_retention WHERE session_id=?1",
+                "SELECT session_id,evidence_hold,hold_reason,hold_expires_at,deleted_at,delete_reason,updated_at FROM silent_session_control_retention WHERE session_id=?1",
                 params![session_id.to_string()],
                 |row| {
                     Ok(SilentSessionRetentionRecord {
@@ -114,7 +114,7 @@ pub fn set_evidence_hold(
     let now = Utc::now().to_rfc3339();
     persistence.with_connection_mut(|connection| {
         connection.execute(
-            "INSERT INTO silent_session_retention(session_id,evidence_hold,hold_reason,hold_expires_at,updated_at) VALUES (?1,1,?2,?3,?4) ON CONFLICT(session_id) DO UPDATE SET evidence_hold=1,hold_reason=excluded.hold_reason,hold_expires_at=excluded.hold_expires_at,updated_at=excluded.updated_at",
+            "INSERT INTO silent_session_control_retention(session_id,evidence_hold,hold_reason,hold_expires_at,updated_at) VALUES (?1,1,?2,?3,?4) ON CONFLICT(session_id) DO UPDATE SET evidence_hold=1,hold_reason=excluded.hold_reason,hold_expires_at=excluded.hold_expires_at,updated_at=excluded.updated_at",
             params![session_id.to_string(), reason, expires_at, now],
         )?;
         Ok(())
@@ -131,7 +131,7 @@ pub fn ordinary_delete_session(
     let now = Utc::now().to_rfc3339();
     persistence.with_connection_mut(|connection| {
         connection.execute(
-            "INSERT INTO silent_session_retention(session_id,evidence_hold,deleted_at,delete_reason,updated_at) VALUES (?1,0,?2,?3,?2) ON CONFLICT(session_id) DO UPDATE SET deleted_at=excluded.deleted_at,delete_reason=excluded.delete_reason,updated_at=excluded.updated_at",
+            "INSERT INTO silent_session_control_retention(session_id,evidence_hold,deleted_at,delete_reason,updated_at) VALUES (?1,0,?2,?3,?2) ON CONFLICT(session_id) DO UPDATE SET deleted_at=excluded.deleted_at,delete_reason=excluded.delete_reason,updated_at=excluded.updated_at",
             params![session_id.to_string(), now, reason],
         )?;
         Ok(())
@@ -176,19 +176,28 @@ pub fn purge_session(
         anyhow::bail!("evidence_hold_active");
     }
     let tables = [
-        ("silent_session_notifications", "silent_session_id"),
-        ("silent_session_completion_evaluations", "silent_session_id"),
-        ("silent_session_checkpoints", "silent_session_id"),
-        ("silent_session_stream_indexes", "silent_session_id"),
-        ("silent_session_events", "silent_session_id"),
-        ("silent_session_leases", "silent_session_id"),
-        ("silent_session_backend_bindings", "silent_session_id"),
-        ("silent_session_approvals", "session_id"),
+        ("silent_session_control_notifications", "silent_session_id"),
+        (
+            "silent_session_control_completion_evaluations",
+            "silent_session_id",
+        ),
+        ("silent_session_control_checkpoints", "silent_session_id"),
+        ("silent_session_control_stream_indexes", "silent_session_id"),
+        ("silent_session_control_events", "silent_session_id"),
+        ("silent_session_control_leases", "silent_session_id"),
+        (
+            "silent_session_control_backend_bindings",
+            "silent_session_id",
+        ),
+        ("silent_session_control_approvals", "session_id"),
         ("silent_session_control_audits", "session_id"),
-        ("silent_session_runs", "silent_session_id"),
-        ("silent_session_config_revisions", "silent_session_id"),
-        ("silent_session_retention", "session_id"),
-        ("silent_sessions", "silent_session_id"),
+        ("silent_session_daemon_runs", "silent_session_id"),
+        (
+            "silent_session_control_config_revisions",
+            "silent_session_id",
+        ),
+        ("silent_session_control_retention", "session_id"),
+        ("silent_session_controls", "silent_session_id"),
     ];
     let session = session_id.to_string();
     let table_counts = persistence.with_connection_mut(|connection| {

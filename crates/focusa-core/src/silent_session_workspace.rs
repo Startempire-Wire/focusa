@@ -159,7 +159,13 @@ pub fn materialize_isolated_worktree(
         .workspace_root
         .parent()
         .ok_or(WorkspacePlanError::UnsafeWorkspaceParent)?;
+    let parent_existed = parent.exists();
     fs::create_dir_all(parent).map_err(io_error)?;
+    #[cfg(unix)]
+    if !parent_existed {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(parent, fs::Permissions::from_mode(0o700)).map_err(io_error)?;
+    }
     validate_private_directory(parent)?;
 
     let output = Command::new("git")

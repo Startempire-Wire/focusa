@@ -311,7 +311,11 @@ fn insert_binding_candidate(
         });
     entry.score = entry.score.max(score);
     if !entry.sources.iter().any(|value| value == source) {
-        entry.sources.push(source.to_string());
+        if source == "explicit_project_root" {
+            entry.sources.insert(0, source.to_string());
+        } else {
+            entry.sources.push(source.to_string());
+        }
     }
     for marker in markers {
         if !entry.markers.contains(&marker) {
