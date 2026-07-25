@@ -481,6 +481,14 @@ struct UpdateApplyEnvelope {
     proof_required: Vec<&'static str>,
     blocked_reason: Vec<String>,
     recovery_hint: String,
+    installed: serde_json::Value,
+    latest: String,
+    applied: bool,
+    surfaces: Vec<String>,
+    rollback: serde_json::Value,
+    next_action: String,
+    blockers: Vec<String>,
+    error: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -678,6 +686,7 @@ pub async fn run(cmd: UpdateCmd, json_mode: bool) -> anyhow::Result<()> {
                     }
                 }
             }
+            refresh_apply_summary(&mut apply);
             if json_mode {
                 println!("{}", serde_json::to_string_pretty(&apply)?);
             } else {
@@ -2035,6 +2044,38 @@ fn chrono_like_timestamp() -> u64 {
         .as_secs()
 }
 
+fn refresh_apply_summary(apply: &mut UpdateApplyEnvelope) {
+    apply.applied = apply.apply_executed;
+    apply.blockers = apply.blocked_reason.clone();
+    apply.error = if apply.status == "blocked_read_only" && !apply.blockers.is_empty() {
+        Some(format!("update_blocked:{}", apply.blockers.join(",")))
+    } else {
+        apply
+            .blocked_reason
+            .iter()
+            .find(|reason| reason.starts_with("apply_failed:"))
+            .cloned()
+    };
+    apply.rollback = serde_json::json!({
+        "performed": apply.status == "failed_rolled_back",
+        "available": true,
+        "journal": "focusa.update.apply.journal.v1",
+        "preserves": apply.data_safety.preserve,
+    });
+    apply.next_action = match apply.status {
+        "completed" => "Run focusa update status --json and verify every installed surface.".to_string(),
+        "already_current" => "No action required; all update-managed surfaces are current.".to_string(),
+        "failed_rolled_back" => "Inspect error and rollback journal; repair the release or environment before retrying.".to_string(),
+        _ if apply.blockers.iter().any(|reason| {
+            ["release", "manifest", "checksum", "signature", "deploy_proof"]
+                .iter()
+                .any(|needle| reason.contains(needle))
+        }) =>
+            "Release producer must publish a signed deploy-success proof and pass OTA trust verification; do not bypass trust.".to_string(),
+        _ => apply.recovery_hint.clone(),
+    };
+}
+
 fn build_apply_envelope(
     plan: UpdatePlanEnvelope,
     dry_run: bool,
@@ -2055,6 +2096,34 @@ fn build_apply_envelope(
         .parts
         .iter()
         .any(|part| part.part == "daemon" && part.action == "would_update");
+    let installed = serde_json::Value::Object(
+        plan.parts
+            .iter()
+            .map(|part| {
+                (
+                    part.part.to_string(),
+                    part.current_version
+                        .clone()
+                        .map_or(serde_json::Value::Null, serde_json::Value::String),
+                )
+            })
+            .collect(),
+    );
+    let latest = plan.latest.version.clone();
+    let surfaces = plan
+        .parts
+        .iter()
+        .map(|part| part.part.to_string())
+        .collect();
+    let blockers = blocked_reason.clone();
+    let next_action = if blockers
+        .iter()
+        .any(|reason| reason.contains("release_trust"))
+    {
+        "Release producer must publish a signed deploy-success proof and pass OTA trust verification; do not bypass trust.".to_string()
+    } else {
+        "Satisfy blockers, then rerun with --yes --allow-apply --dry-run false.".to_string()
+    };
     UpdateApplyEnvelope {
         schema: "focusa.update_apply.v1",
         status: if yes && allow_apply && !dry_run && plan.apply_allowed {
@@ -2110,6 +2179,14 @@ fn build_apply_envelope(
         ],
         recovery_hint: "No update was applied. Use focusa update plan --json to inspect and resolve the reported trust or safety blockers before retrying.".into(),
         blocked_reason,
+        installed,
+        latest,
+        applied: false,
+        surfaces,
+        rollback: serde_json::json!({"performed":false,"available":true}),
+        next_action,
+        blockers,
+        error: None,
         plan,
     }
 }
@@ -2336,18 +2413,23 @@ fn print_plan_human(plan: &UpdatePlanEnvelope) {
 }
 
 async fn resolve_latest(channel: &str, override_value: Option<&str>) -> LatestVersion {
-    if let Some(v) = override_value.filter(|s| !s.trim().is_empty()) {
-        return unresolved_latest(normalize_version(v), "--latest-version");
-    }
-    for env_key in ["FOCUSA_LATEST_VERSION", "FOCUSA_UPDATE_LATEST_TAG"] {
-        if let Ok(v) = std::env::var(env_key) {
-            if !v.trim().is_empty() {
-                return unresolved_latest(normalize_version(&v), env_key);
-            }
-        }
-    }
+    let explicit_version = override_value
+        .filter(|value| !value.trim().is_empty())
+        .map(normalize_version)
+        .or_else(|| {
+            ["FOCUSA_LATEST_VERSION", "FOCUSA_UPDATE_LATEST_TAG"]
+                .into_iter()
+                .find_map(|key| {
+                    std::env::var(key)
+                        .ok()
+                        .filter(|value| !value.trim().is_empty())
+                        .map(|value| normalize_version(&value))
+                })
+        });
     let admin = read_update_admin_state().unwrap_or_default();
-    let (pinned, skipped) = if admin.trusted_dev_force_latest {
+    let (pinned, skipped) = if let Some(explicit) = explicit_version.clone() {
+        (Some(explicit), Vec::new())
+    } else if admin.trusted_dev_force_latest {
         (None, Vec::new())
     } else {
         (admin.pinned_version, admin.skipped_versions)
@@ -2355,10 +2437,10 @@ async fn resolve_latest(channel: &str, override_value: Option<&str>) -> LatestVe
     match resolve_latest_github(channel, pinned.as_deref(), &skipped).await {
         Ok(latest) => latest,
         Err(error) => {
-            let mut latest = unresolved_latest(
-                env!("CARGO_PKG_VERSION").into(),
-                "current_cli_package_version",
-            );
+            let fallback_version =
+                explicit_version.unwrap_or_else(|| env!("CARGO_PKG_VERSION").to_string());
+            let mut latest =
+                unresolved_latest(fallback_version, "github_release_resolution_failed");
             latest
                 .trust
                 .blockers
@@ -2411,9 +2493,18 @@ async fn resolve_latest_github(
     let repo = github_repo();
     let triple = target_triple();
     let url = format!("https://api.github.com/repos/{repo}/releases?per_page=20");
-    let releases = reqwest::Client::new()
+    let client = reqwest::Client::new();
+    let mut request = client
         .get(&url)
-        .header("User-Agent", "focusa-update-resolver")
+        .header("User-Agent", "focusa-update-resolver");
+    if let Some(token) = std::env::var("GITHUB_TOKEN")
+        .ok()
+        .or_else(|| std::env::var("GH_TOKEN").ok())
+        .filter(|value| !value.trim().is_empty())
+    {
+        request = request.bearer_auth(token);
+    }
+    let releases = request
         .send()
         .await?
         .error_for_status()?

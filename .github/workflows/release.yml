@@ -87,6 +87,9 @@ jobs:
         with:
           toolchain: nightly-2026-01-08
           components: clippy
+      - name: OTA installability release contract gate
+        if: ${{ startsWith(github.ref, refs/tags/) }}
+        run: python3 tests/spec143_ota_installability_release_gate_test.py
       - name: Build standalone daemon required by cross-phase smoke test
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
         run: cargo build -p focusa-api --bin focusa-daemon
@@ -575,6 +578,9 @@ jobs:
             os: macos-latest
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            musl: true
 
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
@@ -733,10 +739,10 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          echo "deploy_dispatch: tag=${TAG} asset_suffix=x86_64-unknown-linux-gnu repo=${REPO}"
+          echo "deploy_dispatch: tag=${TAG} asset_suffix=x86_64-unknown-linux-musl repo=${REPO}"
           gh workflow run 'Deploy Live Daemon' \
             --repo "$REPO" \
             --ref main \
             -f release_tag="$TAG" \
-            -f asset_suffix="x86_64-unknown-linux-gnu" \
+            -f asset_suffix="x86_64-unknown-linux-musl" \
             -f dry_run=false
