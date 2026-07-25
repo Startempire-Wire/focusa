@@ -6,14 +6,17 @@ cd "$ROOT"
 
 fail() { printf '✗ FINAL RELEASE GAP: %s\n' "$*" >&2; exit 1; }
 pass() { printf '✓ %s\n' "$*"; }
+search() {
+  if command -v rg >/dev/null 2>&1; then rg -n "$1" "$2"; else grep -En "$1" "$2"; fi
+}
 require() {
   local pattern="$1" file="$2" message="$3"
-  rg -n "$pattern" "$file" >/dev/null || fail "$message"
+  search "$pattern" "$file" >/dev/null || fail "$message"
   pass "$message"
 }
 forbid() {
   local pattern="$1" file="$2" message="$3"
-  if rg -n "$pattern" "$file" >/dev/null; then fail "$message"; fi
+  if search "$pattern" "$file" >/dev/null; then fail "$message"; fi
   pass "$message"
 }
 
