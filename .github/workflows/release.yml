@@ -136,6 +136,8 @@ jobs:
 
       - name: Generate release notes
         id: notes
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${{ github.ref_name }}"
           # Build a complete, durable changelog from the exact tag delta.
@@ -200,7 +202,7 @@ jobs:
           CONTRIBUTORS=${CONTRIBUTORS:-"- None recorded."}
           KNOWN_ISSUES=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 500 \
             --label "release-note:known-issue" --json number,title,url \
-            | jq -r '.[] | "- [" + .title + "](" + .url + ") (#" + (.number|tostring) + ")')
+            | jq -r '.[] | "- [" + .title + "](" + .url + ") (#" + (.number|tostring) + ")"')
           KNOWN_ISSUES=${KNOWN_ISSUES:-"- None declared."}
 
           # Write current, non-stale notes to file (heredoc avoids escaping issues).
