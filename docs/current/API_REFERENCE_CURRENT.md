@@ -3144,6 +3144,22 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Sources: `crates/focusa-api/src/routes/trajectory.rs`
 - Agent operations: `focusa.trajectory.propose_workpoint`
 
+### `/v1/trajectory/history`
+
+- Methods: `GET /v1/trajectory/history`
+- Classification: `operator_only`
+- Rationale: Full project-scoped Ladder history; explicit project scope is mandatory. Pi capability registration follows the Spec141 surface wave.
+- Sources: `crates/focusa-api/src/routes/trajectory.rs`
+- Agent operations: none
+
+### `/v1/trajectory/query`
+
+- Methods: `GET /v1/trajectory/query`
+- Classification: `operator_only`
+- Rationale: Filtered/as-of Ladder reconstruction; explicit project scope is mandatory. Pi capability registration follows the Spec141 surface wave.
+- Sources: `crates/focusa-api/src/routes/trajectory.rs`
+- Agent operations: none
+
 ### `/v1/trajectory/resume`
 
 - Methods: `POST /v1/trajectory/resume`

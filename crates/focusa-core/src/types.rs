@@ -1298,6 +1298,117 @@ impl HltLedgerEntry {
     }
 }
 
+/// Canonical Trajectory Ladder event level. Non-goal links share the same ledger
+/// so historical reconstruction never depends on recency across stores.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TrajectoryLadderLevel {
+    Hlt,
+    Mlg,
+    Stg,
+    Waypoint,
+    CurrentState,
+    Gap,
+    Specification,
+    Task,
+    Workpoint,
+    FocusStack,
+    Release,
+    MarkerGuard,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TrajectoryLadderEventKind {
+    Proposed,
+    Committed,
+    Superseded,
+    Inferred,
+    Advanced,
+    Observed,
+    Assessed,
+    Bound,
+    Reconciled,
+    Activated,
+    Completed,
+    HandedOff,
+    ConflictDetected,
+    ConflictResolved,
+    Verified,
+    Failed,
+    Repaired,
+    Migrated,
+    StateTransitioned,
+    ReceiptLinked,
+}
+
+/// Append-only, project-scoped event used for full Ladder history/query,
+/// deterministic fallback, migration receipts, and as-of reconstruction.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TrajectoryLadderEvent {
+    pub schema_version: String,
+    pub event_id: String,
+    pub trajectory_id: String,
+    pub project_root: String,
+    pub continuity_id: Option<String>,
+    pub session_id: Option<String>,
+    pub hlt_version: u64,
+    pub causal_parent_event_id: Option<String>,
+    pub event_kind: TrajectoryLadderEventKind,
+    pub level: TrajectoryLadderLevel,
+    pub object_id: Option<String>,
+    #[serde(default)]
+    pub old_value: serde_json::Value,
+    #[serde(default)]
+    pub new_value: serde_json::Value,
+    pub actor: String,
+    pub source: String,
+    pub authority: String,
+    pub provenance: String,
+    pub confidence: TrajectoryConfidence,
+    pub reason: Option<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    pub idempotency_key: Option<String>,
+    pub lamport_ts: u64,
+    pub timestamp: DateTime<Utc>,
+}
+
+impl TrajectoryLadderEvent {
+    pub const SCHEMA_VERSION: &'static str = "focusa.trajectory_ladder_event.v1";
+
+    pub fn from_hlt_ledger(entry: &HltLedgerEntry) -> Self {
+        Self {
+            schema_version: Self::SCHEMA_VERSION.to_string(),
+            event_id: format!("legacy-hlt:{}", entry.event_id),
+            trajectory_id: format!("trajectory:legacy:{:016x}", entry.lamport_ts),
+            project_root: entry.project_root.clone(),
+            continuity_id: entry.continuity_id.clone(),
+            session_id: entry.session_id.clone(),
+            hlt_version: entry.lamport_ts.max(1),
+            causal_parent_event_id: None,
+            event_kind: TrajectoryLadderEventKind::Migrated,
+            level: TrajectoryLadderLevel::Hlt,
+            object_id: None,
+            old_value: entry
+                .old_hlt
+                .clone()
+                .map_or(serde_json::Value::Null, serde_json::Value::String),
+            new_value: serde_json::Value::String(entry.new_hlt.clone()),
+            actor: entry.source.clone(),
+            source: "legacy_hlt_ledger".to_string(),
+            authority: "legacy_compatible".to_string(),
+            provenance: "hlt_ledger_projection".to_string(),
+            confidence: TrajectoryConfidence::High,
+            reason: entry.reason.clone(),
+            evidence_refs: entry.evidence_refs.clone(),
+            idempotency_key: Some(entry.event_id.clone()),
+            lamport_ts: entry.lamport_ts,
+            timestamp: entry.timestamp,
+        }
+    }
+}
+
 /// Call Stack Design — typed, append-only, evidence-linkable artifact
 /// written *before* implementing a feature. Per Spec 103.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

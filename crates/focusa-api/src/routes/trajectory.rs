@@ -19,6 +19,7 @@ use focusa_core::types::{
     EventLogEntry, FocusState, FocusaEvent, FocusaSessionIdentity, FocusaState, FrameRecord,
     HltLedgerEntry, HltStatus, SignalOrigin, TrajectoryConfidence,
     TrajectoryDefinitionOfDoneRecord, TrajectoryDefinitionStatus, TrajectoryGoalProvenanceRecord,
+    TrajectoryLadderEvent, TrajectoryLadderEventKind, TrajectoryLadderLevel,
     TrajectoryProjectionRecord, TrajectoryWaypointRecord, TrajectoryWaypointStatus,
     WorkpointRecord, WorkpointStatus, classify_hlt, trajectory_caps,
 };
@@ -510,6 +511,115 @@ fn trajectory_waypoint_records(
             ..TrajectoryWaypointRecord::default()
         })
         .collect()
+}
+
+fn trajectory_commit_events(
+    trajectory: &TrajectoryProjectionRecord,
+    previous: Option<&TrajectoryProjectionRecord>,
+    hlt_entry: &HltLedgerEntry,
+    evidence_refs: &[String],
+    idempotency_key: Option<&str>,
+) -> Vec<TrajectoryLadderEvent> {
+    let mut events = Vec::new();
+    let mut parent = None;
+    let mut lamport = hlt_entry.lamport_ts;
+    let hlt_version = hlt_entry.lamport_ts.max(1);
+    let mut push_event = |level: TrajectoryLadderLevel,
+                          object_id: Option<String>,
+                          old_value: Value,
+                          new_value: Value,
+                          event_id: Option<String>| {
+        let id = event_id.unwrap_or_else(|| Uuid::now_v7().to_string());
+        events.push(TrajectoryLadderEvent {
+            schema_version: TrajectoryLadderEvent::SCHEMA_VERSION.to_string(),
+            event_id: id.clone(),
+            trajectory_id: trajectory.trajectory_id.clone(),
+            project_root: trajectory.project_root.clone().unwrap_or_default(),
+            continuity_id: trajectory.continuity_id.clone(),
+            session_id: trajectory
+                .session_identity
+                .as_ref()
+                .and_then(|identity| identity.pi_session_id.clone()),
+            hlt_version,
+            causal_parent_event_id: parent.clone(),
+            event_kind: TrajectoryLadderEventKind::Committed,
+            level,
+            object_id,
+            old_value,
+            new_value,
+            actor: "trajectory_define_goal".to_string(),
+            source: "trajectory_define_goal".to_string(),
+            authority: "canonical_explicit".to_string(),
+            provenance: "operator_or_durable_supersession".to_string(),
+            confidence: trajectory.confidence,
+            reason: Some("trajectory_goal_defined".to_string()),
+            evidence_refs: evidence_refs.to_vec(),
+            idempotency_key: idempotency_key.map(str::to_string),
+            lamport_ts: lamport,
+            timestamp: hlt_entry.timestamp,
+        });
+        parent = Some(id);
+        lamport = lamport.saturating_add(1);
+    };
+
+    push_event(
+        TrajectoryLadderLevel::Hlt,
+        None,
+        previous.map_or(Value::Null, |record| json!(record.long_term_goal)),
+        json!(trajectory.long_term_goal),
+        Some(format!("legacy-hlt:{}", hlt_entry.event_id)),
+    );
+    if let Some(value) = &trajectory.mid_level_goal {
+        push_event(
+            TrajectoryLadderLevel::Mlg,
+            None,
+            previous
+                .and_then(|record| record.mid_level_goal.clone())
+                .map_or(Value::Null, Value::String),
+            json!(value),
+            None,
+        );
+    }
+    if let Some(value) = &trajectory.short_term_goal {
+        push_event(
+            TrajectoryLadderLevel::Stg,
+            None,
+            previous
+                .and_then(|record| record.short_term_goal.clone())
+                .map_or(Value::Null, Value::String),
+            json!(value),
+            None,
+        );
+    }
+    for waypoint in &trajectory.waypoints {
+        let old_value = previous
+            .and_then(|record| {
+                record
+                    .waypoints
+                    .iter()
+                    .find(|candidate| candidate.waypoint_id == waypoint.waypoint_id)
+            })
+            .map_or(Value::Null, |record| json!(record));
+        push_event(
+            TrajectoryLadderLevel::Waypoint,
+            Some(waypoint.waypoint_id.clone()),
+            old_value,
+            json!(waypoint),
+            None,
+        );
+    }
+    if let Some(value) = &trajectory.current_state {
+        push_event(
+            TrajectoryLadderLevel::CurrentState,
+            None,
+            previous
+                .and_then(|record| record.current_state.clone())
+                .map_or(Value::Null, Value::String),
+            json!(value),
+            None,
+        );
+    }
+    events
 }
 
 fn trajectory_definition_of_done_record(
@@ -2420,14 +2530,18 @@ async fn define_goal(
     let focusa = state.focusa.read().await;
     let mut payload = define_goal_payload(&focusa, &body);
     let trajectory_record = trajectory_record_from_define_payload(&payload, &body);
-    // Get old HLT before dispatch (for ledger entry)
-    let old_hlt = focusa
+    let trajectory_for_ledger = trajectory_record.clone();
+    // Snapshot prior canonical state for lossless event old/new values.
+    let previous_trajectory = focusa
         .trajectory
         .records
         .iter()
         .rev()
-        .find(|r| r.project_root.as_ref() == body.project_root.as_ref())
-        .map(|r| r.long_term_goal.clone());
+        .find(|record| record.project_root.as_ref() == body.project_root.as_ref())
+        .cloned();
+    let old_hlt = previous_trajectory
+        .as_ref()
+        .map(|record| record.long_term_goal.clone());
     let project_root_for_ledger = body.project_root.clone();
     let continuity_id_for_ledger = body
         .continuity_id
@@ -2534,8 +2648,23 @@ async fn define_goal(
             .with_scope(continuity_id_for_ledger, session_id_for_ledger)
             .with_reason(Some("trajectory_goal_defined".to_string()))
             .with_evidence(evidence_refs.clone());
-            if let Err(e) = state.persistence.append_hlt_ledger_entry(&entry) {
-                warn!("Failed to append HLT ledger entry: {:?}", e);
+            if let Some(ref trajectory) = trajectory_for_ledger {
+                let events = trajectory_commit_events(
+                    trajectory,
+                    previous_trajectory.as_ref(),
+                    &entry,
+                    &evidence_refs,
+                    body.idempotency_key.as_deref(),
+                );
+                if let Err(error) = state.persistence.append_trajectory_ladder_events(&events) {
+                    warn!("Failed to append Trajectory Ladder events: {:?}", error);
+                    side_effects.push("trajectory_ladder_write_failed");
+                } else {
+                    side_effects.push("trajectory_ladder_events_appended");
+                }
+            }
+            if let Err(error) = state.persistence.append_hlt_ledger_entry(&entry) {
+                warn!("Failed to append HLT ledger entry: {:?}", error);
                 side_effects.push("hlt_ledger_write_failed");
             } else {
                 side_effects.push("hlt_ledger_entry_appended");
@@ -2700,6 +2829,204 @@ async fn resume(
         vec![],
         vec![],
     ))
+}
+
+#[derive(Debug, Deserialize, Default)]
+pub struct TrajectoryHistoryRequest {
+    pub project_root: Option<String>,
+    pub continuity_id: Option<String>,
+    pub trajectory_id: Option<String>,
+    pub hlt_version: Option<u64>,
+    pub level: Option<String>,
+    pub event_kind: Option<String>,
+    pub cursor: Option<u64>,
+    pub as_of: Option<String>,
+    pub limit: Option<usize>,
+}
+
+fn trajectory_event_enum_name<T: serde::Serialize>(value: T) -> String {
+    serde_json::to_value(value)
+        .ok()
+        .and_then(|value| value.as_str().map(str::to_string))
+        .unwrap_or_default()
+}
+
+fn reconstruct_trajectory_events(events: &[TrajectoryLadderEvent]) -> Value {
+    let mut hlt = Value::Null;
+    let mut mlg = Value::Null;
+    let mut stg = Value::Null;
+    let mut current_state = Value::Null;
+    let mut gap = Value::Null;
+    let mut waypoints: Vec<Value> = Vec::new();
+    let mut changed_levels = std::collections::BTreeSet::new();
+    for event in events {
+        changed_levels.insert(trajectory_event_enum_name(event.level));
+        match event.level {
+            TrajectoryLadderLevel::Hlt => hlt = event.new_value.clone(),
+            TrajectoryLadderLevel::Mlg => mlg = event.new_value.clone(),
+            TrajectoryLadderLevel::Stg => stg = event.new_value.clone(),
+            TrajectoryLadderLevel::CurrentState => current_state = event.new_value.clone(),
+            TrajectoryLadderLevel::Gap => gap = event.new_value.clone(),
+            TrajectoryLadderLevel::Waypoint => {
+                let object_id = event
+                    .object_id
+                    .as_deref()
+                    .or_else(|| event.new_value.get("waypoint_id").and_then(Value::as_str));
+                if let Some(object_id) = object_id {
+                    if let Some(index) = waypoints.iter().position(|waypoint| {
+                        waypoint.get("waypoint_id").and_then(Value::as_str) == Some(object_id)
+                    }) {
+                        waypoints[index] = event.new_value.clone();
+                    } else {
+                        waypoints.push(event.new_value.clone());
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    json!({
+        "hlt": hlt,
+        "mlg": mlg,
+        "stg": stg,
+        "waypoints": waypoints,
+        "current_state": current_state,
+        "gap": gap,
+        "changed_levels": changed_levels,
+        "from_event_id": events.first().map(|event| event.event_id.clone()),
+        "to_event_id": events.last().map(|event| event.event_id.clone()),
+    })
+}
+
+async fn trajectory_history(
+    _scope: ScopeContext,
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<TrajectoryHistoryRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let project_root = query
+        .project_root
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            (
+                StatusCode::BAD_REQUEST,
+                Json(json!({
+                    "status": "blocked",
+                    "code": "SCOPE_REQUIRED",
+                    "why": "project_root is required for Trajectory Ladder history/query",
+                    "next_step_hint": "verify project identity and retry with explicit project_root",
+                })),
+            )
+        })?;
+    let as_of = query
+        .as_of
+        .as_deref()
+        .map(chrono::DateTime::parse_from_rfc3339)
+        .transpose()
+        .map_err(|error| {
+            (
+                StatusCode::BAD_REQUEST,
+                Json(json!({"status":"validation_rejected","field":"as_of","error":error.to_string()})),
+            )
+        })?
+        .map(|value| value.with_timezone(&Utc));
+    let requested_limit = query.limit.unwrap_or(50).clamp(1, 500);
+    let mut events = state
+        .persistence
+        .read_trajectory_ladder_events(project_root, query.continuity_id.as_deref(), 500)
+        .map_err(|error| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({
+                    "status":"blocked",
+                    "code":"TRAJECTORY_LEDGER_READ_FAILED",
+                    "error":error.to_string(),
+                    "safe_retry":true,
+                })),
+            )
+        })?;
+    let mut fallback = Value::Null;
+    if query.continuity_id.is_some()
+        && !events
+            .iter()
+            .any(|event| event.level == TrajectoryLadderLevel::Hlt)
+    {
+        let project_events = state
+            .persistence
+            .read_trajectory_ladder_events(project_root, None, 500)
+            .unwrap_or_default();
+        let candidate = project_events.into_iter().rev().find(|event| {
+            event.level == TrajectoryLadderLevel::Hlt
+                && event
+                    .new_value
+                    .as_str()
+                    .is_some_and(|value| !is_generic_bootstrap_hlt(value))
+        });
+        if let Some(candidate) = candidate {
+            fallback = json!({
+                "selected_event_id": candidate.event_id,
+                "selected_hlt_version": candidate.hlt_version,
+                "valid": true,
+                "reason": "latest_valid_project_hlt_lineage",
+                "lower_level_cross_continuity": false,
+                "tie_break": "lamport_timestamp_event_id",
+            });
+            events.push(candidate);
+            events.sort_by(|left, right| {
+                left.lamport_ts
+                    .cmp(&right.lamport_ts)
+                    .then_with(|| left.timestamp.cmp(&right.timestamp))
+                    .then_with(|| left.event_id.cmp(&right.event_id))
+            });
+        }
+    }
+    events.retain(|event| {
+        query
+            .trajectory_id
+            .as_deref()
+            .is_none_or(|value| event.trajectory_id == value)
+            && query
+                .hlt_version
+                .is_none_or(|value| event.hlt_version == value)
+            && query.level.as_deref().is_none_or(|value| {
+                trajectory_event_enum_name(event.level).eq_ignore_ascii_case(value)
+            })
+            && query.event_kind.as_deref().is_none_or(|value| {
+                trajectory_event_enum_name(event.event_kind).eq_ignore_ascii_case(value)
+            })
+            && query.cursor.is_none_or(|cursor| event.lamport_ts < cursor)
+            && as_of.is_none_or(|as_of| event.timestamp <= as_of)
+    });
+    let start = events.len().saturating_sub(requested_limit);
+    let page = events[start..].to_vec();
+    let next_cursor = (start > 0)
+        .then(|| page.first().map(|event| event.lamport_ts))
+        .flatten();
+    let conflicted = page
+        .iter()
+        .rev()
+        .find_map(|event| match event.event_kind {
+            TrajectoryLadderEventKind::ConflictResolved => Some(false),
+            TrajectoryLadderEventKind::ConflictDetected => Some(true),
+            _ => None,
+        })
+        .unwrap_or(false);
+    let reconstruction = reconstruct_trajectory_events(&page);
+    Ok(Json(json!({
+        "status": "completed",
+        "canonical": true,
+        "schema_version": TrajectoryLadderEvent::SCHEMA_VERSION,
+        "project_root": project_root,
+        "continuity_id": query.continuity_id,
+        "count": page.len(),
+        "events": page,
+        "reconstruction": reconstruction,
+        "fallback": fallback,
+        "conflict_status": if conflicted { "CONFLICTED" } else { "CLEAR" },
+        "next_cursor": next_cursor,
+        "ledger_ref": state.persistence.trajectory_ledger_path_for_project(project_root),
+    })))
 }
 
 /// HLT History request — scope-bounded by project_root and continuity_id.
@@ -2886,6 +3213,8 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/trajectory/propose-workpoint", post(propose_workpoint))
         .route("/v1/trajectory/checkpoint", post(checkpoint))
         .route("/v1/trajectory/resume", post(resume))
+        .route("/v1/trajectory/history", get(trajectory_history))
+        .route("/v1/trajectory/query", get(trajectory_history))
         .route("/v1/hlt/history", get(hlt_history))
 }
 
@@ -3854,6 +4183,59 @@ mod tests {
                 .any(|value| value.as_str()
                     == Some("confirm project_root+continuity_id before checkpoint"))
         );
+    }
+
+    #[test]
+    fn trajectory_commit_events_are_causal_and_reconstruct_full_ladder() {
+        let trajectory = TrajectoryProjectionRecord {
+            trajectory_id: "trajectory:test".to_string(),
+            project_root: Some("/tmp/focusa-test".to_string()),
+            continuity_id: Some("continuity:test".to_string()),
+            long_term_goal: "HLT".to_string(),
+            mid_level_goal: Some("MLG".to_string()),
+            short_term_goal: Some("STG".to_string()),
+            waypoints: vec![TrajectoryWaypointRecord {
+                waypoint_id: "waypoint:one".to_string(),
+                title: "Waypoint one".to_string(),
+                desired_state_delta: "Delta".to_string(),
+                status: TrajectoryWaypointStatus::Active,
+                ..TrajectoryWaypointRecord::default()
+            }],
+            current_state: Some("Current".to_string()),
+            confidence: TrajectoryConfidence::High,
+            ..TrajectoryProjectionRecord::default()
+        };
+        let hlt_entry =
+            HltLedgerEntry::new("/tmp/focusa-test".to_string(), "HLT".to_string(), "test", 7)
+                .with_scope(Some("continuity:test".to_string()), None);
+        let events = trajectory_commit_events(
+            &trajectory,
+            None,
+            &hlt_entry,
+            &["evidence:test".to_string()],
+            Some("idempotency:test"),
+        );
+
+        assert_eq!(events.len(), 5);
+        assert_eq!(
+            events[0].event_id,
+            format!("legacy-hlt:{}", hlt_entry.event_id)
+        );
+        assert_eq!(events[0].level, TrajectoryLadderLevel::Hlt);
+        assert_eq!(events[3].level, TrajectoryLadderLevel::Waypoint);
+        for pair in events.windows(2) {
+            assert_eq!(
+                pair[1].causal_parent_event_id.as_deref(),
+                Some(pair[0].event_id.as_str())
+            );
+            assert!(pair[1].lamport_ts > pair[0].lamport_ts);
+        }
+        let reconstructed = reconstruct_trajectory_events(&events);
+        assert_eq!(reconstructed["hlt"], "HLT");
+        assert_eq!(reconstructed["mlg"], "MLG");
+        assert_eq!(reconstructed["stg"], "STG");
+        assert_eq!(reconstructed["waypoints"][0]["waypoint_id"], "waypoint:one");
+        assert_eq!(reconstructed["current_state"], "Current");
     }
 
     #[test]
