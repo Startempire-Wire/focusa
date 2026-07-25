@@ -5,6 +5,25 @@
 
 use reqwest::{Client, ClientBuilder};
 use serde_json::Value;
+
+fn redact_error_json(value: &mut Value) {
+    match value {
+        Value::Object(object) => {
+            for (key, value) in object {
+                let sensitive = ["secret", "token", "credential", "authorization", "api_key"]
+                    .iter()
+                    .any(|needle| key.to_ascii_lowercase().contains(needle));
+                if sensitive {
+                    *value = Value::String("[REDACTED]".into());
+                } else {
+                    redact_error_json(value);
+                }
+            }
+        }
+        Value::Array(values) => values.iter_mut().for_each(redact_error_json),
+        _ => {}
+    }
+}
 use std::process::{Command, Stdio};
 use std::time::Duration;
 
@@ -145,11 +164,17 @@ impl ApiClient {
         let status = resp.status();
         if !status.is_success() {
             let body = resp.text().await.unwrap_or_default();
+            let safe_body = serde_json::from_str::<Value>(&body)
+                .map(|mut value| {
+                    redact_error_json(&mut value);
+                    value.to_string()
+                })
+                .unwrap_or_else(|_| "[REDACTED_ERROR_BODY]".to_string());
             anyhow::bail!(
                 "[API_HTTP_ERROR] status={} url={} body={}",
                 status,
                 url,
-                body
+                safe_body
             );
         }
         resp.json()
@@ -179,11 +204,17 @@ impl ApiClient {
         let status = resp.status();
         if !status.is_success() {
             let body = resp.text().await.unwrap_or_default();
+            let safe_body = serde_json::from_str::<Value>(&body)
+                .map(|mut value| {
+                    redact_error_json(&mut value);
+                    value.to_string()
+                })
+                .unwrap_or_else(|_| "[REDACTED_ERROR_BODY]".to_string());
             anyhow::bail!(
                 "[API_HTTP_ERROR] status={} url={} body={}",
                 status,
                 url,
-                body
+                safe_body
             );
         }
         resp.json()

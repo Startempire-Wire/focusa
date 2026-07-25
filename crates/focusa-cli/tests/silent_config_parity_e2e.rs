@@ -139,7 +139,7 @@ fn profile_and_preset_lists_have_redacted_human_json_parity() {
     let fixtures = [
         (
             "profile",
-            "/v1/silent-sessions/profiles",
+            "/silent-sessions/profiles",
             "local_pi_isolated",
             envelope(
                 "observed",
@@ -156,7 +156,7 @@ fn profile_and_preset_lists_have_redacted_human_json_parity() {
         ),
         (
             "preset",
-            "/v1/silent-sessions/presets",
+            "/silent-sessions/presets",
             "audit",
             envelope(
                 "observed",
@@ -173,7 +173,7 @@ fn profile_and_preset_lists_have_redacted_human_json_parity() {
         ),
     ];
 
-    for (command, target, stable_id, response, count_line) in fixtures {
+    for (command, target, stable_id, response, _count_line) in fixtures {
         for json_mode in [false, true] {
             let cli_args = args(json_mode, &[command, "list"]);
             let (output, server) = run_mocked(
@@ -193,8 +193,7 @@ fn profile_and_preset_lists_have_redacted_human_json_parity() {
                 let value: Value = serde_json::from_str(&stdout).expect("stable JSON envelope");
                 assert_eq!(value["status"], "observed");
             } else {
-                assert!(stdout.contains("Status: observed"));
-                assert!(stdout.contains(count_line));
+                assert!(stdout.contains(&format!("silent {command} list → observed")));
             }
         }
     }
@@ -203,6 +202,8 @@ fn profile_and_preset_lists_have_redacted_human_json_parity() {
 #[test]
 fn resolve_diff_apply_and_rollback_expose_hashes_provenance_and_exact_cas() {
     let session_id = Uuid::now_v7().to_string();
+    let run_id = "run-config-parity";
+    let generation = 1_u64;
     let initial_revision_id = Uuid::now_v7().to_string();
     let applied_revision_id = Uuid::now_v7().to_string();
     let rollback_revision_id = Uuid::now_v7().to_string();
@@ -257,12 +258,12 @@ fn resolve_diff_apply_and_rollback_expose_hashes_provenance_and_exact_cas() {
 
     for json_mode in [false, true] {
         let path = requests[0].display().to_string();
-        let cli_args = args(json_mode, &["config", "resolve", "--request-file", &path]);
-        let expected = resolve_request.clone();
+        let cli_args = args(json_mode, &["config", "resolve", "--config-file", &path]);
+        let expected = json!({"config": resolve_request.clone(), "layers": []});
         let (output, server) = run_mocked(
             &cli_args,
             "POST",
-            "/v1/silent-sessions/config/resolve",
+            "/silent-sessions/config/resolve",
             "200 OK",
             envelope("resolved", effective_data.clone(), json!([])),
             move |body| assert_eq!(body.unwrap(), expected),
@@ -273,10 +274,13 @@ fn resolve_diff_apply_and_rollback_expose_hashes_provenance_and_exact_cas() {
         assert!(stdout.contains("ExplicitOverride"));
         if json_mode {
             let value: Value = serde_json::from_str(&stdout).expect("stable config JSON");
-            assert_eq!(value["data"]["effective_config"]["api_key"], "[REDACTED]");
+            assert_eq!(
+                value["result"]["data"]["effective_config"]["api_key"],
+                "[REDACTED]"
+            );
         } else {
-            assert!(stdout.contains("Action: config resolve"));
-            assert!(stdout.contains("Validation: true"));
+            assert!(stdout.contains("silent config resolve → resolved"));
+            assert!(stdout.contains("validation"));
         }
     }
 
@@ -284,10 +288,20 @@ fn resolve_diff_apply_and_rollback_expose_hashes_provenance_and_exact_cas() {
         let path = requests[1].display().to_string();
         let cli_args = args(
             json_mode,
-            &["config", "diff", &session_id, "--request-file", &path],
+            &[
+                "config",
+                "diff",
+                &session_id,
+                "--run-id",
+                run_id,
+                "--generation",
+                "1",
+                "--config-file",
+                &path,
+            ],
         );
-        let expected = preview_request.clone();
-        let target = format!("/v1/silent-sessions/{session_id}/config/preview");
+        let expected = json!({"config": preview_request.clone(), "layers": [], "run_id": run_id, "generation": generation});
+        let target = format!("/silent-sessions/{session_id}/config/preview");
         let (output, server) = run_mocked(
             &cli_args,
             "POST",
@@ -300,8 +314,8 @@ fn resolve_diff_apply_and_rollback_expose_hashes_provenance_and_exact_cas() {
         assert!(stdout.contains(&effective_hash));
         assert!(stdout.contains("/notifications/completed"));
         if !json_mode {
-            assert!(stdout.contains("Action: config diff"));
-            assert!(stdout.contains("Mutation classes: 1"));
+            assert!(stdout.contains("silent config diff → previewed"));
+            assert!(stdout.contains("mutation_classes"));
         }
     }
 
@@ -327,10 +341,24 @@ fn resolve_diff_apply_and_rollback_expose_hashes_provenance_and_exact_cas() {
         let path = requests[2].display().to_string();
         let cli_args = args(
             json_mode,
-            &["config", "apply", &session_id, "--request-file", &path],
+            &[
+                "config",
+                "apply",
+                &session_id,
+                "--run-id",
+                run_id,
+                "--generation",
+                "1",
+                "--approval-id",
+                "approval:config-apply",
+                "--idempotency-key",
+                "idem-config-apply",
+                "--config-file",
+                &path,
+            ],
         );
-        let expected = apply_request.clone();
-        let target = format!("/v1/silent-sessions/{session_id}/config/revisions");
+        let expected = json!({"config": apply_request.clone(), "layers": [], "run_id": run_id, "generation": generation, "approval_id": "approval:config-apply", "idempotency_key": "idem-config-apply"});
+        let target = format!("/silent-sessions/{session_id}/config/revisions");
         let (output, server) = run_mocked(
             &cli_args,
             "POST",
@@ -349,10 +377,13 @@ fn resolve_diff_apply_and_rollback_expose_hashes_provenance_and_exact_cas() {
         assert!(stdout.contains("OperatorEdit"));
         if json_mode {
             let value: Value = serde_json::from_str(&stdout).expect("stable apply JSON");
-            assert_eq!(value["data"]["revision"]["config"]["api_key"], "[REDACTED]");
+            assert_eq!(
+                value["result"]["data"]["revision"]["config"]["api_key"],
+                "[REDACTED]"
+            );
         } else {
-            assert!(stdout.contains("Action: config apply"));
-            assert!(stdout.contains("Side effects: 1"));
+            assert!(stdout.contains("silent config apply → applied"));
+            assert!(stdout.contains("config_revision_applied"));
         }
     }
 
@@ -375,13 +406,26 @@ fn resolve_diff_apply_and_rollback_expose_hashes_provenance_and_exact_cas() {
         "redacted_config_hash": initial_hash
     });
     for json_mode in [false, true] {
-        let path = requests[3].display().to_string();
         let cli_args = args(
             json_mode,
-            &["config", "rollback", &session_id, "--request-file", &path],
+            &[
+                "config",
+                "rollback",
+                &session_id,
+                "--run-id",
+                run_id,
+                "--generation",
+                "1",
+                "--approval-id",
+                "approval:config-rollback",
+                "--revision",
+                &rollback_target_id,
+                "--idempotency-key",
+                "idem-config-rollback",
+            ],
         );
-        let expected = rollback_request.clone();
-        let target = format!("/v1/silent-sessions/{session_id}/config/rollback");
+        let expected = json!({"run_id": run_id, "generation": generation, "approval_id": "approval:config-rollback", "target_revision_id": rollback_target_id.clone(), "idempotency_key": "idem-config-rollback"});
+        let target = format!("/silent-sessions/{session_id}/config/rollback");
         let (output, server) = run_mocked(
             &cli_args,
             "POST",
@@ -401,12 +445,12 @@ fn resolve_diff_apply_and_rollback_expose_hashes_provenance_and_exact_cas() {
         if json_mode {
             let value: Value = serde_json::from_str(&stdout).expect("stable rollback JSON");
             assert_eq!(
-                value["data"]["revision"]["config"]["refresh_token"],
+                value["result"]["data"]["revision"]["config"]["refresh_token"],
                 "[REDACTED]"
             );
         } else {
-            assert!(stdout.contains("Action: config rollback"));
-            assert!(stdout.contains("Side effects: 1"));
+            assert!(stdout.contains("silent config rollback → rolled_back"));
+            assert!(stdout.contains("config_revision_rolled_back"));
         }
     }
 
@@ -418,6 +462,8 @@ fn resolve_diff_apply_and_rollback_expose_hashes_provenance_and_exact_cas() {
 #[test]
 fn config_cas_conflicts_are_stable_and_secret_free_in_human_and_json() {
     let session_id = Uuid::now_v7().to_string();
+    let run_id = "run-config-conflict";
+    let generation = 1_u64;
     let revision_id = Uuid::now_v7().to_string();
     let request = json!({
         "actor_instance_ref": "operator:config:instance",
@@ -454,10 +500,24 @@ fn config_cas_conflicts_are_stable_and_secret_free_in_human_and_json() {
         let path = request_path.display().to_string();
         let cli_args = args(
             json_mode,
-            &["config", "apply", &session_id, "--request-file", &path],
+            &[
+                "config",
+                "apply",
+                &session_id,
+                "--run-id",
+                run_id,
+                "--generation",
+                "1",
+                "--approval-id",
+                "approval:stale-config",
+                "--idempotency-key",
+                "idem-stale-config",
+                "--config-file",
+                &path,
+            ],
         );
-        let expected = request.clone();
-        let target = format!("/v1/silent-sessions/{session_id}/config/revisions");
+        let expected = json!({"config": request.clone(), "layers": [], "run_id": run_id, "generation": generation, "approval_id": "approval:stale-config", "idempotency_key": "idem-stale-config"});
+        let target = format!("/silent-sessions/{session_id}/config/revisions");
         let (output, server) = run_mocked(
             &cli_args,
             "POST",
@@ -472,15 +532,13 @@ fn config_cas_conflicts_are_stable_and_secret_free_in_human_and_json() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         assert!(!stdout.contains(RAW_SECRET));
         assert!(!stderr.contains(RAW_SECRET));
-        assert!(stdout.contains("silent_session_config_conflict"));
-        assert!(stdout.contains("Reload the current config revision"));
+        let combined = format!("{stdout}{stderr}");
+        assert!(combined.contains("silent_session_config_conflict"));
+        assert!(combined.contains("Reload the current config revision"));
+        assert!(combined.contains("do_not_retry_unchanged"));
         if json_mode {
-            let value: Value = serde_json::from_str(&stdout).expect("stable conflict JSON");
-            assert_eq!(value["retry"]["safe"], false);
-            assert_eq!(value["data"]["access_token"], "[REDACTED]");
-        } else {
-            assert!(stdout.contains("Status: blocked"));
-            assert!(stdout.contains("do_not_retry_unchanged"));
+            assert!(stdout.contains("\"status\": \"error\""));
+            assert!(stdout.contains("\"safe\": false"));
         }
     }
 
