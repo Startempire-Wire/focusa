@@ -266,9 +266,6 @@ jobs:
           | Linux x64 glibc | \`focusa-${TAG}-x86_64-unknown-linux-gnu\` | CLI |
           | Linux x64 glibc | \`focusa-daemon-${TAG}-x86_64-unknown-linux-gnu\` | API daemon |
           | Linux x64 glibc | \`focusa-tui-${TAG}-x86_64-unknown-linux-gnu\` | TUI dashboard |
-          | Linux x64 musl/static | \`focusa-${TAG}-x86_64-unknown-linux-musl\` | CLI compatible with older glibc hosts |
-          | Linux x64 musl/static | \`focusa-daemon-${TAG}-x86_64-unknown-linux-musl\` | API daemon compatible with older glibc hosts |
-          | Linux x64 musl/static | \`focusa-tui-${TAG}-x86_64-unknown-linux-musl\` | TUI dashboard compatible with older glibc hosts |
           | Windows x64 | \`focusa-${TAG}-x86_64-pc-windows-msvc.exe\` | CLI |
           | Windows x64 | \`focusa-daemon-${TAG}-x86_64-pc-windows-msvc.exe\` | API daemon |
           | Windows x64 | \`focusa-tui-${TAG}-x86_64-pc-windows-msvc.exe\` | TUI dashboard |
@@ -585,9 +582,6 @@ jobs:
             os: macos-latest
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
-          - target: x86_64-unknown-linux-musl
-            os: ubuntu-latest
-            musl: true
           - target: x86_64-pc-windows-msvc
             os: windows-latest
             exe: .exe
@@ -752,10 +746,10 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          echo "deploy_dispatch: tag=${TAG} asset_suffix=x86_64-unknown-linux-musl repo=${REPO}"
+          echo "deploy_dispatch: tag=${TAG} asset_suffix=x86_64-unknown-linux-gnu repo=${REPO}"
           gh workflow run 'Deploy Live Daemon' \
             --repo "$REPO" \
             --ref main \
             -f release_tag="$TAG" \
-            -f asset_suffix="x86_64-unknown-linux-musl" \
+            -f asset_suffix="x86_64-unknown-linux-gnu" \
             -f dry_run=false
