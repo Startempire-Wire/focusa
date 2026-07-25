@@ -2176,6 +2176,14 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Sources: `crates/focusa-api/src/routes/project.rs`
 - Agent operations: none
 
+### `/v1/project/trajectory-guard`
+
+- Methods: `POST /v1/project/trajectory-guard`
+- Classification: `operator_only`
+- Rationale: Verification is read-only; marker migration/repair requires explicit confirmation and emits backup plus Ladder receipt.
+- Sources: `crates/focusa-api/src/routes/project.rs`
+- Agent operations: none
+
 ### `/v1/project/templates`
 
 - Methods: `GET /v1/project/templates`

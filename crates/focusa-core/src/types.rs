@@ -1216,6 +1216,64 @@ impl Default for TrajectoryProjectionRecord {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum TrajectoryIntegrityStatus {
+    Ready,
+    HltImpasse,
+    OnboardingRequired,
+    TrajectoryReviewRequired,
+    Conflicted,
+    #[default]
+    MigrationRequired,
+    IntegrityRepairRequired,
+    Archived,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ProjectTrajectoryBindingRecord {
+    pub schema_version: String,
+    pub active_trajectory_id: String,
+    pub active_hlt_id: String,
+    pub active_hlt_version: u64,
+    #[serde(default)]
+    pub hlt_lineage: Vec<String>,
+    pub active_mlg_id: Option<String>,
+    pub active_stg_id: Option<String>,
+    #[serde(default)]
+    pub active_waypoint_ids: Vec<String>,
+    pub active_workpoint_id: Option<WorkpointId>,
+    pub event_ledger_ref: String,
+    pub latest_snapshot_ref: Option<String>,
+    pub ledger_digest: String,
+    pub authority: String,
+    #[serde(default)]
+    pub freshness: serde_json::Value,
+    pub status: TrajectoryIntegrityStatus,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct TrajectoryIntegrityGuardRecord {
+    pub required: bool,
+    pub project_scope_fingerprint: String,
+    pub expected_trajectory_id: String,
+    pub expected_hlt_id: String,
+    pub expected_hlt_version: u64,
+    pub expected_ledger_digest: String,
+    pub minimum_ladder_complete: bool,
+    pub causal_chain_valid: bool,
+    pub schema_supported: bool,
+    pub no_placeholder_values: bool,
+    pub ladder_links_complete: bool,
+    pub projection_matches_ledger: bool,
+    #[serde(default)]
+    pub unresolved_conflicts: Vec<String>,
+    pub last_verified_at: Option<DateTime<Utc>>,
+    pub verification_receipt_ref: Option<String>,
+    pub status: TrajectoryIntegrityStatus,
+    pub repair_route: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct TrajectoryCheckpointRecord {
     pub trajectory_id: String,
