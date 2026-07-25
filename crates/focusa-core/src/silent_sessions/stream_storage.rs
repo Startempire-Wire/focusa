@@ -165,12 +165,12 @@ impl SecureStreamStore {
     ) -> Result<(u64, u64), StreamStorageError> {
         let position = self.persistence.with_connection_mut(|connection| {
             let next_chunk = connection.query_row(
-                "SELECT COALESCE(MAX(chunk_sequence)+1,0) FROM silent_session_stream_indexes WHERE silent_session_id=?1 AND run_id=?2 AND stream_name=?3",
+                "SELECT COALESCE(MAX(chunk_sequence)+1,0) FROM silent_session_control_stream_indexes WHERE silent_session_id=?1 AND run_id=?2 AND stream_name=?3",
                 params![session_id.to_string(), run_id.to_string(), channel.as_str()],
                 |row| row.get::<_, u64>(0),
             )?;
             let last_sequence = connection.query_row(
-                "SELECT COALESCE(MAX(last_event_sequence),0) FROM silent_session_stream_indexes WHERE silent_session_id=?1 AND run_id=?2",
+                "SELECT COALESCE(MAX(last_event_sequence),0) FROM silent_session_control_stream_indexes WHERE silent_session_id=?1 AND run_id=?2",
                 params![session_id.to_string(), run_id.to_string()],
                 |row| row.get::<_, u64>(0),
             )?;
@@ -261,7 +261,7 @@ impl SecureStreamStore {
     ) -> Result<(), StreamStorageError> {
         let valid = self.persistence.with_connection_mut(|connection| {
             let previous_chunk = connection.query_row(
-                "SELECT MAX(chunk_sequence) FROM silent_session_stream_indexes WHERE silent_session_id=?1 AND run_id=?2 AND stream_name=?3",
+                "SELECT MAX(chunk_sequence) FROM silent_session_control_stream_indexes WHERE silent_session_id=?1 AND run_id=?2 AND stream_name=?3",
                 params![
                     manifest.session_id.to_string(),
                     manifest.run_id.to_string(),
@@ -270,7 +270,7 @@ impl SecureStreamStore {
                 |row| row.get::<_, Option<u64>>(0),
             )?;
             let previous_event = connection.query_row(
-                "SELECT MAX(last_event_sequence) FROM silent_session_stream_indexes WHERE silent_session_id=?1 AND run_id=?2",
+                "SELECT MAX(last_event_sequence) FROM silent_session_control_stream_indexes WHERE silent_session_id=?1 AND run_id=?2",
                 params![manifest.session_id.to_string(), manifest.run_id.to_string()],
                 |row| row.get::<_, Option<u64>>(0),
             )?;
@@ -291,7 +291,7 @@ impl SecureStreamStore {
         self.persistence.with_connection_mut(|connection| {
             let transaction = connection.transaction()?;
             transaction.execute(
-                r#"INSERT INTO silent_session_stream_indexes(
+                r#"INSERT INTO silent_session_control_stream_indexes(
                    silent_session_id,run_id,stream_name,chunk_sequence,chunk_ref,byte_start,byte_end,
                    chunk_hash,codec_version,first_event_sequence,last_event_sequence,event_count,
                    uncompressed_bytes,compressed_bytes,redaction_applied,created_at
@@ -375,7 +375,7 @@ fn index_select(suffix: &str) -> String {
     format!(
         r#"SELECT silent_session_id,run_id,stream_name,chunk_sequence,chunk_ref,chunk_hash,
            codec_version,first_event_sequence,last_event_sequence,event_count,uncompressed_bytes,
-           compressed_bytes,redaction_applied FROM silent_session_stream_indexes
+           compressed_bytes,redaction_applied FROM silent_session_control_stream_indexes
            WHERE silent_session_id=?1 AND run_id=?2 AND stream_name=?3 {suffix}"#
     )
 }

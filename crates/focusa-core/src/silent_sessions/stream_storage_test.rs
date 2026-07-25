@@ -299,7 +299,7 @@ fn recovery_rebuilds_a_missing_index_from_a_verified_sidecar() {
     persistence
         .with_connection_mut(|connection| {
             connection.execute(
-                "DELETE FROM silent_session_stream_indexes WHERE silent_session_id=?1 AND run_id=?2",
+                "DELETE FROM silent_session_control_stream_indexes WHERE silent_session_id=?1 AND run_id=?2",
                 rusqlite::params![session.id.to_string(), run_id.to_string()],
             )?;
             Ok(())

@@ -115,7 +115,7 @@ fn migration_creates_required_schema_and_backup() {
     let connection = Connection::open(dir.join("focusa.sqlite")).unwrap();
     let table_count: i64 = connection
         .query_row(
-            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name LIKE 'silent_session%'",
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND (name LIKE 'silent_session_control%' OR name='silent_session_daemon_runs')",
             [],
             |row| row.get(0),
         )
@@ -130,17 +130,17 @@ fn dry_run_rolls_back_all_schema_changes() {
         .with_connection_mut(|connection| {
             connection.execute_batch(
                 r#"PRAGMA foreign_keys=OFF;
-                DROP TABLE silent_session_backend_bindings;
-                DROP TABLE silent_session_completion_evaluations;
-                DROP TABLE silent_session_notifications;
-                DROP TABLE silent_session_leases;
-                DROP TABLE silent_session_checkpoints;
-                DROP TABLE silent_session_stream_indexes;
-                DROP TABLE silent_session_events;
-                DROP TABLE silent_session_config_revisions;
-                DROP TABLE silent_session_runs;
-                DROP TABLE silent_sessions;
-                DROP TABLE silent_session_schema_meta;
+                DROP TABLE silent_session_control_backend_bindings;
+                DROP TABLE silent_session_control_completion_evaluations;
+                DROP TABLE silent_session_control_notifications;
+                DROP TABLE silent_session_control_leases;
+                DROP TABLE silent_session_control_checkpoints;
+                DROP TABLE silent_session_control_stream_indexes;
+                DROP TABLE silent_session_control_events;
+                DROP TABLE silent_session_control_config_revisions;
+                DROP TABLE silent_session_daemon_runs;
+                DROP TABLE silent_session_controls;
+                DROP TABLE silent_session_control_schema_meta;
                 PRAGMA foreign_keys=ON;"#,
             )?;
             Ok(())
@@ -152,7 +152,7 @@ fn dry_run_rolls_back_all_schema_changes() {
     persistence
         .with_connection_mut(|connection| {
             let count: i64 = connection.query_row(
-                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='silent_sessions'",
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='silent_session_controls'",
                 [],
                 |row| row.get(0),
             )?;
@@ -169,28 +169,28 @@ fn schema_v1_upgrades_to_v4_stream_record_and_authorization_tables() {
         .with_connection_mut(|connection| {
             connection.execute_batch(
                 r#"PRAGMA foreign_keys=OFF;
-                DROP TABLE silent_session_runs;
-                DROP TABLE silent_session_leases;
-                DROP TABLE silent_session_stream_indexes;
-                CREATE TABLE silent_session_runs (
+                DROP TABLE silent_session_daemon_runs;
+                DROP TABLE silent_session_control_leases;
+                DROP TABLE silent_session_control_stream_indexes;
+                CREATE TABLE silent_session_daemon_runs (
                   run_id TEXT PRIMARY KEY, silent_session_id TEXT NOT NULL,
                   run_generation INTEGER NOT NULL, actor_instance_id TEXT NOT NULL,
                   config_revision_id TEXT NOT NULL, protocol_versions_json TEXT NOT NULL,
                   started_at TEXT NOT NULL, ended_at TEXT
                 );
-                CREATE TABLE silent_session_leases (
+                CREATE TABLE silent_session_control_leases (
                   lease_id TEXT PRIMARY KEY, silent_session_id TEXT NOT NULL, run_id TEXT NOT NULL,
                   owner_actor_instance_id TEXT NOT NULL, fencing_token INTEGER NOT NULL,
                   status TEXT NOT NULL, issued_at TEXT NOT NULL, expires_at TEXT NOT NULL
                 );
-                CREATE TABLE silent_session_stream_indexes (
+                CREATE TABLE silent_session_control_stream_indexes (
                   silent_session_id TEXT NOT NULL, run_id TEXT NOT NULL, stream_name TEXT NOT NULL,
                   chunk_sequence INTEGER NOT NULL, chunk_ref TEXT NOT NULL,
                   byte_start INTEGER NOT NULL, byte_end INTEGER NOT NULL,
                   chunk_hash TEXT NOT NULL, created_at TEXT NOT NULL,
                   PRIMARY KEY(silent_session_id, run_id, stream_name, chunk_sequence)
                 );
-                UPDATE silent_session_schema_meta SET version=1;
+                UPDATE silent_session_control_schema_meta SET version=1;
                 PRAGMA foreign_keys=ON;"#,
             )?;
             Ok(())
@@ -203,10 +203,13 @@ fn schema_v1_upgrades_to_v4_stream_record_and_authorization_tables() {
     persistence
         .with_connection_mut(|connection| {
             for (table, column) in [
-                ("silent_session_runs", "run_json"),
-                ("silent_session_leases", "lease_json"),
-                ("silent_session_stream_indexes", "last_event_sequence"),
-                ("silent_session_stream_indexes", "redaction_applied"),
+                ("silent_session_daemon_runs", "run_json"),
+                ("silent_session_control_leases", "lease_json"),
+                (
+                    "silent_session_control_stream_indexes",
+                    "last_event_sequence",
+                ),
+                ("silent_session_control_stream_indexes", "redaction_applied"),
             ] {
                 let present: i64 = connection.query_row(
                     "SELECT COUNT(*) FROM pragma_table_info(?1) WHERE name=?2",
@@ -239,12 +242,12 @@ fn reducer_event_and_projection_are_atomic_and_idempotent() {
     persistence
         .with_connection_mut(|connection| {
             let events: i64 = connection.query_row(
-                "SELECT COUNT(*) FROM silent_session_events WHERE silent_session_id=?1",
+                "SELECT COUNT(*) FROM silent_session_control_events WHERE silent_session_id=?1",
                 [projection.id.to_string()],
                 |row| row.get(0),
             )?;
             let projections: i64 = connection.query_row(
-                "SELECT COUNT(*) FROM silent_sessions WHERE silent_session_id=?1",
+                "SELECT COUNT(*) FROM silent_session_controls WHERE silent_session_id=?1",
                 [projection.id.to_string()],
                 |row| row.get(0),
             )?;
@@ -537,10 +540,10 @@ fn all_canonical_records_save_and_reload() {
     persistence
         .with_connection_mut(|connection| {
             for (table, expected) in [
-                ("silent_session_runs", 1),
-                ("silent_session_checkpoints", 2),
-                ("silent_session_leases", 1),
-                ("silent_session_completion_evaluations", 1),
+                ("silent_session_daemon_runs", 1),
+                ("silent_session_control_checkpoints", 2),
+                ("silent_session_control_leases", 1),
+                ("silent_session_control_completion_evaluations", 1),
             ] {
                 let count: i64 =
                     connection.query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
@@ -603,7 +606,7 @@ fn chain_mismatch_and_scope_mismatch_roll_back() {
     persistence
         .with_connection_mut(|connection| {
             let count: i64 = connection.query_row(
-                "SELECT COUNT(*) FROM silent_session_events WHERE silent_session_id=?1",
+                "SELECT COUNT(*) FROM silent_session_control_events WHERE silent_session_id=?1",
                 [projection.id.to_string()],
                 |row| row.get(0),
             )?;
