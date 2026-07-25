@@ -73,7 +73,7 @@ jobs:
   rust-check:
     name: Rust Check
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - name: Release workflow validation
         run: |
