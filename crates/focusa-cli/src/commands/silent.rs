@@ -388,6 +388,150 @@ async fn delete(client: &ApiClient, path: &str, body: &Value) -> Result<Value> {
     Ok(body)
 }
 
+fn doctor_check(
+    component: &str,
+    ok: bool,
+    failure_class: Option<&str>,
+    summary: &str,
+    recovery_hint: &str,
+) -> Value {
+    json!({
+        "component": component,
+        "status": if ok { "ok" } else { "blocked" },
+        "summary": summary,
+        "failure_class": failure_class,
+        "retry": {
+            "safe": ok,
+            "posture": if ok { "idempotent_recheck" } else { "recover_then_recheck" }
+        },
+        "recovery_hint": recovery_hint
+    })
+}
+
+fn blocked_doctor_report(failure_class: &str, recovery_hint: &str) -> Value {
+    let checks = ["daemon", "harness", "provider", "config"]
+        .into_iter()
+        .map(|component| {
+            doctor_check(
+                component,
+                false,
+                Some(failure_class),
+                "Probe unavailable.",
+                recovery_hint,
+            )
+        })
+        .collect::<Vec<_>>();
+    json!({
+        "schema": "focusa.silent_cli_doctor.v1",
+        "status": "blocked",
+        "ok": false,
+        "canonical": false,
+        "degraded": true,
+        "failure_class": failure_class,
+        "retry": {"safe": false, "posture": "recover_then_recheck"},
+        "side_effects": [],
+        "data": {"read_only": true, "checks": checks}
+    })
+}
+
+async fn silent_doctor_report(client: &ApiClient) -> Value {
+    let (_, health) = match client.get_probe("/health").await {
+        Ok(response) => response,
+        Err(_) => {
+            return blocked_doctor_report(
+                "daemon_unreachable",
+                "Restore daemon connectivity, then repeat `focusa silent doctor`.",
+            );
+        }
+    };
+    let harness = client.get_probe("/harnesses").await;
+    let provider = client.get_probe("/providers").await;
+    let profiles = client.get_probe("/silent-sessions/profiles").await;
+    let presets = client.get_probe("/silent-sessions/presets").await;
+
+    let daemon_ok = health.get("status").and_then(Value::as_str) == Some("ok");
+    let harness_ok = harness.as_ref().is_ok_and(|(status, value)| {
+        (200..300).contains(status)
+            && value
+                .pointer("/data/harnesses/0/availability")
+                .and_then(Value::as_str)
+                == Some("available")
+    });
+    let provider_ok = provider.as_ref().is_ok_and(|(status, value)| {
+        (200..300).contains(status)
+            && value.get("ok").and_then(Value::as_bool) == Some(true)
+            && value
+                .pointer("/data/providers/0/catalog_status")
+                .and_then(Value::as_str)
+                == Some("ready")
+    });
+    let config_ok = profiles.as_ref().is_ok_and(|(status, value)| {
+        (200..300).contains(status)
+            && value
+                .pointer("/data/profiles")
+                .and_then(Value::as_array)
+                .is_some_and(|items| !items.is_empty())
+    }) && presets.as_ref().is_ok_and(|(status, value)| {
+        (200..300).contains(status)
+            && value
+                .pointer("/data/presets")
+                .and_then(Value::as_array)
+                .is_some_and(|items| !items.is_empty())
+    });
+
+    let harness_failure = harness
+        .as_ref()
+        .ok()
+        .and_then(|(_, value)| value.get("failure_class"))
+        .and_then(Value::as_str)
+        .unwrap_or("transport_degraded");
+    let checks = vec![
+        doctor_check(
+            "daemon",
+            daemon_ok,
+            (!daemon_ok).then_some("daemon_unhealthy"),
+            "Daemon health probe completed.",
+            "Restore daemon health, then repeat `focusa silent doctor`.",
+        ),
+        doctor_check(
+            "harness",
+            harness_ok,
+            (!harness_ok).then_some(harness_failure),
+            "Harness catalog probe completed.",
+            "Reconnect the harness transport, then repeat `focusa silent doctor`.",
+        ),
+        doctor_check(
+            "provider",
+            provider_ok,
+            (!provider_ok).then_some("provider_unverified"),
+            "Provider catalog probe completed.",
+            "Verify provider auth and entitlement, then repeat `focusa silent doctor`.",
+        ),
+        doctor_check(
+            "config",
+            config_ok,
+            (!config_ok).then_some("config_catalog_invalid"),
+            "Profile and preset probes completed.",
+            "Repair profile and preset catalogs, then repeat `focusa silent doctor`.",
+        ),
+    ];
+    let ready = daemon_ok && harness_ok && provider_ok && config_ok;
+    json!({
+        "schema": "focusa.silent_cli_doctor.v1",
+        "status": if ready { "ready" } else { "blocked" },
+        "ok": ready,
+        "canonical": ready,
+        "degraded": !ready,
+        "failure_class": if ready { Value::Null } else { json!("doctor_readiness_blocked") },
+        "retry": {
+            "safe": ready,
+            "posture": if ready { "idempotent_recheck" } else { "recover_then_recheck" }
+        },
+        "side_effects": [],
+        "data": {"read_only": true, "checks": checks}
+    })
+}
+
 async fn execute(client: &ApiClient, command: SilentCmd, json_output: bool) -> Result<()> {
     let (name, result) = match command {
         SilentCmd::Preflight(args) => ("preflight", client.post("/silent-sessions/preflight", &config_body(&args)?).await?),
@@ -450,14 +594,7 @@ async fn execute(client: &ApiClient, command: SilentCmd, json_output: bool) -> R
         SilentCmd::Hold(args) => ("hold", client.post(&format!("/silent-sessions/{}/evidence-hold", args.session_id), &json!({"run_id":args.run_id,"generation":args.generation,"reason":args.reason,"expires_at":args.expires_at,"idempotency_key":args.idempotency_key})).await?),
         SilentCmd::Delete(args) => ("delete", delete(client, &format!("/silent-sessions/{}", args.session_id), &json!({"run_id":args.run_id,"generation":args.generation,"reason":args.reason,"idempotency_key":args.idempotency_key})).await?),
         SilentCmd::Purge(args) => ("purge", client.post(&format!("/silent-sessions/{}/purge", args.session_id), &json!({"run_id":args.run_id,"generation":args.generation,"commit":args.commit,"reason":args.reason,"idempotency_key":args.idempotency_key})).await?),
-        SilentCmd::Doctor(args) => {
-            let capabilities = client.get("/silent-sessions/capabilities").await?;
-            let session = match args.session_id {
-                Some(id) => Some(client.get(&format!("/silent-sessions/{id}")).await?),
-                None => None,
-            };
-            ("doctor", json!({"status":"completed","deep":args.deep,"capabilities":capabilities,"session":session,"checks":{"daemon":true,"catalog":true},"next_tools":["focusa_tool_doctor"]}))
-        }
+        SilentCmd::Doctor(_args) => ("doctor", silent_doctor_report(client).await),
     };
     print_result(name, result, json_output)
 }

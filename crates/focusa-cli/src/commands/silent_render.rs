@@ -42,6 +42,37 @@ fn wrap(command: &str, mut result: Value) -> Value {
 
 pub(super) fn print_result(command: &str, result: Value, json_output: bool) -> Result<()> {
     let envelope = wrap(command, result);
+    if command == "doctor"
+        && envelope["result"]["schema"]
+            == CLI_SCHEMA.replace("silent_cli.v1", "silent_cli_doctor.v1")
+    {
+        if json_output {
+            println!("{}", serde_json::to_string_pretty(&envelope["result"])?);
+            return Ok(());
+        }
+        println!("Silent Session Doctor");
+        println!(
+            "Status: {}",
+            envelope["result"]["status"].as_str().unwrap_or("blocked")
+        );
+        if let Some(checks) = envelope["result"]["data"]["checks"].as_array() {
+            for check in checks {
+                println!(
+                    "[{}] {}: {}",
+                    check["status"].as_str().unwrap_or("blocked"),
+                    check["component"].as_str().unwrap_or("unknown"),
+                    check["summary"].as_str().unwrap_or("No summary.")
+                );
+            }
+        }
+        println!(
+            "Retry: {}",
+            envelope["result"]["retry"]["posture"]
+                .as_str()
+                .unwrap_or("recover_then_recheck")
+        );
+        return Ok(());
+    }
     if json_output {
         println!("{}", serde_json::to_string_pretty(&envelope)?);
         return Ok(());
