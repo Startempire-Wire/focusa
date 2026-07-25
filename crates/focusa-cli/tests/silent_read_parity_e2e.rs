@@ -243,30 +243,35 @@ fn list_show_status_and_output_use_bounded_exact_daemon_routes() {
 }
 
 #[test]
-fn watch_preserves_last_event_id_and_advances_cursor_across_filters() {
+fn watch_preserves_cursor_and_advances_across_tool_filters() {
     let (session_id, run_id) = exact_ids();
     let tool_event_id = Uuid::now_v7().to_string();
     let stderr_event_id = Uuid::now_v7().to_string();
-    let tool_envelope = success(json!({
-        "event_id": tool_event_id,
+    let body = success(json!({
         "session_id": session_id,
         "run_id": run_id,
-        "seq": 10,
-        "kind": "tool.output",
-        "payload": {"text": "safe tool output", "api_key": "watch-secret"}
+        "generation": 3,
+        "events": [{
+            "event_id": tool_event_id,
+            "session_id": session_id,
+            "run_id": run_id,
+            "seq": 10,
+            "kind": "tool.output",
+            "payload": {"text": "safe tool output", "api_key": "watch-secret"}
+        }, {
+            "event_id": stderr_event_id,
+            "session_id": session_id,
+            "run_id": run_id,
+            "seq": 11,
+            "kind": "stream.stderr",
+            "payload": {"text": "diagnostic"}
+        }],
+        "next_cursor": stderr_event_id,
+        "has_more": false
     }));
-    let stderr_envelope = success(json!({
-        "event_id": stderr_event_id,
-        "session_id": session_id,
-        "run_id": run_id,
-        "seq": 11,
-        "kind": "stream.stderr",
-        "payload": {"text": "diagnostic"}
-    }));
-    let body = format!(
-        "id: {tool_event_id}\nevent: silent_session_event\ndata: {tool_envelope}\n\nid: {stderr_event_id}\nevent: silent_session_event\ndata: {stderr_envelope}\n\n"
+    let target = format!(
+        "/silent-sessions/{session_id}/events?run_id={run_id}&generation=3&cursor=opaque-before&limit=2&follow=false"
     );
-    let target = format!("/silent-sessions/{session_id}/events?run_id={run_id}&limit=2");
     let (output, server) = run_mocked(
         &[
             "--json",
@@ -275,6 +280,8 @@ fn watch_preserves_last_event_id_and_advances_cursor_across_filters() {
             &session_id,
             "--run",
             &run_id,
+            "--generation",
+            "3",
             "--after",
             "opaque-before",
             "--limit",
@@ -282,9 +289,9 @@ fn watch_preserves_last_event_id_and_advances_cursor_across_filters() {
             "--tools",
         ],
         &target,
-        Some(("last-event-id", "opaque-before")),
+        None,
         "200 OK",
-        "text/event-stream",
+        "application/json",
         body,
     );
     let stdout = assert_success(&output, server);
@@ -294,12 +301,9 @@ fn watch_preserves_last_event_id_and_advances_cursor_across_filters() {
     assert_eq!(value["data"]["after_cursor"], "opaque-before");
     assert_eq!(value["data"]["next_cursor"], stderr_event_id);
     assert_eq!(value["data"]["event_count"], 1);
+    assert_eq!(value["data"]["events"][0]["event_id"], tool_event_id);
     assert_eq!(
-        value["data"]["events"][0]["data"]["event_id"],
-        tool_event_id
-    );
-    assert_eq!(
-        value["data"]["events"][0]["data"]["payload"]["api_key"],
+        value["data"]["events"][0]["payload"]["api_key"],
         "[REDACTED]"
     );
 }
