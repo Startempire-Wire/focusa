@@ -193,6 +193,9 @@ fn target_mode(
                     actual_uid: stat.st_uid,
                 });
             }
+            #[cfg(target_vendor = "apple")]
+            let mode = u32::from(stat.st_mode & 0o777);
+            #[cfg(not(target_vendor = "apple"))]
             let mode = stat.st_mode & 0o777;
             validate_mode(mode)?;
             Ok(mode)
