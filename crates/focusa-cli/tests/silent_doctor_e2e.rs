@@ -135,6 +135,11 @@ fn healthy_responses() -> Vec<MockResponse> {
                 }),
             ),
         },
+        MockResponse {
+            target: "/silent-sessions/capabilities",
+            status: "200 OK",
+            body: envelope(true, "observed", json!({"capabilities": []})),
+        },
     ]
 }
 
@@ -214,8 +219,8 @@ fn doctor_has_stable_human_and_json_readiness_parity() {
     assert_eq!(report["degraded"], false);
     assert_eq!(report["side_effects"], json!([]));
     assert_eq!(report["data"]["read_only"], true);
-    assert_eq!(report["data"]["checks"].as_array().unwrap().len(), 4);
-    for component in ["daemon", "harness", "provider", "config"] {
+    assert_eq!(report["data"]["checks"].as_array().unwrap().len(), 5);
+    for component in ["daemon", "harness", "provider", "config", "capabilities"] {
         let check = check(&report, component);
         assert_eq!(check["status"], "ok", "{component} should be ready");
         assert_eq!(check["retry"]["safe"], true);
@@ -225,7 +230,7 @@ fn doctor_has_stable_human_and_json_readiness_parity() {
     let human = stdout(output, server);
     assert!(human.contains("Silent Session Doctor"));
     assert!(human.contains("Status: ready"));
-    for component in ["daemon", "harness", "provider", "config"] {
+    for component in ["daemon", "harness", "provider", "config", "capabilities"] {
         assert!(human.contains(&format!("[ok] {component}:")));
     }
     assert!(human.contains("idempotent_recheck"));
