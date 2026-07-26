@@ -116,6 +116,88 @@ push_main_and_tag_with_auto_rebase() {
   return 1
 }
 
+report_workflow_failure() {
+  local workflow="$1"
+  local run_id="$2"
+  local log_file
+  log_file=$(mktemp)
+
+  echo "workflow_failure name=${workflow} run_id=${run_id}" >&2
+  gh run view "$run_id" --json url,jobs --jq '
+    "run_url=" + .url,
+    (.jobs[] | select(.conclusion == "failure") |
+      "failed_job=" + .name + " job_url=" + .url,
+      (.steps[] | select(.conclusion == "failure") | "failed_step=" + .name))
+  ' >&2 || echo "workflow_failure_summary_query_error run_id=${run_id}" >&2
+
+  if gh run view "$run_id" --log-failed >"$log_file" 2>&1; then
+    echo "workflow_error_excerpt_begin max_lines=40 max_chars_per_line=500" >&2
+    python3 - "$log_file" <<'PY' >&2
+import re
+import sys
+from pathlib import Path
+
+lines = Path(sys.argv[1]).read_text(errors="replace").splitlines()
+pattern = re.compile(
+    r"fail|error|exception|assert|traceback|not ok|mismatch|timed? out|unreachable|blocked",
+    re.IGNORECASE,
+)
+matches = [line for line in lines if pattern.search(line)]
+selected = (matches or lines[-40:])[-40:]
+for line in selected:
+    print(line[:500])
+PY
+    echo "workflow_error_excerpt_end" >&2
+  else
+    echo "workflow_failed_log_query_error run_id=${run_id}" >&2
+  fi
+  rm -f "$log_file"
+  echo "full_log_command=gh run view ${run_id} --log-failed" >&2
+}
+
+watch_workflow_run_bounded() {
+  local workflow="$1"
+  local run_id="$2"
+  local deadline="$3"
+  local started=$SECONDS
+  local next_heartbeat=$SECONDS
+  local previous_digest=""
+  local summary status conclusion digest elapsed
+
+  while [[ $SECONDS -lt $deadline ]]; do
+    if ! summary=$(gh run view "$run_id" --json status,conclusion,url,jobs 2>&1); then
+      echo "workflow_status_query_error name=${workflow} run_id=${run_id} detail=$(printf '%s' "$summary" | tr '\n' ' ' | cut -c1-500)" >&2
+      sleep 10
+      continue
+    fi
+    status=$(jq -r '.status' <<<"$summary")
+    conclusion=$(jq -r '.conclusion // ""' <<<"$summary")
+    digest=$(jq -c '[.status,.conclusion,[.jobs[]|[.name,.status,.conclusion]]]' <<<"$summary")
+    elapsed=$((SECONDS - started))
+
+    if [[ "$digest" != "$previous_digest" || $SECONDS -ge $next_heartbeat ]]; then
+      echo "workflow_heartbeat name=${workflow} run_id=${run_id} elapsed_s=${elapsed} status=${status} conclusion=${conclusion:-pending} url=$(jq -r '.url' <<<"$summary")"
+      jq -r '.jobs[] | "  job=" + .name + " status=" + .status + " conclusion=" + (.conclusion // "pending")' <<<"$summary"
+      previous_digest="$digest"
+      next_heartbeat=$((SECONDS + 30))
+    fi
+
+    if [[ "$status" == "completed" ]]; then
+      if [[ "$conclusion" == "success" ]]; then
+        echo "workflow_completed name=${workflow} run_id=${run_id} elapsed_s=${elapsed} conclusion=success"
+        return 0
+      fi
+      report_workflow_failure "$workflow" "$run_id"
+      return 1
+    fi
+    sleep 10
+  done
+
+  echo "workflow_timeout name=${workflow} run_id=${run_id} timeout_s=${CI_TIMEOUT_SECS}" >&2
+  gh run view "$run_id" --json url,jobs --jq '"run_url=" + .url, (.jobs[] | "job=" + .name + " status=" + .status + " conclusion=" + (.conclusion // "pending"))' >&2 || true
+  return 1
+}
+
 wait_for_workflow() {
   local workflow="$1"
   local head_sha="$2"
@@ -128,7 +210,7 @@ wait_for_workflow() {
     exit 1
   fi
 
-  echo "Waiting up to ${CI_TIMEOUT_SECS}s for GitHub ${workflow} run for ${head_sha:0:7}${head_branch:+ headBranch=$head_branch}..."
+  echo "workflow_discovery name=${workflow} timeout_s=${CI_TIMEOUT_SECS} sha=${head_sha:0:7}${head_branch:+ head_branch=$head_branch}"
   while [[ $SECONDS -lt $deadline ]]; do
     if [[ -n "$head_branch" ]]; then
       run_id=$(gh run list --commit "$head_sha" --workflow "$workflow" --limit 10 --json databaseId,headBranch 2>/dev/null \
@@ -138,14 +220,15 @@ wait_for_workflow() {
       run_id=$(gh run list --commit "$head_sha" --workflow "$workflow" --limit 1 --json databaseId --jq '.[0].databaseId // empty' 2>/dev/null || true)
     fi
     if [[ -n "$run_id" ]]; then
-      echo "Tracking ${workflow}: https://github.com/Startempire-Wire/focusa/actions/runs/${run_id}"
-      gh run watch "$run_id" --exit-status
+      echo "workflow_discovered name=${workflow} run_id=${run_id} url=https://github.com/Startempire-Wire/focusa/actions/runs/${run_id}"
+      watch_workflow_run_bounded "$workflow" "$run_id" "$deadline"
       return $?
     fi
+    echo "workflow_discovery_heartbeat name=${workflow} elapsed_s=$((CI_TIMEOUT_SECS - (deadline - SECONDS))) status=not_found"
     sleep 10
   done
 
-  echo "Timed out waiting for GitHub ${workflow} run to appear for ${head_sha}." >&2
+  echo "workflow_discovery_timeout name=${workflow} sha=${head_sha} timeout_s=${CI_TIMEOUT_SECS}" >&2
   exit 1
 }
 
@@ -210,26 +293,35 @@ fi
 
 echo "Stamping release surfaces: ${VERSION}"
 scripts/stamp-menubar-version.py "${TAG}"
+scripts/stamp-release-version "${VERSION}"
 python3 scripts/verify-version-surfaces.py "${TAG}"
+scripts/verify-doc-version-consistency
+node scripts/validate-docs-runtime-parity.mjs
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
   git diff --stat
-  git checkout -- Cargo.toml Cargo.lock \
+  git checkout -- Cargo.toml Cargo.lock README.md \
+    docs/current/.release-version-stamp docs/current/CURRENT_RUNTIME_STATUS.md \
+    docs/contracts/spec141/generated-capability-v2/agent-card.json \
     apps/menubar/package.json apps/menubar/package-lock.json \
     apps/menubar/src-tauri/Cargo.toml apps/menubar/src-tauri/Cargo.lock \
     apps/menubar/src-tauri/tauri.conf.json apps/menubar/src/lib/components/Settings.svelte \
-    apps/pi-extension/package.json apps/pi-extension/package-lock.json
+    apps/pi-extension/package.json apps/pi-extension/package-lock.json \
+    apps/pi-extension/src/auto-compaction.ts
   echo "Dry run complete; reverted stamped files."
   exit 0
 fi
 
 if [[ -n "$(git status --porcelain)" ]]; then
-  git add Cargo.toml Cargo.lock \
+  git add Cargo.toml Cargo.lock README.md \
+    docs/current/.release-version-stamp docs/current/CURRENT_RUNTIME_STATUS.md \
+    docs/contracts/spec141/generated-capability-v2/agent-card.json \
     apps/menubar/package.json apps/menubar/package-lock.json \
     apps/menubar/src-tauri/Cargo.toml apps/menubar/src-tauri/Cargo.lock \
     apps/menubar/src-tauri/tauri.conf.json apps/menubar/src/lib/components/Settings.svelte \
-    apps/pi-extension/package.json apps/pi-extension/package-lock.json
-  git commit -m "chore: stamp menubar ${VERSION}"
+    apps/pi-extension/package.json apps/pi-extension/package-lock.json \
+    apps/pi-extension/src/auto-compaction.ts
+  git commit -m "chore: stamp release surfaces ${VERSION}"
 fi
 
 if [[ "$FORCE_RELEASE" -eq 1 ]]; then
