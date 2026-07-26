@@ -7,8 +7,8 @@ Usage:
 
 This is intentionally the single version-stamping template used by
 scripts/create-dev-release-tag.sh. It updates Rust workspace CLI/API/TUI/core,
-root lockfile package entries, the menubar package/Tauri metadata, and the
-operator-visible Settings version.
+root lockfile package entries, Pi package/runtime build identity, the menubar
+package/Tauri metadata, and the operator-visible Settings version.
 """
 
 from __future__ import annotations
@@ -80,6 +80,20 @@ def replace_display_version(path: str, version: str) -> None:
     file_path.write_text(next_text)
 
 
+def replace_extension_build(path: str, package_name: str, version: str) -> None:
+    file_path = ROOT / path
+    text = file_path.read_text()
+    next_text, count = re.subn(
+        rf'const EXTENSION_BUILD = "{re.escape(package_name)}@{OLD_VERSION_RE.pattern}"',
+        f'const EXTENSION_BUILD = "{package_name}@{version}"',
+        text,
+        count=1,
+    )
+    if count != 1:
+        raise SystemExit(f"Expected one EXTENSION_BUILD identity in {path}")
+    file_path.write_text(next_text)
+
+
 def replace_lock_package_versions(
     path: str, package_names: set[str], version: str
 ) -> None:
@@ -125,9 +139,12 @@ def main() -> int:
     replace_key_value_version("Cargo.toml", version)
     replace_lock_package_versions("Cargo.lock", ROOT_RUST_PACKAGES, version)
 
-    # Pi extension package surfaces.
+    # Pi extension package and runtime identity surfaces.
     replace_json_version("apps/pi-extension/package.json", version)
     replace_json_version("apps/pi-extension/package-lock.json", version)
+    replace_extension_build(
+        "apps/pi-extension/src/auto-compaction.ts", "focusa-pi-bridge", version
+    )
 
     # Menubar web/Tauri surfaces.
     replace_json_version("apps/menubar/package.json", version)

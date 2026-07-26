@@ -14,6 +14,8 @@ assert "musl: true" in release
 assert '-f asset_suffix="x86_64-unknown-linux-musl"' in release
 assert '-f asset_suffix="x86_64-unknown-linux-gnu"' not in release
 assert "cross build --release --target ${{ matrix.target }}" in release
+assert "if: ${{ startsWith(github.ref, 'refs/tags/') }}" in release
+assert "startsWith(github.ref, refs/tags/)" not in release
 
 assert "deploy-success.json deploy-success.json.sig" in deploy
 assert "Gate OTA installability against signed deployed release" in deploy
@@ -41,4 +43,12 @@ for field in [
     assert field in update, f"missing top-level apply result field: {field}"
 assert "refresh_apply_summary(&mut apply);" in update
 assert "do not bypass trust" in update
+
+stamp = (ROOT / "scripts/stamp-menubar-version.py").read_text()
+verify = (ROOT / "scripts/verify-version-surfaces.py").read_text()
+tag_script = (ROOT / "scripts/create-dev-release-tag.sh").read_text()
+assert "replace_extension_build" in stamp
+assert "apps/pi-extension/src/auto-compaction.ts" in stamp
+assert "read_extension_build_version" in verify
+assert tag_script.count("apps/pi-extension/src/auto-compaction.ts") >= 2
 print("Spec143 OTA installability release gate: PASS")
