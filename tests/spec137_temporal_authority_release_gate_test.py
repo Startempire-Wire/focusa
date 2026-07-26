@@ -6,6 +6,7 @@ core=(ROOT/'crates/focusa-core/src/temporal.rs').read_text()
 tests=(ROOT/'crates/focusa-core/src/temporal_tests.rs').read_text()
 authority=(ROOT/'crates/focusa-core/src/temporal_authority.rs').read_text()
 claims=(ROOT/'crates/focusa-core/src/temporal_claims.rs').read_text()
+forecast=(ROOT/'crates/focusa-core/src/temporal_forecast.rs').read_text()
 lib=(ROOT/'crates/focusa-core/src/lib.rs').read_text()
 for symbol in (
  'TemporalClockDomain','TemporalClaimKind','TemporalClaimStatus','TemporalConfidence',
@@ -29,9 +30,15 @@ for symbol in ('TemporalClaimAuthority','TemporalClaimEnvelope','TemporalPreflig
  assert symbol in claims, symbol
 for invariant in ('ForecastCannotBecomeCommitment','OperatorConfirmationRequired','EvidenceRequired','authority_escalated: false','no deadline is set; no urgency was inferred'):
  assert invariant in claims, invariant
-assert 'pub mod temporal;' in lib and 'pub mod temporal_authority;' in lib and 'pub mod temporal_claims;' in lib
+for symbol in ('ObservedDuration','ForecastRange','ReleaseTimingPlan','ForecastCalibration','MissedTargetReceipt','DoraTemporalMetrics','forecast_phase','build_release_timing_plan','calibrate','dora_metrics'):
+ assert symbol in forecast, symbol
+for phase in ('Freeze','Build','Sign','Publish','Deploy','ArtifactPropagation','UpdateRollout','CanaryObservation','RollbackDecision','RollbackRecovery','Approval'):
+ assert phase in forecast, phase
+assert 'NoObservedHistory' in forecast and 'critical_path_ms' in forecast and 'slack_ms' in forecast
+assert 'pub mod temporal;' in lib and 'pub mod temporal_authority;' in lib and 'pub mod temporal_claims;' in lib and 'pub mod temporal_forecast;' in lib
 assert len(core.splitlines()) < 500
 assert len(claims.splitlines()) < 500
+assert len(forecast.splitlines()) < 500
 assert len(authority.splitlines()) < 500
 assert len(tests.splitlines()) < 500
 print('Spec137 temporal authority release gate: PASS')
