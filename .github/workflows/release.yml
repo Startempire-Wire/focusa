@@ -601,6 +601,14 @@ jobs:
         shell: bash
         run: |
           if [ "${{ matrix.musl || false }}" = "true" ]; then
+            # sqlite-vec 0.1.7 uses BSD u_int* names that musl intentionally omits.
+            # Pass exact stdint aliases into cross without changing non-musl builds.
+            cat > Cross.toml <<'EOF'
+          [build.env]
+          passthrough = ["CFLAGS_x86_64_unknown_linux_musl"]
+          EOF
+            export CFLAGS_x86_64_unknown_linux_musl="-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t"
+            trap 'rm -f Cross.toml' EXIT
             cross build --release --target ${{ matrix.target }}
           else
             cargo build --release --target ${{ matrix.target }}
