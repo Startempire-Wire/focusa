@@ -1,6 +1,6 @@
 {
   "schema": "focusa.cli_command_projection.v2",
-  "registry_digest": "sha256:c275433cdcc897c9d139978eb19161c009c74cec22ba516e8ddc0c10297bd841",
+  "registry_digest": "sha256:75f71e97e8d883d2cf90a3cd496304f36a99c2683534134131e120ac99f48b6c",
   "commands": [
     {
       "command": "focusa workpoint resolve-object",
@@ -3619,6 +3619,116 @@
           },
           "human_invocation": "focusa project card-outcome",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_card_outcome.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa project genesis start|resume|status|commit",
+      "capability_id": "focusa.project.genesis",
+      "summary": "Stage, resume, inspect, or atomically commit the verified project journey from HLT and specification through tasks, first Workpoint, coordination, and readiness receipt.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "description": "Genesis operation; defaults to status.",
+            "anyOf": [
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "resume",
+                "type": "string"
+              },
+              {
+                "const": "status",
+                "type": "string"
+              },
+              {
+                "const": "commit",
+                "type": "string"
+              }
+            ]
+          },
+          "project_root": {
+            "description": "Verified absolute project root.",
+            "type": "string"
+          },
+          "continuity_id": {
+            "description": "Stable project workstream continuity id.",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "description": "Stable transaction replay key.",
+            "type": "string"
+          },
+          "hlt": {
+            "description": "Operator-confirmed High Level Trajectory.",
+            "type": "string"
+          },
+          "hlt_confirmed": {
+            "type": "boolean"
+          },
+          "desired_end_state": {
+            "type": "string"
+          },
+          "current_state": {
+            "type": "string"
+          },
+          "specification_ref": {
+            "type": "string"
+          },
+          "acceptance_criteria": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mid_level_goal": {
+            "type": "string"
+          },
+          "short_term_goal": {
+            "type": "string"
+          },
+          "waypoints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "task_provider": {
+            "type": "string"
+          },
+          "allow_task_decomposition": {
+            "type": "boolean"
+          },
+          "confirm": {
+            "description": "Required true for commit or takeover.",
+            "type": "boolean"
+          },
+          "takeover": {
+            "description": "Take over a conflicting active project workstream; requires confirm=true.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "start_resume_read_or_confirmed_atomic_commit",
+        "start_resume_read_or_confirmed_atomic_commit"
+      ],
+      "examples": [
+        {
+          "description": "Stage, resume, inspect, or atomically commit the verified project journey from HLT and specification through tasks, first Workpoint, coordination, and readiness receipt.",
+          "arguments": {
+            "action": "start"
+          },
+          "human_invocation": "focusa project genesis start|resume|status|commit",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_genesis.md"
         }
       ],
       "deprecation": null

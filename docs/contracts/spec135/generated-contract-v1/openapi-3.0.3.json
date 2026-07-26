@@ -11430,6 +11430,294 @@
         ],
         "title": "focusa.interview_closure_package.v1",
         "type": "object"
+      },
+      "focusa_project_genesis_start_request_v1": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "project_root",
+          "continuity_id",
+          "idempotency_key"
+        ],
+        "properties": {
+          "project_root": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "hlt": {
+            "type": "string"
+          },
+          "hlt_confirmed": {
+            "type": "boolean"
+          },
+          "desired_end_state": {
+            "type": "string"
+          },
+          "current_state": {
+            "type": "string"
+          },
+          "specification_ref": {
+            "type": "string"
+          },
+          "acceptance_criteria": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mid_level_goal": {
+            "type": "string"
+          },
+          "short_term_goal": {
+            "type": "string"
+          },
+          "waypoints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "task_provider": {
+            "type": "string"
+          },
+          "allow_task_decomposition": {
+            "type": "boolean"
+          },
+          "confirm": {
+            "type": "boolean"
+          },
+          "takeover": {
+            "type": "boolean"
+          }
+        }
+      },
+      "focusa_project_genesis_resume_request_v1": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "project_root",
+          "continuity_id",
+          "idempotency_key"
+        ],
+        "properties": {
+          "project_root": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "hlt": {
+            "type": "string"
+          },
+          "hlt_confirmed": {
+            "type": "boolean"
+          },
+          "desired_end_state": {
+            "type": "string"
+          },
+          "current_state": {
+            "type": "string"
+          },
+          "specification_ref": {
+            "type": "string"
+          },
+          "acceptance_criteria": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mid_level_goal": {
+            "type": "string"
+          },
+          "short_term_goal": {
+            "type": "string"
+          },
+          "waypoints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "task_provider": {
+            "type": "string"
+          },
+          "allow_task_decomposition": {
+            "type": "boolean"
+          },
+          "confirm": {
+            "type": "boolean"
+          },
+          "takeover": {
+            "type": "boolean"
+          }
+        }
+      },
+      "focusa_project_genesis_commit_request_v1": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "project_root",
+          "continuity_id",
+          "idempotency_key",
+          "confirm"
+        ],
+        "properties": {
+          "project_root": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "hlt": {
+            "type": "string"
+          },
+          "hlt_confirmed": {
+            "type": "boolean"
+          },
+          "desired_end_state": {
+            "type": "string"
+          },
+          "current_state": {
+            "type": "string"
+          },
+          "specification_ref": {
+            "type": "string"
+          },
+          "acceptance_criteria": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mid_level_goal": {
+            "type": "string"
+          },
+          "short_term_goal": {
+            "type": "string"
+          },
+          "waypoints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "task_provider": {
+            "type": "string"
+          },
+          "allow_task_decomposition": {
+            "type": "boolean"
+          },
+          "confirm": {
+            "type": "boolean"
+          },
+          "takeover": {
+            "type": "boolean"
+          }
+        }
+      },
+      "focusa_project_genesis_status_request_v1": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "project_root"
+        ],
+        "properties": {
+          "project_root": {
+            "type": "string"
+          }
+        }
+      },
+      "focusa_project_genesis_response_v1": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "schema",
+          "status",
+          "project_identity",
+          "next_action"
+        ],
+        "properties": {
+          "schema": {
+            "type": "string",
+            "enum": [
+              "focusa.project_genesis.v1"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "hlt_impasse",
+              "incomplete",
+              "staged",
+              "preparing",
+              "ready",
+              "blocked"
+            ]
+          },
+          "project_identity": {
+            "type": "object"
+          },
+          "bootstrap_receipt": {
+            "type": "object"
+          },
+          "hlt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mlg": {
+            "type": "string"
+          },
+          "stg": {
+            "type": "string"
+          },
+          "waypoints": {
+            "type": "array"
+          },
+          "task_provider_and_task_graph": {
+            "type": "object"
+          },
+          "first_workpoint": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "coordination_owner": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "readiness_receipt": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "missing_links": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "next_action": {
+            "type": "string"
+          }
+        }
       }
     }
   },
@@ -19637,6 +19925,130 @@
         ],
         "x-focusa-sensitive": "routine",
         "x-focusa-subsystem": "project_interview"
+      }
+    },
+    "/v1/project/genesis/start": {
+      "post": {
+        "operationId": "focusa.project.genesis.start",
+        "summary": "Project Genesis start",
+        "tags": [
+          "project"
+        ],
+        "responses": {
+          "200": {
+            "description": "Typed Project Genesis packet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_project_genesis_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_project_genesis_start_request_v1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/project/genesis/resume": {
+      "post": {
+        "operationId": "focusa.project.genesis.resume",
+        "summary": "Project Genesis resume",
+        "tags": [
+          "project"
+        ],
+        "responses": {
+          "200": {
+            "description": "Typed Project Genesis packet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_project_genesis_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_project_genesis_resume_request_v1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/project/genesis/status": {
+      "get": {
+        "operationId": "focusa.project.genesis.status",
+        "summary": "Project Genesis status",
+        "tags": [
+          "project"
+        ],
+        "responses": {
+          "200": {
+            "description": "Typed Project Genesis packet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_project_genesis_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_root",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/project/genesis/commit": {
+      "post": {
+        "operationId": "focusa.project.genesis.commit",
+        "summary": "Project Genesis commit",
+        "tags": [
+          "project"
+        ],
+        "responses": {
+          "200": {
+            "description": "Typed Project Genesis packet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_project_genesis_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_project_genesis_commit_request_v1"
+              }
+            }
+          }
+        }
       }
     }
   },

@@ -5847,6 +5847,98 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+    name: "focusa_project_genesis",
+    label: "Focusa Project Genesis",
+    description:
+      "Start, resume, inspect, or atomically commit the Project Genesis chain from verified identity and HLT through the first Workpoint.",
+    promptSnippet:
+      "Use after project verification when onboarding/readiness is incomplete; HLT Impasse asks at most one concise intent question, and commit requires confirm=true.",
+    parameters: Type.Object({
+      action: Type.Union(
+        [Type.Literal("start"), Type.Literal("resume"), Type.Literal("status"), Type.Literal("commit")],
+        { description: "Genesis operation; defaults to status." }
+      ),
+      project_root: Type.Optional(Type.String({ description: "Verified absolute project root." })),
+      continuity_id: Type.Optional(Type.String({ description: "Stable project workstream continuity id." })),
+      idempotency_key: Type.Optional(Type.String({ description: "Stable transaction replay key." })),
+      hlt: Type.Optional(Type.String({ description: "Operator-confirmed High Level Trajectory." })),
+      hlt_confirmed: Type.Optional(Type.Boolean()),
+      desired_end_state: Type.Optional(Type.String()),
+      current_state: Type.Optional(Type.String()),
+      specification_ref: Type.Optional(Type.String()),
+      acceptance_criteria: Type.Optional(Type.Array(Type.String())),
+      mid_level_goal: Type.Optional(Type.String()),
+      short_term_goal: Type.Optional(Type.String()),
+      waypoints: Type.Optional(Type.Array(Type.String())),
+      task_provider: Type.Optional(Type.String()),
+      allow_task_decomposition: Type.Optional(Type.Boolean()),
+      confirm: Type.Optional(Type.Boolean({ description: "Required true for commit or takeover." })),
+      takeover: Type.Optional(
+        Type.Boolean({ description: "Take over a conflicting active project workstream; requires confirm=true." })
+      ),
+    }),
+    async execute(_toolCallId: string, params: any) {
+      const action = String(params.action || "status");
+      const projectRoot = normalizeProjectRoot(
+        params.project_root || getLastProjectIdentity()?.project_root || getSessionCwd()
+      );
+      if (!projectRoot || !isProjectRootAuthoritySafe(projectRoot)) {
+        return {
+          content: [{ type: "text", text: "project genesis → blocked: verify a safe project root first" }],
+          details: {
+            status: "blocked",
+            failure_class: "project_identity_required",
+            next_tools: ["focusa_project_verify", "focusa_project_identity"],
+          },
+        } as any;
+      }
+      const continuityId =
+        params.continuity_id || getContinuityId() || ensureContinuityId(projectRoot);
+      let result: any;
+      if (action === "status") {
+        result = await focusaFetchDetailed(
+          `/project/genesis/status?project_root=${encodeURIComponent(projectRoot)}`
+        );
+      } else {
+        result = await focusaFetchDetailed(`/project/genesis/${encodeURIComponent(action)}`, {
+          method: "POST",
+          body: JSON.stringify({
+            ...params,
+            action: undefined,
+            project_root: projectRoot,
+            continuity_id: continuityId,
+            idempotency_key:
+              params.idempotency_key || `genesis:${continuityId}:${params.specification_ref || "project"}`,
+          }),
+        });
+      }
+      const body = result.body || {};
+      const status = String(body.status || (result.ok ? "completed" : "blocked"));
+      const nextAction = String(body.next_action || "inspect the Genesis packet and repair missing links");
+      return {
+        content: [
+          {
+            type: "text",
+            text: `project genesis ${action} → ${status}\nnext: ${nextAction}`,
+          },
+        ],
+        details: {
+          ok: result.ok,
+          status,
+          canonical: status === "ready",
+          project_root: projectRoot,
+          continuity_id: continuityId,
+          genesis_packet: compactApiEcho(body),
+          next_tools:
+            status === "ready"
+              ? ["focusa_workpoint_resume", "focusa_trajectory_view"]
+              : ["focusa_project_genesis", "focusa_project_verify", "focusa_trajectory_view"],
+        },
+      } as any;
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_reflex_primitives",
     label: "Reflex Primitives",
     description:

@@ -1,6 +1,6 @@
 {
   "schema": "focusa.pi_tool_projection.v2",
-  "registry_digest": "sha256:c275433cdcc897c9d139978eb19161c009c74cec22ba516e8ddc0c10297bd841",
+  "registry_digest": "sha256:75f71e97e8d883d2cf90a3cd496304f36a99c2683534134131e120ac99f48b6c",
   "tools": [
     {
       "name": "focusa_active_object_resolve",
@@ -14112,6 +14112,266 @@
       ]
     },
     {
+      "name": "focusa_project_genesis",
+      "label": "Focusa Project Genesis",
+      "description": "Start, resume, inspect, or atomically commit the Project Genesis chain from verified identity and HLT through the first Workpoint. Use it when Stage, resume, inspect, or atomically commit the verified project journey from HLT and specification through tasks, first Workpoint, coordination, and readiness receipt. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "parameters": {
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "description": "Genesis operation; defaults to status.",
+            "anyOf": [
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "resume",
+                "type": "string"
+              },
+              {
+                "const": "status",
+                "type": "string"
+              },
+              {
+                "const": "commit",
+                "type": "string"
+              }
+            ]
+          },
+          "project_root": {
+            "description": "Verified absolute project root.",
+            "type": "string"
+          },
+          "continuity_id": {
+            "description": "Stable project workstream continuity id.",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "description": "Stable transaction replay key.",
+            "type": "string"
+          },
+          "hlt": {
+            "description": "Operator-confirmed High Level Trajectory.",
+            "type": "string"
+          },
+          "hlt_confirmed": {
+            "type": "boolean"
+          },
+          "desired_end_state": {
+            "type": "string"
+          },
+          "current_state": {
+            "type": "string"
+          },
+          "specification_ref": {
+            "type": "string"
+          },
+          "acceptance_criteria": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mid_level_goal": {
+            "type": "string"
+          },
+          "short_term_goal": {
+            "type": "string"
+          },
+          "waypoints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "task_provider": {
+            "type": "string"
+          },
+          "allow_task_decomposition": {
+            "type": "boolean"
+          },
+          "confirm": {
+            "description": "Required true for commit or takeover.",
+            "type": "boolean"
+          },
+          "takeover": {
+            "description": "Take over a conflicting active project workstream; requires confirm=true.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "next_tools": [
+        "focusa_workpoint_resume",
+        "focusa_trajectory_view",
+        "focusa_project_verify"
+      ]
+    },
+    {
       "name": "focusa_project_identity",
       "label": "Focusa Project Identity",
       "description": "Resolve bounded ProjectIdentity from cwd/project_root using marker, git, beads, workspace, daemon, and operator project signals. Use it when Rank explicit, active-worktree, canonical-parent, marker/Beads, persisted-session, and bounded parent-directory project candidates; fail closed on ambiguity before trusting project-bound context. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
@@ -14547,6 +14807,7 @@
         }
       },
       "next_tools": [
+        "focusa_project_genesis",
         "focusa_trajectory_view",
         "focusa_workpoint_resume",
         "focusa_tool_doctor"

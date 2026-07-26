@@ -1,7 +1,7 @@
 {
   "schema": "focusa.tool_contracts.v1",
   "version": "spec90.tool_contracts.v1",
-  "tool_count": 112,
+  "tool_count": 113,
   "contracts": [
     {
       "name": "focusa_preload_profiles",
@@ -646,6 +646,46 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_project_genesis",
+      "label": "Project Genesis",
+      "purpose": "Stage, resume, inspect, or atomically commit the verified project journey from HLT and specification through tasks, first Workpoint, coordination, and readiness receipt.",
+      "family": "project_identity",
+      "ontology_action": "project.genesis",
+      "ontology_objects": [
+        "ProjectIdentity",
+        "TrajectoryProjection",
+        "Waypoint",
+        "WorkpointRecord",
+        "TaskProvider",
+        "EvidenceRef"
+      ],
+      "api_routes": [
+        "POST /v1/project/genesis/start",
+        "POST /v1/project/genesis/resume",
+        "GET /v1/project/genesis/status",
+        "POST /v1/project/genesis/commit"
+      ],
+      "cli_commands": [
+        "focusa project genesis start|resume|status|commit"
+      ],
+      "core_surface": "Spec143 atomic Project Genesis transaction and marker guard",
+      "doc_path": "docs/focusa-tools/tools/focusa_project_genesis.md",
+      "spec_path": "docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "start_resume_read_or_confirmed_atomic_commit",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "Spec143 Project Genesis API, CLI, Pi, idempotency, HLT Impasse, task-provider, first Workpoint, and marker-ready-last gates",
+      "scope_requirement": {
+        "kind": "write",
+        "route_family": "explicit_project_continuity"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "daemon:/v1/project/genesis/commit"
       }
     },
     {

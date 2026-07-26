@@ -1475,7 +1475,7 @@ fn workpoint_no_active_to_link() -> (StatusCode, Json<Value>) {
     )
 }
 
-async fn materialize_workpoint_events(
+pub(crate) async fn materialize_workpoint_events(
     _scope: ScopeContext,
     state: &Arc<AppState>,
     events: Vec<FocusaEvent>,

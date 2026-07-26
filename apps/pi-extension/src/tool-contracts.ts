@@ -405,6 +405,39 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     authority_requirement: { kind: "advisory_only" },
   },
   {
+    name: "focusa_project_genesis",
+    label: "Project Genesis",
+    purpose:
+      "Stage, resume, inspect, or atomically commit the verified project journey from HLT and specification through tasks, first Workpoint, coordination, and readiness receipt.",
+    family: "project_identity",
+    ontology_action: "project.genesis",
+    ontology_objects: [
+      "ProjectIdentity",
+      "TrajectoryProjection",
+      "Waypoint",
+      "WorkpointRecord",
+      "TaskProvider",
+      "EvidenceRef",
+    ],
+    api_routes: [
+      "POST /v1/project/genesis/start",
+      "POST /v1/project/genesis/resume",
+      "GET /v1/project/genesis/status",
+      "POST /v1/project/genesis/commit",
+    ],
+    cli_commands: ["focusa project genesis start|resume|status|commit"],
+    core_surface: "Spec143 atomic Project Genesis transaction and marker guard",
+    doc_path: "docs/focusa-tools/tools/focusa_project_genesis.md",
+    spec_path: "docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md",
+    result_envelope: "tool_result_v1",
+    side_effect_profile: "start_resume_read_or_confirmed_atomic_commit",
+    parity_status: "full",
+    exemptions: [],
+    live_check: "Spec143 Project Genesis API, CLI, Pi, idempotency, HLT Impasse, task-provider, first Workpoint, and marker-ready-last gates",
+    scope_requirement: { kind: "write", route_family: "explicit_project_continuity" },
+    authority_requirement: { kind: "canonical", path: "daemon:/v1/project/genesis/commit" },
+  },
+  {
     name: "focusa_trajectory_view",
     label: "Trajectory View",
     purpose:
@@ -2405,7 +2438,17 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
   ],
   focusa_project_card_outcome: ["focusa_project_card", "focusa_predict_record", "focusa_metacog_capture"],
   focusa_session_transfer: ["focusa_workpoint_resume", "focusa_project_card", "focusa_trajectory_view"],
-  focusa_project_verify: ["focusa_trajectory_view", "focusa_workpoint_resume", "focusa_tool_doctor"],
+  focusa_project_verify: [
+    "focusa_project_genesis",
+    "focusa_trajectory_view",
+    "focusa_workpoint_resume",
+    "focusa_tool_doctor",
+  ],
+  focusa_project_genesis: [
+    "focusa_workpoint_resume",
+    "focusa_trajectory_view",
+    "focusa_project_verify",
+  ],
   focusa_trajectory_view: [
     "focusa_trajectory_assess",
     "focusa_trajectory_define_goal",

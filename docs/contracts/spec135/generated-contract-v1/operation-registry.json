@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-07-22T09:34:35.066345+00:00",
-  "operation_count": 86,
+  "operation_count": 90,
   "operations": [
     {
       "alias_of": null,
@@ -6659,6 +6659,321 @@
         "plain_language_description": "Persist Exact Mission Canvas Client State",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "bounded_write",
+      "canonical": true,
+      "confirmation_required": true,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.project_genesis_commit.request.v1",
+        "output_schema_ref": "focusa.project_genesis.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "project",
+          "trajectory",
+          "workpoint"
+        ],
+        "confirmation": "explicit",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "project:write"
+        ],
+        "receipt_required": true,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_project_genesis.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "project",
+      "label": "Project Genesis Commit",
+      "materialization_mode": "canonical_mutation",
+      "method": "POST",
+      "operation_id": "focusa.project.genesis.commit",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.project.genesis.commit",
+        "subsystem": "project"
+      },
+      "path": "/v1/project/genesis/commit",
+      "permissions_required": [
+        "project:write"
+      ],
+      "request_schema_ref": "focusa.project_genesis_commit.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.project_genesis.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.project_genesis_commit.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "confirmed_atomic_commit",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Project Genesis Commit",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Project Genesis Commit",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "consequential"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "bounded_write",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.project_genesis_resume.request.v1",
+        "output_schema_ref": "focusa.project_genesis.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "project",
+          "trajectory",
+          "workpoint"
+        ],
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "project:write"
+        ],
+        "receipt_required": true,
+        "reversible": true
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_project_genesis.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "project",
+      "label": "Project Genesis Resume",
+      "materialization_mode": "canonical_mutation",
+      "method": "POST",
+      "operation_id": "focusa.project.genesis.resume",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.project.genesis.resume",
+        "subsystem": "project"
+      },
+      "path": "/v1/project/genesis/resume",
+      "permissions_required": [
+        "project:write"
+      ],
+      "request_schema_ref": "focusa.project_genesis_resume.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.project_genesis.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.project_genesis_resume.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "durable_staging",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Project Genesis Resume",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Project Genesis Resume",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "bounded_write",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.project_genesis_start.request.v1",
+        "output_schema_ref": "focusa.project_genesis.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "project",
+          "trajectory",
+          "workpoint"
+        ],
+        "confirmation": "none",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "project:write"
+        ],
+        "receipt_required": true,
+        "reversible": true
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_project_genesis.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "project",
+      "label": "Project Genesis Start",
+      "materialization_mode": "canonical_mutation",
+      "method": "POST",
+      "operation_id": "focusa.project.genesis.start",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.project.genesis.start",
+        "subsystem": "project"
+      },
+      "path": "/v1/project/genesis/start",
+      "permissions_required": [
+        "project:write"
+      ],
+      "request_schema_ref": "focusa.project_genesis_start.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.project_genesis.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.project_genesis_start.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "durable_staging",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Project Genesis Start",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Project Genesis Start",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "light_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.project_genesis_status.request.v1",
+        "output_schema_ref": "focusa.project_genesis.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "project",
+          "trajectory",
+          "workpoint"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "project:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_project_genesis.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "project",
+      "label": "Project Genesis Status",
+      "materialization_mode": "advisory_read",
+      "method": "GET",
+      "operation_id": "focusa.project.genesis.status",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.project.genesis.status",
+        "subsystem": "project"
+      },
+      "path": "/v1/project/genesis/status",
+      "permissions_required": [
+        "project:read"
+      ],
+      "request_schema_ref": "focusa.project_genesis_status.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.project_genesis.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.project_genesis_status.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root"
+        ],
+        "workstream_scoped": false
+      },
+      "side_effect_profile": "read_status",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Project Genesis Status",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Project Genesis Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
       }
     }
   ],

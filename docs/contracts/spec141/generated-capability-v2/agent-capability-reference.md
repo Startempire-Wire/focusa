@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:c275433cdcc897c9d139978eb19161c009c74cec22ba516e8ddc0c10297bd841`
+Registry digest: `sha256:75f71e97e8d883d2cf90a3cd496304f36a99c2683534134131e120ac99f48b6c`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -796,6 +796,17 @@ Attach a final outcome/result to a specific project-card algorithm_run_id and up
 - Dependencies/next: `focusa_project_card`, `focusa_predict_record`, `focusa_metacog_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_project_card_outcome.md`
 
+## focusa_project_genesis
+
+Start, resume, inspect, or atomically commit the Project Genesis chain from verified identity and HLT through the first Workpoint. Use it when Stage, resume, inspect, or atomically commit the verified project journey from HLT and specification through tasks, first Workpoint, coordination, and readiness receipt. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.project.genesis`
+- Family: `project_identity`
+- Side effects: `start_resume_read_or_confirmed_atomic_commit`, `start_resume_read_or_confirmed_atomic_commit`
+- Skills: `skill:focusa`, `skill:focusa-project-scope`
+- Dependencies/next: `focusa_workpoint_resume`, `focusa_trajectory_view`, `focusa_project_verify`
+- Documentation: `docs/focusa-tools/tools/focusa_project_genesis.md`
+
 ## focusa_project_identity
 
 Resolve bounded ProjectIdentity from cwd/project_root using marker, git, beads, workspace, daemon, and operator project signals. Use it when Rank explicit, active-worktree, canonical-parent, marker/Beads, persisted-session, and bounded parent-directory project candidates; fail closed on ambiguity before trusting project-bound context. It returns a typed Focusa result with bounded recovery and likely next capabilities.
@@ -815,7 +826,7 @@ Verify active project folder against expected ProjectIdentity fields and report 
 - Family: `project_identity`
 - Side effects: `read_state`, `read_state`
 - Skills: `skill:focusa`, `skill:focusa-project-scope`
-- Dependencies/next: `focusa_trajectory_view`, `focusa_workpoint_resume`, `focusa_tool_doctor`
+- Dependencies/next: `focusa_project_genesis`, `focusa_trajectory_view`, `focusa_workpoint_resume`, `focusa_tool_doctor`
 - Documentation: `docs/focusa-tools/tools/focusa_project_verify.md`
 
 ## focusa_recent_result

@@ -1,6 +1,6 @@
 {
   "schema": "focusa.openai_tool_projection.v2",
-  "registry_digest": "sha256:c275433cdcc897c9d139978eb19161c009c74cec22ba516e8ddc0c10297bd841",
+  "registry_digest": "sha256:75f71e97e8d883d2cf90a3cd496304f36a99c2683534134131e120ac99f48b6c",
   "tools": [
     {
       "type": "function",
@@ -2456,6 +2456,104 @@
             },
             "token_usage": {
               "description": "Optional override token usage object; Pi auto-populates provider/estimated token counts when omitted."
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_project_genesis",
+        "description": "Start, resume, inspect, or atomically commit the Project Genesis chain from verified identity and HLT through the first Workpoint. Use it when Stage, resume, inspect, or atomically commit the verified project journey from HLT and specification through tasks, first Workpoint, coordination, and readiness receipt. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "action"
+          ],
+          "properties": {
+            "action": {
+              "description": "Genesis operation; defaults to status.",
+              "anyOf": [
+                {
+                  "const": "start",
+                  "type": "string"
+                },
+                {
+                  "const": "resume",
+                  "type": "string"
+                },
+                {
+                  "const": "status",
+                  "type": "string"
+                },
+                {
+                  "const": "commit",
+                  "type": "string"
+                }
+              ]
+            },
+            "project_root": {
+              "description": "Verified absolute project root.",
+              "type": "string"
+            },
+            "continuity_id": {
+              "description": "Stable project workstream continuity id.",
+              "type": "string"
+            },
+            "idempotency_key": {
+              "description": "Stable transaction replay key.",
+              "type": "string"
+            },
+            "hlt": {
+              "description": "Operator-confirmed High Level Trajectory.",
+              "type": "string"
+            },
+            "hlt_confirmed": {
+              "type": "boolean"
+            },
+            "desired_end_state": {
+              "type": "string"
+            },
+            "current_state": {
+              "type": "string"
+            },
+            "specification_ref": {
+              "type": "string"
+            },
+            "acceptance_criteria": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "mid_level_goal": {
+              "type": "string"
+            },
+            "short_term_goal": {
+              "type": "string"
+            },
+            "waypoints": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "task_provider": {
+              "type": "string"
+            },
+            "allow_task_decomposition": {
+              "type": "boolean"
+            },
+            "confirm": {
+              "description": "Required true for commit or takeover.",
+              "type": "boolean"
+            },
+            "takeover": {
+              "description": "Take over a conflicting active project workstream; requires confirm=true.",
+              "type": "boolean"
             }
           },
           "additionalProperties": false

@@ -2,8 +2,8 @@
 
 Generated from current Axum route registration plus the Spec135/Spec141 operation registry. This public inventory is release-gated; do not edit route rows manually.
 
-- Classified paths: `461`
-- Agent eligible: `86`
+- Classified paths: `465`
+- Agent eligible: `90`
 - Operator only: `363`
 - Public health/pairing: `6`
 - Internal: `6`
@@ -2111,6 +2111,38 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/project.rs`
 - Agent operations: none
+
+### `/v1/project/genesis/commit`
+
+- Methods: `POST /v1/project/genesis/commit`
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
+- Sources: `crates/focusa-api/src/routes/project_genesis.rs`
+- Agent operations: `focusa.project.genesis.commit`
+
+### `/v1/project/genesis/resume`
+
+- Methods: `POST /v1/project/genesis/resume`
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
+- Sources: `crates/focusa-api/src/routes/project_genesis.rs`
+- Agent operations: `focusa.project.genesis.resume`
+
+### `/v1/project/genesis/start`
+
+- Methods: `POST /v1/project/genesis/start`
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
+- Sources: `crates/focusa-api/src/routes/project_genesis.rs`
+- Agent operations: `focusa.project.genesis.start`
+
+### `/v1/project/genesis/status`
+
+- Methods: `GET /v1/project/genesis/status`
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
+- Sources: `crates/focusa-api/src/routes/project_genesis.rs`
+- Agent operations: `focusa.project.genesis.status`
 
 ### `/v1/project/identity`
 
