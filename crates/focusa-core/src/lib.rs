@@ -84,6 +84,7 @@ pub mod skills;
 pub mod software_domain;
 pub mod sync;
 pub mod telemetry;
+pub mod temporal;
 pub mod threads;
 pub mod tool_result;
 pub mod training;
