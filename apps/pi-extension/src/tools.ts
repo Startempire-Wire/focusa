@@ -5847,6 +5847,84 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+    name: "focusa_project_bootstrap",
+    label: "Focusa Project Bootstrap",
+    description:
+      "Preview, apply, inspect, or repair the idempotent local project-discipline baseline before Project Genesis.",
+    promptSnippet:
+      "Use for new/existing project onboarding; preview first, require confirm=true for apply/rollback, and never infer a remote, stack, deployment, domain, or secret.",
+    parameters: Type.Object({
+      action: Type.Optional(
+        Type.Union(
+          [Type.Literal("preview"), Type.Literal("apply"), Type.Literal("status"), Type.Literal("repair")],
+          { description: "Bootstrap operation; defaults to status." }
+        )
+      ),
+      project_root: Type.String({ description: "Explicit safe absolute project root." }),
+      project_id: Type.Optional(Type.String()),
+      canonical_name: Type.Optional(Type.String()),
+      continuity_id: Type.Optional(Type.String()),
+      idempotency_key: Type.Optional(Type.String()),
+      discipline_profile: Type.Optional(Type.String({ description: "Defaults to standard_software_project." })),
+      initialize_git: Type.Optional(Type.Boolean()),
+      initialize_task_provider: Type.Optional(Type.Boolean()),
+      task_provider: Type.Optional(Type.String()),
+      hlt: Type.Optional(Type.String()),
+      hlt_confirmed: Type.Optional(Type.Boolean()),
+      desired_end_state: Type.Optional(Type.String()),
+      current_state: Type.Optional(Type.String()),
+      specification_ref: Type.Optional(Type.String()),
+      acceptance_criteria: Type.Optional(Type.Array(Type.String())),
+      confirm: Type.Optional(Type.Boolean()),
+      repair_action: Type.Optional(Type.String({ description: "retry or rollback; rollback requires confirm=true." })),
+    }),
+    async execute(_toolCallId: string, params: any) {
+      const action = String(params.action || "status");
+      const projectRoot = normalizeProjectRoot(params.project_root);
+      if (!projectRoot || !isProjectRootAuthoritySafe(projectRoot)) {
+        return {
+          content: [{ type: "text", text: "project bootstrap → blocked: supply an explicit safe project root" }],
+          details: { status: "blocked", failure_class: "unsafe_project_root", next_tools: ["focusa_project_verify"] },
+        } as any;
+      }
+      const continuityId = params.continuity_id || getContinuityId() || ensureContinuityId(projectRoot);
+      let result: any;
+      if (action === "status") {
+        result = await focusaFetchDetailed(
+          `/project/bootstrap/status?project_root=${encodeURIComponent(projectRoot)}`
+        );
+      } else {
+        result = await focusaFetchDetailed(`/project/bootstrap/${encodeURIComponent(action)}`, {
+          method: "POST",
+          body: JSON.stringify({
+            ...params,
+            action: undefined,
+            project_root: projectRoot,
+            project_id: params.project_id || projectRoot.split("/").filter(Boolean).pop() || "project",
+            canonical_name: params.canonical_name || projectRoot.split("/").filter(Boolean).pop() || "Project",
+            continuity_id: continuityId,
+            idempotency_key: params.idempotency_key || `bootstrap:${continuityId}`,
+          }),
+        });
+      }
+      const body = result.body || {};
+      const status = String(body.status || (result.ok ? "completed" : "blocked"));
+      return {
+        content: [{ type: "text", text: `project bootstrap ${action} → ${status}\nnext: ${body.next_action || "inspect readiness"}` }],
+        details: {
+          ok: result.ok,
+          status,
+          canonical: status === "ready",
+          project_root: projectRoot,
+          continuity_id: continuityId,
+          bootstrap_packet: compactApiEcho(body),
+          next_tools: status === "ready" ? ["focusa_project_genesis", "focusa_workpoint_resume"] : ["focusa_project_bootstrap", "focusa_project_verify"],
+        },
+      } as any;
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_project_genesis",
     label: "Focusa Project Genesis",
     description:

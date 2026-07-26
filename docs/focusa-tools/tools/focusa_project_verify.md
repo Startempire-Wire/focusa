@@ -61,13 +61,14 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 
 ## Dependencies and workflow position
 
+- `focusa_project_bootstrap` (likely_next)
 - `focusa_project_genesis` (likely_next)
 - `focusa_trajectory_view` (likely_next)
 - `focusa_workpoint_resume` (likely_next)
 - `focusa_tool_doctor` (likely_next)
 
 Prerequisites: verified project_root plus continuity_id when project-bound.
-Likely next: `focusa_project_genesis`, `focusa_trajectory_view`, `focusa_workpoint_resume`, `focusa_tool_doctor`.
+Likely next: `focusa_project_bootstrap`, `focusa_project_genesis`, `focusa_trajectory_view`, `focusa_workpoint_resume`, `focusa_tool_doctor`.
 
 ## Skills, protocols, and source authority
 
@@ -77,4 +78,4 @@ Likely next: `focusa_project_genesis`, `focusa_trajectory_view`, `focusa_workpoi
 - CLI: `focusa project verify`.
 - REST: `POST /v1/project/verify`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:772e22b95e854556897330b7b20e5504ce01440b88fe25489c45fe1e28891644`.
+- Descriptor digest: `sha256:aaf9a071c478053a169002233e16e91da51610ea8b0ea5c1241edb76ab1791a0`.

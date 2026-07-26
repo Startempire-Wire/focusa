@@ -11718,6 +11718,246 @@
             "type": "string"
           }
         }
+      },
+      "focusa_project_bootstrap_preview_request_v1": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "project_root",
+          "project_id",
+          "canonical_name",
+          "continuity_id",
+          "idempotency_key"
+        ],
+        "properties": {
+          "project_root": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "canonical_name": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "discipline_profile": {
+            "type": "string"
+          },
+          "initialize_git": {
+            "type": "boolean"
+          },
+          "initialize_task_provider": {
+            "type": "boolean"
+          },
+          "task_provider": {
+            "type": "string"
+          },
+          "hlt": {
+            "type": "string"
+          },
+          "hlt_confirmed": {
+            "type": "boolean"
+          },
+          "desired_end_state": {
+            "type": "string"
+          },
+          "current_state": {
+            "type": "string"
+          },
+          "specification_ref": {
+            "type": "string"
+          },
+          "acceptance_criteria": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confirm": {
+            "type": "boolean"
+          },
+          "repair_action": {
+            "type": "string"
+          }
+        }
+      },
+      "focusa_project_bootstrap_apply_request_v1": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "project_root",
+          "project_id",
+          "canonical_name",
+          "continuity_id",
+          "idempotency_key",
+          "confirm"
+        ],
+        "properties": {
+          "project_root": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "canonical_name": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "discipline_profile": {
+            "type": "string"
+          },
+          "initialize_git": {
+            "type": "boolean"
+          },
+          "initialize_task_provider": {
+            "type": "boolean"
+          },
+          "task_provider": {
+            "type": "string"
+          },
+          "hlt": {
+            "type": "string"
+          },
+          "hlt_confirmed": {
+            "type": "boolean"
+          },
+          "desired_end_state": {
+            "type": "string"
+          },
+          "current_state": {
+            "type": "string"
+          },
+          "specification_ref": {
+            "type": "string"
+          },
+          "acceptance_criteria": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confirm": {
+            "type": "boolean"
+          },
+          "repair_action": {
+            "type": "string"
+          }
+        }
+      },
+      "focusa_project_bootstrap_repair_request_v1": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "project_root",
+          "project_id",
+          "canonical_name",
+          "continuity_id",
+          "idempotency_key",
+          "confirm"
+        ],
+        "properties": {
+          "project_root": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "canonical_name": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "discipline_profile": {
+            "type": "string"
+          },
+          "initialize_git": {
+            "type": "boolean"
+          },
+          "initialize_task_provider": {
+            "type": "boolean"
+          },
+          "task_provider": {
+            "type": "string"
+          },
+          "hlt": {
+            "type": "string"
+          },
+          "hlt_confirmed": {
+            "type": "boolean"
+          },
+          "desired_end_state": {
+            "type": "string"
+          },
+          "current_state": {
+            "type": "string"
+          },
+          "specification_ref": {
+            "type": "string"
+          },
+          "acceptance_criteria": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confirm": {
+            "type": "boolean"
+          },
+          "repair_action": {
+            "type": "string"
+          }
+        }
+      },
+      "focusa_project_bootstrap_status_request_v1": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "project_root"
+        ],
+        "properties": {
+          "project_root": {
+            "type": "string"
+          }
+        }
+      },
+      "focusa_project_bootstrap_response_v1": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "status",
+          "project_root"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "project_root": {
+            "type": "string"
+          },
+          "receipt": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "next_action": {
+            "type": "string"
+          }
+        }
       }
     }
   },
@@ -20045,6 +20285,130 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/focusa_project_genesis_commit_request_v1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/project/bootstrap/preview": {
+      "post": {
+        "operationId": "focusa.project.bootstrap.preview",
+        "summary": "Project Bootstrap preview",
+        "tags": [
+          "project"
+        ],
+        "responses": {
+          "200": {
+            "description": "Project bootstrap packet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_project_bootstrap_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_project_bootstrap_preview_request_v1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/project/bootstrap/apply": {
+      "post": {
+        "operationId": "focusa.project.bootstrap.apply",
+        "summary": "Project Bootstrap apply",
+        "tags": [
+          "project"
+        ],
+        "responses": {
+          "200": {
+            "description": "Project bootstrap packet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_project_bootstrap_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_project_bootstrap_apply_request_v1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/project/bootstrap/status": {
+      "get": {
+        "operationId": "focusa.project.bootstrap.status",
+        "summary": "Project Bootstrap status",
+        "tags": [
+          "project"
+        ],
+        "responses": {
+          "200": {
+            "description": "Project bootstrap packet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_project_bootstrap_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_root",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/project/bootstrap/repair": {
+      "post": {
+        "operationId": "focusa.project.bootstrap.repair",
+        "summary": "Project Bootstrap repair",
+        "tags": [
+          "project"
+        ],
+        "responses": {
+          "200": {
+            "description": "Project bootstrap packet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_project_bootstrap_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_project_bootstrap_repair_request_v1"
               }
             }
           }

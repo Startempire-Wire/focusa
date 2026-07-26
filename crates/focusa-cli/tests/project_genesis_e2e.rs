@@ -2,6 +2,8 @@
 
 use serde_json::Value;
 use std::net::{TcpListener, TcpStream};
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Output, Stdio};
 use std::thread;
@@ -15,6 +17,7 @@ struct IsolatedDaemon {
     project_root: PathBuf,
     bind: String,
     binary: PathBuf,
+    path_env: String,
 }
 
 impl IsolatedDaemon {
@@ -25,6 +28,7 @@ impl IsolatedDaemon {
             .env("FOCUSA_BIND", &self.bind)
             .env("FOCUSA_DATA_DIR", &self.data_dir)
             .env("FOCUSA_TEST_MODE", "1")
+            .env("PATH", &self.path_env)
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .spawn()
@@ -90,6 +94,46 @@ fn start_isolated_daemon(repo_root: &Path) -> (IsolatedDaemon, String) {
         .unwrap(),
     )
     .unwrap();
+    let fake_bin = data_dir.join("bin");
+    std::fs::create_dir_all(&fake_bin).unwrap();
+    let fake_bd = fake_bin.join("bd");
+    std::fs::write(
+        &fake_bd,
+        r#"#!/usr/bin/env bash
+set -euo pipefail
+command="${1:-}"; shift || true
+case "$command" in
+  init)
+    mkdir -p .beads
+    : > .beads/issues.jsonl
+    printf '{"status":"initialized"}\n'
+    ;;
+  create)
+    title="${1:-task}"
+    mkdir -p .beads
+    touch .beads/issues.jsonl
+    count=$(wc -l < .beads/issues.jsonl)
+    id="fixture-$((count + 1))"
+    printf '{"id":"%s","title":"%s","status":"open","priority":0}\n' "$id" "$title" >> .beads/issues.jsonl
+    printf '{"id":"%s","title":"%s","status":"open"}\n' "$id" "$title"
+    ;;
+  dep)
+    printf '{"status":"linked"}\n'
+    ;;
+  *)
+    printf '{"status":"ok"}\n'
+    ;;
+esac
+"#,
+    )
+    .unwrap();
+    #[cfg(unix)]
+    std::fs::set_permissions(&fake_bd, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let path_env = format!(
+        "{}:{}",
+        fake_bin.display(),
+        std::env::var("PATH").unwrap_or_default()
+    );
     let bind = format!("127.0.0.1:{port}");
     let base_url = format!("http://{bind}");
     let binary = daemon_binary(repo_root);
@@ -102,6 +146,7 @@ fn start_isolated_daemon(repo_root: &Path) -> (IsolatedDaemon, String) {
         .env("FOCUSA_BIND", &bind)
         .env("FOCUSA_DATA_DIR", &data_dir)
         .env("FOCUSA_TEST_MODE", "1")
+        .env("PATH", &path_env)
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
@@ -112,6 +157,7 @@ fn start_isolated_daemon(repo_root: &Path) -> (IsolatedDaemon, String) {
         project_root,
         bind: bind.clone(),
         binary,
+        path_env,
     };
     let deadline = Instant::now() + Duration::from_secs(10);
     while TcpStream::connect(&bind).is_err() {
@@ -255,4 +301,141 @@ fn genesis_commits_first_workpoint_atomically_and_replays_idempotently() {
     .unwrap();
     assert_eq!(marker["genesis_binding"]["status"], "ready");
     assert_eq!(marker["genesis_binding"]["workpoint_id"], first_id);
+}
+
+fn bootstrap_args<'a>(project_root: &'a str, action: &'a str, confirm: bool) -> Vec<&'a str> {
+    let mut args = vec![
+        "project",
+        "bootstrap",
+        action,
+        "--project-root",
+        project_root,
+        "--project-id",
+        "bootstrap-e2e",
+        "--canonical-name",
+        "Bootstrap E2E",
+        "--continuity-id",
+        "bootstrap-e2e-continuity",
+        "--idempotency-key",
+        "bootstrap-e2e-key",
+        "--discipline-profile",
+        "standard_software_project",
+        "--initialize-git",
+        "true",
+        "--initialize-task-provider",
+        "true",
+        "--hlt",
+        "Ship the disciplined project",
+        "--hlt-confirmed",
+        "--specification-ref",
+        "docs/01-bootstrap-e2e-spec.md",
+        "--acceptance",
+        "Project baseline is ready",
+        "--acceptance",
+        "First Workpoint is active",
+        "--current-state",
+        "Empty project",
+        "--desired-end-state",
+        "Disciplined project ready",
+    ];
+    if confirm {
+        args.push("--confirm");
+    }
+    args.push("--json");
+    args
+}
+
+#[test]
+fn standard_bootstrap_is_previewable_local_only_idempotent_and_rollback_bounded() {
+    let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .unwrap();
+    let (daemon, base_url) = start_isolated_daemon(repo_root);
+    let root = daemon.project_root.to_string_lossy().to_string();
+    std::fs::remove_dir_all(&daemon.project_root).unwrap();
+
+    let preview = json_output(&run(&base_url, &bootstrap_args(&root, "preview", false)));
+    assert_eq!(find_string(&preview, "status"), Some("preview_ready"));
+    assert!(!daemon.project_root.exists());
+
+    let applied = json_output(&run(&base_url, &bootstrap_args(&root, "apply", true)));
+    assert_eq!(find_string(&applied, "status"), Some("ready"));
+    assert_eq!(find_string(&applied, "project_id"), Some("bootstrap-e2e"));
+    assert_eq!(find_string(&applied, "identity_confidence"), Some("high"));
+    assert_eq!(
+        find_string(&applied, "marker_schema"),
+        Some("focusa.project.v2")
+    );
+    let identity = json_output(&run(
+        &base_url,
+        &[
+            "project",
+            "identity",
+            "--cwd",
+            &root,
+            "--project-root",
+            &root,
+            "--json",
+        ],
+    ));
+    assert_eq!(find_string(&identity, "project_root"), Some(root.as_str()));
+    let verification = json_output(&run(
+        &base_url,
+        &[
+            "project",
+            "verify",
+            "--cwd",
+            &root,
+            "--project-root",
+            &root,
+            "--project-id",
+            "bootstrap-e2e",
+            "--canonical-name",
+            "Bootstrap E2E",
+            "--json",
+        ],
+    ));
+    assert!(verification.to_string().contains("\"verified\":true"));
+    assert!(daemon.project_root.join(".focusa-project.json").is_file());
+    assert!(daemon.project_root.join(".git").is_dir());
+    assert!(daemon.project_root.join(".beads").is_dir());
+    assert!(daemon.project_root.join("docs").is_dir());
+    let remotes = Command::new("git")
+        .args(["remote"])
+        .current_dir(&daemon.project_root)
+        .output()
+        .unwrap();
+    assert!(
+        remotes.stdout.is_empty(),
+        "bootstrap must never create a remote"
+    );
+
+    let issues_path = daemon.project_root.join(".beads/issues.jsonl");
+    let tasks_before_replay = std::fs::read_to_string(&issues_path)
+        .unwrap()
+        .lines()
+        .count();
+    let replay = json_output(&run(&base_url, &bootstrap_args(&root, "apply", true)));
+    assert_eq!(find_string(&replay, "status"), Some("ready"));
+    let tasks_after_replay = std::fs::read_to_string(&issues_path)
+        .unwrap()
+        .lines()
+        .count();
+    assert_eq!(tasks_after_replay, tasks_before_replay);
+
+    let mut rollback_args = bootstrap_args(&root, "repair", true);
+    let json_index = rollback_args.len() - 1;
+    rollback_args.insert(json_index, "--repair-action");
+    rollback_args.insert(json_index + 1, "rollback");
+    let rollback = json_output(&run(&base_url, &rollback_args));
+    assert_eq!(find_string(&rollback, "status"), Some("rolled_back"));
+    assert!(!daemon.project_root.join(".git").exists());
+    assert!(!daemon.project_root.join(".beads").exists());
+    assert!(
+        daemon
+            .project_root
+            .join(".focusa/bootstrap/receipt.json")
+            .is_file()
+    );
 }
