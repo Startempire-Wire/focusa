@@ -464,6 +464,34 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     authority_requirement: { kind: "canonical", path: "daemon:/v1/project/genesis/commit" },
   },
   {
+    name: "focusa_temporal_authority",
+    label: "Temporal Authority",
+    purpose:
+      "Read, commit, revise, observe, forecast, or preflight scoped temporal claims with evidence, confidence, uncertainty, freshness, and no fabricated urgency.",
+    family: "trajectory",
+    ontology_action: "temporal.authority",
+    ontology_objects: ["ProjectIdentity", "TrajectoryProjection", "WorkpointRecord", "EvidenceRef"],
+    api_routes: [
+      "GET /v1/temporal/status",
+      "POST /v1/temporal/commit",
+      "POST /v1/temporal/revise",
+      "POST /v1/temporal/observe",
+      "POST /v1/temporal/forecast",
+      "POST /v1/temporal/preflight",
+    ],
+    cli_commands: ["focusa temporal status|commit|revise|observe|forecast|preflight"],
+    core_surface: "Spec137 temporal authority, ledger, claims, preflight, forecasting, and release timing",
+    doc_path: "docs/focusa-tools/tools/focusa_temporal_authority.md",
+    spec_path: "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md",
+    result_envelope: "tool_result_v1",
+    side_effect_profile: "status_preflight_read_or_confirmed_claim_write_or_observation",
+    parity_status: "full",
+    exemptions: [],
+    live_check: "Spec137 no-deadline, scope, commitment, revision, observation, forecast, calibration, resume, and cross-surface gates",
+    scope_requirement: { kind: "write", route_family: "explicit_project_continuity" },
+    authority_requirement: { kind: "canonical", path: "daemon:/v1/temporal/commit" },
+  },
+  {
     name: "focusa_trajectory_view",
     label: "Trajectory View",
     purpose:
@@ -2481,7 +2509,13 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
     "focusa_trajectory_view",
     "focusa_project_verify",
   ],
+  focusa_temporal_authority: [
+    "focusa_trajectory_view",
+    "focusa_workpoint_resume",
+    "focusa_project_verify",
+  ],
   focusa_trajectory_view: [
+    "focusa_temporal_authority",
     "focusa_trajectory_assess",
     "focusa_trajectory_define_goal",
     "focusa_workpoint_resume",

@@ -85,6 +85,7 @@ pub mod sse;
 pub mod subagent;
 pub mod task_plans;
 pub mod telemetry;
+pub mod temporal;
 pub mod threads;
 pub mod tokens;
 pub mod training;

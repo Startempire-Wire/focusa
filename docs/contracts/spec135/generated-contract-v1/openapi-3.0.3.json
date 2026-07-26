@@ -11958,6 +11958,336 @@
             "type": "string"
           }
         }
+      },
+      "focusa_temporal_status_request_v1": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "project_root",
+          "continuity_id"
+        ],
+        "properties": {
+          "project_root": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "confirm": {
+            "type": "boolean"
+          },
+          "as_of": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "duration_ms": {
+            "type": "integer"
+          },
+          "actual_ms": {
+            "type": "integer"
+          },
+          "claim": {
+            "type": "object"
+          },
+          "envelope": {
+            "type": "object"
+          }
+        }
+      },
+      "focusa_temporal_status_response_v1": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "next_action": {
+            "type": "string"
+          }
+        }
+      },
+      "focusa_temporal_commit_request_v1": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "project_root",
+          "continuity_id"
+        ],
+        "properties": {
+          "project_root": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "confirm": {
+            "type": "boolean"
+          },
+          "as_of": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "duration_ms": {
+            "type": "integer"
+          },
+          "actual_ms": {
+            "type": "integer"
+          },
+          "claim": {
+            "type": "object"
+          },
+          "envelope": {
+            "type": "object"
+          }
+        }
+      },
+      "focusa_temporal_commit_response_v1": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "next_action": {
+            "type": "string"
+          }
+        }
+      },
+      "focusa_temporal_revise_request_v1": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "project_root",
+          "continuity_id"
+        ],
+        "properties": {
+          "project_root": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "confirm": {
+            "type": "boolean"
+          },
+          "as_of": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "duration_ms": {
+            "type": "integer"
+          },
+          "actual_ms": {
+            "type": "integer"
+          },
+          "claim": {
+            "type": "object"
+          },
+          "envelope": {
+            "type": "object"
+          }
+        }
+      },
+      "focusa_temporal_revise_response_v1": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "next_action": {
+            "type": "string"
+          }
+        }
+      },
+      "focusa_temporal_observe_request_v1": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "project_root",
+          "continuity_id"
+        ],
+        "properties": {
+          "project_root": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "confirm": {
+            "type": "boolean"
+          },
+          "as_of": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "duration_ms": {
+            "type": "integer"
+          },
+          "actual_ms": {
+            "type": "integer"
+          },
+          "claim": {
+            "type": "object"
+          },
+          "envelope": {
+            "type": "object"
+          }
+        }
+      },
+      "focusa_temporal_observe_response_v1": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "next_action": {
+            "type": "string"
+          }
+        }
+      },
+      "focusa_temporal_forecast_request_v1": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "project_root",
+          "continuity_id"
+        ],
+        "properties": {
+          "project_root": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "confirm": {
+            "type": "boolean"
+          },
+          "as_of": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "duration_ms": {
+            "type": "integer"
+          },
+          "actual_ms": {
+            "type": "integer"
+          },
+          "claim": {
+            "type": "object"
+          },
+          "envelope": {
+            "type": "object"
+          }
+        }
+      },
+      "focusa_temporal_forecast_response_v1": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "next_action": {
+            "type": "string"
+          }
+        }
+      },
+      "focusa_temporal_preflight_request_v1": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "project_root",
+          "continuity_id"
+        ],
+        "properties": {
+          "project_root": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "confirm": {
+            "type": "boolean"
+          },
+          "as_of": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "duration_ms": {
+            "type": "integer"
+          },
+          "actual_ms": {
+            "type": "integer"
+          },
+          "claim": {
+            "type": "object"
+          },
+          "envelope": {
+            "type": "object"
+          }
+        }
+      },
+      "focusa_temporal_preflight_response_v1": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "next_action": {
+            "type": "string"
+          }
+        }
       }
     }
   },
@@ -20409,6 +20739,200 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/focusa_project_bootstrap_repair_request_v1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/temporal/status": {
+      "get": {
+        "operationId": "focusa.temporal.status",
+        "summary": "Temporal status",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_status_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_root",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "continuity_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/temporal/commit": {
+      "post": {
+        "operationId": "focusa.temporal.commit",
+        "summary": "Temporal commit",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_commit_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_temporal_commit_request_v1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/temporal/revise": {
+      "post": {
+        "operationId": "focusa.temporal.revise",
+        "summary": "Temporal revise",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_revise_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_temporal_revise_request_v1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/temporal/observe": {
+      "post": {
+        "operationId": "focusa.temporal.observe",
+        "summary": "Temporal observe",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_observe_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_temporal_observe_request_v1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/temporal/forecast": {
+      "post": {
+        "operationId": "focusa.temporal.forecast",
+        "summary": "Temporal forecast",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_forecast_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_temporal_forecast_request_v1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/temporal/preflight": {
+      "post": {
+        "operationId": "focusa.temporal.preflight",
+        "summary": "Temporal preflight",
+        "tags": [
+          "temporal"
+        ],
+        "responses": {
+          "200": {
+            "description": "Temporal result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_preflight_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_temporal_preflight_request_v1"
               }
             }
           }

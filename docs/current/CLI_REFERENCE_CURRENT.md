@@ -261,6 +261,11 @@ focusa project genesis start --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --con
 focusa project genesis status --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --json
 focusa project genesis resume --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --idempotency-key genesis-1 --json
 focusa project genesis commit --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --idempotency-key genesis-1 --hlt "Ship the verified project" --hlt-confirmed --specification-ref docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md --acceptance "First Workpoint is active" --current-state "Genesis incomplete" --desired-end-state "Project ready" --allow-task-decomposition --confirm --json
+focusa temporal status --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --json
+focusa temporal commit --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --idempotency-key deadline-1 --claim-id release-deadline --kind external_commitment --subject-ref release --target-at 2026-08-01T17:00:00Z --timezone America/Los_Angeles --source operator --operator-confirmed --confidence verified --evidence-ref contract:release-date --confirm --json
+focusa temporal observe --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --idempotency-key build-run-1 --phase build --duration-ms 120000 --evidence-ref run:123 --json
+focusa temporal forecast --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --phase build --json
+focusa temporal preflight --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --json
 focusa trajectory view --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --mode summary --json
 focusa trajectory history --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --limit 50 --json
 focusa trajectory query --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --level waypoint --as-of 2026-07-25T12:00:00Z --json

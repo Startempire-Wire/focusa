@@ -2,8 +2,8 @@
 
 Generated from current Axum route registration plus the Spec135/Spec141 operation registry. This public inventory is release-gated; do not edit route rows manually.
 
-- Classified paths: `469`
-- Agent eligible: `94`
+- Classified paths: `475`
+- Agent eligible: `100`
 - Operator only: `363`
 - Public health/pairing: `6`
 - Internal: `6`
@@ -3119,6 +3119,54 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/capabilities_extra.rs`
 - Agent operations: none
+
+### `/v1/temporal/commit`
+
+- Methods: `POST /v1/temporal/commit`
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
+- Sources: `crates/focusa-api/src/routes/temporal.rs`
+- Agent operations: `focusa.temporal.commit`
+
+### `/v1/temporal/forecast`
+
+- Methods: `POST /v1/temporal/forecast`
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
+- Sources: `crates/focusa-api/src/routes/temporal.rs`
+- Agent operations: `focusa.temporal.forecast`
+
+### `/v1/temporal/observe`
+
+- Methods: `POST /v1/temporal/observe`
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
+- Sources: `crates/focusa-api/src/routes/temporal.rs`
+- Agent operations: `focusa.temporal.observe`
+
+### `/v1/temporal/preflight`
+
+- Methods: `POST /v1/temporal/preflight`
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
+- Sources: `crates/focusa-api/src/routes/temporal.rs`
+- Agent operations: `focusa.temporal.preflight`
+
+### `/v1/temporal/revise`
+
+- Methods: `POST /v1/temporal/revise`
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
+- Sources: `crates/focusa-api/src/routes/temporal.rs`
+- Agent operations: `focusa.temporal.revise`
+
+### `/v1/temporal/status`
+
+- Methods: `GET /v1/temporal/status`
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
+- Sources: `crates/focusa-api/src/routes/temporal.rs`
+- Agent operations: `focusa.temporal.status`
 
 ### `/v1/threads`
 
