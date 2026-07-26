@@ -93,6 +93,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # sqlite-vec 0.1.7 uses BSD u_int* names that musl intentionally omits.
+          cat > Cross.toml <<'EOF'
+          [build.env]
+          passthrough = ["CFLAGS_x86_64_unknown_linux_musl"]
+          EOF
+          export CFLAGS_x86_64_unknown_linux_musl="-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t"
+          trap 'rm -f Cross.toml' EXIT
           cross build --release --target x86_64-unknown-linux-musl --package focusa-cli --bin focusa
           cross build --release --target x86_64-unknown-linux-musl --package focusa-tui --bin focusa-tui
       - name: Package release artifact and compute hash
@@ -197,6 +204,12 @@ jobs:
         run: |
           set -euo pipefail
           if [ "${{ matrix.musl || false }}" = "true" ]; then
+            cat > Cross.toml <<'EOF'
+          [build.env]
+          passthrough = ["CFLAGS_x86_64_unknown_linux_musl"]
+          EOF
+            export CFLAGS_x86_64_unknown_linux_musl="-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t"
+            trap 'rm -f Cross.toml' EXIT
             cross build --release --target "${{ matrix.target }}" --bins
           else
             cargo build --release --target "${{ matrix.target }}" --bins
