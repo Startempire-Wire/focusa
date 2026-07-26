@@ -883,20 +883,23 @@ function formatResumePacketV2ForPrompt(packet: any): string {
     .join("\n");
 }
 
-function submitCompactionResumeTurn(ctx: any, steerMessage: string): boolean {
+function queueCompactionResumeContext(ctx: any, steerMessage: string): boolean {
   const pi2 = getAttachmentRuntime().pi;
   if (!pi2) return false;
+  // Pi 0.82+ owns compaction queue flushing and native continuation. Starting a
+  // competing turn here races operator text submitted during manual compaction
+  // and can leave the session stuck in prompt-processing until restart.
   pi2.sendMessage(
     {
       customType: "focusa-compact-resume",
       content: steerMessage,
       display: false,
     },
-    { triggerTurn: true }
+    { triggerTurn: false }
   );
   getAttachmentRuntime().compactResumePending = false;
   persistState();
-  ctx.ui.notify(`✅ Compaction done — auto-resume turn submitted`, "info");
+  ctx.ui.notify(`✅ Compaction done — resume context queued; steering active`, "info");
   return true;
 }
 
@@ -908,14 +911,14 @@ function scheduleCompactionResumeRetry(ctx: any, steerMessage: string, retryAtte
       compactResumeRetryTimer = null;
       if (!getAttachmentRuntime().compactResumePending) return;
       try {
-        submitCompactionResumeTurn(ctx, steerMessage);
+        queueCompactionResumeContext(ctx, steerMessage);
         scheduleCompactionResumeRetry(ctx, steerMessage, retryAttempt + 1);
       } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
-        console.warn(`[focusa] compaction auto-resume retry ${retryAttempt} failed:`, e);
+        console.warn(`[focusa] compaction resume-context retry ${retryAttempt} failed:`, e);
         if (ctx.hasUI) {
           ctx.ui.notify(
-            `Compaction resume retry ${retryAttempt} failed: ${message.slice(0, 240)}. Retrying automatically.`,
+            `Compaction resume-context retry ${retryAttempt} failed: ${message.slice(0, 240)}. Retrying automatically.`,
             "warning"
           );
         }
@@ -1066,11 +1069,10 @@ export function registerCompaction(pi: ExtensionAPI) {
 
     scheduleCompactionMemoryEvaluation();
 
-    // §38.3 CRITICAL FIX: queueMicrotask defers to next event-loop tick,
-    // AFTER compaction_end fires (which calls flushCompactionQueue first,
-    // then hasQueuedMessages() -> agent.continue()). Without deferral,
-    // sendMessage is still async when hasQueuedMessages() fires -> miss.
-    // Also dedup: only resume once per compaction cycle.
+    // Queue bounded resume context after compaction without triggering a turn.
+    // Pi owns flushCompactionQueue() and native continuation; Focusa must not
+    // race operator steering submitted while manual compaction is active.
+    // Dedup ensures one context packet per compaction cycle.
     const compactionEntry = (event as any).compactionEntry || {};
     const compactOrdinal = getTotalCompactions() || compactionEntry.details?.totalCompactions || "unknown";
     const compactResumeKey = String(
@@ -1169,16 +1171,16 @@ When using focusa_scratch / focusa_decide / focusa_constraint / focusa_failure:
 
 See: ls /tmp/pi-scratch/ | cat /tmp/pi-scratch/turn-NNNN/notes.txt`;
           try {
-            submitCompactionResumeTurn(ctx, steerMessage);
+            queueCompactionResumeContext(ctx, steerMessage);
           } catch (e) {
-            console.warn("[focusa] auto-resume failed:", e);
-            getAttachmentRuntime().compactResumePending = false;
+            console.warn("[focusa] resume-context delivery failed:", e);
+            scheduleCompactionResumeWatchdog(ctx, steerMessage);
           }
         });
       }
     } else if (recentlySubmitted) {
       ctx.ui.notify(
-        "↩️ Compaction auto-resume already submitted for this compact cycle; suppressing duplicate.",
+        "↩️ Compaction resume context already queued for this cycle; suppressing duplicate.",
         "info"
       );
     }
