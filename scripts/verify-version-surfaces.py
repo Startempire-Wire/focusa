@@ -111,6 +111,12 @@ def main() -> int:
                 "apps/pi-extension/src/auto-compaction.ts", "focusa-pi-bridge"
             ),
         ),
+        (
+            "docs/contracts/spec141/generated-capability-v2/agent-card.json",
+            read_json_version(
+                "docs/contracts/spec141/generated-capability-v2/agent-card.json"
+            ),
+        ),
         ("apps/menubar/package.json", read_json_version("apps/menubar/package.json")),
         (
             "apps/menubar/src-tauri/tauri.conf.json",

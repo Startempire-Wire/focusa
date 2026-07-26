@@ -50,7 +50,10 @@ tag_script = (ROOT / "scripts/create-dev-release-tag.sh").read_text()
 assert "replace_extension_build" in stamp
 assert "apps/pi-extension/src/auto-compaction.ts" in stamp
 assert "read_extension_build_version" in verify
+assert "replace_agent_card_version" in stamp
+assert "docs/contracts/spec141/generated-capability-v2/agent-card.json" in verify
 assert tag_script.count("apps/pi-extension/src/auto-compaction.ts") >= 2
+assert tag_script.count("docs/contracts/spec141/generated-capability-v2/agent-card.json") >= 2
 assert "scripts/stamp-release-version" in tag_script
 assert "scripts/verify-doc-version-consistency" in tag_script
 assert "validate-docs-runtime-parity.mjs" in tag_script
