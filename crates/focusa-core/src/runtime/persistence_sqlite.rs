@@ -148,10 +148,44 @@ impl SqlitePersistence {
     }
 
     fn init_schema(&self) -> anyhow::Result<()> {
-        let conn = self
+        let mut conn = self
             .conn
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
+
+        // Existing installations can carry an `events` table created before
+        // scoped runtime columns were introduced. `CREATE TABLE IF NOT EXISTS`
+        // never upgrades that table, and the indexes below otherwise reference
+        // missing columns before startup can bind the health endpoint.
+        let events_exist: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='events'",
+            [],
+            |row| row.get(0),
+        )?;
+        if events_exist != 0 {
+            let migration = conn.transaction()?;
+            for (column, definition) in [
+                ("machine_id", "machine_id TEXT"),
+                ("instance_id", "instance_id TEXT"),
+                ("session_id", "session_id TEXT"),
+                ("thread_id", "thread_id TEXT"),
+                (
+                    "is_observation",
+                    "is_observation INTEGER NOT NULL DEFAULT 0",
+                ),
+            ] {
+                let present: i64 = migration.query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('events') WHERE name=?1",
+                    [column],
+                    |row| row.get(0),
+                )?;
+                if present == 0 {
+                    migration
+                        .execute(&format!("ALTER TABLE events ADD COLUMN {definition}"), [])?;
+                }
+            }
+            migration.commit()?;
+        }
 
         conn.execute_batch(
             r#"
