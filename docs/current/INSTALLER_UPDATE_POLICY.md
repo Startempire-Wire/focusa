@@ -23,6 +23,8 @@ Linux release/deploy artifacts use `x86_64-unknown-linux-musl`. Production AlmaL
 
 `focusa update apply --json` exposes `installed`, `latest`, `applied`, `surfaces`, `rollback`, `next_action`, `blockers`, and `error` at top level. `blocked_read_only` is a safe trust refusal, not an installation success; agents must report its blockers and must never bypass trust.
 
+Release waits are observable rather than quiet: the canonical tag script reports discovery, run URL, elapsed heartbeat, per-job state, failed job/step names, a bounded error/assertion excerpt, and the exact full-log recovery command. Status-query errors and timeouts are explicit failures. Pi agents should use non-blocking release dispatch plus bounded status polls when the harness cannot stream subprocess output.
+
 ## Customer lifecycle contract
 
 | Transition | Required behavior | Required proof |

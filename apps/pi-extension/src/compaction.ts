@@ -911,7 +911,14 @@ function scheduleCompactionResumeRetry(ctx: any, steerMessage: string, retryAtte
         submitCompactionResumeTurn(ctx, steerMessage);
         scheduleCompactionResumeRetry(ctx, steerMessage, retryAttempt + 1);
       } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
         console.warn(`[focusa] compaction auto-resume retry ${retryAttempt} failed:`, e);
+        if (ctx.hasUI) {
+          ctx.ui.notify(
+            `Compaction resume retry ${retryAttempt} failed: ${message.slice(0, 240)}. Retrying automatically.`,
+            "warning"
+          );
+        }
         if (!getAttachmentRuntime().compactResumePending) return;
         scheduleCompactionResumeRetry(ctx, steerMessage, nextAttempt);
       }

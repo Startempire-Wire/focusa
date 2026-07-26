@@ -31,6 +31,10 @@ Fallback order:
 - Do not fill slots with unrelated repo facts.
 - Do not emit bare `none` for cognitive summary fields.
 
+## Operator-visible observability
+
+Compaction must never look like a frozen conversation. While native compaction is active, the Pi status surface reports phase, elapsed seconds, context pressure, and attempt number; long attempts emit a bounded visible heartbeat. Retry notices include the bounded primary error and retry delay. Terminal, coordinator, and auto-resume failures are shown in the UI as well as durable telemetry or console logs. Timers are cleared on completion, failure, compact reset, session start, and shutdown.
+
 ## Guard
 
 ```bash

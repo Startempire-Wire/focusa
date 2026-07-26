@@ -51,4 +51,23 @@ assert "replace_extension_build" in stamp
 assert "apps/pi-extension/src/auto-compaction.ts" in stamp
 assert "read_extension_build_version" in verify
 assert tag_script.count("apps/pi-extension/src/auto-compaction.ts") >= 2
+assert "scripts/stamp-release-version" in tag_script
+assert "scripts/verify-doc-version-consistency" in tag_script
+assert "validate-docs-runtime-parity.mjs" in tag_script
+for docs_surface in [
+    "README.md",
+    "docs/current/.release-version-stamp",
+    "docs/current/CURRENT_RUNTIME_STATUS.md",
+]:
+    assert tag_script.count(docs_surface) >= 2, docs_surface
+for observability_marker in [
+    "workflow_heartbeat",
+    "failed_job=",
+    "failed_step=",
+    "workflow_error_excerpt_begin",
+    "full_log_command=",
+    "workflow_status_query_error",
+]:
+    assert observability_marker in tag_script, observability_marker
+assert "gh run watch" not in tag_script
 print("Spec143 OTA installability release gate: PASS")

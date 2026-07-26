@@ -415,6 +415,7 @@ export function registerAutoCompaction(
   let lastAttemptAt: number | undefined;
   let consecutiveTransientFailures = 0;
   let retryTimer: NodeJS.Timeout | undefined;
+  let heartbeatTimer: NodeJS.Timeout | undefined;
   let activeEpoch: ActiveEpoch | undefined;
   let activeRequest: CoordinatedCompactionRequest | undefined;
   let terminalNoopContextKey: string | undefined;
@@ -496,6 +497,41 @@ export function registerAutoCompaction(
     if (ctx.hasUI) ctx.ui.notify(message, level);
   };
 
+  const stopCompactionHeartbeat = (ctx?: ExtensionContext): void => {
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
+    heartbeatTimer = undefined;
+    if (ctx?.hasUI) ctx.ui.setStatus("focusa-auto-compaction", undefined);
+  };
+
+  const startCompactionHeartbeat = (
+    ctx: ExtensionContext,
+    epoch: ActiveEpoch,
+    contextPercent: number | undefined
+  ): void => {
+    stopCompactionHeartbeat();
+    const startedAt = Date.now();
+    let nextVisibleNoticeSeconds = 15;
+    const render = (): void => {
+      const elapsedSeconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+      if (ctx.hasUI) {
+        ctx.ui.setStatus(
+          "focusa-auto-compaction",
+          `⏳ compacting · ${elapsedSeconds}s · ${contextPercent ?? "?"}% context · attempt ${epoch.attempt}`
+        );
+        if (elapsedSeconds >= nextVisibleNoticeSeconds) {
+          ctx.ui.notify(
+            `⏳ Focusa compaction still running · ${elapsedSeconds}s · attempt ${epoch.attempt}`,
+            "info"
+          );
+          nextVisibleNoticeSeconds += 30;
+        }
+      }
+    };
+    render();
+    heartbeatTimer = setInterval(render, 5_000);
+    heartbeatTimer.unref?.();
+  };
+
   const releaseProcessAttempt = (epochId: string | undefined): void => {
     if (!epochId || processLease.inFlightEpochId !== epochId) return;
     processLease.inFlightEpochId = undefined;
@@ -547,12 +583,7 @@ export function registerAutoCompaction(
       },
       invokedEpoch
     );
-    if (ctx.hasUI) {
-      ctx.ui.setStatus(
-        "focusa-auto-compaction",
-        `auto-compacting · ${usageBefore.percent ?? "?"}% context · attempt ${activeEpoch.attempt}`
-      );
-    }
+    startCompactionHeartbeat(ctx, invokedEpoch, usageBefore.percent ?? undefined);
 
     ctx.compact({
       customInstructions: activeRequest?.customInstructions ?? INSTRUCTIONS,
@@ -587,7 +618,7 @@ export function registerAutoCompaction(
         );
         releaseProcessAttempt(completedEpoch.epochId);
         inFlight = false;
-        if (ctx.hasUI) ctx.ui.setStatus("focusa-auto-compaction", undefined);
+        stopCompactionHeartbeat(ctx);
         setActiveEpoch(undefined);
         consecutiveTransientFailures = 0;
         terminalNoopContextKey = undefined;
@@ -625,7 +656,7 @@ export function registerAutoCompaction(
           failedEpoch.exactEligibility?.eligible === false ? failedEpoch.exactEligibility : undefined;
         const failureClass = compactionFailureClass(message, exactRejection);
         const retryableFailure = isRetryableCompactionError(message);
-        if (ctx.hasUI) ctx.ui.setStatus("focusa-auto-compaction", undefined);
+        stopCompactionHeartbeat(ctx);
         persist(
           exactRejection ? "eligibility_rejected" : "attempt_failed",
           {
@@ -670,6 +701,12 @@ export function registerAutoCompaction(
               next_attempt: consecutiveTransientFailures + 1,
             },
             failedEpoch
+          );
+          notifyOnce(
+            ctx,
+            `retry:${failedEpoch.epochId}:${consecutiveTransientFailures + 1}`,
+            `Focusa compaction attempt ${failedEpoch.attempt} failed: ${message.slice(0, 240)}. Retrying in ${Math.ceil(retryDelay / 1000)}s.`,
+            "warning"
           );
           setActiveEpoch(
             createEpoch(
@@ -915,6 +952,7 @@ export function registerAutoCompaction(
     if (!ownsRegistrationLease()) return;
     if (retryTimer) clearTimeout(retryTimer);
     retryTimer = undefined;
+    stopCompactionHeartbeat();
     clearProcessRetry();
     setActiveEpoch(undefined);
     consecutiveTransientFailures = 0;
@@ -931,6 +969,7 @@ export function registerAutoCompaction(
     }
     inFlight = false;
     lastAttemptAt = undefined;
+    stopCompactionHeartbeat(ctx);
     setActiveEpoch(undefined);
     consecutiveTransientFailures = 0;
     terminalNoopContextKey = undefined;
@@ -945,6 +984,7 @@ export function registerAutoCompaction(
     if (!ownsRegistrationLease()) return;
     if (retryTimer) clearTimeout(retryTimer);
     retryTimer = undefined;
+    stopCompactionHeartbeat();
     clearProcessRetry();
     setActiveEpoch(undefined);
     inFlight = false;
