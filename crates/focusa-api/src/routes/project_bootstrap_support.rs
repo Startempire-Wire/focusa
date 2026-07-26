@@ -61,7 +61,12 @@ pub(super) fn validate_root(
     allow_missing: bool,
 ) -> Result<PathBuf, (StatusCode, Json<Value>)> {
     let path = PathBuf::from(raw);
-    if !path.is_absolute() || path == Path::new("/") || path == Path::new("/root") {
+    if !path.is_absolute()
+        || path == Path::new("/")
+        || path == Path::new("/root")
+        || path == Path::new("/home")
+        || path == Path::new("/tmp")
+    {
         return Err(reject(
             StatusCode::BAD_REQUEST,
             "unsafe_project_root",

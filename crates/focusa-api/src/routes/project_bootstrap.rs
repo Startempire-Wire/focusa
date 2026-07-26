@@ -181,6 +181,32 @@ async fn apply(
         created.push("project_root".into());
     }
     let marker_path = root.join(".focusa-project.json");
+    if marker_path.exists() {
+        let marker = read_json(&marker_path).ok_or_else(|| {
+            reject(
+                StatusCode::PRECONDITION_FAILED,
+                "malformed_project_marker",
+                "existing marker is invalid JSON; repair it explicitly before bootstrap",
+            )
+        })?;
+        if marker["schema"] != "focusa.project.v2" {
+            return Err(reject(
+                StatusCode::PRECONDITION_FAILED,
+                "unsupported_project_marker",
+                "existing marker must be migrated to focusa.project.v2 before bootstrap",
+            ));
+        }
+        if marker["project_id"]
+            .as_str()
+            .is_some_and(|value| value != req.project_id)
+        {
+            return Err(reject(
+                StatusCode::CONFLICT,
+                "cross_project_marker_conflict",
+                "existing marker belongs to a different project; verify scope before continuing",
+            ));
+        }
+    }
     if !marker_path.exists() {
         write_json_atomic(&marker_path, &json!({
             "schema":"focusa.project.v2", "project_id":req.project_id, "canonical_name":req.canonical_name,
@@ -288,7 +314,10 @@ async fn apply(
     let receipt = json!({
         "schema":"focusa.project_bootstrap_receipt.v1", "status":status,
         "receipt_id":stable_receipt_id(&root,&req.idempotency_key), "idempotency_key":req.idempotency_key,
-        "project_root":root, "created_by_this_transaction":created, "task_provider":task_provider,
+        "project_id":req.project_id, "canonical_name":req.canonical_name,
+        "project_root":root, "marker_ref":marker_path, "identity_confidence":"high",
+        "verification":{"status":"canonical","marker_schema":"focusa.project.v2","project_root_matches":true},
+        "created_by_this_transaction":created, "task_provider":task_provider,
         "genesis":genesis_packet, "remote_created":false, "stack_selected":false, "deployment_selected":false,
         "rollback":{"action":"POST /v1/project/bootstrap/repair repair_action=rollback confirm=true","scope":"created_by_this_transaction only"},
         "recorded_at":Utc::now().to_rfc3339(),

@@ -315,6 +315,12 @@ fn standard_bootstrap_is_previewable_local_only_idempotent_and_rollback_bounded(
 
     let applied = json_output(&run(&base_url, &bootstrap_args(&root, "apply", true)));
     assert_eq!(find_string(&applied, "status"), Some("ready"));
+    assert_eq!(find_string(&applied, "project_id"), Some("bootstrap-e2e"));
+    assert_eq!(find_string(&applied, "identity_confidence"), Some("high"));
+    assert_eq!(
+        find_string(&applied, "marker_schema"),
+        Some("focusa.project.v2")
+    );
     assert!(daemon.project_root.join(".focusa-project.json").is_file());
     assert!(daemon.project_root.join(".git").is_dir());
     assert!(daemon.project_root.join(".beads").is_dir());

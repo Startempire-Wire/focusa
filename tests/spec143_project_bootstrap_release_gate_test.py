@@ -22,7 +22,7 @@ assert 'name: "focusa_project_bootstrap"' in tools
 assert 'name: "focusa_project_bootstrap"' in contracts
 for command in ('bootstrap preview','bootstrap apply','bootstrap status','bootstrap repair'):
     assert command in cli_docs, command
-for required in ('planned_changes','preserved_choices','rollback','verification','created_by_this_transaction','idempotency_key'):
+for required in ('planned_changes','preserved_choices','rollback','verification','created_by_this_transaction','idempotency_key','marker_ref','identity_confidence','cross_project_marker_conflict','malformed_project_marker'):
     assert required in implementation, required
 assert '"git", &["init"]' in implementation
 assert 'Command::new("git")' in implementation and '.args(["remote"])' in implementation
@@ -33,6 +33,8 @@ assert 'project_genesis::start' in implementation and 'project_genesis::commit' 
 assert 'implicit_remote_forbidden' in implementation
 assert 'programming language' in implementation and 'deployment target' in implementation
 assert 'github.com' not in implementation.lower()
+for unsafe_root in ('Path::new("/root")','Path::new("/home")','Path::new("/tmp")'):
+    assert unsafe_root in support, unsafe_root
 assert 'standard_bootstrap_is_previewable_local_only_idempotent_and_rollback_bounded' in e2e
 assert 'bootstrap must never create a remote' in e2e
 assert 'tasks_after_replay' in e2e
