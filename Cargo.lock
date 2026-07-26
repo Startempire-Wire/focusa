@@ -1397,7 +1397,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-harness-adapters"
-version = "0.9.121-dev"
+version = "0.9.122-dev"
 dependencies = [
  "chrono",
  "focusa-core",
@@ -1420,7 +1420,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-session-runner"
-version = "0.9.121-dev"
+version = "0.9.122-dev"
 dependencies = [
  "anyhow",
  "base64 0.22.1",

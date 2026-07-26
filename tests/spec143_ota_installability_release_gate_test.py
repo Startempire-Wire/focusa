@@ -8,6 +8,8 @@ installer = (ROOT / "scripts/install-focusa.sh").read_text()
 install_rs = (ROOT / "crates/focusa-cli/src/commands/install.rs").read_text()
 update = (ROOT / "crates/focusa-cli/src/commands/update.rs").read_text()
 trust = (ROOT / "crates/focusa-cli/src/commands/update_trust.rs").read_text()
+stamper = (ROOT / "scripts/stamp-menubar-version.py").read_text()
+version_verifier = (ROOT / "scripts/verify-version-surfaces.py").read_text()
 
 assert "target: x86_64-unknown-linux-musl" in release
 assert "musl: true" in release
@@ -73,4 +75,7 @@ for observability_marker in [
 ]:
     assert observability_marker in tag_script, observability_marker
 assert "gh run watch" not in tag_script
+for workspace_package in ("focusa-harness-adapters", "focusa-session-runner"):
+    assert workspace_package in stamper, workspace_package
+    assert workspace_package in version_verifier, workspace_package
 print("Spec143 OTA installability release gate: PASS")
