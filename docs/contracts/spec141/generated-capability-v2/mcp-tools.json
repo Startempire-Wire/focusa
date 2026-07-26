@@ -1,6 +1,6 @@
 {
   "schema": "focusa.mcp_tool_projection.v2",
-  "registry_digest": "sha256:75f71e97e8d883d2cf90a3cd496304f36a99c2683534134131e120ac99f48b6c",
+  "registry_digest": "sha256:40a99583d75aee940eb03227748abbf9fc2ba70f09cc7d5911bad528ddf45169",
   "tools": [
     {
       "name": "focusa.active.object.resolve",
@@ -15586,9 +15586,6 @@
       "description": "Start, resume, inspect, or atomically commit the Project Genesis chain from verified identity and HLT through the first Workpoint. Use it when Stage, resume, inspect, or atomically commit the verified project journey from HLT and specification through tasks, first Workpoint, coordination, and readiness receipt. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "inputSchema": {
         "type": "object",
-        "required": [
-          "action"
-        ],
         "properties": {
           "action": {
             "description": "Genesis operation; defaults to status.",

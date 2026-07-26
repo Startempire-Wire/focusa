@@ -100,6 +100,34 @@ fn brownfield_beads_inventory_is_adopted_without_duplication() {
 }
 
 #[test]
+fn numbered_spec_and_acceptance_are_discovered_for_ambient_bootstrap() {
+    let root = test_root("spec-discovery");
+    fs::create_dir_all(root.join("docs")).unwrap();
+    fs::write(
+        root.join("docs/01-product-genesis-spec.md"),
+        "# Product spec\n\n## Acceptance\n\n1. First Workpoint is active.\n2. Readiness receipt is durable.\n",
+    )
+    .unwrap();
+    let mut request = complete_request(&root);
+    request.specification_ref = None;
+    request.acceptance_criteria.clear();
+    let packet = build_staged_packet(&root, &request, None);
+    assert_eq!(packet["status"], "staged");
+    assert_eq!(
+        packet["specification_and_acceptance"]["specification_ref"],
+        "docs/01-product-genesis-spec.md"
+    );
+    assert_eq!(
+        packet["specification_and_acceptance"]["acceptance_criteria"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn ids_are_stable_for_idempotent_resume() {
     let root = test_root("idempotency");
     let first = stable_id("genesis", &root, "same-key");

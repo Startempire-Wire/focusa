@@ -8,6 +8,8 @@ workpoint = (ROOT / "crates/focusa-api/src/routes/workpoint.rs").read_text()
 server = (ROOT / "crates/focusa-api/src/server.rs").read_text()
 cli = (ROOT / "crates/focusa-cli/src/commands/project.rs").read_text()
 pi_tools = (ROOT / "apps/pi-extension/src/tools.ts").read_text()
+pi_session = (ROOT / "apps/pi-extension/src/session.ts").read_text()
+operation_registry = (ROOT / "docs/contracts/spec135/generated-contract-v1/operation-registry.json").read_text()
 api_docs = (ROOT / "docs/current/API_REFERENCE_CURRENT.md").read_text()
 cli_docs = (ROOT / "docs/current/CLI_REFERENCE_CURRENT.md").read_text()
 
@@ -61,6 +63,18 @@ assert "ProjectGenesisCmd" in cli
 for command in ("genesis start", "genesis resume", "genesis status", "genesis commit"):
     assert command in cli_docs, command
 assert 'name: "focusa_project_genesis"' in pi_tools
+assert "ensureProjectGenesis" in pi_session
+assert 'focusaFetch("/project/genesis/start"' in pi_session
+assert 'focusaFetch("/project/genesis/commit"' in pi_session
+assert "session_start_genesis_ready" in pi_session
+assert "without creating a placeholder Workpoint" in pi_session
+for operation in (
+    "focusa.project.genesis.start",
+    "focusa.project.genesis.resume",
+    "focusa.project.genesis.status",
+    "focusa.project.genesis.commit",
+):
+    assert operation in operation_registry, operation
 assert '{ triggerTurn: true }' not in route
 
 for path in (

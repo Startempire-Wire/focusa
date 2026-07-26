@@ -13,6 +13,34 @@ struct IsolatedDaemon {
     child: Child,
     data_dir: PathBuf,
     project_root: PathBuf,
+    bind: String,
+    binary: PathBuf,
+}
+
+impl IsolatedDaemon {
+    fn restart(&mut self) {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+        self.child = Command::new(&self.binary)
+            .env("FOCUSA_BIND", &self.bind)
+            .env("FOCUSA_DATA_DIR", &self.data_dir)
+            .env("FOCUSA_TEST_MODE", "1")
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .unwrap();
+        let deadline = Instant::now() + Duration::from_secs(10);
+        while TcpStream::connect(&self.bind).is_err() {
+            if let Some(status) = self.child.try_wait().unwrap() {
+                panic!("restarted isolated daemon exited: {status}");
+            }
+            assert!(
+                Instant::now() < deadline,
+                "restarted daemon readiness timeout"
+            );
+            thread::sleep(Duration::from_millis(50));
+        }
+    }
 }
 
 impl Drop for IsolatedDaemon {
@@ -70,7 +98,7 @@ fn start_isolated_daemon(repo_root: &Path) -> (IsolatedDaemon, String) {
         "daemon fixture missing: {}",
         binary.display()
     );
-    let child = Command::new(binary)
+    let child = Command::new(&binary)
         .env("FOCUSA_BIND", &bind)
         .env("FOCUSA_DATA_DIR", &data_dir)
         .env("FOCUSA_TEST_MODE", "1")
@@ -82,6 +110,8 @@ fn start_isolated_daemon(repo_root: &Path) -> (IsolatedDaemon, String) {
         child,
         data_dir,
         project_root,
+        bind: bind.clone(),
+        binary,
     };
     let deadline = Instant::now() + Duration::from_secs(10);
     while TcpStream::connect(&bind).is_err() {
@@ -170,7 +200,7 @@ fn genesis_commits_first_workpoint_atomically_and_replays_idempotently() {
         .parent()
         .and_then(Path::parent)
         .unwrap();
-    let (daemon, base_url) = start_isolated_daemon(repo_root);
+    let (mut daemon, base_url) = start_isolated_daemon(repo_root);
     let root = daemon.project_root.to_string_lossy().to_string();
 
     let staged = json_output(&run(&base_url, &mutation_args(&root, false)));
@@ -201,6 +231,23 @@ fn genesis_commits_first_workpoint_atomically_and_replays_idempotently() {
         ],
     ));
     assert_eq!(find_string(&status, "status"), Some("ready"));
+
+    daemon.restart();
+    let warm_status = json_output(&run(
+        &base_url,
+        &[
+            "project",
+            "genesis",
+            "status",
+            "--project-root",
+            &root,
+            "--json",
+        ],
+    ));
+    assert_eq!(
+        find_string(&warm_status, "workpoint_id"),
+        Some(first_id.as_str())
+    );
 
     let marker: Value = serde_json::from_slice(
         &std::fs::read(daemon.project_root.join(".focusa-project.json")).unwrap(),

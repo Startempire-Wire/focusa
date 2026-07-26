@@ -30,22 +30,51 @@ use uuid::Uuid;
 
 use super::project_genesis_support::*;
 
-async fn existing_hlt(state: &Arc<AppState>, root: &Path, continuity_id: &str) -> Option<String> {
+async fn enrich_from_existing_trajectory(
+    state: &Arc<AppState>,
+    root: &Path,
+    req: &mut ProjectGenesisRequest,
+) -> Option<String> {
     let focusa = state.focusa.read().await;
     let active = focusa.trajectory.active_trajectory_id.as_deref();
-    focusa
-        .trajectory
-        .records
-        .iter()
-        .rev()
-        .find(|record| {
-            record.canonical
-                && record.hlt_status.is_action_ready()
-                && record.project_root.as_deref() == Some(root.to_string_lossy().as_ref())
-                && record.continuity_id.as_deref() == Some(continuity_id)
-                && active.map(|id| id == record.trajectory_id).unwrap_or(true)
-        })
-        .map(|record| record.long_term_goal.clone())
+    let record = focusa.trajectory.records.iter().rev().find(|record| {
+        record.canonical
+            && record.hlt_status.is_action_ready()
+            && record.project_root.as_deref() == Some(root.to_string_lossy().as_ref())
+            && record.continuity_id.as_deref() == Some(req.continuity_id.as_str())
+            && active.map(|id| id == record.trajectory_id).unwrap_or(true)
+    })?;
+    req.desired_end_state
+        .get_or_insert_with(|| record.desired_end_state.clone());
+    if req.current_state.is_none() {
+        req.current_state = record.current_state.clone();
+    }
+    if req.mid_level_goal.is_none() {
+        req.mid_level_goal = record.mid_level_goal.clone();
+    }
+    if req.short_term_goal.is_none() {
+        req.short_term_goal = record.short_term_goal.clone();
+    }
+    if req.waypoints.is_empty() {
+        req.waypoints = record
+            .waypoints
+            .iter()
+            .map(|waypoint| waypoint.title.clone())
+            .collect();
+    }
+    if req.specification_ref.is_none() {
+        req.specification_ref = record
+            .source_refs
+            .get("specification_ref")
+            .and_then(Value::as_str)
+            .map(str::to_string);
+    }
+    if req.acceptance_criteria.is_empty()
+        && let Some(definition) = record.definition_of_done.as_ref()
+    {
+        req.acceptance_criteria = definition.criteria.clone();
+    }
+    Some(record.long_term_goal.clone())
 }
 
 fn existing_readiness_gate(
@@ -93,7 +122,7 @@ fn existing_readiness_gate(
 
 async fn start(
     State(state): State<Arc<AppState>>,
-    Json(req): Json<ProjectGenesisRequest>,
+    Json(mut req): Json<ProjectGenesisRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     if clean(Some(&req.continuity_id)).is_none() || clean(Some(&req.idempotency_key)).is_none() {
         return Err(reject(
@@ -106,11 +135,8 @@ async fn start(
     if let Some(packet) = existing_readiness_gate(&root, &req)? {
         return Ok(Json(packet));
     }
-    let packet = build_staged_packet(
-        &root,
-        &req,
-        existing_hlt(&state, &root, &req.continuity_id).await,
-    );
+    let existing_hlt = enrich_from_existing_trajectory(&state, &root, &mut req).await;
+    let packet = build_staged_packet(&root, &req, existing_hlt);
     write_json_atomic(&packet_path(&root), &packet).map_err(|error| {
         reject(
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -151,7 +177,7 @@ async fn resume(
 
 async fn commit(
     State(state): State<Arc<AppState>>,
-    Json(req): Json<ProjectGenesisRequest>,
+    Json(mut req): Json<ProjectGenesisRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     if req.confirm != Some(true) {
         return Err(reject(
@@ -164,11 +190,8 @@ async fn commit(
     if let Some(packet) = existing_readiness_gate(&root, &req)? {
         return Ok(Json(packet));
     }
-    let mut packet = build_staged_packet(
-        &root,
-        &req,
-        existing_hlt(&state, &root, &req.continuity_id).await,
-    );
+    let existing_hlt = enrich_from_existing_trajectory(&state, &root, &mut req).await;
+    let mut packet = build_staged_packet(&root, &req, existing_hlt);
     if packet["status"] != "staged" {
         write_json_atomic(&packet_path(&root), &packet).map_err(|error| {
             reject(

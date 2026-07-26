@@ -5854,9 +5854,16 @@ export function registerTools(pi: ExtensionAPI) {
     promptSnippet:
       "Use after project verification when onboarding/readiness is incomplete; HLT Impasse asks at most one concise intent question, and commit requires confirm=true.",
     parameters: Type.Object({
-      action: Type.Union(
-        [Type.Literal("start"), Type.Literal("resume"), Type.Literal("status"), Type.Literal("commit")],
-        { description: "Genesis operation; defaults to status." }
+      action: Type.Optional(
+        Type.Union(
+          [
+            Type.Literal("start"),
+            Type.Literal("resume"),
+            Type.Literal("status"),
+            Type.Literal("commit"),
+          ],
+          { description: "Genesis operation; defaults to status." }
+        )
       ),
       project_root: Type.Optional(Type.String({ description: "Verified absolute project root." })),
       continuity_id: Type.Optional(Type.String({ description: "Stable project workstream continuity id." })),

@@ -255,11 +255,68 @@ fn inferred_levels(req: &ProjectGenesisRequest, hlt: &str) -> (String, String, V
     (mlg, stg, waypoints)
 }
 
+fn discover_specification(root: &Path) -> Option<(String, Vec<String>)> {
+    let docs = root.join("docs");
+    let mut candidates = fs::read_dir(docs)
+        .ok()?
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .filter(|path| {
+            path.extension().and_then(|value| value.to_str()) == Some("md")
+                && path
+                    .file_name()
+                    .and_then(|value| value.to_str())
+                    .is_some_and(|name| name.to_ascii_lowercase().contains("spec"))
+        })
+        .collect::<Vec<_>>();
+    candidates.sort();
+    let selected = candidates.pop()?;
+    let body = fs::read_to_string(&selected).ok()?;
+    let mut in_acceptance = false;
+    let acceptance = body
+        .lines()
+        .filter_map(|line| {
+            let trimmed = line.trim();
+            if trimmed.starts_with("## ") {
+                in_acceptance = trimmed.to_ascii_lowercase().contains("acceptance");
+                return None;
+            }
+            if !in_acceptance {
+                return None;
+            }
+            let item = trimmed
+                .strip_prefix("- ")
+                .or_else(|| trimmed.split_once(". ").map(|(_, value)| value))?;
+            (!item.trim().is_empty()).then(|| item.trim().to_string())
+        })
+        .take(32)
+        .collect::<Vec<_>>();
+    Some((
+        selected
+            .strip_prefix(root)
+            .ok()?
+            .to_string_lossy()
+            .trim_start_matches('/')
+            .to_string(),
+        acceptance,
+    ))
+}
+
 pub(super) fn build_staged_packet(
     root: &Path,
-    req: &ProjectGenesisRequest,
+    request: &ProjectGenesisRequest,
     existing_hlt: Option<String>,
 ) -> Value {
+    let mut normalized = request.clone();
+    if normalized.specification_ref.is_none()
+        && let Some((specification_ref, acceptance)) = discover_specification(root)
+    {
+        normalized.specification_ref = Some(specification_ref);
+        if normalized.acceptance_criteria.is_empty() {
+            normalized.acceptance_criteria = acceptance;
+        }
+    }
+    let req = &normalized;
     let supplied_hlt = clean(req.hlt.as_deref());
     let hlt = supplied_hlt.clone().or(existing_hlt);
     let hlt_confirmed = supplied_hlt.is_none() || req.hlt_confirmed.unwrap_or(false);

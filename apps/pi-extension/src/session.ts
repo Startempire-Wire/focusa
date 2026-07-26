@@ -927,6 +927,58 @@ function handleSSEEvent(evt: any) {
   }
 }
 
+async function ensureProjectGenesis(projectRoot: string, reason: string): Promise<boolean> {
+  const continuityId = ensureContinuityId(projectRoot);
+  const idempotencyKey = `genesis:${continuityId}:project-bootstrap`;
+  const status = await focusaFetch(
+    `/project/genesis/status?project_root=${encodeURIComponent(projectRoot)}`
+  ).catch(() => null);
+  if (status?.status === "ready") return true;
+
+  const payload = {
+    project_root: projectRoot,
+    continuity_id: continuityId,
+    idempotency_key: idempotencyKey,
+    allow_task_decomposition: true,
+  };
+  const staged = await focusaFetch("/project/genesis/start", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }).catch(() => null);
+  if (staged?.status === "ready") return true;
+  if (staged?.status !== "staged") {
+    focusaPost("/telemetry/trace", {
+      event_type: "pi_project_genesis_incomplete",
+      payload: {
+        reason,
+        project_root: projectRoot,
+        continuity_id: continuityId,
+        status: staged?.status || "unavailable",
+        missing_links: staged?.missing_links || [],
+        next_action: staged?.next_action,
+      },
+    });
+    return false;
+  }
+
+  const committed = await focusaFetch("/project/genesis/commit", {
+    method: "POST",
+    body: JSON.stringify({ ...payload, confirm: true }),
+  }).catch(() => null);
+  const ready = committed?.status === "ready";
+  focusaPost("/telemetry/trace", {
+    event_type: ready ? "pi_project_genesis_ready" : "pi_project_genesis_commit_blocked",
+    payload: {
+      reason,
+      project_root: projectRoot,
+      continuity_id: continuityId,
+      status: committed?.status || "unavailable",
+      next_action: committed?.next_action,
+    },
+  });
+  return ready;
+}
+
 export function registerSession(pi: ExtensionAPI) {
   // ── session_start — single merged handler ──────────────────────────────────
   pi.on("session_start", async (event, ctx) => {
@@ -1211,13 +1263,17 @@ export function registerSession(pi: ExtensionAPI) {
     await refreshTrajectoryClarityLifecycle("session_start", projectRoot);
     await promptForTrajectoryIfNeeded(ctx, projectRoot, "session_start");
     if (!getActiveWorkpointPacket()) {
-      const prompted = await promptForWorkpointIfNeeded(ctx, projectRoot, "session_start");
-      if (!prompted) {
-        await ensureLowConfidenceWorkpoint("session_start");
-        await refreshSessionWorkpointPacket("session_start_low_confidence");
+      await refreshTrajectoryClarityLifecycle("session_start_genesis", projectRoot);
+      const genesisReady = await ensureProjectGenesis(projectRoot, "session_start");
+      if (genesisReady) {
+        await refreshSessionWorkpointPacket("session_start_genesis_ready");
+        await refreshTrajectoryClarityLifecycle("session_start_genesis_ready", projectRoot);
+      } else {
+        ctx.ui.notify(
+          "Project preparation is incomplete; Focusa preserved the Genesis packet and next action without creating a placeholder Workpoint.",
+          "warning"
+        );
       }
-      await refreshTrajectoryClarityLifecycle("session_start_low_confidence", projectRoot);
-      await promptForTrajectoryIfNeeded(ctx, projectRoot, "session_start_low_confidence");
     }
 
     // §35.8: Pi owns the session display name (/name, session selector).

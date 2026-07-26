@@ -29310,9 +29310,6 @@
       },
       "input_schema": {
         "type": "object",
-        "required": [
-          "action"
-        ],
         "properties": {
           "action": {
             "description": "Genesis operation; defaults to status.",
@@ -29678,9 +29675,7 @@
       "examples": [
         {
           "description": "Stage, resume, inspect, or atomically commit the verified project journey from HLT and specification through tasks, first Workpoint, coordination, and readiness receipt.",
-          "arguments": {
-            "action": "start"
-          },
+          "arguments": {},
           "human_invocation": "focusa project genesis start|resume|status|commit",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_genesis.md"
         }
@@ -29769,7 +29764,7 @@
         "snippet": "Use after project verification when onboarding/readiness is incomplete; HLT Impasse asks at most one concise intent question, and commit requires confirm=true.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:24242650ae2674afb07c959ae8d1cebc6d04538d4c7c1d0496677744c6567c91"
+      "descriptor_digest": "sha256:22ad4fa493f8db390c732d38351ac971fa5119ec68a33052ac66df32b0a7b267"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -46766,5 +46761,5 @@
       "descriptor_digest": "sha256:ab9c9bbe2ed5cd1be3c2be60126fbc6114de34d72116a188fdd0b734de5b3e68"
     }
   ],
-  "registry_digest": "sha256:75f71e97e8d883d2cf90a3cd496304f36a99c2683534134131e120ac99f48b6c"
+  "registry_digest": "sha256:40a99583d75aee940eb03227748abbf9fc2ba70f09cc7d5911bad528ddf45169"
 }
