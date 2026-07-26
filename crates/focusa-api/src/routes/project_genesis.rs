@@ -120,7 +120,7 @@ fn existing_readiness_gate(
     ))
 }
 
-async fn start(
+pub(super) async fn start(
     State(state): State<Arc<AppState>>,
     Json(mut req): Json<ProjectGenesisRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
@@ -175,7 +175,7 @@ async fn resume(
     start(State(state), Json(req)).await
 }
 
-async fn commit(
+pub(super) async fn commit(
     State(state): State<Arc<AppState>>,
     Json(mut req): Json<ProjectGenesisRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {

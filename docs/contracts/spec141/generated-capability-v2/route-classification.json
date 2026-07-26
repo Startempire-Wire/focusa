@@ -1,8 +1,8 @@
 {
   "schema": "focusa.agent_route_classification.v1",
-  "route_count": 465,
+  "route_count": 469,
   "classification_counts": {
-    "agent_eligible": 90,
+    "agent_eligible": 94,
     "internal": 6,
     "operator_only": 363,
     "public_pairing": 6
@@ -3132,6 +3132,62 @@
         "POST"
       ],
       "operation_refs": []
+    },
+    {
+      "path": "/v1/project/bootstrap/apply",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
+      "sources": [
+        "crates/focusa-api/src/routes/project_bootstrap.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": [
+        "focusa.project.bootstrap.apply"
+      ]
+    },
+    {
+      "path": "/v1/project/bootstrap/preview",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
+      "sources": [
+        "crates/focusa-api/src/routes/project_bootstrap.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": [
+        "focusa.project.bootstrap.preview"
+      ]
+    },
+    {
+      "path": "/v1/project/bootstrap/repair",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
+      "sources": [
+        "crates/focusa-api/src/routes/project_bootstrap.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": [
+        "focusa.project.bootstrap.repair"
+      ]
+    },
+    {
+      "path": "/v1/project/bootstrap/status",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
+      "sources": [
+        "crates/focusa-api/src/routes/project_bootstrap.rs"
+      ],
+      "methods": [
+        "GET"
+      ],
+      "operation_refs": [
+        "focusa.project.bootstrap.status"
+      ]
     },
     {
       "path": "/v1/project/card",

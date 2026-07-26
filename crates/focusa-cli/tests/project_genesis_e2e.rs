@@ -256,3 +256,104 @@ fn genesis_commits_first_workpoint_atomically_and_replays_idempotently() {
     assert_eq!(marker["genesis_binding"]["status"], "ready");
     assert_eq!(marker["genesis_binding"]["workpoint_id"], first_id);
 }
+
+fn bootstrap_args<'a>(project_root: &'a str, action: &'a str, confirm: bool) -> Vec<&'a str> {
+    let mut args = vec![
+        "project",
+        "bootstrap",
+        action,
+        "--project-root",
+        project_root,
+        "--project-id",
+        "bootstrap-e2e",
+        "--canonical-name",
+        "Bootstrap E2E",
+        "--continuity-id",
+        "bootstrap-e2e-continuity",
+        "--idempotency-key",
+        "bootstrap-e2e-key",
+        "--discipline-profile",
+        "standard_software_project",
+        "--initialize-git",
+        "true",
+        "--initialize-task-provider",
+        "true",
+        "--hlt",
+        "Ship the disciplined project",
+        "--hlt-confirmed",
+        "--specification-ref",
+        "docs/01-bootstrap-e2e-spec.md",
+        "--acceptance",
+        "Project baseline is ready",
+        "--acceptance",
+        "First Workpoint is active",
+        "--current-state",
+        "Empty project",
+        "--desired-end-state",
+        "Disciplined project ready",
+    ];
+    if confirm {
+        args.push("--confirm");
+    }
+    args.push("--json");
+    args
+}
+
+#[test]
+fn standard_bootstrap_is_previewable_local_only_idempotent_and_rollback_bounded() {
+    let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .unwrap();
+    let (daemon, base_url) = start_isolated_daemon(repo_root);
+    let root = daemon.project_root.to_string_lossy().to_string();
+    std::fs::remove_dir_all(&daemon.project_root).unwrap();
+
+    let preview = json_output(&run(&base_url, &bootstrap_args(&root, "preview", false)));
+    assert_eq!(find_string(&preview, "status"), Some("preview_ready"));
+    assert!(!daemon.project_root.exists());
+
+    let applied = json_output(&run(&base_url, &bootstrap_args(&root, "apply", true)));
+    assert_eq!(find_string(&applied, "status"), Some("ready"));
+    assert!(daemon.project_root.join(".focusa-project.json").is_file());
+    assert!(daemon.project_root.join(".git").is_dir());
+    assert!(daemon.project_root.join(".beads").is_dir());
+    assert!(daemon.project_root.join("docs").is_dir());
+    let remotes = Command::new("git")
+        .args(["remote"])
+        .current_dir(&daemon.project_root)
+        .output()
+        .unwrap();
+    assert!(
+        remotes.stdout.is_empty(),
+        "bootstrap must never create a remote"
+    );
+
+    let issues_path = daemon.project_root.join(".beads/issues.jsonl");
+    let tasks_before_replay = std::fs::read_to_string(&issues_path)
+        .unwrap()
+        .lines()
+        .count();
+    let replay = json_output(&run(&base_url, &bootstrap_args(&root, "apply", true)));
+    assert_eq!(find_string(&replay, "status"), Some("ready"));
+    let tasks_after_replay = std::fs::read_to_string(&issues_path)
+        .unwrap()
+        .lines()
+        .count();
+    assert_eq!(tasks_after_replay, tasks_before_replay);
+
+    let mut rollback_args = bootstrap_args(&root, "repair", true);
+    let json_index = rollback_args.len() - 1;
+    rollback_args.insert(json_index, "--repair-action");
+    rollback_args.insert(json_index + 1, "rollback");
+    let rollback = json_output(&run(&base_url, &rollback_args));
+    assert_eq!(find_string(&rollback, "status"), Some("rolled_back"));
+    assert!(!daemon.project_root.join(".git").exists());
+    assert!(!daemon.project_root.join(".beads").exists());
+    assert!(
+        daemon
+            .project_root
+            .join(".focusa/bootstrap/receipt.json")
+            .is_file()
+    );
+}

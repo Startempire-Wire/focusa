@@ -583,6 +583,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::threads::router())
         .merge(routes::proposals::router())
         .merge(routes::project::router())
+        .merge(routes::project_bootstrap::router())
         .merge(routes::project_genesis::router())
         .merge(routes::predictions::router())
         .merge(routes::rfm::router())

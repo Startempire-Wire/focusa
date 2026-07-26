@@ -405,6 +405,32 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     authority_requirement: { kind: "advisory_only" },
   },
   {
+    name: "focusa_project_bootstrap",
+    label: "Project Bootstrap",
+    purpose:
+      "Preview, apply, inspect, or repair an idempotent local project-discipline baseline with explicit Git/task choices, receipts, rollback, and Project Genesis handoff.",
+    family: "project_identity",
+    ontology_action: "project.bootstrap",
+    ontology_objects: ["ProjectIdentity", "TaskProvider", "TrajectoryProjection", "WorkpointRecord", "EvidenceRef"],
+    api_routes: [
+      "POST /v1/project/bootstrap/preview",
+      "POST /v1/project/bootstrap/apply",
+      "GET /v1/project/bootstrap/status",
+      "POST /v1/project/bootstrap/repair",
+    ],
+    cli_commands: ["focusa project bootstrap preview|apply|status|repair"],
+    core_surface: "Issue #50 standard project discipline bootstrap and continuous readiness",
+    doc_path: "docs/focusa-tools/tools/focusa_project_bootstrap.md",
+    spec_path: "docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md",
+    result_envelope: "tool_result_v1",
+    side_effect_profile: "preview_read_or_confirmed_local_bootstrap_repair",
+    parity_status: "full",
+    exemptions: [],
+    live_check: "Spec143 bootstrap preview/apply/status/repair, local-only, Beads, Genesis, replay, rollback, and concurrency gates",
+    scope_requirement: { kind: "write", route_family: "explicit_project_continuity" },
+    authority_requirement: { kind: "canonical", path: "daemon:/v1/project/bootstrap/apply" },
+  },
+  {
     name: "focusa_project_genesis",
     label: "Project Genesis",
     purpose:
@@ -2439,10 +2465,16 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
   focusa_project_card_outcome: ["focusa_project_card", "focusa_predict_record", "focusa_metacog_capture"],
   focusa_session_transfer: ["focusa_workpoint_resume", "focusa_project_card", "focusa_trajectory_view"],
   focusa_project_verify: [
+    "focusa_project_bootstrap",
     "focusa_project_genesis",
     "focusa_trajectory_view",
     "focusa_workpoint_resume",
     "focusa_tool_doctor",
+  ],
+  focusa_project_bootstrap: [
+    "focusa_project_genesis",
+    "focusa_project_verify",
+    "focusa_workpoint_resume",
   ],
   focusa_project_genesis: [
     "focusa_workpoint_resume",

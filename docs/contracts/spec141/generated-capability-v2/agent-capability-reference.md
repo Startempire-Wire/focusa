@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:40a99583d75aee940eb03227748abbf9fc2ba70f09cc7d5911bad528ddf45169`
+Registry digest: `sha256:a00f0942275312244b20a0bbe95db57c55b60dc7a245765ab599c187badb35b5`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -774,6 +774,17 @@ Write a Spec 111 preload packet to an allowlisted target with an idempotency key
 - Dependencies/next: `focusa_preload_receipt_preview`, `focusa_preload_verify`
 - Documentation: `docs/focusa-tools/tools/focusa_preload_write.md`
 
+## focusa_project_bootstrap
+
+Preview, apply, inspect, or repair the idempotent local project-discipline baseline before Project Genesis. Use it when Preview, apply, inspect, or repair an idempotent local project-discipline baseline with explicit Git/task choices, receipts, rollback, and Project Genesis handoff. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.project.bootstrap`
+- Family: `project_identity`
+- Side effects: `preview_read_or_confirmed_local_bootstrap_repair`, `preview_read_or_confirmed_local_bootstrap_repair`
+- Skills: `skill:focusa`, `skill:focusa-project-scope`
+- Dependencies/next: `focusa_project_genesis`, `focusa_project_verify`, `focusa_workpoint_resume`
+- Documentation: `docs/focusa-tools/tools/focusa_project_bootstrap.md`
+
 ## focusa_project_card
 
 Build an advisory project-intelligence card from ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction, and metacog signals. Use it when Build an advisory project-intelligence card from ProjectIdentity, ontology, trajectory, Workpoint/evidence, prediction, and metacog signals for bootstrap/re-bootstrap. It returns a typed Focusa result with bounded recovery and likely next capabilities.
@@ -826,7 +837,7 @@ Verify active project folder against expected ProjectIdentity fields and report 
 - Family: `project_identity`
 - Side effects: `read_state`, `read_state`
 - Skills: `skill:focusa`, `skill:focusa-project-scope`
-- Dependencies/next: `focusa_project_genesis`, `focusa_trajectory_view`, `focusa_workpoint_resume`, `focusa_tool_doctor`
+- Dependencies/next: `focusa_project_bootstrap`, `focusa_project_genesis`, `focusa_trajectory_view`, `focusa_workpoint_resume`, `focusa_tool_doctor`
 - Documentation: `docs/focusa-tools/tools/focusa_project_verify.md`
 
 ## focusa_recent_result

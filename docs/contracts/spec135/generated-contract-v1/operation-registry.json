@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-07-22T09:34:35.066345+00:00",
-  "operation_count": 90,
+  "operation_count": 94,
   "operations": [
     {
       "alias_of": null,
@@ -6974,6 +6974,321 @@
         "plain_language_description": "Project Genesis Status",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "light_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.project_bootstrap_preview.request.v1",
+        "output_schema_ref": "focusa.project_bootstrap.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "project",
+          "trajectory",
+          "workpoint"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "project:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_project_bootstrap.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "project",
+      "label": "Project Bootstrap Preview",
+      "materialization_mode": "advisory_read",
+      "method": "POST",
+      "operation_id": "focusa.project.bootstrap.preview",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.project.bootstrap.preview",
+        "subsystem": "project"
+      },
+      "path": "/v1/project/bootstrap/preview",
+      "permissions_required": [
+        "project:read"
+      ],
+      "request_schema_ref": "focusa.project_bootstrap_preview.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.project_bootstrap.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.project_bootstrap_preview.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "read_status",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Project Bootstrap Preview",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Project Bootstrap Preview",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "bounded_write",
+      "canonical": true,
+      "confirmation_required": true,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.project_bootstrap_apply.request.v1",
+        "output_schema_ref": "focusa.project_bootstrap.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "project",
+          "trajectory",
+          "workpoint"
+        ],
+        "confirmation": "explicit",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "project:write"
+        ],
+        "receipt_required": true,
+        "reversible": true
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_project_bootstrap.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "project",
+      "label": "Project Bootstrap Apply",
+      "materialization_mode": "canonical_mutation",
+      "method": "POST",
+      "operation_id": "focusa.project.bootstrap.apply",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.project.bootstrap.apply",
+        "subsystem": "project"
+      },
+      "path": "/v1/project/bootstrap/apply",
+      "permissions_required": [
+        "project:write"
+      ],
+      "request_schema_ref": "focusa.project_bootstrap_apply.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.project_bootstrap.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.project_bootstrap_apply.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "confirmed_local_mutation",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Project Bootstrap Apply",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Project Bootstrap Apply",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "consequential"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "light_read",
+      "canonical": true,
+      "confirmation_required": false,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.project_bootstrap_status.request.v1",
+        "output_schema_ref": "focusa.project_bootstrap.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "project",
+          "trajectory",
+          "workpoint"
+        ],
+        "confirmation": "none",
+        "idempotency_required": false,
+        "mode": "read",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "project:read"
+        ],
+        "receipt_required": false,
+        "reversible": false
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_project_bootstrap.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "project",
+      "label": "Project Bootstrap Status",
+      "materialization_mode": "advisory_read",
+      "method": "GET",
+      "operation_id": "focusa.project.bootstrap.status",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.project.bootstrap.status",
+        "subsystem": "project"
+      },
+      "path": "/v1/project/bootstrap/status",
+      "permissions_required": [
+        "project:read"
+      ],
+      "request_schema_ref": "focusa.project_bootstrap_status.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.project_bootstrap.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.project_bootstrap_status.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root"
+        ],
+        "workstream_scoped": false
+      },
+      "side_effect_profile": "read_status",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Project Bootstrap Status",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Project Bootstrap Status",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "routine"
+      }
+    },
+    {
+      "alias_of": null,
+      "budget_profile": "bounded_write",
+      "canonical": true,
+      "confirmation_required": true,
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.project_bootstrap_repair.request.v1",
+        "output_schema_ref": "focusa.project_bootstrap.response.v1"
+      },
+      "control": {
+        "capability_refs": [
+          "project",
+          "trajectory",
+          "workpoint"
+        ],
+        "confirmation": "explicit",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "permission_scopes": [
+          "project:write"
+        ],
+        "receipt_required": true,
+        "reversible": true
+      },
+      "deprecation": null,
+      "docs_ref": "docs/focusa-tools/tools/focusa_project_bootstrap.md",
+      "error_taxonomy_ref": "/v1/agent/error-taxonomy",
+      "examples_ref": "/v1/agent/examples/operations",
+      "family": "project",
+      "label": "Project Bootstrap Repair",
+      "materialization_mode": "canonical_mutation",
+      "method": "POST",
+      "operation_id": "focusa.project.bootstrap.repair",
+      "operation_version": "1.0.0",
+      "ownership": {
+        "core_action_ref": "focusa.project.bootstrap.repair",
+        "subsystem": "project"
+      },
+      "path": "/v1/project/bootstrap/repair",
+      "permissions_required": [
+        "project:write"
+      ],
+      "request_schema_ref": "focusa.project_bootstrap_repair.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_version": false,
+      "requires_preview_token": false,
+      "response_detail_supported": [
+        "compact",
+        "standard"
+      ],
+      "response_schema_ref": "focusa.project_bootstrap.response.v1",
+      "schema": "focusa.operation_descriptor.v1",
+      "schema_version": "focusa.project_bootstrap_repair.request.v1",
+      "scope": {
+        "attachment_scoped": false,
+        "project_scoped": true,
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "workstream_scoped": true
+      },
+      "side_effect_profile": "confirmed_local_mutation",
+      "supports_side_effect_policy": [
+        "preview",
+        "commit"
+      ],
+      "ui": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Project Bootstrap Repair",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Project Bootstrap Repair",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "consequential"
       }
     }
   ],

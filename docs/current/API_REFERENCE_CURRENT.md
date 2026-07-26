@@ -2,8 +2,8 @@
 
 Generated from current Axum route registration plus the Spec135/Spec141 operation registry. This public inventory is release-gated; do not edit route rows manually.
 
-- Classified paths: `465`
-- Agent eligible: `90`
+- Classified paths: `469`
+- Agent eligible: `94`
 - Operator only: `363`
 - Public health/pairing: `6`
 - Internal: `6`
@@ -2079,6 +2079,38 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/project.rs`
 - Agent operations: none
+
+### `/v1/project/bootstrap/apply`
+
+- Methods: `POST /v1/project/bootstrap/apply`
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
+- Sources: `crates/focusa-api/src/routes/project_bootstrap.rs`
+- Agent operations: `focusa.project.bootstrap.apply`
+
+### `/v1/project/bootstrap/preview`
+
+- Methods: `POST /v1/project/bootstrap/preview`
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
+- Sources: `crates/focusa-api/src/routes/project_bootstrap.rs`
+- Agent operations: `focusa.project.bootstrap.preview`
+
+### `/v1/project/bootstrap/repair`
+
+- Methods: `POST /v1/project/bootstrap/repair`
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
+- Sources: `crates/focusa-api/src/routes/project_bootstrap.rs`
+- Agent operations: `focusa.project.bootstrap.repair`
+
+### `/v1/project/bootstrap/status`
+
+- Methods: `GET /v1/project/bootstrap/status`
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
+- Sources: `crates/focusa-api/src/routes/project_bootstrap.rs`
+- Agent operations: `focusa.project.bootstrap.status`
 
 ### `/v1/project/card`
 

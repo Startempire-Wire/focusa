@@ -253,6 +253,10 @@ focusa project session-transfer --action continue --project-root "${FOCUSA_PROJE
 focusa project verify --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --project-id focusa --json
 focusa project trajectory-guard --action verify --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --json
 focusa project trajectory-guard --action migrate --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --confirm --idempotency-key marker-migrate-1 --json
+focusa project bootstrap preview --project-root /absolute/project --project-id project --canonical-name "Project" --continuity-id project-main --idempotency-key bootstrap-project --json
+focusa project bootstrap apply --project-root /absolute/project --project-id project --canonical-name "Project" --continuity-id project-main --idempotency-key bootstrap-project --hlt "Ship the verified project" --hlt-confirmed --specification-ref docs/01-project-spec.md --acceptance "First Workpoint is active" --current-state "Empty project" --desired-end-state "Disciplined project ready" --confirm --json
+focusa project bootstrap status --project-root /absolute/project --json
+focusa project bootstrap repair --project-root /absolute/project --project-id project --canonical-name "Project" --continuity-id project-main --idempotency-key bootstrap-project --repair-action rollback --confirm --json
 focusa project genesis start --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --idempotency-key genesis-1 --hlt "Ship the verified project" --hlt-confirmed --specification-ref docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md --acceptance "First Workpoint is active" --current-state "Genesis incomplete" --desired-end-state "Project ready" --allow-task-decomposition --json
 focusa project genesis status --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --json
 focusa project genesis resume --project-root "${FOCUSA_PROJECT_ROOT:-$PWD}" --continuity-id cont-1 --idempotency-key genesis-1 --json

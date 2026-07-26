@@ -148,6 +148,11 @@ pub enum ProjectCmd {
         #[arg(long)]
         force: bool,
     },
+    /// Preview, apply, inspect, or repair the project discipline baseline.
+    Bootstrap {
+        #[command(subcommand)]
+        cmd: ProjectBootstrapCmd,
+    },
     /// Run or inspect the atomic Project Genesis journey.
     Genesis {
         #[command(subcommand)]
@@ -230,6 +235,86 @@ pub enum ProjectCmd {
         #[arg(long)]
         persisted_canonical_name: Option<String>,
     },
+}
+
+#[derive(Subcommand)]
+pub enum ProjectBootstrapCmd {
+    Preview {
+        #[command(flatten)]
+        args: ProjectBootstrapMutationArgs,
+    },
+    Apply {
+        #[command(flatten)]
+        args: ProjectBootstrapMutationArgs,
+    },
+    Status {
+        #[arg(long)]
+        project_root: String,
+    },
+    Repair {
+        #[command(flatten)]
+        args: ProjectBootstrapMutationArgs,
+    },
+}
+
+#[derive(Args, Clone)]
+pub struct ProjectBootstrapMutationArgs {
+    #[arg(long)]
+    project_root: String,
+    #[arg(long)]
+    project_id: String,
+    #[arg(long)]
+    canonical_name: String,
+    #[arg(long)]
+    continuity_id: String,
+    #[arg(long)]
+    idempotency_key: String,
+    #[arg(long, default_value = "standard_software_project")]
+    discipline_profile: String,
+    #[arg(long)]
+    initialize_git: Option<bool>,
+    #[arg(long)]
+    initialize_task_provider: Option<bool>,
+    #[arg(long)]
+    task_provider: Option<String>,
+    #[arg(long)]
+    hlt: Option<String>,
+    #[arg(long)]
+    hlt_confirmed: bool,
+    #[arg(long)]
+    desired_end_state: Option<String>,
+    #[arg(long)]
+    current_state: Option<String>,
+    #[arg(long)]
+    specification_ref: Option<String>,
+    #[arg(long = "acceptance")]
+    acceptance_criteria: Vec<String>,
+    #[arg(long)]
+    confirm: bool,
+    #[arg(long)]
+    repair_action: Option<String>,
+}
+
+fn bootstrap_body(args: ProjectBootstrapMutationArgs) -> Value {
+    json!({
+        "project_root": args.project_root,
+        "project_id": args.project_id,
+        "canonical_name": args.canonical_name,
+        "continuity_id": args.continuity_id,
+        "idempotency_key": args.idempotency_key,
+        "discipline_profile": args.discipline_profile,
+        "initialize_git": args.initialize_git,
+        "initialize_task_provider": args.initialize_task_provider,
+        "task_provider": args.task_provider,
+        "hlt": args.hlt,
+        "hlt_confirmed": args.hlt_confirmed,
+        "desired_end_state": args.desired_end_state,
+        "current_state": args.current_state,
+        "specification_ref": args.specification_ref,
+        "acceptance_criteria": args.acceptance_criteria,
+        "confirm": args.confirm,
+        "repair_action": args.repair_action,
+    })
 }
 
 #[derive(Subcommand)]
@@ -775,6 +860,51 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             });
             ("new", api.post("/v1/project/new", &body).await?)
         }
+        ProjectCmd::Bootstrap { cmd } => match cmd {
+            ProjectBootstrapCmd::Status { project_root } => {
+                ensure_project_root_scope_safe(
+                    Some(project_root.as_str()),
+                    "project bootstrap status",
+                )?;
+                let mut query = Vec::new();
+                push_query(&mut query, "project_root", Some(project_root.as_str()));
+                let path = format!("/v1/project/bootstrap/status?{}", query.join("&"));
+                ("bootstrap status", api.get(&path).await?)
+            }
+            ProjectBootstrapCmd::Preview { args } => {
+                ensure_project_root_scope_safe(
+                    Some(args.project_root.as_str()),
+                    "project bootstrap preview",
+                )?;
+                (
+                    "bootstrap preview",
+                    api.post("/v1/project/bootstrap/preview", &bootstrap_body(args))
+                        .await?,
+                )
+            }
+            ProjectBootstrapCmd::Apply { args } => {
+                ensure_project_root_scope_safe(
+                    Some(args.project_root.as_str()),
+                    "project bootstrap apply",
+                )?;
+                (
+                    "bootstrap apply",
+                    api.post("/v1/project/bootstrap/apply", &bootstrap_body(args))
+                        .await?,
+                )
+            }
+            ProjectBootstrapCmd::Repair { args } => {
+                ensure_project_root_scope_safe(
+                    Some(args.project_root.as_str()),
+                    "project bootstrap repair",
+                )?;
+                (
+                    "bootstrap repair",
+                    api.post("/v1/project/bootstrap/repair", &bootstrap_body(args))
+                        .await?,
+                )
+            }
+        },
         ProjectCmd::Genesis { cmd } => match cmd {
             ProjectGenesisCmd::Status { project_root } => {
                 let root = resolve_input_project_root(None, Some(project_root.as_str()))?;

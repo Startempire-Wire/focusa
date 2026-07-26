@@ -1,8 +1,8 @@
 {
   "schema": "focusa.tool_choreography.v1",
   "contract_version": "spec90.tool_contracts.v1",
-  "tool_count": 113,
-  "edge_count": 327,
+  "tool_count": 114,
+  "edge_count": 331,
   "authority": "operator_current_ask_overrides_choreography",
   "routes": [
     {
@@ -159,10 +159,16 @@
       "focusa_trajectory_view"
     ],
     "focusa_project_verify": [
+      "focusa_project_bootstrap",
       "focusa_project_genesis",
       "focusa_trajectory_view",
       "focusa_workpoint_resume",
       "focusa_tool_doctor"
+    ],
+    "focusa_project_bootstrap": [
+      "focusa_project_genesis",
+      "focusa_project_verify",
+      "focusa_workpoint_resume"
     ],
     "focusa_project_genesis": [
       "focusa_workpoint_resume",
@@ -881,6 +887,11 @@
     },
     {
       "from": "focusa_project_verify",
+      "to": "focusa_project_bootstrap",
+      "weight": 1
+    },
+    {
+      "from": "focusa_project_verify",
       "to": "focusa_project_genesis",
       "weight": 1
     },
@@ -897,6 +908,21 @@
     {
       "from": "focusa_project_verify",
       "to": "focusa_tool_doctor",
+      "weight": 1
+    },
+    {
+      "from": "focusa_project_bootstrap",
+      "to": "focusa_project_genesis",
+      "weight": 1
+    },
+    {
+      "from": "focusa_project_bootstrap",
+      "to": "focusa_project_verify",
+      "weight": 1
+    },
+    {
+      "from": "focusa_project_bootstrap",
+      "to": "focusa_workpoint_resume",
       "weight": 1
     },
     {
