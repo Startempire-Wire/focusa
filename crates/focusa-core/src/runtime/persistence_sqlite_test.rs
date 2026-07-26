@@ -288,6 +288,98 @@ fn sqlite_persistence_migrates_legacy_events_before_creating_scope_indexes() {
 }
 
 #[test]
+fn sqlite_persistence_preserves_spec133_tables_while_creating_runtime_projections() {
+    let dir = temp_dir();
+    let db_path = dir.join("focusa.sqlite");
+    let legacy = Connection::open(&db_path).unwrap();
+    legacy
+        .execute_batch(
+            r#"
+            CREATE TABLE silent_sessions (
+              silent_session_id TEXT PRIMARY KEY,
+              project_root TEXT NOT NULL,
+              continuity_id TEXT NOT NULL,
+              display_name TEXT NOT NULL,
+              work_item_ref TEXT,
+              mission TEXT NOT NULL,
+              active_config_revision_id TEXT NOT NULL,
+              current_run_generation INTEGER NOT NULL CHECK(current_run_generation > 0),
+              lifecycle TEXT NOT NULL,
+              health TEXT NOT NULL,
+              semantic_activity TEXT NOT NULL,
+              snapshot_json TEXT NOT NULL,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+            CREATE TABLE silent_session_runs (
+              run_id TEXT PRIMARY KEY,
+              silent_session_id TEXT NOT NULL REFERENCES silent_sessions(silent_session_id),
+              run_generation INTEGER NOT NULL CHECK(run_generation > 0),
+              actor_instance_id TEXT NOT NULL,
+              config_revision_id TEXT NOT NULL,
+              protocol_versions_json TEXT NOT NULL,
+              run_json TEXT NOT NULL,
+              started_at TEXT NOT NULL,
+              ended_at TEXT,
+              UNIQUE(silent_session_id, run_generation)
+            );
+            INSERT INTO silent_sessions VALUES(
+              'legacy-session', '/tmp/project', 'main', 'Legacy', NULL, 'Preserve state',
+              'config-1', 1, 'running', 'healthy', 'working', '{}',
+              '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z'
+            );
+            INSERT INTO silent_session_runs VALUES(
+              'legacy-run', 'legacy-session', 1, 'actor-1', 'config-1', '{}', '{}',
+              '2026-01-01T00:00:00Z', NULL
+            );
+            "#,
+        )
+        .unwrap();
+    drop(legacy);
+
+    let mut cfg = FocusaConfig::default();
+    cfg.data_dir = dir.to_string_lossy().to_string();
+    let _persistence = SqlitePersistence::new(&cfg)
+        .expect("Spec133 retained tables must not collide with runtime projection tables");
+
+    let migrated = Connection::open(&db_path).unwrap();
+    let old_session_id: String = migrated
+        .query_row(
+            "SELECT silent_session_id FROM silent_sessions WHERE silent_session_id='legacy-session'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let old_generation: i64 = migrated
+        .query_row(
+            "SELECT run_generation FROM silent_session_runs WHERE run_id='legacy-run'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(old_session_id, "legacy-session");
+    assert_eq!(old_generation, 1);
+
+    for table in [
+        "runtime_silent_sessions",
+        "runtime_silent_session_runs",
+        "runtime_silent_session_events",
+        "runtime_silent_session_config_revisions",
+        "runtime_silent_session_principals",
+        "runtime_silent_session_approvals",
+    ] {
+        let present: i64 = migrated
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?1",
+                [table],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(present, 1, "missing isolated runtime table {table}");
+    }
+}
+
+#[test]
 fn sqlite_persistence_rejects_incompatible_schema_version() {
     let dir = temp_dir();
 
