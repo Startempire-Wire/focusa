@@ -2,7 +2,7 @@
 
 use crate::api_client::ApiClient;
 use crate::commands::{scope::ensure_project_root_scope_safe, scope_resolver};
-use clap::Subcommand;
+use clap::{Args, Subcommand};
 use serde_json::{Value, json};
 use std::path::PathBuf;
 
@@ -148,6 +148,11 @@ pub enum ProjectCmd {
         #[arg(long)]
         force: bool,
     },
+    /// Run or inspect the atomic Project Genesis journey.
+    Genesis {
+        #[command(subcommand)]
+        cmd: ProjectGenesisCmd,
+    },
     /// Project template list/show.
     Templates {
         #[command(subcommand)]
@@ -225,6 +230,87 @@ pub enum ProjectCmd {
         #[arg(long)]
         persisted_canonical_name: Option<String>,
     },
+}
+
+#[derive(Subcommand)]
+pub enum ProjectGenesisCmd {
+    /// Inventory project authority and stage Genesis; enters HLT Impasse when required.
+    Start {
+        #[command(flatten)]
+        args: ProjectGenesisMutationArgs,
+    },
+    /// Resume an interrupted/idempotent Genesis transaction.
+    Resume {
+        #[command(flatten)]
+        args: ProjectGenesisMutationArgs,
+    },
+    /// Read the durable Genesis packet.
+    Status {
+        #[arg(long)]
+        project_root: String,
+    },
+    /// Atomically commit Trajectory, first Workpoint, coordination, and readiness.
+    Commit {
+        #[command(flatten)]
+        args: ProjectGenesisMutationArgs,
+    },
+}
+
+#[derive(Args, Clone)]
+pub struct ProjectGenesisMutationArgs {
+    #[arg(long)]
+    project_root: String,
+    #[arg(long)]
+    continuity_id: String,
+    #[arg(long)]
+    idempotency_key: String,
+    #[arg(long)]
+    hlt: Option<String>,
+    #[arg(long)]
+    hlt_confirmed: bool,
+    #[arg(long)]
+    desired_end_state: Option<String>,
+    #[arg(long)]
+    current_state: Option<String>,
+    #[arg(long)]
+    specification_ref: Option<String>,
+    #[arg(long = "acceptance")]
+    acceptance_criteria: Vec<String>,
+    #[arg(long)]
+    mid_level_goal: Option<String>,
+    #[arg(long)]
+    short_term_goal: Option<String>,
+    #[arg(long = "waypoint")]
+    waypoints: Vec<String>,
+    #[arg(long)]
+    task_provider: Option<String>,
+    #[arg(long)]
+    allow_task_decomposition: bool,
+    #[arg(long)]
+    confirm: bool,
+    #[arg(long)]
+    takeover: bool,
+}
+
+fn genesis_body(args: ProjectGenesisMutationArgs) -> Value {
+    json!({
+        "project_root": args.project_root,
+        "continuity_id": args.continuity_id,
+        "idempotency_key": args.idempotency_key,
+        "hlt": args.hlt,
+        "hlt_confirmed": args.hlt_confirmed,
+        "desired_end_state": args.desired_end_state,
+        "current_state": args.current_state,
+        "specification_ref": args.specification_ref,
+        "acceptance_criteria": args.acceptance_criteria,
+        "mid_level_goal": args.mid_level_goal,
+        "short_term_goal": args.short_term_goal,
+        "waypoints": args.waypoints,
+        "task_provider": args.task_provider,
+        "allow_task_decomposition": args.allow_task_decomposition,
+        "confirm": args.confirm,
+        "takeover": args.takeover,
+    })
 }
 
 #[derive(Subcommand)]
@@ -689,6 +775,42 @@ pub async fn run(cmd: ProjectCmd, json_output: bool) -> anyhow::Result<()> {
             });
             ("new", api.post("/v1/project/new", &body).await?)
         }
+        ProjectCmd::Genesis { cmd } => match cmd {
+            ProjectGenesisCmd::Status { project_root } => {
+                let root = resolve_input_project_root(None, Some(project_root.as_str()))?;
+                let mut query = Vec::new();
+                push_query(&mut query, "project_root", Some(root.as_str()));
+                let path = format!("/v1/project/genesis/status?{}", query.join("&"));
+                ("genesis status", api.get(&path).await?)
+            }
+            ProjectGenesisCmd::Start { mut args } => {
+                args.project_root =
+                    resolve_input_project_root(None, Some(args.project_root.as_str()))?;
+                (
+                    "genesis start",
+                    api.post("/v1/project/genesis/start", &genesis_body(args))
+                        .await?,
+                )
+            }
+            ProjectGenesisCmd::Resume { mut args } => {
+                args.project_root =
+                    resolve_input_project_root(None, Some(args.project_root.as_str()))?;
+                (
+                    "genesis resume",
+                    api.post("/v1/project/genesis/resume", &genesis_body(args))
+                        .await?,
+                )
+            }
+            ProjectGenesisCmd::Commit { mut args } => {
+                args.project_root =
+                    resolve_input_project_root(None, Some(args.project_root.as_str()))?;
+                (
+                    "genesis commit",
+                    api.post("/v1/project/genesis/commit", &genesis_body(args))
+                        .await?,
+                )
+            }
+        },
         ProjectCmd::Templates { cmd } => {
             let (path, body_opt) = match cmd {
                 ProjectTemplateCmd::List => ("/v1/project/templates".to_string(), None),

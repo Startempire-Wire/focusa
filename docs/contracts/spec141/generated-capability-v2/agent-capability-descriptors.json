@@ -5,7 +5,7 @@
     "apps/pi-extension/src/tools.ts",
     "apps/pi-extension/src/tool-contracts.ts"
   ],
-  "capability_count": 112,
+  "capability_count": 113,
   "descriptors": [
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -29263,6 +29263,511 @@
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
+      "capability_id": "focusa.project.genesis",
+      "tool_names": {
+        "pi": "focusa_project_genesis",
+        "mcp": "focusa.project.genesis",
+        "openai": "focusa_project_genesis",
+        "cli": [
+          "focusa project genesis start|resume|status|commit"
+        ],
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/project/genesis/start"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/project/genesis/resume"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/project/genesis/status"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/project/genesis/commit"
+          }
+        ]
+      },
+      "version": "2.0.0",
+      "title": "Focusa Project Genesis",
+      "summary": "Stage, resume, inspect, or atomically commit the verified project journey from HLT and specification through tasks, first Workpoint, coordination, and readiness receipt.",
+      "description": "Start, resume, inspect, or atomically commit the Project Genesis chain from verified identity and HLT through the first Workpoint. Use it when Stage, resume, inspect, or atomically commit the verified project journey from HLT and specification through tasks, first Workpoint, coordination, and readiness receipt. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "family": "project_identity",
+      "namespace": "focusa.project_identity",
+      "availability": {
+        "requires_daemon": true,
+        "supported_harnesses": [
+          "pi",
+          "mcp",
+          "openai",
+          "rest",
+          "cli"
+        ],
+        "parity_status": "full",
+        "exemptions": []
+      },
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "description": "Genesis operation; defaults to status.",
+            "anyOf": [
+              {
+                "const": "start",
+                "type": "string"
+              },
+              {
+                "const": "resume",
+                "type": "string"
+              },
+              {
+                "const": "status",
+                "type": "string"
+              },
+              {
+                "const": "commit",
+                "type": "string"
+              }
+            ]
+          },
+          "project_root": {
+            "description": "Verified absolute project root.",
+            "type": "string"
+          },
+          "continuity_id": {
+            "description": "Stable project workstream continuity id.",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "description": "Stable transaction replay key.",
+            "type": "string"
+          },
+          "hlt": {
+            "description": "Operator-confirmed High Level Trajectory.",
+            "type": "string"
+          },
+          "hlt_confirmed": {
+            "type": "boolean"
+          },
+          "desired_end_state": {
+            "type": "string"
+          },
+          "current_state": {
+            "type": "string"
+          },
+          "specification_ref": {
+            "type": "string"
+          },
+          "acceptance_criteria": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mid_level_goal": {
+            "type": "string"
+          },
+          "short_term_goal": {
+            "type": "string"
+          },
+          "waypoints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "task_provider": {
+            "type": "string"
+          },
+          "allow_task_decomposition": {
+            "type": "boolean"
+          },
+          "confirm": {
+            "description": "Required true for commit or takeover.",
+            "type": "boolean"
+          },
+          "takeover": {
+            "description": "Take over a conflicting active project workstream; requires confirm=true.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "result_envelope": "focusa.tool_result.v1",
+      "scope": {
+        "kind": "write",
+        "route_family": "explicit_project_continuity"
+      },
+      "authority": {
+        "kind": "canonical",
+        "path": "daemon:/v1/project/genesis/commit"
+      },
+      "permissions": [
+        {
+          "route": "POST /v1/project/genesis/start",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "POST /v1/project/genesis/resume",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "GET /v1/project/genesis/status",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        },
+        {
+          "route": "POST /v1/project/genesis/commit",
+          "scope": {
+            "kind": "write",
+            "route_family": "explicit_project_continuity"
+          }
+        }
+      ],
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "side_effects": [
+        "start_resume_read_or_confirmed_atomic_commit",
+        "start_resume_read_or_confirmed_atomic_commit"
+      ],
+      "confirmation": {
+        "required": false,
+        "preview_supported": false
+      },
+      "idempotency": {
+        "supported": true,
+        "key_recommended": true
+      },
+      "reversibility": {
+        "reversible": true,
+        "compensation": []
+      },
+      "cost_hint": {
+        "class": "external_or_variable"
+      },
+      "latency_hint": {
+        "class": "hot_or_bounded"
+      },
+      "token_budget": {
+        "discovery": "metadata_first",
+        "full_schema": "cold_load_on_selection"
+      },
+      "examples": [
+        {
+          "description": "Stage, resume, inspect, or atomically commit the verified project journey from HLT and specification through tasks, first Workpoint, coordination, and readiness receipt.",
+          "arguments": {},
+          "human_invocation": "focusa project genesis start|resume|status|commit",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_genesis.md"
+        }
+      ],
+      "anti_examples": [
+        {
+          "description": "assuming unsafe broad cwd is canonical"
+        },
+        {
+          "description": "skipping verify after scope mismatch"
+        }
+      ],
+      "failure_classes": [
+        "scope_conflict",
+        "scope_mismatch",
+        "resource_exhausted",
+        "cold_path_timeout",
+        "hot_path_timeout",
+        "daemon_unavailable",
+        "read_model_lag",
+        "validation_rejected"
+      ],
+      "recovery": [
+        "scope_conflict -> current-ask project verify/rebind before action; scope_mismatch -> checkpoint in the correct project_root+continuity_id context",
+        "resource_exhausted|cold_path_timeout -> focusa_resource_mode plus a narrow focusa_traverse request",
+        "canonical=false|degraded=true -> focusa_tool_doctor then retry only with safe posture"
+      ],
+      "prerequisites": [
+        "verified project_root plus continuity_id when project-bound"
+      ],
+      "dependencies": [
+        {
+          "capability": "focusa_workpoint_resume",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_trajectory_view",
+          "relation": "likely_next"
+        },
+        {
+          "capability": "focusa_project_verify",
+          "relation": "likely_next"
+        }
+      ],
+      "likely_next_capabilities": [
+        "focusa_workpoint_resume",
+        "focusa_trajectory_view",
+        "focusa_project_verify"
+      ],
+      "skill_refs": [
+        "skill:focusa",
+        "skill:focusa-project-scope"
+      ],
+      "runbook_refs": [
+        "runbook:project_identity"
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_project_genesis.md",
+      "spec_refs": [
+        "docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md"
+      ],
+      "ontology": {
+        "action": "project.genesis",
+        "objects": [
+          "ProjectIdentity",
+          "TrajectoryProjection",
+          "Waypoint",
+          "WorkpointRecord",
+          "TaskProvider",
+          "EvidenceRef"
+        ],
+        "core_surface": "Spec143 atomic Project Genesis transaction and marker guard"
+      },
+      "evidence_requirements": [
+        "stable evidence or receipt ref proving the mutation outcome"
+      ],
+      "deprecation": null,
+      "compatibility": {
+        "descriptor": "v2",
+        "result_envelope": "v1",
+        "minimum_focusa": "0.9.120-dev"
+      },
+      "conformance_refs": [
+        "spec141:focusa_project_genesis"
+      ],
+      "prompt": {
+        "snippet": "Use after project verification when onboarding/readiness is incomplete; HLT Impasse asks at most one concise intent question, and commit requires confirm=true.",
+        "guidelines": []
+      },
+      "descriptor_digest": "sha256:22ad4fa493f8db390c732d38351ac971fa5119ec68a33052ac66df32b0a7b267"
+    },
+    {
+      "schema": "focusa.agent_capability_descriptor.v2",
       "capability_id": "focusa.project.identity",
       "tool_names": {
         "pi": "focusa_project_identity",
@@ -30071,6 +30576,10 @@
       ],
       "dependencies": [
         {
+          "capability": "focusa_project_genesis",
+          "relation": "likely_next"
+        },
+        {
           "capability": "focusa_trajectory_view",
           "relation": "likely_next"
         },
@@ -30084,6 +30593,7 @@
         }
       ],
       "likely_next_capabilities": [
+        "focusa_project_genesis",
         "focusa_trajectory_view",
         "focusa_workpoint_resume",
         "focusa_tool_doctor"
@@ -30118,7 +30628,7 @@
         "snippet": "Use when project folder or session identity is ambiguous before accepting a Workpoint/Trajectory packet as canonical.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:bb09ec069011fa1dd6e4669076544c84c6fd230c2462b7a6bbede99202efd185"
+      "descriptor_digest": "sha256:772e22b95e854556897330b7b20e5504ce01440b88fe25489c45fe1e28891644"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -46251,5 +46761,5 @@
       "descriptor_digest": "sha256:ab9c9bbe2ed5cd1be3c2be60126fbc6114de34d72116a188fdd0b734de5b3e68"
     }
   ],
-  "registry_digest": "sha256:c275433cdcc897c9d139978eb19161c009c74cec22ba516e8ddc0c10297bd841"
+  "registry_digest": "sha256:40a99583d75aee940eb03227748abbf9fc2ba70f09cc7d5911bad528ddf45169"
 }
