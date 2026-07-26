@@ -234,6 +234,60 @@ fn sqlite_persistence_creates_machine_id() {
 }
 
 #[test]
+fn sqlite_persistence_migrates_legacy_events_before_creating_scope_indexes() {
+    let dir = temp_dir();
+    let db_path = dir.join("focusa.sqlite");
+    let legacy = Connection::open(&db_path).unwrap();
+    legacy
+        .execute_batch(
+            r#"
+            CREATE TABLE events (
+              event_id TEXT PRIMARY KEY,
+              ts TEXT NOT NULL,
+              origin TEXT NOT NULL,
+              correlation_id TEXT,
+              payload_json TEXT NOT NULL
+            );
+            INSERT INTO events(event_id, ts, origin, correlation_id, payload_json)
+            VALUES('legacy-event', '2026-01-01T00:00:00Z', 'system', 'legacy-correlation', '{}');
+            "#,
+        )
+        .unwrap();
+    drop(legacy);
+
+    let mut cfg = FocusaConfig::default();
+    cfg.data_dir = dir.to_string_lossy().to_string();
+    let _persistence = SqlitePersistence::new(&cfg)
+        .expect("legacy events schema should migrate before scope indexes are created");
+
+    let migrated = Connection::open(&db_path).unwrap();
+    for column in [
+        "machine_id",
+        "instance_id",
+        "session_id",
+        "thread_id",
+        "is_observation",
+    ] {
+        let present: i64 = migrated
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('events') WHERE name=?1",
+                [column],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(present, 1, "missing migrated events column {column}");
+    }
+    let legacy_row: (String, String, i64) = migrated
+        .query_row(
+            "SELECT event_id, payload_json, is_observation FROM events WHERE event_id='legacy-event'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .unwrap();
+    assert_eq!(legacy_row, ("legacy-event".into(), "{}".into(), 0));
+}
+
+#[test]
 fn sqlite_persistence_rejects_incompatible_schema_version() {
     let dir = temp_dir();
 
