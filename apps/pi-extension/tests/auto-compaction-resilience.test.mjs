@@ -119,7 +119,7 @@ test("compaction exposes elapsed heartbeat, retries, and resume failures", () =>
   assert.match(source, /Focusa compaction attempt .* failed:/);
   assert.match(source, /Retrying in .*s/);
   assert.match(source, /stopCompactionHeartbeat\(ctx\)/);
-  assert.match(compactionSource, /Compaction resume retry .* failed:/);
+  assert.match(compactionSource, /Compaction resume-context retry .* failed:/);
   assert.match(compactionSource, /Retrying automatically/);
 });
 
