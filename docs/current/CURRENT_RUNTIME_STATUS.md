@@ -2,8 +2,8 @@
 
 <!-- GENERATED: scripts/generate-current-runtime-status. Do not edit by hand. -->
 
-Generated: 2026-07-26T17:53:28Z
-Version: 0.9.123-dev
+Generated: 2026-07-26T18:51:50Z
+Version: 0.9.124-dev
 Tool contracts: 115
 Tool surface summary: [docs/current/generated/tool-surface-summary.md](docs/current/generated/tool-surface-summary.md)
 
