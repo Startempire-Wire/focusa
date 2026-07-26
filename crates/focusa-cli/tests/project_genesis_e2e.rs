@@ -2,6 +2,8 @@
 
 use serde_json::Value;
 use std::net::{TcpListener, TcpStream};
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Output, Stdio};
 use std::thread;
@@ -15,6 +17,7 @@ struct IsolatedDaemon {
     project_root: PathBuf,
     bind: String,
     binary: PathBuf,
+    path_env: String,
 }
 
 impl IsolatedDaemon {
@@ -25,6 +28,7 @@ impl IsolatedDaemon {
             .env("FOCUSA_BIND", &self.bind)
             .env("FOCUSA_DATA_DIR", &self.data_dir)
             .env("FOCUSA_TEST_MODE", "1")
+            .env("PATH", &self.path_env)
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .spawn()
@@ -90,6 +94,46 @@ fn start_isolated_daemon(repo_root: &Path) -> (IsolatedDaemon, String) {
         .unwrap(),
     )
     .unwrap();
+    let fake_bin = data_dir.join("bin");
+    std::fs::create_dir_all(&fake_bin).unwrap();
+    let fake_bd = fake_bin.join("bd");
+    std::fs::write(
+        &fake_bd,
+        r#"#!/usr/bin/env bash
+set -euo pipefail
+command="${1:-}"; shift || true
+case "$command" in
+  init)
+    mkdir -p .beads
+    : > .beads/issues.jsonl
+    printf '{"status":"initialized"}\n'
+    ;;
+  create)
+    title="${1:-task}"
+    mkdir -p .beads
+    touch .beads/issues.jsonl
+    count=$(wc -l < .beads/issues.jsonl)
+    id="fixture-$((count + 1))"
+    printf '{"id":"%s","title":"%s","status":"open","priority":0}\n' "$id" "$title" >> .beads/issues.jsonl
+    printf '{"id":"%s","title":"%s","status":"open"}\n' "$id" "$title"
+    ;;
+  dep)
+    printf '{"status":"linked"}\n'
+    ;;
+  *)
+    printf '{"status":"ok"}\n'
+    ;;
+esac
+"#,
+    )
+    .unwrap();
+    #[cfg(unix)]
+    std::fs::set_permissions(&fake_bd, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let path_env = format!(
+        "{}:{}",
+        fake_bin.display(),
+        std::env::var("PATH").unwrap_or_default()
+    );
     let bind = format!("127.0.0.1:{port}");
     let base_url = format!("http://{bind}");
     let binary = daemon_binary(repo_root);
@@ -102,6 +146,7 @@ fn start_isolated_daemon(repo_root: &Path) -> (IsolatedDaemon, String) {
         .env("FOCUSA_BIND", &bind)
         .env("FOCUSA_DATA_DIR", &data_dir)
         .env("FOCUSA_TEST_MODE", "1")
+        .env("PATH", &path_env)
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
@@ -112,6 +157,7 @@ fn start_isolated_daemon(repo_root: &Path) -> (IsolatedDaemon, String) {
         project_root,
         bind: bind.clone(),
         binary,
+        path_env,
     };
     let deadline = Instant::now() + Duration::from_secs(10);
     while TcpStream::connect(&bind).is_err() {
