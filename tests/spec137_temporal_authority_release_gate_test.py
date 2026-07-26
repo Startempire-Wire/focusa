@@ -4,6 +4,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 core=(ROOT/'crates/focusa-core/src/temporal.rs').read_text()
 tests=(ROOT/'crates/focusa-core/src/temporal_tests.rs').read_text()
+authority=(ROOT/'crates/focusa-core/src/temporal_authority.rs').read_text()
 lib=(ROOT/'crates/focusa-core/src/lib.rs').read_text()
 for symbol in (
  'TemporalClockDomain','TemporalClaimKind','TemporalClaimStatus','TemporalConfidence',
@@ -19,7 +20,12 @@ for durability in ('events.jsonl','OpenOptions::new()','sync_data()','sync_all()
 assert 'DeadlineStatus::None' in core
 assert 'projection.urgency.is_none()' in tests
 assert 'ledger_fsyncs_causal_batch_and_replays_idempotently' in tests
-assert 'pub mod temporal;' in lib
+for symbol in ('TemporalDomainClockPolicy','ClockTrustProfile','TemporalAuthority','ClockSynchronizationStatus','evaluate_clock_sample'):
+ assert symbol in authority, symbol
+for boundary in ('suspend_consumes_interval','reboot_consumes_interval','required_independent_source_count','sources_authenticated','HoldoverExpired','Disagreement'):
+ assert boundary in authority, boundary
+assert 'pub mod temporal;' in lib and 'pub mod temporal_authority;' in lib
 assert len(core.splitlines()) < 500
+assert len(authority.splitlines()) < 500
 assert len(tests.splitlines()) < 500
 print('Spec137 temporal authority release gate: PASS')
