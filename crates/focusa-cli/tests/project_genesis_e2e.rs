@@ -321,6 +321,36 @@ fn standard_bootstrap_is_previewable_local_only_idempotent_and_rollback_bounded(
         find_string(&applied, "marker_schema"),
         Some("focusa.project.v2")
     );
+    let identity = json_output(&run(
+        &base_url,
+        &[
+            "project",
+            "identity",
+            "--cwd",
+            &root,
+            "--project-root",
+            &root,
+            "--json",
+        ],
+    ));
+    assert_eq!(find_string(&identity, "project_root"), Some(root.as_str()));
+    let verification = json_output(&run(
+        &base_url,
+        &[
+            "project",
+            "verify",
+            "--cwd",
+            &root,
+            "--project-root",
+            &root,
+            "--project-id",
+            "bootstrap-e2e",
+            "--canonical-name",
+            "Bootstrap E2E",
+            "--json",
+        ],
+    ));
+    assert!(verification.to_string().contains("\"verified\":true"));
     assert!(daemon.project_root.join(".focusa-project.json").is_file());
     assert!(daemon.project_root.join(".git").is_dir());
     assert!(daemon.project_root.join(".beads").is_dir());
