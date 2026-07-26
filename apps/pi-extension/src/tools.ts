@@ -6098,6 +6098,107 @@ export function registerTools(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+    name: "focusa_temporal_authority",
+    label: "Focusa Temporal Authority",
+    description:
+      "Read, commit, revise, observe, forecast, or preflight project-scoped temporal claims without fabricating deadlines or urgency.",
+    promptSnippet:
+      "Use status first; external commitments require explicit confirmation/evidence, forecasts remain non-canonical ranges, and scope mismatch fails closed.",
+    parameters: Type.Object({
+      action: Type.Optional(
+        Type.Union(
+          [Type.Literal("status"), Type.Literal("commit"), Type.Literal("revise"), Type.Literal("observe"), Type.Literal("forecast"), Type.Literal("preflight")],
+          { description: "Temporal operation; defaults to status." }
+        )
+      ),
+      project_root: Type.Optional(Type.String()),
+      continuity_id: Type.Optional(Type.String()),
+      idempotency_key: Type.Optional(Type.String()),
+      confirm: Type.Optional(Type.Boolean()),
+      as_of: Type.Optional(Type.String()),
+      phase: Type.Optional(Type.String()),
+      duration_ms: Type.Optional(Type.Number()),
+      outcome: Type.Optional(Type.String()),
+      actual_ms: Type.Optional(Type.Number()),
+      evidence_refs: Type.Optional(Type.Array(Type.String())),
+      claim: Type.Optional(
+        Type.Object({
+          claim_id: Type.String(),
+          revision: Type.Number(),
+          scope: Type.Object({ project_root: Type.String(), continuity_id: Type.String() }),
+          kind: Type.String(),
+          status: Type.String(),
+          subject_ref: Type.String(),
+          target_at: Type.Optional(Type.String()),
+          duration_ms: Type.Optional(Type.Number()),
+          timezone: Type.String(),
+          source: Type.String(),
+          source_ref: Type.Optional(Type.String()),
+          operator_confirmed: Type.Boolean(),
+          confidence: Type.String(),
+          uncertainty: Type.Optional(Type.Object({
+            earliest_at: Type.Optional(Type.String()),
+            latest_at: Type.Optional(Type.String()),
+            coverage_probability: Type.Optional(Type.Number()),
+            reason: Type.Optional(Type.String()),
+          })),
+          observed_at: Type.String(),
+          effective_at: Type.String(),
+          expires_at: Type.Optional(Type.String()),
+          supersedes_revision: Type.Optional(Type.Number()),
+          evidence_refs: Type.Array(Type.String()),
+          reason_code: Type.Optional(Type.String()),
+        })
+      ),
+    }),
+    async execute(_toolCallId: string, params: any) {
+      const action = String(params.action || "status");
+      const projectRoot = normalizeProjectRoot(
+        params.project_root || getLastProjectIdentity()?.project_root || getSessionCwd()
+      );
+      if (!projectRoot || !isProjectRootAuthoritySafe(projectRoot)) {
+        return {
+          content: [{ type: "text", text: "temporal authority → blocked: verify a safe project root" }],
+          details: { status: "blocked", failure_class: "project_identity_required", next_tools: ["focusa_project_verify"] },
+        } as any;
+      }
+      const continuityId = params.continuity_id || getContinuityId() || ensureContinuityId(projectRoot);
+      let result: any;
+      if (action === "status") {
+        const suffix = params.as_of ? `&as_of=${encodeURIComponent(params.as_of)}` : "";
+        result = await focusaFetchDetailed(
+          `/temporal/status?project_root=${encodeURIComponent(projectRoot)}&continuity_id=${encodeURIComponent(continuityId)}${suffix}`
+        );
+      } else {
+        result = await focusaFetchDetailed(`/temporal/${encodeURIComponent(action)}`, {
+          method: "POST",
+          body: JSON.stringify({
+            ...params,
+            action: undefined,
+            project_root: projectRoot,
+            continuity_id: continuityId,
+            idempotency_key: params.idempotency_key || `temporal:${action}:${continuityId}:${Date.now()}`,
+          }),
+        });
+      }
+      const body = result.body || {};
+      const status = String(body.status || (result.ok ? "completed" : "blocked"));
+      return {
+        content: [{ type: "text", text: `temporal ${action} → ${status}\nnext: ${body.next_action || "inspect temporal projection"}` }],
+        details: {
+          ok: result.ok,
+          status,
+          canonical: action === "commit" || action === "revise" ? body.canonical === true : false,
+          project_root: projectRoot,
+          continuity_id: continuityId,
+          temporal_packet: compactApiEcho(body),
+          next_tools: ["focusa_temporal_authority", "focusa_trajectory_view", "focusa_workpoint_resume"],
+        },
+      } as any;
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_trajectory_view",
     label: "Trajectory View",
     description:

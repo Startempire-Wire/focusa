@@ -439,3 +439,107 @@ fn standard_bootstrap_is_previewable_local_only_idempotent_and_rollback_bounded(
             .is_file()
     );
 }
+
+#[test]
+fn temporal_authority_preserves_no_deadline_and_forecasts_from_observed_history() {
+    let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .unwrap();
+    let (mut daemon, base_url) = start_isolated_daemon(repo_root);
+    let root = daemon.project_root.to_string_lossy().to_string();
+    let continuity = "temporal-e2e";
+
+    let empty = json_output(&run(
+        &base_url,
+        &[
+            "temporal",
+            "status",
+            "--project-root",
+            &root,
+            "--continuity-id",
+            continuity,
+            "--json",
+        ],
+    ));
+    assert!(empty.to_string().contains("\"deadline_status\":\"none\""));
+    assert!(empty.to_string().contains("without fabricated urgency"));
+
+    let committed = json_output(&run(
+        &base_url,
+        &[
+            "temporal",
+            "commit",
+            "--project-root",
+            &root,
+            "--continuity-id",
+            continuity,
+            "--idempotency-key",
+            "deadline-1",
+            "--claim-id",
+            "release-deadline",
+            "--kind",
+            "external_commitment",
+            "--subject-ref",
+            "release",
+            "--target-at",
+            "2030-08-01T17:00:00Z",
+            "--timezone",
+            "America/Los_Angeles",
+            "--source",
+            "operator",
+            "--operator-confirmed",
+            "--confidence",
+            "verified",
+            "--evidence-ref",
+            "contract:release-date",
+            "--confirm",
+            "--json",
+        ],
+    ));
+    assert_eq!(find_string(&committed, "status"), Some("completed"));
+
+    for (index, duration) in [1000_u64, 2000, 3000].into_iter().enumerate() {
+        let duration = duration.to_string();
+        let key = format!("build-{index}");
+        let evidence = format!("run:{index}");
+        let observed = json_output(&run(
+            &base_url,
+            &[
+                "temporal",
+                "observe",
+                "--project-root",
+                &root,
+                "--continuity-id",
+                continuity,
+                "--idempotency-key",
+                &key,
+                "--phase",
+                "build",
+                "--duration-ms",
+                &duration,
+                "--evidence-ref",
+                &evidence,
+                "--json",
+            ],
+        ));
+        assert_eq!(find_string(&observed, "status"), Some("completed"));
+    }
+    daemon.restart();
+    let forecast = json_output(&run(
+        &base_url,
+        &[
+            "temporal",
+            "forecast",
+            "--project-root",
+            &root,
+            "--continuity-id",
+            continuity,
+            "--phase",
+            "build",
+            "--json",
+        ],
+    ));
+    assert!(forecast.to_string().contains("empirical_nearest_rank"));
+    assert!(forecast.to_string().contains("\"p50_ms\":2000"));
+}

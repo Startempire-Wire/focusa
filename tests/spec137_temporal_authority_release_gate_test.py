@@ -8,6 +8,11 @@ authority=(ROOT/'crates/focusa-core/src/temporal_authority.rs').read_text()
 claims=(ROOT/'crates/focusa-core/src/temporal_claims.rs').read_text()
 forecast=(ROOT/'crates/focusa-core/src/temporal_forecast.rs').read_text()
 lib=(ROOT/'crates/focusa-core/src/lib.rs').read_text()
+api=(ROOT/'crates/focusa-api/src/routes/temporal.rs').read_text()
+cli=(ROOT/'crates/focusa-cli/src/commands/temporal.rs').read_text()
+pi=(ROOT/'apps/pi-extension/src/tools.ts').read_text()
+registry=(ROOT/'docs/contracts/spec135/generated-contract-v1/operation-registry.json').read_text()
+bindings=(ROOT/'docs/contracts/spec135/generated-contract-v1/ui-action-bindings.fixture.json').read_text()
 for symbol in (
  'TemporalClockDomain','TemporalClaimKind','TemporalClaimStatus','TemporalConfidence',
  'TemporalUncertainty','TemporalScope','TemporalClockSample','TemporalClaim','TemporalEvent',
@@ -39,6 +44,15 @@ assert 'pub mod temporal;' in lib and 'pub mod temporal_authority;' in lib and '
 assert len(core.splitlines()) < 500
 assert len(claims.splitlines()) < 500
 assert len(forecast.splitlines()) < 500
+for action in ('status','commit','revise','observe','forecast','preflight'):
+ endpoint=f'/v1/temporal/{action}'
+ assert endpoint in api, endpoint
+ assert f'focusa.temporal.{action}' in registry
+ assert f'focusa.temporal.{action}' in bindings
+assert 'TemporalCmd' in cli and 'name: "focusa_temporal_authority"' in pi
+assert 'confirmation_required' in api and 'forecast_history_insufficient' in api
+assert len(api.splitlines()) < 500
+assert len(cli.splitlines()) < 500
 assert len(authority.splitlines()) < 500
 assert len(tests.splitlines()) < 500
 print('Spec137 temporal authority release gate: PASS')

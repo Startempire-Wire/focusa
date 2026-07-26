@@ -65,6 +65,7 @@ pub mod silent;
 mod silent_render;
 pub mod skills;
 pub mod telemetry;
+pub mod temporal;
 pub mod threads;
 pub mod tokens;
 pub mod trajectory;

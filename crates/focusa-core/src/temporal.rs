@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
+    collections::HashMap,
     fs::{self, File, OpenOptions},
     io::{BufRead, BufReader, Write},
     path::{Path, PathBuf},
@@ -382,11 +383,31 @@ pub fn project_temporal(
     events: &[TemporalEvent],
     as_of: DateTime<Utc>,
 ) -> TemporalProjection {
-    let active = events
-        .iter()
-        .filter(|event| event.scope == scope && event.recorded_at <= as_of)
-        .filter_map(|event| event.claim.as_ref())
-        .filter(|claim| claim.status == TemporalClaimStatus::Canonical)
+    let mut latest_by_claim = HashMap::<&str, (usize, &TemporalClaim)>::new();
+    for (index, event) in events.iter().enumerate() {
+        if event.scope == scope
+            && event.recorded_at <= as_of
+            && let Some(claim) = event.claim.as_ref()
+        {
+            latest_by_claim.insert(&claim.claim_id, (index, claim));
+        }
+    }
+    let mut latest = latest_by_claim.into_values().collect::<Vec<_>>();
+    latest.sort_by_key(|(index, _)| *index);
+    let active = latest
+        .into_iter()
+        .map(|(_, claim)| claim)
+        .filter(|claim| {
+            matches!(
+                claim.status,
+                TemporalClaimStatus::Canonical
+                    | TemporalClaimStatus::Breached
+                    | TemporalClaimStatus::Satisfied
+            ) && claim.effective_at <= as_of
+                && claim
+                    .expires_at
+                    .is_none_or(|expires_at| expires_at >= as_of)
+        })
         .collect::<Vec<_>>();
     let commitment = active
         .iter()

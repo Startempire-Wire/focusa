@@ -579,6 +579,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::autonomy::router())
         .merge(routes::constitution::router())
         .merge(routes::telemetry::router())
+        .merge(routes::temporal::router())
         .merge(routes::trust::router())
         .merge(routes::threads::router())
         .merge(routes::proposals::router())

@@ -44,6 +44,43 @@ fn no_deadline_is_truthful_without_fabricated_urgency() {
 }
 
 #[test]
+fn latest_breached_revision_replaces_the_prior_canonical_commitment() {
+    let now = Utc::now();
+    let mut committed = claim(TemporalClaimKind::ExternalCommitment);
+    committed.status = TemporalClaimStatus::Canonical;
+    committed.operator_confirmed = true;
+    committed.target_at = Some(now - chrono::Duration::minutes(1));
+    committed.effective_at = now - chrono::Duration::minutes(2);
+    let mut breached = committed.clone();
+    breached.revision = 2;
+    breached.status = TemporalClaimStatus::Breached;
+    breached.supersedes_revision = Some(1);
+    let event = |id: &str, claim: TemporalClaim, recorded_at| TemporalEvent {
+        event_id: id.into(),
+        sequence: 0,
+        event_kind: TemporalEventKind::ClaimRevised,
+        scope: claim.scope.clone(),
+        claim: Some(claim),
+        clock_sample: None,
+        predecessor_digest: None,
+        recorded_at,
+        idempotency_key: id.into(),
+        digest: String::new(),
+    };
+    let scope = committed.scope.clone();
+    let projection = project_temporal(
+        scope,
+        &[
+            event("committed", committed, now - chrono::Duration::seconds(1)),
+            event("breached", breached, now),
+        ],
+        now,
+    );
+    assert_eq!(projection.deadline_status, DeadlineStatus::Breached);
+    assert_eq!(projection.active_commitment.unwrap().revision, 2);
+}
+
+#[test]
 fn commitment_requires_operator_confirmation_and_target() {
     let mut value = claim(TemporalClaimKind::ExternalCommitment);
     assert_eq!(

@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:a00f0942275312244b20a0bbe95db57c55b60dc7a245765ab599c187badb35b5`
+Registry digest: `sha256:8da28148bf9c812232c01a2ec9fb60ef431e6722d84a4982f5f94e13bf4fd02f`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -939,6 +939,17 @@ Create a proposal-style hygiene plan; does not mutate Focus State. Use it when C
 - Dependencies/next: `focusa_state_hygiene_apply`, `focusa_state_hygiene_doctor`, `focusa_tool_doctor`
 - Documentation: `docs/focusa-tools/tools/focusa_state_hygiene_plan.md`
 
+## focusa_temporal_authority
+
+Read, commit, revise, observe, forecast, or preflight project-scoped temporal claims without fabricating deadlines or urgency. Use it when Read, commit, revise, observe, forecast, or preflight scoped temporal claims with evidence, confidence, uncertainty, freshness, and no fabricated urgency. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.temporal.authority`
+- Family: `trajectory`
+- Side effects: `status_preflight_read_or_confirmed_claim_write_or_observation`, `status_preflight_read_or_confirmed_claim_write_or_observation`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Dependencies/next: `focusa_trajectory_view`, `focusa_workpoint_resume`, `focusa_project_verify`
+- Documentation: `docs/focusa-tools/tools/focusa_temporal_authority.md`
+
 ## focusa_tool_bundle
 
 Load a bounded family bundle of capability metadata and optionally strict schemas. Use after search or graph traversal when one workflow needs several related tools; avoid broad all-tool prompt injection. Use it when Load one bounded capability family with schemas deferred by default. It returns a typed Focusa result with bounded recovery and likely next capabilities.
@@ -1057,7 +1068,7 @@ Read the per-project Trajectory Intelligence view: project identity, goal/state/
 - Family: `trajectory`
 - Side effects: `read_state`, `read_state`
 - Skills: `skill:focusa`, `skill:focusa-workpoint`
-- Dependencies/next: `focusa_trajectory_assess`, `focusa_trajectory_define_goal`, `focusa_workpoint_resume`
+- Dependencies/next: `focusa_temporal_authority`, `focusa_trajectory_assess`, `focusa_trajectory_define_goal`, `focusa_workpoint_resume`
 - Documentation: `docs/focusa-tools/tools/focusa_trajectory_view.md`
 
 ## focusa_traverse

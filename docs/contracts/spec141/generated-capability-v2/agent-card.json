@@ -22,9 +22,9 @@
     "device_pairing",
     "local_trusted"
   ],
-  "registry_digest": "sha256:a00f0942275312244b20a0bbe95db57c55b60dc7a245765ab599c187badb35b5",
-  "pi_tool_count": 114,
-  "pi_tool_docs_count": 114,
+  "registry_digest": "sha256:8da28148bf9c812232c01a2ec9fb60ef431e6722d84a4982f5f94e13bf4fd02f",
+  "pi_tool_count": 115,
+  "pi_tool_docs_count": 115,
   "pi_tool_registry_path": "docs/contracts/spec141/generated-capability-v2/pi-tools.json",
   "pi_tool_docs_path": "docs/focusa-tools/tools/",
   "skill_count": 22,
@@ -289,5 +289,5 @@
     "workpoint"
   ],
   "extended_card_path": "/v1/agent/card",
-  "card_digest": "sha256:c3614a5b19bf3d445e7036152c8d2f1e718cb174442d6891b5474aa95f0e12b2"
+  "card_digest": "sha256:cad00208ab6289f8410e641b98c66b7f00fae7d6c1894c662cc56b48df103faf"
 }

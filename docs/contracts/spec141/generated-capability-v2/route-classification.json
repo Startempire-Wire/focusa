@@ -1,8 +1,8 @@
 {
   "schema": "focusa.agent_route_classification.v1",
-  "route_count": 469,
+  "route_count": 475,
   "classification_counts": {
-    "agent_eligible": 94,
+    "agent_eligible": 100,
     "internal": 6,
     "operator_only": 363,
     "public_pairing": 6
@@ -4735,6 +4735,90 @@
         "GET"
       ],
       "operation_refs": []
+    },
+    {
+      "path": "/v1/temporal/commit",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
+      "sources": [
+        "crates/focusa-api/src/routes/temporal.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": [
+        "focusa.temporal.commit"
+      ]
+    },
+    {
+      "path": "/v1/temporal/forecast",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
+      "sources": [
+        "crates/focusa-api/src/routes/temporal.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": [
+        "focusa.temporal.forecast"
+      ]
+    },
+    {
+      "path": "/v1/temporal/observe",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
+      "sources": [
+        "crates/focusa-api/src/routes/temporal.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": [
+        "focusa.temporal.observe"
+      ]
+    },
+    {
+      "path": "/v1/temporal/preflight",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
+      "sources": [
+        "crates/focusa-api/src/routes/temporal.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": [
+        "focusa.temporal.preflight"
+      ]
+    },
+    {
+      "path": "/v1/temporal/revise",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
+      "sources": [
+        "crates/focusa-api/src/routes/temporal.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": [
+        "focusa.temporal.revise"
+      ]
+    },
+    {
+      "path": "/v1/temporal/status",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
+      "sources": [
+        "crates/focusa-api/src/routes/temporal.rs"
+      ],
+      "methods": [
+        "GET"
+      ],
+      "operation_refs": [
+        "focusa.temporal.status"
+      ]
     },
     {
       "path": "/v1/threads",
