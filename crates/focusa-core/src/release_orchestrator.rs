@@ -9,6 +9,7 @@ use anyhow::{Context, ensure};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
+use crate::release_calibration::ReleasePlanTuning;
 use crate::release_cycle::{
     ReleaseCandidate, ReleaseEvidence, ReleaseStage, ReleaseSurfaceKind, ReleaseTopology,
 };
@@ -139,6 +140,7 @@ pub struct ReleaseStageRequest {
     pub topology: ReleaseTopology,
     pub stage: ReleaseStage,
     pub surface_waves: Vec<Vec<String>>,
+    pub tuning: ReleasePlanTuning,
     pub approval_refs: Vec<String>,
 }
 
@@ -207,6 +209,7 @@ pub struct ReleaseExecutionPlan {
     pub surface_waves: Vec<Vec<String>>,
     pub reused_stages: Vec<ReleaseStage>,
     pub mutating_stages: Vec<ReleaseStage>,
+    pub tuning: ReleasePlanTuning,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -228,6 +231,7 @@ impl MasterReleaseOrchestrator {
         topology: &ReleaseTopology,
         adapter: &ReleaseAdapterDescriptor,
         reusable_evidence: &BTreeMap<ReleaseStage, ReleaseEvidence>,
+        tuning: &ReleasePlanTuning,
     ) -> anyhow::Result<ReleaseExecutionPlan> {
         candidate.validate_identity()?;
         topology.validate()?;
@@ -253,14 +257,15 @@ impl MasterReleaseOrchestrator {
             exact_sha: candidate.exact_sha.clone(),
             adapter_id: adapter.adapter_id.clone(),
             stages,
-            surface_waves: surface_waves(topology)?,
+            surface_waves: bounded_surface_waves(topology, tuning.max_parallel_operations)?,
             reused_stages,
             mutating_stages,
+            tuning: tuning.clone(),
         })
     }
 
     pub async fn run<A: ReleaseAdapter>(
-        mut candidate: ReleaseCandidate,
+        candidate: ReleaseCandidate,
         topology: ReleaseTopology,
         adapter: &A,
         authority: ReleaseAuthority,
@@ -268,9 +273,38 @@ impl MasterReleaseOrchestrator {
         observed_at: &str,
         reusable_evidence: BTreeMap<ReleaseStage, ReleaseEvidence>,
     ) -> anyhow::Result<ReleaseRunResult> {
+        Self::run_with_tuning(
+            candidate,
+            topology,
+            adapter,
+            authority,
+            mode,
+            observed_at,
+            reusable_evidence,
+            ReleasePlanTuning::default(),
+        )
+        .await
+    }
+
+    pub async fn run_with_tuning<A: ReleaseAdapter>(
+        mut candidate: ReleaseCandidate,
+        topology: ReleaseTopology,
+        adapter: &A,
+        authority: ReleaseAuthority,
+        mode: ReleaseRunMode,
+        observed_at: &str,
+        reusable_evidence: BTreeMap<ReleaseStage, ReleaseEvidence>,
+        tuning: ReleasePlanTuning,
+    ) -> anyhow::Result<ReleaseRunResult> {
         authority.validate(&candidate, mode)?;
         let descriptor = adapter.descriptor();
-        let plan = Self::plan(&candidate, &topology, &descriptor, &reusable_evidence)?;
+        let plan = Self::plan(
+            &candidate,
+            &topology,
+            &descriptor,
+            &reusable_evidence,
+            &tuning,
+        )?;
         if mode == ReleaseRunMode::Plan {
             return Ok(ReleaseRunResult {
                 schema: RELEASE_RUN_SCHEMA.into(),
@@ -339,6 +373,7 @@ impl MasterReleaseOrchestrator {
                     topology: topology.clone(),
                     stage,
                     surface_waves: plan.surface_waves.clone(),
+                    tuning: plan.tuning.clone(),
                     approval_refs: authority.approval_refs.clone(),
                 };
                 adapter
@@ -354,6 +389,7 @@ impl MasterReleaseOrchestrator {
                 topology: topology.clone(),
                 stage,
                 surface_waves: plan.surface_waves.clone(),
+                tuning: plan.tuning.clone(),
                 approval_refs: authority.approval_refs.clone(),
             };
             receipt.validate(&request, &descriptor)?;
@@ -488,6 +524,25 @@ pub fn surface_waves(topology: &ReleaseTopology) -> anyhow::Result<Vec<Vec<Strin
         waves.push(wave);
     }
     Ok(waves)
+}
+
+pub fn bounded_surface_waves(
+    topology: &ReleaseTopology,
+    max_parallel_operations: u16,
+) -> anyhow::Result<Vec<Vec<String>>> {
+    ensure!(
+        max_parallel_operations > 0,
+        "max_parallel_operations must be positive"
+    );
+    let limit = usize::from(max_parallel_operations);
+    Ok(surface_waves(topology)?
+        .into_iter()
+        .flat_map(|wave| {
+            wave.chunks(limit)
+                .map(<[String]>::to_vec)
+                .collect::<Vec<_>>()
+        })
+        .collect())
 }
 
 #[cfg(test)]

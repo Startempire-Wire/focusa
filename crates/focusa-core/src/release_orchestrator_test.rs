@@ -142,6 +142,16 @@ fn topology_waves_are_deterministic() {
     );
 }
 
+#[test]
+fn calibrated_parallelism_changes_next_plan_waves() {
+    let mut value = topology(true);
+    value.surfaces[1].depends_on.clear();
+    let serial = bounded_surface_waves(&value, 1).unwrap();
+    let parallel = bounded_surface_waves(&value, 2).unwrap();
+    assert_eq!(serial.len(), 2);
+    assert_eq!(parallel.len(), 1);
+}
+
 #[tokio::test]
 async fn plan_mode_never_calls_adapter() {
     let adapter = MockAdapter {

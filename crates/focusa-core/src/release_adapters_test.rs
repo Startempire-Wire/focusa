@@ -220,6 +220,7 @@ fn operation_sha_mismatch_is_rejected() {
         .unwrap(),
         stage: ReleaseStage::Preflighted,
         surface_waves: vec![],
+        tuning: crate::release_calibration::ReleasePlanTuning::default(),
         approval_refs: vec![],
     };
     let receipt = ReleaseOperationReceipt {
