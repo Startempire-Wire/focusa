@@ -33,9 +33,19 @@ wait_for_jq(){
   return 1
 }
 
-STATUS0="$(http_json "${BASE_URL}/v1/work-loop/status")"
-WRITER_ID="$(echo "$STATUS0" | jq -r '.active_writer // "daemon-supervisor"')"
-WORK_ITEM_ID="$(echo "$STATUS0" | jq -r '.execution_partition.work_item_id // .current_task.work_item_id // empty')"
+WORK_ITEM_ID="spec79-affordance-consumer"
+WRITER_ID="spec79-affordance-consumer"
+CHECKPOINT_RESP="$(http_json -X POST "${BASE_URL}/v1/workpoint/checkpoint" \
+  -H 'Content-Type: application/json' \
+  -d "{\"project_root\":\"${PROJECT_ROOT}\",\"continuity_id\":\"${CONTINUITY_ID}\",\"work_item_id\":\"${WORK_ITEM_ID}\",\"mission\":\"verify Workloop affordance consumption\",\"current_action\":\"affordance_consumer_contract\",\"next_slice\":\"verify transport affordance transitions\",\"canonical\":true}")"
+WORKPOINT_ID="$(echo "$CHECKPOINT_RESP" | jq -r '.workpoint_id // empty')"
+for _ in $(seq 1 40); do
+  RESUME_RESP="$(http_json -X POST "${BASE_URL}/v1/workpoint/resume" \
+    -H 'Content-Type: application/json' \
+    -d "{\"project_root\":\"${PROJECT_ROOT}\",\"continuity_id\":\"${CONTINUITY_ID}\",\"mode\":\"compact_prompt\"}")"
+  echo "$RESUME_RESP" | jq -e --arg id "$WORKPOINT_ID" '.canonical == true and .workpoint_id == $id' >/dev/null 2>&1 && break
+  sleep 0.1
+done
 ENABLE_RESP="$(http_json -X POST "${BASE_URL}/v1/work-loop/enable" \
   -H 'Content-Type: application/json' \
   -H "x-focusa-writer-id: ${WRITER_ID}" \
@@ -48,6 +58,7 @@ if echo "$FENCING_TOKEN" | grep -Eq '^[1-9][0-9]*$'; then
 else
   log_fail "work-loop writer lease unavailable: $ENABLE_RESP"
 fi
+STATUS0="$(http_json "${BASE_URL}/v1/work-loop/status")"
 ORIG_ADAPTER="$(echo "$STATUS0" | jq -r '.transport.adapter // "pi-rpc"')"
 ORIG_SESSION_ID="$(echo "$STATUS0" | jq -r '.transport.daemon_supervised_session.session_id // "spec79-affordance-restore"')"
 
