@@ -27,6 +27,8 @@ Normative operation mapping:
 | `bd close` | run Spec116 prepare → validate → authorize → submit → reconcile |
 | bead parent/child links | core WorkItem graph relationships |
 
+Non-closure lifecycle projections (`open`, `in_progress`, `blocked`, `cancelled`) MUST flow through `ProviderAdapter::transition` after scope and writer checks. Unsupported adapters fail closed. `done` and `closed` MUST NOT use this generic path; completion always runs the Spec116 closure lifecycle. Transition reasons remain in canonical Work Loop events and MUST NOT overwrite provider notes as a side effect.
+
 ## 0. Source Basis
 
 This spec is intentionally source-backed. Every major design claim below is derived from one or more existing Pi or Focusa sources.

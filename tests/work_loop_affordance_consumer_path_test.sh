@@ -2,6 +2,8 @@
 # Runtime contract: transport-session affordance is consumed by continuation/runtime control surfaces.
 set -euo pipefail
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
+PROJECT_ROOT="${FOCUSA_PROJECT_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+CONTINUITY_ID="${FOCUSA_CONTINUITY_ID:-work-loop-affordance-consumer-test}"
 FAILED=0
 PASSED=0
 RED='\033[0;31m'
@@ -9,7 +11,13 @@ GREEN='\033[0;32m'
 NC='\033[0m'
 log_pass(){ echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail(){ echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
-http_json(){ curl -sS "$@"; }
+scoped_curl(){
+  command curl \
+    -H "x-scope-project-root: ${PROJECT_ROOT}" \
+    -H "x-scope-continuity-id: ${CONTINUITY_ID}" \
+    "$@"
+}
+http_json(){ scoped_curl -sS "$@"; }
 
 wait_for_jq(){
   local url="$1"
@@ -17,7 +25,7 @@ wait_for_jq(){
   local tries="${3:-40}"
   local delay="${4:-0.15}"
   for _ in $(seq 1 "$tries"); do
-    if curl -sS "$url" | jq -e "$expr" >/dev/null 2>&1; then
+    if scoped_curl -sS "$url" | jq -e "$expr" >/dev/null 2>&1; then
       return 0
     fi
     sleep "$delay"

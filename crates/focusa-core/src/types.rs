@@ -2028,6 +2028,34 @@ pub const FOCUSA_STATE_PLANE_CONTRACT: &[(&str, AuthorityPlane)] = &[
     ("context_contradictions", AuthorityPlane::CanonicalCognition),
     ("context_decisions", AuthorityPlane::CanonicalCognition),
     ("reactive_context", AuthorityPlane::CanonicalCognition),
+    ("project_role_profiles", AuthorityPlane::AdvisoryProjection),
+    (
+        "project_interview_sessions",
+        AuthorityPlane::BoundedOrchestration,
+    ),
+    (
+        "spec_workbench_sessions",
+        AuthorityPlane::BoundedOrchestration,
+    ),
+    (
+        "provider_execution_bindings",
+        AuthorityPlane::RuntimeCorrelation,
+    ),
+    (
+        "provider_neutral_task_plans",
+        AuthorityPlane::AdvisoryProjection,
+    ),
+    ("task_materializations", AuthorityPlane::TelemetryHistory),
+    ("work_rail_records", AuthorityPlane::BoundedOrchestration),
+    (
+        "mission_canvas_surfaces",
+        AuthorityPlane::AdvisoryProjection,
+    ),
+    ("mission_canvas_states", AuthorityPlane::AdvisoryProjection),
+    (
+        "mission_canvas_surface_bindings",
+        AuthorityPlane::RuntimeCorrelation,
+    ),
     ("version", AuthorityPlane::CanonicalCognition),
 ];
 

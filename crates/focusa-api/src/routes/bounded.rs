@@ -160,13 +160,11 @@ pub struct ResponseSizeHistogram {
     pub max_bytes: usize,
 }
 
-type ResponseSizeSamples = BTreeMap<String, BTreeMap<String, Vec<usize>>>;
-
 static PRESSURE_TRANSITION: LazyLock<Mutex<BTreeMap<String, Option<PressureTransition>>>> =
     LazyLock::new(|| Mutex::new(BTreeMap::new()));
 static PRESSURE_LAST_ACTIVE: LazyLock<Mutex<BTreeMap<String, Option<bool>>>> =
     LazyLock::new(|| Mutex::new(BTreeMap::new()));
-static RESPONSE_SIZE_SAMPLES: LazyLock<Mutex<ResponseSizeSamples>> =
+static RESPONSE_SIZE_SAMPLES: LazyLock<Mutex<BTreeMap<String, BTreeMap<String, Vec<usize>>>>> =
     LazyLock::new(|| Mutex::new(BTreeMap::new()));
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]

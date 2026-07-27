@@ -2,6 +2,9 @@
 # Runtime contract: query-scope/reset semantics persist from context input to status projection.
 set -euo pipefail
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
+PROJECT_ROOT="${FOCUSA_PROJECT_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+CONTINUITY_ID="${FOCUSA_CONTINUITY_ID:-work-loop-runtime-contract-test}"
+scoped_curl(){ command curl -H "x-scope-project-root: ${PROJECT_ROOT}" -H "x-scope-continuity-id: ${CONTINUITY_ID}" "$@"; }
 FAILED=0
 PASSED=0
 RED='\033[0;31m'
@@ -10,18 +13,18 @@ NC='\033[0m'
 log_pass(){ echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail(){ echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 
-WRITER_ID="$(curl -sS "${BASE_URL}/v1/work-loop/status" | jq -r '.active_writer')"
+WRITER_ID="$(scoped_curl -sS "${BASE_URL}/v1/work-loop/status" | jq -r '.active_writer')"
 SOURCE_TURN_ID="pi-turn-$(date +%s%N)"
 ASK_TEXT="scope-boundary-runtime-check"
 
-curl -sS -X POST "${BASE_URL}/v1/work-loop/context" \
+scoped_curl -sS -X POST "${BASE_URL}/v1/work-loop/context" \
   -H "Content-Type: application/json" \
   -H "x-focusa-writer-id: ${WRITER_ID}" \
   -d "{\"current_ask\":\"${ASK_TEXT}\",\"ask_kind\":\"question\",\"scope_kind\":\"fresh_question\",\"carryover_policy\":\"suppress_by_default\",\"excluded_context_reason\":\"correction_reset\",\"excluded_context_labels\":[\"legacy\",\"unrelated\"],\"source_turn_id\":\"${SOURCE_TURN_ID}\"}" >/dev/null
 
 STATUS_JSON=""
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
-  STATUS_JSON="$(curl -sS "${BASE_URL}/v1/work-loop/status")"
+  STATUS_JSON="$(scoped_curl -sS "${BASE_URL}/v1/work-loop/status")"
   if echo "$STATUS_JSON" | jq -e '.decision_context.current_ask == $ask and .decision_context.source_turn_id == $turn' --arg ask "$ASK_TEXT" --arg turn "$SOURCE_TURN_ID" >/dev/null 2>&1; then
     break
   fi
