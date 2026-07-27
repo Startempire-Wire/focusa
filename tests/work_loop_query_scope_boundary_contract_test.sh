@@ -43,7 +43,7 @@ CONTEXT_RESP="$(scoped_curl -sS -X POST "${BASE_URL}/v1/work-loop/context" \
   -H "x-focusa-writer-id: ${WRITER_ID}" \
   -H "x-focusa-fencing-token: ${FENCING_TOKEN}" \
   -d "{\"current_ask\":\"${ASK_TEXT}\",\"ask_kind\":\"question\",\"scope_kind\":\"fresh_question\",\"carryover_policy\":\"suppress_by_default\",\"excluded_context_reason\":\"correction_reset\",\"excluded_context_labels\":[\"legacy\",\"unrelated\"],\"source_turn_id\":\"${SOURCE_TURN_ID}\"}")"
-if ! echo "$CONTEXT_RESP" | jq -e '.ok == true' >/dev/null 2>&1; then
+if ! echo "$CONTEXT_RESP" | jq -e '.status == "accepted" and .canonical == true' >/dev/null 2>&1; then
   log_fail "context mutation rejected: $CONTEXT_RESP"
 fi
 
