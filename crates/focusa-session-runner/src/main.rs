@@ -1,5 +1,6 @@
 //! Protected per-user process runner for daemon-native Silent Sessions.
 
+#[cfg(unix)]
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
@@ -7,32 +8,43 @@ use std::{
     path::PathBuf,
 };
 
+#[cfg(unix)]
 use anyhow::{Context, Result, ensure};
+#[cfg(unix)]
 use chrono::Utc;
+#[cfg(unix)]
 use clap::Parser;
+#[cfg(unix)]
 use focusa_core::silent_sessions::{
     ProcessTreeIdentity, RUNNER_PROTOCOL_SCHEMA, RunnerHeartbeat, RunnerIdentity, RunnerOperation,
     RunnerProcessProjection, RunnerProcessState, RunnerSignal, RunnerWireRequest,
     RunnerWireResponse, SilentSessionId, SilentSessionRunId,
 };
+#[cfg(unix)]
 use serde_json::{Value, json};
+#[cfg(unix)]
 use tokio::{
     io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
     net::{UnixListener, UnixStream},
     process::Child,
 };
+#[cfg(unix)]
 use tracing::{error, info};
 
+#[cfg(unix)]
 mod security;
 
+#[cfg(unix)]
 use security::{
     append_nonce, canonical_owned_directory, controlled_stop, current_user, load_nonces,
     prepare_launch_manifest, prepare_socket, process_group_exists, read_secret,
     send_process_group_signal,
 };
 
+#[cfg(unix)]
 const MAX_REQUEST_BYTES: usize = 1024 * 1024;
 
+#[cfg(unix)]
 #[derive(Debug, Parser)]
 #[command(name = "focusa-session-runner")]
 struct Args {
@@ -52,6 +64,7 @@ struct Args {
     socket_scope: String,
 }
 
+#[cfg(unix)]
 struct ManagedProcess {
     identity: ProcessTreeIdentity,
     child: Option<Child>,
@@ -59,6 +72,7 @@ struct ManagedProcess {
     exit_code: Option<i32>,
 }
 
+#[cfg(unix)]
 impl ManagedProcess {
     fn projection(&self) -> RunnerProcessProjection {
         RunnerProcessProjection {
@@ -81,6 +95,7 @@ impl ManagedProcess {
     }
 }
 
+#[cfg(unix)]
 struct RunnerState {
     identity: RunnerIdentity,
     owner_uid: u32,
@@ -91,6 +106,7 @@ struct RunnerState {
     processes: BTreeMap<String, ManagedProcess>,
 }
 
+#[cfg(unix)]
 impl RunnerState {
     fn process_key(session_id: SilentSessionId, run_id: SilentSessionRunId) -> String {
         format!("{session_id}:{run_id}")
@@ -312,6 +328,7 @@ impl RunnerState {
     }
 }
 
+#[cfg(unix)]
 fn failure_response(request: Option<&RunnerWireRequest>, error: &anyhow::Error) -> Value {
     json!({
         "schema": RUNNER_PROTOCOL_SCHEMA,
@@ -325,6 +342,7 @@ fn failure_response(request: Option<&RunnerWireRequest>, error: &anyhow::Error) 
     })
 }
 
+#[cfg(unix)]
 async fn handle_connection(stream: UnixStream, state: &mut RunnerState) -> Result<()> {
     let (reader, mut writer) = stream.into_split();
     let reader = BufReader::new(reader);
@@ -350,6 +368,15 @@ async fn handle_connection(stream: UnixStream, state: &mut RunnerState) -> Resul
     Ok(())
 }
 
+#[cfg(not(unix))]
+fn main() {
+    eprintln!(
+        "focusa-session-runner: protected runner socket transport is unsupported on non-Unix platforms"
+    );
+    std::process::exit(78);
+}
+
+#[cfg(unix)]
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt()

@@ -2604,6 +2604,15 @@ fn build_latest_from_release(
         ),
         Err(_) => (false, false, false, None, None),
     };
+    if !manifest_signature_verified {
+        blockers.push("release_manifest_signature_not_verified".into());
+    }
+    if !provenance_verified {
+        blockers.push("release_provenance_not_verified".into());
+    }
+    if !deploy_proof_verified {
+        blockers.push("release_deploy_proof_not_verified".into());
+    }
     Some(LatestVersion {
         version: normalize_version(&tag),
         tag,
@@ -2611,7 +2620,12 @@ fn build_latest_from_release(
         github_repo: repo,
         target_triple: triple,
         release_manifest_required: true,
-        eligibility_status: if checksums_resolved && signature_verified {
+        eligibility_status: if checksums_resolved
+            && signature_verified
+            && manifest_signature_verified
+            && provenance_verified
+            && deploy_proof_verified
+        {
             "eligible_signed_manifest"
         } else {
             "blocked_untrusted_release"

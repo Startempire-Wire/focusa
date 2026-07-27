@@ -1,12 +1,13 @@
 //! Daemon-side protected local transport for per-user session runners.
 
-use std::{
-    os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt},
-    path::Path,
-    time::Duration,
-};
+use std::{path::Path, time::Duration};
 
+#[cfg(unix)]
+use std::os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt};
+
+#[cfg(unix)]
 use chrono::Utc;
+#[cfg(unix)]
 use tokio::{
     io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
     net::UnixStream,
@@ -15,8 +16,11 @@ use tokio::{
 
 use crate::runtime::persistence_sqlite::SqlitePersistence;
 
-use super::{RUNNER_PROTOCOL_SCHEMA, RunnerWireRequest, RunnerWireResponse, consume_runner_nonce};
+#[cfg(unix)]
+use super::{RUNNER_PROTOCOL_SCHEMA, consume_runner_nonce};
+use super::{RunnerWireRequest, RunnerWireResponse};
 
+#[cfg(unix)]
 const MAX_RESPONSE_BYTES: usize = 1024 * 1024;
 
 #[derive(Debug, thiserror::Error)]
@@ -35,6 +39,8 @@ pub enum RunnerClientError {
     AmbiguousDelivery,
     #[error("runner response exceeds one MiB")]
     OversizedResponse,
+    #[error("protected runner socket transport is unavailable on this platform")]
+    UnsupportedPlatform,
     #[error("runner response target or schema mismatch")]
     ResponseMismatch,
     #[error(transparent)]
@@ -45,6 +51,7 @@ pub enum RunnerClientError {
     Other(#[from] anyhow::Error),
 }
 
+#[cfg(unix)]
 pub async fn send_runner_request(
     persistence: &SqlitePersistence,
     socket_path: &Path,
@@ -84,6 +91,18 @@ pub async fn send_runner_request(
         .map_err(|_| RunnerClientError::AmbiguousDelivery)?
 }
 
+#[cfg(not(unix))]
+pub async fn send_runner_request(
+    _persistence: &SqlitePersistence,
+    _socket_path: &Path,
+    _expected_owner_uid: u32,
+    _request: &RunnerWireRequest,
+    _timeout_duration: Duration,
+) -> Result<RunnerWireResponse, RunnerClientError> {
+    Err(RunnerClientError::UnsupportedPlatform)
+}
+
+#[cfg(unix)]
 fn verify_runner_socket(
     socket_path: &Path,
     expected_owner_uid: u32,
