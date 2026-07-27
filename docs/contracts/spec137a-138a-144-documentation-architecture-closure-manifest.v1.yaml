@@ -1,6 +1,6 @@
 {
   "serialization": "JSON-compatible YAML 1.2",
-  "generated_at": "2026-07-27T00:27:24+00:00",
+  "generated_at": "2026-07-27T00:36:14+00:00",
   "runtime_claim": "none",
   "runtime_status": "implementation_open",
   "schema": "focusa.spec137a_138a_144_documentation_architecture_closure_manifest.v1",
@@ -112,15 +112,15 @@
     },
     {
       "path": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
-      "sha256": "97af4dd697f9c75ccc6e5c6ab041e8d1472764589169d19014b730ac0dbddff2"
+      "sha256": "e244c1dd42f90c808703922ae2450221f04b04de851f10e98800f93dc3516aa6"
     },
     {
       "path": "docs/139-distributed-presence-environment-awareness-execution-placement-and-multi-daemon-coordination-spec.md",
-      "sha256": "a4d5154bc8a9936a4bce82861bdc061afc4dc9fc0cbfa8d01418abe0a1be3ab1"
+      "sha256": "0da6c17d8d8afc0e252fef53f5e38aff5fabc56b1c776eeeb409793cedd2d479"
     },
     {
       "path": "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md",
-      "sha256": "3160852d7acc1e06c60a113c679a4cafa17665f23daafba7d35f7afa3e9dea8e"
+      "sha256": "df750294598f3aeea5a1a66d9ee3d61b6ab51469a9dbbd72083a066a42d23914"
     },
     {
       "path": "docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md",
@@ -141,9 +141,26 @@
     {
       "path": "docs/current/AUTHORITY_MODEL.md",
       "sha256": "8fbd1bcc08677d355b25c3aff169bd7643ee78953f59cf7c9fbec3104631360a"
+    },
+    {
+      "path": "docs/90-ontology-backed-tool-contracts-parity-spec.md",
+      "sha256": "c1b4694a4c38b75f6cf8668d327fc2f3f6f78471c23eda427985c5e3691d1e79"
+    },
+    {
+      "path": "docs/95-focusa-ontology-low-latency-intelligence-enhancer-sow.md",
+      "sha256": "a3915a9740a7343c38fcd0e0925b11196538e162d7be615019188c3db838f23d"
+    },
+    {
+      "path": "docs/104-typed-scoped-runtime-and-singleton-elimination-spec.md",
+      "sha256": "4e6c2cb841edd60969710777c02ba88203d36599d0cda21c55ea31a1c9ff35e9"
+    },
+    {
+      "path": "docs/111-agent-context-bootstrap-and-delivery-spec.md",
+      "sha256": "f0c3317cdcd7ee5df06f7509dc7b53ed4aa29cdde9999f43929f7dfeb9b0cdae"
     }
   ],
   "contract_artifacts": [
+    "spec137a-138a-144-documentation-architecture-closure-manifest.v1.yaml",
     "spec137a-applicability-matrix.v1.yaml",
     "spec137a-conformance-class-matrix.v1.yaml",
     "spec137a-forbidden-placeholder-audit.v1.yaml",
@@ -182,7 +199,8 @@
     "spec144-verification-dispute-arbitration.v1.yaml",
     "spec144-vertical-pack-matrix.v1.yaml"
   ],
-  "documentation_architecture_status": "closed_by_populated_contracts_and_cross_spec_amendments",
+  "documentation_architecture_status": "closed_with_exhaustive_source_atoms_and_explicit_primitive_owner_amendments",
   "runtime_implementation_status": "open_not_activated_or_not_fully_conformant",
-  "claim_boundary": "documentation_closure_is_not_runtime_completion"
+  "claim_boundary": "documentation_closure_is_not_runtime_completion",
+  "source_coverage_mode": "literal_nonempty_source_atom_coverage"
 }

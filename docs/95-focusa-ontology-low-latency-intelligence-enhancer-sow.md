@@ -651,3 +651,8 @@ For fixture tasks, verify the ontology context returns:
 11. Intelligence dashboard shows retrieval usefulness, drift prevention, stale-context rate, and latency/RSS overhead.
 12. Semantic preservation tests prove no ontology primitive/domain/action/relation/governance class was stripped.
 13. Latency/RSS tests prove the enhancer improves speed without weakening original ontology intent.
+
+<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-bounded-semantic-runtime -->
+## Spec 144 bounded RDF/OWL/SHACL runtime integration
+
+Spec 95 performance and bounded-context laws apply to RDF/OWL/SHACL compilation, obligation triggers, Verification Pack resolution, and semantic validation. Focusa MUST use bounded graphs, precompiled bundles, incremental validation, cache-safe versioning, and explicit degraded posture without dropping mandatory obligations or reporting an unavailable reasoner as a pass.

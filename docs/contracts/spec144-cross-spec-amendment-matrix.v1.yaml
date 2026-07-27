@@ -1,6 +1,6 @@
 {
   "serialization": "JSON-compatible YAML 1.2",
-  "generated_at": "2026-07-27T00:27:24+00:00",
+  "generated_at": "2026-07-27T00:36:14+00:00",
   "runtime_claim": "none",
   "runtime_status": "implementation_open",
   "schema": "focusa.spec144_cross_spec_amendment_matrix.v1",
@@ -189,21 +189,21 @@
     },
     {
       "path": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
-      "sha256": "97af4dd697f9c75ccc6e5c6ab041e8d1472764589169d19014b730ac0dbddff2",
+      "sha256": "e244c1dd42f90c808703922ae2450221f04b04de851f10e98800f93dc3516aa6",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/139-distributed-presence-environment-awareness-execution-placement-and-multi-daemon-coordination-spec.md",
-      "sha256": "a4d5154bc8a9936a4bce82861bdc061afc4dc9fc0cbfa8d01418abe0a1be3ab1",
+      "sha256": "0da6c17d8d8afc0e252fef53f5e38aff5fabc56b1c776eeeb409793cedd2d479",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
     },
     {
       "path": "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md",
-      "sha256": "3160852d7acc1e06c60a113c679a4cafa17665f23daafba7d35f7afa3e9dea8e",
+      "sha256": "df750294598f3aeea5a1a66d9ee3d61b6ab51469a9dbbd72083a066a42d23914",
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
@@ -242,6 +242,35 @@
       "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
       "status": "amended_in_documentation_closure_pass",
       "runtime_implementation": "open"
+    },
+    {
+      "path": "docs/90-ontology-backed-tool-contracts-parity-spec.md",
+      "sha256": "c1b4694a4c38b75f6cf8668d327fc2f3f6f78471c23eda427985c5e3691d1e79",
+      "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
+      "status": "amended_in_documentation_closure_hardening",
+      "runtime_implementation": "open"
+    },
+    {
+      "path": "docs/95-focusa-ontology-low-latency-intelligence-enhancer-sow.md",
+      "sha256": "a3915a9740a7343c38fcd0e0925b11196538e162d7be615019188c3db838f23d",
+      "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
+      "status": "amended_in_documentation_closure_hardening",
+      "runtime_implementation": "open"
+    },
+    {
+      "path": "docs/104-typed-scoped-runtime-and-singleton-elimination-spec.md",
+      "sha256": "4e6c2cb841edd60969710777c02ba88203d36599d0cda21c55ea31a1c9ff35e9",
+      "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
+      "status": "amended_in_documentation_closure_hardening",
+      "runtime_implementation": "open"
+    },
+    {
+      "path": "docs/111-agent-context-bootstrap-and-delivery-spec.md",
+      "sha256": "f0c3317cdcd7ee5df06f7509dc7b53ed4aa29cdde9999f43929f7dfeb9b0cdae",
+      "marker": "SPEC137A_138A_144_ARCHITECTURE_CLOSURE",
+      "status": "amended_in_documentation_closure_hardening",
+      "runtime_implementation": "open"
     }
-  ]
+  ],
+  "coverage_statement": "every directly identified primitive owner has an explicit integration clause"
 }

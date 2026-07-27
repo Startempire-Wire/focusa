@@ -8,7 +8,7 @@
 **Source baseline:** `b08acf4f6a1f73c61a07cf6845b37efbad316ddb`  
 **Research audit:** `docs/evidence/spec138-prediction-metacognition-maximal-primitives-audit-2026-07-21.md`  
 **Amends and deepens:** current Prediction, Metacognition, reflection, project-card algorithm, and prediction/metacognition flywheel surfaces  
-**Depends on:** Specs 45–50/135F ontology; Spec 76 retention/decay; Spec 80 metacognition tooling; Spec 96 trajectory projection; Spec 104 scoped CRDT; Spec 119 receipts; Spec 131 Workpoint Item timing; Spec 133 governed sessions; Spec 137 temporal authority  
+**Depends on:** Specs 45–50/135F ontology; Spec 76 retention/decay; Spec 80 metacognition tooling; Spec 96 trajectory projection; Spec 104 scoped CRDT; Spec 119 receipts; Spec 131 Workpoint Item timing; Spec 133 governed sessions; combined Spec 137 + Spec 137A temporal authority  
 **Does not activate:** market feeds, financial trading, live mutation, external source access, or domain-specific models
 
 ---

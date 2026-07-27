@@ -176,3 +176,9 @@ Every requirement remains in the machine-readable closure graph.
 ## Specs 137A/138A/144 architecture-closure contracts
 
 The populated machine-readable source coverage, ledgers, delivery DAGs, ownership, profile, placement, dispute, migration, proof, and placeholder-audit contracts are under `docs/contracts/spec137a-*`, `docs/contracts/spec138*`, and `docs/contracts/spec144-*`. They close documentation architecture and make remaining runtime work explicit; they do not claim runtime implementation.
+
+<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-closure-audit -->
+## Documentation architecture closure evidence
+
+- [`Specs 137A/138A/144 documentation architecture closure audit`](evidence/spec137a-138a-144-documentation-architecture-closure-audit-2026-07-26.md)
+- [`Machine-readable closure manifest`](contracts/spec137a-138a-144-documentation-architecture-closure-manifest.v1.yaml)

@@ -1,6 +1,6 @@
 {
   "serialization": "JSON-compatible YAML 1.2",
-  "generated_at": "2026-07-27T00:27:24+00:00",
+  "generated_at": "2026-07-27T00:36:14+00:00",
   "runtime_claim": "none",
   "runtime_status": "implementation_open",
   "schema": "focusa.spec138_operation_client_parity_matrix.v1",

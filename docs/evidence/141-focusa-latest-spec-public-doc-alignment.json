@@ -155,7 +155,7 @@
     "all_entries_have_public_refs": true
   },
   "spec137a_138a_144_architecture_closure": {
-    "generated_at": "2026-07-27T00:27:24+00:00",
+    "generated_at": "2026-07-27T00:36:14+00:00",
     "spec_137_137a": "verified_runtime_slices_combined_full_conformance_open",
     "spec_138_138a": "partial_runtime_foundations_full_profile_conformance_open",
     "spec_144": "normative_documentation_only_implementation_not_activated",

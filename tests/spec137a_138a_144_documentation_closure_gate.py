@@ -70,3 +70,30 @@ assert "normative documentation only; implementation not activated" in alignment
 ci = (ROOT / "scripts/ci/run-spec-gates.sh").read_text()
 assert "spec137a_138a_144_documentation_closure_gate.py" in ci
 print("Specs 137A/138A/144 documentation architecture closure gate: PASS")
+
+
+# literal source atom coverage and current-hash validation
+for rel in (
+    "docs/contracts/spec137a-normative-source-coverage.v1.yaml",
+    "docs/contracts/spec138a-normative-source-coverage.v1.yaml",
+    "docs/contracts/spec144-normative-source-coverage.v1.yaml",
+):
+    data = json.loads((ROOT / rel).read_text())
+    assert data["source_atom_count"] == len(data["source_atoms"]), rel
+    assert not data["unmapped_source_atom_refs"], rel
+    for src in data["sources"]:
+        text = (ROOT / src["path"]).read_text()
+        import hashlib
+        assert hashlib.sha256(text.encode()).hexdigest() == src["sha256"], src["path"]
+
+for rel in (
+    "docs/90-ontology-backed-tool-contracts-parity-spec.md",
+    "docs/95-focusa-ontology-low-latency-intelligence-enhancer-sow.md",
+    "docs/104-typed-scoped-runtime-and-singleton-elimination-spec.md",
+    "docs/111-agent-context-bootstrap-and-delivery-spec.md",
+):
+    assert "SPEC137A_138A_144_ARCHITECTURE_CLOSURE" in (ROOT / rel).read_text(), rel
+
+assert "137A" in (ROOT / "docs/139-distributed-presence-environment-awareness-execution-placement-and-multi-daemon-coordination-spec.md").read_text().splitlines()[9]
+assert "138A" in (ROOT / "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md").read_text().splitlines()[7]
+print("literal source atom coverage and remaining owner integration: PASS")
