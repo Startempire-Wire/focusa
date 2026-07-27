@@ -1092,6 +1092,9 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 Environment="PATH={runtime_path}"
+Environment="FOCUSA_FOCUSA_PATH=/usr/local/bin/focusa"
+Environment="FOCUSA_FOCUSA_TUI_PATH=/usr/local/bin/focusa-tui"
+Environment="FOCUSA_FOCUSA_DAEMON_PATH=/usr/local/bin/focusa-daemon"
 ExecStart=/usr/local/bin/focusa update apply --channel {channel} --yes --allow-apply --automatic --dry-run false --json
 "#
             ),
@@ -3333,6 +3336,11 @@ fn resolve_path(command: &str, canonical: &str) -> Option<String> {
         if path.exists() {
             return Some(path.to_string_lossy().to_string());
         }
+    }
+    // A root-owned system scheduler manages the shared /usr/local surfaces.
+    // Never let a private root install shadow globally executable binaries.
+    if is_root() && Path::new(canonical).exists() {
+        return Some(canonical.into());
     }
     if let Some(home) = std::env::var_os("HOME") {
         let installed_name = if cfg!(target_os = "windows") {
