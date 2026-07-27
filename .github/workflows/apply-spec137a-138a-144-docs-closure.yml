@@ -6,6 +6,7 @@ on:
     paths:
       - scripts/apply_spec137a_138a_144_docs_closure.py
       - scripts/harden_spec137a_138a_144_docs_closure.py
+      - scripts/finalize_spec137a_138a_144_docs_closure.py
       - .github/workflows/apply-spec137a-138a-144-docs-closure.yml
   workflow_dispatch:
 
@@ -36,6 +37,9 @@ jobs:
           cat /tmp/spec-closure-hardening.log
           echo "status=$status" >> "$GITHUB_OUTPUT"
           exit $status
+      - name: Finalize generated validation gate
+        if: steps.harden.outputs.status == '0'
+        run: python3 scripts/finalize_spec137a_138a_144_docs_closure.py
       - name: Persist hardening diagnostic
         if: always()
         shell: bash
