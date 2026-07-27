@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - scripts/apply_spec137a_138a_144_docs_closure.py
+      - scripts/harden_spec137a_138a_144_docs_closure.py
       - .github/workflows/apply-spec137a-138a-144-docs-closure.yml
   workflow_dispatch:
 
@@ -24,6 +25,8 @@ jobs:
           fetch-depth: 0
       - name: Apply deterministic documentation migration
         run: python3 scripts/apply_spec137a_138a_144_docs_closure.py
+      - name: Apply exhaustive source and primitive-owner hardening
+        run: python3 scripts/harden_spec137a_138a_144_docs_closure.py
       - name: Validate generated closure contracts
         run: python3 tests/spec137a_138a_144_documentation_closure_gate.py
       - name: Commit generated documentation closure
@@ -36,5 +39,5 @@ jobs:
           git config user.name "focusa-docs-closure[bot]"
           git config user.email "focusa-docs-closure[bot]@users.noreply.github.com"
           git add docs scripts/ci/run-spec-gates.sh tests/spec137a_138a_144_documentation_closure_gate.py CHANGELOG.md
-          git commit -m "docs: close Spec 137A 138A 144 architecture gaps"
+          git commit -m "docs: harden exhaustive Spec 137A 138A 144 closure"
           git push origin HEAD:main
