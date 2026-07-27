@@ -91,9 +91,15 @@ require(
         "Upload release candidate lock",
         "Release blocked by release-scoped pull requests",
         "unrelated open pull requests remain queued outside the locked candidate",
+        "Require exact source-SHA preflight receipts",
+        "Exact tag CI proof",
+        "tag-ci-proof",
+        "needs: [tauri-build, rust-release, pi-extension-release, tag-ci-proof]",
     ],
     "Release trigger/cache controls",
 )
+assert "Release cargo test" not in RELEASE, "Release duplicates source/tag CI cargo tests on the critical path"
+assert "Release clippy" not in RELEASE, "Release duplicates source/tag CI clippy on the critical path"
 require(
     SPEC132,
     [
