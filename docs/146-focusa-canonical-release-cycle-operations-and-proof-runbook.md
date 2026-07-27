@@ -217,7 +217,9 @@ focusa release cycle validate-adapter \
   --topology config/release-topologies/uiai-engine.json
 ```
 
-The conformance suite executes all four profiles through one kernel, verifies
+Durable local receipt: `docs/evidence/spec145/spec145-master-cycle-conformance.txt`.
+
+The conformance suite executes all reference profiles through one kernel, verifies
 Canvas/terminal/headless plan parity, exercises an external JSON plugin process,
 and proves that a later calibration changes topology-wave concurrency. This is
 architecture proof, not a claim that UIAI production was deployed; a real UIAI

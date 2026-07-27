@@ -1,0 +1,36 @@
+Spec145 Master Release Cycle conformance proof
+Observed: 2026-07-27
+Scope: architecture/conformance only; no production UIAI mutation or release.
+
+Source commits:
+- 8faa865f provider-neutral orchestrator
+- 974ddd01 pluggable adapters/topologies
+- 5642ef67 calibration loop
+- 9e074539 canonical cross-software CLI
+- dfac3a54 rollback + immutable artifact enforcement
+- 582d568f append-only resume ledger + module boundaries
+
+Validated profiles:
+- Focusa multi-surface/cross-platform
+- UIAI Engine service/container/library
+- CLI + library
+- single package
+- service + container + web
+
+Proof results:
+- cargo test -p focusa-core release_orchestrator --lib: 11 passed
+- cargo test -p focusa-core release_adapters --lib: 8 passed
+- cargo test -p focusa-core release_calibration --lib: 6 passed
+- cargo test -p focusa-core release_ledger --lib: 3 passed
+- cargo test -p focusa-cli: all runnable tests passed after building required focusa-daemon fixture; one browser test remains intentionally ignored by its existing contract
+- strict clippy for focusa-core/focusa-cli: passed
+- Spec145 static architecture gate: passed
+- docs/runtime parity: passed
+- UIAI plan parity: terminal, Canvas, headless byte-identical after removing invocation_surface
+- external JSON plugin success rehearsal: status=closed, stage=closed, receipts=11, one immutable artifact identity
+- external JSON plugin failure rehearsal: verification blocked after canary, status=rolled_back, stage=rolled_back, rollback receipt present
+- append-only interruption test: resumed after a post-build block without rerunning build and retained immutable artifact identity
+- calibration CLI: two scoped observations proposed max_parallel_operations 1 -> 2 with strategy parallelize_independent_topology_waves
+
+Known unrelated local full-core result:
+- 572/574 passed; two pre-existing working_subpath binding tests fail on origin/main and are outside issue #56 call-stack ownership. Release-specific 37 tests pass.
