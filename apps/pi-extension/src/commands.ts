@@ -33,7 +33,7 @@ import { prepareCompactionRollover } from "./compaction.js";
 import { dirname, resolve } from "path";
 import { MissionCanvasView, type MissionCanvasModel } from "./mission-canvas-view.js";
 import { refreshMissionCanvasWidget } from "./mission-canvas-widget.js";
-import { projectWorkSurfaces, workSurfaceLabel } from "./mission-canvas-model.js";
+import { projectWorkSurfaces, workSurfaceDetail, workSurfaceLabel } from "./mission-canvas-model.js";
 
 async function commandWorkLoopWriterHeaders(): Promise<Record<string, string>> {
   const writerId = `pi-${process.pid}`;
@@ -359,6 +359,7 @@ export function registerCommands(pi: ExtensionAPI) {
             : sessionRows.length
               ? sessionRows
               : [String(packet?.attachment_id ?? "Current Pi attachment")],
+          workSurfaceDetails: projectedSurfaces.map(workSurfaceDetail),
           contention: contentionRows,
           researchArtifacts: artifactRows,
           history: historyRows,

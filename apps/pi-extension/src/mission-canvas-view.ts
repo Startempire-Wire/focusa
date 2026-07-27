@@ -27,6 +27,7 @@ export interface MissionCanvasModel {
   blockers: string[];
   sessions: string[];
   workSurfaces: string[];
+  workSurfaceDetails: string[][];
   contention: string[];
   researchArtifacts: string[];
   history: string[];
@@ -186,6 +187,11 @@ export class MissionCanvasView implements Component {
         );
       case "Work":
         return [
+          this.heading("FOCUSED WORK SURFACE"),
+          ...rows(
+            this.model.workSurfaceDetails[this.selectedSurface] ?? [],
+            "Current attachment has no projected surface detail"
+          ),
           this.heading("WORK RAIL"),
           `  Item: ${text(this.model.workItemId, "No provider item")}`,
           `  Workpoint: ${text(this.model.workpointId, "No canonical Workpoint")}`,

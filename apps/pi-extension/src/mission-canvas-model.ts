@@ -109,6 +109,17 @@ export function projectWorkSurfaces(payload: any): WorkSurfaceProjection[] {
   });
 }
 
+export function workSurfaceDetail(surface: WorkSurfaceProjection): string[] {
+  return [
+    `Surface: ${surface.workSurfaceId} · ${surface.kind} · ${surface.lifecycleState} · ${surface.health}`,
+    `Scope: ${surface.projectRoot || "unknown project"} · ${surface.continuityId || "unknown continuity"}`,
+    `Attachment: ${surface.instanceId || "unknown instance"} · ${surface.sessionId || "unknown session"} · ${surface.attachmentId || "unknown attachment"}`,
+    `Work: ${surface.workpointId || "no Workpoint"} · ${surface.workItemRef || "no provider item"}`,
+    `Activity: ${surface.semanticActivity || "not reported"} · ${surface.unreadEventCount} unread · ${surface.pendingApprovalCount} approvals`,
+    `Isolation: ${surface.writerLeaseRef || "no writer lease"} · ${surface.worktreeRef || "no worktree"} · ${surface.browserIsolationClass}`,
+  ];
+}
+
 export function workSurfaceLabel(surface: WorkSurfaceProjection): string {
   const markers = [
     surface.pinned ? "pinned" : "",

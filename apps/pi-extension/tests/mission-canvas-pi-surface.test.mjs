@@ -59,6 +59,8 @@ assert.match(view, /"Interview"/);
 assert.match(view, /"Spec"/);
 assert.match(view, /"Controls"/);
 assert.match(model, /interface WorkSurfaceProjection/);
+assert.match(model, /workSurfaceDetail/);
+assert.match(view, /FOCUSED WORK SURFACE/);
 assert.match(model, /browserIsolationClass/);
 assert.match(model, /writerLeaseRef/);
 assert.match(model, /pendingApprovalCount/);
