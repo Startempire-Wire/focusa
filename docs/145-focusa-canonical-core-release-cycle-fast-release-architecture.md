@@ -363,3 +363,59 @@ interventions, failed gates, recovery time, and next calibrated improvement.
 ## 10. Operations, proof, and rollout
 
 Detailed OTA operation, speed controls, benchmark, security, migration, acceptance, proof commands, and rollback are normative in [`146-focusa-canonical-release-cycle-operations-and-proof-runbook.md`](146-focusa-canonical-release-cycle-operations-and-proof-runbook.md).
+
+## 11. Executable Master Release Cycle
+
+The architecture is implemented as three provider-neutral layers:
+
+1. `release_orchestrator.rs` owns typed authority, canonical stage ordering,
+   exact-SHA evidence reuse, dependency waves, mutation gating, and settlement.
+2. `release_adapters.rs` owns versioned manifests and the executor plugin
+   boundary. Providers receive a bounded JSON envelope and return a typed
+   receipt; they cannot mutate release state directly.
+3. `release_calibration.rs` owns append-only, project/profile-scoped benchmark
+   history. Each tuning is an experiment that the next observation promotes or
+   rolls back before another bounded adjustment is proposed.
+
+Reference manifests/topologies cover Focusa, UIAI Engine, a single package, and
+a service/container/web system. They all execute `MasterReleaseOrchestrator`;
+no Focusa or GitHub branch exists in the state kernel.
+
+### 11.1 Plugin boundary
+
+A release plugin is an operator-selected absolute executable. Focusa clears its
+environment, sends `focusa.release_plugin_envelope.v1` on stdin, applies the
+operation timeout, caps stdout at 1 MiB, and accepts only a typed receipt whose
+executor, operation, stage, project root, and exact SHA match the candidate.
+Secrets are never inherited implicitly. Every operation carries a deterministic
+candidate+SHA+stage idempotency key. UIAI or another software project can
+implement this small protocol without linking Focusa or copying its state
+machine.
+
+### 11.2 One canonical entry across surfaces
+
+```text
+focusa release cycle validate-adapter --manifest M --topology T
+focusa release cycle plan --manifest M --topology T --candidate C --surface terminal
+focusa release cycle execute --manifest M --topology T --candidate C \
+  --plugin /absolute/adapter --ledger /absolute/release.jsonl \
+  --surface headless --yes --allow-mutations --approval-ref operator:release
+focusa release cycle calibrate --ledger L --observation O --output next.json
+```
+
+The absolute append-only ledger checkpoints every accepted stage and resumes an
+existing exact candidate after interruption; project/candidate/SHA or sequence
+forks fail closed. Canvas, terminal, and headless invocations change presentation metadata only;
+stages, waves, authority, evidence, tuning, and receipts remain identical.
+
+### 11.3 Continual improvement invariant
+
+The cycle records elapsed/useful/queue/retry time, first-pass quality,
+interventions, token cost, monetary cost, critical stage, and evidence refs.
+Calibration never mixes project/profile scope. It prioritizes reliability when
+retries dominate, reduces parallelism when queue contention dominates,
+increases bounded parallelism when flow efficiency is low, or prewarms the
+critical stage otherwise. A later release promotes the experiment only when
+elapsed time and first-pass quality stay within policy; regression restores the
+prior tuning. Therefore each release either applies a measured improvement or
+preserves the last proven plan—never an unevaluated permanent optimization.

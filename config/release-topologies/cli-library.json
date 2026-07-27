@@ -1,0 +1,29 @@
+{
+  "schema": "focusa.release_topology.v1",
+  "project_id": "portable-cli-library",
+  "profile": "cli_library",
+  "provider": "adapter_manifest",
+  "global_gates": ["project_identity_verified", "release_scope_locked", "release_candidate_sha_exact", "signed_manifest_and_provenance"],
+  "surfaces": [
+    {
+      "surface_id": "library",
+      "kind": "library",
+      "depends_on": [],
+      "required_gates": ["tests", "api_compatibility"],
+      "artifact_identity": "sha256+provenance",
+      "deployment_target": "package_registry",
+      "canary_required": false,
+      "rollback_required": true
+    },
+    {
+      "surface_id": "cli",
+      "kind": "cli",
+      "depends_on": ["library"],
+      "required_gates": ["command_contract", "install_smoke"],
+      "artifact_identity": "sha256+provenance",
+      "deployment_target": "binary_release",
+      "canary_required": false,
+      "rollback_required": true
+    }
+  ]
+}

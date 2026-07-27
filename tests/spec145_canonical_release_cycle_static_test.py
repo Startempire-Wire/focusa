@@ -6,8 +6,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CORE = (ROOT / "crates/focusa-core/src/release_cycle.rs").read_text()
 INTELLIGENCE = (ROOT / "crates/focusa-core/src/release_intelligence.rs").read_text()
+ORCHESTRATOR = "\n".join((ROOT / f"crates/focusa-core/src/{name}").read_text() for name in ["release_orchestrator.rs", "release_planner.rs", "release_protocol.rs"])
+LEDGER = (ROOT / "crates/focusa-core/src/release_ledger.rs").read_text()
+ADAPTERS = (ROOT / "crates/focusa-core/src/release_adapters.rs").read_text()
+CALIBRATION = (ROOT / "crates/focusa-core/src/release_calibration.rs").read_text()
+REFERENCE_ADAPTERS = "\n".join(path.read_text() for path in sorted((ROOT / "config/release-adapters").glob("*.json")))
+REFERENCE_TOPOLOGIES = "\n".join(path.read_text() for path in sorted((ROOT / "config/release-topologies").glob("*.json")))
 UPDATE = (ROOT / "crates/focusa-cli/src/commands/update.rs").read_text()
-RELEASE_CLI = (ROOT / "crates/focusa-cli/src/commands/release.rs").read_text()
+RELEASE_CLI = "\n".join((ROOT / f"crates/focusa-cli/src/commands/{name}").read_text() for name in ["release.rs", "release_master.rs"])
 TAG_SCRIPT = (ROOT / "scripts/create-dev-release-tag.sh").read_text()
 CI = (ROOT / ".github/workflows/ci.yml").read_text()
 RELEASE = (ROOT / ".github/workflows/release.yml").read_text()
@@ -69,12 +75,80 @@ require(
     [
         "ReleaseCycleCmd",
         "ValidateTopology",
+        "ValidateAdapter",
+        "Plan",
+        "Execute",
+        "Calibrate",
+        "ReleaseRunInput",
+        "run_with_checkpoint_sink",
         "RenderIntelligence",
         "focusa.release_topology_validation.v1",
         "focusa.release_intelligence_render.v1",
         "immutable release pages are never overwritten",
     ],
     "release CLI entry",
+)
+require(
+    ORCHESTRATOR,
+    [
+        "MasterReleaseOrchestrator",
+        "ReleaseAdapter",
+        "ReleaseInvocationSurface",
+        "ReleaseRunInput",
+        "run_with_checkpoint_sink",
+        "exact_sha_evidence_reused",
+        "idempotency_key",
+        "immutable artifact set changed between release stages",
+        'status: "rolled_back".into()',
+        "mutation_authority_missing",
+    ],
+    "provider-neutral master orchestrator",
+)
+require(
+    LEDGER,
+    [
+        "ReleaseRunCheckpoint",
+        "JsonlReleaseRunLedger",
+        "ReleaseCheckpointSink",
+        "release checkpoint sequence mismatch",
+        "release ledger SHA mismatch",
+    ],
+    "interruption-safe release ledger",
+)
+require(
+    ADAPTERS,
+    [
+        "ReleaseAdapterManifest",
+        "ReleaseOperationExecutor",
+        "JsonProcessReleaseExecutor",
+        "focusa.release_plugin_envelope.v1",
+        "env_clear()",
+        "release plugin receipt exceeds 1 MiB",
+    ],
+    "pluggable adapter boundary",
+)
+require(
+    CALIBRATION,
+    [
+        "ReleaseCalibrator",
+        "ReleaseCalibrationLedger",
+        "CalibrationOutcome",
+        "parallelize_independent_topology_waves",
+        "RolledBack",
+        "crosses project/profile authority",
+    ],
+    "continual release calibration",
+)
+require(
+    REFERENCE_ADAPTERS + REFERENCE_TOPOLOGIES,
+    [
+        '"manifest_id": "focusa-github-actions-v1"',
+        '"manifest_id":"portable-cli-library-v1"',
+        '"manifest_id": "uiai-engine-v1"',
+        '"profile": "single_package"',
+        '"profile": "service_container_web"',
+    ],
+    "cross-software reference adapters",
 )
 require(
     UPDATE,
@@ -166,4 +240,4 @@ require(
     "Focusa topology fixture",
 )
 
-print("PASS: Spec145 canonical release kernel, OTA truth, speed controls, topology, and architecture present")
+print("PASS: provider-neutral Master Release Cycle, adapters, calibration, OTA truth, topology, and architecture present")

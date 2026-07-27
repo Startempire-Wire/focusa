@@ -1,0 +1,20 @@
+{
+  "schema":"focusa.release_adapter_manifest.v1",
+  "manifest_id":"portable-service-container-web-v1",
+  "topology_ref":"config/release-topologies/service-container-web.json",
+  "descriptor":{"schema":"focusa.release_adapter.v1","adapter_id":"portable","adapter_version":"1","supported_profiles":["service_container_web"],"supported_surface_kinds":["service","container","web"],"supported_stages":["locked","candidate_snapshotted","preflighted","built","packaged","provenanced","draft_published","canary_deployed","verified","promoted","closed","rolled_back"],"supports_canary":true,"supports_rollback":true},
+  "operations":[
+    {"operation_id":"lock","stage":"locked","executor_id":"portable","kind":"tool_call","action":"release.lock","mutates":false,"timeout_seconds":60},
+    {"operation_id":"snapshot","stage":"candidate_snapshotted","executor_id":"portable","kind":"tool_call","action":"release.snapshot","mutates":true,"timeout_seconds":120},
+    {"operation_id":"preflight","stage":"preflighted","executor_id":"portable","kind":"tool_call","action":"release.preflight","mutates":false,"timeout_seconds":1800},
+    {"operation_id":"build","stage":"built","executor_id":"portable","kind":"tool_call","action":"release.build_parallel_waves","mutates":true,"timeout_seconds":1800},
+    {"operation_id":"package","stage":"packaged","executor_id":"portable","kind":"tool_call","action":"release.package_immutable_set","mutates":true,"timeout_seconds":900},
+    {"operation_id":"provenance","stage":"provenanced","executor_id":"portable","kind":"tool_call","action":"release.provenance","mutates":true,"timeout_seconds":600},
+    {"operation_id":"draft","stage":"draft_published","executor_id":"portable","kind":"tool_call","action":"release.draft","mutates":true,"timeout_seconds":300},
+    {"operation_id":"canary","stage":"canary_deployed","executor_id":"portable","kind":"tool_call","action":"release.deploy_canary","surface_ids":["service","container","web"],"mutates":true,"timeout_seconds":600},
+    {"operation_id":"verify","stage":"verified","executor_id":"portable","kind":"tool_call","action":"release.verify_canary","mutates":false,"timeout_seconds":600},
+    {"operation_id":"promote","stage":"promoted","executor_id":"portable","kind":"tool_call","action":"release.promote_or_rollback","mutates":true,"timeout_seconds":600},
+    {"operation_id":"settle","stage":"closed","executor_id":"portable","kind":"tool_call","action":"release.settle_and_learn","mutates":true,"timeout_seconds":300},
+    {"operation_id":"rollback","stage":"rolled_back","executor_id":"portable","kind":"tool_call","action":"release.rollback_verified_prior_runtime","mutates":true,"timeout_seconds":600}
+  ]
+}

@@ -1,9 +1,13 @@
 //! Release proof orchestration — Spec92 §9.
 
-use clap::Subcommand;
+#[path = "release_master.rs"]
+mod release_master;
+
+use clap::{Subcommand, ValueEnum};
 use focusa_core::license::require_feature;
 use focusa_core::release_cycle::ReleaseTopology;
 use focusa_core::release_intelligence::ReleaseIntelligencePacket;
+use focusa_core::release_orchestrator::ReleaseInvocationSurface;
 use focusa_core::types::default_focusa_data_dir;
 use serde_json::{Value, json};
 use std::fs;
@@ -33,6 +37,23 @@ pub enum ReleaseCmd {
     },
 }
 
+#[derive(Clone, Copy, Debug, ValueEnum)]
+pub enum ReleaseSurfaceArg {
+    Canvas,
+    Terminal,
+    Headless,
+}
+
+impl From<ReleaseSurfaceArg> for ReleaseInvocationSurface {
+    fn from(value: ReleaseSurfaceArg) -> Self {
+        match value {
+            ReleaseSurfaceArg::Canvas => Self::Canvas,
+            ReleaseSurfaceArg::Terminal => Self::Terminal,
+            ReleaseSurfaceArg::Headless => Self::Headless,
+        }
+    }
+}
+
 #[derive(Subcommand, Debug)]
 pub enum ReleaseCycleCmd {
     /// Validate a release topology before candidate lock/tagging.
@@ -40,6 +61,61 @@ pub enum ReleaseCycleCmd {
         /// Release topology JSON path.
         #[arg(long)]
         path: PathBuf,
+    },
+    /// Validate a pluggable adapter manifest against its topology.
+    ValidateAdapter {
+        #[arg(long)]
+        manifest: PathBuf,
+        #[arg(long)]
+        topology: PathBuf,
+    },
+    /// Render one canonical plan for Canvas, terminal, or headless execution.
+    Plan {
+        #[arg(long)]
+        manifest: PathBuf,
+        #[arg(long)]
+        topology: PathBuf,
+        #[arg(long)]
+        candidate: PathBuf,
+        #[arg(long)]
+        tuning: Option<PathBuf>,
+        #[arg(long, value_enum, default_value = "terminal")]
+        surface: ReleaseSurfaceArg,
+    },
+    /// Execute through an external typed JSON plugin; no shell interpolation.
+    Execute {
+        #[arg(long)]
+        manifest: PathBuf,
+        #[arg(long)]
+        topology: PathBuf,
+        #[arg(long)]
+        candidate: PathBuf,
+        #[arg(long)]
+        tuning: Option<PathBuf>,
+        #[arg(long)]
+        plugin: PathBuf,
+        /// Absolute append-only checkpoint ledger; existing exact candidate resumes.
+        #[arg(long)]
+        ledger: PathBuf,
+        #[arg(long, value_enum, default_value = "headless")]
+        surface: ReleaseSurfaceArg,
+        #[arg(long)]
+        yes: bool,
+        #[arg(long)]
+        allow_mutations: bool,
+        #[arg(long = "approval-ref", required = true)]
+        approval_refs: Vec<String>,
+    },
+    /// Append a benchmark and produce evidence-backed tuning for the next cycle.
+    Calibrate {
+        #[arg(long)]
+        ledger: PathBuf,
+        #[arg(long)]
+        observation: PathBuf,
+        #[arg(long)]
+        active_tuning: Option<PathBuf>,
+        #[arg(long)]
+        output: Option<PathBuf>,
     },
     /// Render a deterministic evidence-backed release page from a typed packet.
     RenderIntelligence {
@@ -165,6 +241,52 @@ pub async fn run(cmd: ReleaseCmd, json_mode: bool) -> anyhow::Result<()> {
                     println!("project: {}", topology.project_id);
                     println!("provider: {}", topology.provider);
                 }
+            }
+            ReleaseCycleCmd::ValidateAdapter { manifest, topology } => {
+                release_master::validate_adapter(manifest, topology)?;
+            }
+            ReleaseCycleCmd::Plan {
+                manifest,
+                topology,
+                candidate,
+                tuning,
+                surface,
+            } => {
+                release_master::plan(manifest, topology, candidate, tuning, surface)?;
+            }
+            ReleaseCycleCmd::Execute {
+                manifest,
+                topology,
+                candidate,
+                tuning,
+                plugin,
+                ledger,
+                surface,
+                yes,
+                allow_mutations,
+                approval_refs,
+            } => {
+                release_master::execute(
+                    manifest,
+                    topology,
+                    candidate,
+                    tuning,
+                    plugin,
+                    ledger,
+                    surface,
+                    yes,
+                    allow_mutations,
+                    approval_refs,
+                )
+                .await?;
+            }
+            ReleaseCycleCmd::Calibrate {
+                ledger,
+                observation,
+                active_tuning,
+                output,
+            } => {
+                release_master::calibrate(ledger, observation, active_tuning, output)?;
             }
             ReleaseCycleCmd::RenderIntelligence {
                 packet,
