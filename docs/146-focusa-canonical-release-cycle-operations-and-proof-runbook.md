@@ -66,7 +66,7 @@ the same transaction journal.
 - Reuse exact-SHA PR/main evidence.
 - Cache target/toolchain dependency builds.
 - Trigger Release only for tags.
-- Cancel stale branch CI/Spec132 runs.
+- Cancel stale PR CI/Spec132 runs while preserving locked-candidate `main` gates.
 - Run independent target builds in parallel.
 - Revalidate only stages invalidated by a bounded fix.
 
@@ -111,7 +111,7 @@ failure semantics.
 Initial improvement hypothesis:
 
 - tag-only Release removes duplicate no-op workflow runs;
-- stale-run cancellation reduces queue waste;
+- stale PR-run cancellation reduces queue waste without cancelling locked candidate gates;
 - Rust cache reuse reduces repeated target compilation;
 - complete Spec132 paths move target failures before tags;
 - exact-SHA evidence reuse can remove duplicate full workspace tests after a
