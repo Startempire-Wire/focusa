@@ -13,14 +13,29 @@ NC='\033[0m'
 log_pass(){ echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail(){ echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 
-WRITER_ID="$(scoped_curl -sS "${BASE_URL}/v1/work-loop/status" | jq -r '.active_writer')"
+STATUS0="$(scoped_curl -sS "${BASE_URL}/v1/work-loop/status")"
+WRITER_ID="$(echo "$STATUS0" | jq -r '.active_writer // empty')"
+WORK_ITEM_ID="$(echo "$STATUS0" | jq -r '.execution_partition.work_item_id // empty')"
+ENABLE_RESP="$(scoped_curl -sS -X POST "${BASE_URL}/v1/work-loop/enable" \
+  -H 'Content-Type: application/json' \
+  -H "x-focusa-writer-id: ${WRITER_ID}" \
+  -H 'x-focusa-approval: approved' \
+  -d "{\"preset\":\"balanced\",\"root_work_item_id\":\"${WORK_ITEM_ID}\"}")"
+FENCING_TOKEN="$(echo "$ENABLE_RESP" | jq -r '.fencing_token // empty')"
+if ! echo "$FENCING_TOKEN" | grep -Eq '^[1-9][0-9]*$'; then
+  log_fail "writer lease renewal failed: $ENABLE_RESP"
+fi
 SOURCE_TURN_ID="pi-turn-$(date +%s%N)"
 ASK_TEXT="scope-boundary-runtime-check"
 
-scoped_curl -sS -X POST "${BASE_URL}/v1/work-loop/context" \
+CONTEXT_RESP="$(scoped_curl -sS -X POST "${BASE_URL}/v1/work-loop/context" \
   -H "Content-Type: application/json" \
   -H "x-focusa-writer-id: ${WRITER_ID}" \
-  -d "{\"current_ask\":\"${ASK_TEXT}\",\"ask_kind\":\"question\",\"scope_kind\":\"fresh_question\",\"carryover_policy\":\"suppress_by_default\",\"excluded_context_reason\":\"correction_reset\",\"excluded_context_labels\":[\"legacy\",\"unrelated\"],\"source_turn_id\":\"${SOURCE_TURN_ID}\"}" >/dev/null
+  -H "x-focusa-fencing-token: ${FENCING_TOKEN}" \
+  -d "{\"current_ask\":\"${ASK_TEXT}\",\"ask_kind\":\"question\",\"scope_kind\":\"fresh_question\",\"carryover_policy\":\"suppress_by_default\",\"excluded_context_reason\":\"correction_reset\",\"excluded_context_labels\":[\"legacy\",\"unrelated\"],\"source_turn_id\":\"${SOURCE_TURN_ID}\"}")"
+if ! echo "$CONTEXT_RESP" | jq -e '.ok == true' >/dev/null 2>&1; then
+  log_fail "context mutation rejected: $CONTEXT_RESP"
+fi
 
 STATUS_JSON=""
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
