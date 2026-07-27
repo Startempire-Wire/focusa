@@ -1,5 +1,6 @@
 name: Validate corrected Spec 137A 138A 144 documentation closure
 
+# Retriggered after position-independent dependency checks landed.
 on:
   push:
     branches: [main]
