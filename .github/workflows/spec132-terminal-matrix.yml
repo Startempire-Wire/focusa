@@ -3,6 +3,7 @@ name: Spec 132 terminal matrix
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     paths:
       - 'crates/focusa-terminal-ui/**'
       - 'crates/focusa-cli/src/commands/install.rs'
