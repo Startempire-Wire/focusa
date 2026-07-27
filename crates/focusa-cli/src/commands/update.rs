@@ -1693,6 +1693,44 @@ fn spawn_daemon_detached_with_retry(daemon_path: &Path) -> anyhow::Result<()> {
     unreachable!("bounded daemon spawn retry loop always returns")
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DaemonRestoreAction {
+    None,
+    Start,
+    Stop,
+}
+
+fn daemon_restore_action(touched: bool, was_running: bool) -> DaemonRestoreAction {
+    match (touched, was_running) {
+        (false, _) => DaemonRestoreAction::None,
+        (true, true) => DaemonRestoreAction::Start,
+        (true, false) => DaemonRestoreAction::Stop,
+    }
+}
+
+fn stop_daemon_service() -> anyhow::Result<()> {
+    if cfg!(target_os = "macos") {
+        let uid = std::process::Command::new("id").arg("-u").output()?;
+        let target = format!(
+            "gui/{}/com.startempire.focusa-daemon",
+            String::from_utf8_lossy(&uid.stdout).trim()
+        );
+        let _ = std::process::Command::new("launchctl")
+            .args(["kill", "SIGTERM", &target])
+            .status();
+    } else if cfg!(target_os = "windows") {
+        let _ = std::process::Command::new("taskkill")
+            .args(["/F", "/IM", "focusa-daemon.exe"])
+            .status();
+    } else {
+        let _ = std::process::Command::new("systemctl")
+            .args(["--user", "stop", "focusa-daemon.service"])
+            .status();
+    }
+    terminate_portable_daemon_from_lock();
+    Ok(())
+}
+
 fn restart_daemon_service(daemon_path: &Path) -> anyhow::Result<()> {
     if cfg!(target_os = "macos") {
         let uid = std::process::Command::new("id").arg("-u").output()?;
@@ -1777,6 +1815,9 @@ async fn execute_verified_apply_locked(
             "schema":"focusa.update_journal.v1", "state":"staging", "tag":plan.latest.tag, "started_at":stamp
         }))?,
     )?;
+    let daemon_health_url = std::env::var("FOCUSA_DAEMON_HEALTH_URL")
+        .unwrap_or_else(|_| "http://127.0.0.1:8787/v1/health".into());
+    let daemon_was_running = probe_daemon_health(&daemon_health_url).await.is_some();
     // part, target path, backup path, SHA-256 of the pre-update target.
     let mut promoted: Vec<PromotedPart> = Vec::new();
     let mut package_promoted: Vec<String> = Vec::new();
@@ -1894,12 +1935,10 @@ async fn execute_verified_apply_locked(
             promoted.iter().find(|(part, _, _, _)| part == "daemon")
         {
             restart_daemon_service(daemon_path)?;
-            let health_url = std::env::var("FOCUSA_DAEMON_HEALTH_URL")
-                .unwrap_or_else(|_| "http://127.0.0.1:8787/v1/health".into());
             let mut observed_version = None;
             for _ in 0..20 {
                 tokio::time::sleep(Duration::from_secs(1)).await;
-                if let Some(version) = probe_daemon_health(&health_url).await {
+                if let Some(version) = probe_daemon_health(&daemon_health_url).await {
                     if normalize_version(&version) == plan.latest.version {
                         observed_version = Some(version);
                         break;
@@ -1972,31 +2011,72 @@ async fn execute_verified_apply_locked(
     .await;
     if let Err(error) = operation {
         let rollback_result = rollback_promoted_parts(&promoted);
-        if let Some((_, daemon_path, _, _)) =
-            promoted.iter().find(|(part, _, _, _)| part == "daemon")
-        {
-            let _ = restart_daemon_service(daemon_path);
-        } else if cfg!(target_os = "windows") {
-            // Promotion can fail after the old daemon was stopped but before it
-            // entered `promoted`; restore service from the still-current target.
-            if let Some(path) = plan
-                .parts
-                .iter()
-                .find(|part| part.part == "daemon")
-                .and_then(|part| part.target_path.as_deref())
+        let daemon_was_touched = promoted.iter().any(|(part, _, _, _)| part == "daemon")
+            || (cfg!(target_os = "windows") && plan.parts.iter().any(|part| part.part == "daemon"));
+        let daemon_restore_result: anyhow::Result<()> =
+            if daemon_restore_action(daemon_was_touched, daemon_was_running)
+                == DaemonRestoreAction::Start
             {
-                let _ = restart_daemon_service(Path::new(path));
-            }
-        }
+                async {
+                    let daemon_path = plan
+                        .parts
+                        .iter()
+                        .find(|part| part.part == "daemon")
+                        .and_then(|part| part.target_path.as_deref())
+                        .map(Path::new)
+                        .context("restore pre-update daemon: target path unavailable")?;
+                    restart_daemon_service(daemon_path)?;
+                    let mut healthy = false;
+                    for _ in 0..20 {
+                        tokio::time::sleep(Duration::from_millis(500)).await;
+                        if probe_daemon_health(&daemon_health_url).await.is_some() {
+                            healthy = true;
+                            break;
+                        }
+                    }
+                    if healthy {
+                        Ok(())
+                    } else {
+                        anyhow::bail!("restore pre-update daemon: health check did not recover")
+                    }
+                }
+                .await
+            } else if daemon_restore_action(daemon_was_touched, daemon_was_running)
+                == DaemonRestoreAction::Stop
+            {
+                async {
+                    stop_daemon_service()?;
+                    for _ in 0..20 {
+                        if probe_daemon_health(&daemon_health_url).await.is_none() {
+                            return Ok(());
+                        }
+                        tokio::time::sleep(Duration::from_millis(250)).await;
+                    }
+                    anyhow::bail!("restore pre-update daemon: daemon remained running")
+                }
+                .await
+            } else {
+                Ok(())
+            };
         std::fs::write(
             &journal,
-            serde_json::to_vec_pretty(
-                &json!({"schema":"focusa.update_journal.v1","state":"rolled_back","error":error.to_string()}),
-            )?,
+            serde_json::to_vec_pretty(&json!({
+                "schema":"focusa.update_journal.v1",
+                "state":"rolled_back",
+                "error":error.to_string(),
+                "daemon_was_running":daemon_was_running,
+                "daemon_restore":"pre_update_state",
+                "daemon_restore_ok":daemon_restore_result.is_ok()
+            }))?,
         )?;
         if let Err(rollback_error) = rollback_result {
             return Err(anyhow::anyhow!(
                 "update failed: {error}; rollback also failed: {rollback_error}"
+            ));
+        }
+        if let Err(restore_error) = daemon_restore_result {
+            return Err(anyhow::anyhow!(
+                "update failed: {error}; files rolled back but daemon state restoration failed: {restore_error}"
             ));
         }
         return Err(error);
@@ -3509,8 +3589,9 @@ fn print_human(envelope: &UpdateInventoryEnvelope) {
 #[cfg(test)]
 mod tests {
     use super::{
-        PromotedPart, inspect_package_part, normalize_version, path_is_git_managed,
-        pi_extension_package_from_settings, rollback_promoted_parts,
+        DaemonRestoreAction, PromotedPart, daemon_restore_action, inspect_package_part,
+        normalize_version, path_is_git_managed, pi_extension_package_from_settings,
+        rollback_promoted_parts,
     };
 
     #[test]
@@ -3644,6 +3725,22 @@ mod tests {
         assert!(!backup.exists());
         assert!(!target.with_extension("focusa-failed").exists());
         std::fs::remove_dir_all(root).expect("remove rollback fixture");
+    }
+
+    #[test]
+    fn failed_update_restores_exact_pre_transaction_daemon_state() {
+        assert_eq!(
+            daemon_restore_action(true, true),
+            DaemonRestoreAction::Start
+        );
+        assert_eq!(
+            daemon_restore_action(true, false),
+            DaemonRestoreAction::Stop
+        );
+        assert_eq!(
+            daemon_restore_action(false, true),
+            DaemonRestoreAction::None
+        );
     }
 
     #[test]

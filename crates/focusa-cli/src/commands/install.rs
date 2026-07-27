@@ -2706,6 +2706,40 @@ fn tar_command() -> std::process::Command {
     command
 }
 
+fn resolve_npm_binary(explicit: Option<&std::path::Path>) -> Result<std::path::PathBuf> {
+    let candidate = explicit
+        .map(std::path::PathBuf::from)
+        .or_else(|| std::env::var_os("FOCUSA_NPM_BIN").map(std::path::PathBuf::from))
+        .or_else(|| find_command("npm").map(std::path::PathBuf::from))
+        .or_else(|| {
+            find_command("node").and_then(|node| {
+                std::path::Path::new(&node)
+                    .parent()
+                    .map(|parent| parent.join(if cfg!(windows) { "npm.cmd" } else { "npm" }))
+                    .filter(|path| path.is_file())
+            })
+        })
+        .ok_or_else(|| {
+            anyhow!("npm executable unavailable; set FOCUSA_NPM_BIN to the absolute npm path")
+        })?;
+    let candidate = if candidate.is_absolute() {
+        candidate
+    } else {
+        std::env::current_dir()
+            .context("resolve current directory for npm executable")?
+            .join(candidate)
+    };
+    if !candidate.is_file() {
+        bail!(
+            "resolve npm executable {} (exists={})",
+            candidate.display(),
+            candidate.exists()
+        );
+    }
+    // Preserve the launcher/symlink path: its parent commonly contains `node`.
+    Ok(candidate)
+}
+
 pub(crate) fn integrate_pi_extension(
     asset: &InstalledAsset,
     install_root: &std::path::Path,
@@ -2748,12 +2782,61 @@ pub(crate) fn integrate_pi_extension(
         cleanup();
         bail!("Pi extension archive extraction failed");
     }
-    let staged = stage_root.join("pi-extension");
-    let npm = std::process::Command::new(npm_binary.unwrap_or_else(|| std::path::Path::new("npm")))
+    let staged_candidate = stage_root.join("pi-extension");
+    let staged = match staged_candidate.canonicalize() {
+        Ok(path) => path,
+        Err(error) => {
+            cleanup();
+            bail!(
+                "resolve extracted Pi extension directory {} (exists={}): {error}",
+                staged_candidate.display(),
+                staged_candidate.exists()
+            );
+        }
+    };
+    let npm_binary = match resolve_npm_binary(npm_binary) {
+        Ok(path) => path,
+        Err(error) => {
+            cleanup();
+            return Err(error);
+        }
+    };
+    let npm_parent = npm_binary
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new(""));
+    let command_path = match std::env::join_paths(
+        std::iter::once(npm_parent.to_path_buf()).chain(
+            std::env::var_os("PATH")
+                .as_deref()
+                .map(std::env::split_paths)
+                .into_iter()
+                .flatten(),
+        ),
+    ) {
+        Ok(path) => path,
+        Err(error) => {
+            cleanup();
+            return Err(error).context("construct npm dependency PATH");
+        }
+    };
+    let npm = match std::process::Command::new(&npm_binary)
         .args(["install", "--omit=dev", "--ignore-scripts"])
+        .env("PATH", command_path)
         .current_dir(&staged)
         .output()
-        .context("run npm dependency setup for Pi extension")?;
+    {
+        Ok(output) => output,
+        Err(error) => {
+            cleanup();
+            bail!(
+                "run npm dependency setup: executable={} executable_exists={} cwd={} cwd_exists={} cause={error}",
+                npm_binary.display(),
+                npm_binary.exists(),
+                staged.display(),
+                staged.is_dir()
+            );
+        }
+    };
     if !npm.status.success() {
         cleanup();
         let detail: String = String::from_utf8_lossy(&npm.stderr)
@@ -3904,6 +3987,27 @@ mod install_e6_failure_matrix_tests;
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn npm_resolution_accepts_absolute_nonstandard_install() {
+        use std::os::unix::fs::PermissionsExt;
+        let fixture =
+            std::env::temp_dir().join(format!("focusa-npm-resolution-{}", uuid::Uuid::now_v7()));
+        let npm = fixture.join("servbay/node/bin/npm");
+        let npm_cli = fixture.join("servbay/node/lib/npm-cli.js");
+        std::fs::create_dir_all(npm.parent().unwrap()).unwrap();
+        std::fs::create_dir_all(npm_cli.parent().unwrap()).unwrap();
+        std::fs::write(&npm_cli, "#!/usr/bin/env node\n").unwrap();
+        std::fs::set_permissions(&npm_cli, std::fs::Permissions::from_mode(0o755)).unwrap();
+        std::os::unix::fs::symlink(&npm_cli, &npm).unwrap();
+        let resolved = resolve_npm_binary(Some(&npm)).unwrap();
+        assert_eq!(
+            resolved, npm,
+            "launcher path must preserve sibling node lookup"
+        );
+        let _ = std::fs::remove_dir_all(fixture);
+    }
 
     #[test]
     fn target_auto_resolves_to_platform() {
