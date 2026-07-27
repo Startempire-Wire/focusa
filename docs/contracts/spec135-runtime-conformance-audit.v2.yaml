@@ -10,6 +10,8 @@
   "audit_commit": "feature/spec-135-mission-canvas-uiai-evals@2026-07-27",
   "overall_status": "incomplete",
   "beads_epic": "focusa-mc-full",
+  "autonomous_workpath_ref": "docs/contracts/spec135-autonomous-workpath.v1.yaml",
+  "detailed_task_count": 50,
   "requirements": [
     {
       "spec": "135",

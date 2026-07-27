@@ -9,6 +9,8 @@ assert audit["authority"]["central_surface"] == "Pi-native Mission Canvas TUI"
 assert audit["authority"]["deferral_allowed"] is False
 assert audit["authority"]["delivery"] == "pull_request_only"
 assert audit["overall_status"] == "incomplete"
+assert audit["detailed_task_count"] == 50
+assert (R / audit["autonomous_workpath_ref"]).exists()
 requirements = audit["requirements"]
 assert [row["spec"] for row in requirements] == [
     "135", "135A", "135B", "135C", "135D", "135E", "135F", "135G", "135H", "135I", "135J", "135K"

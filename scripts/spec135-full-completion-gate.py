@@ -7,6 +7,8 @@ from pathlib import Path
 R = Path(__file__).resolve().parents[1]
 audit = json.loads((R / "docs/contracts/spec135-runtime-conformance-audit.v2.yaml").read_text())
 requirements = audit["requirements"]
+workpath = json.loads((R / audit["autonomous_workpath_ref"]).read_text())
+issues = {row["id"]: row for row in map(json.loads, (R / ".beads/issues.jsonl").open())}
 incomplete = [
     {
         "spec": row["spec"],
@@ -17,6 +19,13 @@ incomplete = [
     for row in requirements
     if row["status"] != "verified_complete"
 ]
+active = [row["bead"] for row in workpath["tasks"] if issues[row["bead"]]["status"] == "in_progress"]
+ready = [
+    row["bead"]
+    for row in workpath["tasks"]
+    if issues[row["bead"]]["status"] == "open"
+    and all(issues[dep]["status"] == "closed" for dep in row["depends_on"])
+]
 result = {
     "schema": "focusa.spec135.full_completion_gate.v1",
     "status": "blocked" if incomplete else "passed",
@@ -25,7 +34,8 @@ result = {
     "total_specs": len(requirements),
     "completed_specs": len(requirements) - len(incomplete),
     "incomplete_specs": incomplete,
-    "next_bead": next((ref for ref in audit["completion_path"] if any(x["bead"] == ref for x in incomplete)), None),
+    "next_bead": (active or ready or [None])[0],
+    "detailed_tasks": len(workpath["tasks"]),
     "evidence_ref": "docs/contracts/spec135-runtime-conformance-audit.v2.yaml",
 }
 print(json.dumps(result, indent=2, sort_keys=True))
