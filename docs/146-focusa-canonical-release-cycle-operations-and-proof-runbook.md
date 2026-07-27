@@ -194,6 +194,11 @@ Reinstalling `focusa update scheduler --install` refreshes the unit and runtime
 PATH. Existing policy files remain valid. `dev_mode_override=true` explicitly
 authorizes unattended dev-channel updates on trusted developer hosts.
 
+On multi-user Linux hosts, `/usr/local/bin/focusa` and `focusa-tui` remain real
+world-executable files. They never symlink into `/root` or another private home.
+The root scheduler resolves and atomically updates those global paths; per-user
+installs remain under that user's own install root.
+
 ### 14.3 Existing Pi extensions
 
 Tracked source checkout: notify-only. Untracked installed package: verified
