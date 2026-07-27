@@ -130,8 +130,8 @@ jobs:
         run: |
           set -euo pipefail
           for attempt in $(seq 1 120); do
-            run=$(gh run list --workflow CI --commit "$GITHUB_SHA" --limit 10 --json status,conclusion,url,headSha \
-              | jq -c --arg sha "$GITHUB_SHA" 'map(select(.headSha == $sha)) | .[0] // {}')
+            runs=$(gh run list --workflow CI --commit "$GITHUB_SHA" --limit 10 --json status,conclusion,url,headSha 2>/dev/null || echo '[]')
+            run=$(jq -c --arg sha "$GITHUB_SHA" 'map(select(.headSha == $sha)) | .[0] // {}' <<<"$runs")
             status=$(jq -r '.status // "missing"' <<<"$run")
             conclusion=$(jq -r '.conclusion // ""' <<<"$run")
             if [ "$status" = completed ] && [ "$conclusion" = success ]; then
