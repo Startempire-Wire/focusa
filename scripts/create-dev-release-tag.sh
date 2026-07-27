@@ -87,32 +87,22 @@ if ! [[ "$CI_TIMEOUT_SECS" =~ ^[0-9]+$ ]]; then
   exit 2
 fi
 
-push_main_and_tag_with_auto_rebase() {
-  local tag="$1"
+push_candidate_main_with_auto_rebase() {
   local max_attempts=3
   local attempt=1
 
   while [[ "$attempt" -le "$max_attempts" ]]; do
-    echo "Pushing main and ${tag} (attempt ${attempt}/${max_attempts})..."
-    if git push origin HEAD:main && git push origin "${tag}"; then
+    echo "Pushing stamped release candidate to main (attempt ${attempt}/${max_attempts})..."
+    if git push origin HEAD:main; then
       return 0
     fi
 
-    echo "push_failed_non_fast_forward_or_remote_race: auto-healing with git pull --rebase and tag retarget" >&2
-    # Audit Recorder/Watchdog commits can move origin/main while this helper is
-    # stamping a release. Rebase, retarget the still-local tag to the rebased
-    # HEAD, and retry. This keeps the canonical full pipeline intact without
-    # manual rebase/retag intervention.
+    echo "candidate_push_race: rebasing the still-untagged candidate onto origin/main" >&2
     git pull --rebase origin main
-    if [[ "$FORCE_RELEASE" -eq 1 ]]; then
-      git tag -fa "${tag}" -m "Release override: ${RELEASE_REASON}" HEAD
-    else
-      git tag -f "${tag}" HEAD
-    fi
     attempt=$((attempt + 1))
   done
 
-  echo "release_tag_push_failed_after_auto_rebase: tag=${tag}; inspect gh/audit logs and fix the pipeline system" >&2
+  echo "release_candidate_push_failed_after_auto_rebase: inspect gh/audit logs; no tag was created" >&2
   return 1
 }
 
@@ -325,16 +315,6 @@ python3 tests/spec145_canonical_release_cycle_static_test.py
 jq -e '.schema == "focusa.release_topology.v1" and (.surfaces | length) > 0' \
   config/focusa-release-topology.json >/dev/null
 
-if [[ "$PUSH" -eq 1 ]]; then
-  SOURCE_SHA="$(git rev-parse HEAD)"
-  echo "Waiting for exact source-SHA preflight before immutable tag: ${SOURCE_SHA}"
-  wait_for_source_workflow "CI" "$SOURCE_SHA"
-  if git diff --name-only "${PREVIOUS_TAG:-HEAD^}"..HEAD | grep -Eq \
-    '^(crates/focusa-terminal-ui/|crates/focusa-cli/src/commands/(install|update)\.rs$|crates/focusa-core/src/silent_sessions/|crates/focusa-session-runner/|apps/pi-extension/(package|package-lock)\.json$|tests/132-e5-|\.github/workflows/spec132-terminal-matrix\.yml$)'; then
-    wait_for_source_workflow "Spec 132 terminal matrix" "$SOURCE_SHA"
-  fi
-fi
-
 echo "Stamping release surfaces: ${VERSION}"
 scripts/stamp-menubar-version.py "${TAG}"
 scripts/stamp-release-version "${VERSION}"
@@ -368,6 +348,17 @@ if [[ -n "$(git status --porcelain)" ]]; then
   git commit -m "chore: stamp release surfaces ${VERSION}"
 fi
 
+if [[ "$PUSH" -eq 1 ]]; then
+  push_candidate_main_with_auto_rebase
+  HEAD_SHA=$(git rev-parse HEAD)
+  echo "Waiting for exact stamped-candidate preflight before immutable tag: ${HEAD_SHA}"
+  wait_for_source_workflow "CI" "$HEAD_SHA"
+  if git diff --name-only "${PREVIOUS_TAG:-HEAD^}"..HEAD | grep -Eq \
+    '^(crates/focusa-terminal-ui/|crates/focusa-cli/src/commands/(install|update)\.rs$|crates/focusa-core/src/silent_sessions/|crates/focusa-session-runner/|apps/pi-extension/(package|package-lock)\.json$|tests/132-e5-|\.github/workflows/spec132-terminal-matrix\.yml$)'; then
+    wait_for_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"
+  fi
+fi
+
 if [[ "$FORCE_RELEASE" -eq 1 ]]; then
   git tag -a "${TAG}" -m "Release override: ${RELEASE_REASON}" HEAD
 else
@@ -377,9 +368,8 @@ fi
 echo "Created tag ${TAG} at $(git rev-parse --short HEAD)"
 
 if [[ "$PUSH" -eq 1 ]]; then
-  push_main_and_tag_with_auto_rebase "${TAG}"
-  HEAD_SHA=$(git rev-parse HEAD)
-  echo "Pushed main and ${TAG}."
+  git push origin "${TAG}"
+  echo "Pushed exact green candidate ${TAG}."
   if [[ "$WAIT_CI" -eq 1 ]]; then
     wait_for_workflow "CI" "$HEAD_SHA"
     wait_for_workflow "Release" "$HEAD_SHA" "${TAG}"
