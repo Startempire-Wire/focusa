@@ -1,6 +1,13 @@
 name: Release
 
-on: [push]
+on:
+  push:
+    tags:
+      - 'v*-dev'
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -77,8 +84,8 @@ jobs:
     steps:
       - name: Release workflow validation
         run: |
-          echo "release_branch_validation=ok"
-          echo "Release build steps run only for v* tags; branch pushes run this lightweight job so GitHub never reports 'No jobs were run'."
+          echo "release_tag_validation=ok"
+          echo "Release workflow accepted immutable dev tag ${GITHUB_REF_NAME}."
 
       - uses: actions/checkout@v6
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
@@ -87,6 +94,8 @@ jobs:
         with:
           toolchain: nightly-2026-01-08
           components: clippy
+      - uses: Swatinem/rust-cache@v2
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
       - name: OTA installability release contract gate
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
         run: python3 tests/spec143_ota_installability_release_gate_test.py
@@ -135,6 +144,44 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+
+      - name: Lock exact release candidate
+        id: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          topology_sha=$(sha256sum config/focusa-release-topology.json | awk '{print $1}')
+          jq -n \
+            --arg candidate_id "release:${GITHUB_REPOSITORY}:${GITHUB_REF_NAME}" \
+            --arg project_root "${GITHUB_WORKSPACE}" \
+            --arg continuity_id "github:${GITHUB_REPOSITORY}" \
+            --arg workpoint_id "${{ vars.FOCUSA_RELEASE_WORKPOINT_ID || format('github-actions:{0}', github.run_id) }}" \
+            --arg version "${GITHUB_REF_NAME#v}" \
+            --arg exact_sha "${GITHUB_SHA}" \
+            --arg topology_ref "config/focusa-release-topology.json#sha256:${topology_sha}" \
+            '{
+              schema: "focusa.release_candidate.v1",
+              candidate_id: $candidate_id,
+              project_root: $project_root,
+              continuity_id: $continuity_id,
+              workpoint_id: $workpoint_id,
+              version: $version,
+              exact_sha: $exact_sha,
+              topology_ref: $topology_ref,
+              stage: "locked",
+              locked_scope_refs: [env.GITHUB_REF, env.GITHUB_REPOSITORY],
+              evidence: [],
+              admitted_fixes: [],
+              benchmark: null
+            }' > release-candidate.json
+          jq -e '.exact_sha == env.GITHUB_SHA and .stage == "locked"' release-candidate.json >/dev/null
+      - name: Upload release candidate lock
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-candidate-${{ github.ref_name }}
+          path: release-candidate.json
+          if-no-files-found: error
+          retention-days: 90
 
       - name: Generate release notes
         id: notes
@@ -326,6 +373,7 @@ jobs:
         with:
           toolchain: nightly-2026-01-08
           targets: ${{ matrix.rust_target }}
+      - uses: Swatinem/rust-cache@v2
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -590,6 +638,7 @@ jobs:
         with:
           toolchain: nightly-2026-01-08
           targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
 
       - name: Install cross for musl target
         if: ${{ matrix.musl == true }}

@@ -692,6 +692,9 @@ pub async fn run(cmd: UpdateCmd, json_mode: bool) -> anyhow::Result<()> {
             } else {
                 print_apply_human(&apply);
             }
+            if apply.status == "failed_rolled_back" {
+                anyhow::bail!("update apply failed and rollback was applied");
+            }
         }
         UpdateCmd::History(args) => {
             let history = build_history_envelope(args.limit);
@@ -925,7 +928,7 @@ fn build_scheduler_envelope(channel: String, mutations_performed: bool) -> Updat
             reason: "avoid slowing interactive daemon startup",
         },
         interval: SchedulerInterval {
-            base_seconds: 21_600,
+            base_seconds: 120,
             jitter_percent: 20,
             backoff: vec!["5m", "15m", "1h", "6h"],
         },
@@ -1072,6 +1075,12 @@ fn configure_systemd_scheduler(channel: &str, install: bool) -> anyhow::Result<(
     let service = Path::new("/etc/systemd/system/focusa-update.service");
     let timer = Path::new("/etc/systemd/system/focusa-update.timer");
     if install {
+        let runtime_path = std::env::var("PATH")
+            .ok()
+            .filter(|path| !path.contains(['\n', '\r', '"']))
+            .unwrap_or_else(|| {
+                "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin".into()
+            });
         std::fs::write(
             service,
             format!(
@@ -1082,6 +1091,7 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
+Environment="PATH={runtime_path}"
 ExecStart=/usr/local/bin/focusa update apply --channel {channel} --yes --allow-apply --automatic --dry-run false --json
 "#
             ),
@@ -1094,7 +1104,7 @@ Description=Focusa verified OTA update timer
 [Timer]
 OnBootSec=2min
 OnUnitActiveSec=2min
-RandomizedDelaySec=30s
+RandomizedDelaySec=24s
 Persistent=true
 Unit=focusa-update.service
 
@@ -1940,8 +1950,8 @@ async fn execute_verified_apply_locked(
             crate::commands::install::integrate_pi_extension(
                 &installed,
                 &stage,
-                None,
                 Some(extension_root),
+                None,
             )?;
             std::fs::write(
                 state.join("pi-extension-restart-required.json"),
@@ -2298,16 +2308,35 @@ fn path_is_git_managed(path: &str) -> bool {
     } else {
         candidate.parent().unwrap_or(candidate)
     };
-    std::process::Command::new("git")
+    let Some(root) = std::process::Command::new("git")
         .args([
             "-C",
             cwd.to_string_lossy().as_ref(),
             "rev-parse",
-            "--is-inside-work-tree",
+            "--show-toplevel",
         ])
         .output()
-        .map(|output| output.status.success())
-        .unwrap_or(false)
+        .ok()
+        .filter(|output| output.status.success())
+        .and_then(|output| String::from_utf8(output.stdout).ok())
+        .map(|root| PathBuf::from(root.trim()))
+    else {
+        return false;
+    };
+    let candidate = candidate
+        .canonicalize()
+        .unwrap_or_else(|_| candidate.to_path_buf());
+    let Ok(relative) = candidate.strip_prefix(&root) else {
+        return false;
+    };
+    let Ok(output) = std::process::Command::new("git")
+        .args(["-C", root.to_string_lossy().as_ref(), "ls-files", "--"])
+        .arg(relative)
+        .output()
+    else {
+        return false;
+    };
+    output.status.success() && !output.stdout.is_empty()
 }
 
 fn part_plan(part: &InstalledPart, latest: &LatestVersion, order: &mut u8) -> PartPlan {
@@ -3484,7 +3513,7 @@ mod tests {
     }
 
     #[test]
-    fn pi_package_promotion_refuses_git_managed_source_checkout() {
+    fn pi_package_promotion_refuses_only_tracked_git_content() {
         let root = std::env::temp_dir().join(format!(
             "focusa-pi-update-source-{}-{}",
             std::process::id(),
@@ -3499,6 +3528,16 @@ mod tests {
         assert!(status.success());
         let package = root.join("apps/pi-extension/package.json");
         std::fs::write(&package, "{}").expect("write package fixture");
+        assert!(
+            !path_is_git_managed(package.to_str().unwrap()),
+            "untracked install inside a parent repository remains updater-managed"
+        );
+        let status = std::process::Command::new("git")
+            .args(["add", "apps/pi-extension/package.json"])
+            .current_dir(&root)
+            .status()
+            .expect("track source fixture");
+        assert!(status.success());
         assert!(path_is_git_managed(package.to_str().unwrap()));
         let _ = std::fs::remove_dir_all(root);
     }

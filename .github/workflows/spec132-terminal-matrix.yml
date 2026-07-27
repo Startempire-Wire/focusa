@@ -6,8 +6,29 @@ on:
     paths:
       - 'crates/focusa-terminal-ui/**'
       - 'crates/focusa-cli/src/commands/install.rs'
+      - 'crates/focusa-cli/src/commands/update.rs'
+      - 'crates/focusa-core/src/silent_sessions/**'
+      - 'crates/focusa-session-runner/**'
+      - 'apps/pi-extension/package.json'
+      - 'apps/pi-extension/package-lock.json'
       - 'tests/132-e5-*'
       - '.github/workflows/spec132-terminal-matrix.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'crates/focusa-terminal-ui/**'
+      - 'crates/focusa-cli/src/commands/install.rs'
+      - 'crates/focusa-cli/src/commands/update.rs'
+      - 'crates/focusa-core/src/silent_sessions/**'
+      - 'crates/focusa-session-runner/**'
+      - 'apps/pi-extension/package.json'
+      - 'apps/pi-extension/package-lock.json'
+      - 'tests/132-e5-*'
+      - '.github/workflows/spec132-terminal-matrix.yml'
+
+concurrency:
+  group: spec132-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   windows-conpty:
@@ -16,6 +37,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: Build executables under test
         run: |
           cargo build -p focusa-cli --bin focusa
@@ -52,6 +74,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: Build executables under test
         run: |
           cargo build -p focusa-cli --bin focusa
@@ -85,6 +108,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-unknown-linux-musl
+      - uses: Swatinem/rust-cache@v2
       - name: Install cross for musl target
         uses: taiki-e/install-action@v2
         with:
@@ -194,6 +218,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
       - name: Install cross for musl target
         if: ${{ matrix.musl == true }}
         uses: taiki-e/install-action@v2

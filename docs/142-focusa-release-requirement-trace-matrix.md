@@ -114,7 +114,7 @@ Next Workpoint candidate: `focusa-vbcqu.2.1` — implement Trajectory Ladder int
 | W2 | `focusa-vbcqu.3` | Genesis/bootstrap/onboarding/first Workpoint | W0 | BLOCKED |
 | W3 | `focusa-vbcqu.4` | Flow Kernel/Canvas/surface parity/Spec135 compatibility | W0 | BLOCKED |
 | W4 | `focusa-vbcqu.5` | Pi UX/contracts/runtime regressions | W0 | BLOCKED |
-| W5 | `focusa-vbcqu.6` | Release orchestrator/incident closure | W0 | BLOCKED |
+| W5 | `focusa-vbcqu.6` | Release orchestrator/incident closure | W0 | IN PROGRESS — Spec145/146 kernel, topology, OTA truth, and workflow speed controls implemented; final immutable proof pending |
 | W6 | `focusa-vbcqu.7` | Organizational ownership for all open-at-lock Beads | W0; leaf completion enforced by W7 acceptance | BLOCKED |
 | W7 | `focusa-vbcqu.8` | Acceptance/dogfood/speed/final decision | W0 final review + every locked implementation/open-at-lock leaf | BLOCKED |
 | Release | `focusa-vbcqu` | Locked next-dev train | W7 | BLOCKED |
@@ -136,7 +136,7 @@ Next Workpoint candidate: `focusa-vbcqu.2.1` — implement Trajectory Ladder int
 | #53 Canvas-off terminal mode/toggle | `focusa-vbcqu.4.1` | W3 | Implement shared-state toggle/parity, close | OPEN |
 | #54 Temporal authority | `focusa-vbcqu.2.2` | W1 | Implement across flow/release, prove, close | OPEN |
 | #55 v0.9.121 incident | `focusa-vbcqu.6.2` | W5 | Preserve truth, close root causes with new release proof | OPEN |
-| #56 Reusable release orchestrator | `focusa-vbcqu.6.1`, `focusa-vbcqu.6.3` | W5 | Implement generic kernel/adapters/metrics plus intelligent evidence-backed release pages, close | OPEN |
+| #56 Reusable release orchestrator | `focusa-vbcqu.6.1`, `focusa-vbcqu.6.3` | W5 | Spec145/146 architecture, typed kernel/topology/metrics, deterministic intelligence renderer, and GitHub speed controls implemented; final immutable proof and closure pending | IN PROGRESS |
 | #58 HLT/spec/tasks to first Workpoint | `focusa-vbcqu.3.1` | W2 | Implement atomic Project Genesis, close | OPEN |
 | #59 Trajectory Ladder integrity | `focusa-vbcqu.2.1` | W1 | Implement complete closure/migration, close | OPEN |
 
