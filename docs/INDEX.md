@@ -59,6 +59,7 @@ Focusa is a **local-first cognitive governance framework** for AI agents. It pre
 | 138A | [138a-focusa-epistemic-zero-deferral-profile-completeness-and-omission-firewall-addendum.md](138a-focusa-epistemic-zero-deferral-profile-completeness-and-omission-firewall-addendum.md) | Mandatory full-profile implementation, source coverage, client parity, migration, and zero-omission firewall for Spec 138 |
 | 139 | [139-distributed-presence-environment-awareness-execution-placement-and-multi-daemon-coordination-spec.md](139-distributed-presence-environment-awareness-execution-placement-and-multi-daemon-coordination-spec.md) | Distributed presence primacy, environment identity, execution placement, expensive-operation deduplication, and multi-daemon coordination |
 | 140 | [140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md](140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md) | C.R.I.S.T.-derived Project Agent Runtime Constitution, instruction authority graph, Pi system-prompt compiler, AGENTS/rules/skills, enforcement, and cross-harness delivery |
+| 140A | [140a-foundational-instruction-integrity-temporal-adaptation-canonical-amendment-and-headless-enforcement-addendum.md](140a-foundational-instruction-integrity-temporal-adaptation-canonical-amendment-and-headless-enforcement-addendum.md) | Mandatory foundational instruction fidelity, Spec 137 temporal adaptation interlock, two-stage canonical amendment, headless enforcement, and Mission Canvas independence for Spec 140 |
 | 141 | [141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md](141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md) | Agent-first tools, skills, runbooks, documentation parity, and release-gate proof |
 | 142 | [142-focusa-release-requirement-trace-matrix.md](142-focusa-release-requirement-trace-matrix.md) | Locked release requirements, dependency traceability, implementation admission, and no-pass truth |
 | 143 | [143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md](143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md) | Master release cycle, Trajectory Ladder, Project Genesis, frictionless flow, release truth, and locked implementation scope |
@@ -67,6 +68,7 @@ Focusa is a **local-first cognitive governance framework** for AI agents. It pre
 | 146 | [146-focusa-canonical-release-cycle-operations-and-proof-runbook.md](146-focusa-canonical-release-cycle-operations-and-proof-runbook.md) | Automatic OTA operation, benchmark, security, migration, acceptance, proof, and rollback runbook |
 | contract | [contracts/spec139-complete-feature-ledger.v1.yaml](contracts/spec139-complete-feature-ledger.v1.yaml) | Initial machine-readable Spec 139 implementation and closure ledger |
 | contract | [contracts/spec140-complete-feature-ledger.v1.yaml](contracts/spec140-complete-feature-ledger.v1.yaml) | Initial machine-readable Spec 140 implementation and closure ledger |
+| contract | [contracts/spec140a-complete-feature-ledger.v1.yaml](contracts/spec140a-complete-feature-ledger.v1.yaml) | Initial machine-readable Spec 140A instruction-integrity and headless temporal-adaptation ledger |
 | evidence | [evidence/spec138-prediction-metacognition-maximal-primitives-audit-2026-07-21.md](evidence/spec138-prediction-metacognition-maximal-primitives-audit-2026-07-21.md) | Code-reality audit and maximal primitive derivation supporting Spec 138 |
 | current | [current/AUTONOMIC_CODING_WORKFLOW_GOVERNOR.md](current/AUTONOMIC_CODING_WORKFLOW_GOVERNOR.md) | Proposed project-vitals/stuck-detector/governor layer for continuous coding agents |
 | current | [current/FOCUSA_SECURITY_REVIEW_2026-05-26.md](current/FOCUSA_SECURITY_REVIEW_2026-05-26.md) | Five-part whole-project security review and remediation backlog |
@@ -121,7 +123,7 @@ Focusa is a **local-first cognitive governance framework** for AI agents. It pre
 | #   | File                                                         | Subsystem                    |
 | --- | ------------------------------------------------------------ | ---------------------------- |
 | 23  | [23-capabilities-api.md](23-capabilities-api.md)             | Capabilities API             |
-| 24  | [24-capabilities-cli.md](24-capabilities-cli.md)             | Capabilities CLI             |
+| 24  | [24-capabilities-cli.md](24-capabilities-cli.md)             | Capabilities CLI (`focusa capability ...`) |
 | 25  | [25-capability-permissions.md](25-capability-permissions.md) | Capability permissions model |
 | 26  | [26-agent-capability-scope.md](26-agent-capability-scope.md) | Agent capability scope model |
 
