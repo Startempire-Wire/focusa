@@ -68,17 +68,31 @@ function rows(values: string[], empty: string): string[] {
 export class MissionCanvasView implements Component {
   private selected = 0;
   private selectedSurface = 0;
+  private refreshing = false;
+  private readonly refreshTimer: ReturnType<typeof setInterval>;
 
   constructor(
-    private readonly model: MissionCanvasModel,
+    private model: MissionCanvasModel,
     private readonly theme: Theme,
     private readonly requestRender: () => void,
-    private readonly close: () => void
-  ) {}
+    private readonly close: () => void,
+    private readonly reload: () => Promise<MissionCanvasModel>
+  ) {
+    // Bounded reconnect/degraded fallback; canonical event projection remains authoritative.
+    this.refreshTimer = setInterval(() => void this.refresh(), 5_000);
+  }
 
   invalidate(): void {}
 
+  dispose(): void {
+    clearInterval(this.refreshTimer);
+  }
+
   handleInput(data: string): void {
+    if (data.toLowerCase() === "r") {
+      void this.refresh();
+      return;
+    }
     if (matchesKey(data, Key.escape) || matchesKey(data, Key.ctrl("c"))) {
       this.close();
       return;
@@ -118,7 +132,7 @@ export class MissionCanvasView implements Component {
       this.theme.fg("accent", this.theme.bold("FOCUSA MISSION CANVAS")),
       this.theme.fg(
         "muted",
-        `${this.model.scopeStatus} · ${text(this.model.projectRoot)} · Esc close · ←/→ panel · Alt+←/→ surface`
+        `${this.model.scopeStatus} · ${text(this.model.projectRoot)} · ${this.refreshing ? "refreshing" : "live"} · R refresh · Esc close · ←/→ panel · Alt+←/→ surface`
       ),
       this.surfaceStrip(),
       "",
@@ -133,6 +147,19 @@ export class MissionCanvasView implements Component {
     return lines.flatMap((line) =>
       wrapTextWithAnsi(line, Math.max(1, width)).map((part) => truncateToWidth(part, Math.max(1, width)))
     );
+  }
+
+  private async refresh(): Promise<void> {
+    if (this.refreshing) return;
+    this.refreshing = true;
+    this.requestRender();
+    try {
+      this.model = await this.reload();
+      this.selectedSurface = Math.min(this.selectedSurface, Math.max(0, this.model.workSurfaces.length - 1));
+    } finally {
+      this.refreshing = false;
+      this.requestRender();
+    }
   }
 
   private surfaceStrip(): string {
