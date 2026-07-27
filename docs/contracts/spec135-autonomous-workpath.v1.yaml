@@ -4,7 +4,7 @@
   "epic": "focusa-mc-full",
   "delivery": "PR #73 only; never direct main",
   "no_deferral": true,
-  "current": "focusa-mc-full-a3",
+  "current": "focusa-mc-full-b1",
   "rules": [
     "Take the lowest-ordinal dependency-ready open task.",
     "Keep exactly one active task unless independent proof work is explicitly parallelized.",
@@ -76,16 +76,6 @@
     },
     {
       "ordinal": 7,
-      "bead": "focusa-mc-full-a3",
-      "spec": "135A",
-      "title": "135A-3 Work Rail preview/commit interactions",
-      "depends_on": [
-        "focusa-mc-full-a2"
-      ],
-      "acceptance": "All required row actions enforce scope, confirmation, idempotency, receipts, and failure recovery."
-    },
-    {
-      "ordinal": 8,
       "bead": "focusa-mc-full-a4",
       "spec": "135A",
       "title": "135A-4 Session and attachment inventory",
@@ -95,7 +85,109 @@
       "acceptance": "Inventory never hides background sessions and preserves exact project/workstream/attachment identity."
     },
     {
+      "ordinal": 8,
+      "bead": "focusa-mc-full-j1",
+      "spec": "135J",
+      "title": "135J-1 Canonical Operation Registry generation",
+      "depends_on": [
+        "focusa-mc-full-d4"
+      ],
+      "acceptance": "Every supported operation has one canonical descriptor and duplicate manual registrations fail drift checks."
+    },
+    {
       "ordinal": 9,
+      "bead": "focusa-mc-full-j2",
+      "spec": "135J",
+      "title": "135J-2 Generated clients and cross-interface parity",
+      "depends_on": [
+        "focusa-mc-full-j1"
+      ],
+      "acceptance": "Parity tests prove every registry operation is callable with identical semantics and envelopes."
+    },
+    {
+      "ordinal": 10,
+      "bead": "focusa-mc-full-b1",
+      "spec": "135B",
+      "title": "135B-1 Durable C.R.I.S.T. and Project Operating Profile",
+      "depends_on": [
+        "focusa-mc-full-d4"
+      ],
+      "acceptance": "State survives resume/reconnect and invalid transitions fail closed with receipts."
+    },
+    {
+      "ordinal": 11,
+      "bead": "focusa-mc-full-b2",
+      "spec": "135B",
+      "title": "135B-2 Source-linked Context ingestion and connectors",
+      "depends_on": [
+        "focusa-mc-full-b1"
+      ],
+      "acceptance": "Real sources produce durable cited Context artifacts with connector health and recovery."
+    },
+    {
+      "ordinal": 12,
+      "bead": "focusa-mc-full-b3",
+      "spec": "135B",
+      "title": "135B-3 Role Composer and approval",
+      "depends_on": [
+        "focusa-mc-full-b2"
+      ],
+      "acceptance": "Operator can compose and approve a durable role without silently granting authority."
+    },
+    {
+      "ordinal": 13,
+      "bead": "focusa-mc-full-b4",
+      "spec": "135B",
+      "title": "135B-4 Grill Interview and compendium",
+      "depends_on": [
+        "focusa-mc-full-b3"
+      ],
+      "acceptance": "Interrupted and resumed interviews retain answers and produce evidence-backed closure artifacts."
+    },
+    {
+      "ordinal": 14,
+      "bead": "focusa-mc-full-b5",
+      "spec": "135B",
+      "title": "135B-5 Spec 120 integration and governed specification",
+      "depends_on": [
+        "focusa-mc-full-b4"
+      ],
+      "acceptance": "Generated specification is source-linked, reviewable, versioned, and cannot bypass approval."
+    },
+    {
+      "ordinal": 15,
+      "bead": "focusa-mc-full-b6",
+      "spec": "135B",
+      "title": "135B-6 Provider-neutral task materialization",
+      "depends_on": [
+        "focusa-mc-full-b5"
+      ],
+      "acceptance": "Tasks preserve source requirement, dependencies, scope, acceptance, and provider capability truth."
+    },
+    {
+      "ordinal": 16,
+      "bead": "focusa-mc-full-b7",
+      "spec": "135B",
+      "title": "135B-7 Genesis-to-first-Workpoint and resume proof",
+      "depends_on": [
+        "focusa-mc-full-b6"
+      ],
+      "acceptance": "All routes reach one evidence-backed Workpoint without repeated answered questions or state forks."
+    },
+    {
+      "ordinal": 17,
+      "bead": "focusa-mc-full-a3",
+      "spec": "135A",
+      "title": "135A-3 Work Rail preview/commit interactions",
+      "depends_on": [
+        "focusa-mc-full-a2",
+        "focusa-mc-full-j2",
+        "focusa-mc-full-b7"
+      ],
+      "acceptance": "All required row actions enforce scope, confirmation, idempotency, receipts, and failure recovery."
+    },
+    {
+      "ordinal": 18,
       "bead": "focusa-mc-full-a5",
       "spec": "135A",
       "title": "135A-5 Tabs, splits, comparison, and inspectors",
@@ -106,7 +198,7 @@
       "acceptance": "All navigation and layout behaviors work in Pi and remain presentation-only."
     },
     {
-      "ordinal": 10,
+      "ordinal": 19,
       "bead": "focusa-mc-full-a6",
       "spec": "135A",
       "title": "135A-6 Workspace verticals, themes, and artifact renderers",
@@ -116,7 +208,7 @@
       "acceptance": "Same canonical artifact projects through each registered renderer with invariant safety semantics."
     },
     {
-      "ordinal": 11,
+      "ordinal": 20,
       "bead": "focusa-mc-full-a7",
       "spec": "135A",
       "title": "135A-7 Responsive and accessible Pi TUI",
@@ -126,7 +218,7 @@
       "acceptance": "Accessibility and responsive tests pass for every central Canvas workflow."
     },
     {
-      "ordinal": 12,
+      "ordinal": 21,
       "bead": "focusa-mc-full-a8",
       "spec": "135A",
       "title": "135A-8 Client parity and permanent evidence",
@@ -134,96 +226,6 @@
         "focusa-mc-full-a7"
       ],
       "acceptance": "Parity matrix and dogfood receipts prove equivalent canonical operations and truthful capability limits."
-    },
-    {
-      "ordinal": 13,
-      "bead": "focusa-mc-full-b1",
-      "spec": "135B",
-      "title": "135B-1 Durable C.R.I.S.T. and Project Operating Profile",
-      "depends_on": [
-        "focusa-mc-full-d4"
-      ],
-      "acceptance": "State survives resume/reconnect and invalid transitions fail closed with receipts."
-    },
-    {
-      "ordinal": 14,
-      "bead": "focusa-mc-full-b2",
-      "spec": "135B",
-      "title": "135B-2 Source-linked Context ingestion and connectors",
-      "depends_on": [
-        "focusa-mc-full-b1"
-      ],
-      "acceptance": "Real sources produce durable cited Context artifacts with connector health and recovery."
-    },
-    {
-      "ordinal": 15,
-      "bead": "focusa-mc-full-b3",
-      "spec": "135B",
-      "title": "135B-3 Role Composer and approval",
-      "depends_on": [
-        "focusa-mc-full-b2"
-      ],
-      "acceptance": "Operator can compose and approve a durable role without silently granting authority."
-    },
-    {
-      "ordinal": 16,
-      "bead": "focusa-mc-full-b4",
-      "spec": "135B",
-      "title": "135B-4 Grill Interview and compendium",
-      "depends_on": [
-        "focusa-mc-full-b3"
-      ],
-      "acceptance": "Interrupted and resumed interviews retain answers and produce evidence-backed closure artifacts."
-    },
-    {
-      "ordinal": 17,
-      "bead": "focusa-mc-full-b5",
-      "spec": "135B",
-      "title": "135B-5 Spec 120 integration and governed specification",
-      "depends_on": [
-        "focusa-mc-full-b4"
-      ],
-      "acceptance": "Generated specification is source-linked, reviewable, versioned, and cannot bypass approval."
-    },
-    {
-      "ordinal": 18,
-      "bead": "focusa-mc-full-b6",
-      "spec": "135B",
-      "title": "135B-6 Provider-neutral task materialization",
-      "depends_on": [
-        "focusa-mc-full-b5"
-      ],
-      "acceptance": "Tasks preserve source requirement, dependencies, scope, acceptance, and provider capability truth."
-    },
-    {
-      "ordinal": 19,
-      "bead": "focusa-mc-full-b7",
-      "spec": "135B",
-      "title": "135B-7 Genesis-to-first-Workpoint and resume proof",
-      "depends_on": [
-        "focusa-mc-full-b6"
-      ],
-      "acceptance": "All routes reach one evidence-backed Workpoint without repeated answered questions or state forks."
-    },
-    {
-      "ordinal": 20,
-      "bead": "focusa-mc-full-j1",
-      "spec": "135J",
-      "title": "135J-1 Canonical Operation Registry generation",
-      "depends_on": [
-        "focusa-mc-full-d4"
-      ],
-      "acceptance": "Every supported operation has one canonical descriptor and duplicate manual registrations fail drift checks."
-    },
-    {
-      "ordinal": 21,
-      "bead": "focusa-mc-full-j2",
-      "spec": "135J",
-      "title": "135J-2 Generated clients and cross-interface parity",
-      "depends_on": [
-        "focusa-mc-full-j1"
-      ],
-      "acceptance": "Parity tests prove every registry operation is callable with identical semantics and envelopes."
     },
     {
       "ordinal": 22,

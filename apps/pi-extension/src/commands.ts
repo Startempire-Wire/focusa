@@ -47,6 +47,7 @@ import {
   workSurfaceDetail,
   workSurfaceLabel,
 } from "./mission-canvas-model.js";
+import { projectSessionInventory, sessionInventoryLabel } from "./mission-canvas-session-inventory.js";
 
 async function commandWorkLoopWriterHeaders(): Promise<Record<string, string>> {
   const writerId = `pi-${process.pid}`;
@@ -342,17 +343,27 @@ export function registerCommands(pi: ExtensionAPI) {
         return;
       }
       const loadModel = async (): Promise<MissionCanvasModel> => {
-        const [workpoint, trajectory, workLoop, sessions, surfaces, interviews, closurePackage, artifacts] =
-          await Promise.all([
-            focusaFetch("/v1/workpoint/resume").catch(() => null),
-            focusaFetch("/v1/trajectory/view").catch(() => null),
-            focusaFetch("/work-loop/status?summary_only=true").catch(() => null),
-            focusaFetch("/v1/session/discover").catch(() => null),
-            focusaFetch("/v1/mission-canvas/surfaces").catch(() => null),
-            focusaFetch("/v1/interviews/sessions").catch(() => null),
-            focusaFetch("/v1/interviews/closure-package").catch(() => null),
-            focusaFetch("/v1/workspace/artifacts").catch(() => null),
-          ]);
+        const [
+          workpoint,
+          trajectory,
+          workLoop,
+          sessions,
+          silentSessions,
+          surfaces,
+          interviews,
+          closurePackage,
+          artifacts,
+        ] = await Promise.all([
+          focusaFetch("/v1/workpoint/resume").catch(() => null),
+          focusaFetch("/v1/trajectory/view").catch(() => null),
+          focusaFetch("/work-loop/status?summary_only=true").catch(() => null),
+          focusaFetch("/v1/session/discover").catch(() => null),
+          focusaFetch("/v1/silent-sessions").catch(() => null),
+          focusaFetch("/v1/mission-canvas/surfaces").catch(() => null),
+          focusaFetch("/v1/interviews/sessions").catch(() => null),
+          focusaFetch("/v1/interviews/closure-package").catch(() => null),
+          focusaFetch("/v1/workspace/artifacts").catch(() => null),
+        ]);
         const packet = workpoint?.workpoint ?? workpoint?.resume_packet ?? workpoint ?? {};
         const evidenceRefs = Array.isArray(packet?.verification_records)
           ? packet.verification_records
@@ -361,16 +372,10 @@ export function registerCommands(pi: ExtensionAPI) {
           : Array.isArray(packet?.evidence_refs)
             ? packet.evidence_refs.slice(0, MAX_MISSION_CANVAS_ROWS).map(String)
             : [];
-        const sessionRows = Array.isArray(sessions?.sessions)
-          ? sessions.sessions
-              .slice(0, MAX_MISSION_CANVAS_ROWS)
-              .map((session: any) =>
-                [session?.kind, session?.session_id, session?.status, session?.attachment_id]
-                  .filter(Boolean)
-                  .join(" · ")
-              )
-          : [];
         const projectedSurfaces = projectWorkSurfaces(surfaces);
+        const sessionRows = projectSessionInventory(sessions, projectedSurfaces, silentSessions).map(
+          sessionInventoryLabel
+        );
         const surfaceRows = projectedSurfaces.map(workSurfaceLabel);
         const contentionRows = projectedSurfaces
           .filter((surface) => surface.conflictCount || surface.blockerCount || surface.writerLeaseRef)
