@@ -1,0 +1,28 @@
+GitHub #54 Spec 137 temporal authority proof
+Observed: 2026-07-27
+
+Implementation authority already merged to origin/main:
+- PR #67 / merge 5ac4f109
+- b7dae19a revisioned clock authority
+- 61f90984 trusted clock-domain policy
+- d4eb3f17 commitment, urgency, and preflight gates
+- 61033f4a calibrated release timing forecasts
+- b6adda38 governed API/CLI/Pi surfaces
+
+Verified implementation surfaces:
+- focusa-core temporal claims, authority, forecasts, calibration, revisions, scope and timezone semantics
+- append-only daemon persistence and projections
+- API temporal routes
+- CLI temporal commands
+- Pi temporal authority tool
+- release-cycle timing and bounded presentation contracts
+
+Proof:
+- python3 tests/spec137_temporal_authority_release_gate_test.py: PASS
+- cargo test -p focusa-core temporal --lib: 12 passed, 0 failed
+- no-deadline, hard-deadline, revision, forecast, missed-target, scope, reload, and release-cycle contracts are included in the release gate
+- git diff --check: PASS
+
+Infrastructure note:
+- a redundant package-level Cargo rerun was interrupted by the wirebot 30 GiB hard quota; this is not an implementation failure
+- core temporal tests and the complete Spec137 release gate passed before quota exhaustion
