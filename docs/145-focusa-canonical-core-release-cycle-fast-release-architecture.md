@@ -323,7 +323,7 @@ Every output includes:
 
 - CI runs on PR and main.
 - Spec132 path ownership includes every terminal/runner/updater surface.
-- Stale branch runs cancel automatically.
+- Stale PR runs cancel automatically; locked-candidate `main` runs never cancel when audit commits arrive.
 - Cross-target failures are discovered before immutable tag creation.
 - Rust caches are keyed by lockfile, toolchain, target, job, and relevant env.
 

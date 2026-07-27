@@ -90,7 +90,11 @@ require(
 )
 require(
     CI,
-    ["concurrency:", "cancel-in-progress: true", "Swatinem/rust-cache@v2"],
+    [
+        "concurrency:",
+        "cancel-in-progress: ${{ github.event_name == 'pull_request' }}",
+        "Swatinem/rust-cache@v2",
+    ],
     "CI speed controls",
 )
 require(
