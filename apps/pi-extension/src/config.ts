@@ -28,8 +28,11 @@ export interface FocusaConfigScopeRef {
 export type FocusaBloatgaurdProfileName =
   "daily_driver" | "beast_mode" | "speedy" | "neat_freak" | "tightwad";
 
+export type FocusaInteractionMode = "canvas-guided" | "terminal-guided" | "headless";
+
 export interface FocusaConfig {
   enabled: boolean;
+  interactionMode: FocusaInteractionMode;
   warnPct: number;
   compactPct: number;
   hardPct: number;
@@ -127,6 +130,7 @@ const BLOATGAURD_PROFILE_PRESETS: Record<FocusaBloatgaurdProfileName, Partial<Fo
 
 const DEFAULTS: FocusaConfig = {
   enabled: true,
+  interactionMode: "canvas-guided",
   warnPct: 50,
   compactPct: 70,
   hardPct: 85,
@@ -199,6 +203,7 @@ const ENV_MAP: Record<string, keyof FocusaConfig> = {
   FOCUSA_PI_AUTO_COMPACTION_RESERVE_TOKENS: "autoCompactionReserveTokens",
   FOCUSA_PI_AUTO_COMPACTION_RESERVE_PCT: "autoCompactionReservePct",
   FOCUSA_PI_AUTO_COMPACTION_COOLDOWN_MS: "autoCompactionCooldownMs",
+  FOCUSA_PI_INTERACTION_MODE: "interactionMode",
   FOCUSA_PI_CONTEXT_STATUS_MODE: "contextStatusMode",
   FOCUSA_PI_AGENT_REMINDER_MODE: "agentReminderMode",
   FOCUSA_PI_AGENT_REMINDER_SHELL_FREQUENCY: "agentReminderShellFrequency",
@@ -261,6 +266,10 @@ function validate(cfg: FocusaConfig): string[] {
     errs.push(`autoCompactionReservePct(${cfg.autoCompactionReservePct}) must be in 1..50`);
   if (cfg.autoCompactionCooldownMs < 10_000)
     errs.push(`autoCompactionCooldownMs(${cfg.autoCompactionCooldownMs}) must be >= 10000`);
+  if (!["canvas-guided", "terminal-guided", "headless"].includes(cfg.interactionMode))
+    errs.push(
+      `interactionMode(${cfg.interactionMode}) must be one of: canvas-guided, terminal-guided, headless`
+    );
   if (!["off", "actionable", "all"].includes(cfg.contextStatusMode))
     errs.push(`contextStatusMode(${cfg.contextStatusMode}) must be one of: off, actionable, all`);
   if (cfg.vitalInfoPromptMode === "notify") cfg.vitalInfoPromptMode = "warn_only";
@@ -320,22 +329,38 @@ function extractFocusaConfig(raw: any): Partial<FocusaConfig> {
 
 function resolveSettingsPaths(cwd?: string): string[] {
   return [
-    cwd ? join(cwd, ".pi/settings.json") : "",
     join(process.env.HOME || "", ".pi/agent/settings.json"),
+    cwd ? join(cwd, ".pi/settings.json") : "",
   ].filter(Boolean);
 }
 
-// Load config: §18 precedence: env vars > settings.json > defaults
+export interface FocusaInteractionModeResolution {
+  mode: FocusaInteractionMode;
+  source: "session-env" | "project" | "user" | "default";
+}
+
+export function resolveInteractionMode(cwd?: string): FocusaInteractionModeResolution {
+  const env = process.env.FOCUSA_PI_INTERACTION_MODE as FocusaInteractionMode | undefined;
+  if (env && ["canvas-guided", "terminal-guided", "headless"].includes(env)) {
+    return { mode: env, source: "session-env" };
+  }
+  if (cwd) {
+    const project = extractFocusaConfig(readSettingsFile(join(cwd, ".pi/settings.json")));
+    if (project.interactionMode) return { mode: project.interactionMode, source: "project" };
+  }
+  const user = extractFocusaConfig(readSettingsFile(join(process.env.HOME || "", ".pi/agent/settings.json")));
+  if (user.interactionMode) return { mode: user.interactionMode, source: "user" };
+  return { mode: DEFAULTS.interactionMode, source: "default" };
+}
+
+// Precedence: bounded session env > project override > user default > defaults.
 export function loadConfig(cwd?: string): { config: FocusaConfig; errors: string[] } {
   let fileConfig: Partial<FocusaConfig> = {};
 
   for (const p of resolveSettingsPaths(cwd)) {
     const raw = readSettingsFile(p);
     const ext = extractFocusaConfig(raw);
-    if (Object.keys(ext).length > 0) {
-      fileConfig = ext;
-      break;
-    }
+    fileConfig = { ...fileConfig, ...ext };
   }
 
   // Merge: defaults with explicit file config, then env (highest precedence)
