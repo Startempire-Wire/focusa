@@ -89,12 +89,15 @@ require(
         "Lock exact release candidate",
         "focusa.release_candidate.v1",
         "Upload release candidate lock",
+        "Release blocked by release-scoped pull requests",
+        "unrelated open pull requests remain queued outside the locked candidate",
     ],
     "Release trigger/cache controls",
 )
 require(
     SPEC132,
     [
+        "push:\n    branches: [main]",
         "pull_request:",
         "crates/focusa-cli/src/commands/update.rs",
         "crates/focusa-core/src/silent_sessions/**",
