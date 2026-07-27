@@ -1,0 +1,20 @@
+{
+  "schema": "focusa.spec135.runtime_evidence_matrix.v2",
+  "completion_authority": "executed runtime behavior",
+  "forbidden_completion_evidence": ["documentation", "enum", "schema_only", "source_marker", "mock_only", "self_reported_ledger"],
+  "allowed_completion_evidence": ["runtime_test_receipt", "live_api_receipt", "pi_tui_interaction_receipt", "uiai_diagnostics_receipt", "restart_replay_receipt", "migration_rollback_receipt", "dogfood_receipt"],
+  "domains": [
+    {"domain":"api_operations","owner_bead":"focusa-mc-full-j2","status":"pending","required_kind":"live_api_receipt","evidence_refs":[]},
+    {"domain":"reducers_authority","owner_bead":"focusa-mc-full-b1","status":"pending","required_kind":"runtime_test_receipt","evidence_refs":[]},
+    {"domain":"persistence_restart","owner_bead":"focusa-mc-full-j3","status":"pending","required_kind":"restart_replay_receipt","evidence_refs":[]},
+    {"domain":"pi_tui_interactions","owner_bead":"focusa-mc-full-a8","status":"pending","required_kind":"pi_tui_interaction_receipt","evidence_refs":[]},
+    {"domain":"uiai_visual_workflows","owner_bead":"focusa-mc-full-c4","status":"pending","required_kind":"uiai_diagnostics_receipt","evidence_refs":[]},
+    {"domain":"event_replay_reconnect","owner_bead":"focusa-mc-full-j4","status":"pending","required_kind":"restart_replay_receipt","evidence_refs":[]},
+    {"domain":"migration_rollback","owner_bead":"focusa-mc-full-e1","status":"pending","required_kind":"migration_rollback_receipt","evidence_refs":[]},
+    {"domain":"security_scope_isolation","owner_bead":"focusa-mc-full-g6","status":"pending","required_kind":"runtime_test_receipt","evidence_refs":[]},
+    {"domain":"performance_resources","owner_bead":"focusa-mc-full-d2","status":"proven","required_kind":"live_api_receipt","evidence_refs":["scripts/spec135-live-performance-proof.py"]},
+    {"domain":"accessibility_responsive","owner_bead":"focusa-mc-full-a7","status":"pending","required_kind":"pi_tui_interaction_receipt","evidence_refs":[]},
+    {"domain":"nontechnical_dogfood","owner_bead":"focusa-mc-full-h2","status":"pending","required_kind":"dogfood_receipt","evidence_refs":[]},
+    {"domain":"cross_client_parity","owner_bead":"focusa-mc-full-a8","status":"pending","required_kind":"runtime_test_receipt","evidence_refs":[]}
+  ]
+}

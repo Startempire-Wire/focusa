@@ -15,10 +15,12 @@ requirements = audit["requirements"]
 assert [row["spec"] for row in requirements] == [
     "135", "135A", "135B", "135C", "135D", "135E", "135F", "135G", "135H", "135I", "135J", "135K"
 ]
-assert all(row["status"] in {"partial", "incomplete", "in_progress"} for row in requirements)
-assert all(row["implemented_evidence"] and row["missing"] for row in requirements)
+assert all(row["status"] in {"partial", "incomplete", "in_progress", "verified_complete"} for row in requirements)
+assert all(row["implemented_evidence"] for row in requirements)
+assert all((not row["missing"]) == (row["status"] == "verified_complete") for row in requirements)
 assert len(audit["completion_path"]) == 12
 assert len(set(audit["completion_path"])) == 12
 for ref in {e for row in requirements for e in row["implemented_evidence"]}:
     assert (R / ref).exists(), ref
-print("Spec 135 runtime conformance audit: PASS (12/12 specs remain explicitly incomplete)")
+incomplete = sum(row["status"] != "verified_complete" for row in requirements)
+print(f"Spec 135 runtime conformance audit: PASS ({incomplete}/12 specs remain explicitly incomplete)")
