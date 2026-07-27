@@ -12,13 +12,13 @@
 <p align="center">
   <a href="https://github.com/Startempire-Wire/focusa/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Startempire-Wire/focusa/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/Startempire-Wire/focusa/actions/workflows/release.yml"><img alt="Release" src="https://github.com/Startempire-Wire/focusa/actions/workflows/release.yml/badge.svg"></a>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.9.132--dev-blue">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.9.133--dev-blue">
   <img alt="Rust" src="https://img.shields.io/badge/rust-1.91%2B-dea584?logo=rust">
   <img alt="License" src="https://img.shields.io/badge/license-BSL--1.1-orange">
   <img alt="Local first" src="https://img.shields.io/badge/local--first-proof%20layer-2b82ff">
 </p>
 
-Focusa is the local-first proof and continuity layer for AI coding agents. Current source version: `v0.9.132-dev`.
+Focusa is the local-first proof and continuity layer for AI coding agents. Current source version: `v0.9.133-dev`.
 
 When a coding session gets long, context compacts, the mission drifts, proof gets buried, or another agent takes over, Focusa preserves the work as a proof-backed **Workpoint** with linked **Evidence** and a **next safe action**. The next agent should not have to guess from transcript memory.
 
