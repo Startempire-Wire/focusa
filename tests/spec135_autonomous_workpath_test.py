@@ -23,5 +23,5 @@ for row in tasks:
     assert all(dep in seen for dep in deps if dep.startswith("focusa-mc-full-")), (bead, deps - seen)
     seen.add(bead)
 active = [row["bead"] for row in tasks if issues[row["bead"]]["status"] == "in_progress"]
-assert active == ["focusa-mc-full-d1"], active
+assert active == [plan["current"]], active
 print("Spec 135 autonomous workpath: PASS (50 ordered Beads, one active frontier)")

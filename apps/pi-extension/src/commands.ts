@@ -33,7 +33,12 @@ import { prepareCompactionRollover } from "./compaction.js";
 import { dirname, resolve } from "path";
 import { MissionCanvasView, type MissionCanvasModel } from "./mission-canvas-view.js";
 import { refreshMissionCanvasWidget } from "./mission-canvas-widget.js";
-import { projectWorkSurfaces, workSurfaceDetail, workSurfaceLabel } from "./mission-canvas-model.js";
+import {
+  MAX_MISSION_CANVAS_ROWS,
+  projectWorkSurfaces,
+  workSurfaceDetail,
+  workSurfaceLabel,
+} from "./mission-canvas-model.js";
 
 async function commandWorkLoopWriterHeaders(): Promise<Record<string, string>> {
   const writerId = `pi-${process.pid}`;
@@ -298,18 +303,20 @@ export function registerCommands(pi: ExtensionAPI) {
           ]);
         const packet = workpoint?.workpoint ?? workpoint?.resume_packet ?? workpoint ?? {};
         const evidenceRefs = Array.isArray(packet?.verification_records)
-          ? packet.verification_records.map((record: any) =>
-              String(record?.evidence_ref ?? record?.result ?? record)
-            )
+          ? packet.verification_records
+              .slice(0, MAX_MISSION_CANVAS_ROWS)
+              .map((record: any) => String(record?.evidence_ref ?? record?.result ?? record))
           : Array.isArray(packet?.evidence_refs)
-            ? packet.evidence_refs.map(String)
+            ? packet.evidence_refs.slice(0, MAX_MISSION_CANVAS_ROWS).map(String)
             : [];
         const sessionRows = Array.isArray(sessions?.sessions)
-          ? sessions.sessions.map((session: any) =>
-              [session?.kind, session?.session_id, session?.status, session?.attachment_id]
-                .filter(Boolean)
-                .join(" · ")
-            )
+          ? sessions.sessions
+              .slice(0, MAX_MISSION_CANVAS_ROWS)
+              .map((session: any) =>
+                [session?.kind, session?.session_id, session?.status, session?.attachment_id]
+                  .filter(Boolean)
+                  .join(" · ")
+              )
           : [];
         const projectedSurfaces = projectWorkSurfaces(surfaces);
         const surfaceRows = projectedSurfaces.map(workSurfaceLabel);
@@ -320,18 +327,22 @@ export function registerCommands(pi: ExtensionAPI) {
               `${surface.displayName} · ${surface.conflictCount} conflicts · ${surface.blockerCount} blockers · ${surface.writerLeaseRef || "no writer lease"}`
           );
         const artifactRows = Array.isArray(artifacts?.artifacts)
-          ? artifacts.artifacts.map((artifact: any) =>
-              [artifact?.title ?? artifact?.artifact_id, artifact?.kind, artifact?.evidence_ref]
-                .filter(Boolean)
-                .join(" · ")
-            )
+          ? artifacts.artifacts
+              .slice(0, MAX_MISSION_CANVAS_ROWS)
+              .map((artifact: any) =>
+                [artifact?.title ?? artifact?.artifact_id, artifact?.kind, artifact?.evidence_ref]
+                  .filter(Boolean)
+                  .join(" · ")
+              )
           : [];
         const historyRows = Array.isArray(packet?.verification_records)
-          ? packet.verification_records.map((record: any) =>
-              [record?.verified_at ?? record?.created_at, record?.result, record?.evidence_ref]
-                .filter(Boolean)
-                .join(" · ")
-            )
+          ? packet.verification_records
+              .slice(0, MAX_MISSION_CANVAS_ROWS)
+              .map((record: any) =>
+                [record?.verified_at ?? record?.created_at, record?.result, record?.evidence_ref]
+                  .filter(Boolean)
+                  .join(" · ")
+              )
           : [];
         const interviewRows = Array.isArray(interviews?.sessions) ? interviews.sessions : [];
         const activeInterview =
@@ -352,7 +363,9 @@ export function registerCommands(pi: ExtensionAPI) {
           projectRoot: String(packet?.project_root ?? getSessionCwd() ?? ""),
           continuityId: String(packet?.continuity_id ?? getContinuityId() ?? ""),
           evidenceRefs,
-          blockers: Array.isArray(packet?.blockers) ? packet.blockers.map(String) : [],
+          blockers: Array.isArray(packet?.blockers)
+            ? packet.blockers.slice(0, MAX_MISSION_CANVAS_ROWS).map(String)
+            : [],
           sessions: sessionRows,
           workSurfaces: surfaceRows.length
             ? surfaceRows

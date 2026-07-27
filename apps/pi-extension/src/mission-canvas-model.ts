@@ -1,3 +1,5 @@
+export const MAX_MISSION_CANVAS_ROWS = 200;
+
 export type WorkSurfaceKind =
   | "project_overview"
   | "pi_session"
@@ -68,7 +70,7 @@ export function projectWorkSurfaces(payload: any): WorkSurfaceProjection[] {
     : Array.isArray(payload?.work_surfaces)
       ? payload.work_surfaces
       : [];
-  return rows.flatMap((row: any) => {
+  return rows.slice(0, MAX_MISSION_CANVAS_ROWS).flatMap((row: any) => {
     const id = value(row?.work_surface_id, row?.surface_id);
     if (!id) return [];
     const rawKind = value(row?.kind, "custom") as WorkSurfaceKind;

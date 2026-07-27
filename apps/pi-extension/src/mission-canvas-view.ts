@@ -61,8 +61,15 @@ function text(value: unknown, fallback = "Unavailable"): string {
   return clean || fallback;
 }
 
+const MAX_VISIBLE_ROWS = 40;
+
 function rows(values: string[], empty: string): string[] {
-  return values.length ? values.map((value) => `  • ${text(value)}`) : [`  ${empty}`];
+  if (!values.length) return [`  ${empty}`];
+  const visible = values.slice(0, MAX_VISIBLE_ROWS).map((value) => `  • ${text(value)}`);
+  if (values.length > MAX_VISIBLE_ROWS) {
+    visible.push(`  … ${values.length - MAX_VISIBLE_ROWS} more rows; refine the focused projection`);
+  }
+  return visible;
 }
 
 /** Keyboard-first, Pi-native Mission Canvas. Canonical state remains external. */
@@ -165,13 +172,19 @@ export class MissionCanvasView implements Component {
 
   private surfaceStrip(): string {
     const surfaces = this.model.workSurfaces.length ? this.model.workSurfaces : ["Current Pi attachment"];
-    return `${this.theme.fg("accent", "WORK SURFACES")}  ${surfaces
-      .map((surface, index) =>
-        index === this.selectedSurface
-          ? this.theme.fg("accent", `[${text(surface)}]`)
-          : this.theme.fg("dim", text(surface))
-      )
-      .join("  ")}`;
+    const start = Math.max(0, Math.min(this.selectedSurface - 3, surfaces.length - 8));
+    const visible = surfaces.slice(start, start + 8);
+    const labels = visible.map((surface, offset) => {
+      const index = start + offset;
+      return index === this.selectedSurface
+        ? this.theme.fg("accent", `[${text(surface)}]`)
+        : this.theme.fg("dim", text(surface));
+    });
+    if (start > 0) labels.unshift(this.theme.fg("dim", `…${start}`));
+    if (start + visible.length < surfaces.length) {
+      labels.push(this.theme.fg("dim", `…${surfaces.length - start - visible.length}`));
+    }
+    return `${this.theme.fg("accent", "WORK SURFACES")}  ${labels.join("  ")}`;
   }
 
   private panelLines(panel: MissionCanvasPanel): string[] {

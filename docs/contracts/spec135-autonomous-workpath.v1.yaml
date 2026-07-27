@@ -4,7 +4,7 @@
   "epic": "focusa-mc-full",
   "delivery": "PR #73 only; never direct main",
   "no_deferral": true,
-  "current": "focusa-mc-full-d1",
+  "current": "focusa-mc-full-d3",
   "rules": [
     "Take the lowest-ordinal dependency-ready open task.",
     "Keep exactly one active task unless independent proof work is explicitly parallelized.",
