@@ -13,6 +13,15 @@ NC='\033[0m'
 log_pass(){ echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail(){ echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 
+INGEST_JSON="$(scoped_curl -sS -X POST "${BASE_URL}/v1/telemetry/trace" \
+  -H 'Content-Type: application/json' \
+  -d '{"event_type":"governing_priors_applied","session_id":"spec79-governing-priors","governing_priors":["spec79_verified_prior"],"ranking_consumers":["working_set","verified_deltas"],"prior_hits":{"working_set":["spec79_verified_prior"],"verified_deltas":["spec79_verified_prior"]}}')"
+if echo "$INGEST_JSON" | jq -e '.status == "recorded" and .event_type == "governing_priors_applied"' >/dev/null 2>&1; then
+  log_pass "governing-prior telemetry fixture accepted"
+else
+  log_fail "governing-prior telemetry fixture rejected: $INGEST_JSON"
+fi
+
 STATS_JSON="$(scoped_curl -sS "${BASE_URL}/v1/telemetry/trace/stats")"
 if echo "$STATS_JSON" | jq -e '.by_event_type | has("governing_priors_applied")' >/dev/null 2>&1; then
   log_pass "trace stats include governing_priors_applied event family"
