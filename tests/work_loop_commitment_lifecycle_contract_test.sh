@@ -3,7 +3,7 @@
 set -euo pipefail
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
 PROJECT_ROOT="${FOCUSA_PROJECT_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
-CONTINUITY_ID="${FOCUSA_CONTINUITY_ID:-work-loop-runtime-contract-test}"
+CONTINUITY_ID="${FOCUSA_CONTINUITY_ID:-work-loop-continuation-test}"
 scoped_curl(){ command curl -H "x-scope-project-root: ${PROJECT_ROOT}" -H "x-scope-continuity-id: ${CONTINUITY_ID}" "$@"; }
 FAILED=0
 PASSED=0
