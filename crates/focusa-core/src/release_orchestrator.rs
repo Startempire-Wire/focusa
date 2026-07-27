@@ -127,13 +127,17 @@ impl ReleaseAdapterDescriptor {
                 || self.supports_canary,
             "topology requires canary but adapter cannot provide it"
         );
+        let rollback_required = topology
+            .surfaces
+            .iter()
+            .any(|surface| surface.rollback_required);
         ensure!(
-            !topology
-                .surfaces
-                .iter()
-                .any(|surface| surface.rollback_required)
-                || self.supports_rollback,
+            !rollback_required || self.supports_rollback,
             "topology requires rollback but adapter cannot provide it"
+        );
+        ensure!(
+            !rollback_required || stages.contains(&ReleaseStage::RolledBack),
+            "topology requires rollback but adapter lacks rolled_back stage"
         );
         Ok(())
     }
@@ -149,6 +153,7 @@ pub struct ReleaseStageRequest {
     pub stage: ReleaseStage,
     pub surface_waves: Vec<Vec<String>>,
     pub tuning: ReleasePlanTuning,
+    pub immutable_artifact_set_id: Option<String>,
     pub approval_refs: Vec<String>,
 }
 
@@ -188,13 +193,19 @@ impl ReleaseStageReceipt {
         );
         if matches!(
             self.stage,
-            ReleaseStage::Built | ReleaseStage::Packaged | ReleaseStage::Provenanced
+            ReleaseStage::Built
+                | ReleaseStage::Packaged
+                | ReleaseStage::Provenanced
+                | ReleaseStage::DraftPublished
+                | ReleaseStage::CanaryDeployed
+                | ReleaseStage::Verified
+                | ReleaseStage::Promoted
         ) {
             ensure!(
                 self.artifact_set_id
                     .as_deref()
                     .is_some_and(|id| !id.trim().is_empty()),
-                "artifact stage requires immutable artifact_set_id"
+                "artifact-consuming stage requires immutable artifact_set_id"
             );
         }
         Ok(())
@@ -380,6 +391,7 @@ impl MasterReleaseOrchestrator {
         }
 
         let mut receipts = Vec::new();
+        let mut immutable_artifact_set_id: Option<String> = None;
         for stage in plan.stages.clone() {
             let receipt = if let Some(evidence) = reusable_evidence.get(&stage) {
                 ReleaseStageReceipt {
@@ -387,7 +399,8 @@ impl MasterReleaseOrchestrator {
                     outcome: AdapterOutcome::Passed,
                     evidence: evidence.clone(),
                     adapter_id: descriptor.adapter_id.clone(),
-                    artifact_set_id: reusable_artifact_id(stage, &candidate),
+                    artifact_set_id: reusable_artifact_id(stage, &candidate)
+                        .or_else(|| immutable_artifact_set_id.clone()),
                     rollback_ref: None,
                     elapsed_ms: 0,
                     queue_ms: 0,
@@ -411,7 +424,7 @@ impl MasterReleaseOrchestrator {
                         invalidates: Vec::new(),
                     },
                     adapter_id: descriptor.adapter_id.clone(),
-                    artifact_set_id: None,
+                    artifact_set_id: immutable_artifact_set_id.clone(),
                     rollback_ref: None,
                     elapsed_ms: 0,
                     queue_ms: 0,
@@ -428,6 +441,7 @@ impl MasterReleaseOrchestrator {
                     stage,
                     surface_waves: plan.surface_waves.clone(),
                     tuning: plan.tuning.clone(),
+                    immutable_artifact_set_id: immutable_artifact_set_id.clone(),
                     approval_refs: authority.approval_refs.clone(),
                 };
                 adapter
@@ -444,6 +458,7 @@ impl MasterReleaseOrchestrator {
                 stage,
                 surface_waves: plan.surface_waves.clone(),
                 tuning: plan.tuning.clone(),
+                immutable_artifact_set_id: immutable_artifact_set_id.clone(),
                 approval_refs: authority.approval_refs.clone(),
             };
             receipt.validate(&request, &descriptor)?;
@@ -454,6 +469,40 @@ impl MasterReleaseOrchestrator {
                     receipt.reason_codes.clone()
                 };
                 receipts.push(receipt);
+                if rollback_required(&candidate, &topology) {
+                    let rollback_request = ReleaseStageRequest {
+                        candidate_id: candidate.candidate_id.clone(),
+                        exact_sha: candidate.exact_sha.clone(),
+                        version: candidate.version.clone(),
+                        project_root: candidate.project_root.clone(),
+                        topology: topology.clone(),
+                        stage: ReleaseStage::RolledBack,
+                        surface_waves: plan.surface_waves.clone(),
+                        tuning: plan.tuning.clone(),
+                        immutable_artifact_set_id: immutable_artifact_set_id.clone(),
+                        approval_refs: authority.approval_refs.clone(),
+                    };
+                    let rollback = adapter
+                        .execute(rollback_request.clone())
+                        .await
+                        .context("adapter rollback failed")?;
+                    rollback.validate(&rollback_request, &descriptor)?;
+                    ensure!(
+                        rollback.outcome == AdapterOutcome::Passed,
+                        "release rollback did not pass"
+                    );
+                    candidate.terminate(ReleaseStage::RolledBack, rollback.evidence.clone())?;
+                    receipts.push(rollback);
+                    return Ok(ReleaseRunResult {
+                        schema: RELEASE_RUN_SCHEMA.into(),
+                        status: "rolled_back".into(),
+                        candidate,
+                        plan,
+                        receipts,
+                        blocked_stage: Some(stage),
+                        blocked_reasons: reasons,
+                    });
+                }
                 return Ok(ReleaseRunResult {
                     schema: RELEASE_RUN_SCHEMA.into(),
                     status: "blocked".into(),
@@ -463,6 +512,16 @@ impl MasterReleaseOrchestrator {
                     blocked_stage: Some(stage),
                     blocked_reasons: reasons,
                 });
+            }
+            if let Some(identity) = &receipt.artifact_set_id {
+                if let Some(expected) = &immutable_artifact_set_id {
+                    ensure!(
+                        identity == expected,
+                        "immutable artifact set changed between release stages"
+                    );
+                } else {
+                    immutable_artifact_set_id = Some(identity.clone());
+                }
             }
             candidate.advance(stage, receipt.evidence.clone())?;
             receipts.push(receipt);
@@ -477,6 +536,15 @@ impl MasterReleaseOrchestrator {
             blocked_reasons: Vec::new(),
         })
     }
+}
+
+fn rollback_required(candidate: &ReleaseCandidate, topology: &ReleaseTopology) -> bool {
+    candidate.stage >= ReleaseStage::CanaryDeployed
+        && candidate.stage < ReleaseStage::Closed
+        && topology
+            .surfaces
+            .iter()
+            .any(|surface| surface.rollback_required)
 }
 
 fn blocked_result(

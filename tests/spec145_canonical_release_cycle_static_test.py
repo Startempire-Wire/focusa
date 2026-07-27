@@ -126,6 +126,7 @@ require(
     REFERENCE_ADAPTERS + REFERENCE_TOPOLOGIES,
     [
         '"manifest_id": "focusa-github-actions-v1"',
+        '"manifest_id":"portable-cli-library-v1"',
         '"manifest_id": "uiai-engine-v1"',
         '"profile": "single_package"',
         '"profile": "service_container_web"',

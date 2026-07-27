@@ -197,6 +197,7 @@ scope mismatch fails before tagging.
 Reference contracts:
 
 - `config/release-adapters/focusa.json`;
+- `config/release-adapters/cli-library.json`;
 - `config/release-adapters/uiai-engine.json`;
 - `config/release-adapters/single-package.json`;
 - `config/release-adapters/service-container-web.json`;

@@ -18,6 +18,10 @@ fn all_reference_adapter_manifests_conform() {
             include_str!("../../../config/release-adapters/focusa.json"),
         ),
         (
+            include_str!("../../../config/release-topologies/cli-library.json"),
+            include_str!("../../../config/release-adapters/cli-library.json"),
+        ),
+        (
             include_str!("../../../config/release-topologies/uiai-engine.json"),
             include_str!("../../../config/release-adapters/uiai-engine.json"),
         ),
@@ -60,7 +64,13 @@ impl ReleaseOperationExecutor for FakeExecutor {
             evidence_refs: vec![format!("fixture:{}:{}", self.id, operation.operation_id)],
             artifact_set_id: matches!(
                 request.stage,
-                ReleaseStage::Built | ReleaseStage::Packaged | ReleaseStage::Provenanced
+                ReleaseStage::Built
+                    | ReleaseStage::Packaged
+                    | ReleaseStage::Provenanced
+                    | ReleaseStage::DraftPublished
+                    | ReleaseStage::CanaryDeployed
+                    | ReleaseStage::Verified
+                    | ReleaseStage::Promoted
             )
             .then(|| format!("artifact:{}:{}", self.id, request.exact_sha)),
             rollback_ref: (request.stage == ReleaseStage::Promoted)
@@ -97,6 +107,10 @@ async fn all_reference_manifests_execute_the_same_kernel() {
         (
             include_str!("../../../config/focusa-release-topology.json"),
             include_str!("../../../config/release-adapters/focusa.json"),
+        ),
+        (
+            include_str!("../../../config/release-topologies/cli-library.json"),
+            include_str!("../../../config/release-adapters/cli-library.json"),
         ),
         (
             include_str!("../../../config/release-topologies/uiai-engine.json"),
@@ -219,6 +233,7 @@ printf '%s' '{"operation_id":"op","executor_id":"fixture","exact_sha":"good","ou
         stage: ReleaseStage::Preflighted,
         surface_waves: vec![],
         tuning: crate::release_calibration::ReleasePlanTuning::default(),
+        immutable_artifact_set_id: None,
         approval_refs: vec![],
     };
     let receipt = executor.execute(&operation, &request).await.unwrap();
@@ -265,6 +280,7 @@ fn plugin_envelope_is_provider_neutral_json() {
             stage: ReleaseStage::Verified,
             surface_waves: vec![vec!["package".into()]],
             tuning: crate::release_calibration::ReleasePlanTuning::default(),
+            immutable_artifact_set_id: Some("artifact:fixture".into()),
             approval_refs: vec!["operator:release".into()],
         },
     };
@@ -312,6 +328,7 @@ fn operation_sha_mismatch_is_rejected() {
         stage: ReleaseStage::Preflighted,
         surface_waves: vec![],
         tuning: crate::release_calibration::ReleasePlanTuning::default(),
+        immutable_artifact_set_id: None,
         approval_refs: vec![],
     };
     let receipt = ReleaseOperationReceipt {

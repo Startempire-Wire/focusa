@@ -8,7 +8,7 @@
     "adapter_version": "1",
     "supported_profiles": ["multi_surface_cross_platform"],
     "supported_surface_kinds": ["library", "cli", "daemon", "tui", "agent_extension", "desktop", "installer", "documentation"],
-    "supported_stages": ["locked", "candidate_snapshotted", "preflighted", "built", "packaged", "provenanced", "draft_published", "canary_deployed", "verified", "promoted", "closed"],
+    "supported_stages": ["locked", "candidate_snapshotted", "preflighted", "built", "packaged", "provenanced", "draft_published", "canary_deployed", "verified", "promoted", "closed", "rolled_back"],
     "supports_canary": true,
     "supports_rollback": true
   },
@@ -24,6 +24,7 @@
     {"operation_id":"daemon-canary","stage":"canary_deployed","executor_id":"focusa-github","kind":"github_workflow","action":"Deploy Live Daemon/canary","surface_ids":["daemon"],"mutates":true,"timeout_seconds":600},
     {"operation_id":"verify-surfaces","stage":"verified","executor_id":"focusa-github","kind":"tool_call","action":"release.verify_all_surfaces","mutates":false,"timeout_seconds":600},
     {"operation_id":"promote","stage":"promoted","executor_id":"focusa-github","kind":"github_workflow","action":"Release/promote","mutates":true,"timeout_seconds":600},
-    {"operation_id":"settle","stage":"closed","executor_id":"focusa-github","kind":"tool_call","action":"release.settle_and_learn","mutates":true,"timeout_seconds":300}
+    {"operation_id":"settle","stage":"closed","executor_id":"focusa-github","kind":"tool_call","action":"release.settle_and_learn","mutates":true,"timeout_seconds":300},
+    {"operation_id":"rollback","stage":"rolled_back","executor_id":"focusa-github","kind":"github_workflow","action":"Deploy Live Daemon/rollback","mutates":true,"timeout_seconds":600}
   ]
 }

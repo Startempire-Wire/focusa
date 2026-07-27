@@ -71,6 +71,7 @@ fn descriptor() -> ReleaseAdapterDescriptor {
             ReleaseStage::Verified,
             ReleaseStage::Promoted,
             ReleaseStage::Closed,
+            ReleaseStage::RolledBack,
         ],
         supports_canary: true,
         supports_rollback: true,
@@ -108,9 +109,23 @@ impl ReleaseAdapter for MockAdapter {
             adapter_id: "mock".into(),
             artifact_set_id: matches!(
                 request.stage,
-                ReleaseStage::Built | ReleaseStage::Packaged | ReleaseStage::Provenanced
+                ReleaseStage::Built
+                    | ReleaseStage::Packaged
+                    | ReleaseStage::Provenanced
+                    | ReleaseStage::DraftPublished
+                    | ReleaseStage::CanaryDeployed
+                    | ReleaseStage::Verified
+                    | ReleaseStage::Promoted
             )
-            .then(|| format!("sha256:{}", request.exact_sha)),
+            .then(|| {
+                if self.blocked == Some(ReleaseStage::RolledBack)
+                    && request.stage == ReleaseStage::Packaged
+                {
+                    "sha256:changed-artifact".into()
+                } else {
+                    format!("sha256:{}", request.exact_sha)
+                }
+            }),
             rollback_ref: (request.stage == ReleaseStage::Promoted)
                 .then(|| "mock:rollback:1".into()),
             elapsed_ms: 10,
@@ -311,6 +326,33 @@ async fn exact_sha_evidence_is_reused_without_adapter_call() {
 }
 
 #[tokio::test]
+async fn changed_artifact_identity_fails_before_publication() {
+    let adapter = MockAdapter {
+        blocked: Some(ReleaseStage::RolledBack),
+        calls: Mutex::new(Vec::new()),
+    };
+    let error = MasterReleaseOrchestrator::run(
+        candidate(),
+        topology(true),
+        &adapter,
+        authority(true),
+        ReleaseRunMode::Execute,
+        "2026-01-01T00:00:00Z",
+        BTreeMap::new(),
+    )
+    .await
+    .unwrap_err();
+    assert!(error.to_string().contains("immutable artifact set changed"));
+    assert!(
+        !adapter
+            .calls
+            .lock()
+            .unwrap()
+            .contains(&ReleaseStage::DraftPublished)
+    );
+}
+
+#[tokio::test]
 async fn adapter_block_stops_before_promotion() {
     let adapter = MockAdapter {
         blocked: Some(ReleaseStage::Verified),
@@ -327,9 +369,16 @@ async fn adapter_block_stops_before_promotion() {
     )
     .await
     .unwrap();
-    assert_eq!(result.status, "blocked");
+    assert_eq!(result.status, "rolled_back");
     assert_eq!(result.blocked_stage, Some(ReleaseStage::Verified));
-    assert_eq!(result.candidate.stage, ReleaseStage::CanaryDeployed);
+    assert_eq!(result.candidate.stage, ReleaseStage::RolledBack);
+    assert!(
+        adapter
+            .calls
+            .lock()
+            .unwrap()
+            .contains(&ReleaseStage::RolledBack)
+    );
     assert!(
         !adapter
             .calls

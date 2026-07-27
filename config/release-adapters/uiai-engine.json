@@ -8,7 +8,7 @@
     "adapter_version": "1",
     "supported_profiles": ["service_container_web"],
     "supported_surface_kinds": ["service", "container", "library"],
-    "supported_stages": ["locked", "candidate_snapshotted", "preflighted", "built", "packaged", "provenanced", "draft_published", "canary_deployed", "verified", "promoted", "closed"],
+    "supported_stages": ["locked", "candidate_snapshotted", "preflighted", "built", "packaged", "provenanced", "draft_published", "canary_deployed", "verified", "promoted", "closed", "rolled_back"],
     "supports_canary": true,
     "supports_rollback": true
   },
@@ -23,6 +23,7 @@
     {"operation_id":"canary","stage":"canary_deployed","executor_id":"uiai-engine","kind":"tool_call","action":"release.deploy_canary","surface_ids":["engine_api","browser_runtime"],"mutates":true,"timeout_seconds":600},
     {"operation_id":"visual-health","stage":"verified","executor_id":"uiai-engine","kind":"tool_call","action":"release.verify_health_diagnostics_visual_smoke","mutates":false,"timeout_seconds":600},
     {"operation_id":"promote","stage":"promoted","executor_id":"uiai-engine","kind":"tool_call","action":"release.promote_canary","mutates":true,"timeout_seconds":600},
-    {"operation_id":"settle","stage":"closed","executor_id":"uiai-engine","kind":"tool_call","action":"release.settle_and_learn","mutates":true,"timeout_seconds":300}
+    {"operation_id":"settle","stage":"closed","executor_id":"uiai-engine","kind":"tool_call","action":"release.settle_and_learn","mutates":true,"timeout_seconds":300},
+    {"operation_id":"rollback","stage":"rolled_back","executor_id":"uiai-engine","kind":"tool_call","action":"release.rollback_verified_prior_runtime","mutates":true,"timeout_seconds":600}
   ]
 }
