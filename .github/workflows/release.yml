@@ -78,41 +78,77 @@ jobs:
               done
           echo "pull_request_release_gate=passed"
 
-  # Gate: tests + clippy must pass
+  # Fast contract gate: source tests are exact-SHA pre-tag authority; tag CI is
+  # an independent publication gate below and still validates the stamped SHA.
   rust-check:
-    name: Rust Check
+    name: Release Contract Check
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 10
     steps:
       - name: Release workflow validation
         run: |
           echo "release_tag_validation=ok"
           echo "Release workflow accepted immutable dev tag ${GITHUB_REF_NAME}."
-
       - uses: actions/checkout@v6
-        if: ${{ startsWith(github.ref, 'refs/tags/') }}
-      - uses: dtolnay/rust-toolchain@nightly
-        if: ${{ startsWith(github.ref, 'refs/tags/') }}
         with:
-          toolchain: nightly-2026-01-08
-          components: clippy
-      - uses: Swatinem/rust-cache@v2
-        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+          fetch-depth: 0
+      - name: Require exact source-SHA preflight receipts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_sha=$(git rev-parse HEAD^)
+          require_success() {
+            local workflow="$1"
+            local run
+            run=$(gh run list --workflow "$workflow" --commit "$source_sha" --limit 10 --json status,conclusion,url,headSha \
+              | jq -c --arg sha "$source_sha" 'map(select(.headSha == $sha and .status == "completed" and .conclusion == "success")) | .[0] // empty')
+            [ -n "$run" ] || { echo "::error::Missing successful ${workflow} source gate for ${source_sha}"; exit 1; }
+            echo "source_gate_reused workflow=${workflow} receipt=${run}"
+          }
+          require_success "CI"
+          previous=$(git tag --sort=-version:refname | grep -v "^${GITHUB_REF_NAME}$" | head -1 || true)
+          if git diff --name-only "${previous:-HEAD^^}"..HEAD^ | grep -Eq \
+            '^(crates/focusa-terminal-ui/|crates/focusa-cli/src/commands/(install|update)\.rs$|crates/focusa-core/src/silent_sessions/|crates/focusa-session-runner/|apps/pi-extension/(package|package-lock)\.json$|tests/132-e5-|\.github/workflows/spec132-terminal-matrix\.yml$)'; then
+            require_success "Spec 132 terminal matrix"
+          fi
       - name: OTA installability release contract gate
-        if: ${{ startsWith(github.ref, 'refs/tags/') }}
         run: python3 tests/spec143_ota_installability_release_gate_test.py
-      - name: Build standalone daemon required by cross-phase smoke test
-        if: ${{ startsWith(github.ref, 'refs/tags/') }}
-        run: cargo build -p focusa-api --bin focusa-daemon
-      - name: Process-health check + cargo test
-        if: ${{ startsWith(github.ref, 'refs/tags/') }}
-        run: python3 scripts/process-health-check.py --label "Release cargo test" --command "cargo test --workspace"
-      - name: Process-health check + clippy
-        if: ${{ startsWith(github.ref, 'refs/tags/') }}
-        run: python3 scripts/process-health-check.py --label "Release clippy" --command "cargo clippy --workspace -- -D warnings"
       - name: Spec104 static audit
-        if: ${{ startsWith(github.ref, 'refs/tags/') }}
         run: python3 scripts/audit-schema.py spec104 release-proof/audit/audit.jsonl
+
+  tag-ci-proof:
+    name: Exact tag CI proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Wait for successful CI on stamped candidate SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 120); do
+            run=$(gh run list --workflow CI --commit "$GITHUB_SHA" --limit 10 --json status,conclusion,url,headSha \
+              | jq -c --arg sha "$GITHUB_SHA" 'map(select(.headSha == $sha)) | .[0] // {}')
+            status=$(jq -r '.status // "missing"' <<<"$run")
+            conclusion=$(jq -r '.conclusion // ""' <<<"$run")
+            if [ "$status" = completed ] && [ "$conclusion" = success ]; then
+              echo "tag_ci_proof=${run}"
+              exit 0
+            fi
+            if [ "$status" = completed ] && [ "$conclusion" != success ]; then
+              echo "::error::Stamped candidate CI failed: ${run}"
+              exit 1
+            fi
+            if (( attempt % 6 == 0 )); then
+              echo "tag_ci_wait attempt=${attempt} status=${status} receipt=${run}"
+            fi
+            sleep 10
+          done
+          echo "::error::Timed out waiting for stamped candidate CI ${GITHUB_SHA}"
+          exit 1
 
   # Final customer-lifecycle closure: all-surface OTA activation, worktree and
   # authority isolation, compaction/recovery, and cache-safe prompt behavior.
@@ -727,7 +763,7 @@ jobs:
   checksums:
     name: Publish SHA256SUMS
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
-    needs: [tauri-build, rust-release, pi-extension-release]
+    needs: [tauri-build, rust-release, pi-extension-release, tag-ci-proof]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
