@@ -75,8 +75,8 @@ def main():
     registry = json.loads(REGISTRY.read_text())
     current = json.loads(OPENAPI.read_text())
     expected = generated(registry, json.loads(json.dumps(current)))
-    rendered = json.dumps(expected, indent=2, sort_keys=True) + "\n"
-    existing = json.dumps(current, indent=2, sort_keys=True) + "\n"
+    rendered = json.dumps(expected, indent=2) + "\n"
+    existing = json.dumps(current, indent=2) + "\n"
     if args.write:
         OPENAPI.write_text(rendered)
     if args.check and rendered != existing:
