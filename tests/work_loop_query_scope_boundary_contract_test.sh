@@ -74,6 +74,18 @@ else
   log_fail "status missing reset reason or excluded context labels"
 fi
 
+STOP_RESP="$(scoped_curl -sS -X POST "${BASE_URL}/v1/work-loop/stop" \
+  -H 'Content-Type: application/json' \
+  -H "x-focusa-writer-id: ${WRITER_ID}" \
+  -H "x-focusa-fencing-token: ${FENCING_TOKEN}" \
+  -H 'x-focusa-approval: approved' \
+  -d '{"reason":"query-scope runtime proof complete"}')"
+if echo "$STOP_RESP" | jq -e '.status == "accepted" or .state == "stopped" or .ok == true' >/dev/null 2>&1; then
+  log_pass "query-scope runtime proof released Workloop execution scope"
+else
+  log_fail "query-scope runtime proof cleanup failed: $STOP_RESP"
+fi
+
 echo "=== QueryScope boundary contract results ==="
 echo "Tests passed: ${PASSED}"
 echo "Tests failed: ${FAILED}"
