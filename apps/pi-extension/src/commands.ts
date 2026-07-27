@@ -26,13 +26,21 @@ import {
   setCompilationErrors,
   resetFileEditCounts,
 } from "./state.js";
-import { resolveInteractionMode, saveConfigOverrides, type FocusaInteractionMode } from "./config.js";
+import {
+  loadConfig,
+  resolveInteractionMode,
+  saveConfigOverrides,
+  type FocusaInteractionMode,
+  type MissionCanvasVisualVariant,
+  type MissionCanvasWorkspaceProfile,
+} from "./config.js";
 import { buildProjectWorkstreamKey, type WorkstreamKey } from "./scoped-state.js";
 import { measureNativeSessionPressure, migrateNativeSessionBounded } from "./session-pressure.js";
 import { prepareCompactionRollover } from "./compaction.js";
 import { dirname, resolve } from "path";
 import { MissionCanvasView, type MissionCanvasModel } from "./mission-canvas-view.js";
 import { refreshMissionCanvasWidget } from "./mission-canvas-widget.js";
+import { workRailDetailRows, workRailSnapshotFromPacket } from "./work-rail-widget.js";
 import {
   MAX_MISSION_CANVAS_ROWS,
   projectWorkSurfaces,
@@ -278,6 +286,50 @@ export function registerCommands(pi: ExtensionAPI) {
     },
   });
 
+  pi.registerCommand("mission-canvas-profile", {
+    description: "Set the durable Mission Canvas workspace profile and visual variant",
+    handler: async (args, ctx) => {
+      const [profileArg, variantArg] = String(args || "")
+        .trim()
+        .toLowerCase()
+        .split(/\s+/);
+      const profiles = new Set<MissionCanvasWorkspaceProfile>([
+        "general",
+        "software",
+        "legal",
+        "markets",
+        "research",
+        "custom",
+      ]);
+      const variants = new Set<MissionCanvasVisualVariant>(["default", "high-contrast", "monochrome"]);
+      if (
+        !profiles.has(profileArg as MissionCanvasWorkspaceProfile) ||
+        (variantArg && !variants.has(variantArg as MissionCanvasVisualVariant))
+      ) {
+        const current = loadConfig(getSessionCwd()).config;
+        ctx.ui.notify(
+          `Mission Canvas profile: ${current.missionCanvasWorkspaceProfile} ${current.missionCanvasVisualVariant}. Usage: /mission-canvas-profile general|software|legal|markets|research|custom [default|high-contrast|monochrome]`,
+          "info"
+        );
+        return;
+      }
+      const saved = saveConfigOverrides(
+        getSessionCwd(),
+        {
+          missionCanvasWorkspaceProfile: profileArg as MissionCanvasWorkspaceProfile,
+          missionCanvasVisualVariant: (variantArg || "default") as MissionCanvasVisualVariant,
+        },
+        "project"
+      );
+      if (saved.errors.length) throw new Error(saved.errors.join("; "));
+      refreshMissionCanvasWidget(ctx);
+      ctx.ui.notify(
+        `Mission Canvas profile set to ${saved.config.missionCanvasWorkspaceProfile} · ${saved.config.missionCanvasVisualVariant}`,
+        "info"
+      );
+    },
+  });
+
   pi.registerCommand("mission-canvas", {
     description: "Open the keyboard-first Focusa Mission Canvas in Pi",
     handler: async (_args, ctx) => {
@@ -347,6 +399,8 @@ export function registerCommands(pi: ExtensionAPI) {
         const interviewRows = Array.isArray(interviews?.sessions) ? interviews.sessions : [];
         const activeInterview =
           interviewRows.find((session: any) => session?.status === "active") ?? interviewRows[0];
+        const presentation = loadConfig(getSessionCwd()).config;
+        const workRail = workRailSnapshotFromPacket(workpoint);
         const model: MissionCanvasModel = {
           mission: String(packet?.mission ?? packet?.current_ask ?? "No active Mission Canvas Workpoint"),
           trajectory: String(
@@ -360,6 +414,7 @@ export function registerCommands(pi: ExtensionAPI) {
           ),
           workpointId: String(packet?.workpoint_id ?? ""),
           workItemId: String(packet?.work_item_id ?? ""),
+          workRailDetails: workRailDetailRows(workRail),
           projectRoot: String(packet?.project_root ?? getSessionCwd() ?? ""),
           continuityId: String(packet?.continuity_id ?? getContinuityId() ?? ""),
           evidenceRefs,
@@ -397,6 +452,8 @@ export function registerCommands(pi: ExtensionAPI) {
           ),
           workLoopStatus: String(workLoop?.status ?? workLoop?.state ?? "Unavailable"),
           scopeStatus: `${String(workpoint?.status ?? "advisory")} · mode ${interactionMode.mode} (${interactionMode.source})`,
+          workspaceProfile: presentation.missionCanvasWorkspaceProfile,
+          visualVariant: presentation.missionCanvasVisualVariant,
         };
         return model;
       };

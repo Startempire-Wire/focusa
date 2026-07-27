@@ -14,9 +14,16 @@ export interface WorkRailWidgetSnapshot {
   attachmentId: string;
   workSurfaceIds: string[];
   priority: string;
+  rank: string;
+  dependencies: string[];
   blockers: string[];
   proofCount: number;
+  evidenceRefs: string[];
+  artifactRefs: string[];
+  changeSetRef: string;
   receiptRef: string;
+  closureClaimRef: string;
+  updatedAt: string;
   nextAction: string;
   status: string;
   mode: "surface-local" | "project-aggregate" | "cross-project-advisory";
@@ -90,9 +97,16 @@ export function workRailSnapshotFromPacket(packet: Record<string, any> | null): 
     attachmentId: String(workpoint?.attachment_id || packet?.attachment_id || "unknown"),
     workSurfaceIds: Array.isArray(workpoint?.work_surface_ids) ? workpoint.work_surface_ids.map(String) : [],
     priority: String(workpoint?.priority || packet?.priority || "normal"),
+    rank: String(workpoint?.rank ?? packet?.rank ?? "unranked"),
+    dependencies: Array.isArray(workpoint?.dependencies) ? workpoint.dependencies.map(String) : [],
     blockers: Array.isArray(workpoint?.blockers) ? workpoint.blockers.map(String) : [],
     proofCount: evidence.length,
+    evidenceRefs: evidence.map((item: any) => String(item?.evidence_ref ?? item)),
+    artifactRefs: Array.isArray(workpoint?.artifact_refs) ? workpoint.artifact_refs.map(String) : [],
+    changeSetRef: String(workpoint?.change_set_ref || packet?.change_set_ref || "none"),
     receiptRef: String(workpoint?.receipt_ref || packet?.receipt_ref || "none"),
+    closureClaimRef: String(workpoint?.closure_claim_ref || packet?.closure_claim_ref || "none"),
+    updatedAt: String(workpoint?.updated_at || packet?.updated_at || "unknown"),
     nextAction: String(workpoint?.next_slice || packet?.next_slice || "checkpoint next action"),
     status: packet ? String(workpoint?.status || packet?.status || "unbound") : "unbound",
     mode: packet?.cross_project
@@ -104,6 +118,21 @@ export function workRailSnapshotFromPacket(packet: Record<string, any> | null): 
       packet?.provider_capability || workpoint?.provider_capability || "adapter-unavailable"
     ) as WorkRailWidgetSnapshot["providerCapability"],
   };
+}
+
+export function workRailDetailRows(snapshot: WorkRailWidgetSnapshot): string[] {
+  return [
+    `Provider: ${snapshot.provider} · ${snapshot.providerItemId} · ${snapshot.providerStatus} · ${snapshot.providerCapability}`,
+    `Focusa: ${snapshot.focusaStatus} · Workpoint ${snapshot.workpointId}`,
+    `Scope: ${snapshot.projectRoot} · ${snapshot.continuityId}`,
+    `Origin: ${snapshot.instanceId} · ${snapshot.sessionId} · ${snapshot.attachmentId}`,
+    `Priority/rank: ${snapshot.priority}/${snapshot.rank}`,
+    `Dependencies: ${snapshot.dependencies.join(", ") || "none"}`,
+    `Blockers: ${snapshot.blockers.join(", ") || "none"}`,
+    `Evidence/artifacts: ${snapshot.evidenceRefs.length}/${snapshot.artifactRefs.length}`,
+    `Change/receipt/closure: ${snapshot.changeSetRef} · ${snapshot.receiptRef} · ${snapshot.closureClaimRef}`,
+    `Updated: ${snapshot.updatedAt}`,
+  ];
 }
 
 export function renderWorkRailWidget(
@@ -130,8 +159,8 @@ export function renderWorkRailWidget(
     );
   }
   const lines = [
-    `${palette.accent(active)} ${palette.good(item)}  ${palette.dim(`[${state}]`)}  WP ${workpoint}`,
-    `${palette.dim(`${proof} proof ${snapshot.proofCount} · ${snapshot.blockers?.length ?? 0} blockers · ${mode} · ${capability}`)}  ${next} ${nextAction}`,
+    `${palette.accent(active)} ${palette.good(item)}  ${palette.dim(`[${state}]`)}  WP ${workpoint}  P${snapshot.priority}/${snapshot.rank}`,
+    `${palette.dim(`${proof} proof ${snapshot.proofCount} · ${snapshot.dependencies?.length ?? 0} deps · ${snapshot.blockers?.length ?? 0} blockers · ${snapshot.artifactRefs?.length ?? 0} artifacts · ${mode} · ${capability}`)}  ${next} ${nextAction}`,
   ];
   if (width >= 76 && snapshot.badges?.length) lines.push(palette.dim(snapshot.badges.join(" · ")));
   return fitToWidth(lines, width);

@@ -27,14 +27,25 @@ delete process.env.FOCUSA_PI_INTERACTION_MODE;
 assert.deepEqual(config.resolveInteractionMode(project), { mode: "canvas-guided", source: "default" });
 writeFileSync(
   join(home, ".pi", "agent", "settings.json"),
-  JSON.stringify({ focusaPiBridge: { interactionMode: "terminal-guided" } })
+  JSON.stringify({
+    focusaPiBridge: {
+      interactionMode: "terminal-guided",
+      missionCanvasWorkspaceProfile: "legal",
+      missionCanvasVisualVariant: "high-contrast",
+    },
+  })
 );
 assert.deepEqual(config.resolveInteractionMode(project), { mode: "terminal-guided", source: "user" });
 writeFileSync(
   join(project, ".pi", "settings.json"),
-  JSON.stringify({ focusaPiBridge: { interactionMode: "canvas-guided" } })
+  JSON.stringify({
+    focusaPiBridge: { interactionMode: "canvas-guided", missionCanvasWorkspaceProfile: "software" },
+  })
 );
 assert.deepEqual(config.resolveInteractionMode(project), { mode: "canvas-guided", source: "project" });
+const layered = config.loadConfig(project).config;
+assert.equal(layered.missionCanvasWorkspaceProfile, "software");
+assert.equal(layered.missionCanvasVisualVariant, "high-contrast");
 process.env.FOCUSA_PI_INTERACTION_MODE = "headless";
 assert.deepEqual(config.resolveInteractionMode(project), { mode: "headless", source: "session-env" });
 

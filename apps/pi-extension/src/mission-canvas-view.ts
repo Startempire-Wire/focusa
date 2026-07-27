@@ -21,6 +21,7 @@ export interface MissionCanvasModel {
   nextAction: string;
   workpointId: string;
   workItemId: string;
+  workRailDetails: string[];
   projectRoot: string;
   continuityId: string;
   evidenceRefs: string[];
@@ -37,6 +38,8 @@ export interface MissionCanvasModel {
   specStatus: string;
   workLoopStatus: string;
   scopeStatus: string;
+  workspaceProfile: string;
+  visualVariant: string;
 }
 
 const PANELS: MissionCanvasPanel[] = [
@@ -137,7 +140,12 @@ export class MissionCanvasView implements Component {
   render(width: number): string[] {
     const panel = PANELS[this.selected];
     const lines = [
-      this.theme.fg("accent", this.theme.bold("FOCUSA MISSION CANVAS")),
+      this.theme.fg(
+        "accent",
+        this.theme.bold(
+          `FOCUSA MISSION CANVAS · ${text(this.model.workspaceProfile).toUpperCase()} · ${text(this.model.visualVariant)}`
+        )
+      ),
       this.theme.fg(
         "muted",
         `${this.model.scopeStatus} · ${text(this.model.projectRoot)} · ${this.refreshing ? "refreshing" : "live"} · R refresh · Esc close · ←/→ panel · Alt+←/→ surface`
@@ -206,8 +214,7 @@ export class MissionCanvasView implements Component {
             "Current attachment has no projected surface detail"
           ),
           this.heading("WORK RAIL"),
-          `  Item: ${text(this.model.workItemId, "No provider item")}`,
-          `  Workpoint: ${text(this.model.workpointId, "No canonical Workpoint")}`,
+          ...rows(this.model.workRailDetails, "No canonical Work Rail item detail"),
           `  Loop: ${text(this.model.workLoopStatus)}`,
           this.heading("BLOCKERS"),
           ...rows(this.model.blockers, "No blockers reported"),
