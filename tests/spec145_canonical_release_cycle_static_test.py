@@ -8,6 +8,7 @@ CORE = (ROOT / "crates/focusa-core/src/release_cycle.rs").read_text()
 INTELLIGENCE = (ROOT / "crates/focusa-core/src/release_intelligence.rs").read_text()
 UPDATE = (ROOT / "crates/focusa-cli/src/commands/update.rs").read_text()
 RELEASE_CLI = (ROOT / "crates/focusa-cli/src/commands/release.rs").read_text()
+TAG_SCRIPT = (ROOT / "scripts/create-dev-release-tag.sh").read_text()
 CI = (ROOT / ".github/workflows/ci.yml").read_text()
 RELEASE = (ROOT / ".github/workflows/release.yml").read_text()
 SPEC132 = (ROOT / ".github/workflows/spec132-terminal-matrix.yml").read_text()
@@ -50,6 +51,16 @@ require(
     "release intelligence",
 )
 require(
+    TAG_SCRIPT,
+    [
+        "push_candidate_main_with_auto_rebase",
+        "Waiting for exact stamped-candidate preflight before immutable tag",
+        'git push origin "${TAG}"',
+    ],
+    "exact candidate pre-tag flow",
+)
+assert TAG_SCRIPT.index("  push_candidate_main_with_auto_rebase\n") < TAG_SCRIPT.rindex('git tag "${TAG}" HEAD'), "tag created before candidate preflight"
+require(
     RELEASE_CLI,
     [
         "ReleaseCycleCmd",
@@ -91,10 +102,12 @@ require(
         "Upload release candidate lock",
         "Release blocked by release-scoped pull requests",
         "unrelated open pull requests remain queued outside the locked candidate",
-        "Require exact source-SHA preflight receipts",
+        "Require exact candidate-SHA preflight receipts",
         "Exact tag CI proof",
         "tag-ci-proof",
         "needs: [tauri-build, rust-release, pi-extension-release, tag-ci-proof]",
+        "shared-key: release-target-${{ matrix.target }}",
+        "actions/workflows/ci.yml/runs",
         "2>/dev/null || echo '[]'",
     ],
     "Release trigger/cache controls",
@@ -111,6 +124,8 @@ require(
         "crates/focusa-session-runner/**",
         "spec132-${{ github.event.pull_request.number || github.ref }}",
         "Swatinem/rust-cache@v2",
+        "shared-key: release-target-${{ matrix.target }}",
+        "toolchain: nightly-2026-01-08",
     ],
     "Spec132 ownership",
 )

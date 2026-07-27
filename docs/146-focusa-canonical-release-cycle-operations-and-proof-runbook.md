@@ -147,10 +147,13 @@ a durable exact-SHA candidate-lock artifact.
 Next critical-path optimization:
 
 - Release remains the bottleneck at 1044 seconds.
-- Source-SHA CI is now required before tagging and revalidated as a receipt by
-  Release; full Rust tests/clippy are removed from the serial Release gate.
-- Stamped-tag CI remains mandatory and runs concurrently with immutable artifact
-  builds; checksum publication waits for its successful receipt.
+- Release surfaces are stamped into an untagged candidate commit, pushed to
+  `main`, and exact candidate-SHA CI/conditional Spec132 must pass before the
+  immutable tag is created.
+- Release revalidates those exact candidate receipts; full Rust tests/clippy are
+  removed from the serial Release gate.
+- The independent tag-CI publication gate queries exact-SHA workflow receipts;
+  checksum publication waits for its successful result.
 - Cache hit/miss telemetry must be captured per target to distinguish cold-cache
   candidate cost from steady-state speed.
 - The next candidate must measure whether concurrent artifact builds plus the
