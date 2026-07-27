@@ -282,12 +282,16 @@ export function registerCommands(pi: ExtensionAPI) {
         );
         return;
       }
-      const [workpoint, trajectory, workLoop, sessions] = await Promise.all([
-        focusaFetch("/v1/workpoint/resume").catch(() => null),
-        focusaFetch("/v1/trajectory/view").catch(() => null),
-        focusaFetch("/work-loop/status?summary_only=true").catch(() => null),
-        focusaFetch("/v1/session/discover").catch(() => null),
-      ]);
+      const [workpoint, trajectory, workLoop, sessions, surfaces, interviews, closurePackage] =
+        await Promise.all([
+          focusaFetch("/v1/workpoint/resume").catch(() => null),
+          focusaFetch("/v1/trajectory/view").catch(() => null),
+          focusaFetch("/work-loop/status?summary_only=true").catch(() => null),
+          focusaFetch("/v1/session/discover").catch(() => null),
+          focusaFetch("/v1/mission-canvas/surfaces").catch(() => null),
+          focusaFetch("/v1/interviews/sessions").catch(() => null),
+          focusaFetch("/v1/interviews/closure-package").catch(() => null),
+        ]);
       const packet = workpoint?.workpoint ?? workpoint?.resume_packet ?? workpoint ?? {};
       const evidenceRefs = Array.isArray(packet?.verification_records)
         ? packet.verification_records.map((record: any) =>
@@ -303,6 +307,16 @@ export function registerCommands(pi: ExtensionAPI) {
               .join(" · ")
           )
         : [];
+      const surfaceRows = Array.isArray(surfaces?.surfaces)
+        ? surfaces.surfaces.map((surface: any) =>
+            [surface?.title ?? surface?.surface_id, surface?.status, surface?.attachment_id]
+              .filter(Boolean)
+              .join(" · ")
+          )
+        : [];
+      const interviewRows = Array.isArray(interviews?.sessions) ? interviews.sessions : [];
+      const activeInterview =
+        interviewRows.find((session: any) => session?.status === "active") ?? interviewRows[0];
       const model: MissionCanvasModel = {
         mission: String(packet?.mission ?? packet?.current_ask ?? "No active Mission Canvas Workpoint"),
         trajectory: String(
@@ -321,15 +335,30 @@ export function registerCommands(pi: ExtensionAPI) {
         evidenceRefs,
         blockers: Array.isArray(packet?.blockers) ? packet.blockers.map(String) : [],
         sessions: sessionRows,
-        workSurfaces: sessionRows.length
-          ? sessionRows
-          : [String(packet?.attachment_id ?? "Current Pi attachment")],
+        workSurfaces: surfaceRows.length
+          ? surfaceRows
+          : sessionRows.length
+            ? sessionRows
+            : [String(packet?.attachment_id ?? "Current Pi attachment")],
         contextStatus: String(
           trajectory?.current_state ?? packet?.context_status ?? "Context review required"
         ),
-        roleStatus: String(packet?.role_status ?? "Role profile not reported"),
-        interviewStatus: String(packet?.interview_status ?? "Interview state not reported"),
-        specStatus: String(packet?.spec_status ?? "Spec state not reported"),
+        roleStatus: String(
+          closurePackage?.role_profile?.summary ??
+            activeInterview?.role_summary ??
+            "Role profile not reported"
+        ),
+        interviewStatus: String(
+          activeInterview
+            ? `${activeInterview.status ?? "unknown"} · ${activeInterview.session_id ?? "unidentified session"}`
+            : "No durable interview session reported"
+        ),
+        specStatus: String(
+          closurePackage?.spec_package?.status ??
+            closurePackage?.status ??
+            packet?.spec_status ??
+            "Spec state not reported"
+        ),
         workLoopStatus: String(workLoop?.status ?? workLoop?.state ?? "Unavailable"),
         scopeStatus: `${String(workpoint?.status ?? "advisory")} · mode ${interactionMode.mode} (${interactionMode.source})`,
       };
