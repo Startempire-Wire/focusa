@@ -6,6 +6,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { getSettingsListTheme } from "@earendil-works/pi-coding-agent";
 import { Container, Text, type SettingItem, SettingsList } from "@earendil-works/pi-tui";
 import {
+  currentAttachmentKey,
   getAttachmentRuntime,
   focusaFetch,
   compatibleWorkLoopStatusState,
@@ -272,6 +273,15 @@ export function registerCommands(pi: ExtensionAPI) {
   pi.registerCommand("focusa-settings", {
     description: "Open Focusa settings panel",
     handler: async (args, ctx) => {
+      const settingsAttachmentKey = currentAttachmentKey();
+      if (!settingsAttachmentKey) {
+        ctx.ui.notify(
+          "Focusa settings unavailable: scoped attachment runtime is missing; no setting was changed.",
+          "error"
+        );
+        return;
+      }
+      const settingsRuntime = getAttachmentRuntime(settingsAttachmentKey);
       const simpleProfiles = ["starter", "builder", "hands_off", "audit_safe"] as const;
       type SimpleProfileId = (typeof simpleProfiles)[number];
       const advancedMode = /\badvanced\b/i.test(String(args || ""));
@@ -337,40 +347,40 @@ export function registerCommands(pi: ExtensionAPI) {
       };
 
       const draft = {
-        contextStatusMode: getAttachmentRuntime().cfg?.contextStatusMode || "actionable",
-        vitalInfoPromptMode: getAttachmentRuntime().cfg?.vitalInfoPromptMode || "prompt",
+        contextStatusMode: settingsRuntime.cfg?.contextStatusMode || "actionable",
+        vitalInfoPromptMode: settingsRuntime.cfg?.vitalInfoPromptMode || "prompt",
         vitalInfoPromptSurfaces:
-          getAttachmentRuntime().cfg?.vitalInfoPromptSurfaces ||
+          settingsRuntime.cfg?.vitalInfoPromptSurfaces ||
           "project_root,project_verify,workpoint,trajectory",
-        warnPct: getAttachmentRuntime().cfg?.warnPct || 50,
-        compactPct: getAttachmentRuntime().cfg?.compactPct || 70,
-        hardPct: getAttachmentRuntime().cfg?.hardPct || 85,
-        autoCompactionEnabled: getAttachmentRuntime().cfg?.autoCompactionEnabled ?? true,
-        autoCompactionTokenCap: getAttachmentRuntime().cfg?.autoCompactionTokenCap ?? 256_000,
-        autoCompactionReserveTokens: getAttachmentRuntime().cfg?.autoCompactionReserveTokens ?? 16_384,
-        autoCompactionReservePct: getAttachmentRuntime().cfg?.autoCompactionReservePct ?? 10,
-        autoCompactionCooldownMs: getAttachmentRuntime().cfg?.autoCompactionCooldownMs ?? 60_000,
-        workLoopPreset: getAttachmentRuntime().cfg?.workLoopPreset || "balanced",
-        workLoopMaxTurns: getAttachmentRuntime().cfg?.workLoopMaxTurns || 12,
-        workLoopMaxWallClockMs: getAttachmentRuntime().cfg?.workLoopMaxWallClockMs || 1_800_000,
-        workLoopMaxRetries: getAttachmentRuntime().cfg?.workLoopMaxRetries || 3,
-        workLoopCooldownMs: getAttachmentRuntime().cfg?.workLoopCooldownMs || 1_000,
-        workLoopAllowDestructiveActions: getAttachmentRuntime().cfg?.workLoopAllowDestructiveActions || false,
+        warnPct: settingsRuntime.cfg?.warnPct || 50,
+        compactPct: settingsRuntime.cfg?.compactPct || 70,
+        hardPct: settingsRuntime.cfg?.hardPct || 85,
+        autoCompactionEnabled: settingsRuntime.cfg?.autoCompactionEnabled ?? true,
+        autoCompactionTokenCap: settingsRuntime.cfg?.autoCompactionTokenCap ?? 256_000,
+        autoCompactionReserveTokens: settingsRuntime.cfg?.autoCompactionReserveTokens ?? 16_384,
+        autoCompactionReservePct: settingsRuntime.cfg?.autoCompactionReservePct ?? 10,
+        autoCompactionCooldownMs: settingsRuntime.cfg?.autoCompactionCooldownMs ?? 60_000,
+        workLoopPreset: settingsRuntime.cfg?.workLoopPreset || "balanced",
+        workLoopMaxTurns: settingsRuntime.cfg?.workLoopMaxTurns || 12,
+        workLoopMaxWallClockMs: settingsRuntime.cfg?.workLoopMaxWallClockMs || 1_800_000,
+        workLoopMaxRetries: settingsRuntime.cfg?.workLoopMaxRetries || 3,
+        workLoopCooldownMs: settingsRuntime.cfg?.workLoopCooldownMs || 1_000,
+        workLoopAllowDestructiveActions: settingsRuntime.cfg?.workLoopAllowDestructiveActions || false,
         workLoopRequireOperatorForGovernance:
-          getAttachmentRuntime().cfg?.workLoopRequireOperatorForGovernance ?? true,
+          settingsRuntime.cfg?.workLoopRequireOperatorForGovernance ?? true,
         workLoopRequireOperatorForScopeChange:
-          getAttachmentRuntime().cfg?.workLoopRequireOperatorForScopeChange ?? true,
+          settingsRuntime.cfg?.workLoopRequireOperatorForScopeChange ?? true,
         workLoopRequireVerificationBeforePersist:
-          getAttachmentRuntime().cfg?.workLoopRequireVerificationBeforePersist ?? true,
+          settingsRuntime.cfg?.workLoopRequireVerificationBeforePersist ?? true,
         workLoopMaxConsecutiveLowProductivityTurns:
-          getAttachmentRuntime().cfg?.workLoopMaxConsecutiveLowProductivityTurns || 3,
-        workLoopMaxConsecutiveFailures: getAttachmentRuntime().cfg?.workLoopMaxConsecutiveFailures || 3,
+          settingsRuntime.cfg?.workLoopMaxConsecutiveLowProductivityTurns || 3,
+        workLoopMaxConsecutiveFailures: settingsRuntime.cfg?.workLoopMaxConsecutiveFailures || 3,
         workLoopAutoPauseOnOperatorMessage:
-          getAttachmentRuntime().cfg?.workLoopAutoPauseOnOperatorMessage ?? true,
+          settingsRuntime.cfg?.workLoopAutoPauseOnOperatorMessage ?? true,
         workLoopRequireExplainableContinueReason:
-          getAttachmentRuntime().cfg?.workLoopRequireExplainableContinueReason ?? true,
-        workLoopMaxSameSubproblemRetries: getAttachmentRuntime().cfg?.workLoopMaxSameSubproblemRetries || 2,
-        workLoopStatusHeartbeatMs: getAttachmentRuntime().cfg?.workLoopStatusHeartbeatMs || 5_000,
+          settingsRuntime.cfg?.workLoopRequireExplainableContinueReason ?? true,
+        workLoopMaxSameSubproblemRetries: settingsRuntime.cfg?.workLoopMaxSameSubproblemRetries || 2,
+        workLoopStatusHeartbeatMs: settingsRuntime.cfg?.workLoopStatusHeartbeatMs || 5_000,
       };
 
       const applySimpleProfile = (profile: SimpleProfileId) => {
@@ -441,12 +451,21 @@ export function registerCommands(pi: ExtensionAPI) {
 
       let simpleProfile: SimpleProfileId = inferSimpleProfile();
 
-      const persistDraft = () => {
-        normalizeTierConfig(draft);
-        const saved = saveConfigOverrides(ctx.cwd, draft, "project");
-        getAttachmentRuntime().cfg = saved.config;
-        if (saved.errors.length) ctx.ui.notify(saved.errors.join("\n"), "warning");
-        else ctx.ui.notify(`Saved Focusa settings → ${saved.path}`, "info");
+      const persistDraft = (): boolean => {
+        try {
+          normalizeTierConfig(draft);
+          const saved = saveConfigOverrides(ctx.cwd, draft, "project");
+          settingsRuntime.cfg = saved.config;
+          if (saved.errors.length) ctx.ui.notify(saved.errors.join("\n"), "warning");
+          else ctx.ui.notify(`Saved Focusa settings → ${saved.path}`, "info");
+          return saved.errors.length === 0;
+        } catch (error) {
+          ctx.ui.notify(
+            `Focusa setting was not saved; prior configuration remains active. ${String((error as Error)?.message || error).slice(0, 180)}`,
+            "error"
+          );
+          return false;
+        }
       };
 
       const buildSimpleItems = (): SettingItem[] => [
@@ -727,20 +746,37 @@ export function registerCommands(pi: ExtensionAPI) {
           getSettingsListTheme(),
           (id, newValue) => {
             if (id === "otaEnabled") {
+              const priorEnabled = otaEnabled;
               otaEnabled = String(newValue) === "true";
-              void persistOtaPolicy();
+              void persistOtaPolicy().catch((error) => {
+                otaEnabled = priorEnabled;
+                ctx.ui.notify(
+                  `OTA setting was not saved; prior value restored. ${String((error as Error)?.message || error).slice(0, 180)}`,
+                  "error"
+                );
+              });
               return;
             }
             if (id === "otaProfile") {
+              const priorProfile = otaProfile;
+              const priorEnabled = otaEnabled;
               otaProfile = String(newValue);
               otaEnabled = otaProfile !== "notify";
-              void persistOtaPolicy();
+              void persistOtaPolicy().catch((error) => {
+                otaProfile = priorProfile;
+                otaEnabled = priorEnabled;
+                ctx.ui.notify(
+                  `OTA setting was not saved; prior value restored. ${String((error as Error)?.message || error).slice(0, 180)}`,
+                  "error"
+                );
+              });
               return;
             }
+            const priorDraft = { ...draft };
             if (id === "simpleProfile") {
               simpleProfile = String(newValue) as SimpleProfileId;
               applySimpleProfile(simpleProfile);
-              persistDraft();
+              if (!persistDraft()) Object.assign(draft, priorDraft);
               return;
             }
             if (id === "contextStatusMode") draft.contextStatusMode = String(newValue) as any;
@@ -778,7 +814,7 @@ export function registerCommands(pi: ExtensionAPI) {
             if (id === "workLoopMaxSameSubproblemRetries")
               draft.workLoopMaxSameSubproblemRetries = Number(newValue);
             if (id === "workLoopStatusHeartbeatMs") draft.workLoopStatusHeartbeatMs = Number(newValue);
-            persistDraft();
+            if (!persistDraft()) Object.assign(draft, priorDraft);
           },
           () => done(undefined),
           { enableSearch: true }

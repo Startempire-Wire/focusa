@@ -1,0 +1,25 @@
+GitHub #47 Focusa settings attachment safety proof
+Observed: 2026-07-27
+
+Root cause:
+- SettingsList.onChange runs after the command AsyncLocalStorage attachment context
+- persistDraft called context-dependent getAttachmentRuntime() with no key
+- the exception escaped the deferred UI callback and terminated Pi
+
+Fix:
+- capture currentAttachmentKey and its runtime at command entry
+- every deferred settings callback uses the captured runtime explicitly
+- settings refuse to open when scoped attachment authority is absent
+- persistence is exception-contained and reports that the prior configuration remains active
+- draft and OTA values restore prior state when persistence fails
+- settings never call unkeyed getAttachmentRuntime() from deferred callbacks
+
+Proof:
+- Pi extension TypeScript typecheck: PASS
+- settings-attachment-safety.test.mjs: PASS
+- Spec104 attachment runtime isolation test: PASS
+- lost AsyncLocalStorage context reproduced; captured runtime remains usable
+- attachment A footer mutation did not affect attachment B
+- simple/advanced Footer settings and every persistDraft callback are covered by static regression assertions
+- no uncaught exception or rejected persistence promise escapes the callback
+- git diff --check: PASS

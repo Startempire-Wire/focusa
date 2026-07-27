@@ -23,7 +23,8 @@
     "test:spec104-attachment": "node tests/spec104-attachment-runtime-isolation.test.mjs",
     "test:cache-safe-context": "node tests/cache-safe-context.test.mjs",
     "test:ota-activation": "node tests/ota-activation.test.mjs",
-    "test:work-rail-width": "node tests/work-rail-widget-width.test.mjs"
+    "test:work-rail-width": "node tests/work-rail-widget-width.test.mjs",
+    "test:settings-attachment": "node tests/settings-attachment-safety.test.mjs"
   },
   "dependencies": {
     "@sinclair/typebox": "^0.34.0"
