@@ -44,6 +44,16 @@ assert_grep() {
   fi
 }
 
+assert_not_grep() {
+  local needle="$1"
+  local file="$2"
+  local label="$3"
+  if grep -Fq -e "$needle" "$file"; then
+    echo "✗ $label"
+    exit 1
+  fi
+}
+
 # Workflow file assertions
 assert_grep 'name: Deploy Live Daemon' .github/workflows/deploy-live-daemon.yml 'workflow name missing'
 assert_grep 'types: [published]' .github/workflows/deploy-live-daemon.yml 'release trigger missing'
@@ -90,8 +100,8 @@ assert_grep 'deploy_health' scripts/install-daemon.sh 'health-timeout audit even
 assert_grep 'watchdog_check' scripts/install-daemon.sh 'watchdog wiring missing'
 assert_grep 'watchdog_loop' scripts/install-daemon.sh 'background watchdog loop missing'
 assert_grep 'timeout 3' scripts/install-daemon.sh 'binary_version must use timeout fallback'
-assert_grep 'workflow_run' .github/workflows/auto-retry-deploy.yml 'auto-retry must be self-triggered via workflow_run'
-assert_grep 'Auto Heal Release Pipeline' .github/workflows/auto-retry-deploy.yml 'auto-heal workflow name missing'
+assert_not_grep '  workflow_run:' .github/workflows/auto-retry-deploy.yml 'quarantined auto-retry must not retain automatic workflow_run authority'
+assert_grep 'status=quarantined' .github/workflows/auto-retry-deploy.yml 'auto-retry quarantine boundary missing'
 
 # Self-hosted runner must self-heal from kernel OOM kills
 assert_grep 'MemoryMax=' scripts/install-self-hosted-runner.sh 'runner MemoryMax override missing'
@@ -190,8 +200,8 @@ python3 tests/self_heal_classifier_fixture_test.py
 assert_grep 'Self-heal decision' scripts/render-self-heal-decision-summary.sh 'summary renderer must emit decision heading'
 assert_grep 'repair_required_no_rerun' scripts/render-self-heal-decision-summary.sh 'summary renderer must emit deterministic no-rerun decision'
 assert_grep 'rerun_once_allowed' scripts/render-self-heal-decision-summary.sh 'summary renderer must emit transient rerun decision'
-assert_grep 'render-self-heal-decision-summary.sh' .github/workflows/auto-retry-deploy.yml 'auto heal must call summary renderer'
-assert_grep 'render-self-heal-decision-summary.sh' .github/workflows/release-pipeline-watchdog.yml 'watchdog must call summary renderer'
+assert_grep 'status=quarantined' .github/workflows/auto-retry-deploy.yml 'quarantined auto heal must explain its non-mutation boundary'
+assert_grep 'render-self-heal-decision-summary.sh' .github/workflows/release-pipeline-watchdog.yml 'governed watchdog must call summary renderer'
 summary_tmp="$(mktemp)"
 GITHUB_STEP_SUMMARY="$summary_tmp" SELF_HEAL_SURFACE="test" SELF_HEAL_WORKFLOW="CI" SELF_HEAL_RUN_ID="123" SELF_HEAL_HEAD_SHA="abc" failure_class="ci_clippy_failure" retry_policy="hard_failure_no_rerun" deterministic="true" safe_to_rerun_unchanged="false" plain_language_error="blocked" likely_root_cause="lint" remediation_template="patch it" source_refs="crates/example.rs:1:1" signals="clippy" bash scripts/render-self-heal-decision-summary.sh
 assert_grep 'decision | `repair_required_no_rerun`' "$summary_tmp" 'summary renderer output missing deterministic decision'
@@ -371,8 +381,8 @@ assert_grep 'focusa.release_failure_classification.v1' scripts/classify-ci-failu
 assert_grep 'rust_compile_api_drift' scripts/classify-ci-failure.py 'classifier missing API drift class'
 assert_grep 'source_refs' scripts/classify-ci-failure.py 'classifier must emit source refs'
 assert_grep 'scripts/classify-ci-failure.py' .github/scripts/classify-release-failure.sh 'release classifier wrapper must delegate to DRY classifier'
-assert_grep 'classify-release-failure.sh' .github/workflows/auto-retry-deploy.yml 'auto retry must call shared classifier wrapper'
-assert_grep 'classify-release-failure.sh' .github/workflows/release-pipeline-watchdog.yml 'watchdog must call shared classifier wrapper'
+assert_grep 'status=quarantined' .github/workflows/auto-retry-deploy.yml 'quarantined auto retry must not classify or mutate'
+assert_grep 'scripts/classify-ci-failure.py failed.log --format json' .github/workflows/release-pipeline-watchdog.yml 'governed watchdog must call the canonical structured classifier'
 classifier_sample="$(mktemp)"
 cat > "$classifier_sample" <<'LOG'
 Rust	UNKNOWN STEP	2026-07-04T21:27:55Z error: 14 positional arguments in format string, but there are 13 arguments

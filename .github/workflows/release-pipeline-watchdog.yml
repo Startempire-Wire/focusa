@@ -68,6 +68,19 @@ jobs:
             cls="$(jq -r '.failure_class // "unclassified"' <<<"${classification:-{}}")"
             retry_policy="$(jq -r '.retry_policy // "operator_review"' <<<"${classification:-{}}")"
             deterministic="$(jq -r '.deterministic // false' <<<"${classification:-{}}")"
+            safe_to_rerun_unchanged="$(jq -r '.safe_to_rerun_unchanged // false' <<<"${classification:-{}}")"
+            plain_language_error="$(jq -r '.plain_language_error // "classified workflow failure"' <<<"${classification:-{}}")"
+            likely_root_cause="$(jq -r '.likely_root_cause // "see failed workflow evidence"' <<<"${classification:-{}}")"
+            remediation_template="$(jq -r '.remediation_template // "governed recovery or operator patch"' <<<"${classification:-{}}")"
+            source_refs="$(jq -r '(.source_refs // []) | join(",")' <<<"${classification:-{}}")"
+            signals="$(jq -r '(.signals // []) | join(",")' <<<"${classification:-{}}")"
+            SELF_HEAL_SURFACE="release-pipeline-watchdog" \
+              SELF_HEAL_WORKFLOW="$wf" SELF_HEAL_RUN_ID="$id" SELF_HEAL_HEAD_SHA="$sha" \
+              failure_class="$cls" retry_policy="$retry_policy" deterministic="$deterministic" \
+              safe_to_rerun_unchanged="$safe_to_rerun_unchanged" \
+              plain_language_error="$plain_language_error" likely_root_cause="$likely_root_cause" \
+              remediation_template="$remediation_template" source_refs="$source_refs" signals="$signals" \
+              bash scripts/render-self-heal-decision-summary.sh
             artifact=""
             scope="run:$id"
             if [[ "$wf" == "Deploy Live Daemon" ]]; then
