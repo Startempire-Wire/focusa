@@ -95,6 +95,7 @@ require(
         "Exact tag CI proof",
         "tag-ci-proof",
         "needs: [tauri-build, rust-release, pi-extension-release, tag-ci-proof]",
+        "2>/dev/null || echo '[]'",
     ],
     "Release trigger/cache controls",
 )
