@@ -237,13 +237,18 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: apps/pi-extension/package-lock.json
       - name: Install locked dependencies
-        run: bun install --cwd apps/pi-extension --frozen-lockfile
+        working-directory: apps/pi-extension
+        run: npm ci --ignore-scripts
       - name: Typecheck, lint, and Spec101 bloatgaurd detail routes
         run: |
-          bun --cwd apps/pi-extension run typecheck
-          bun --cwd apps/pi-extension run lint
+          npm --prefix apps/pi-extension run typecheck
+          npm --prefix apps/pi-extension run lint
           node apps/pi-extension/tests/spec101-bloatgaurd-details-route.test.mjs
           node apps/pi-extension/tests/spec101-bloatgaurd-profile-runtime.test.mjs
           node apps/pi-extension/tests/spec101-bloatgaurd-pressure-circuit-runtime.test.mjs

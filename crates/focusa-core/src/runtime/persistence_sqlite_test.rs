@@ -380,6 +380,103 @@ fn sqlite_persistence_preserves_spec133_tables_while_creating_runtime_projection
 }
 
 #[test]
+fn sqlite_persistence_copies_exact_v5_projection_rows_into_runtime_namespace() {
+    let dir = temp_dir();
+    let db_path = dir.join("focusa.sqlite");
+    let mut cfg = FocusaConfig::default();
+    cfg.data_dir = dir.to_string_lossy().to_string();
+
+    // Seed all unrelated/current schema metadata, then recreate the three V5
+    // projection tables exactly as retained by pre-namespace installations.
+    drop(SqlitePersistence::new(&cfg).unwrap());
+    let legacy = Connection::open(&db_path).unwrap();
+    legacy
+        .execute_batch(
+            r#"
+            DROP TABLE IF EXISTS runtime_silent_session_events;
+            DROP TABLE IF EXISTS runtime_silent_session_runs;
+            DROP TABLE IF EXISTS runtime_silent_sessions;
+            DROP TABLE IF EXISTS silent_session_events;
+            DROP TABLE IF EXISTS silent_session_runs;
+            DROP TABLE IF EXISTS silent_sessions;
+
+            CREATE TABLE silent_sessions (
+              session_id TEXT PRIMARY KEY,
+              project_root TEXT NOT NULL,
+              continuity_id TEXT NOT NULL,
+              lifecycle_state TEXT NOT NULL,
+              projection_json TEXT NOT NULL,
+              projection_version INTEGER NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+            CREATE TABLE silent_session_runs (
+              run_id TEXT PRIMARY KEY,
+              session_id TEXT NOT NULL,
+              generation INTEGER NOT NULL CHECK(generation > 0),
+              run_json TEXT NOT NULL,
+              updated_at TEXT NOT NULL,
+              UNIQUE(session_id, generation)
+            );
+            CREATE TABLE silent_session_events (
+              event_id TEXT PRIMARY KEY,
+              session_id TEXT NOT NULL,
+              run_id TEXT NOT NULL,
+              seq INTEGER NOT NULL,
+              occurred_at TEXT NOT NULL,
+              event_json TEXT NOT NULL,
+              payload_sha256 TEXT NOT NULL,
+              previous_hash TEXT NOT NULL,
+              event_hash TEXT NOT NULL,
+              UNIQUE(session_id, run_id, seq)
+            );
+            INSERT INTO silent_sessions VALUES(
+              'v5-session', '/tmp/project', 'main', 'running',
+              '{"session_id":"v5-session"}', 3, '2026-01-01T00:00:00Z'
+            );
+            INSERT INTO silent_session_runs VALUES(
+              'v5-run', 'v5-session', 1, '{"run_id":"v5-run"}',
+              '2026-01-01T00:00:01Z'
+            );
+            INSERT INTO silent_session_events VALUES(
+              'v5-event', 'v5-session', 'v5-run', 1,
+              '2026-01-01T00:00:02Z', '{"event_id":"v5-event"}',
+              'payload-hash', 'GENESIS', 'event-hash'
+            );
+            "#,
+        )
+        .unwrap();
+    drop(legacy);
+
+    let _persistence = SqlitePersistence::new(&cfg)
+        .expect("exact retained V5 projections must copy into runtime namespace");
+    let migrated = Connection::open(&db_path).unwrap();
+    let session: (String, i64) = migrated
+        .query_row(
+            "SELECT lifecycle_state, projection_version FROM runtime_silent_sessions WHERE session_id='v5-session'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    let run_generation: i64 = migrated
+        .query_row(
+            "SELECT generation FROM runtime_silent_session_runs WHERE run_id='v5-run'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let event: (i64, String, String) = migrated
+        .query_row(
+            "SELECT seq, payload_sha256, event_hash FROM runtime_silent_session_events WHERE event_id='v5-event'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .unwrap();
+    assert_eq!(session, ("running".into(), 3));
+    assert_eq!(run_generation, 1);
+    assert_eq!(event, (1, "payload-hash".into(), "event-hash".into()));
+}
+
+#[test]
 fn sqlite_persistence_rejects_incompatible_schema_version() {
     let dir = temp_dir();
 

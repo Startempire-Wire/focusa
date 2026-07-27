@@ -430,14 +430,26 @@ impl SqlitePersistence {
         // projection schema. Copy only tables that prove that V5 shape; retained
         // Spec133 tables use different identity columns and remain untouched.
         // INSERT OR IGNORE makes this a one-time, idempotent bridge.
-        if table_has_columns(&conn, "silent_sessions", &["session_id", "projection_json"])? {
+        if table_has_columns(
+            &conn,
+            "silent_sessions",
+            &[
+                "session_id",
+                "project_root",
+                "continuity_id",
+                "lifecycle_state",
+                "projection_json",
+                "projection_version",
+                "updated_at",
+            ],
+        )? {
             conn.execute_batch(
                 r#"
                 INSERT OR IGNORE INTO runtime_silent_sessions
-                  (session_id, project_root, continuity_id, action_class, authority_class,
-                   lifecycle_state, projection_json, projection_version, updated_at)
-                SELECT session_id, project_root, continuity_id, action_class, authority_class,
-                       lifecycle_state, projection_json, projection_version, updated_at
+                  (session_id, project_root, continuity_id, lifecycle_state,
+                   projection_json, projection_version, updated_at)
+                SELECT session_id, project_root, continuity_id, lifecycle_state,
+                       projection_json, projection_version, updated_at
                 FROM silent_sessions;
                 "#,
             )?;
@@ -452,12 +464,28 @@ impl SqlitePersistence {
                 "#,
             )?;
         }
-        if table_has_columns(&conn, "silent_session_events", &["sequence", "event_json"])? {
+        if table_has_columns(
+            &conn,
+            "silent_session_events",
+            &[
+                "event_id",
+                "session_id",
+                "run_id",
+                "seq",
+                "occurred_at",
+                "event_json",
+                "payload_sha256",
+                "previous_hash",
+                "event_hash",
+            ],
+        )? {
             conn.execute_batch(
                 r#"
                 INSERT OR IGNORE INTO runtime_silent_session_events
-                  (event_id, session_id, run_id, generation, sequence, event_kind, event_json, created_at)
-                SELECT event_id, session_id, run_id, generation, sequence, event_kind, event_json, created_at
+                  (event_id, session_id, run_id, seq, occurred_at, event_json,
+                   payload_sha256, previous_hash, event_hash)
+                SELECT event_id, session_id, run_id, seq, occurred_at, event_json,
+                       payload_sha256, previous_hash, event_hash
                 FROM silent_session_events;
                 "#,
             )?;
