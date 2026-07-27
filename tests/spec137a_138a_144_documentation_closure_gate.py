@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+from pathlib import Path
+import json
+import re
+
+ROOT = Path(__file__).resolve().parents[1]
+required = [
+    "docs/contracts/spec137a-normative-source-coverage.v1.yaml",
+    "docs/contracts/spec137a-applicability-matrix.v1.yaml",
+    "docs/contracts/spec137a-conformance-class-matrix.v1.yaml",
+    "docs/contracts/spec137a-forbidden-placeholder-audit.v1.yaml",
+    "docs/contracts/spec137a-parent-override-map.v1.yaml",
+    "docs/contracts/spec138a-normative-source-coverage.v1.yaml",
+    "docs/contracts/spec138-complete-feature-ledger.v1.yaml",
+    "docs/contracts/spec138-delivery-dag.v1.yaml",
+    "docs/contracts/spec138-profile-activation-and-conformance-matrix.v1.yaml",
+    "docs/contracts/spec138-primitive-ownership-matrix.v1.yaml",
+    "docs/contracts/spec138-operation-client-parity-matrix.v1.yaml",
+    "docs/contracts/spec138-scorer-and-calibration-matrix.v1.yaml",
+    "docs/contracts/spec138-source-independence-and-triangulation-matrix.v1.yaml",
+    "docs/contracts/spec138-outcome-resolution-authority-matrix.v1.yaml",
+    "docs/contracts/spec138-learning-promotion-and-rollback-matrix.v1.yaml",
+    "docs/contracts/spec138-transfer-self-model-and-consolidation-matrix.v1.yaml",
+    "docs/contracts/spec138-migration-matrix.v1.yaml",
+    "docs/contracts/spec138-security-privacy-retention-matrix.v1.yaml",
+    "docs/contracts/spec138-proof-matrix.v1.yaml",
+    "docs/contracts/spec138-forbidden-placeholder-audit.v1.yaml",
+    "docs/contracts/spec138a-parent-override-map.v1.yaml",
+    "docs/contracts/spec144-normative-source-coverage.v1.yaml",
+    "docs/contracts/spec144-complete-feature-ledger.v1.yaml",
+    "docs/contracts/spec144-delivery-dag.v1.yaml",
+    "docs/contracts/spec144-primitive-ownership-matrix.v1.yaml",
+    "docs/contracts/spec144-obligation-verifier-matrix.v1.yaml",
+    "docs/contracts/spec144-cross-spec-amendment-matrix.v1.yaml",
+    "docs/contracts/spec144-client-parity-matrix.v1.yaml",
+    "docs/contracts/spec144-vertical-pack-matrix.v1.yaml",
+    "docs/contracts/spec144-migration-matrix.v1.yaml",
+    "docs/contracts/spec144-proof-matrix.v1.yaml",
+    "docs/contracts/spec144-forbidden-placeholder-audit.v1.yaml",
+    "docs/contracts/spec144-core-verification-pack.v1.yaml",
+    "docs/contracts/spec144-obligation-compilation-and-coverage.v1.yaml",
+    "docs/contracts/spec144-execution-placement-and-common-mode.v1.yaml",
+    "docs/contracts/spec144-verification-dispute-arbitration.v1.yaml",
+    "docs/contracts/spec144-settlement-revalidation.v1.yaml",
+]
+for rel in required:
+    path = ROOT / rel
+    assert path.is_file(), rel
+    text = path.read_text()
+    assert len(text) > 200, f"empty/shell artifact: {rel}"
+    data = json.loads(text)
+    assert data.get("runtime_claim") == "none", rel
+    assert data.get("runtime_status") in {"implementation_open", "not_activated"}, rel
+
+s137 = (ROOT / "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md").read_text()
+s138 = (ROOT / "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md").read_text()
+s144 = (ROOT / "docs/144-focusa-semantic-integrity-rdf-owl-shacl-build-verify-routing-and-vertical-intelligence-spec.md").read_text()
+assert "Mandatory companion" in s137 and "Spec 137A" in s137
+assert "Mandatory companion" in s138 and "Spec 138A" in s138
+for token in ("Spec 137 + Spec 137A", "Spec 138 + Spec 138A", "Spec 139", "focusa.verification.core@1", "ObligationCompilationReceipt", "VerificationExecutionBinding", "CognitiveExecutionIdentity", "SettlementRevalidationTrigger"):
+    assert token in s144, token
+
+ledger137 = (ROOT / "docs/contracts/spec137-complete-feature-ledger.v1.yaml").read_text()
+assert "combined_normative_source_v2" in ledger137 and "spec137a_requirement_rows" in ledger137
+
+alignment = (ROOT / "docs/evidence/141-focusa-latest-spec-public-doc-alignment.md").read_text()
+assert "combined full conformance open" in alignment
+assert "normative documentation only; implementation not activated" in alignment
+
+ci = (ROOT / "scripts/ci/run-spec-gates.sh").read_text()
+assert "spec137a_138a_144_documentation_closure_gate.py" in ci
+print("Specs 137A/138A/144 documentation architecture closure gate: PASS")

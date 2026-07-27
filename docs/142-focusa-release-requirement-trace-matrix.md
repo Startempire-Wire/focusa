@@ -322,3 +322,8 @@ The release is not done if any of these is true:
 | New candidate | NOT CREATED |
 | Live deployment truth | NOT PROVEN |
 | Final release decision | BLOCKED |
+
+<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-release-nonadmission -->
+## Post-release non-admission of Specs 137A, 138A, and 144
+
+Specs 137A, 138A, and 144 are not silently admitted into the locked current release implementation. They remain documentation architecture with runtime implementation open unless an explicit post-Spec-143 activation record exists. Current release claims MUST NOT imply combined 137+137A, full-profile 138+138A, or Spec 144 conformance.

@@ -2241,3 +2241,8 @@ Admission prevents unsafe or duplicate execution before process spawn.
 ```
 
 The resulting system does not depend on an agent remembering that other agents may exist. It makes operational awareness a daemon-owned, event-backed, scope-safe, multi-machine runtime invariant.
+
+<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-verification-placement -->
+## Spec 144 verification execution placement
+
+Spec 139 owns the environment and placement identity for every Builder, Verifier, validator, test executor, probe, browser evaluator, coverage challenger, and arbiter. Each assignment MUST carry a `VerificationExecutionBinding` with node/daemon/boot, repository/workspace/worktree, environment profile, resource claims, deduplication identity, lease, fencing token, route, and placement policy. Shared placement and infrastructure enter the Spec 144 common-mode profile.

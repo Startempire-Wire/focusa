@@ -2106,3 +2106,8 @@ Workpoint
 ```
 
 The result is not a generic coding assistant with a longer prompt. It is a governed, project-born, vertical-specialized agent whose stable operating identity is approved through C.R.I.S.T., whose instructions are internally consistent, whose target artifacts are verified, and whose live actions remain constrained by Focusa’s current distributed reality.
+
+<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-cognition-provenance -->
+## Spec 144 reproducible Builder and Verifier cognition
+
+The Runtime Constitution compiler MUST produce role-specific Builder, Verifier, Router, coverage-challenger, and arbiter artifacts. Every run binds constitution, prompt assembly, role/capability/permission, skills, tools, harness, model parameters, disclosure policy, retrieval/source set, test generator, environment, and context packet hashes in a `CognitiveExecutionIdentity`. Prompt difference alone is not independence.

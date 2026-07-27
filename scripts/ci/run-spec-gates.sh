@@ -131,6 +131,7 @@ run_gate bash ./tests/phone_bridge_automatic_callback_static_test.sh
 run_gate bash ./tests/release_notes_workflow_static_test.sh
 run_gate python3 ./tests/release_tag_template_static_test.py
 run_gate python3 ./tests/spec137_temporal_authority_release_gate_test.py
+run_gate python3 ./tests/spec137a_138a_144_documentation_closure_gate.py
 run_gate python3 ./tests/spec143_trajectory_ladder_integrity_static_test.py
 run_gate python3 ./tests/spec143_ota_installability_release_gate_test.py
 run_gate python3 ./tests/spec143_project_genesis_release_gate_test.py

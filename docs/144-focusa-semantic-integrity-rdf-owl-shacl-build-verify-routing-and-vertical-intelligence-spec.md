@@ -5,7 +5,7 @@
 **Created:** 2026-07-26  
 **Revised:** 2026-07-26 — complete zero-deferral and omission-firewall replacement  
 **Implementation activation:** Spec 143’s locked release implementation and required proof MUST close, and the operator MUST explicitly activate Spec 144 implementation. This is dependency sequencing only. It does not make any accepted Spec 144 requirement optional, removable, post-MVP, or eligible for silent deferral.  
-**Primary relationship:** Extends and composes Specs 45–50, 61, 66, 70, 72, 74–79, 88, 90, 95, 97, 100, 107, 109, 113, 116, 119, 120, 125, 130, 131, 133, 135F, 136, 137, 138, 140, 141, 142, and 143.  
+**Primary relationship:** Extends and composes Specs 45–50, 61, 66, 70, 72, 74–79, 88, 90, 95, 97, 100, 107, 109, 113, 116, 119, 120, 125, 130, 131, 133, 135F, 136, the combined Spec 137 + 137A temporal source, the combined Spec 138 + 138A epistemic source, Spec 139 distributed presence and execution placement, and Specs 140, 141, 142, and 143.  
 **Precedence:** Primitive-owning specifications retain ownership of their primitives. Spec 144 owns the cross-cutting formal-semantic, Build↔Verify, verification-routing, Vertical Intelligence Bundle, and zero-omission conformance contract defined here. Stronger safety, privacy, authority, evidence, compatibility, and no-deferral requirements always survive composition.  
 **Does not create:** a second reducer, ontology registry, event store, Workpoint authority, deadline authority, prediction authority, learning-promotion authority, permission system, Receipt ledger, workflow engine, browser engine, or agent framework.
 
@@ -757,8 +757,9 @@ operator direction
 + active Vertical/domain packs
 + permissions, authority, risk, reversibility
 + Evidence requirements
-+ Spec 137 temporal applicability
-+ Spec 138 epistemic applicability
++ combined Spec 137 + Spec 137A temporal applicability and closure law
++ combined Spec 138 + Spec 138A epistemic applicability and full-profile law
++ Spec 139 environment identity, placement, resource admission, deduplication, lease, and fencing posture
 + OWL inferences
 + SHACL obligation triggers
 → Verification Obligation Graph
@@ -1744,4 +1745,57 @@ Focusa’s daemon governs execution.
 Focusa’s reducer alone records canonical settlement.
 The complete feature ledger prevents accepted work from disappearing.
 Nothing closes while anything required is omitted, deferred, hidden, partial, unverified, or unknown.
+```
+
+<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:architecture-gap-closure -->
+## Normative architecture-gap closure amendment
+
+This section closes the remaining integration gaps identified after the zero-deferral replacement. It is normative and has the same closure force as every earlier section.
+
+### Core Verification Pack
+
+Every Verification Plan MUST include the always-activated `focusa.verification.core@1` pack. Vertical and domain packs may add obligations but cannot replace, suppress, merge away, or downgrade this pack.
+
+The core pack emits obligations for scope and authority, Work Contract completeness, requirement coverage, immutable snapshot identity, Evidence sufficiency and freshness, unresolved contradiction, final verified-snapshot equality, Receipt readiness, and reducer-only settlement.
+
+### Obligation-compilation proof
+
+The obligation compiler MUST emit an `ObligationCompilationReceipt` binding compiler identity/version, complete input hashes, requirement-set hash, registry and pack hashes, OWL/SHACL trigger hashes, semantic delta, emitted/deduplicated/rejected obligations, unknown-impact refs, uncovered requirements, independent coverage-challenger result, validation, and Receipt hash.
+
+A valid Verification Plan cannot prove that the obligation graph was complete unless its compilation receipt validates. The coverage challenger MUST be independent from the compiler policy path at assurance tiers requiring independent verification.
+
+### Spec 139 execution-placement binding
+
+Every Builder, Verifier, deterministic validator, test executor, runtime probe, browser evaluator, arbiter, and external-authority assignment MUST bind a `VerificationExecutionBinding` containing environment identity, placement decision, node, daemon and daemon boot, repository, workspace, worktree, resource claims, deduplication key, lease, fencing token, and placement-policy version.
+
+Unresolved or stale placement blocks execution. Shared environment, toolchain, cache, checkout, source, test-generator, or infrastructure dependencies MUST enter the independence and common-mode profile. Two assignments do not become independent merely because they use different models.
+
+### Reproducible cognition and common-mode dependencies
+
+Every Builder, Verifier, Router, coverage challenger, and arbiter run MUST bind a `CognitiveExecutionIdentity` containing actor/run/session identity, Runtime Constitution hash, prompt-assembly hash, role/capability/permission versions, skill-bundle hashes, tool-registry and tool-policy versions, harness adapter, model/provider/family/version and inference parameters, retrieval/source-set identity, test-generator identity, Spec 139 environment binding, context packet hash, and code/registry/pack revisions.
+
+A `CommonModeDependencyProfile` MUST represent shared rubric, prompt source, retrieval corpus, evidence provider, test generator, environment, checkout, cache, external authority, model family/provider, and infrastructure failure domains. Mandatory independence dimensions are fail-closed; a scalar score cannot override a failed dimension.
+
+### Verification dispute and appeal integration
+
+Focusa MUST reuse—not fork—PRE, Spec 120 operator gates, and Spec 136 settlement authority. Verification disputes use typed `VerificationConflict`, `VerificationAppeal`, `ArbiterEligibilityRecord`, `ConflictOfInterestRecord`, `ArbitrationAssignment`, and `ArbitrationDecision` records.
+
+Mechanically decidable conflicts route to a registered deterministic PRE resolver. Judgmental, disputed, regulated, or high-consequence conflicts route through an eligible independent arbiter and, where policy requires, an explicit Spec 120/operator gate. The Router that selected the original Verifier cannot silently select a friendly arbiter; arbiter eligibility and common-mode independence must validate first.
+
+### Post-settlement revalidation
+
+Later evidence corruption, source dependence, security disclosure, external-authority revision, registry/pack revocation, material regression, or invalidated verifier capability MUST create a `SettlementRevalidationTrigger` and `SettlementValidityChallenge` through Spec 136.
+
+The reducer may append `settlement_upheld`, `settlement_corrected`, `settlement_superseded`, or `settlement_reopened` only through the governed revalidation path. Historical settlement and Receipt records remain immutable and linked to the correction. A stale or invalidated settlement cannot continue to support promoted learning or a current conformance claim.
+
+### Additional required machine-readable artifacts
+
+The following are mandatory in addition to the previously listed Spec 144 artifacts:
+
+```text
+docs/contracts/spec144-core-verification-pack.v1.yaml
+docs/contracts/spec144-obligation-compilation-and-coverage.v1.yaml
+docs/contracts/spec144-execution-placement-and-common-mode.v1.yaml
+docs/contracts/spec144-verification-dispute-arbitration.v1.yaml
+docs/contracts/spec144-settlement-revalidation.v1.yaml
 ```

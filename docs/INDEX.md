@@ -171,3 +171,8 @@ Pi RPC/Spec 133 owns model execution; Vercel AI SDK runtime is not adopted.
 Every feature submits reusable behavior to greater Focusa primitives.
 Every requirement remains in the machine-readable closure graph.
 ```
+
+<!-- SPEC137A_138A_144_ARCHITECTURE_CLOSURE:spec144-closure-contracts -->
+## Specs 137A/138A/144 architecture-closure contracts
+
+The populated machine-readable source coverage, ledgers, delivery DAGs, ownership, profile, placement, dispute, migration, proof, and placeholder-audit contracts are under `docs/contracts/spec137a-*`, `docs/contracts/spec138*`, and `docs/contracts/spec144-*`. They close documentation architecture and make remaining runtime work explicit; they do not claim runtime implementation.
