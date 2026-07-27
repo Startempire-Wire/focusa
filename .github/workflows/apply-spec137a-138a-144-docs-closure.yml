@@ -1,5 +1,6 @@
 name: Apply Spec 137A 138A 144 documentation closure
 
+# Retriggered after installing exhaustive source-atom hardening.
 on:
   push:
     branches: [main]
