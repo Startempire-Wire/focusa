@@ -54,6 +54,9 @@ for marker in [
     "spec133_phase6_evidence_gate.sh",
     "spec133_phase7_operator_gate.sh",
     "spec133_phase8_backend_gate.sh",
+    "work_loop_checkpoint_recovery_test.sh",
+    "work_loop_process_tree_supervision_test.sh",
+    "work_loop_writer_lease_fencing_test.sh",
     "cargo test --workspace --all-targets --no-fail-fast",
     "cargo clippy --workspace --all-targets -- -D warnings",
 ]:

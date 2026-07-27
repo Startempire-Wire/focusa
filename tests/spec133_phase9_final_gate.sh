@@ -13,6 +13,15 @@ bash tests/spec133_phase6_evidence_gate.sh
 bash tests/spec133_phase7_operator_gate.sh
 bash tests/spec133_phase8_backend_gate.sh
 
+# Isolated-daemon Workloop proofs intentionally run outside the shared-daemon
+# strict gate because they kill/restart their own supervised process trees.
+DAEMON_BIN="${DAEMON_BIN:-$ROOT/target/debug/focusa-daemon}" \
+  bash tests/work_loop_checkpoint_recovery_test.sh
+DAEMON_BIN="${DAEMON_BIN:-$ROOT/target/debug/focusa-daemon}" \
+  bash tests/work_loop_process_tree_supervision_test.sh
+DAEMON_BIN="${DAEMON_BIN:-$ROOT/target/debug/focusa-daemon}" \
+  bash tests/work_loop_writer_lease_fencing_test.sh
+
 for test in tests/spec133_*static_test.py tests/spec133_*static_test.sh; do
   case "$test" in
     *.py) python3 "$test" ;;

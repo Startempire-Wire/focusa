@@ -116,9 +116,6 @@ run_gate ./tests/work_loop_commitment_lifecycle_contract_test.sh
 run_gate ./tests/work_loop_governing_priors_consumer_path_test.sh
 run_gate ./tests/work_loop_migration_conformance_checks_test.sh
 run_gate ./tests/work_loop_query_scope_boundary_contract_test.sh
-run_gate env DAEMON_BIN="$DAEMON_BIN" ./tests/work_loop_checkpoint_recovery_test.sh
-run_gate env DAEMON_BIN="$DAEMON_BIN" ./tests/work_loop_process_tree_supervision_test.sh
-run_gate env DAEMON_BIN="$DAEMON_BIN" ./tests/work_loop_writer_lease_fencing_test.sh
 run_gate ./tests/ontology_event_contract_test.sh
 run_gate ./tests/ontology_world_contract_test.sh
 run_gate ./tests/golden_tasks_eval.sh
