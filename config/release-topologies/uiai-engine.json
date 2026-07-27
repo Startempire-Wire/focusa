@@ -1,0 +1,46 @@
+{
+  "schema": "focusa.release_topology.v1",
+  "project_id": "uiai-engine",
+  "profile": "service_container_web",
+  "provider": "adapter_manifest",
+  "global_gates": [
+    "project_identity_verified",
+    "release_scope_locked",
+    "release_candidate_sha_exact",
+    "browser_protocol_conformance",
+    "diagnostics_contract",
+    "signed_manifest_and_provenance"
+  ],
+  "surfaces": [
+    {
+      "surface_id": "engine_api",
+      "kind": "service",
+      "depends_on": [],
+      "required_gates": ["api_contract", "session_isolation", "diagnostics"],
+      "artifact_identity": "sha256+provenance",
+      "deployment_target": "engine_service",
+      "canary_required": true,
+      "rollback_required": true
+    },
+    {
+      "surface_id": "browser_runtime",
+      "kind": "container",
+      "depends_on": ["engine_api"],
+      "required_gates": ["browser_health", "resource_pressure", "visual_smoke"],
+      "artifact_identity": "image_digest+sbom+provenance",
+      "deployment_target": "browser_pool",
+      "canary_required": true,
+      "rollback_required": true
+    },
+    {
+      "surface_id": "client_contracts",
+      "kind": "library",
+      "depends_on": ["engine_api"],
+      "required_gates": ["mcp_schema", "openai_schema", "backward_compatibility"],
+      "artifact_identity": "sha256+schema_digest",
+      "deployment_target": null,
+      "canary_required": false,
+      "rollback_required": false
+    }
+  ]
+}

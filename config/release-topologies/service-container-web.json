@@ -1,0 +1,39 @@
+{
+  "schema": "focusa.release_topology.v1",
+  "project_id": "portable-service-container-web",
+  "profile": "service_container_web",
+  "provider": "adapter_manifest",
+  "global_gates": ["project_identity_verified", "release_scope_locked", "release_candidate_sha_exact", "signed_manifest_and_provenance"],
+  "surfaces": [
+    {
+      "surface_id": "service",
+      "kind": "service",
+      "depends_on": [],
+      "required_gates": ["tests", "health_contract"],
+      "artifact_identity": "sha256+provenance",
+      "deployment_target": "service_runtime",
+      "canary_required": true,
+      "rollback_required": true
+    },
+    {
+      "surface_id": "container",
+      "kind": "container",
+      "depends_on": ["service"],
+      "required_gates": ["image_scan", "sbom", "digest_pin"],
+      "artifact_identity": "image_digest+sbom+provenance",
+      "deployment_target": "container_runtime",
+      "canary_required": true,
+      "rollback_required": true
+    },
+    {
+      "surface_id": "web",
+      "kind": "web",
+      "depends_on": ["service"],
+      "required_gates": ["browser_smoke", "accessibility", "asset_integrity"],
+      "artifact_identity": "sha256+provenance",
+      "deployment_target": "web_edge",
+      "canary_required": true,
+      "rollback_required": true
+    }
+  ]
+}
