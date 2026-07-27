@@ -122,6 +122,10 @@
         [
           "bash",
           "tests/spec133_phase9_final_gate.sh"
+        ],
+        [
+          "python3",
+          "tests/spec133_final_acceptance_audit_static_test.py"
         ]
       ],
       "gap": "Static daemon-native model, persistence, governance, retention, CLI, and dependency contracts are implemented; mandatory runtime E2E/security, cross-platform real-Pi lifecycle, final acceptance audit, and release-gate evidence remain open."
