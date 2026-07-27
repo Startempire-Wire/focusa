@@ -34,83 +34,47 @@ impl MasterReleaseOrchestrator {
         observed_at: &str,
         reusable_evidence: BTreeMap<ReleaseStage, ReleaseEvidence>,
     ) -> anyhow::Result<ReleaseRunResult> {
-        Self::run_with_tuning(
-            candidate,
-            topology,
+        Self::run_input(
             adapter,
-            authority,
-            mode,
-            observed_at,
-            reusable_evidence,
-            ReleasePlanTuning::default(),
+            ReleaseRunInput {
+                candidate,
+                topology,
+                authority,
+                mode,
+                observed_at: observed_at.into(),
+                reusable_evidence,
+                tuning: ReleasePlanTuning::default(),
+                invocation_surface: ReleaseInvocationSurface::Headless,
+                resume_receipts: Vec::new(),
+            },
         )
         .await
     }
 
-    pub async fn run_with_tuning<A: ReleaseAdapter>(
-        candidate: ReleaseCandidate,
-        topology: ReleaseTopology,
+    pub async fn run_input<A: ReleaseAdapter>(
         adapter: &A,
-        authority: ReleaseAuthority,
-        mode: ReleaseRunMode,
-        observed_at: &str,
-        reusable_evidence: BTreeMap<ReleaseStage, ReleaseEvidence>,
-        tuning: ReleasePlanTuning,
+        input: ReleaseRunInput,
     ) -> anyhow::Result<ReleaseRunResult> {
-        Self::run_from_surface_with_tuning(
-            candidate,
-            topology,
-            adapter,
-            authority,
-            mode,
-            observed_at,
-            reusable_evidence,
-            tuning,
-            ReleaseInvocationSurface::Headless,
-        )
-        .await
+        Self::run_with_checkpoint_sink(adapter, input, &NoopReleaseCheckpointSink).await
     }
 
-    pub async fn run_from_surface_with_tuning<A: ReleaseAdapter>(
-        candidate: ReleaseCandidate,
-        topology: ReleaseTopology,
+    pub async fn run_with_checkpoint_sink<A: ReleaseAdapter, S: ReleaseCheckpointSink>(
         adapter: &A,
-        authority: ReleaseAuthority,
-        mode: ReleaseRunMode,
-        observed_at: &str,
-        reusable_evidence: BTreeMap<ReleaseStage, ReleaseEvidence>,
-        tuning: ReleasePlanTuning,
-        invocation_surface: ReleaseInvocationSurface,
+        input: ReleaseRunInput,
+        checkpoint_sink: &S,
     ) -> anyhow::Result<ReleaseRunResult> {
-        Self::run_with_checkpoint_sink(
-            candidate,
+        let ReleaseRunInput {
+            mut candidate,
             topology,
-            adapter,
             authority,
             mode,
             observed_at,
             reusable_evidence,
             tuning,
             invocation_surface,
-            Vec::new(),
-            &NoopReleaseCheckpointSink,
-        )
-        .await
-    }
-
-    pub async fn run_with_checkpoint_sink<A: ReleaseAdapter, S: ReleaseCheckpointSink>(
-        mut candidate: ReleaseCandidate,
-        topology: ReleaseTopology,
-        adapter: &A,
-        authority: ReleaseAuthority,
-        mode: ReleaseRunMode,
-        observed_at: &str,
-        reusable_evidence: BTreeMap<ReleaseStage, ReleaseEvidence>,
-        tuning: ReleasePlanTuning,
-        invocation_surface: ReleaseInvocationSurface,
-        resume_receipts: Vec<ReleaseStageReceipt>,
-        checkpoint_sink: &S,
-    ) -> anyhow::Result<ReleaseRunResult> {
+            resume_receipts,
+        } = input;
+        let observed_at = observed_at.as_str();
         authority.validate(&candidate, mode)?;
         let descriptor = adapter.descriptor();
         let plan = Self::plan_for_surface(

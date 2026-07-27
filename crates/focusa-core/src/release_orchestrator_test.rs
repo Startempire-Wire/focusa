@@ -345,16 +345,18 @@ async fn interrupted_cycle_resumes_from_append_only_checkpoint() {
         calls: Mutex::new(Vec::new()),
     };
     let blocked = MasterReleaseOrchestrator::run_with_checkpoint_sink(
-        initial,
-        topology(true),
         &blocked_adapter,
-        authority(true),
-        ReleaseRunMode::Execute,
-        "2026-01-01T00:00:00Z",
-        BTreeMap::new(),
-        ReleasePlanTuning::default(),
-        ReleaseInvocationSurface::Headless,
-        Vec::new(),
+        ReleaseRunInput {
+            candidate: initial,
+            topology: topology(true),
+            authority: authority(true),
+            mode: ReleaseRunMode::Execute,
+            observed_at: "2026-01-01T00:00:00Z".into(),
+            reusable_evidence: BTreeMap::new(),
+            tuning: ReleasePlanTuning::default(),
+            invocation_surface: ReleaseInvocationSurface::Headless,
+            resume_receipts: Vec::new(),
+        },
         &ledger,
     )
     .await
@@ -369,16 +371,18 @@ async fn interrupted_cycle_resumes_from_append_only_checkpoint() {
         calls: Mutex::new(Vec::new()),
     };
     let resumed = MasterReleaseOrchestrator::run_with_checkpoint_sink(
-        resume_candidate,
-        topology(true),
         &resumed_adapter,
-        authority(true),
-        ReleaseRunMode::Execute,
-        "2026-01-01T00:01:00Z",
-        BTreeMap::new(),
-        ReleasePlanTuning::default(),
-        ReleaseInvocationSurface::Headless,
-        resume_receipts,
+        ReleaseRunInput {
+            candidate: resume_candidate,
+            topology: topology(true),
+            authority: authority(true),
+            mode: ReleaseRunMode::Execute,
+            observed_at: "2026-01-01T00:01:00Z".into(),
+            reusable_evidence: BTreeMap::new(),
+            tuning: ReleasePlanTuning::default(),
+            invocation_surface: ReleaseInvocationSurface::Headless,
+            resume_receipts,
+        },
         &ledger,
     )
     .await

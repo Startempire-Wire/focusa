@@ -1,6 +1,6 @@
 //! Typed provider-neutral protocol for the Master Release Cycle.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use anyhow::ensure;
 use async_trait::async_trait;
@@ -232,6 +232,21 @@ pub struct ReleaseExecutionPlan {
     pub reused_stages: Vec<ReleaseStage>,
     pub mutating_stages: Vec<ReleaseStage>,
     pub tuning: ReleasePlanTuning,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ReleaseRunInput {
+    pub candidate: ReleaseCandidate,
+    pub topology: ReleaseTopology,
+    pub authority: ReleaseAuthority,
+    pub mode: ReleaseRunMode,
+    pub observed_at: String,
+    #[serde(default)]
+    pub reusable_evidence: BTreeMap<ReleaseStage, ReleaseEvidence>,
+    pub tuning: ReleasePlanTuning,
+    pub invocation_surface: ReleaseInvocationSurface,
+    #[serde(default)]
+    pub resume_receipts: Vec<ReleaseStageReceipt>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

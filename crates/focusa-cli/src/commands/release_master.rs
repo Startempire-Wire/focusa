@@ -16,7 +16,9 @@ use focusa_core::{
     },
     release_cycle::{ReleaseCandidate, ReleaseTopology},
     release_ledger::JsonlReleaseRunLedger,
-    release_orchestrator::{MasterReleaseOrchestrator, ReleaseAuthority, ReleaseRunMode},
+    release_orchestrator::{
+        MasterReleaseOrchestrator, ReleaseAuthority, ReleaseRunInput, ReleaseRunMode,
+    },
 };
 use serde_json::json;
 
@@ -116,16 +118,18 @@ pub async fn execute(
         approval_refs,
     };
     let result = MasterReleaseOrchestrator::run_with_checkpoint_sink(
-        candidate,
-        topology,
         &adapter,
-        authority,
-        ReleaseRunMode::Execute,
-        &chrono::Utc::now().to_rfc3339(),
-        BTreeMap::new(),
-        tuning,
-        surface.into(),
-        resume_receipts,
+        ReleaseRunInput {
+            candidate,
+            topology,
+            authority,
+            mode: ReleaseRunMode::Execute,
+            observed_at: chrono::Utc::now().to_rfc3339(),
+            reusable_evidence: BTreeMap::new(),
+            tuning,
+            invocation_surface: surface.into(),
+            resume_receipts,
+        },
         &checkpoint_ledger,
     )
     .await?;
