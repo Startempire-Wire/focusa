@@ -71,6 +71,7 @@ ci = (ROOT / "scripts/ci/run-spec-gates.sh").read_text()
 assert "spec137a_138a_144_documentation_closure_gate.py" in ci
 print("Specs 137A/138A/144 documentation architecture closure gate: PASS")
 
+
 # literal source atom coverage and current-hash validation
 for rel in (
     "docs/contracts/spec137a-normative-source-coverage.v1.yaml",
