@@ -32,6 +32,8 @@ import { measureNativeSessionPressure, migrateNativeSessionBounded } from "./ses
 import { prepareCompactionRollover } from "./compaction.js";
 import { dirname, resolve } from "path";
 import { MissionCanvasView, type MissionCanvasModel } from "./mission-canvas-view.js";
+import { refreshMissionCanvasWidget } from "./mission-canvas-widget.js";
+import { projectWorkSurfaces, workSurfaceLabel } from "./mission-canvas-model.js";
 
 async function commandWorkLoopWriterHeaders(): Promise<Record<string, string>> {
   const writerId = `pi-${process.pid}`;
@@ -266,7 +268,7 @@ export function registerCommands(pi: ExtensionAPI) {
       }
       const saved = saveConfigOverrides(getSessionCwd(), { interactionMode: mode }, "project");
       if (saved.errors.length) throw new Error(saved.errors.join("; "));
-      if (mode !== "canvas-guided") ctx.ui.setWidget("focusa-mission-canvas-work-rail", undefined);
+      refreshMissionCanvasWidget(ctx);
       ctx.ui.notify(`Focusa interaction mode set to ${mode} for this project`, "info");
     },
   });
@@ -307,13 +309,7 @@ export function registerCommands(pi: ExtensionAPI) {
               .join(" · ")
           )
         : [];
-      const surfaceRows = Array.isArray(surfaces?.surfaces)
-        ? surfaces.surfaces.map((surface: any) =>
-            [surface?.title ?? surface?.surface_id, surface?.status, surface?.attachment_id]
-              .filter(Boolean)
-              .join(" · ")
-          )
-        : [];
+      const surfaceRows = projectWorkSurfaces(surfaces).map(workSurfaceLabel);
       const interviewRows = Array.isArray(interviews?.sessions) ? interviews.sessions : [];
       const activeInterview =
         interviewRows.find((session: any) => session?.status === "active") ?? interviewRows[0];
