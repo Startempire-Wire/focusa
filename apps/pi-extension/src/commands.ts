@@ -284,7 +284,7 @@ export function registerCommands(pi: ExtensionAPI) {
         );
         return;
       }
-      const [workpoint, trajectory, workLoop, sessions, surfaces, interviews, closurePackage] =
+      const [workpoint, trajectory, workLoop, sessions, surfaces, interviews, closurePackage, artifacts] =
         await Promise.all([
           focusaFetch("/v1/workpoint/resume").catch(() => null),
           focusaFetch("/v1/trajectory/view").catch(() => null),
@@ -293,6 +293,7 @@ export function registerCommands(pi: ExtensionAPI) {
           focusaFetch("/v1/mission-canvas/surfaces").catch(() => null),
           focusaFetch("/v1/interviews/sessions").catch(() => null),
           focusaFetch("/v1/interviews/closure-package").catch(() => null),
+          focusaFetch("/v1/workspace/artifacts").catch(() => null),
         ]);
       const packet = workpoint?.workpoint ?? workpoint?.resume_packet ?? workpoint ?? {};
       const evidenceRefs = Array.isArray(packet?.verification_records)
@@ -309,7 +310,28 @@ export function registerCommands(pi: ExtensionAPI) {
               .join(" · ")
           )
         : [];
-      const surfaceRows = projectWorkSurfaces(surfaces).map(workSurfaceLabel);
+      const projectedSurfaces = projectWorkSurfaces(surfaces);
+      const surfaceRows = projectedSurfaces.map(workSurfaceLabel);
+      const contentionRows = projectedSurfaces
+        .filter((surface) => surface.conflictCount || surface.blockerCount || surface.writerLeaseRef)
+        .map(
+          (surface) =>
+            `${surface.displayName} · ${surface.conflictCount} conflicts · ${surface.blockerCount} blockers · ${surface.writerLeaseRef || "no writer lease"}`
+        );
+      const artifactRows = Array.isArray(artifacts?.artifacts)
+        ? artifacts.artifacts.map((artifact: any) =>
+            [artifact?.title ?? artifact?.artifact_id, artifact?.kind, artifact?.evidence_ref]
+              .filter(Boolean)
+              .join(" · ")
+          )
+        : [];
+      const historyRows = Array.isArray(packet?.verification_records)
+        ? packet.verification_records.map((record: any) =>
+            [record?.verified_at ?? record?.created_at, record?.result, record?.evidence_ref]
+              .filter(Boolean)
+              .join(" · ")
+          )
+        : [];
       const interviewRows = Array.isArray(interviews?.sessions) ? interviews.sessions : [];
       const activeInterview =
         interviewRows.find((session: any) => session?.status === "active") ?? interviewRows[0];
@@ -336,6 +358,9 @@ export function registerCommands(pi: ExtensionAPI) {
           : sessionRows.length
             ? sessionRows
             : [String(packet?.attachment_id ?? "Current Pi attachment")],
+        contention: contentionRows,
+        researchArtifacts: artifactRows,
+        history: historyRows,
         contextStatus: String(
           trajectory?.current_state ?? packet?.context_status ?? "Context review required"
         ),

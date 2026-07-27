@@ -2,7 +2,18 @@ import type { Theme } from "@earendil-works/pi-coding-agent";
 import { Key, matchesKey, truncateToWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
 
 export type MissionCanvasPanel =
-  "Now" | "Work" | "Sessions" | "Proof" | "Context" | "Role" | "Interview" | "Spec" | "Controls";
+  | "Now"
+  | "Work"
+  | "Sessions"
+  | "Contention"
+  | "Proof"
+  | "Research"
+  | "History"
+  | "Context"
+  | "Role"
+  | "Interview"
+  | "Spec"
+  | "Controls";
 
 export interface MissionCanvasModel {
   mission: string;
@@ -16,6 +27,9 @@ export interface MissionCanvasModel {
   blockers: string[];
   sessions: string[];
   workSurfaces: string[];
+  contention: string[];
+  researchArtifacts: string[];
+  history: string[];
   contextStatus: string;
   roleStatus: string;
   interviewStatus: string;
@@ -28,7 +42,10 @@ const PANELS: MissionCanvasPanel[] = [
   "Now",
   "Work",
   "Sessions",
+  "Contention",
   "Proof",
+  "Research",
+  "History",
   "Context",
   "Role",
   "Interview",
@@ -154,10 +171,25 @@ export class MissionCanvasView implements Component {
           this.heading("ACTIVE SESSIONS AND ATTACHMENTS"),
           ...rows(this.model.sessions, "No session inventory available"),
         ];
+      case "Contention":
+        return [
+          this.heading("CONTENTION · PROPOSALS · WRITER LEASES"),
+          ...rows(this.model.contention, "No contention reported"),
+        ];
       case "Proof":
         return [
           this.heading("EVIDENCE AND RECEIPTS"),
           ...rows(this.model.evidenceRefs, "No evidence linked"),
+        ];
+      case "Research":
+        return [
+          this.heading("RESEARCH · SOURCES · RICH ARTIFACTS"),
+          ...rows(this.model.researchArtifacts, "No research artifacts projected"),
+        ];
+      case "History":
+        return [
+          this.heading("RECEIPT-BACKED HISTORY"),
+          ...rows(this.model.history, "No durable history projected"),
         ];
       case "Context":
         return this.section("C · CONTEXT", this.model.contextStatus, "CONTINUITY", this.model.continuityId);
