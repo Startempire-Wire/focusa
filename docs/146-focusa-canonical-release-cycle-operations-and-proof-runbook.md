@@ -120,6 +120,52 @@ Initial improvement hypothesis:
 The final release must record actual deltas; no speed claim is accepted without
 measured improvement.
 
+### 12.1 First canonical-cycle outcome: v0.9.128/v0.9.129
+
+`v0.9.128-dev` proved the pre-tag source gates and immutable candidate lock but
+failed the pull-request inclusion gate because unrelated PR #73 was treated as
+a release blocker. The bounded fix lane preserved the failed tag, changed only
+PR-queue and duplicate-trigger authority, reran invalidated gates, and required
+a new candidate.
+
+`v0.9.129-dev` completed the cycle:
+
+| Run | Elapsed | Delta from v0.9.127 |
+|---|---:|---:|
+| CI `30239380676` | 596 s | -17 s (-2.8%) |
+| Spec132 `30239380662` | 742 s | -146 s (-16.4%) |
+| Release `30239381932` | 1044 s | +23 s (+2.3%) |
+| Deploy `30240189485` | 38 s | -4 s (-9.5%) |
+
+Tag-workflow start to live deployment was 1082 seconds. End-to-end human-clock
+speed was effectively unchanged/slightly worse than the 17–18 minute baseline,
+so the first architecture slice does **not** claim overall speed improvement.
+It did improve cross-target preflight and deployment duration, eliminate the
+duplicate Spec132 tag run, move CI/Spec132 before immutable tagging, and produce
+a durable exact-SHA candidate-lock artifact.
+
+Remaining critical-path work:
+
+- Release remains the bottleneck at 1044 seconds.
+- Exact-input evidence reuse must be evaluated before removing duplicate Rust
+  tests from Release.
+- Cache hit/miss telemetry must be captured per target to distinguish cold-cache
+  candidate cost from steady-state speed.
+- Release asset builds should begin as soon as candidate gates permit while
+  final publication still waits for every required proof.
+
+Proof refs:
+
+- release `v0.9.129-dev` at `b97ad16c652e497c5190ebaceea55d875d695ec9`;
+- candidate artifact `release-candidate-v0.9.129-dev` from run `30239381932`;
+- candidate topology digest `83f1c40b9dbd24304752033ef428ad00b07f5cbb61774ae0aabfd7537151f8fc`;
+- CI `30239380676`;
+- Spec132 `30239380662`;
+- Release `30239381932`;
+- Deploy `30240189485`;
+- live and all managed surfaces `0.9.129-dev`;
+- automatic updater enabled/active and final systemd no-op cycle successful.
+
 ## 13. Security and supply chain
 
 - Least-privilege workflow permissions per job.
