@@ -55,11 +55,15 @@ require(
     [
         "push_candidate_main_with_auto_rebase",
         "Waiting for exact stamped-candidate preflight before immutable tag",
+        "Release surfaces already stamped ${VERSION}; preserving exact retry SHA.",
+        "ensure_source_workflow \"Spec 132 terminal matrix\" \"$HEAD_SHA\"",
+        "source_gate_dispatch_blocked",
         'git push origin "${TAG}"',
     ],
     "exact candidate pre-tag flow",
 )
 assert TAG_SCRIPT.index("  push_candidate_main_with_auto_rebase\n") < TAG_SCRIPT.rindex('git tag "${TAG}" HEAD'), "tag created before candidate preflight"
+assert TAG_SCRIPT.index('ensure_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"') < TAG_SCRIPT.index('wait_for_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"'), "Spec132 wait begins before missing-run dispatch"
 require(
     RELEASE_CLI,
     [

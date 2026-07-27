@@ -106,6 +106,23 @@ push_candidate_main_with_auto_rebase() {
   return 1
 }
 
+ensure_source_workflow() {
+  local workflow="$1"
+  local sha="$2"
+  local existing remote_main
+  existing="$(gh run list --workflow "$workflow" --commit "$sha" --limit 10 --json headSha 2>/dev/null || echo '[]')"
+  if jq -e --arg sha "$sha" 'any(.headSha == $sha)' <<<"$existing" >/dev/null; then
+    return 0
+  fi
+  remote_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+  if [[ "$remote_main" != "$sha" ]]; then
+    echo "source_gate_dispatch_blocked: workflow=${workflow} candidate=${sha} remote_main=${remote_main}" >&2
+    return 1
+  fi
+  echo "source_gate_dispatch: workflow=${workflow} exact_main=${sha}"
+  gh workflow run "$workflow" --ref main
+}
+
 wait_for_source_workflow() {
   local workflow="$1"
   local sha="$2"
@@ -315,9 +332,14 @@ python3 tests/spec145_canonical_release_cycle_static_test.py
 jq -e '.schema == "focusa.release_topology.v1" and (.surfaces | length) > 0' \
   config/focusa-release-topology.json >/dev/null
 
-echo "Stamping release surfaces: ${VERSION}"
-scripts/stamp-menubar-version.py "${TAG}"
-scripts/stamp-release-version "${VERSION}"
+if [[ -f docs/current/.release-version-stamp ]] && \
+  [[ "$(tr -d '[:space:]' < docs/current/.release-version-stamp)" == "$VERSION" ]]; then
+  echo "Release surfaces already stamped ${VERSION}; preserving exact retry SHA."
+else
+  echo "Stamping release surfaces: ${VERSION}"
+  scripts/stamp-menubar-version.py "${TAG}"
+  scripts/stamp-release-version "${VERSION}"
+fi
 python3 scripts/verify-version-surfaces.py "${TAG}"
 scripts/verify-doc-version-consistency
 node scripts/validate-docs-runtime-parity.mjs
@@ -355,6 +377,7 @@ if [[ "$PUSH" -eq 1 ]]; then
   wait_for_source_workflow "CI" "$HEAD_SHA"
   if git diff --name-only "${PREVIOUS_TAG:-HEAD^}"..HEAD | grep -Eq \
     '^(crates/focusa-terminal-ui/|crates/focusa-cli/src/commands/(install|update)\.rs$|crates/focusa-core/src/silent_sessions/|crates/focusa-session-runner/|apps/pi-extension/(package|package-lock)\.json$|tests/132-e5-|\.github/workflows/spec132-terminal-matrix\.yml$)'; then
+    ensure_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"
     wait_for_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"
   fi
 fi

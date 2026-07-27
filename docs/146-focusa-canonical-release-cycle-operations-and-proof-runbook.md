@@ -171,6 +171,27 @@ Proof refs:
 - live and all managed surfaces `0.9.129-dev`;
 - automatic updater enabled/active and final systemd no-op cycle successful.
 
+### 12.3 Final Focusa proof: `v0.9.134-dev`
+
+The corrected exact-candidate cycle produced these immutable receipts:
+
+- exact candidate CI `30255479290`: 588 seconds;
+- exact candidate Spec132 `30257573965`: 720 seconds;
+- Release `30258399825`: 533 seconds;
+- Deploy `30258961394`: 40 seconds;
+- tag-workflow start to live completion: 571 seconds, down from 1082 seconds
+  for `v0.9.129-dev` (**47.2% faster**);
+- live daemon, CLI, TUI, Pi extension, and installer: `0.9.134-dev`;
+- refreshed root scheduler unit contains explicit `/usr/local` CLI/TUI/daemon
+  targets and completed a successful automatic no-op cycle.
+
+The proof also exercised fail-closed recovery. Audit Recorder moved `main` after
+an earlier candidate push; PR-only CI cancellation preserved later locked-main
+runs. A recovery retry then found required Spec132 coverage without an exact-SHA
+run. The helper now preserves an already-stamped retry SHA and dispatches a
+missing Spec132 run only while remote `main` still equals that candidate; a
+scope mismatch fails before tagging.
+
 ## 13. Security and supply chain
 
 - Least-privilege workflow permissions per job.
