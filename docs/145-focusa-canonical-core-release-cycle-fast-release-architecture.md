@@ -1,6 +1,6 @@
 # Spec145 — Focusa Canonical Core Release Cycle and Fast Release Architecture
 
-**Status:** implementation in progress under GitHub #56 / Bead `focusa-vbcqu.6.1`  
+**Status:** kernel merged by PR #85; operational provider/self-heal migration governed by Spec 147 / Bead `focusa-91gtu`
 **Supersedes:** implicit and fragmented release behavior; does not supersede Spec143  
 **Extends:** Spec107, Spec128, Spec131, Spec133, Spec136, Spec137, Spec143  
 **Call-stack design:** `019fa147-b0ff-7751-a578-029bdd131c8d`
@@ -285,9 +285,11 @@ promote(candidate)
 rollback(surface, receipt)
 ```
 
-First adapter: GitHub Actions + GitHub Releases. Future adapters: local CI,
-GitLab, package registries, container registries, Tauri updater, deployment
-systems, and UIAI-specific delivery.
+First adapter: GitHub Actions + GitHub Releases through the bounded external
+JSON adapter. Legacy provider and self-healing migration is specified in Spec
+147. Future adapters may target local CI, GitLab, package registries, container
+registries, Tauri updater, deployment systems, and UIAI-specific delivery
+without changing kernel authority.
 
 ### 8.5 Storage layer
 

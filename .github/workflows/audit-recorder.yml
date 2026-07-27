@@ -81,16 +81,53 @@ jobs:
             echo "[audit-recorder] deliverable requested but no audit changes"
             exit 0
           fi
-          branch="self-heal/${{ github.run_id }}"
+          readarray -t proposal < <(python3 - <<'PY'
+          import json
+          from pathlib import Path
+          result = json.loads(Path('release-proof/audit/self-heal-result.json').read_text())
+          print(result.get('proposal_fingerprint') or '')
+          print(result.get('branch_ref') or '')
+          PY
+          )
+          fingerprint="${proposal[0]}"
+          branch="${proposal[1]}"
+          if [[ ! "$fingerprint" =~ ^[0-9a-f]{64}$ || ! "$branch" =~ ^self-heal/fp-[0-9a-f]{20}$ ]]; then
+            echo "[audit-recorder] invalid or missing durable proposal fingerprint"
+            exit 1
+          fi
+
+          existing="$(gh pr list --repo "$GITHUB_REPOSITORY" --state all --head "$branch" --json number --jq '.[0].number // empty')"
+          if [[ -n "$existing" ]]; then
+            echo "[audit-recorder] fingerprint already owns PR #$existing; suppressing duplicate"
+            exit 0
+          fi
+          open_count="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json headRefName --jq '[.[] | select(.headRefName | startswith("self-heal/fp-"))] | length')"
+          if (( open_count >= 3 )); then
+            echo "[audit-recorder] self-heal proposal budget exhausted: open=$open_count"
+            exit 0
+          fi
+          if git ls-remote --exit-code origin "refs/heads/$branch" >/dev/null 2>&1; then
+            echo "[audit-recorder] recovering fingerprint branch without a PR"
+            gh pr create \
+              --title "[spec-147] Governed self-heal ${fingerprint:0:12}" \
+              --body-file release-proof/audit/self-heal-result.json \
+              --base main \
+              --head "$branch"
+            exit 0
+          fi
+
           git config user.name 'focusa-bot'
           git config user.email 'bot@focusa.local'
-          git checkout -B "$branch"
+          git checkout -b "$branch"
           git add release-proof/audit/audit.jsonl release-proof/audit/self-heal-result.json
-          git commit -m "audit: actionable self-heal from ${{ github.event_name }} @ ${{ github.run_id }}"
-          git push --set-upstream origin "$branch" --force-with-lease
+          git commit -m "audit: governed self-heal $fingerprint"
+          # An unforced first-writer-wins branch push is the durable claim. A
+          # concurrent loser cannot create another branch for this fingerprint.
+          if ! git push --set-upstream origin "$branch"; then
+            echo "[audit-recorder] fingerprint branch won by another writer; reusing it"
+          fi
           gh pr create \
-            --title "[spec-122] Actionable self-heal from ${{ github.event_name }} @ ${{ github.run_id }}" \
+            --title "[spec-147] Governed self-heal ${fingerprint:0:12}" \
             --body-file release-proof/audit/self-heal-result.json \
             --base main \
-            --head "$branch" \
-          || echo "[audit-recorder] PR may already exist for $branch"
+            --head "$branch"

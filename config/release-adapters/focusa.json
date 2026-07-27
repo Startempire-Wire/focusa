@@ -6,25 +6,221 @@
     "schema": "focusa.release_adapter.v1",
     "adapter_id": "github-actions",
     "adapter_version": "1",
-    "supported_profiles": ["multi_surface_cross_platform"],
-    "supported_surface_kinds": ["library", "cli", "daemon", "tui", "agent_extension", "desktop", "installer", "documentation"],
-    "supported_stages": ["locked", "candidate_snapshotted", "preflighted", "built", "packaged", "provenanced", "draft_published", "canary_deployed", "verified", "promoted", "closed", "rolled_back"],
+    "supported_profiles": [
+      "multi_surface_cross_platform"
+    ],
+    "supported_surface_kinds": [
+      "library",
+      "cli",
+      "daemon",
+      "tui",
+      "agent_extension",
+      "desktop",
+      "installer",
+      "documentation"
+    ],
+    "supported_stages": [
+      "locked",
+      "candidate_snapshotted",
+      "preflighted",
+      "built",
+      "packaged",
+      "provenanced",
+      "draft_published",
+      "canary_deployed",
+      "verified",
+      "promoted",
+      "closed",
+      "rolled_back"
+    ],
     "supports_canary": true,
     "supports_rollback": true
   },
   "operations": [
-    {"operation_id":"scope-lock","stage":"locked","executor_id":"focusa-github","kind":"tool_call","action":"release.lock","mutates":false,"timeout_seconds":60},
-    {"operation_id":"candidate-snapshot","stage":"candidate_snapshotted","executor_id":"focusa-github","kind":"tool_call","action":"release.snapshot","mutates":true,"timeout_seconds":120},
-    {"operation_id":"ci-preflight","stage":"preflighted","executor_id":"focusa-github","kind":"github_workflow","action":"CI","mutates":false,"timeout_seconds":1800,"parallel_group":"preflight"},
-    {"operation_id":"terminal-preflight","stage":"preflighted","executor_id":"focusa-github","kind":"github_workflow","action":"Spec 132 terminal matrix","mutates":false,"timeout_seconds":1800,"parallel_group":"preflight"},
-    {"operation_id":"artifact-build","stage":"built","executor_id":"focusa-github","kind":"github_workflow","action":"Release/artifact-build","mutates":true,"timeout_seconds":1800},
-    {"operation_id":"package","stage":"packaged","executor_id":"focusa-github","kind":"github_workflow","action":"Release/package","mutates":true,"timeout_seconds":900},
-    {"operation_id":"provenance","stage":"provenanced","executor_id":"focusa-github","kind":"github_workflow","action":"Release/provenance","mutates":true,"timeout_seconds":600},
-    {"operation_id":"draft-release","stage":"draft_published","executor_id":"focusa-github","kind":"github_workflow","action":"Release/draft","mutates":true,"timeout_seconds":300},
-    {"operation_id":"daemon-canary","stage":"canary_deployed","executor_id":"focusa-github","kind":"github_workflow","action":"Deploy Live Daemon/canary","surface_ids":["daemon"],"mutates":true,"timeout_seconds":600},
-    {"operation_id":"verify-surfaces","stage":"verified","executor_id":"focusa-github","kind":"tool_call","action":"release.verify_all_surfaces","mutates":false,"timeout_seconds":600},
-    {"operation_id":"promote","stage":"promoted","executor_id":"focusa-github","kind":"github_workflow","action":"Release/promote","mutates":true,"timeout_seconds":600},
-    {"operation_id":"settle","stage":"closed","executor_id":"focusa-github","kind":"tool_call","action":"release.settle_and_learn","mutates":true,"timeout_seconds":300},
-    {"operation_id":"rollback","stage":"rolled_back","executor_id":"focusa-github","kind":"github_workflow","action":"Deploy Live Daemon/rollback","mutates":true,"timeout_seconds":600}
+    {
+      "operation_id": "scope-lock",
+      "stage": "locked",
+      "executor_id": "focusa-github",
+      "kind": "tool_call",
+      "action": "release.lock",
+      "mutates": false,
+      "timeout_seconds": 60,
+      "inputs": {
+        "provider_mode": "plan",
+        "repository": "Startempire-Wire/focusa"
+      }
+    },
+    {
+      "operation_id": "candidate-snapshot",
+      "stage": "candidate_snapshotted",
+      "executor_id": "focusa-github",
+      "kind": "tool_call",
+      "action": "release.snapshot",
+      "mutates": true,
+      "timeout_seconds": 120,
+      "inputs": {
+        "provider_mode": "plan",
+        "repository": "Startempire-Wire/focusa",
+        "workflow": "dev-release-tag.yml"
+      }
+    },
+    {
+      "operation_id": "ci-preflight",
+      "stage": "preflighted",
+      "executor_id": "focusa-github",
+      "kind": "github_workflow",
+      "action": "CI",
+      "mutates": false,
+      "timeout_seconds": 1800,
+      "parallel_group": "preflight",
+      "inputs": {
+        "provider_mode": "plan",
+        "repository": "Startempire-Wire/focusa",
+        "workflow": "ci.yml"
+      }
+    },
+    {
+      "operation_id": "terminal-preflight",
+      "stage": "preflighted",
+      "executor_id": "focusa-github",
+      "kind": "github_workflow",
+      "action": "Spec 132 terminal matrix",
+      "mutates": false,
+      "timeout_seconds": 1800,
+      "parallel_group": "preflight",
+      "inputs": {
+        "provider_mode": "plan",
+        "repository": "Startempire-Wire/focusa",
+        "workflow": "spec132-terminal-matrix.yml"
+      }
+    },
+    {
+      "operation_id": "artifact-build",
+      "stage": "built",
+      "executor_id": "focusa-github",
+      "kind": "github_workflow",
+      "action": "Release/artifact-build",
+      "mutates": true,
+      "timeout_seconds": 1800,
+      "inputs": {
+        "provider_mode": "plan",
+        "repository": "Startempire-Wire/focusa",
+        "workflow": "release.yml"
+      }
+    },
+    {
+      "operation_id": "package",
+      "stage": "packaged",
+      "executor_id": "focusa-github",
+      "kind": "github_workflow",
+      "action": "Release/package",
+      "mutates": true,
+      "timeout_seconds": 900,
+      "inputs": {
+        "provider_mode": "plan",
+        "repository": "Startempire-Wire/focusa",
+        "workflow": "release.yml"
+      }
+    },
+    {
+      "operation_id": "provenance",
+      "stage": "provenanced",
+      "executor_id": "focusa-github",
+      "kind": "github_workflow",
+      "action": "Release/provenance",
+      "mutates": true,
+      "timeout_seconds": 600,
+      "inputs": {
+        "provider_mode": "plan",
+        "repository": "Startempire-Wire/focusa",
+        "workflow": "release.yml"
+      }
+    },
+    {
+      "operation_id": "draft-release",
+      "stage": "draft_published",
+      "executor_id": "focusa-github",
+      "kind": "github_workflow",
+      "action": "Release/draft",
+      "mutates": true,
+      "timeout_seconds": 300,
+      "inputs": {
+        "provider_mode": "plan",
+        "repository": "Startempire-Wire/focusa",
+        "workflow": "release.yml"
+      }
+    },
+    {
+      "operation_id": "daemon-canary",
+      "stage": "canary_deployed",
+      "executor_id": "focusa-github",
+      "kind": "github_workflow",
+      "action": "Deploy Live Daemon/canary",
+      "surface_ids": [
+        "daemon"
+      ],
+      "mutates": true,
+      "timeout_seconds": 600,
+      "inputs": {
+        "provider_mode": "plan",
+        "repository": "Startempire-Wire/focusa",
+        "workflow": "deploy-live-daemon.yml"
+      }
+    },
+    {
+      "operation_id": "verify-surfaces",
+      "stage": "verified",
+      "executor_id": "focusa-github",
+      "kind": "tool_call",
+      "action": "release.verify_all_surfaces",
+      "mutates": false,
+      "timeout_seconds": 600,
+      "inputs": {
+        "provider_mode": "plan",
+        "repository": "Startempire-Wire/focusa",
+        "workflow": "deploy-live-daemon.yml"
+      }
+    },
+    {
+      "operation_id": "promote",
+      "stage": "promoted",
+      "executor_id": "focusa-github",
+      "kind": "github_workflow",
+      "action": "Release/promote",
+      "mutates": true,
+      "timeout_seconds": 600,
+      "inputs": {
+        "provider_mode": "plan",
+        "repository": "Startempire-Wire/focusa",
+        "workflow": "release.yml"
+      }
+    },
+    {
+      "operation_id": "settle",
+      "stage": "closed",
+      "executor_id": "focusa-github",
+      "kind": "tool_call",
+      "action": "release.settle_and_learn",
+      "mutates": true,
+      "timeout_seconds": 300,
+      "inputs": {
+        "provider_mode": "plan",
+        "repository": "Startempire-Wire/focusa"
+      }
+    },
+    {
+      "operation_id": "rollback",
+      "stage": "rolled_back",
+      "executor_id": "focusa-github",
+      "kind": "github_workflow",
+      "action": "Deploy Live Daemon/rollback",
+      "mutates": true,
+      "timeout_seconds": 600,
+      "inputs": {
+        "provider_mode": "plan",
+        "repository": "Startempire-Wire/focusa",
+        "workflow": "deploy-live-daemon.yml"
+      }
+    }
   ]
 }

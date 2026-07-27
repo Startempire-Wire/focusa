@@ -24,18 +24,20 @@ mkdir -p "$tmp/release-proof/audit" "$tmp/tests" "$tmp/scripts"
 cp scripts/propose-system-fix.py "$tmp/scripts/"
 touch "$tmp/tests/spec122_self_heal_proposal_static_test.sh" "$tmp/scripts/retry.sh" "$tmp/scripts/process-health-check.py" "$tmp/scripts/deploy-smoke-check.sh"
 cat > "$tmp/release-proof/audit/audit.jsonl" <<'JSONL'
-{"id":"fail-1","ts":"2099-01-01T00:00:00Z","event":"failure","category":"ci_workflow_failure","subsystem":"ci","scope":"CI","symptom":"clippy failed","root_cause":"warning","fix":"manual","guard":"open","test":"open","linked_run":"1","failure_class":"ci_clippy_failure"}
-{"id":"fail-2","ts":"2099-01-02T00:00:00Z","event":"failure","category":"ci_workflow_failure","subsystem":"ci","scope":"CI","symptom":"clippy failed","root_cause":"warning","fix":"manual","guard":"open","test":"open","linked_run":"2","failure_class":"ci_clippy_failure"}
-{"id":"fail-3","ts":"2099-01-03T00:00:00Z","event":"failure","category":"ci_workflow_failure","subsystem":"ci","scope":"CI","symptom":"clippy failed","root_cause":"warning","fix":"manual","guard":"open","test":"open","linked_run":"3","failure_class":"ci_clippy_failure"}
+{"id":"fail-1","ts":"2099-01-01T00:00:00Z","event":"failure","category":"ci_workflow_failure","subsystem":"ci","scope":"CI","symptom":"clippy failed","root_cause":"warning","fix":"manual","guard":"open","test":"open","linked_run":"1","head_sha":"0123456789abcdef","failure_class":"ci_clippy_failure"}
+{"id":"fail-2","ts":"2099-01-02T00:00:00Z","event":"failure","category":"ci_workflow_failure","subsystem":"ci","scope":"CI","symptom":"clippy failed","root_cause":"warning","fix":"manual","guard":"open","test":"open","linked_run":"2","head_sha":"0123456789abcdef","failure_class":"ci_clippy_failure"}
+{"id":"fail-3","ts":"2099-01-03T00:00:00Z","event":"failure","category":"ci_workflow_failure","subsystem":"ci","scope":"CI","symptom":"clippy failed","root_cause":"warning","fix":"manual","guard":"open","test":"open","linked_run":"3","head_sha":"0123456789abcdef","failure_class":"ci_clippy_failure"}
 JSONL
 (cd "$tmp" && python3 scripts/propose-system-fix.py --dry-run > result.json)
 grep -q '"should_commit": true' "$tmp/result.json"
+grep -Eq '"proposal_fingerprint": "[0-9a-f]{64}"' "$tmp/result.json"
+grep -Eq '"branch_ref": "self-heal/fp-[0-9a-f]{20}"' "$tmp/result.json"
 grep -q '"fail_count_30d": 3' "$tmp/result.json"
 grep -q '"auto_generated": false' "$tmp/result.json"
 
 cat > "$tmp/release-proof/audit/audit.jsonl" <<'JSONL'
-{"id":"fail-1","ts":"2099-01-01T00:00:00Z","event":"failure","category":"ci_workflow_failure","subsystem":"ci","scope":"CI","symptom":"clippy failed","root_cause":"warning","fix":"manual","guard":"open","test":"open","linked_run":"1","failure_class":"ci_clippy_failure"}
-{"id":"fail-2","ts":"2099-01-02T00:00:00Z","event":"failure","category":"ci_workflow_failure","subsystem":"ci","scope":"CI","symptom":"clippy failed","root_cause":"warning","fix":"manual","guard":"open","test":"open","linked_run":"2","failure_class":"ci_clippy_failure"}
+{"id":"fail-1","ts":"2099-01-01T00:00:00Z","event":"failure","category":"ci_workflow_failure","subsystem":"ci","scope":"CI","symptom":"clippy failed","root_cause":"warning","fix":"manual","guard":"open","test":"open","linked_run":"1","head_sha":"0123456789abcdef","failure_class":"ci_clippy_failure"}
+{"id":"fail-2","ts":"2099-01-02T00:00:00Z","event":"failure","category":"ci_workflow_failure","subsystem":"ci","scope":"CI","symptom":"clippy failed","root_cause":"warning","fix":"manual","guard":"open","test":"open","linked_run":"2","head_sha":"0123456789abcdef","failure_class":"ci_clippy_failure"}
 JSONL
 before_lines="$(wc -l < "$tmp/release-proof/audit/audit.jsonl")"
 (cd "$tmp" && python3 scripts/propose-system-fix.py > below-threshold.json)

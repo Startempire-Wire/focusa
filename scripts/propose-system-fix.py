@@ -10,12 +10,31 @@ produce a result JSON but no audit mutation, preventing noisy audit commits.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import os
+import re
 import sys
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
+
+try:
+    from self_heal_governor import FAILURE_SCHEMA, failure_fingerprint
+except ModuleNotFoundError:  # Standalone compatibility copies used by Spec122.
+    FAILURE_SCHEMA = "focusa.self_heal.failure.v1"
+
+    def failure_fingerprint(failure: dict[str, Any]) -> str:
+        fields = ("repository", "workflow", "failure_class", "exact_sha", "action_scope")
+        normalized = []
+        for field in fields:
+            value = str(failure.get(field) or "").strip().lower()
+            if not value:
+                raise ValueError(f"{field} is required")
+            normalized.append(re.sub(r"[^a-z0-9._:/-]+", "-", value).strip("-"))
+        return hashlib.sha256("\x00".join(normalized).encode()).hexdigest()
+
 
 DEFAULT_AUDIT_FILE = "release-proof/audit/audit.jsonl"
 DEFAULT_RESULT_FILE = "release-proof/audit/self-heal-result.json"
@@ -311,17 +330,38 @@ def main() -> int:
         row = build_self_heal_row(
             latest, len(recent_30d), len(recent_7d), deliverable, escalation, rate
         )
+        head_sha = str(latest.get("head_sha") or "").strip()
+        fingerprint = None
+        if len(head_sha) >= 7:
+            fingerprint = failure_fingerprint(
+                {
+                    "schema": FAILURE_SCHEMA,
+                    "repository": os.environ.get("GITHUB_REPOSITORY", "unknown/repository"),
+                    "workflow": str(latest.get("scope") or "unknown"),
+                    "failure_class": cls,
+                    "exact_sha": head_sha,
+                    "action_scope": "system-fix-proposal",
+                    "deterministic": bool(latest.get("deterministic")),
+                }
+            )
+            row["failure_fingerprint"] = fingerprint
+            row["branch_ref"] = f"self-heal/fp-{fingerprint[:20]}"
         output_rows.append(row)
         decisions.append(
             {
                 "failure_class": cls,
-                "action": "self_heal" if deliverable else "operator_review_required",
+                "action": "self_heal" if deliverable and fingerprint else "operator_review_required",
                 "deliverable": deliverable,
                 "derived_from": latest_id,
+                "failure_fingerprint": fingerprint,
             }
         )
 
-    wrote_deliverable = any(row.get("deliverable") for row in output_rows)
+    fingerprinted = [
+        row for row in output_rows if row.get("deliverable") and row.get("failure_fingerprint")
+    ]
+    primary = max(fingerprinted, key=lambda row: str(row.get("ts") or ""), default=None)
+    wrote_deliverable = primary is not None
     result = {
         "schema": "focusa.self_heal.result.v1",
         "status": "dry_run" if args.dry_run else "completed",
@@ -330,6 +370,8 @@ def main() -> int:
         "self_heal_rows": len(output_rows),
         "proposed_self_heal_rows": output_rows,
         "should_commit": wrote_deliverable,
+        "proposal_fingerprint": None if primary is None else primary["failure_fingerprint"],
+        "branch_ref": None if primary is None else primary["branch_ref"],
         "decisions": decisions,
         "intervention_rate": rate,
     }
