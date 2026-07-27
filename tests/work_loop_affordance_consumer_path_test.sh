@@ -35,12 +35,26 @@ wait_for_jq(){
 
 STATUS0="$(http_json "${BASE_URL}/v1/work-loop/status")"
 WRITER_ID="$(echo "$STATUS0" | jq -r '.active_writer // "daemon-supervisor"')"
+WORK_ITEM_ID="$(echo "$STATUS0" | jq -r '.execution_partition.work_item_id // .current_task.work_item_id // empty')"
+ENABLE_RESP="$(http_json -X POST "${BASE_URL}/v1/work-loop/enable" \
+  -H 'Content-Type: application/json' \
+  -H "x-focusa-writer-id: ${WRITER_ID}" \
+  -H 'x-focusa-approval: approved' \
+  -d "{\"preset\":\"balanced\",\"root_work_item_id\":\"${WORK_ITEM_ID}\"}")"
+FENCING_TOKEN="$(echo "$ENABLE_RESP" | jq -r '.fencing_token // empty')"
+FENCING_HEADERS=()
+if echo "$FENCING_TOKEN" | grep -Eq '^[1-9][0-9]*$'; then
+  FENCING_HEADERS=(-H "x-focusa-fencing-token: ${FENCING_TOKEN}")
+else
+  log_fail "work-loop writer lease unavailable: $ENABLE_RESP"
+fi
 ORIG_ADAPTER="$(echo "$STATUS0" | jq -r '.transport.adapter // "pi-rpc"')"
 ORIG_SESSION_ID="$(echo "$STATUS0" | jq -r '.transport.daemon_supervised_session.session_id // "spec79-affordance-restore"')"
 
 ABORT_RESP="$(http_json -X POST "${BASE_URL}/v1/work-loop/session/abort" \
   -H 'Content-Type: application/json' \
   -H "x-focusa-writer-id: ${WRITER_ID}" \
+  "${FENCING_HEADERS[@]}" \
   -d '{"reason":"spec79 affordance consumer-path contract"}')"
 if echo "$ABORT_RESP" | jq -e '.ok == true' >/dev/null 2>&1; then
   log_pass "transport session abort accepted"
@@ -63,6 +77,7 @@ fi
 HEARTBEAT_RESP="$(http_json -X POST "${BASE_URL}/v1/work-loop/heartbeat" \
   -H 'Content-Type: application/json' \
   -H "x-focusa-writer-id: ${WRITER_ID}" \
+  "${FENCING_HEADERS[@]}" \
   -d '{}')"
 if echo "$HEARTBEAT_RESP" | jq -e '.ok == true' >/dev/null 2>&1; then
   log_pass "heartbeat dispatch control remains callable while affordance is blocked"
@@ -73,6 +88,7 @@ fi
 ATTACH_RESP="$(http_json -X POST "${BASE_URL}/v1/work-loop/session/attach" \
   -H 'Content-Type: application/json' \
   -H "x-focusa-writer-id: ${WRITER_ID}" \
+  "${FENCING_HEADERS[@]}" \
   -d "{\"adapter\":\"${ORIG_ADAPTER}\",\"session_id\":\"${ORIG_SESSION_ID}\"}")"
 if echo "$ATTACH_RESP" | jq -e '.ok == true' >/dev/null 2>&1; then
   log_pass "transport session attach accepted"
