@@ -1,6 +1,6 @@
-# Spec 137A/138A/144 hardening workflow diagnostic
+# Spec 137A/138A/144 exhaustive hardening workflow
 
-Commit: b8825f46b51e0180418a0f5e82736ba52bf2eca3
+Source commit: 8ba6ae28321952683fd667a56771fcb4d4e7a3a8
 Exit status: 0
 
 ```text
