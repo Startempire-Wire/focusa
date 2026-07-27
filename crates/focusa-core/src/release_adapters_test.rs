@@ -182,6 +182,97 @@ async fn single_package_manifest_executes_without_focusa_or_github_assumptions()
     );
 }
 
+#[cfg(unix)]
+#[tokio::test]
+async fn external_json_plugin_executes_typed_envelope() {
+    use std::os::unix::fs::PermissionsExt;
+    let root = std::env::temp_dir().join(format!("focusa-release-plugin-{}", uuid::Uuid::now_v7()));
+    std::fs::create_dir_all(&root).unwrap();
+    let plugin = root.join("plugin");
+    std::fs::write(&plugin, r#"#!/bin/sh
+cat >/dev/null
+printf '%s' '{"operation_id":"op","executor_id":"fixture","exact_sha":"good","outcome":"passed","observed_at":"2026-01-01T00:00:00Z","evidence_refs":["plugin:proof"],"artifact_set_id":null,"rollback_ref":null,"elapsed_ms":1,"queue_ms":0,"retry_ms":0,"reason_codes":[]}'
+"#).unwrap();
+    std::fs::set_permissions(&plugin, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let executor = JsonProcessReleaseExecutor::new("fixture", &plugin, &root).unwrap();
+    let operation = ReleaseOperation {
+        operation_id: "op".into(),
+        stage: ReleaseStage::Preflighted,
+        executor_id: "fixture".into(),
+        kind: ReleaseOperationKind::ToolCall,
+        action: "verify".into(),
+        surface_ids: vec![],
+        mutates: false,
+        timeout_seconds: 10,
+        parallel_group: None,
+        inputs: BTreeMap::new(),
+    };
+    let request = ReleaseStageRequest {
+        candidate_id: "candidate".into(),
+        exact_sha: "good".into(),
+        version: "1".into(),
+        project_root: root.to_string_lossy().into_owned(),
+        topology: serde_json::from_str(include_str!(
+            "../../../config/release-topologies/single-package.json"
+        ))
+        .unwrap(),
+        stage: ReleaseStage::Preflighted,
+        surface_waves: vec![],
+        tuning: crate::release_calibration::ReleasePlanTuning::default(),
+        approval_refs: vec![],
+    };
+    let receipt = executor.execute(&operation, &request).await.unwrap();
+    assert_eq!(receipt.evidence_refs, vec!["plugin:proof"]);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn process_plugin_requires_absolute_existing_authority_paths() {
+    let error = match JsonProcessReleaseExecutor::new("plugin", "relative-plugin", "/") {
+        Ok(_) => panic!("relative plugin unexpectedly accepted"),
+        Err(error) => error,
+    };
+    assert!(error.to_string().contains("absolute executable"));
+}
+
+#[test]
+fn plugin_envelope_is_provider_neutral_json() {
+    let topology: ReleaseTopology = serde_json::from_str(include_str!(
+        "../../../config/release-topologies/single-package.json"
+    ))
+    .unwrap();
+    let operation = ReleaseOperation {
+        operation_id: "verify".into(),
+        stage: ReleaseStage::Verified,
+        executor_id: "any-software".into(),
+        kind: ReleaseOperationKind::ToolCall,
+        action: "release.verify".into(),
+        surface_ids: vec!["package".into()],
+        mutates: false,
+        timeout_seconds: 60,
+        parallel_group: None,
+        inputs: BTreeMap::new(),
+    };
+    let envelope = ReleasePluginEnvelope {
+        schema: "focusa.release_plugin_envelope.v1".into(),
+        operation,
+        request: ReleaseStageRequest {
+            candidate_id: "candidate".into(),
+            exact_sha: "sha".into(),
+            version: "1".into(),
+            project_root: "/".into(),
+            topology,
+            stage: ReleaseStage::Verified,
+            surface_waves: vec![vec!["package".into()]],
+            tuning: crate::release_calibration::ReleasePlanTuning::default(),
+            approval_refs: vec!["operator:release".into()],
+        },
+    };
+    let roundtrip: ReleasePluginEnvelope =
+        serde_json::from_slice(&serde_json::to_vec(&envelope).unwrap()).unwrap();
+    assert_eq!(roundtrip, envelope);
+}
+
 #[test]
 fn missing_executor_fails_before_any_release_action() {
     let (topology, manifest) = fixture(

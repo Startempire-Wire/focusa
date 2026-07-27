@@ -27,6 +27,14 @@ pub enum ReleaseRunMode {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+pub enum ReleaseInvocationSurface {
+    Canvas,
+    Terminal,
+    Headless,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum AdapterOutcome {
     Passed,
     Skipped,
@@ -205,6 +213,7 @@ pub struct ReleaseExecutionPlan {
     pub candidate_id: String,
     pub exact_sha: String,
     pub adapter_id: String,
+    pub invocation_surface: ReleaseInvocationSurface,
     pub stages: Vec<ReleaseStage>,
     pub surface_waves: Vec<Vec<String>>,
     pub reused_stages: Vec<ReleaseStage>,
@@ -233,6 +242,24 @@ impl MasterReleaseOrchestrator {
         reusable_evidence: &BTreeMap<ReleaseStage, ReleaseEvidence>,
         tuning: &ReleasePlanTuning,
     ) -> anyhow::Result<ReleaseExecutionPlan> {
+        Self::plan_for_surface(
+            candidate,
+            topology,
+            adapter,
+            reusable_evidence,
+            tuning,
+            ReleaseInvocationSurface::Headless,
+        )
+    }
+
+    pub fn plan_for_surface(
+        candidate: &ReleaseCandidate,
+        topology: &ReleaseTopology,
+        adapter: &ReleaseAdapterDescriptor,
+        reusable_evidence: &BTreeMap<ReleaseStage, ReleaseEvidence>,
+        tuning: &ReleasePlanTuning,
+        invocation_surface: ReleaseInvocationSurface,
+    ) -> anyhow::Result<ReleaseExecutionPlan> {
         candidate.validate_identity()?;
         topology.validate()?;
         adapter.validate_for(topology)?;
@@ -256,6 +283,7 @@ impl MasterReleaseOrchestrator {
             candidate_id: candidate.candidate_id.clone(),
             exact_sha: candidate.exact_sha.clone(),
             adapter_id: adapter.adapter_id.clone(),
+            invocation_surface,
             stages,
             surface_waves: bounded_surface_waves(topology, tuning.max_parallel_operations)?,
             reused_stages,
@@ -287,7 +315,7 @@ impl MasterReleaseOrchestrator {
     }
 
     pub async fn run_with_tuning<A: ReleaseAdapter>(
-        mut candidate: ReleaseCandidate,
+        candidate: ReleaseCandidate,
         topology: ReleaseTopology,
         adapter: &A,
         authority: ReleaseAuthority,
@@ -296,14 +324,40 @@ impl MasterReleaseOrchestrator {
         reusable_evidence: BTreeMap<ReleaseStage, ReleaseEvidence>,
         tuning: ReleasePlanTuning,
     ) -> anyhow::Result<ReleaseRunResult> {
+        Self::run_from_surface_with_tuning(
+            candidate,
+            topology,
+            adapter,
+            authority,
+            mode,
+            observed_at,
+            reusable_evidence,
+            tuning,
+            ReleaseInvocationSurface::Headless,
+        )
+        .await
+    }
+
+    pub async fn run_from_surface_with_tuning<A: ReleaseAdapter>(
+        mut candidate: ReleaseCandidate,
+        topology: ReleaseTopology,
+        adapter: &A,
+        authority: ReleaseAuthority,
+        mode: ReleaseRunMode,
+        observed_at: &str,
+        reusable_evidence: BTreeMap<ReleaseStage, ReleaseEvidence>,
+        tuning: ReleasePlanTuning,
+        invocation_surface: ReleaseInvocationSurface,
+    ) -> anyhow::Result<ReleaseRunResult> {
         authority.validate(&candidate, mode)?;
         let descriptor = adapter.descriptor();
-        let plan = Self::plan(
+        let plan = Self::plan_for_surface(
             &candidate,
             &topology,
             &descriptor,
             &reusable_evidence,
             &tuning,
+            invocation_surface,
         )?;
         if mode == ReleaseRunMode::Plan {
             return Ok(ReleaseRunResult {

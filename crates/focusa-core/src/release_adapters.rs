@@ -3,13 +3,17 @@
 //! Manifests declare bounded operations. Provider plugins implement
 //! `ReleaseOperationExecutor`; only the orchestrator owns release state.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    process::Stdio,
+};
 
 use anyhow::{Context, ensure};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
+use tokio::io::AsyncWriteExt;
 
 use crate::release_cycle::{ReleaseEvidence, ReleaseStage, ReleaseTopology};
 use crate::release_orchestrator::{
@@ -198,6 +202,112 @@ pub trait ReleaseOperationExecutor: Send + Sync {
         operation: &ReleaseOperation,
         request: &ReleaseStageRequest,
     ) -> anyhow::Result<ReleaseOperationReceipt>;
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ReleasePluginEnvelope {
+    pub schema: String,
+    pub operation: ReleaseOperation,
+    pub request: ReleaseStageRequest,
+}
+
+pub struct JsonProcessReleaseExecutor {
+    executor_id: String,
+    program: std::path::PathBuf,
+    project_root: std::path::PathBuf,
+}
+
+impl JsonProcessReleaseExecutor {
+    pub fn new(
+        executor_id: impl Into<String>,
+        program: impl Into<std::path::PathBuf>,
+        project_root: impl Into<std::path::PathBuf>,
+    ) -> anyhow::Result<Self> {
+        let executor_id = executor_id.into();
+        let program = program.into();
+        let project_root = project_root.into();
+        ensure!(!executor_id.trim().is_empty(), "executor id is required");
+        ensure!(
+            program.is_absolute() && program.is_file(),
+            "release plugin must be an existing absolute executable path"
+        );
+        ensure!(
+            project_root.is_absolute() && project_root.is_dir(),
+            "release plugin project root must be an existing absolute directory"
+        );
+        Ok(Self {
+            executor_id,
+            program,
+            project_root,
+        })
+    }
+}
+
+#[async_trait]
+impl ReleaseOperationExecutor for JsonProcessReleaseExecutor {
+    fn executor_id(&self) -> &str {
+        &self.executor_id
+    }
+
+    async fn execute(
+        &self,
+        operation: &ReleaseOperation,
+        request: &ReleaseStageRequest,
+    ) -> anyhow::Result<ReleaseOperationReceipt> {
+        ensure!(
+            operation.executor_id == self.executor_id,
+            "plugin executor authority mismatch"
+        );
+        ensure!(
+            request.project_root == self.project_root.to_string_lossy(),
+            "plugin project root differs from candidate authority"
+        );
+        let envelope = ReleasePluginEnvelope {
+            schema: "focusa.release_plugin_envelope.v1".into(),
+            operation: operation.clone(),
+            request: request.clone(),
+        };
+        let input = serde_json::to_vec(&envelope)?;
+        let mut child = tokio::process::Command::new(&self.program)
+            .current_dir(&self.project_root)
+            .env_clear()
+            .env("FOCUSA_RELEASE_PLUGIN", "1")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .kill_on_drop(true)
+            .spawn()
+            .with_context(|| format!("spawn release plugin {}", self.program.display()))?;
+        child
+            .stdin
+            .take()
+            .context("release plugin stdin unavailable")?
+            .write_all(&input)
+            .await?;
+        let output = tokio::time::timeout(
+            std::time::Duration::from_secs(operation.timeout_seconds),
+            child.wait_with_output(),
+        )
+        .await
+        .context("release plugin timed out")??;
+        ensure!(
+            output.status.success(),
+            "release plugin failed: {}",
+            bounded_text(&output.stderr)
+        );
+        ensure!(
+            output.stdout.len() <= 1_048_576,
+            "release plugin receipt exceeds 1 MiB"
+        );
+        let receipt: ReleaseOperationReceipt = serde_json::from_slice(&output.stdout)
+            .context("release plugin returned invalid receipt JSON")?;
+        receipt.validate(operation, request)?;
+        Ok(receipt)
+    }
+}
+
+fn bounded_text(bytes: &[u8]) -> String {
+    String::from_utf8_lossy(&bytes[..bytes.len().min(4096)]).into_owned()
 }
 
 pub struct ManifestReleaseAdapter<E> {

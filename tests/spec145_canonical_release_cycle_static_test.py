@@ -6,6 +6,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CORE = (ROOT / "crates/focusa-core/src/release_cycle.rs").read_text()
 INTELLIGENCE = (ROOT / "crates/focusa-core/src/release_intelligence.rs").read_text()
+ORCHESTRATOR = (ROOT / "crates/focusa-core/src/release_orchestrator.rs").read_text()
+ADAPTERS = (ROOT / "crates/focusa-core/src/release_adapters.rs").read_text()
+CALIBRATION = (ROOT / "crates/focusa-core/src/release_calibration.rs").read_text()
+REFERENCE_ADAPTERS = "\n".join(path.read_text() for path in sorted((ROOT / "config/release-adapters").glob("*.json")))
+REFERENCE_TOPOLOGIES = "\n".join(path.read_text() for path in sorted((ROOT / "config/release-topologies").glob("*.json")))
 UPDATE = (ROOT / "crates/focusa-cli/src/commands/update.rs").read_text()
 RELEASE_CLI = (ROOT / "crates/focusa-cli/src/commands/release.rs").read_text()
 TAG_SCRIPT = (ROOT / "scripts/create-dev-release-tag.sh").read_text()
@@ -69,12 +74,63 @@ require(
     [
         "ReleaseCycleCmd",
         "ValidateTopology",
+        "ValidateAdapter",
+        "Plan",
+        "Execute",
+        "Calibrate",
+        "run_from_surface_with_tuning",
         "RenderIntelligence",
         "focusa.release_topology_validation.v1",
         "focusa.release_intelligence_render.v1",
         "immutable release pages are never overwritten",
     ],
     "release CLI entry",
+)
+require(
+    ORCHESTRATOR,
+    [
+        "MasterReleaseOrchestrator",
+        "ReleaseAdapter",
+        "ReleaseInvocationSurface",
+        "run_from_surface_with_tuning",
+        "exact_sha_evidence_reused",
+        "mutation_authority_missing",
+    ],
+    "provider-neutral master orchestrator",
+)
+require(
+    ADAPTERS,
+    [
+        "ReleaseAdapterManifest",
+        "ReleaseOperationExecutor",
+        "JsonProcessReleaseExecutor",
+        "focusa.release_plugin_envelope.v1",
+        "env_clear()",
+        "release plugin receipt exceeds 1 MiB",
+    ],
+    "pluggable adapter boundary",
+)
+require(
+    CALIBRATION,
+    [
+        "ReleaseCalibrator",
+        "ReleaseCalibrationLedger",
+        "CalibrationOutcome",
+        "parallelize_independent_topology_waves",
+        "RolledBack",
+        "crosses project/profile authority",
+    ],
+    "continual release calibration",
+)
+require(
+    REFERENCE_ADAPTERS + REFERENCE_TOPOLOGIES,
+    [
+        '"manifest_id": "focusa-github-actions-v1"',
+        '"manifest_id": "uiai-engine-v1"',
+        '"profile": "single_package"',
+        '"profile": "service_container_web"',
+    ],
+    "cross-software reference adapters",
 )
 require(
     UPDATE,
@@ -166,4 +222,4 @@ require(
     "Focusa topology fixture",
 )
 
-print("PASS: Spec145 canonical release kernel, OTA truth, speed controls, topology, and architecture present")
+print("PASS: provider-neutral Master Release Cycle, adapters, calibration, OTA truth, topology, and architecture present")

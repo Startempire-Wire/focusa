@@ -143,6 +143,35 @@ fn topology_waves_are_deterministic() {
 }
 
 #[test]
+fn canvas_terminal_and_headless_share_one_canonical_plan() {
+    let candidate = candidate();
+    let topology = topology(true);
+    let tuning = ReleasePlanTuning::default();
+    let evidence = BTreeMap::new();
+    let plans: Vec<_> = [
+        ReleaseInvocationSurface::Canvas,
+        ReleaseInvocationSurface::Terminal,
+        ReleaseInvocationSurface::Headless,
+    ]
+    .into_iter()
+    .map(|surface| {
+        MasterReleaseOrchestrator::plan_for_surface(
+            &candidate,
+            &topology,
+            &descriptor(),
+            &evidence,
+            &tuning,
+            surface,
+        )
+        .unwrap()
+    })
+    .collect();
+    assert!(plans.windows(2).all(|pair| pair[0].stages == pair[1].stages
+        && pair[0].surface_waves == pair[1].surface_waves
+        && pair[0].tuning == pair[1].tuning));
+}
+
+#[test]
 fn calibrated_parallelism_changes_next_plan_waves() {
     let mut value = topology(true);
     value.surfaces[1].depends_on.clear();

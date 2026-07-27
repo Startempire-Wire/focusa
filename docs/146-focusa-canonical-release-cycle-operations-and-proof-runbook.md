@@ -192,6 +192,35 @@ run. The helper now preserves an already-stamped retry SHA and dispatches a
 missing Spec132 run only while remote `main` still equals that candidate; a
 scope mismatch fails before tagging.
 
+### 12.4 Cross-software master-cycle conformance
+
+Reference contracts:
+
+- `config/release-adapters/focusa.json`;
+- `config/release-adapters/uiai-engine.json`;
+- `config/release-adapters/single-package.json`;
+- `config/release-adapters/service-container-web.json`;
+- matching topologies under `config/release-topologies/` plus Focusa's canonical
+  `config/focusa-release-topology.json`.
+
+Proof commands:
+
+```bash
+cargo test -p focusa-core release_orchestrator --lib
+cargo test -p focusa-core release_adapters --lib
+cargo test -p focusa-core release_calibration --lib
+python3 tests/spec145_canonical_release_cycle_static_test.py
+focusa release cycle validate-adapter \
+  --manifest config/release-adapters/uiai-engine.json \
+  --topology config/release-topologies/uiai-engine.json
+```
+
+The conformance suite executes all four profiles through one kernel, verifies
+Canvas/terminal/headless plan parity, exercises an external JSON plugin process,
+and proves that a later calibration changes topology-wave concurrency. This is
+architecture proof, not a claim that UIAI production was deployed; a real UIAI
+release remains a separate project-authority operation using this adapter.
+
 ## 13. Security and supply chain
 
 - Least-privilege workflow permissions per job.
