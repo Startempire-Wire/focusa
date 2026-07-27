@@ -13,296 +13,18 @@ use crate::release_calibration::ReleasePlanTuning;
 use crate::release_cycle::{
     ReleaseCandidate, ReleaseEvidence, ReleaseStage, ReleaseSurfaceKind, ReleaseTopology,
 };
+use crate::release_ledger::{
+    NoopReleaseCheckpointSink, RELEASE_CHECKPOINT_SCHEMA, ReleaseCheckpointSink,
+    ReleaseRunCheckpoint,
+};
 
-pub const RELEASE_ADAPTER_SCHEMA: &str = "focusa.release_adapter.v1";
-pub const RELEASE_PLAN_SCHEMA: &str = "focusa.release_execution_plan.v1";
-pub const RELEASE_RUN_SCHEMA: &str = "focusa.release_run_result.v1";
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ReleaseRunMode {
-    Plan,
-    Execute,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ReleaseInvocationSurface {
-    Canvas,
-    Terminal,
-    Headless,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AdapterOutcome {
-    Passed,
-    Skipped,
-    Blocked,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ReleaseAuthority {
-    pub project_root: String,
-    pub continuity_id: String,
-    pub operator_confirmed: bool,
-    pub mutation_allowed: bool,
-    #[serde(default)]
-    pub approval_refs: Vec<String>,
-}
-
-impl ReleaseAuthority {
-    fn validate(&self, candidate: &ReleaseCandidate, mode: ReleaseRunMode) -> anyhow::Result<()> {
-        ensure!(
-            self.project_root == candidate.project_root,
-            "release authority project mismatch"
-        );
-        ensure!(
-            self.continuity_id == candidate.continuity_id,
-            "release authority continuity mismatch"
-        );
-        if mode == ReleaseRunMode::Execute {
-            ensure!(
-                self.operator_confirmed,
-                "release execution requires operator confirmation"
-            );
-            ensure!(
-                !self.approval_refs.is_empty(),
-                "release execution requires approval evidence"
-            );
-        }
-        Ok(())
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ReleaseAdapterDescriptor {
-    pub schema: String,
-    pub adapter_id: String,
-    pub adapter_version: String,
-    pub supported_profiles: Vec<String>,
-    pub supported_surface_kinds: Vec<ReleaseSurfaceKind>,
-    pub supported_stages: Vec<ReleaseStage>,
-    pub supports_canary: bool,
-    pub supports_rollback: bool,
-}
-
-impl ReleaseAdapterDescriptor {
-    pub fn validate_for(&self, topology: &ReleaseTopology) -> anyhow::Result<()> {
-        ensure!(
-            self.schema == RELEASE_ADAPTER_SCHEMA,
-            "unsupported release adapter schema"
-        );
-        ensure!(!self.adapter_id.trim().is_empty(), "adapter_id is required");
-        ensure!(
-            !self.adapter_version.trim().is_empty(),
-            "adapter_version is required"
-        );
-        ensure!(
-            self.supported_profiles
-                .iter()
-                .any(|profile| profile == &topology.profile),
-            "adapter does not support topology profile"
-        );
-        let kinds: BTreeSet<_> = self.supported_surface_kinds.iter().copied().collect();
-        ensure!(
-            topology
-                .surfaces
-                .iter()
-                .all(|surface| kinds.contains(&surface.kind)),
-            "adapter does not support every topology surface kind"
-        );
-        let stages: BTreeSet<_> = self.supported_stages.iter().copied().collect();
-        ensure!(
-            canonical_stages(topology)
-                .iter()
-                .all(|stage| stages.contains(stage)),
-            "adapter does not support every required release stage"
-        );
-        ensure!(
-            !topology
-                .surfaces
-                .iter()
-                .any(|surface| surface.canary_required)
-                || self.supports_canary,
-            "topology requires canary but adapter cannot provide it"
-        );
-        let rollback_required = topology
-            .surfaces
-            .iter()
-            .any(|surface| surface.rollback_required);
-        ensure!(
-            !rollback_required || self.supports_rollback,
-            "topology requires rollback but adapter cannot provide it"
-        );
-        ensure!(
-            !rollback_required || stages.contains(&ReleaseStage::RolledBack),
-            "topology requires rollback but adapter lacks rolled_back stage"
-        );
-        Ok(())
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ReleaseStageRequest {
-    pub candidate_id: String,
-    pub exact_sha: String,
-    pub version: String,
-    pub project_root: String,
-    pub topology: ReleaseTopology,
-    pub stage: ReleaseStage,
-    pub surface_waves: Vec<Vec<String>>,
-    pub tuning: ReleasePlanTuning,
-    pub immutable_artifact_set_id: Option<String>,
-    pub approval_refs: Vec<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ReleaseStageReceipt {
-    pub stage: ReleaseStage,
-    pub outcome: AdapterOutcome,
-    pub evidence: ReleaseEvidence,
-    pub adapter_id: String,
-    pub artifact_set_id: Option<String>,
-    pub rollback_ref: Option<String>,
-    pub elapsed_ms: u64,
-    pub queue_ms: u64,
-    pub retry_ms: u64,
-    #[serde(default)]
-    pub reason_codes: Vec<String>,
-}
-
-impl ReleaseStageReceipt {
-    fn validate(
-        &self,
-        request: &ReleaseStageRequest,
-        descriptor: &ReleaseAdapterDescriptor,
-    ) -> anyhow::Result<()> {
-        ensure!(
-            self.stage == request.stage,
-            "adapter receipt stage mismatch"
-        );
-        ensure!(
-            self.adapter_id == descriptor.adapter_id,
-            "adapter receipt identity mismatch"
-        );
-        self.evidence.validate(&request.exact_sha)?;
-        ensure!(
-            self.evidence.stage == request.stage,
-            "adapter evidence stage mismatch"
-        );
-        if matches!(
-            self.stage,
-            ReleaseStage::Built
-                | ReleaseStage::Packaged
-                | ReleaseStage::Provenanced
-                | ReleaseStage::DraftPublished
-                | ReleaseStage::CanaryDeployed
-                | ReleaseStage::Verified
-                | ReleaseStage::Promoted
-        ) {
-            ensure!(
-                self.artifact_set_id
-                    .as_deref()
-                    .is_some_and(|id| !id.trim().is_empty()),
-                "artifact-consuming stage requires immutable artifact_set_id"
-            );
-        }
-        Ok(())
-    }
-}
-
-#[async_trait]
-pub trait ReleaseAdapter: Send + Sync {
-    fn descriptor(&self) -> ReleaseAdapterDescriptor;
-    async fn execute(&self, request: ReleaseStageRequest) -> anyhow::Result<ReleaseStageReceipt>;
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ReleaseExecutionPlan {
-    pub schema: String,
-    pub candidate_id: String,
-    pub exact_sha: String,
-    pub adapter_id: String,
-    pub invocation_surface: ReleaseInvocationSurface,
-    pub stages: Vec<ReleaseStage>,
-    pub surface_waves: Vec<Vec<String>>,
-    pub reused_stages: Vec<ReleaseStage>,
-    pub mutating_stages: Vec<ReleaseStage>,
-    pub tuning: ReleasePlanTuning,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct ReleaseRunResult {
-    pub schema: String,
-    pub status: String,
-    pub candidate: ReleaseCandidate,
-    pub plan: ReleaseExecutionPlan,
-    pub receipts: Vec<ReleaseStageReceipt>,
-    pub blocked_stage: Option<ReleaseStage>,
-    pub blocked_reasons: Vec<String>,
-}
+pub use crate::release_planner::{bounded_surface_waves, surface_waves};
+use crate::release_planner::{remaining_stages, reusable_artifact_id, stage_mutates};
+pub use crate::release_protocol::*;
 
 pub struct MasterReleaseOrchestrator;
 
 impl MasterReleaseOrchestrator {
-    pub fn plan(
-        candidate: &ReleaseCandidate,
-        topology: &ReleaseTopology,
-        adapter: &ReleaseAdapterDescriptor,
-        reusable_evidence: &BTreeMap<ReleaseStage, ReleaseEvidence>,
-        tuning: &ReleasePlanTuning,
-    ) -> anyhow::Result<ReleaseExecutionPlan> {
-        Self::plan_for_surface(
-            candidate,
-            topology,
-            adapter,
-            reusable_evidence,
-            tuning,
-            ReleaseInvocationSurface::Headless,
-        )
-    }
-
-    pub fn plan_for_surface(
-        candidate: &ReleaseCandidate,
-        topology: &ReleaseTopology,
-        adapter: &ReleaseAdapterDescriptor,
-        reusable_evidence: &BTreeMap<ReleaseStage, ReleaseEvidence>,
-        tuning: &ReleasePlanTuning,
-        invocation_surface: ReleaseInvocationSurface,
-    ) -> anyhow::Result<ReleaseExecutionPlan> {
-        candidate.validate_identity()?;
-        topology.validate()?;
-        adapter.validate_for(topology)?;
-        let stages = remaining_stages(candidate.stage, topology)?;
-        let reused_stages = stages
-            .iter()
-            .filter(|stage| {
-                reusable_evidence.get(stage).is_some_and(|evidence| {
-                    evidence.validate(&candidate.exact_sha).is_ok() && evidence.stage == **stage
-                })
-            })
-            .copied()
-            .collect();
-        let mutating_stages = stages
-            .iter()
-            .filter(|stage| stage_mutates(**stage))
-            .copied()
-            .collect();
-        Ok(ReleaseExecutionPlan {
-            schema: RELEASE_PLAN_SCHEMA.into(),
-            candidate_id: candidate.candidate_id.clone(),
-            exact_sha: candidate.exact_sha.clone(),
-            adapter_id: adapter.adapter_id.clone(),
-            invocation_surface,
-            stages,
-            surface_waves: bounded_surface_waves(topology, tuning.max_parallel_operations)?,
-            reused_stages,
-            mutating_stages,
-            tuning: tuning.clone(),
-        })
-    }
-
     pub async fn run<A: ReleaseAdapter>(
         candidate: ReleaseCandidate,
         topology: ReleaseTopology,
@@ -350,6 +72,33 @@ impl MasterReleaseOrchestrator {
     }
 
     pub async fn run_from_surface_with_tuning<A: ReleaseAdapter>(
+        candidate: ReleaseCandidate,
+        topology: ReleaseTopology,
+        adapter: &A,
+        authority: ReleaseAuthority,
+        mode: ReleaseRunMode,
+        observed_at: &str,
+        reusable_evidence: BTreeMap<ReleaseStage, ReleaseEvidence>,
+        tuning: ReleasePlanTuning,
+        invocation_surface: ReleaseInvocationSurface,
+    ) -> anyhow::Result<ReleaseRunResult> {
+        Self::run_with_checkpoint_sink(
+            candidate,
+            topology,
+            adapter,
+            authority,
+            mode,
+            observed_at,
+            reusable_evidence,
+            tuning,
+            invocation_surface,
+            Vec::new(),
+            &NoopReleaseCheckpointSink,
+        )
+        .await
+    }
+
+    pub async fn run_with_checkpoint_sink<A: ReleaseAdapter, S: ReleaseCheckpointSink>(
         mut candidate: ReleaseCandidate,
         topology: ReleaseTopology,
         adapter: &A,
@@ -359,6 +108,8 @@ impl MasterReleaseOrchestrator {
         reusable_evidence: BTreeMap<ReleaseStage, ReleaseEvidence>,
         tuning: ReleasePlanTuning,
         invocation_surface: ReleaseInvocationSurface,
+        resume_receipts: Vec<ReleaseStageReceipt>,
+        checkpoint_sink: &S,
     ) -> anyhow::Result<ReleaseRunResult> {
         authority.validate(&candidate, mode)?;
         let descriptor = adapter.descriptor();
@@ -370,6 +121,21 @@ impl MasterReleaseOrchestrator {
             &tuning,
             invocation_surface,
         )?;
+        let mut checkpoint_sequence = checkpoint_sink.next_sequence()?;
+        checkpoint_sink.append(&checkpoint(
+            checkpoint_sequence,
+            if mode == ReleaseRunMode::Plan {
+                "planned"
+            } else {
+                "started"
+            },
+            observed_at,
+            &candidate,
+            &plan,
+            &resume_receipts,
+            &[],
+        ))?;
+        checkpoint_sequence += 1;
         if mode == ReleaseRunMode::Plan {
             return Ok(ReleaseRunResult {
                 schema: RELEASE_RUN_SCHEMA.into(),
@@ -382,6 +148,16 @@ impl MasterReleaseOrchestrator {
             });
         }
         if !authority.mutation_allowed && !plan.mutating_stages.is_empty() {
+            let reasons = vec!["mutation_authority_missing".to_string()];
+            checkpoint_sink.append(&checkpoint(
+                checkpoint_sequence,
+                "blocked",
+                observed_at,
+                &candidate,
+                &plan,
+                &resume_receipts,
+                &reasons,
+            ))?;
             return Ok(blocked_result(
                 candidate,
                 plan,
@@ -390,8 +166,28 @@ impl MasterReleaseOrchestrator {
             ));
         }
 
-        let mut receipts = Vec::new();
         let mut immutable_artifact_set_id: Option<String> = None;
+        for receipt in &resume_receipts {
+            ensure!(
+                receipt.evidence.exact_sha == candidate.exact_sha,
+                "resume receipt SHA mismatch"
+            );
+            ensure!(
+                receipt.adapter_id == descriptor.adapter_id,
+                "resume receipt adapter mismatch"
+            );
+            if let Some(identity) = &receipt.artifact_set_id {
+                if let Some(expected) = &immutable_artifact_set_id {
+                    ensure!(
+                        identity == expected,
+                        "resume receipts contain different artifact sets"
+                    );
+                } else {
+                    immutable_artifact_set_id = Some(identity.clone());
+                }
+            }
+        }
+        let mut receipts = resume_receipts;
         for stage in plan.stages.clone() {
             let receipt = if let Some(evidence) = reusable_evidence.get(&stage) {
                 ReleaseStageReceipt {
@@ -434,6 +230,7 @@ impl MasterReleaseOrchestrator {
             } else {
                 let request = ReleaseStageRequest {
                     candidate_id: candidate.candidate_id.clone(),
+                    idempotency_key: operation_idempotency_key(&candidate, stage),
                     exact_sha: candidate.exact_sha.clone(),
                     version: candidate.version.clone(),
                     project_root: candidate.project_root.clone(),
@@ -451,6 +248,7 @@ impl MasterReleaseOrchestrator {
             };
             let request = ReleaseStageRequest {
                 candidate_id: candidate.candidate_id.clone(),
+                idempotency_key: operation_idempotency_key(&candidate, stage),
                 exact_sha: candidate.exact_sha.clone(),
                 version: candidate.version.clone(),
                 project_root: candidate.project_root.clone(),
@@ -472,6 +270,10 @@ impl MasterReleaseOrchestrator {
                 if rollback_required(&candidate, &topology) {
                     let rollback_request = ReleaseStageRequest {
                         candidate_id: candidate.candidate_id.clone(),
+                        idempotency_key: operation_idempotency_key(
+                            &candidate,
+                            ReleaseStage::RolledBack,
+                        ),
                         exact_sha: candidate.exact_sha.clone(),
                         version: candidate.version.clone(),
                         project_root: candidate.project_root.clone(),
@@ -493,6 +295,15 @@ impl MasterReleaseOrchestrator {
                     );
                     candidate.terminate(ReleaseStage::RolledBack, rollback.evidence.clone())?;
                     receipts.push(rollback);
+                    checkpoint_sink.append(&checkpoint(
+                        checkpoint_sequence,
+                        "rolled_back",
+                        observed_at,
+                        &candidate,
+                        &plan,
+                        &receipts,
+                        &reasons,
+                    ))?;
                     return Ok(ReleaseRunResult {
                         schema: RELEASE_RUN_SCHEMA.into(),
                         status: "rolled_back".into(),
@@ -503,6 +314,15 @@ impl MasterReleaseOrchestrator {
                         blocked_reasons: reasons,
                     });
                 }
+                checkpoint_sink.append(&checkpoint(
+                    checkpoint_sequence,
+                    "blocked",
+                    observed_at,
+                    &candidate,
+                    &plan,
+                    &receipts,
+                    &reasons,
+                ))?;
                 return Ok(ReleaseRunResult {
                     schema: RELEASE_RUN_SCHEMA.into(),
                     status: "blocked".into(),
@@ -525,6 +345,20 @@ impl MasterReleaseOrchestrator {
             }
             candidate.advance(stage, receipt.evidence.clone())?;
             receipts.push(receipt);
+            checkpoint_sink.append(&checkpoint(
+                checkpoint_sequence,
+                if candidate.stage == ReleaseStage::Closed {
+                    "closed"
+                } else {
+                    "running"
+                },
+                observed_at,
+                &candidate,
+                &plan,
+                &receipts,
+                &[],
+            ))?;
+            checkpoint_sequence += 1;
         }
         Ok(ReleaseRunResult {
             schema: RELEASE_RUN_SCHEMA.into(),
@@ -536,6 +370,34 @@ impl MasterReleaseOrchestrator {
             blocked_reasons: Vec::new(),
         })
     }
+}
+
+fn checkpoint(
+    sequence: u64,
+    status: &str,
+    observed_at: &str,
+    candidate: &ReleaseCandidate,
+    plan: &ReleaseExecutionPlan,
+    receipts: &[ReleaseStageReceipt],
+    blocked_reasons: &[String],
+) -> ReleaseRunCheckpoint {
+    ReleaseRunCheckpoint {
+        schema: RELEASE_CHECKPOINT_SCHEMA.into(),
+        sequence,
+        status: status.into(),
+        observed_at: observed_at.into(),
+        candidate: candidate.clone(),
+        plan: plan.clone(),
+        receipts: receipts.to_vec(),
+        blocked_reasons: blocked_reasons.to_vec(),
+    }
+}
+
+fn operation_idempotency_key(candidate: &ReleaseCandidate, stage: ReleaseStage) -> String {
+    format!(
+        "{}:{}:{stage:?}",
+        candidate.candidate_id, candidate.exact_sha
+    )
 }
 
 fn rollback_required(candidate: &ReleaseCandidate, topology: &ReleaseTopology) -> bool {
@@ -562,109 +424,6 @@ fn blocked_result(
         blocked_stage,
         blocked_reasons: vec![reason.into()],
     }
-}
-
-fn canonical_stages(_topology: &ReleaseTopology) -> Vec<ReleaseStage> {
-    let mut stages = vec![
-        ReleaseStage::Locked,
-        ReleaseStage::CandidateSnapshotted,
-        ReleaseStage::Preflighted,
-        ReleaseStage::Built,
-        ReleaseStage::Packaged,
-        ReleaseStage::Provenanced,
-        ReleaseStage::DraftPublished,
-    ];
-    stages.push(ReleaseStage::CanaryDeployed);
-    stages.extend([
-        ReleaseStage::Verified,
-        ReleaseStage::Promoted,
-        ReleaseStage::Closed,
-    ]);
-    stages
-}
-
-fn remaining_stages(
-    current: ReleaseStage,
-    topology: &ReleaseTopology,
-) -> anyhow::Result<Vec<ReleaseStage>> {
-    ensure!(
-        !current.is_terminal(),
-        "terminal candidate cannot be resumed"
-    );
-    Ok(canonical_stages(topology)
-        .into_iter()
-        .filter(|stage| *stage > current)
-        .collect())
-}
-
-fn stage_mutates(stage: ReleaseStage) -> bool {
-    matches!(
-        stage,
-        ReleaseStage::Built
-            | ReleaseStage::Packaged
-            | ReleaseStage::Provenanced
-            | ReleaseStage::DraftPublished
-            | ReleaseStage::CanaryDeployed
-            | ReleaseStage::Promoted
-            | ReleaseStage::Closed
-    )
-}
-
-fn reusable_artifact_id(stage: ReleaseStage, candidate: &ReleaseCandidate) -> Option<String> {
-    matches!(
-        stage,
-        ReleaseStage::Built | ReleaseStage::Packaged | ReleaseStage::Provenanced
-    )
-    .then(|| format!("reused:{}:{}", candidate.exact_sha, candidate.version))
-}
-
-pub fn surface_waves(topology: &ReleaseTopology) -> anyhow::Result<Vec<Vec<String>>> {
-    topology.validate()?;
-    let mut remaining: BTreeMap<String, BTreeSet<String>> = topology
-        .surfaces
-        .iter()
-        .map(|surface| {
-            (
-                surface.surface_id.clone(),
-                surface.depends_on.iter().cloned().collect(),
-            )
-        })
-        .collect();
-    let mut completed = BTreeSet::new();
-    let mut waves = Vec::new();
-    while !remaining.is_empty() {
-        let wave: Vec<_> = remaining
-            .iter()
-            .filter(|(_, deps)| deps.is_subset(&completed))
-            .map(|(id, _)| id.clone())
-            .collect();
-        ensure!(!wave.is_empty(), "release topology dependency cycle");
-        for id in &wave {
-            remaining.remove(id);
-            completed.insert(id.clone());
-        }
-        waves.push(wave);
-    }
-    Ok(waves)
-}
-
-pub fn bounded_surface_waves(
-    topology: &ReleaseTopology,
-    max_parallel_operations: u16,
-) -> anyhow::Result<Vec<Vec<String>>> {
-    ensure!(
-        max_parallel_operations > 0,
-        "max_parallel_operations must be positive"
-    );
-    let limit = usize::from(max_parallel_operations);
-    Ok(surface_waves(topology)?
-        .into_iter()
-        .flat_map(|wave| {
-            wave.chunks(limit)
-                .map(<[String]>::to_vec)
-                .collect::<Vec<_>>()
-        })
-        .collect())
 }
 
 #[cfg(test)]

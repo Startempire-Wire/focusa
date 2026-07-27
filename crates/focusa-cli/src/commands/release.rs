@@ -1,22 +1,15 @@
 //! Release proof orchestration — Spec92 §9.
 
+#[path = "release_master.rs"]
+mod release_master;
+
 use clap::{Subcommand, ValueEnum};
 use focusa_core::license::require_feature;
-use focusa_core::release_adapters::{
-    JsonProcessReleaseExecutor, ManifestReleaseAdapter, ReleaseAdapterManifest,
-};
-use focusa_core::release_calibration::{
-    ReleaseCalibrationLedger, ReleaseCalibrationObservation, ReleaseCalibrationPolicy,
-    ReleaseCalibrator, ReleasePlanTuning,
-};
-use focusa_core::release_cycle::{ReleaseCandidate, ReleaseTopology};
+use focusa_core::release_cycle::ReleaseTopology;
 use focusa_core::release_intelligence::ReleaseIntelligencePacket;
-use focusa_core::release_orchestrator::{
-    MasterReleaseOrchestrator, ReleaseAuthority, ReleaseInvocationSurface, ReleaseRunMode,
-};
+use focusa_core::release_orchestrator::ReleaseInvocationSurface;
 use focusa_core::types::default_focusa_data_dir;
 use serde_json::{Value, json};
-use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
@@ -101,6 +94,9 @@ pub enum ReleaseCycleCmd {
         tuning: Option<PathBuf>,
         #[arg(long)]
         plugin: PathBuf,
+        /// Absolute append-only checkpoint ledger; existing exact candidate resumes.
+        #[arg(long)]
+        ledger: PathBuf,
         #[arg(long, value_enum, default_value = "headless")]
         surface: ReleaseSurfaceArg,
         #[arg(long)]
@@ -247,22 +243,7 @@ pub async fn run(cmd: ReleaseCmd, json_mode: bool) -> anyhow::Result<()> {
                 }
             }
             ReleaseCycleCmd::ValidateAdapter { manifest, topology } => {
-                let topology: ReleaseTopology =
-                    serde_json::from_str(&fs::read_to_string(&topology)?)?;
-                let manifest: ReleaseAdapterManifest =
-                    serde_json::from_str(&fs::read_to_string(&manifest)?)?;
-                manifest.validate(&topology)?;
-                let output = json!({
-                    "schema": "focusa.release_adapter_validation.v1",
-                    "status": "completed",
-                    "valid": true,
-                    "manifest_id": manifest.manifest_id,
-                    "adapter_id": manifest.descriptor.adapter_id,
-                    "project_id": topology.project_id,
-                    "profile": topology.profile,
-                    "operation_count": manifest.operations.len(),
-                });
-                println!("{}", serde_json::to_string_pretty(&output)?);
+                release_master::validate_adapter(manifest, topology)?;
             }
             ReleaseCycleCmd::Plan {
                 manifest,
@@ -271,26 +252,7 @@ pub async fn run(cmd: ReleaseCmd, json_mode: bool) -> anyhow::Result<()> {
                 tuning,
                 surface,
             } => {
-                let topology: ReleaseTopology =
-                    serde_json::from_str(&fs::read_to_string(&topology)?)?;
-                let manifest: ReleaseAdapterManifest =
-                    serde_json::from_str(&fs::read_to_string(&manifest)?)?;
-                manifest.validate(&topology)?;
-                let candidate: ReleaseCandidate =
-                    serde_json::from_str(&fs::read_to_string(&candidate)?)?;
-                let tuning: ReleasePlanTuning = match tuning {
-                    Some(path) => serde_json::from_str(&fs::read_to_string(path)?)?,
-                    None => ReleasePlanTuning::default(),
-                };
-                let plan = MasterReleaseOrchestrator::plan_for_surface(
-                    &candidate,
-                    &topology,
-                    &manifest.descriptor,
-                    &BTreeMap::new(),
-                    &tuning,
-                    surface.into(),
-                )?;
-                println!("{}", serde_json::to_string_pretty(&plan)?);
+                release_master::plan(manifest, topology, candidate, tuning, surface)?;
             }
             ReleaseCycleCmd::Execute {
                 manifest,
@@ -298,57 +260,25 @@ pub async fn run(cmd: ReleaseCmd, json_mode: bool) -> anyhow::Result<()> {
                 candidate,
                 tuning,
                 plugin,
+                ledger,
                 surface,
                 yes,
                 allow_mutations,
                 approval_refs,
             } => {
-                anyhow::ensure!(yes, "release execution requires --yes");
-                let topology: ReleaseTopology =
-                    serde_json::from_str(&fs::read_to_string(&topology)?)?;
-                let manifest: ReleaseAdapterManifest =
-                    serde_json::from_str(&fs::read_to_string(&manifest)?)?;
-                manifest.validate(&topology)?;
-                let candidate: ReleaseCandidate =
-                    serde_json::from_str(&fs::read_to_string(&candidate)?)?;
-                let tuning: ReleasePlanTuning = match tuning {
-                    Some(path) => serde_json::from_str(&fs::read_to_string(path)?)?,
-                    None => ReleasePlanTuning::default(),
-                };
-                let executor_ids: BTreeSet<_> = manifest
-                    .operations
-                    .iter()
-                    .map(|operation| operation.executor_id.clone())
-                    .collect();
-                let mut executors = Vec::new();
-                for executor_id in executor_ids {
-                    executors.push(JsonProcessReleaseExecutor::new(
-                        executor_id,
-                        plugin.clone(),
-                        candidate.project_root.clone(),
-                    )?);
-                }
-                let adapter = ManifestReleaseAdapter::new(manifest, topology.clone(), executors)?;
-                let authority = ReleaseAuthority {
-                    project_root: candidate.project_root.clone(),
-                    continuity_id: candidate.continuity_id.clone(),
-                    operator_confirmed: yes,
-                    mutation_allowed: allow_mutations,
-                    approval_refs,
-                };
-                let result = MasterReleaseOrchestrator::run_from_surface_with_tuning(
-                    candidate,
+                release_master::execute(
+                    manifest,
                     topology,
-                    &adapter,
-                    authority,
-                    ReleaseRunMode::Execute,
-                    &chrono::Utc::now().to_rfc3339(),
-                    BTreeMap::new(),
+                    candidate,
                     tuning,
-                    surface.into(),
+                    plugin,
+                    ledger,
+                    surface,
+                    yes,
+                    allow_mutations,
+                    approval_refs,
                 )
                 .await?;
-                println!("{}", serde_json::to_string_pretty(&result)?);
             }
             ReleaseCycleCmd::Calibrate {
                 ledger,
@@ -356,28 +286,7 @@ pub async fn run(cmd: ReleaseCmd, json_mode: bool) -> anyhow::Result<()> {
                 active_tuning,
                 output,
             } => {
-                let observation: ReleaseCalibrationObservation =
-                    serde_json::from_str(&fs::read_to_string(&observation)?)?;
-                ReleaseCalibrationLedger::append(&ledger, &observation)?;
-                let history = ReleaseCalibrationLedger::read(
-                    &ledger,
-                    &observation.project_id,
-                    &observation.profile,
-                )?;
-                let active: ReleasePlanTuning = match active_tuning {
-                    Some(path) => serde_json::from_str(&fs::read_to_string(path)?)?,
-                    None => ReleasePlanTuning::default(),
-                };
-                let decision = ReleaseCalibrator::decide(
-                    &history,
-                    &active,
-                    &ReleaseCalibrationPolicy::default(),
-                )?;
-                let body = serde_json::to_string_pretty(&decision)?;
-                if let Some(path) = output {
-                    fs::write(path, &body)?;
-                }
-                println!("{body}");
+                release_master::calibrate(ledger, observation, active_tuning, output)?;
             }
             ReleaseCycleCmd::RenderIntelligence {
                 packet,

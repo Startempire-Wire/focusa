@@ -1,5 +1,6 @@
 use super::*;
 use crate::release_cycle::{RELEASE_CANDIDATE_SCHEMA, RELEASE_TOPOLOGY_SCHEMA, ReleaseSurface};
+use crate::release_ledger::{JsonlReleaseRunLedger, ReleaseCheckpointSink};
 use std::sync::Mutex;
 
 fn topology(canary: bool) -> ReleaseTopology {
@@ -323,6 +324,79 @@ async fn exact_sha_evidence_is_reused_without_adapter_call() {
             .unwrap()
             .contains(&ReleaseStage::CanaryDeployed)
     );
+}
+
+#[tokio::test]
+async fn interrupted_cycle_resumes_from_append_only_checkpoint() {
+    let path = std::env::temp_dir().join(format!(
+        "focusa-cycle-resume-{}.jsonl",
+        uuid::Uuid::now_v7()
+    ));
+    let initial = candidate();
+    let ledger = JsonlReleaseRunLedger::new(
+        &path,
+        &initial.project_root,
+        &initial.candidate_id,
+        &initial.exact_sha,
+    )
+    .unwrap();
+    let blocked_adapter = MockAdapter {
+        blocked: Some(ReleaseStage::DraftPublished),
+        calls: Mutex::new(Vec::new()),
+    };
+    let blocked = MasterReleaseOrchestrator::run_with_checkpoint_sink(
+        initial,
+        topology(true),
+        &blocked_adapter,
+        authority(true),
+        ReleaseRunMode::Execute,
+        "2026-01-01T00:00:00Z",
+        BTreeMap::new(),
+        ReleasePlanTuning::default(),
+        ReleaseInvocationSurface::Headless,
+        Vec::new(),
+        &ledger,
+    )
+    .await
+    .unwrap();
+    assert_eq!(blocked.status, "blocked");
+    let resume_checkpoint = ledger.latest().unwrap().unwrap();
+    let resume_candidate = resume_checkpoint.candidate;
+    let resume_receipts = resume_checkpoint.receipts;
+    assert_eq!(resume_candidate.stage, ReleaseStage::Provenanced);
+    let resumed_adapter = MockAdapter {
+        blocked: None,
+        calls: Mutex::new(Vec::new()),
+    };
+    let resumed = MasterReleaseOrchestrator::run_with_checkpoint_sink(
+        resume_candidate,
+        topology(true),
+        &resumed_adapter,
+        authority(true),
+        ReleaseRunMode::Execute,
+        "2026-01-01T00:01:00Z",
+        BTreeMap::new(),
+        ReleasePlanTuning::default(),
+        ReleaseInvocationSurface::Headless,
+        resume_receipts,
+        &ledger,
+    )
+    .await
+    .unwrap();
+    assert_eq!(resumed.status, "closed");
+    assert!(
+        !resumed_adapter
+            .calls
+            .lock()
+            .unwrap()
+            .contains(&ReleaseStage::Built)
+    );
+    assert_eq!(
+        ledger.latest().unwrap().unwrap().candidate.stage,
+        ReleaseStage::Closed
+    );
+    assert!(ledger.next_sequence().unwrap() > 11);
+    std::fs::remove_file(path).unwrap();
 }
 
 #[tokio::test]

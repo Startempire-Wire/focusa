@@ -387,7 +387,8 @@ A release plugin is an operator-selected absolute executable. Focusa clears its
 environment, sends `focusa.release_plugin_envelope.v1` on stdin, applies the
 operation timeout, caps stdout at 1 MiB, and accepts only a typed receipt whose
 executor, operation, stage, project root, and exact SHA match the candidate.
-Secrets are never inherited implicitly. UIAI or another software project can
+Secrets are never inherited implicitly. Every operation carries a deterministic
+candidate+SHA+stage idempotency key. UIAI or another software project can
 implement this small protocol without linking Focusa or copying its state
 machine.
 
@@ -397,12 +398,14 @@ machine.
 focusa release cycle validate-adapter --manifest M --topology T
 focusa release cycle plan --manifest M --topology T --candidate C --surface terminal
 focusa release cycle execute --manifest M --topology T --candidate C \
-  --plugin /absolute/adapter --surface headless --yes --allow-mutations \
-  --approval-ref operator:release
+  --plugin /absolute/adapter --ledger /absolute/release.jsonl \
+  --surface headless --yes --allow-mutations --approval-ref operator:release
 focusa release cycle calibrate --ledger L --observation O --output next.json
 ```
 
-Canvas, terminal, and headless invocations change presentation metadata only;
+The absolute append-only ledger checkpoints every accepted stage and resumes an
+existing exact candidate after interruption; project/candidate/SHA or sequence
+forks fail closed. Canvas, terminal, and headless invocations change presentation metadata only;
 stages, waves, authority, evidence, tuning, and receipts remain identical.
 
 ### 11.3 Continual improvement invariant

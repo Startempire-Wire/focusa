@@ -6,13 +6,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CORE = (ROOT / "crates/focusa-core/src/release_cycle.rs").read_text()
 INTELLIGENCE = (ROOT / "crates/focusa-core/src/release_intelligence.rs").read_text()
-ORCHESTRATOR = (ROOT / "crates/focusa-core/src/release_orchestrator.rs").read_text()
+ORCHESTRATOR = "\n".join((ROOT / f"crates/focusa-core/src/{name}").read_text() for name in ["release_orchestrator.rs", "release_planner.rs", "release_protocol.rs"])
+LEDGER = (ROOT / "crates/focusa-core/src/release_ledger.rs").read_text()
 ADAPTERS = (ROOT / "crates/focusa-core/src/release_adapters.rs").read_text()
 CALIBRATION = (ROOT / "crates/focusa-core/src/release_calibration.rs").read_text()
 REFERENCE_ADAPTERS = "\n".join(path.read_text() for path in sorted((ROOT / "config/release-adapters").glob("*.json")))
 REFERENCE_TOPOLOGIES = "\n".join(path.read_text() for path in sorted((ROOT / "config/release-topologies").glob("*.json")))
 UPDATE = (ROOT / "crates/focusa-cli/src/commands/update.rs").read_text()
-RELEASE_CLI = (ROOT / "crates/focusa-cli/src/commands/release.rs").read_text()
+RELEASE_CLI = "\n".join((ROOT / f"crates/focusa-cli/src/commands/{name}").read_text() for name in ["release.rs", "release_master.rs"])
 TAG_SCRIPT = (ROOT / "scripts/create-dev-release-tag.sh").read_text()
 CI = (ROOT / ".github/workflows/ci.yml").read_text()
 RELEASE = (ROOT / ".github/workflows/release.yml").read_text()
@@ -97,6 +98,17 @@ require(
         "mutation_authority_missing",
     ],
     "provider-neutral master orchestrator",
+)
+require(
+    LEDGER,
+    [
+        "ReleaseRunCheckpoint",
+        "JsonlReleaseRunLedger",
+        "ReleaseCheckpointSink",
+        "release checkpoint sequence mismatch",
+        "release ledger SHA mismatch",
+    ],
+    "interruption-safe release ledger",
 )
 require(
     ADAPTERS,

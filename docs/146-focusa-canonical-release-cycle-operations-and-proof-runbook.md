@@ -210,6 +210,7 @@ Proof commands:
 cargo test -p focusa-core release_orchestrator --lib
 cargo test -p focusa-core release_adapters --lib
 cargo test -p focusa-core release_calibration --lib
+cargo test -p focusa-core release_ledger --lib
 python3 tests/spec145_canonical_release_cycle_static_test.py
 focusa release cycle validate-adapter \
   --manifest config/release-adapters/uiai-engine.json \

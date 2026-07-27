@@ -223,6 +223,7 @@ printf '%s' '{"operation_id":"op","executor_id":"fixture","exact_sha":"good","ou
     };
     let request = ReleaseStageRequest {
         candidate_id: "candidate".into(),
+        idempotency_key: "candidate:good:preflighted".into(),
         exact_sha: "good".into(),
         version: "1".into(),
         project_root: root.to_string_lossy().into_owned(),
@@ -273,6 +274,7 @@ fn plugin_envelope_is_provider_neutral_json() {
         operation,
         request: ReleaseStageRequest {
             candidate_id: "candidate".into(),
+            idempotency_key: "candidate:sha:verified".into(),
             exact_sha: "sha".into(),
             version: "1".into(),
             project_root: "/".into(),
@@ -318,6 +320,7 @@ fn operation_sha_mismatch_is_rejected() {
     };
     let request = ReleaseStageRequest {
         candidate_id: "candidate".into(),
+        idempotency_key: "candidate:good:preflighted".into(),
         exact_sha: "good".into(),
         version: "1".into(),
         project_root: "/project".into(),
