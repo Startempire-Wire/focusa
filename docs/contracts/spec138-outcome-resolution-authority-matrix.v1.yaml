@@ -1,6 +1,6 @@
 {
   "serialization": "JSON-compatible YAML 1.2",
-  "generated_at": "2026-07-27T00:41:56+00:00",
+  "generated_at": "2026-07-27T00:47:15+00:00",
   "runtime_claim": "none",
   "runtime_status": "implementation_open",
   "schema": "focusa.spec138_outcome_resolution_authority_matrix.v1",
