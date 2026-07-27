@@ -39,6 +39,24 @@ impl NoneAdapter {
             work_item.provider_item_id
         )
     }
+
+    fn default_item(work_item: &WorkItemRef) -> WorkItem {
+        WorkItem {
+            provider: WorkItemProvider::None,
+            provider_item_id: work_item.provider_item_id.clone(),
+            project_root: work_item.project_root.clone(),
+            provider_status: WorkItemStatus::Open,
+            title: format!("local-only: {}", work_item.provider_item_id),
+            priority: 0,
+            parent: None,
+            dependencies: vec![],
+            acceptance_criteria: vec![],
+            spec_refs: vec![],
+            blocked_reason: None,
+            url: work_item.external_url.clone(),
+            revision: None,
+        }
+    }
 }
 
 impl Default for NoneAdapter {
@@ -79,21 +97,7 @@ impl ProviderAdapter for NoneAdapter {
         Ok(map
             .get(&Self::key(work_item))
             .cloned()
-            .unwrap_or_else(|| WorkItem {
-                provider: self.provider(),
-                provider_item_id: work_item.provider_item_id.clone(),
-                project_root: work_item.project_root.clone(),
-                provider_status: WorkItemStatus::Open,
-                title: format!("local-only: {}", work_item.provider_item_id),
-                priority: 0,
-                parent: None,
-                dependencies: vec![],
-                acceptance_criteria: vec![],
-                spec_refs: vec![],
-                blocked_reason: None,
-                url: work_item.external_url.clone(),
-                revision: None,
-            }))
+            .unwrap_or_else(|| Self::default_item(work_item)))
     }
 
     async fn list(&self, query: &WorkItemQuery) -> RegistryResult<Vec<WorkItem>> {

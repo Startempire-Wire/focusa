@@ -4113,6 +4113,13 @@ Return:
                 .await?;
                 let replay_closure_evidence = self
                     .secondary_loop_closure_replay_evidence(task_run_id, work_item_id.as_deref());
+                if outcome_status == WorkLoopOutcomeStatus::Blocked {
+                    self.transition_current_work_item(
+                        crate::work_item::types::WorkItemStatus::Blocked,
+                        &format!("blocked by Work Loop outcome: {summary}"),
+                    )
+                    .await?;
+                }
                 if let Some(current_task) = self.state.work_loop.current_task.as_ref() {
                     let title = current_task.title.to_ascii_lowercase();
                     let risk_class = if current_task
@@ -4149,14 +4156,6 @@ Return:
                         .is_empty();
                     let repeated_summary = self.state.work_loop.last_observed_summary.as_deref()
                         == Some(summary.as_str());
-                    if outcome_status == WorkLoopOutcomeStatus::Blocked {
-                        self.transition_current_work_item(
-                            crate::work_item::types::WorkItemStatus::Blocked,
-                            &format!("blocked by Work Loop outcome: {summary}"),
-                        )
-                        .await?;
-                    }
-
                     let predicted_low_productivity = outcome_status
                         == WorkLoopOutcomeStatus::Blocked
                         || empty_reason
