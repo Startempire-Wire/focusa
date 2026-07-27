@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   commit-messages:
     name: Meaningful commit messages
@@ -32,6 +36,7 @@ jobs:
         with:
           toolchain: nightly-2026-01-08
           components: clippy
+      - uses: Swatinem/rust-cache@v2
       - name: Process-health check + unit/integration tests
         env:
           FOCUSA_TEST_MODE: "1"

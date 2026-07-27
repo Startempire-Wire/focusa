@@ -1,0 +1,224 @@
+# Spec146 — Focusa Canonical Release Cycle Operations, OTA, Benchmark, and Proof Runbook
+
+**Status:** normative companion to Spec145  
+**Authority:** GitHub #56 / Bead `focusa-vbcqu.6.1`
+
+## 10. Automatic OTA architecture
+
+### 10.1 Managed surfaces
+
+- CLI
+- daemon
+- TUI
+- Pi extension
+- installer
+- menubar when installed
+- agent-context bundle through installer integration
+
+### 10.2 Trust chain
+
+```text
+GitHub release
+-> complete expected asset set
+-> SHA256SUMS
+-> detached signatures
+-> signed release manifest
+-> provenance
+-> CI proof
+-> deploy proof where required
+-> local policy authority
+-> stage/download/hash verify
+-> rollback snapshot
+-> atomic promote
+-> restart/activation proof
+-> history receipt
+```
+
+### 10.3 Pi extension ownership
+
+Being inside any parent Git repository does not make a package externally
+managed. `path_is_git_managed` must prove the target package is tracked by
+`git ls-files`. An untracked installed package remains OTA-managed. A tracked
+source checkout is notify-only.
+
+### 10.4 Systemd scheduler
+
+The scheduler unit:
+
+- runs the canonical CLI with `--automatic`;
+- captures the installing environment PATH needed for package activation;
+- checks every 120 seconds with 20% jitter on trusted developer hosts;
+- applies exponential backoff after network/provider failures;
+- remains enabled and persistent across reboot;
+- reports failed apply as nonzero even after successful rollback.
+
+### 10.5 Data safety
+
+OTA never overwrites license, environment, projects, state, evidence, logs,
+permissions, ownership, xattrs, or capabilities. Daemon promotion occurs last.
+A failed later package promotion restores all previously promoted parts from
+the same transaction journal.
+
+## 11. Fast-release controls
+
+### 11.1 Eliminate duplicate work
+
+- Reuse exact-SHA PR/main evidence.
+- Cache target/toolchain dependency builds.
+- Trigger Release only for tags.
+- Cancel stale branch CI/Spec132 runs.
+- Run independent target builds in parallel.
+- Revalidate only stages invalidated by a bounded fix.
+
+### 11.2 Preserve truth while optimizing
+
+No optimization may:
+
+- skip a required surface;
+- reduce the supported target matrix;
+- convert a failure to warning;
+- publish mutable tags;
+- reuse evidence across SHAs/input digests;
+- conceal rollback or stale installed/running versions.
+
+### 11.3 No-progress escalation
+
+Escalate when:
+
+- a stage exceeds calibrated p95;
+- no evidence changes during two temporal pulses;
+- the same gate fails twice for the same cause;
+- queue time dominates useful work;
+- retry/coordination cost exceeds expected parallel benefit;
+- release remains draft while installed/running truth is stale.
+
+## 12. Baseline benchmark: v0.9.127-dev
+
+Measured 2026-07-26/27 from GitHub receipts:
+
+| Run | Elapsed | Dominant stage |
+|---|---:|---|
+| CI `30229564480` | 613 s | strict spec gates 608 s |
+| Spec132 `30229565493` | 888 s | Windows release target 700 s |
+| Release `30229565463` | 1021 s | Apple arm64 binary 523 s |
+| Deploy `30230221089` | 42 s | live daemon job 37 s |
+
+Approximate tag-to-live critical path: 17–18 minutes. First-pass release gates
+were green after the #72 repair. Manual interventions before this candidate
+exposed missing path ownership, duplicated build work, and stale updater
+failure semantics.
+
+Initial improvement hypothesis:
+
+- tag-only Release removes duplicate no-op workflow runs;
+- stale-run cancellation reduces queue waste;
+- Rust cache reuse reduces repeated target compilation;
+- complete Spec132 paths move target failures before tags;
+- exact-SHA evidence reuse can remove duplicate full workspace tests after a
+  dedicated evaluation proves equivalent or stronger coverage.
+
+The final release must record actual deltas; no speed claim is accepted without
+measured improvement.
+
+## 13. Security and supply chain
+
+- Least-privilege workflow permissions per job.
+- Environment protection for production deploy.
+- OIDC or short-lived provider credentials where supported.
+- No secret in logs, release pages, manifests, or benchmark packets.
+- Pin or policy-govern third-party Actions.
+- Verify archive path safety before extraction.
+- Resolve package runtime dependencies from explicit scheduler environment.
+- Preserve append-only audit and rollback receipts.
+- Require independent verification for provenance and production promotion.
+
+## 14. Compatibility and migration
+
+### 14.1 Current Focusa workflows
+
+Existing CI/Release/Deploy workflows remain the first adapter. Changes are
+incremental: trigger ownership, concurrency, cache, evidence reuse, and typed
+kernel validation. No flag-day provider replacement.
+
+### 14.2 Existing OTA hosts
+
+Reinstalling `focusa update scheduler --install` refreshes the unit and runtime
+PATH. Existing policy files remain valid. `dev_mode_override=true` explicitly
+authorizes unattended dev-channel updates on trusted developer hosts.
+
+### 14.3 Existing Pi extensions
+
+Tracked source checkout: notify-only. Untracked installed package: verified
+atomic OTA. Activation receipt records target version and restart/reload need.
+
+### 14.4 Failed historical releases
+
+Historical tags and failures remain immutable. Later candidates reference the
+failure and superseding proof; they do not rewrite history.
+
+## 15. Detailed acceptance
+
+A release architecture slice passes only when:
+
+1. topology validation rejects duplicate, unknown, self, and cyclic edges;
+2. candidate transitions reject skips and wrong-SHA evidence;
+3. release lock blocks unrelated work;
+4. blocker fixes are bounded and invalidate prior evidence explicitly;
+5. Spec132 triggers for every runner/updater ownership path;
+6. Windows/macOS/Linux targets are green before promotion;
+7. Release workflow triggers only on immutable tags;
+8. all intended assets have checksums/signatures/provenance;
+9. deploy consumes release artifacts and emits health/version proof;
+10. every installed/running surface matches the candidate;
+11. stale untracked Pi packages update automatically;
+12. tracked Pi source checkouts remain notify-only;
+13. updater rollback returns a nonzero process status;
+14. scheduler has the runtime PATH required for package activation;
+15. timer is enabled, active, persistent, and policy-authorized;
+16. benchmark packet names critical path and measured delta;
+17. release page contains exact evidence, limitations, install, upgrade, and rollback;
+18. final state is CLOSED, ROLLED_BACK, or CANCELLED with receipt;
+19. issue/Bead/Workpoint/Trajectory state reconciles;
+20. no unrelated feature entered the locked candidate.
+
+## 16. Proof commands
+
+```bash
+cargo test -p focusa-core release_cycle
+cargo test -p focusa-cli commands::update
+cargo clippy -p focusa-core -p focusa-cli -- -D warnings
+bash tests/spec128_update_status_static_test.sh
+bash tests/release_deploy_automation_static_test.sh
+python3 tests/spec143_ota_installability_release_gate_test.py
+
+gh pr checks <pr>
+gh run view <ci-run>
+gh run view <spec132-run>
+gh run view <release-run>
+gh run view <deploy-run>
+gh release view <tag>
+
+focusa --json update plan
+focusa --json update policy show
+focusa --json update scheduler
+systemctl show focusa-update.service -p Result,ExecMainStatus,Environment
+systemctl is-enabled focusa-update.timer
+curl -fsS http://127.0.0.1:8787/v1/health
+```
+
+## 17. Rollback
+
+- Source/workflow defect before tag: fix branch, rerun invalidated gates.
+- Published candidate defect: new immutable candidate; never retag.
+- Binary promotion defect: atomic backup restore and health proof.
+- Pi extension defect: restore package directory and activation receipt.
+- Scheduler defect: restore prior unit/drop-in, daemon-reload, verify timer.
+- Architecture defect: retain event/evidence history, disable only the faulty
+  adapter capability, and preserve the core candidate record.
+
+## 18. Completion boundary
+
+Spec145 is complete only when one final immutable Focusa release executes this
+cycle, improves or truthfully explains the v0.9.127 baseline, automatically
+updates all managed server surfaces, survives restart, emits exact proof, and
+closes or evidence-supersedes #55/#56 and their Beads.

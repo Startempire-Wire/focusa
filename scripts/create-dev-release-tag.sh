@@ -116,6 +116,36 @@ push_main_and_tag_with_auto_rebase() {
   return 1
 }
 
+wait_for_source_workflow() {
+  local workflow="$1"
+  local sha="$2"
+  local deadline=$((SECONDS + CI_TIMEOUT_SECS))
+  local status conclusion url
+
+  command -v gh >/dev/null 2>&1 || {
+    echo "source_gate_blocked: gh CLI is required to verify ${workflow} for ${sha}" >&2
+    return 1
+  }
+  while (( SECONDS < deadline )); do
+    local runs
+    runs="$(gh run list --workflow "$workflow" --commit "$sha" --limit 10 --json status,conclusion,url,headSha 2>/dev/null || echo '[]')"
+    status="$(jq -r 'map(select(.headSha == $sha)) | .[0].status // "missing"' --arg sha "$sha" <<<"$runs")"
+    conclusion="$(jq -r 'map(select(.headSha == $sha)) | .[0].conclusion // ""' --arg sha "$sha" <<<"$runs")"
+    url="$(jq -r 'map(select(.headSha == $sha)) | .[0].url // ""' --arg sha "$sha" <<<"$runs")"
+    if [[ "$status" == "completed" && "$conclusion" == "success" ]]; then
+      echo "source_gate_passed: workflow=${workflow} sha=${sha} url=${url}"
+      return 0
+    fi
+    if [[ "$status" == "completed" && "$conclusion" != "success" ]]; then
+      echo "source_gate_failed: workflow=${workflow} sha=${sha} conclusion=${conclusion} url=${url}" >&2
+      return 1
+    fi
+    sleep 10
+  done
+  echo "source_gate_timeout: workflow=${workflow} sha=${sha} timeout=${CI_TIMEOUT_SECS}s" >&2
+  return 1
+}
+
 report_workflow_failure() {
   local workflow="$1"
   local run_id="$2"
@@ -289,6 +319,20 @@ if ! python3 scripts/release-gate.py; then
   fi
 else
   echo "ReleaseGate passed."
+fi
+
+python3 tests/spec145_canonical_release_cycle_static_test.py
+jq -e '.schema == "focusa.release_topology.v1" and (.surfaces | length) > 0' \
+  config/focusa-release-topology.json >/dev/null
+
+if [[ "$PUSH" -eq 1 ]]; then
+  SOURCE_SHA="$(git rev-parse HEAD)"
+  echo "Waiting for exact source-SHA preflight before immutable tag: ${SOURCE_SHA}"
+  wait_for_source_workflow "CI" "$SOURCE_SHA"
+  if git diff --name-only "${PREVIOUS_TAG:-HEAD^}"..HEAD | grep -Eq \
+    '^(crates/focusa-terminal-ui/|crates/focusa-cli/src/commands/(install|update)\.rs$|crates/focusa-core/src/silent_sessions/|crates/focusa-session-runner/|apps/pi-extension/(package|package-lock)\.json$|tests/132-e5-|\.github/workflows/spec132-terminal-matrix\.yml$)'; then
+    wait_for_source_workflow "Spec 132 terminal matrix" "$SOURCE_SHA"
+  fi
 fi
 
 echo "Stamping release surfaces: ${VERSION}"

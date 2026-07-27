@@ -50,6 +50,8 @@ pub mod prediction;
 pub mod provider_execution;
 pub mod reducer;
 pub mod reference;
+pub mod release_cycle;
+pub mod release_intelligence;
 pub mod replay;
 pub mod rfm;
 pub mod runtime;
