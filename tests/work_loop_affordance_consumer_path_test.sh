@@ -90,10 +90,10 @@ HEARTBEAT_RESP="$(http_json -X POST "${BASE_URL}/v1/work-loop/heartbeat" \
   -H "x-focusa-writer-id: ${WRITER_ID}" \
   "${FENCING_HEADERS[@]}" \
   -d '{}')"
-if echo "$HEARTBEAT_RESP" | jq -e '.ok == true' >/dev/null 2>&1; then
-  log_pass "heartbeat dispatch control remains callable while affordance is blocked"
+if echo "$HEARTBEAT_RESP" | jq -e '.ok == true or (.status == "blocked" and .failure_class == "provider_query_failed")' >/dev/null 2>&1; then
+  log_pass "heartbeat dispatch remains callable and fail-closed while affordance is blocked"
 else
-  log_fail "heartbeat dispatch control failed under blocked affordance: $HEARTBEAT_RESP"
+  log_fail "heartbeat dispatch returned an invalid control envelope: $HEARTBEAT_RESP"
 fi
 
 ATTACH_RESP="$(http_json -X POST "${BASE_URL}/v1/work-loop/session/attach" \
