@@ -12785,7 +12785,7 @@
         "x-focusa-core-action": "focusa.awareness.packet",
         "x-focusa-generated-ui": true,
         "x-focusa-idempotency": false,
-        "x-focusa-mode": "commit",
+        "x-focusa-mode": "read",
         "x-focusa-permissions": [
           "awareness:read"
         ],
@@ -13040,7 +13040,7 @@
         "x-focusa-core-action": "focusa.call_stack.verify",
         "x-focusa-generated-ui": true,
         "x-focusa-idempotency": false,
-        "x-focusa-mode": "commit",
+        "x-focusa-mode": "read",
         "x-focusa-permissions": [
           "call_stack:read"
         ],
@@ -13137,7 +13137,7 @@
         "x-focusa-core-action": "focusa.context_cognition.curate",
         "x-focusa-generated-ui": true,
         "x-focusa-idempotency": false,
-        "x-focusa-mode": "commit",
+        "x-focusa-mode": "read",
         "x-focusa-permissions": [
           "context:read"
         ],
@@ -13635,7 +13635,7 @@
         "x-focusa-core-action": "focusa.context.retrieve",
         "x-focusa-generated-ui": true,
         "x-focusa-idempotency": false,
-        "x-focusa-mode": "commit",
+        "x-focusa-mode": "read",
         "x-focusa-permissions": [
           "context:read"
         ],
@@ -14571,7 +14571,7 @@
         "x-focusa-core-action": "focusa.interview.strategy.grill_with_docs.next_question",
         "x-focusa-generated-ui": true,
         "x-focusa-idempotency": false,
-        "x-focusa-mode": "commit",
+        "x-focusa-mode": "read",
         "x-focusa-permissions": [
           "interview:read"
         ],
@@ -15579,7 +15579,7 @@
         "x-focusa-core-action": "focusa.metacog.doctor",
         "x-focusa-generated-ui": true,
         "x-focusa-idempotency": false,
-        "x-focusa-mode": "commit",
+        "x-focusa-mode": "read",
         "x-focusa-permissions": [
           "metacog:read"
         ],
@@ -15677,7 +15677,7 @@
         "x-focusa-core-action": "focusa.metacog.reflect",
         "x-focusa-generated-ui": true,
         "x-focusa-idempotency": false,
-        "x-focusa-mode": "commit",
+        "x-focusa-mode": "read",
         "x-focusa-permissions": [
           "metacog:read"
         ],
@@ -15775,7 +15775,7 @@
         "x-focusa-core-action": "focusa.metacog.retrieve",
         "x-focusa-generated-ui": true,
         "x-focusa-idempotency": false,
-        "x-focusa-mode": "commit",
+        "x-focusa-mode": "read",
         "x-focusa-permissions": [
           "metacog:read"
         ],
@@ -18025,7 +18025,7 @@
         "x-focusa-core-action": "focusa.trajectory.assess",
         "x-focusa-generated-ui": true,
         "x-focusa-idempotency": false,
-        "x-focusa-mode": "commit",
+        "x-focusa-mode": "read",
         "x-focusa-permissions": [
           "trajectory:read"
         ],
@@ -18321,7 +18321,7 @@
         "x-focusa-core-action": "focusa.trajectory.propose_workpoint",
         "x-focusa-generated-ui": true,
         "x-focusa-idempotency": false,
-        "x-focusa-mode": "commit",
+        "x-focusa-mode": "read",
         "x-focusa-permissions": [
           "trajectory:read"
         ],
@@ -18419,7 +18419,7 @@
         "x-focusa-core-action": "focusa.trajectory.resume",
         "x-focusa-generated-ui": true,
         "x-focusa-idempotency": false,
-        "x-focusa-mode": "commit",
+        "x-focusa-mode": "read",
         "x-focusa-permissions": [
           "trajectory:read"
         ],
@@ -18596,7 +18596,7 @@
         "x-focusa-core-action": "focusa.traverse",
         "x-focusa-generated-ui": true,
         "x-focusa-idempotency": false,
-        "x-focusa-mode": "commit",
+        "x-focusa-mode": "read",
         "x-focusa-permissions": [
           "traverse:read"
         ],

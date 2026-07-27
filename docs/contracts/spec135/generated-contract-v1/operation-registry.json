@@ -400,7 +400,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "trajectory:read"
@@ -427,7 +427,7 @@
         "trajectory:read"
       ],
       "request_schema_ref": "focusa.trajectory_assess.request.v1",
-      "requires_idempotency_key": true,
+      "requires_idempotency_key": false,
       "requires_if_match_version": false,
       "requires_preview_token": false,
       "response_detail_supported": [
@@ -478,7 +478,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "trajectory:read"
@@ -505,7 +505,7 @@
         "trajectory:read"
       ],
       "request_schema_ref": "focusa.trajectory_propose_workpoint.request.v1",
-      "requires_idempotency_key": true,
+      "requires_idempotency_key": false,
       "requires_if_match_version": false,
       "requires_preview_token": false,
       "response_detail_supported": [
@@ -633,7 +633,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "trajectory:read"
@@ -660,7 +660,7 @@
         "trajectory:read"
       ],
       "request_schema_ref": "focusa.trajectory_resume.request.v1",
-      "requires_idempotency_key": true,
+      "requires_idempotency_key": false,
       "requires_if_match_version": false,
       "requires_preview_token": false,
       "response_detail_supported": [
@@ -1023,7 +1023,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "metacog:read"
@@ -1050,7 +1050,7 @@
         "metacog:read"
       ],
       "request_schema_ref": "focusa.metacog_retrieve.request.v1",
-      "requires_idempotency_key": true,
+      "requires_idempotency_key": false,
       "requires_if_match_version": false,
       "requires_preview_token": false,
       "response_detail_supported": [
@@ -1101,7 +1101,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "metacog:read"
@@ -1128,7 +1128,7 @@
         "metacog:read"
       ],
       "request_schema_ref": "focusa.metacog_reflect.request.v1",
-      "requires_idempotency_key": true,
+      "requires_idempotency_key": false,
       "requires_if_match_version": false,
       "requires_preview_token": false,
       "response_detail_supported": [
@@ -1178,7 +1178,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "metacog:read"
@@ -1205,7 +1205,7 @@
         "metacog:read"
       ],
       "request_schema_ref": "focusa.metacog_doctor.request.v1",
-      "requires_idempotency_key": true,
+      "requires_idempotency_key": false,
       "requires_if_match_version": false,
       "requires_preview_token": false,
       "response_detail_supported": [
@@ -1644,7 +1644,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "context:read"
@@ -1671,7 +1671,7 @@
         "context:read"
       ],
       "request_schema_ref": "focusa.context_cognition_curate.request.v1",
-      "requires_idempotency_key": true,
+      "requires_idempotency_key": false,
       "requires_if_match_version": false,
       "requires_preview_token": false,
       "response_detail_supported": [
@@ -2828,7 +2828,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "interview:read"
@@ -2855,7 +2855,7 @@
         "interview:read"
       ],
       "request_schema_ref": "focusa.grill_interview_context.v1",
-      "requires_idempotency_key": true,
+      "requires_idempotency_key": false,
       "requires_if_match_version": false,
       "requires_preview_token": false,
       "response_detail_supported": [
@@ -3139,7 +3139,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "context:read"
@@ -3166,7 +3166,7 @@
         "context:read"
       ],
       "request_schema_ref": "focusa.context_retrieve.request.v1",
-      "requires_idempotency_key": true,
+      "requires_idempotency_key": false,
       "requires_if_match_version": false,
       "requires_preview_token": false,
       "response_detail_supported": [
@@ -3530,7 +3530,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "awareness:read"
@@ -3557,7 +3557,7 @@
         "awareness:read"
       ],
       "request_schema_ref": "focusa.awareness_packet.request.v1",
-      "requires_idempotency_key": true,
+      "requires_idempotency_key": false,
       "requires_if_match_version": false,
       "requires_preview_token": false,
       "response_detail_supported": [
@@ -3682,7 +3682,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "traverse:read"
@@ -3709,7 +3709,7 @@
         "traverse:read"
       ],
       "request_schema_ref": "focusa.traverse.request.v1",
-      "requires_idempotency_key": true,
+      "requires_idempotency_key": false,
       "requires_if_match_version": false,
       "requires_preview_token": false,
       "response_detail_supported": [
@@ -4597,7 +4597,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "call_stack:read"
@@ -4624,7 +4624,7 @@
         "call_stack:read"
       ],
       "request_schema_ref": "focusa.call_stack_verify.request.v1",
-      "requires_idempotency_key": true,
+      "requires_idempotency_key": false,
       "requires_if_match_version": false,
       "requires_preview_token": false,
       "response_detail_supported": [
