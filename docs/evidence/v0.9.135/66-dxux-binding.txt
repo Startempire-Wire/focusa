@@ -1,0 +1,23 @@
+GitHub #66 DXUX Pi binding proof
+Observed: 2026-07-27
+
+Root cause:
+- focusa_dxux_requirement and focusa_dxux_explain used execute(params)
+- current Pi SDK calls execute(toolCallId, params, signal, onUpdate, ctx)
+- toolCallId was therefore validated as params and valid fields were discarded
+
+Fix:
+- both tools use execute(_toolCallId, params)
+- bounded id/failure validation forwards normalized values unchanged
+- SCHEMA_INVALID includes expected_schema, validation_errors, rejected field/value when safe, and recovery_hint
+- nonexistent focusa_tool_requirement recovery replaced with registered focusa_tool_describe
+
+Proof:
+- tests/spec105_dxux_pi_binding_regression_test.py: PASS
+- apps/pi-extension TypeScript typecheck: PASS
+- tests/spec105_dxux_static_test.py: PASS
+- emitted current tools.ts and invoked registered Pi tool using the documented five-argument execute contract
+- direct DXUX-004 invocation: PASS
+- concurrent/batched DXUX-012 invocation: PASS
+- neither returned SCHEMA_INVALID
+- git diff --check: PASS

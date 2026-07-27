@@ -638,7 +638,7 @@ function recoveryHintForFailure(
           "Inspect the tool's expected_schema (returned with this error) and provide the required fields. Run focusa_traverse surface=tool_registry to see the full parameter schema for this tool.",
         misuse_hint:
           "Tool parameter shape mismatch. The error envelope includes expected_schema with required fields and types — fix the input shape, do not retry unchanged.",
-        next_tools: ["focusa_traverse", "focusa_tool_doctor", "focusa_tool_requirement"],
+        next_tools: ["focusa_traverse", "focusa_tool_doctor", "focusa_tool_describe"],
       };
     case "not_found":
       return {
@@ -8454,7 +8454,27 @@ export function registerTools(pi: ExtensionAPI) {
     }
   ) {
     const body: any = { code, error };
-    if (expectedSchema) body.expected_schema = expectedSchema;
+    if (expectedSchema) {
+      body.expected_schema = expectedSchema;
+      const rejectedField = expectedSchema.required_fields.find(
+        (field) => !request || request[field] === undefined || error.toLowerCase().includes(field.toLowerCase())
+      ) || expectedSchema.required_fields[0];
+      const rejectedValue = request?.[rejectedField];
+      body.validation_errors = [
+        {
+          field: rejectedField,
+          code: rejectedValue === undefined ? "required" : "invalid",
+          message: error,
+          ...(rejectedValue === undefined || typeof rejectedValue === "object"
+            ? {}
+            : { rejected_value: String(rejectedValue).slice(0, 160) }),
+        },
+      ];
+      body.rejected_field = rejectedField;
+      if (rejectedValue !== undefined && typeof rejectedValue !== "object")
+        body.rejected_value = String(rejectedValue).slice(0, 160);
+      body.recovery_hint = `Provide ${rejectedField} using the returned expected_schema; do not retry unchanged.`;
+    }
     const result = spec80Result(
       tool,
       endpoint,
@@ -10055,7 +10075,7 @@ export function registerTools(pi: ExtensionAPI) {
     parameters: strictObject({
       id: Type.String({ minLength: 1, maxLength: 40, description: "Requirement id, e.g. DXUX-004." }),
     }),
-    execute: async (params: any) => {
+    execute: async (_toolCallId: string, params: any) => {
       const keyCheck = validateNoExtraKeys("focusa_dxux_requirement", params, ["id"]);
       if (!keyCheck.ok)
         return spec80ValidationResult(
@@ -10063,10 +10083,26 @@ export function registerTools(pi: ExtensionAPI) {
           "/v1/dxux/requirement/{id}",
           params as Record<string, any>,
           "dxux requirement",
-          keyCheck.error
+          keyCheck.error,
+          "SCHEMA_INVALID",
+          { required_fields: ["id"], field_types: { id: "string" }, example: { id: "DXUX-004" } }
         );
+      const idCheck = validateRequiredString("id", keyCheck.value.id, 40, {
+        pattern: /^DXUX[-_]\d{3}$/i,
+      });
+      if (!idCheck.ok)
+        return spec80ValidationResult(
+          "focusa_dxux_requirement",
+          "/v1/dxux/requirement/{id}",
+          params as Record<string, any>,
+          "dxux requirement",
+          idCheck.error,
+          "SCHEMA_INVALID",
+          { required_fields: ["id"], field_types: { id: "string" }, example: { id: "DXUX-004" } }
+        );
+      const id = idCheck.value;
       const result = await focusaFetchDetailed(
-        `/dxux/requirement/${encodeURIComponent(String(params.id || ""))}`
+        `/dxux/requirement/${encodeURIComponent(id)}`
       );
       const body = result.body || {};
       const req = body.requirement || null;
@@ -10074,7 +10110,7 @@ export function registerTools(pi: ExtensionAPI) {
       const toolResult = focusaToolResult({
         ok,
         status: ok ? "completed" : "blocked",
-        summary: `dxux requirement → ${req?.id || params.id}`,
+        summary: `dxux requirement → ${req?.id || id}`,
         tool: "focusa_dxux_requirement",
         family: "diagnostics_hygiene",
         side_effects: [],
@@ -10086,7 +10122,7 @@ export function registerTools(pi: ExtensionAPI) {
         content: [
           {
             type: "text",
-            text: `dxux requirement ${body.status || result.status} | ${req?.id || params.id}`,
+            text: `dxux requirement ${body.status || result.status} | ${req?.id || id}`,
           },
         ],
         details: { tool_result_v1: toolResult },
@@ -10102,7 +10138,7 @@ export function registerTools(pi: ExtensionAPI) {
     parameters: strictObject({
       failure: Type.String({ minLength: 1, maxLength: 240, description: "Failure text to classify." }),
     }),
-    execute: async (params: any) => {
+    execute: async (_toolCallId: string, params: any) => {
       const keyCheck = validateNoExtraKeys("focusa_dxux_explain", params, ["failure"]);
       if (!keyCheck.ok)
         return spec80ValidationResult(
@@ -10110,10 +10146,31 @@ export function registerTools(pi: ExtensionAPI) {
           "/v1/dxux/explain/{failure}",
           params as Record<string, any>,
           "dxux explain",
-          keyCheck.error
+          keyCheck.error,
+          "SCHEMA_INVALID",
+          {
+            required_fields: ["failure"],
+            field_types: { failure: "string" },
+            example: { failure: "daemon unavailable" },
+          }
+        );
+      const failureCheck = validateRequiredString("failure", keyCheck.value.failure, 240);
+      if (!failureCheck.ok)
+        return spec80ValidationResult(
+          "focusa_dxux_explain",
+          "/v1/dxux/explain/{failure}",
+          params as Record<string, any>,
+          "dxux explain",
+          failureCheck.error,
+          "SCHEMA_INVALID",
+          {
+            required_fields: ["failure"],
+            field_types: { failure: "string" },
+            example: { failure: "daemon unavailable" },
+          }
         );
       const result = await focusaFetchDetailed(
-        `/dxux/explain/${encodeURIComponent(String(params.failure || ""))}`
+        `/dxux/explain/${encodeURIComponent(failureCheck.value)}`
       );
       const body = result.body || {};
       const ok = result.ok && body.status === "completed";
