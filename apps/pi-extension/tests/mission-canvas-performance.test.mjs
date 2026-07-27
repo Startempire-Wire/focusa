@@ -49,7 +49,8 @@ const view = new MissionCanvasView(
   theme,
   () => renders++,
   () => {},
-  async () => model
+  async () => model,
+  () => {}
 );
 view.handleInput(Key.right); // Work panel exercises the maximum rendered row budget.
 for (let index = 0; index < 10; index++) view.render(120); // JIT/module warmup is outside steady-state p95.

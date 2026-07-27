@@ -87,7 +87,8 @@ export class MissionCanvasView implements Component {
     private readonly theme: Theme,
     private readonly requestRender: () => void,
     private readonly close: () => void,
-    private readonly reload: () => Promise<MissionCanvasModel>
+    private readonly reload: () => Promise<MissionCanvasModel>,
+    private readonly copyReference: (reference: string) => void
   ) {
     // Bounded reconnect/degraded fallback; canonical event projection remains authoritative.
     this.refreshTimer = setInterval(() => void this.refresh(), 5_000);
@@ -100,8 +101,27 @@ export class MissionCanvasView implements Component {
   }
 
   handleInput(data: string): void {
-    if (data.toLowerCase() === "r") {
+    const key = data.toLowerCase();
+    if (key === "r") {
       void this.refresh();
+      return;
+    }
+    if (key === "y") {
+      this.copyReference(this.model.workpointId || this.model.workItemId || this.model.continuityId);
+      return;
+    }
+    const panelKeys: Partial<Record<string, MissionCanvasPanel>> = {
+      n: "Now",
+      w: "Work",
+      s: "Sessions",
+      p: "Proof",
+      e: "Proof",
+      h: "History",
+      c: "Controls",
+    };
+    if (panelKeys[key]) {
+      this.selected = PANELS.indexOf(panelKeys[key]!);
+      this.requestRender();
       return;
     }
     if (matchesKey(data, Key.escape) || matchesKey(data, Key.ctrl("c"))) {
@@ -148,7 +168,7 @@ export class MissionCanvasView implements Component {
       ),
       this.theme.fg(
         "muted",
-        `${this.model.scopeStatus} · ${text(this.model.projectRoot)} · ${this.refreshing ? "refreshing" : "live"} · R refresh · Esc close · ←/→ panel · Alt+←/→ surface`
+        `${this.model.scopeStatus} · ${text(this.model.projectRoot)} · ${this.refreshing ? "refreshing" : "live"} · N/W/S/P/H/C panels · Y copy ref · R refresh · Esc close · ←/→ panel · Alt+←/→ surface`
       ),
       this.surfaceStrip(),
       "",

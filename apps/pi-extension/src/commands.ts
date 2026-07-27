@@ -466,7 +466,11 @@ export function registerCommands(pi: ExtensionAPI) {
             theme,
             () => tui.requestRender(),
             () => done(undefined),
-            loadModel
+            loadModel,
+            (reference) => {
+              ctx.ui.setEditorText(reference);
+              ctx.ui.notify(`Copied stable Mission Canvas reference: ${reference}`, "info");
+            }
           )
       );
     },
