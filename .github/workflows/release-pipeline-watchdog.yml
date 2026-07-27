@@ -1,12 +1,7 @@
 name: Release Pipeline Watchdog
 
-# Continuous auto-detect + auto-heal for the live release path.
-#
-# This is the safety net when workflow_run delivery, a GitHub process error,
-# or the Auto Heal workflow itself fails. It scans recent CI/Release/Deploy/
-# Auto-Heal failures and re-applies the correct healing action without human
-# intervention. It never bypasses gates: it reruns failed jobs or re-dispatches
-# deploy; tests/clippy/release/deploy health still decide success.
+# Spec147 governed recovery: one scheduled actor, one mutation per invocation,
+# one attempt per failed run, and typed claim/settlement evidence.
 
 on:
   schedule:
@@ -16,11 +11,11 @@ on:
       scan_limit:
         description: Recent runs to inspect
         required: false
-        default: "25"
+        default: "12"
       max_heals:
-        description: Max healing actions this invocation
+        description: Maximum governed mutations in this invocation
         required: false
-        default: "5"
+        default: "1"
 
 permissions:
   actions: write
@@ -32,7 +27,7 @@ concurrency:
 
 jobs:
   scan-and-heal:
-    name: Scan recent release path failures and heal
+    name: Scan failures through the self-heal governor
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -42,96 +37,100 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Auto-detect and heal failed release path runs
+      - name: Classify, claim, heal, and settle
         shell: bash
         run: |
           set -euo pipefail
           healed=0
-          echo "Scanning last ${SCAN_LIMIT} runs in ${REPO}"
+          ledger="$RUNNER_TEMP/self-heal-ledger.jsonl"
+          : > "$ledger"
           gh run list --repo "$REPO" --limit "$SCAN_LIMIT" \
             --json databaseId,workflowName,status,conclusion,event,displayTitle,headSha,url \
             > runs.json
-          cat runs.json
+
           while read -r run; do
-            if [[ "$healed" -ge "$MAX_HEALS" ]]; then
-              echo "max heals reached: $MAX_HEALS"
-              break
-            fi
-            id=$(jq -r '.databaseId' <<<"$run")
-            wf=$(jq -r '.workflowName' <<<"$run")
-            event=$(jq -r '.event' <<<"$run")
-            title=$(jq -r '.displayTitle // ""' <<<"$run")
-            url=$(jq -r '.url' <<<"$run")
-            attempt=$(gh run view "$id" --repo "$REPO" --json attempt --jq '.attempt // 1' 2>/dev/null || echo 1)
-            echo "candidate id=$id workflow=$wf event=$event attempt=$attempt title=$title url=$url"
+            (( healed < MAX_HEALS )) || break
+            id="$(jq -r '.databaseId' <<<"$run")"
+            wf="$(jq -r '.workflowName' <<<"$run")"
+            title="$(jq -r '.displayTitle // ""' <<<"$run")"
+            sha="$(jq -r '.headSha // ""' <<<"$run")"
+            url="$(jq -r '.url' <<<"$run")"
+            [[ "$wf" =~ ^(CI|Release|Deploy\ Live\ Daemon)$ ]] || continue
 
-            log_file="failed-${id}.log"
-            gh run view "$id" --repo "$REPO" --log-failed > "$log_file" 2>/dev/null || true
-            failure_class="unknown_process_failure"
-            retry_policy="rerun_once"
-            deterministic="false"
-            safe_to_rerun_unchanged="true"
-            plain_language_error="Unknown release-path failure; one bounded rerun is allowed."
-            likely_root_cause="unknown release-path failure"
-            remediation_template="Rerun once; if repeated, classify with source logs and add a taxonomy case."
-            source_refs=""
-            signals="unknown"
-            while IFS='=' read -r key value; do
-              case "$key" in
-                failure_class) failure_class="$value" ;;
-                retry_policy) retry_policy="$value" ;;
-                deterministic) deterministic="$value" ;;
-                safe_to_rerun_unchanged) safe_to_rerun_unchanged="$value" ;;
-                plain_language_error) plain_language_error="$value" ;;
-                likely_root_cause) likely_root_cause="$value" ;;
-                remediation_template) remediation_template="$value" ;;
-                source_refs) source_refs="$value" ;;
-                signals) signals="$value" ;;
-              esac
-            done < <(bash .github/scripts/classify-release-failure.sh "$log_file")
-            SELF_HEAL_SURFACE="Release Pipeline Watchdog"             SELF_HEAL_WORKFLOW="$wf"             SELF_HEAL_RUN_ID="$id"             SELF_HEAL_HEAD_SHA="$(jq -r '.headSha // "unknown"' <<<"$run")"             failure_class="$failure_class"             retry_policy="$retry_policy"             deterministic="$deterministic"             safe_to_rerun_unchanged="$safe_to_rerun_unchanged"             plain_language_error="$plain_language_error"             likely_root_cause="$likely_root_cause"             remediation_template="$remediation_template"             source_refs="$source_refs"             signals="$signals"             bash scripts/render-self-heal-decision-summary.sh
-            echo "failure_class=${failure_class} run=$id workflow=$wf attempt=$attempt" >> "$GITHUB_STEP_SUMMARY"
-
-            if [[ "$retry_policy" == "hard_failure_no_rerun" ]]; then
-              echo "skip id=$id: deterministic failure requires patch, not another full-matrix rerun"
+            attempt="$(gh run view "$id" --repo "$REPO" --json attempt --jq '.attempt // 1' 2>/dev/null || echo 1)"
+            if (( attempt >= 2 )); then
+              echo "skip run=$id: attempt budget already used"
               continue
             fi
 
-            # Never heal the same failed run more than once; a fresh run will be created.
-            if [[ "$attempt" -ge 2 ]]; then
-              echo "skip id=$id: already attempt $attempt"
-              continue
+            gh run view "$id" --repo "$REPO" --log-failed > failed.log 2>/dev/null || true
+            classification="$(python3 scripts/classify-ci-failure.py failed.log --format json 2>/dev/null || true)"
+            cls="$(jq -r '.failure_class // "unclassified"' <<<"${classification:-{}}")"
+            retry_policy="$(jq -r '.retry_policy // "operator_review"' <<<"${classification:-{}}")"
+            deterministic="$(jq -r '.deterministic // false' <<<"${classification:-{}}")"
+            artifact=""
+            scope="run:$id"
+            if [[ "$wf" == "Deploy Live Daemon" ]]; then
+              tag="$(printf '%s' "$title" | sed -n 's/.*-\s*v\([0-9][0-9A-Za-z._+-]*\).*/v\1/p' | head -1 || true)"
+              [[ -n "$tag" ]] || { echo "skip deploy run=$id: release tag unavailable"; continue; }
+              scope="deploy:$tag"
+              artifact="github-release:$tag"
+              if [[ "$cls" == "unclassified" ]]; then
+                cls="artifact_unavailable"
+                retry_policy="rerun_once"
+                deterministic="false"
+              fi
+              # A later run with the same immutable tag means redispatch was
+              # already attempted; never create an unbounded deploy loop.
+              same_tag_runs="$(jq --arg tag "$tag" '[.[] | select(.workflowName == "Deploy Live Daemon" and (.displayTitle | contains($tag)))] | length' runs.json)"
+              if (( same_tag_runs > 1 )); then
+                echo "skip deploy tag=$tag: a redispatch already exists"
+                continue
+              fi
             fi
 
-            case "$wf" in
-              CI|Release|"Auto Heal Release Pipeline")
-                echo "healing by rerunning failed jobs: $wf run=$id"
-                if gh run rerun "$id" --failed --repo "$REPO"; then
-                  healed=$((healed + 1))
-                else
-                  echo "process_error=watchdog_gh_run_rerun_failed run=$id workflow=$wf" >&2
-                fi
-                ;;
-              "Deploy Live Daemon")
-                tag=$(printf '%s' "$title" | sed -n 's/.*-\s*v\([0-9][0-9A-Za-z._+-]*\).*/v\1/p' | head -1 || true)
-                if [[ -z "$tag" ]]; then
-                  echo "skip deploy id=$id: could not infer tag from title=$title"
-                  continue
-                fi
-                echo "healing deploy by redispatch: tag=$tag asset=x86_64-unknown-linux-musl"
-                if gh workflow run 'Deploy Live Daemon' \
-                  --repo "$REPO" \
-                  --ref main \
-                  -f release_tag="$tag" \
-                  -f asset_suffix="x86_64-unknown-linux-musl"; then
-                  healed=$((healed + 1))
-                else
-                  echo "process_error=watchdog_deploy_redispatch_failed run=$id tag=$tag" >&2
-                fi
-                ;;
-              *)
-                echo "skip workflow=$wf: not in release path"
-                ;;
-            esac
+            jq -n \
+              --arg repository "$REPO" --arg workflow "$wf" --arg cls "$cls" \
+              --arg sha "$sha" --arg scope "$scope" --arg artifact "$artifact" \
+              --arg retry_policy "$retry_policy" --argjson deterministic "$deterministic" \
+              '{schema:"focusa.self_heal.failure.v1",repository:$repository,workflow:$workflow,failure_class:$cls,exact_sha:$sha,action_scope:$scope,deterministic:$deterministic,retry_policy:$retry_policy} + (if $artifact == "" then {} else {artifact_set_id:$artifact} end)' \
+              > failure.json
+
+            claim="$(python3 scripts/self_heal_governor.py claim \
+              --failure failure.json --ledger "$ledger" \
+              --approval-ref policy:release-pipeline-watchdog \
+              --max-attempts 1 --mutation-budget "$MAX_HEALS")"
+            allowed="$(jq -r '.decision.allowed' <<<"$claim")"
+            [[ "$allowed" == "true" ]] || { echo "skip run=$id: $(jq -r '.decision.reason' <<<"$claim")"; continue; }
+            action="$(jq -r '.decision.action' <<<"$claim")"
+            fingerprint="$(jq -r '.decision.fingerprint' <<<"$claim")"
+            claim_id="$(jq -r '.claim.claim_id' <<<"$claim")"
+
+            success=false
+            if [[ "$action" == "rerun_failed_jobs" ]]; then
+              gh run rerun "$id" --failed --repo "$REPO" && success=true
+            elif [[ "$action" == "redispatch_deploy" ]]; then
+              gh workflow run 'Deploy Live Daemon' --repo "$REPO" --ref main \
+                -f release_tag="$tag" -f asset_suffix="x86_64-unknown-linux-musl" && success=true
+            else
+              echo "governor action=$action requires a patch or operator review"
+            fi
+
+            if [[ "$success" == "true" ]]; then
+              python3 scripts/self_heal_governor.py settle --ledger "$ledger" \
+                --fingerprint "$fingerprint" --claim-id "$claim_id" --status healed \
+                --evidence-ref "$url" >/dev/null
+              healed=$((healed + 1))
+            else
+              python3 scripts/self_heal_governor.py settle --ledger "$ledger" \
+                --fingerprint "$fingerprint" --claim-id "$claim_id" --status operator_review \
+                --evidence-ref "$url" >/dev/null
+            fi
           done < <(jq -c '.[] | select(.status == "completed" and .conclusion == "failure")' runs.json)
-          echo "healed=${healed}" >> "$GITHUB_STEP_SUMMARY"
+
+          {
+            echo "## Governed release watchdog"
+            echo "healed=$healed"
+            echo "mutation_budget=$MAX_HEALS"
+            echo "ledger_rows=$(wc -l < "$ledger")"
+          } >> "$GITHUB_STEP_SUMMARY"

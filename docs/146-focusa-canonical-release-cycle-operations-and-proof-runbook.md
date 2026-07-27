@@ -241,9 +241,13 @@ release remains a separate project-authority operation using this adapter.
 
 ### 14.1 Current Focusa workflows
 
-Existing CI/Release/Deploy workflows remain the first adapter. Changes are
-incremental: trigger ownership, concurrency, cache, evidence reuse, and typed
-kernel validation. No flag-day provider replacement.
+Existing CI/Release/Deploy workflows remain the first provider surfaces. Spec
+147 binds them through `scripts/master-release-github-adapter.py` and preserves
+compatibility without granting them kernel authority. `Release Pipeline
+Watchdog` is the only automatic retry actor; `Auto Heal Release Pipeline` is
+manual and mutation-free. Self-heal proposals use one durable fingerprint
+branch, bounded open-proposal budget, unforced first-writer claim, validation,
+and typed settlement. No flag-day provider replacement.
 
 ### 14.2 Existing OTA hosts
 

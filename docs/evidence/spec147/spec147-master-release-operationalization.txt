@@ -1,0 +1,76 @@
+Spec147 Master Release Cycle operationalization proof
+Observed: 2026-07-27
+Scope: architecture, provider binding, bounded self-healing, dual-server authority, agent API, and mutation-free integration proof.
+
+Dependency chain:
+- focusa-91gtu.1 inventory
+- focusa-91gtu.2 migration matrix/spec
+- focusa-91gtu.3 typed provider adapter binding
+- focusa-91gtu.4 governed self-healing
+- focusa-91gtu.5 OVH/KH authority documentation
+- focusa-91gtu.6 agent-kb-api rollout
+- focusa-91gtu.7 integrated no-spam proof
+
+Migration outcome:
+- every inventoried component has KEEP, WRAP, QUARANTINE, or RETIRE disposition in Spec147 section 4
+- Auto Heal Release Pipeline automatic workflow_run trigger removed; it is manual and mutation-free
+- Release Pipeline Watchdog is the only automatic retry actor
+- audit proposal branch identity changed from per-run to self-heal/fp-<fingerprint>
+- fingerprint branch claim is unforced, first-writer-wins, recoverable after push-before-PR crash, and capped at three open proposals
+
+Self-heal proof:
+- typed failure/decision/claim/settlement schemas implemented
+- fingerprint inputs: repository, workflow, failure class, exact SHA, action scope
+- file-locked append-only claim ledger
+- default one attempt, one mutation per window, one-hour cooldown
+- deterministic code/spec/security/authority failures cannot retry
+- concurrent-process test: two requests produced exactly one claim
+- duplicate active/settled fingerprint tests passed
+- failed actions settle operator_review; successful actions settle healed
+- post-canary rollback remains governed by the Master orchestrator
+
+Provider proof:
+- bounded external GitHub adapter validates envelope, operation, executor, SHA, idempotency, timeout, and approval
+- plan mode made no provider call or mutation
+- observe mode accepts only successful exact-SHA workflow evidence
+- execute mode fails closed rather than treating workflow dispatch as completed evidence
+- integrated Focusa profile cycle settled closed with 11 receipts and one immutable artifact-set identity
+
+Remote no-mutation proof:
+- self-heal fingerprint branches before/after digest: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+- self-heal PR set before/after digest: 37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570
+- GitHub release set before/after digest: ce98def573a8199c2463fdc02d3e0ba44d41563d3b065533bf2810a1a22f8733
+- no tag, release, deploy, retry, branch, or PR mutation occurred
+
+Dual-server authority:
+- canonical correction: OVH executes routed Focusa build/test/package/provenance and build staging
+- KH retains Pi/operator intent, production deploy/runtime verification, rollback, and settlement
+- immutable artifact digest/provenance handoff is mandatory
+- agent-kb local docs commit: ec1f1a6
+
+Agent-kb-api live proof:
+- Go tests: passed
+- binary backup: /root/agent-kb/bin/agent-kb-api.bak-spec147-20260727T202352Z
+- deployed binary SHA256: 1381b891408f44475c149d0c69a98a6db06884ed858a667a94a6925c3a4ce2f5
+- source SHA256: 1203dee4a2d0e2b53a5a91cc9cae577c2b0be62cf14da2c9d8c966c25f4052c3
+- handler tests SHA256: 16db01a471d654726ae9df398405eb5ec052336ec8ffd501af06acc7a8bef423
+- service active/running after atomic replacement
+- /v1/health: ok, master, non-stale
+- /v1/bootstrap: master_release_cycle route plus OVH build/KH deployment authority
+- /v1/doc/master-release-cycle: canonical guide returned
+
+Quality gates:
+- self-heal classifier fixtures: 10 passed
+- Spec122 self-heal proposal gate: passed
+- release self-heal gate: passed
+- release watchdog gate: passed
+- Spec147 tests: 11 passed
+- GitHub workflow expression/graph validation: passed
+- Spec145 canonical architecture gate: passed
+- docs/runtime parity: passed
+- git diff --check: passed
+
+Resource recovery:
+- initial local Cargo link hit Wirebot disk quota
+- only disposable focusa-w2 target artifacts were cleaned with cargo clean
+- proof reused the already-built merged CLI; no source or user evidence was removed
