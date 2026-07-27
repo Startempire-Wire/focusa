@@ -13,9 +13,19 @@ NC='\033[0m'
 log_pass(){ echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail(){ echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 
-STATUS0="$(scoped_curl -sS "${BASE_URL}/v1/work-loop/status")"
-WRITER_ID="$(echo "$STATUS0" | jq -r '.active_writer // empty')"
-WORK_ITEM_ID="$(echo "$STATUS0" | jq -r '.execution_partition.work_item_id // empty')"
+WORK_ITEM_ID="spec79-query-scope-boundary"
+WRITER_ID="spec79-query-scope-boundary"
+CHECKPOINT_RESP="$(scoped_curl -sS -X POST "${BASE_URL}/v1/workpoint/checkpoint" \
+  -H 'Content-Type: application/json' \
+  -d "{\"project_root\":\"${PROJECT_ROOT}\",\"continuity_id\":\"${CONTINUITY_ID}\",\"work_item_id\":\"${WORK_ITEM_ID}\",\"mission\":\"verify query-scope boundary\",\"current_action\":\"query_scope_boundary_contract\",\"next_slice\":\"verify decision-context projection\",\"canonical\":true}")"
+WORKPOINT_ID="$(echo "$CHECKPOINT_RESP" | jq -r '.workpoint_id // empty')"
+for _ in $(seq 1 40); do
+  RESUME_RESP="$(scoped_curl -sS -X POST "${BASE_URL}/v1/workpoint/resume" \
+    -H 'Content-Type: application/json' \
+    -d "{\"project_root\":\"${PROJECT_ROOT}\",\"continuity_id\":\"${CONTINUITY_ID}\",\"mode\":\"compact_prompt\"}")"
+  echo "$RESUME_RESP" | jq -e --arg id "$WORKPOINT_ID" '.canonical == true and .workpoint_id == $id' >/dev/null 2>&1 && break
+  sleep 0.1
+done
 ENABLE_RESP="$(scoped_curl -sS -X POST "${BASE_URL}/v1/work-loop/enable" \
   -H 'Content-Type: application/json' \
   -H "x-focusa-writer-id: ${WRITER_ID}" \
