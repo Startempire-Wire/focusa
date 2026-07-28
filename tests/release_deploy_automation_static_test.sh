@@ -298,15 +298,11 @@ cat > "$summary_ledger" <<'JSONL'
 {"id":"fail-b","ts":"2026-07-05T13:10:36Z","event":"failure","subsystem":"ci","scope":"CI","category":"ci_workflow_failure","symptom":"transient upload","root_cause":"network","fix":"rerun once","guard":"scripts/classify-ci-failure.py","test":"scripts/classify-ci-failure.py","linked_run":"122","failure_class":"transient_github_or_network_failure","retry_policy":"rerun_once","source_refs":".github/workflows/release.yml:1:1,.github/workflows/ci.yml:1:1","remediation_template":"Rerun once."}
 JSONL
 summary_out="$(python3 scripts/audit-failure-summary.py --audit "$summary_ledger" --class ci_clippy_failure --limit 5)"
-printf '%s
-' "$summary_out" | grep -q 'ci_clippy_failure: 1' || { echo "✗ audit summary missing class count" >&2; exit 1; }
-printf '%s
-' "$summary_out" | grep -q 'hard_failure_no_rerun: 1' || { echo "✗ audit summary missing retry count" >&2; exit 1; }
-printf '%s
-' "$summary_out" | grep -q 'crates/focusa-api/src/routes/project.rs:1650:13' || { echo "✗ audit summary missing source ref" >&2; exit 1; }
+grep -q 'ci_clippy_failure: 1' <<<"$summary_out" || { echo "✗ audit summary missing class count" >&2; exit 1; }
+grep -q 'hard_failure_no_rerun: 1' <<<"$summary_out" || { echo "✗ audit summary missing retry count" >&2; exit 1; }
+grep -q 'crates/focusa-api/src/routes/project.rs:1650:13' <<<"$summary_out" || { echo "✗ audit summary missing source ref" >&2; exit 1; }
 transient_out="$(python3 scripts/audit-failure-summary.py --audit "$summary_ledger" --class transient_github_or_network_failure --limit 1)"
-printf '%s
-' "$transient_out" | grep -q '.github/workflows/release.yml:1:1' || { echo "✗ audit summary missing string source ref" >&2; exit 1; }
+grep -q '.github/workflows/release.yml:1:1' <<<"$transient_out" || { echo "✗ audit summary missing string source ref" >&2; exit 1; }
 python3 scripts/audit-failure-summary.py --audit "$summary_ledger" --json >/tmp/focusa-audit-summary.json
 python3 - /tmp/focusa-audit-summary.json <<'PY'
 import json, sys
