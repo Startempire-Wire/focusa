@@ -1671,11 +1671,13 @@ fn discover_identity(
         .map(|root| canonicalize_working_scope_root(root, git_context.as_ref()))
         && persisted_root != canonical_root
     {
+        let stale_broad_advisory = is_broad_session_root(&persisted_root);
         mismatches.push(json!({
             "source": "persisted_session_identity_root",
             "expected": canonical_root.clone(),
             "actual": persisted_root,
-            "severity": "high",
+            "severity": if stale_broad_advisory { "warning" } else { "high" },
+            "advisory": stale_broad_advisory,
         }));
     }
 
@@ -1816,18 +1818,19 @@ fn discover_identity(
             && s.independent
             && s.root.as_deref() == Some(canonical_root.as_str())
     });
+    let has_blocking_mismatch = mismatches.iter().any(mismatch_blocks);
     let confidence = if unsafe_reason.is_some() {
         "low"
-    } else if mismatches.is_empty() && matching_independent >= 2 && has_root_marker {
+    } else if !has_blocking_mismatch && matching_independent >= 2 && has_root_marker {
         "high"
-    } else if mismatches.is_empty() && matching_independent >= 1 {
+    } else if !has_blocking_mismatch && matching_independent >= 1 {
         "medium"
     } else {
         "low"
     };
     let status = if unsafe_reason.is_some() {
         "unsafe_project_root"
-    } else if !mismatches.is_empty() {
+    } else if has_blocking_mismatch {
         "mismatch"
     } else if matching_independent >= 2 && has_root_marker {
         "verified"
@@ -1930,6 +1933,21 @@ fn build_degraded_reasons(
     json!(reasons)
 }
 
+fn is_broad_session_root(root: &str) -> bool {
+    let parts = Path::new(root)
+        .components()
+        .filter_map(|part| match part {
+            std::path::Component::Normal(value) => value.to_str(),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    root == "/" || parts == ["root"] || (parts.len() == 2 && matches!(parts[0], "home" | "Users"))
+}
+
+fn mismatch_blocks(value: &Value) -> bool {
+    value.get("severity").and_then(Value::as_str) != Some("warning")
+}
+
 // BAD-001 fix: Build a human-readable mismatch reason summary
 // When project_identity returns mismatch, this provides a single sentence explaining WHY
 fn build_mismatch_reason(
@@ -1946,15 +1964,23 @@ fn build_mismatch_reason(
     if !mismatches.is_empty() {
         let sources: Vec<&str> = mismatches
             .iter()
+            .filter(|m| mismatch_blocks(m))
             .filter_map(|m| m.get("source").and_then(Value::as_str))
             .collect();
         if !sources.is_empty() {
-            return format!(
-                "project identity mismatch: expected={} actual={} (signals: {})",
-                candidate.project_id,
-                candidate.canonical_name,
-                sources.join(", ")
-            );
+            let details = mismatches
+                .iter()
+                .filter(|m| mismatch_blocks(m))
+                .filter_map(|m| {
+                    Some(format!(
+                        "{} expected={} actual={}",
+                        m.get("source")?.as_str()?,
+                        m.get("expected")?,
+                        m.get("actual")?
+                    ))
+                })
+                .collect::<Vec<_>>();
+            return format!("project identity mismatch: {}", details.join("; "));
         }
     }
     if candidate.status == "cwd_only" {
@@ -2009,21 +2035,22 @@ fn candidate_payload(
             mismatches.push(json!({"source":"operator_expected_repo_remote", "expected": remote, "actual": candidate.repo_remote, "severity":"medium"}));
         }
     }
+    let has_blocking_mismatch = mismatches.iter().any(mismatch_blocks);
     let verified = candidate.status == "verified"
-        && mismatches.is_empty()
+        && !has_blocking_mismatch
         && unsafe_project_root_reason(&candidate.project_root).is_none();
     let canonical = verified && candidate.confidence == "high";
-    let status = if mismatches.is_empty() {
-        "completed"
-    } else {
+    let status = if has_blocking_mismatch {
         "degraded"
+    } else {
+        "completed"
     };
     let identity_status = if candidate.status == "unsafe_project_root" {
         "unsafe_project_root"
-    } else if mismatches.is_empty() {
-        candidate.status
-    } else {
+    } else if has_blocking_mismatch {
         "mismatch"
+    } else {
+        candidate.status
     };
     let requested_project_root = expected
         .and_then(|req| clean(req.project_root.as_deref()).or_else(|| clean(req.cwd.as_deref())))
@@ -2074,7 +2101,7 @@ fn candidate_payload(
         "remote_host_plus_project_root_plus_fingerprint"
     };
     json!({
-        "status": if !verified && !mismatches.is_empty() { "mismatch" } else { status },
+        "status": if !verified && has_blocking_mismatch { "mismatch" } else { status },
         "canonical": canonical,
         "degraded": !canonical,
         // BAD-001 fix: Top-level mismatch_reason for agent clarity
@@ -5807,6 +5834,14 @@ mod tests {
         );
         assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn stale_account_roots_are_advisory_but_specific_roots_are_not() {
+        assert!(is_broad_session_root("/root"));
+        assert!(is_broad_session_root("/home/operator"));
+        assert!(is_broad_session_root("/Users/operator"));
+        assert!(!is_broad_session_root("/other/project"));
     }
 
     #[test]

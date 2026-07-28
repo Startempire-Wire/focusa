@@ -7764,9 +7764,10 @@ export function registerTools(pi: ExtensionAPI) {
         })),
         blockers: blockers.map((reason: string) => ({ reason, severity: "medium", status: "open" })),
       };
+      // First checkpoint bootstraps Workpoint authority before a Work Loop lease exists.
       const res = await focusaFetchDetailed("/workpoint/checkpoint", {
         method: "POST",
-        headers: await requiredWriterLeaseHeaders(),
+        headers: writerLeaseHeaders(localWriterId, await currentWorkLoopLease()),
         body: JSON.stringify(payload),
       });
       if (!res.ok && res.body?.failure_class === "hot_path_timeout") {
