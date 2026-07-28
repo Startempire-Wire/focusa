@@ -664,9 +664,9 @@ verify_signature() {
   fi
   local base sig cert
   base="$(basename "$manifest")"
-  sig="$TMP/${base}.sig"; cert="$TMP/${base}.pem"
-  if curl_resilient -fsSL "$(release_asset_url "${base}.sig")" -o "$sig" 2>/dev/null \
-     && curl_resilient -fsSL "$(release_asset_url "${base}.pem")" -o "$cert" 2>/dev/null; then
+  sig="$TMP/${base}.cosign.sig"; cert="$TMP/${base}.cosign.pem"
+  if curl_resilient -fsSL "$(release_asset_url "${base}.cosign.sig")" -o "$sig" 2>/dev/null \
+     && curl_resilient -fsSL "$(release_asset_url "${base}.cosign.pem")" -o "$cert" 2>/dev/null; then
     # GitHub release assets store cosign sig/pem as base64. Decode for cosign v3 compatibility.
     if python3 -c "
 import base64, sys
@@ -689,7 +689,7 @@ for p in sys.argv[1:]:
     err "cosign signature verification failed for ${base}"
     return 1
   fi
-  warn "no cosign .sig/.pem found next to ${base}; skipping signature verify"
+  warn "no cosign .cosign.sig/.cosign.pem found next to ${base}; skipping signature verify"
   return 1
 }
 

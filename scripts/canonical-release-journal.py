@@ -691,6 +691,32 @@ def cmd_finalize(args: argparse.Namespace) -> dict[str, Any]:
     return {"status": "completed", "receipt": receipt, "actuals": actuals, "comparison": comparison}
 
 
+def cmd_correction(args: argparse.Namespace) -> dict[str, Any]:
+    rid = release_id(args.tag)
+    problem = {
+        "stage": args.stage,
+        "diagnosis": args.corrected_fact,
+        "impact": args.impact,
+        "recovery": args.recovery,
+        "added_duration_seconds": None,
+    }
+    evidence_refs = args.evidence_ref or [f"release:{args.tag}:correction"]
+    lesson_ref = capture_release_lesson(args.stage, args.corrected_fact, args.recovery, evidence_refs)
+    if lesson_ref:
+        evidence_refs.append(lesson_ref)
+    payload = event(
+        args.tag,
+        "correction",
+        next_sequence(args.tag),
+        event_id=f"{rid}:correction:{args.stage}:v1",
+        measurements={"status": "corrected", "corrected_fact": args.corrected_fact},
+        problems=[problem],
+        comparison={"supersedes_event_id": args.supersedes_event_id},
+        evidence_refs=evidence_refs,
+    )
+    return publish(payload)
+
+
 def cmd_history(args: argparse.Namespace) -> dict[str, Any]:
     if args.release_id:
         return query_events(args.release_id, limit=args.limit)
@@ -726,6 +752,15 @@ def parser() -> argparse.ArgumentParser:
     problem.add_argument("--added-duration-seconds", type=float)
     problem.add_argument("--evidence-ref", action="append")
     problem.set_defaults(func=cmd_problem)
+    correction = sub.add_parser("correction")
+    correction.add_argument("--tag", required=True)
+    correction.add_argument("--stage", required=True)
+    correction.add_argument("--supersedes-event-id", required=True)
+    correction.add_argument("--corrected-fact", required=True)
+    correction.add_argument("--impact", default="prior final event required factual correction")
+    correction.add_argument("--recovery", default="publish an immutable successor release")
+    correction.add_argument("--evidence-ref", action="append")
+    correction.set_defaults(func=cmd_correction)
     history = sub.add_parser("history")
     history.add_argument("--project-id", default=PROJECT_ID, choices=[PROJECT_ID])
     history.add_argument("--release-id")

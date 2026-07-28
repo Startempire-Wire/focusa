@@ -109,6 +109,8 @@ for marker in \
   "stable)  TAG_PATTERN='v[0-9]+\\.[0-9]+\\.[0-9]+'" \
   "preview) TAG_PATTERN='v[0-9]+\\.[0-9]+\\.[0-9]+-(dev|rc)(\\..*)?'" \
   'stable install requires valid Cosign signature metadata; SHA256 alone is insufficient' \
+  '${base}.cosign.sig' \
+  '${base}.cosign.pem' \
   'install is preview-only'; do
   grep -qF "$marker" "$SH" || fail "install-focusa.sh missing truthful channel/signature marker: $marker"
 done

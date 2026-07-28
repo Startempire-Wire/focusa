@@ -52,7 +52,7 @@ assert deltas["problems_count"]["direction"] == "degraded"
 
 help_run = subprocess.run([sys.executable, str(SCRIPT), "--help"], capture_output=True, text=True)
 assert help_run.returncode == 0
-for command in ("backfill", "plan", "benchmark", "progress", "problem", "finalize", "history"):
+for command in ("backfill", "plan", "benchmark", "progress", "problem", "correction", "finalize", "history"):
     assert command in help_run.stdout
 
 release_script = (ROOT / "scripts/create-dev-release-tag.sh").read_text()
@@ -67,7 +67,7 @@ assert "RELEASE_RETRY_DIRTY" in release_script
 assert "--tag" in release_script
 
 client_source = SCRIPT.read_text()
-for learning_binding in ("retrieve_release_lessons", "record_release_predictions", "capture_release_lesson", "evaluate_stage_prediction"):
+for learning_binding in ("retrieve_release_lessons", "record_release_predictions", "capture_release_lesson", "evaluate_stage_prediction", "cmd_correction"):
     assert learning_binding in client_source
 
 guards = json.loads((ROOT / "config/release-learning-guards.json").read_text())

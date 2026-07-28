@@ -776,6 +776,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Install Cosign for keyless installer trust metadata
+        uses: sigstore/cosign-installer@v3.10.0
+
       - name: Verify release tooling
         run: |
           set -euo pipefail
@@ -813,12 +816,19 @@ jobs:
             --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
             --private-key "$KEY_FILE" \
             --trusted-keys config/focusa-trusted-release-keys.json
+          cosign sign-blob --yes \
+            --output-signature dist/SHA256SUMS.txt.cosign.sig \
+            --output-certificate dist/SHA256SUMS.txt.cosign.pem \
+            dist/SHA256SUMS.txt
+          test -s dist/SHA256SUMS.txt.cosign.sig
+          test -s dist/SHA256SUMS.txt.cosign.pem
 
       - name: Upload trusted OTA metadata and detached signatures
         uses: softprops/action-gh-release@v2
         with:
           files: |
             dist/*.sig
+            dist/*.pem
             dist/SHA256SUMS.txt
             dist/release-manifest.json
             dist/release-provenance.json
