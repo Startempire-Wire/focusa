@@ -18,5 +18,9 @@ for issue in required:
 assert 'requiredWriterLeaseHeaders()' not in (root/'apps/pi-extension/src/tools.ts').read_text().split('name: "focusa_workpoint_checkpoint"',1)[1].split('name: "focusa_workpoint_link_evidence"',1)[0]
 assert 'sendUserMessage' not in (root/'apps/pi-extension/src/ota-activation.ts').read_text()
 if args.final:
-    assert (root/'apps/pi-extension/src/mission-canvas-v2.ts').is_file(), 'external #45/PR73 not integrated'
+    for path in [
+        'mission-canvas-model.ts', 'mission-canvas-view.ts',
+        'mission-canvas-widget.ts', 'mission-canvas-session-inventory.ts'
+    ]:
+        assert (root/'apps/pi-extension/src'/path).is_file(), f'external #45/PR73 missing {path}'
 print(f"Spec52 onboarding consolidation: {'FINAL PASS' if args.final else 'PREFLIGHT PASS'}")

@@ -1,0 +1,544 @@
+{
+  "schema": "focusa.spec135.autonomous_workpath.v1",
+  "authority": "Spec 135 through 135K source documents",
+  "epic": "focusa-mc-full",
+  "delivery": "PR #73 only; never direct main",
+  "no_deferral": true,
+  "current": "focusa-mc-full-b1",
+  "rules": [
+    "Take the lowest-ordinal dependency-ready open task.",
+    "Keep exactly one active task unless independent proof work is explicitly parallelized.",
+    "Read the governing spec section before implementation.",
+    "Implement production runtime behavior; docs, enums, schemas, and source markers are not completion.",
+    "Run targeted tests plus affected package gates.",
+    "Attach stable runtime evidence before closing the Bead.",
+    "Rebase on origin/main before durable branch updates and push only to PR #73.",
+    "Stop only when all 50 tasks and 12 closure aggregators are evidence-closed and the full completion gate passes."
+  ],
+  "tasks": [
+    {
+      "ordinal": 1,
+      "bead": "focusa-mc-full-d1",
+      "spec": "135D",
+      "title": "135D-1 Runtime conformance inventory and no-deferral gate",
+      "depends_on": [],
+      "acceptance": "Audit covers 135\u2013135K; gate selects exact next Bead and fails for every missing runtime proof."
+    },
+    {
+      "ordinal": 2,
+      "bead": "focusa-mc-full-d2",
+      "spec": "135D",
+      "title": "135D-2 Framework reuse and performance budgets",
+      "depends_on": [
+        "focusa-mc-full-d1"
+      ],
+      "acceptance": "Approved reuse matrix and repeatable performance tests pass within every normative budget."
+    },
+    {
+      "ordinal": 3,
+      "bead": "focusa-mc-full-d3",
+      "spec": "135D",
+      "title": "135D-3 Runtime-evidence quality gates",
+      "depends_on": [
+        "focusa-mc-full-d2"
+      ],
+      "acceptance": "No gate can pass from docs, enums, schemas, or source markers without executing required behavior."
+    },
+    {
+      "ordinal": 4,
+      "bead": "focusa-mc-full-d4",
+      "spec": "135D",
+      "title": "135D-4 Dependency DAG and zero-deferral enforcement",
+      "depends_on": [
+        "focusa-mc-full-d3"
+      ],
+      "acceptance": "Only dependency-ready tasks run; completion report proves zero deferred or omitted requirements."
+    },
+    {
+      "ordinal": 5,
+      "bead": "focusa-mc-full-a1",
+      "spec": "135A",
+      "title": "135A-1 Pi Mission Canvas shell and workspace profile",
+      "depends_on": [
+        "focusa-mc-full-d4"
+      ],
+      "acceptance": "Pi opens the canonical central Canvas with durable profile and truthful unavailable/degraded states."
+    },
+    {
+      "ordinal": 6,
+      "bead": "focusa-mc-full-a2",
+      "spec": "135A",
+      "title": "135A-2 Complete Work Rail read model",
+      "depends_on": [
+        "focusa-mc-full-a1"
+      ],
+      "acceptance": "Every required Work Rail field and state is rendered from canonical records without inference."
+    },
+    {
+      "ordinal": 7,
+      "bead": "focusa-mc-full-a4",
+      "spec": "135A",
+      "title": "135A-4 Session and attachment inventory",
+      "depends_on": [
+        "focusa-mc-full-a1"
+      ],
+      "acceptance": "Inventory never hides background sessions and preserves exact project/workstream/attachment identity."
+    },
+    {
+      "ordinal": 8,
+      "bead": "focusa-mc-full-j1",
+      "spec": "135J",
+      "title": "135J-1 Canonical Operation Registry generation",
+      "depends_on": [
+        "focusa-mc-full-d4"
+      ],
+      "acceptance": "Every supported operation has one canonical descriptor and duplicate manual registrations fail drift checks."
+    },
+    {
+      "ordinal": 9,
+      "bead": "focusa-mc-full-j2",
+      "spec": "135J",
+      "title": "135J-2 Generated clients and cross-interface parity",
+      "depends_on": [
+        "focusa-mc-full-j1"
+      ],
+      "acceptance": "Parity tests prove every registry operation is callable with identical semantics and envelopes."
+    },
+    {
+      "ordinal": 10,
+      "bead": "focusa-mc-full-b1",
+      "spec": "135B",
+      "title": "135B-1 Durable C.R.I.S.T. and Project Operating Profile",
+      "depends_on": [
+        "focusa-mc-full-d4"
+      ],
+      "acceptance": "State survives resume/reconnect and invalid transitions fail closed with receipts."
+    },
+    {
+      "ordinal": 11,
+      "bead": "focusa-mc-full-b2",
+      "spec": "135B",
+      "title": "135B-2 Source-linked Context ingestion and connectors",
+      "depends_on": [
+        "focusa-mc-full-b1"
+      ],
+      "acceptance": "Real sources produce durable cited Context artifacts with connector health and recovery."
+    },
+    {
+      "ordinal": 12,
+      "bead": "focusa-mc-full-b3",
+      "spec": "135B",
+      "title": "135B-3 Role Composer and approval",
+      "depends_on": [
+        "focusa-mc-full-b2"
+      ],
+      "acceptance": "Operator can compose and approve a durable role without silently granting authority."
+    },
+    {
+      "ordinal": 13,
+      "bead": "focusa-mc-full-b4",
+      "spec": "135B",
+      "title": "135B-4 Grill Interview and compendium",
+      "depends_on": [
+        "focusa-mc-full-b3"
+      ],
+      "acceptance": "Interrupted and resumed interviews retain answers and produce evidence-backed closure artifacts."
+    },
+    {
+      "ordinal": 14,
+      "bead": "focusa-mc-full-b5",
+      "spec": "135B",
+      "title": "135B-5 Spec 120 integration and governed specification",
+      "depends_on": [
+        "focusa-mc-full-b4"
+      ],
+      "acceptance": "Generated specification is source-linked, reviewable, versioned, and cannot bypass approval."
+    },
+    {
+      "ordinal": 15,
+      "bead": "focusa-mc-full-b6",
+      "spec": "135B",
+      "title": "135B-6 Provider-neutral task materialization",
+      "depends_on": [
+        "focusa-mc-full-b5"
+      ],
+      "acceptance": "Tasks preserve source requirement, dependencies, scope, acceptance, and provider capability truth."
+    },
+    {
+      "ordinal": 16,
+      "bead": "focusa-mc-full-b7",
+      "spec": "135B",
+      "title": "135B-7 Genesis-to-first-Workpoint and resume proof",
+      "depends_on": [
+        "focusa-mc-full-b6"
+      ],
+      "acceptance": "All routes reach one evidence-backed Workpoint without repeated answered questions or state forks."
+    },
+    {
+      "ordinal": 17,
+      "bead": "focusa-mc-full-a3",
+      "spec": "135A",
+      "title": "135A-3 Work Rail preview/commit interactions",
+      "depends_on": [
+        "focusa-mc-full-a2",
+        "focusa-mc-full-j2",
+        "focusa-mc-full-b7"
+      ],
+      "acceptance": "All required row actions enforce scope, confirmation, idempotency, receipts, and failure recovery."
+    },
+    {
+      "ordinal": 18,
+      "bead": "focusa-mc-full-a5",
+      "spec": "135A",
+      "title": "135A-5 Tabs, splits, comparison, and inspectors",
+      "depends_on": [
+        "focusa-mc-full-a3",
+        "focusa-mc-full-a4"
+      ],
+      "acceptance": "All navigation and layout behaviors work in Pi and remain presentation-only."
+    },
+    {
+      "ordinal": 19,
+      "bead": "focusa-mc-full-a6",
+      "spec": "135A",
+      "title": "135A-6 Workspace verticals, themes, and artifact renderers",
+      "depends_on": [
+        "focusa-mc-full-a5"
+      ],
+      "acceptance": "Same canonical artifact projects through each registered renderer with invariant safety semantics."
+    },
+    {
+      "ordinal": 20,
+      "bead": "focusa-mc-full-a7",
+      "spec": "135A",
+      "title": "135A-7 Responsive and accessible Pi TUI",
+      "depends_on": [
+        "focusa-mc-full-a6"
+      ],
+      "acceptance": "Accessibility and responsive tests pass for every central Canvas workflow."
+    },
+    {
+      "ordinal": 21,
+      "bead": "focusa-mc-full-a8",
+      "spec": "135A",
+      "title": "135A-8 Client parity and permanent evidence",
+      "depends_on": [
+        "focusa-mc-full-a7"
+      ],
+      "acceptance": "Parity matrix and dogfood receipts prove equivalent canonical operations and truthful capability limits."
+    },
+    {
+      "ordinal": 22,
+      "bead": "focusa-mc-full-j3",
+      "spec": "135J",
+      "title": "135J-3 Durable UI event stream",
+      "depends_on": [
+        "focusa-mc-full-j1"
+      ],
+      "acceptance": "Events survive daemon restart and preserve project/workstream/session/origin identity."
+    },
+    {
+      "ordinal": 23,
+      "bead": "focusa-mc-full-j4",
+      "spec": "135J",
+      "title": "135J-4 Reconnect, replay, deduplication, and gap recovery",
+      "depends_on": [
+        "focusa-mc-full-j3"
+      ],
+      "acceptance": "Disconnect/reconnect tests restore exact UI state without loss, duplication, or false freshness."
+    },
+    {
+      "ordinal": 24,
+      "bead": "focusa-mc-full-j5",
+      "spec": "135J",
+      "title": "135J-5 Runtime reuse, error envelopes, and drift gates",
+      "depends_on": [
+        "focusa-mc-full-j2",
+        "focusa-mc-full-j4"
+      ],
+      "acceptance": "One runtime path owns each operation and all failure envelopes provide typed recovery."
+    },
+    {
+      "ordinal": 25,
+      "bead": "focusa-mc-full-c1",
+      "spec": "135C",
+      "title": "135C-1 Rich artifact contract and Pi renderers",
+      "depends_on": [
+        "focusa-mc-full-a6",
+        "focusa-mc-full-j2"
+      ],
+      "acceptance": "Real artifacts render safely from canonical before/after/evidence refs across verticals."
+    },
+    {
+      "ordinal": 26,
+      "bead": "focusa-mc-full-c2",
+      "spec": "135C",
+      "title": "135C-2 UIAI research and source bridge",
+      "depends_on": [
+        "focusa-mc-full-b2",
+        "focusa-mc-full-c1"
+      ],
+      "acceptance": "Research workflow produces cited durable artifacts without merging browser/session origins."
+    },
+    {
+      "ordinal": 27,
+      "bead": "focusa-mc-full-c3",
+      "spec": "135C",
+      "title": "135C-3 Named invalidation and SSE-first live refresh",
+      "depends_on": [
+        "focusa-mc-full-j4",
+        "focusa-mc-full-c1"
+      ],
+      "acceptance": "Canvas updates affected panels live and reconnects through replay without whole-state pushes."
+    },
+    {
+      "ordinal": 28,
+      "bead": "focusa-mc-full-c4",
+      "spec": "135C",
+      "title": "135C-4 UIAI Engine evaluation and failure recovery",
+      "depends_on": [
+        "focusa-mc-full-c2",
+        "focusa-mc-full-c3"
+      ],
+      "acceptance": "UIAI evaluations pass production workflows and every failure produces bounded diagnostics and recovery."
+    },
+    {
+      "ordinal": 29,
+      "bead": "focusa-mc-full-f1",
+      "spec": "135F",
+      "title": "135F-1 Domain-general ontology core",
+      "depends_on": [
+        "focusa-mc-full-b2",
+        "focusa-mc-full-d4"
+      ],
+      "acceptance": "Ontology supports all domains without software-only assumptions or duplicate canonical models."
+    },
+    {
+      "ordinal": 30,
+      "bead": "focusa-mc-full-f2",
+      "spec": "135F",
+      "title": "135F-2 Semantic graph and provenance",
+      "depends_on": [
+        "focusa-mc-full-f1"
+      ],
+      "acceptance": "Graph queries return evidence-backed results and preserve exact source/session/project identity."
+    },
+    {
+      "ordinal": 31,
+      "bead": "focusa-mc-full-f3",
+      "spec": "135F",
+      "title": "135F-3 Complete domain packs",
+      "depends_on": [
+        "focusa-mc-full-f2"
+      ],
+      "acceptance": "Each pack passes domain acceptance while sharing canonical ontology and authority."
+    },
+    {
+      "ordinal": 32,
+      "bead": "focusa-mc-full-f4",
+      "spec": "135F",
+      "title": "135F-4 Reactive context and domain parity",
+      "depends_on": [
+        "focusa-mc-full-f3",
+        "focusa-mc-full-c3"
+      ],
+      "acceptance": "Reactive updates meet budgets and domain parity tests show no semantic or authority drift."
+    },
+    {
+      "ordinal": 33,
+      "bead": "focusa-mc-full-g1",
+      "spec": "135G",
+      "title": "135G-1 Durable Work Surface state and bindings",
+      "depends_on": [
+        "focusa-mc-full-a2",
+        "focusa-mc-full-j2"
+      ],
+      "acceptance": "Every Work Surface rehydrates with exact scope, attachment, lifecycle, queue, and isolation identity."
+    },
+    {
+      "ordinal": 34,
+      "bead": "focusa-mc-full-g2",
+      "spec": "135G",
+      "title": "135G-2 Durable Canvas layout and restoration",
+      "depends_on": [
+        "focusa-mc-full-g1"
+      ],
+      "acceptance": "Layout restores after restart without mutating canonical project state."
+    },
+    {
+      "ordinal": 35,
+      "bead": "focusa-mc-full-g3",
+      "spec": "135G",
+      "title": "135G-3 Surface lifecycle and close semantics",
+      "depends_on": [
+        "focusa-mc-full-g2"
+      ],
+      "acceptance": "Lifecycle tests prove close never terminates work and explicit termination uses separate governed authority."
+    },
+    {
+      "ordinal": 36,
+      "bead": "focusa-mc-full-g4",
+      "spec": "135G",
+      "title": "135G-4 Steering, follow-up, contention, and writer governance",
+      "depends_on": [
+        "focusa-mc-full-g1",
+        "focusa-mc-full-b7"
+      ],
+      "acceptance": "Concurrent work routes correctly and conflicting writers fail closed with visible recovery."
+    },
+    {
+      "ordinal": 37,
+      "bead": "focusa-mc-full-g5",
+      "spec": "135G",
+      "title": "135G-5 Browser context isolation",
+      "depends_on": [
+        "focusa-mc-full-g1",
+        "focusa-mc-full-c2"
+      ],
+      "acceptance": "Browser proof scenarios prevent accidental shared state and preserve target provenance."
+    },
+    {
+      "ordinal": 38,
+      "bead": "focusa-mc-full-g6",
+      "spec": "135G",
+      "title": "135G-6 Multiplexing and concurrency proof suite",
+      "depends_on": [
+        "focusa-mc-full-g3",
+        "focusa-mc-full-g4",
+        "focusa-mc-full-g5"
+      ],
+      "acceptance": "All eight normative proof scenarios pass through Pi Mission Canvas and canonical APIs."
+    },
+    {
+      "ordinal": 39,
+      "bead": "focusa-mc-full-i1",
+      "spec": "135I",
+      "title": "135I-1 Generated UI protocol and permanent renderer",
+      "depends_on": [
+        "focusa-mc-full-j2",
+        "focusa-mc-full-a6"
+      ],
+      "acceptance": "Generated components can invoke only registered governed operations and malformed UI fails safely."
+    },
+    {
+      "ordinal": 40,
+      "bead": "focusa-mc-full-i2",
+      "spec": "135I",
+      "title": "135I-2 Real-time generated C.R.I.S.T. Pi UI",
+      "depends_on": [
+        "focusa-mc-full-b7",
+        "focusa-mc-full-i1"
+      ],
+      "acceptance": "Each C.R.I.S.T. stage renders and acts through canonical operations with no hard-coded parallel workflow."
+    },
+    {
+      "ordinal": 41,
+      "bead": "focusa-mc-full-i3",
+      "spec": "135I",
+      "title": "135I-3 Nontechnical onboarding journey",
+      "depends_on": [
+        "focusa-mc-full-i2"
+      ],
+      "acceptance": "A first-time operator completes onboarding without hidden terminal knowledge or repeated durable answers."
+    },
+    {
+      "ordinal": 42,
+      "bead": "focusa-mc-full-i4",
+      "spec": "135I",
+      "title": "135I-4 First proven Workpoint, fallback, and core integration",
+      "depends_on": [
+        "focusa-mc-full-i3",
+        "focusa-mc-full-j4"
+      ],
+      "acceptance": "End-to-end production journey reaches first verified Workpoint and survives renderer/API degradation."
+    },
+    {
+      "ordinal": 43,
+      "bead": "focusa-mc-full-k1",
+      "spec": "135K",
+      "title": "135K-1 Issue #53 interaction modes and live toggle",
+      "depends_on": [
+        "focusa-mc-full-a1",
+        "focusa-mc-full-j5"
+      ],
+      "acceptance": "All #53 toggle and headless acceptance scenarios pass without state loss, nags, or crashes."
+    },
+    {
+      "ordinal": 44,
+      "bead": "focusa-mc-full-k2",
+      "spec": "135K",
+      "title": "135K-2 UXP/UFI friction capture and evaluation",
+      "depends_on": [
+        "focusa-mc-full-i4"
+      ],
+      "acceptance": "Friction data is scoped, privacy-safe, evidence-linked, and cannot become canonical authority."
+    },
+    {
+      "ordinal": 45,
+      "bead": "focusa-mc-full-k3",
+      "spec": "135K",
+      "title": "135K-3 Adaptive UI proposals, promotion, and rollback",
+      "depends_on": [
+        "focusa-mc-full-k2",
+        "focusa-mc-full-f4"
+      ],
+      "acceptance": "No UI adaptation self-promotes; approved changes improve measured outcomes and rollback exactly."
+    },
+    {
+      "ordinal": 46,
+      "bead": "focusa-mc-full-k4",
+      "spec": "135K",
+      "title": "135K-4 Nontechnical usability, accessibility, and headless proof",
+      "depends_on": [
+        "focusa-mc-full-k1",
+        "focusa-mc-full-k3"
+      ],
+      "acceptance": "All normative 135K and #53 scenarios pass with receipts and no canonical-state divergence."
+    },
+    {
+      "ordinal": 47,
+      "bead": "focusa-mc-full-h1",
+      "spec": "135H",
+      "title": "135H-1 Alpha 1\u20134 production workflows",
+      "depends_on": [
+        "focusa-mc-full-c4",
+        "focusa-mc-full-g6",
+        "focusa-mc-full-i4"
+      ],
+      "acceptance": "Alpha 1\u20134 pass with runtime receipts, UIAI diagnostics where applicable, and resolved blockers."
+    },
+    {
+      "ordinal": 48,
+      "bead": "focusa-mc-full-h2",
+      "spec": "135H",
+      "title": "135H-2 Alpha 5\u20138 isolation, parity, and dogfood",
+      "depends_on": [
+        "focusa-mc-full-h1",
+        "focusa-mc-full-f4",
+        "focusa-mc-full-k4"
+      ],
+      "acceptance": "Alpha 5\u20138 pass production paths without static-marker substitution or waived defects."
+    },
+    {
+      "ordinal": 49,
+      "bead": "focusa-mc-full-e1",
+      "spec": "135E",
+      "title": "135E-1 Cross-spec migration, amendments, rollback, and closure",
+      "depends_on": [
+        "focusa-mc-full-h2"
+      ],
+      "acceptance": "All amendments and migrations pass; no authority fork or legacy Mission Canvas substitute remains."
+    },
+    {
+      "ordinal": 50,
+      "bead": "focusa-mc-full-z1",
+      "spec": "135 master final acceptance and PR merge gate",
+      "title": "135 master final acceptance and PR merge gate",
+      "depends_on": [
+        "focusa-mc-full-e1",
+        "focusa-mc-full-a8"
+      ],
+      "acceptance": "All 135\u2013135K Beads close from runtime evidence, completion gate passes 12/12, CI passes, and PR is merge-ready."
+    }
+  ]
+}

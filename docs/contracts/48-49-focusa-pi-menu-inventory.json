@@ -1,7 +1,7 @@
 {
   "schema": "focusa.pi_menu_inventory.v1",
   "generated": true,
-  "source_sha256": "d4a5c2607427eb8d33313ea93b0ad4be42058def1370256ccee70faf29f32301",
+  "source_sha256": "17734c620865ebacb51b921fbd1bb5232d46fd0c1004c184b4d48e10f6562518",
   "baseline": {
     "top_level_commands": 9,
     "simple_settings": 11,
@@ -9,12 +9,48 @@
     "simple_choice_depth": 11
   },
   "after": {
-    "top_level_commands": 9,
+    "top_level_commands": 12,
     "simple_settings": 8,
     "advanced_settings": 29,
     "simple_choice_depth": 8
   },
   "items": [
+    {
+      "id": "mission-canvas-mode",
+      "kind": "command",
+      "owner": "focusa-pi-extension",
+      "user_job": "Set the durable project interaction mode: canvas, terminal, or headless",
+      "placement": "top_level_command",
+      "rationale": "direct operator action or compatibility entrypoint",
+      "help": "Set the durable project interaction mode: canvas, terminal, or headless",
+      "scope": "attachment_or_explicit_project",
+      "risk": "mutation_gated_by_handler",
+      "interaction_test": "Pi typecheck plus command-specific contract test"
+    },
+    {
+      "id": "mission-canvas-profile",
+      "kind": "command",
+      "owner": "focusa-pi-extension",
+      "user_job": "Set the durable Mission Canvas workspace profile and visual variant",
+      "placement": "top_level_command",
+      "rationale": "direct operator action or compatibility entrypoint",
+      "help": "Set the durable Mission Canvas workspace profile and visual variant",
+      "scope": "attachment_or_explicit_project",
+      "risk": "mutation_gated_by_handler",
+      "interaction_test": "Pi typecheck plus command-specific contract test"
+    },
+    {
+      "id": "mission-canvas",
+      "kind": "command",
+      "owner": "focusa-pi-extension",
+      "user_job": "Open the keyboard-first Focusa Mission Canvas in Pi",
+      "placement": "top_level_command",
+      "rationale": "direct operator action or compatibility entrypoint",
+      "help": "Open the keyboard-first Focusa Mission Canvas in Pi",
+      "scope": "attachment_or_explicit_project",
+      "risk": "mutation_gated_by_handler",
+      "interaction_test": "Pi typecheck plus command-specific contract test"
+    },
     {
       "id": "focusa-context",
       "kind": "command",
@@ -210,9 +246,9 @@
       "scope": "project_config",
       "risk": "persistent_config_write",
       "values": [
-        "canvas_guided",
-        "terminal_guided",
-        "headless_automation"
+        "canvas-guided",
+        "terminal-guided",
+        "headless"
       ],
       "interaction_test": "settings attachment safety + exhaustive value callback gate"
     },
@@ -317,9 +353,9 @@
       "scope": "project_config",
       "risk": "persistent_config_write",
       "values": [
-        "canvas_guided",
-        "terminal_guided",
-        "headless_automation"
+        "canvas-guided",
+        "terminal-guided",
+        "headless"
       ],
       "interaction_test": "settings attachment safety + exhaustive value callback gate"
     },

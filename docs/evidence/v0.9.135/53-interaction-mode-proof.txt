@@ -1,7 +1,7 @@
 GitHub #53 interaction-mode proof — 2026-07-27
 
-Implemented first-class canvas_guided, terminal_guided, and headless_automation configuration.
-- terminal_guided default
+Implemented first-class canvas-guided, terminal-guided, and headless configuration.
+- canvas-guided default with durable user/project and bounded session overrides
 - /focusa-mode session override with immediate awareness refresh
 - clear restores prior mode
 - --project and --user persist through existing scoped config authority

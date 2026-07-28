@@ -68,7 +68,7 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
   const attachmentKey = currentAttachmentKey();
   const interactionMode = attachmentKey
     ? getAttachmentRuntime(attachmentKey).cfg.interactionMode
-    : "terminal_guided";
+    : "canvas-guided";
   const prefix = mode === "visible" ? "# Focusa" : "## Focusa awareness";
 
   return [

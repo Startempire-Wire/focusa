@@ -1,0 +1,240 @@
+{
+  "schema": "focusa.spec135.runtime_conformance_audit.v2",
+  "authority": {
+    "source_specs": [
+      "135",
+      "135A",
+      "135B",
+      "135C",
+      "135D",
+      "135E",
+      "135F",
+      "135G",
+      "135H",
+      "135I",
+      "135J",
+      "135K"
+    ],
+    "completion_rule": "runtime implementation plus acceptance evidence; legacy closure flags and static marker tests are non-authoritative",
+    "central_surface": "Pi-native Mission Canvas TUI",
+    "deferral_allowed": false,
+    "delivery": "pull_request_only"
+  },
+  "audit_commit": "feature/spec-135-mission-canvas-uiai-evals@2026-07-27",
+  "overall_status": "incomplete",
+  "beads_epic": "focusa-mc-full",
+  "autonomous_workpath_ref": "docs/contracts/spec135-autonomous-workpath.v1.yaml",
+  "detailed_task_count": 50,
+  "requirements": [
+    {
+      "spec": "135",
+      "status": "partial",
+      "implemented_evidence": [
+        "crates/focusa-core",
+        "crates/focusa-api",
+        "apps/pi-extension/src/mission-canvas-view.ts"
+      ],
+      "missing": [
+        "end-to-end master acceptance proof",
+        "complete Project Operating Profile runtime",
+        "all-client capability parity",
+        "truthful capability matrix backed by live adapters"
+      ]
+    },
+    {
+      "spec": "135A",
+      "status": "partial",
+      "bead": "focusa-mc-full.2",
+      "implemented_evidence": [
+        "apps/pi-extension/src/mission-canvas-view.ts",
+        "apps/pi-extension/src/mission-canvas-widget.ts",
+        "apps/pi-extension/src/work-rail-widget.ts"
+      ],
+      "missing": [
+        "complete Work Rail preview/commit actions",
+        "durable profile/theme/vertical switcher",
+        "full split and comparison UI",
+        "virtualized inventories",
+        "responsive and accessibility runtime proof",
+        "cross-client parity proof"
+      ]
+    },
+    {
+      "spec": "135B",
+      "status": "partial",
+      "bead": "focusa-mc-full.3",
+      "implemented_evidence": [
+        "crates/focusa-core/src/runtime/interview_strategy.rs",
+        "crates/focusa-api/src/routes/interview_sessions.rs",
+        "apps/pi-extension/src/commands.ts"
+      ],
+      "missing": [
+        "complete Context ingestion journey",
+        "Role Composer approval UI",
+        "full Grill Interview UI and durable compendium flow",
+        "Spec 120 interactive integration",
+        "task materialization journey",
+        "new-project and resume acceptance proof"
+      ]
+    },
+    {
+      "spec": "135C",
+      "status": "partial",
+      "bead": "focusa-mc-full.4",
+      "implemented_evidence": [
+        "crates/focusa-api/src/routes/workspace_artifacts.rs",
+        "crates/focusa-api/src/routes/sse.rs",
+        "apps/pi-extension/src/commands.ts"
+      ],
+      "missing": [
+        "rich artifact renderers in central Pi TUI",
+        "named-key event invalidation",
+        "SSE-first live refresh with reconnect replay",
+        "complete UIAI research bridge workflow",
+        "live UIAI Engine evaluation proof"
+      ]
+    },
+    {
+      "spec": "135D",
+      "status": "verified_complete",
+      "bead": "focusa-mc-full.5",
+      "implemented_evidence": [
+        "docs/contracts/spec135-delivery-dag.v1.yaml",
+        "scripts/spec135-quality-gate.py",
+        "docs/contracts/spec135-framework-runtime-audit.v1.yaml",
+        "scripts/spec135-live-performance-proof.py",
+        "docs/contracts/spec135-runtime-evidence-matrix.v2.yaml",
+        "scripts/spec135-no-deferral-gate.py"
+      ],
+      "missing": []
+    },
+    {
+      "spec": "135E",
+      "status": "incomplete",
+      "bead": "focusa-mc-full.6",
+      "implemented_evidence": [
+        "docs/135e-cross-spec-amendments-migration-and-closure-matrix.md"
+      ],
+      "missing": [
+        "all cross-spec amendments applied",
+        "legacy singleton and parallel-surface migration",
+        "rollback proof",
+        "runtime-evidence closure matrix"
+      ]
+    },
+    {
+      "spec": "135F",
+      "status": "partial",
+      "bead": "focusa-mc-full.7",
+      "implemented_evidence": [
+        "crates/focusa-api/src/routes/ontology.rs",
+        "crates/focusa-core/src/software_domain.rs",
+        "docs/contracts/spec135-v4-software-domain.v1.yaml"
+      ],
+      "missing": [
+        "complete semantic graph integration",
+        "all General/Software/Legal/Markets/Research/Custom packs",
+        "reactive context projection in Pi",
+        "freshness/provenance and domain-parity proof"
+      ]
+    },
+    {
+      "spec": "135G",
+      "status": "partial",
+      "bead": "focusa-mc-full.8",
+      "implemented_evidence": [
+        "crates/focusa-api/src/routes/mission_canvas_surfaces.rs",
+        "apps/pi-extension/src/mission-canvas-model.ts",
+        "apps/pi-extension/src/mission-canvas-view.ts"
+      ],
+      "missing": [
+        "complete create/arrange/pin/group/split interactions",
+        "close-view versus terminate controls",
+        "suspend/rehydrate workflow",
+        "durable Canvas layout restoration",
+        "steering/follow-up routing",
+        "all eight concurrency/isolation proof scenarios"
+      ]
+    },
+    {
+      "spec": "135H",
+      "status": "incomplete",
+      "bead": "focusa-mc-full.9",
+      "implemented_evidence": [
+        "docs/135h-cross-functional-alpha-grill-interview-and-implementation-acceleration-spec.md"
+      ],
+      "missing": [
+        "Alpha 1 through Alpha 8 executed through production UI",
+        "cross-functional dogfood receipts",
+        "nontechnical acceptance evidence",
+        "failure recovery proof"
+      ]
+    },
+    {
+      "spec": "135I",
+      "status": "partial",
+      "bead": "focusa-mc-full.10",
+      "implemented_evidence": [
+        "crates/focusa-api/src/routes/agent_capabilities.rs",
+        "docs/contracts/spec135/generated-contract-v1/openapi-3.0.3.json",
+        "apps/pi-extension/src/mission-canvas-view.ts"
+      ],
+      "missing": [
+        "real-time generated C.R.I.S.T. UI in Pi",
+        "nontechnical onboarding journey",
+        "safe fallback and operation binding proof",
+        "first proven Workpoint acceptance journey"
+      ]
+    },
+    {
+      "spec": "135J",
+      "status": "partial",
+      "bead": "focusa-mc-full.11",
+      "implemented_evidence": [
+        "crates/focusa-api/src/routes/agent_capabilities.rs",
+        "docs/contracts/spec135/generated-contract-v1/openapi-3.0.3.json",
+        "packages/generated/spec135/typescript/schema.d.ts"
+      ],
+      "missing": [
+        "complete generated operation/client parity",
+        "durable UI stream consumed by Pi",
+        "disconnect/replay/deduplication proof",
+        "route-local duplication removal",
+        "runtime reuse and drift proof"
+      ]
+    },
+    {
+      "spec": "135K",
+      "status": "partial",
+      "bead": "focusa-mc-full.12",
+      "implemented_evidence": [
+        "apps/pi-extension/src/config.ts",
+        "apps/pi-extension/src/turns.ts",
+        "apps/pi-extension/tests/mission-canvas-mode-precedence.test.mjs",
+        "crates/focusa-core/src/uxp/mod.rs"
+      ],
+      "missing": [
+        "complete issue #53 toggle acceptance across resume/compaction/reconnect",
+        "UXP/UFI capture in Pi",
+        "adaptive proposal/promotion/rollback UI",
+        "Canvas-versus-terminal friction evaluation",
+        "nontechnical usability and accessibility proof",
+        "headless end-to-end proof"
+      ]
+    }
+  ],
+  "completion_path": [
+    "focusa-mc-full.5",
+    "focusa-mc-full.2",
+    "focusa-mc-full.3",
+    "focusa-mc-full.11",
+    "focusa-mc-full.4",
+    "focusa-mc-full.7",
+    "focusa-mc-full.8",
+    "focusa-mc-full.10",
+    "focusa-mc-full.12",
+    "focusa-mc-full.9",
+    "focusa-mc-full.6",
+    "focusa-mc-full.1"
+  ]
+}

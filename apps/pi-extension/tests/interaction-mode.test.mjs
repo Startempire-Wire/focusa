@@ -6,7 +6,7 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 const config = readFileSync(`${root}/src/config.ts`, "utf8");
 const commands = readFileSync(`${root}/src/commands.ts`, "utf8");
 const awareness = readFileSync(`${root}/src/awareness.ts`, "utf8");
-for (const mode of ["canvas_guided", "terminal_guided", "headless_automation"]) {
+for (const mode of ["canvas-guided", "terminal-guided", "headless"]) {
   assert.match(config, new RegExp(mode));
   assert.match(commands, new RegExp(mode));
 }
