@@ -69,7 +69,9 @@ fn validate_scope_field_value(key: &str, value: &str) -> Result<(), &'static str
     if key == "scope_kind" || key == "query_scope_kind" {
         let valid = matches!(
             value,
-            "fresh_question"
+            "project"
+                | "host"
+                | "fresh_question"
                 | "mission_carryover"
                 | "correction"
                 | "meta"
@@ -299,5 +301,30 @@ mod tests {
     fn scope_guard_accepts_session_start_checkpoint_reason() {
         let value = json!({"checkpoint_reason":"session_start"});
         assert!(validate_scope_fields(&value).is_ok());
+    }
+
+    #[test]
+    fn scope_guard_accepts_typed_project_and_host_scope_kinds() {
+        for scope_kind in ["project", "host"] {
+            let value = json!({
+                "scope": {
+                    "root_scope": {
+                        "scope_kind": scope_kind,
+                        "scope_id": "project:focusa",
+                        "root_path": "/workspace/focusa",
+                        "canonical_name": "focusa",
+                        "fingerprint": "sha256:focusa"
+                    },
+                    "continuity_id": "release-v135"
+                }
+            });
+            assert!(validate_scope_fields(&value).is_ok());
+        }
+    }
+
+    #[test]
+    fn scope_guard_rejects_unknown_scope_kinds() {
+        let value = json!({"scope_kind":"untrusted"});
+        assert_eq!(validate_scope_fields(&value), Err("invalid_scope_kind"));
     }
 }
