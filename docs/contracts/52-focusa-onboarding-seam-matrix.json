@@ -1,0 +1,53 @@
+{
+  "schema": "focusa.onboarding_seam_matrix.v1",
+  "canonical_owners": {
+    "project_identity": "project identity marker + project routes",
+    "discipline_bootstrap": "focusa_project_bootstrap",
+    "genesis": "focusa_project_genesis",
+    "goal_hierarchy": "Trajectory HLT/MLG/STG/Waypoints",
+    "immediate_action": "canonical Workpoint",
+    "execution": "Work Loop writer lease/fencing",
+    "proof": "Evidence/Receipt records",
+    "visual_guidance": "Mission Canvas owner PR #73",
+    "terminal_guidance": "interactionMode=terminal_guided"
+  },
+  "call_stack": [
+    "install signed agent context and extension",
+    "project identity/init",
+    "discipline bootstrap",
+    "Genesis confirmed HLT",
+    "Trajectory hierarchy and task provider",
+    "first Workpoint checkpoint",
+    "optional Work Loop lease",
+    "Canvas or terminal projection",
+    "evidence and outcome settlement"
+  ],
+  "ranked_friction": [
+    {"rank":1,"seam":"broad cwd blocked child scope","decision":"connect","proof":"#64"},
+    {"rank":2,"seam":"first checkpoint required nonexistent lease","decision":"remove circular gate","proof":"#64"},
+    {"rank":3,"seam":"settings callback lost attachment","decision":"explicit scoped runtime","proof":"#47"},
+    {"rank":4,"seam":"default menu exposed expert tuning","decision":"relocate to advanced search","proof":"#48/#49"},
+    {"rank":5,"seam":"discipline disconnected from Genesis","decision":"atomic bootstrap/Genesis chain","proof":"#50"},
+    {"rank":6,"seam":"Canvas/terminal choice absent","decision":"typed scoped interaction mode","proof":"#53"}
+  ],
+  "dead_road_decisions": [
+    {"candidate":"CLI-only project initialization","decision":"supersede","replacement":"focusa_project_bootstrap/genesis Pi tools"},
+    {"candidate":"synthetic conversational OTA activation","decision":"remove","replacement":"safe-idle capability or natural process start"},
+    {"candidate":"prose-only learning promotion","decision":"reject","replacement":"typed Spec138 metrics"},
+    {"candidate":"expert OTA/profile/heartbeat/surface controls in default menu","decision":"relocate","replacement":"advanced searchable settings"},
+    {"candidate":"stale broad persisted root as mutation blocker","decision":"downgrade to warning","replacement":"explicit verified child authority"}
+  ],
+  "before_trace": {"steps":12,"repeated_prompts":3,"wrong_paths":4},
+  "after_trace": {"steps":8,"repeated_prompts":0,"wrong_paths":0},
+  "migration": {
+    "manual marker/task discovery":"project bootstrap/genesis",
+    "CLI checkpoint lease workaround":"first Pi checkpoint bootstrap",
+    "default expert settings":"advanced settings search"
+  },
+  "external_owner_boundary": {
+    "issue":45,
+    "owner":"PR #73 agent",
+    "required_before_release":true,
+    "campaign_mutation_forbidden":true
+  }
+}

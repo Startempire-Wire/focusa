@@ -1,0 +1,19 @@
+GitHub #52 consolidation preflight — 2026-07-27
+
+Outputs:
+- canonical ownership/supersession map
+- nine-step onboarding/project call stack
+- ranked seam/friction ledger
+- dead/duplicate road keep/connect/relocate/remove decisions
+- before/after human and agent traces
+- executable preflight/final release gate
+
+Result:
+- 13 prerequisite issue evidence files present
+- onboarding steps: 12 → 8
+- repeated prompts: 3 → 0
+- wrong paths: 4 → 0
+- circular Workpoint lease, stale broad-root block, conversational OTA, prose promotion, and default expert-menu roads removed
+- preflight gate: PASS
+
+Final mode additionally requires external-owner #45/PR #73 Mission Canvas v2 integration. Campaign does not mutate #45; final release cannot pass until its owner merges it.
