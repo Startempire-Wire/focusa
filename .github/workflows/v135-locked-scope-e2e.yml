@@ -31,6 +31,7 @@ jobs:
           cargo test -p focusa-cli commands::install::tests::npm_resolution_accepts_absolute_nonstandard_install -- --exact
           cargo test -p focusa-cli commands::install::tests::pi_extension_archive_install_is_checksum_stage_and_activation_safe -- --exact
           cargo test -p focusa-cli commands::update::tests::failed_update_restores_exact_pre_transaction_daemon_state -- --exact
+          cargo test -p focusa-cli commands::update::tests::launchd_stop_restart_round_trip_restores_running_state -- --exact
           cargo test -p focusa-cli commands::update::tests::atomic_rollback_restores_previous_binary_and_removes_failed_candidate -- --exact
           cargo build -p focusa-api --bin focusa-daemon
       - name: Exercise official signed extension through a ServBay-like npm path
@@ -109,6 +110,13 @@ jobs:
           failure_rc=$?
           set -e
           test "$failure_rc" -ne 0
+          if curl -fsS http://127.0.0.1:8787/v1/health >/dev/null; then
+            legacy_rollback_state=running
+          else
+            legacy_rollback_state=stopped
+            launchctl kickstart -k "$domain/$label"
+            for _ in $(seq 1 150); do curl -fsS http://127.0.0.1:8787/v1/health >/dev/null && break; sleep 0.1; done
+          fi
           rollback_version="$(curl -fsS http://127.0.0.1:8787/v1/health | jq -r '.version')"
           rollback_extension="$(jq -r '.version' "$home/.pi/agent/extensions/focusa/package.json")"
           test "$rollback_version" = 0.9.134-dev
@@ -123,8 +131,8 @@ jobs:
           set -e
           final_version="$(curl -fsS http://127.0.0.1:8787/v1/health | jq -r '.version')"
           final_extension="$(jq -r '.version' "$home/.pi/agent/extensions/focusa/package.json")"
-          printf 'rollback_updater_rc=%s\npost_rollback_daemon=running\npost_rollback_version=%s\npost_rollback_extension=%s\nprevious_updater_rc=%s\nfinal_daemon_version=%s\nfinal_extension_version=%s\n' \
-            "$failure_rc" "$rollback_version" "$rollback_extension" "$updater_rc" "$final_version" "$final_extension" \
+          printf 'rollback_updater_rc=%s\nlegacy_rollback_state=%s\npost_rollback_daemon=running\npost_rollback_version=%s\npost_rollback_extension=%s\nprevious_updater_rc=%s\nfinal_daemon_version=%s\nfinal_extension_version=%s\n' \
+            "$failure_rc" "$legacy_rollback_state" "$rollback_version" "$rollback_extension" "$updater_rc" "$final_version" "$final_extension" \
             | tee "$RUNNER_TEMP/previous-updater-verdict.txt"
           test "$updater_rc" = 0
           test "$final_version" = 0.9.135-dev
