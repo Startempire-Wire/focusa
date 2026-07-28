@@ -371,6 +371,11 @@ jobs:
         run: |
           set -euo pipefail
           TAG='${{ steps.cfg.outputs.tag }}'
+          case "$TAG" in
+            *-nightly.*) CHANNEL='nightly' ;;
+            *-dev|*-rc.*) CHANNEL='dev' ;;
+            *) CHANNEL='stable' ;;
+          esac
           TRIPLE='x86_64-unknown-linux-musl'
           RELEASED_CLI="focusa-${TAG}-${TRIPLE}"
           ASSETS="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
@@ -393,7 +398,7 @@ jobs:
             --clobber
           chmod 0755 "/tmp/focusa-release/$RELEASED_CLI"
           "/tmp/focusa-release/$RELEASED_CLI" update plan \
-            --channel dev \
+            --channel "$CHANNEL" \
             --latest-version "$TAG" \
             --json > /tmp/focusa-release/ota-update-plan.json
           jq -e '

@@ -60,6 +60,8 @@ assert_not_grep() {
 assert_grep 'name: Deploy Live Daemon' .github/workflows/deploy-live-daemon.yml 'workflow name missing'
 assert_grep 'types: [published]' .github/workflows/deploy-live-daemon.yml 'release trigger missing'
 assert_grep 'workflow_dispatch:' .github/workflows/deploy-live-daemon.yml 'workflow_dispatch trigger missing'
+assert_grep "*) CHANNEL='stable'" .github/workflows/deploy-live-daemon.yml 'stable tags must select the stable updater channel'
+assert_grep '--channel "$CHANNEL"' .github/workflows/deploy-live-daemon.yml 'OTA trust gate must use the tag-derived channel'
 assert_grep 'gh release download' .github/workflows/deploy-live-daemon.yml 'release artifact download missing'
 assert_grep --clobber .github/workflows/deploy-live-daemon.yml 'release artifact clobber flag missing'
 assert_grep 'install-daemon.sh' .github/workflows/deploy-live-daemon.yml 'installer invocation missing'

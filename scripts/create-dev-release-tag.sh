@@ -383,6 +383,11 @@ python3 tests/spec145_canonical_release_cycle_static_test.py
 jq -e '.schema == "focusa.release_topology.v1" and (.surfaces | length) > 0' \
   config/focusa-release-topology.json >/dev/null
 
+if [[ "$PUSH" -eq 1 ]]; then
+  python3 scripts/run-release-learning-guards.py --tag "$TAG"
+  echo "Learned release recurrence guards passed for ${TAG}."
+fi
+
 if [[ "$PUSH" -eq 1 && "$RELEASE_JOURNAL_MODE" != "off" ]]; then
   if journal_client history --project-id focusa --limit 1 >/dev/null 2>&1; then
     journal_client plan --tag "$TAG" --channel "$RELEASE_CHANNEL"

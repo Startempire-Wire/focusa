@@ -61,6 +61,16 @@ Source: agent-kb-api historical events ending in hashes `837c0febâ€¦`, `45d7d9dâ
 
 Older releases have GitHub timing, asset, deploy, and exact-commit workflow evidence without protocol-v1 benchmark scores or contemporaneous pre-release estimates. Those fields remain null and `not_comparable`. The journal never reconstructs estimates after outcomes are known. A zero historical problem count means no failed exact-commit canonical workflow was found by the backfill protocol; it does not prove that no human difficulty occurred.
 
+## Learning and recurrence prevention
+
+Before each immutable tag, automation retrieves Focusa Metacog lessons, records stage predictions, and executes the guards in `config/release-learning-guards.json`. Problems automatically capture a lesson and settle the matching prediction. Finalization evaluates remaining predictions and records lesson/guard reuse counts. A repeated failure without a retrieved lesson and prevention guard blocks tagging.
+
+Focusa remains prediction/metacognition authority; agent-kb-api stores queryable references and release-level projections.
+
+## Dual-server placement
+
+OVH is the intended journal master after API parity deployment. KH owns release execution, a durable local outbox, and a read cache. Events replicate idempotently over verified Tailscale IPv6, retain hash-linked JSONL authority, and project into SQLite for trends. The release blocks at critical disk pressure or unacknowledged master replication.
+
 ## Release completion rule
 
 A release is not finalized until:

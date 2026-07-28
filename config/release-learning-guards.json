@@ -1,0 +1,35 @@
+{
+  "schema": "focusa.release_learning_guards.v1",
+  "guards": [
+    {
+      "failure_class": "stable_tag_trigger_mismatch",
+      "lesson_ref": "agent-kb:focusa:v0.9.136:problem:release-trigger:9",
+      "command": ["python3", "scripts/verify-release-tag-trigger.py", "{tag}"]
+    },
+    {
+      "failure_class": "utility_runtime_config_uninitialized",
+      "lesson_ref": "test:tests/utility_card_session_isolation_test.mts",
+      "command": ["npx", "--yes", "tsx", "tests/utility_card_session_isolation_test.mts"]
+    },
+    {
+      "failure_class": "stable_asset_version_boundary",
+      "lesson_ref": "agent-kb:focusa:v0.9.137:problem:deploy:6",
+      "command": ["bash", "tests/release_version_asset_test.sh"]
+    },
+    {
+      "failure_class": "runner_tool_dependency",
+      "lesson_ref": "agent-kb:focusa:v0.9.138:problem:candidate-ci:5",
+      "command": ["env", "PATH=/usr/bin:/bin", "bash", "tests/release_version_asset_test.sh"]
+    },
+    {
+      "failure_class": "stable_updater_channel_resolution",
+      "lesson_ref": "metacog:cap-1785271955342546491",
+      "command": ["cargo", "test", "-p", "focusa-cli", "release_channel_tests"]
+    },
+    {
+      "failure_class": "journal_publisher_scope_auth",
+      "lesson_ref": "agent-kb:focusa:v0.9.136:problem:release-journal-auth:4",
+      "command": ["python3", "scripts/canonical-release-journal.py", "history", "--project-id", "focusa", "--limit", "1"]
+    }
+  ]
+}

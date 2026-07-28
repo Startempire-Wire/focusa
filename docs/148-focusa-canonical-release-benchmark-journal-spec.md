@@ -157,6 +157,96 @@ The client reads `AGENT_KB_API_URL` (default `http://127.0.0.1:8791`) and bearer
 - [ ] Offline tests cover API append/query/idempotency and Focusa normalization.
 - [ ] v0.9.136 is not complete until API final receipt, release workflows, and production all pass.
 
-## 9. Failure and rollback
+## 9. Verified deployment topology
 
-Before publication, normal Git rollback may remove unshipped Focusa changes. API events remain append-only and receive a correction/cancellation event if a planned release is abandoned. After publication, never rewrite tags, assets, or journal history. API unavailability blocks canonical finalization unless the event is durably spooled and later acknowledged with the original event ID.
+Audit date: 2026-07-28. These are observed boundaries, not inferred defaults.
+
+| Surface | KnownHost production VPS (KH) | OVH service host |
+|---|---|---|
+| Role | Pi/Focusa authority, GitHub deploy runner, local agent-kb cache, central audit | intended agent-kb master, PostgreSQL, Mem0 and private AI services |
+| agent-kb-api | current journal-capable binary on loopback `127.0.0.1:8791` | July-12 master binary on Tailscale; no journal route |
+| SQLite | `/var/lib/agent-kb-api/agent-kb.sqlite` local document index | independent `/var/lib/agent-kb-api/agent-kb.sqlite` master index |
+| Journal | 27+ local events in hash-linked JSONL | absent |
+| Focusa daemon | authoritative production daemon and learning API | non-authoritative/stale; must not receive release authority implicitly |
+| Release execution | self-hosted GitHub runner label `focusa-deploy` | none |
+| Connectivity | reaches OVH SSH and Tailscale IPv6 relay | IPv4 API listener is not reachable from KH; IPv6 relay is reachable |
+| Disk pressure | 98% used at audit | 92% used at audit |
+
+Observed faults that block cross-server canonicality:
+
+1. `agent-kb-local.service` restart-loops because it passes unsupported `--master-url` while another service owns port 8791.
+2. `agent-kb-local-cache` claims mirror refresh but only writes a timestamp; it performs no replication.
+3. `agent-kb-refresh.timer` restarts the API every five minutes, introducing avoidable availability gaps.
+4. No dedicated release-journal backup or remote replica exists.
+5. OVH and KH SQLite indexes are independent and expose different generations.
+
+## 10. Target dual-server storage architecture
+
+### 10.1 OVH master
+
+OVH is the canonical release-journal write authority after parity deployment and health proof. It stores:
+
+- hash-linked append-only JSONL authority
+- SQLite WAL projection for bounded query and trend analysis
+- replication acknowledgements and source-host identity
+- backup snapshots and restore receipts
+
+### 10.2 KH release outbox and read cache
+
+KH owns release execution and therefore writes first to a durable local outbox. It then replicates idempotently to OVH over verified Tailscale IPv6. KH retains a read projection and the unacknowledged outbox, not an independent competing authority.
+
+Required states: `local_durable`, `replication_pending`, `master_accepted`, `projection_applied`, `backup_verified`. Finalization requires `master_accepted` unless an explicitly documented degraded spool policy is active.
+
+### 10.3 SQLite projection
+
+Minimum tables:
+
+- `release_events`: event ID/hash, release ID, phase, sequence, timestamps, source host, payload JSON, previous hash
+- `release_runs`: tag, commit, channel, lifecycle status, plan/final event refs
+- `release_metrics`: metric name, protocol, value, unit, comparison direction, baseline release
+- `release_problems`: failure fingerprint, stage, diagnosis, impact, recovery, recurrence count
+- `release_predictions`: Focusa prediction ID, confidence, predicted/actual outcome, score
+- `release_lessons`: Focusa metacog capture/reflection/adjustment refs and reuse count
+- `release_integrations`: GitHub run, Focusa evidence, audit receipt, backup and replication refs
+- `release_replication_state`: source/master sequence, lag, attempts, last acknowledgement
+
+SQLite uses WAL, foreign keys, bounded busy timeout, indexed release/phase/time/fingerprint fields, and transactional projection. JSONL remains the audit authority; SQLite is rebuildable.
+
+## 11. Software and integration boundaries
+
+- **agent-kb-api (Go):** authenticated append/query, JSONL authority, SQLite projections, replication and grouped history.
+- **Focusa daemon (Rust, KH):** Predictions, evaluation, Metacognition, adjustments, evidence and trajectory authority.
+- **Focusa release client (Python):** plan/benchmark/progress/problem/final publication and durable outbox.
+- **GitHub Actions/CLI:** exact-commit CI, Release, signed assets and KH Deploy run evidence.
+- **KH self-hosted runner:** production installation and post-install trust proof.
+- **Tailscale:** private KH↔OVH replication; IPv6 is the verified API path until IPv4 routing is repaired.
+- **central audit:** receives bounded mutation and replication receipts; never substitutes for the journal.
+- **PostgreSQL/Mem0 on OVH:** available integrations but not release-journal authority in v1.
+- **systemd:** one agent-kb service per host plus bounded replication/backup timers; duplicate restart loops are prohibited.
+
+## 12. Predictive metacognitive learning loop
+
+The journal must change future behavior rather than merely accumulate incidents.
+
+1. **Retrieve before planning:** query prior problem fingerprints, Metacog lessons, adjustment outcomes and prediction calibration for the project/release protocol.
+2. **Predict before risk:** record predictions for trigger compatibility, benchmark success, CI, signed asset completeness, Deploy and production health.
+3. **Settle after evidence:** evaluate each prediction with exact workflow, asset or production evidence.
+4. **Learn from each distinct failure:** capture a Focusa Metacog lesson and create or revise a reusable prevention adjustment.
+5. **Guard recurrence:** the next plan lists retrieved lesson IDs and executes their prevention checks before immutable tagging.
+6. **Measure reuse:** final events record lessons retrieved, guards applied, repeated failure fingerprints, avoided failures and adjustment effectiveness.
+7. **Promote only proven learning:** adjustments become canonical release gates only after outcome evaluation shows improvement.
+
+A repeated failure fingerprint without a retrieved lesson and explicit prevention guard blocks the next tag. Prediction and Metacog refs are stored in agent-kb journal events; Focusa remains their canonical learning authority.
+
+## 13. Resource, backup and availability gates
+
+- Warn at 85% disk usage; block benchmark/build/release mutation at 90% until bounded cleanup or capacity recovery is evidenced.
+- Bound JSONL event size, API query count, SQLite WAL growth and local outbox retention.
+- Back up JSONL plus SQLite snapshot on both hosts; periodically restore into an isolated directory and verify hashes/projections.
+- Expose master/cache generation, replication lag, oldest pending event, backup age and hash-chain health.
+- API refresh uses online reindex or atomic projection swap; five-minute unconditional service restarts are prohibited.
+- Release completion requires journal master acknowledgement, backup health and no disk-pressure block.
+
+## 14. Failure and rollback
+
+Before publication, normal Git rollback may remove unshipped Focusa changes. API events remain append-only and receive a correction/cancellation event if a planned release is abandoned. After publication, never rewrite tags, assets, or journal history. API unavailability blocks canonical finalization unless the event is durably spooled and later acknowledged with the original event ID. Server-role changes, service stops, firewall changes and destructive cleanup follow the operator confirmation and backup rules in `/root/.agent-kb/SAFETY_RULES.md`.

@@ -59,6 +59,18 @@ release_script = (ROOT / "scripts/create-dev-release-tag.sh").read_text()
 for lifecycle_command in ("journal_client plan", "journal_client benchmark", "journal_client progress", "journal_client problem", "journal_client finalize"):
     assert lifecycle_command in release_script
 assert "FOCUSA_RELEASE_JOURNAL_MODE" in release_script
+assert "run-release-learning-guards.py" in release_script
 assert "--tag" in release_script
+
+client_source = SCRIPT.read_text()
+for learning_binding in ("retrieve_release_lessons", "record_release_predictions", "capture_release_lesson", "evaluate_stage_prediction"):
+    assert learning_binding in client_source
+
+guards = json.loads((ROOT / "config/release-learning-guards.json").read_text())
+assert guards["schema"] == "focusa.release_learning_guards.v1"
+classes = [row["failure_class"] for row in guards["guards"]]
+assert len(classes) >= 6
+assert len(classes) == len(set(classes))
+assert all(row["lesson_ref"] and row["command"] for row in guards["guards"])
 
 print("canonical release journal client contract: passed")
