@@ -7,6 +7,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=scripts/lib/release-version.sh
+source "$ROOT_DIR/scripts/lib/release-version.sh"
 INSTALL_ROOT="${FOCUSA_INSTALL_ROOT:-/usr/local}"
 BIN_NAME="${FOCUSA_BIN_NAME:-focusa-daemon}"
 SERVICE_NAME="${FOCUSA_SERVICE_NAME:-focusa-daemon}"
@@ -236,15 +238,12 @@ binary_version() {
   local path="$1"
   local base=""
   base="$(basename "$path")"
-  # Canonical asset name is `focusa-daemon-v0.9.42-dev-x86_64-unknown-linux-musl`.
-  # The version segment is everything between the second-to-last and the
-  # last `-dev` style anchor. We extract the first `vX.Y.Z-dev` token.
+  # The target-triple boundary is explicit. Stable tags must not consume the
+  # first character of `-x86_64` as a prerelease suffix.
   local from_name=""
-  from_name="$(printf '%s' "$base" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+)?' | head -1 || true)"
+  from_name="$(release_version_from_asset_name "$path" "$EXPECTED_VERSION")"
   if [[ -n "$from_name" ]]; then
-    # EXPECTED_VERSION is supplied without the leading `v` (e.g. `0.9.42-dev`)
-    # so callers can compare directly. Strip it here too.
-    printf '%s\n' "${from_name#v}"
+    printf '%s\n' "$from_name"
     return 0
   fi
   # Fallback: actually run --version, but with a hard 3s timeout so

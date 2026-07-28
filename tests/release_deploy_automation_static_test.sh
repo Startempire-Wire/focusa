@@ -12,6 +12,8 @@ python3 scripts/validate-github-workflows.py .github/workflows/release.yml .gith
   exit 1
 }
 
+tests/release_version_asset_test.sh
+
 # GH5 remote marker onboarding guard.
 tests/spec_focusa_gh5_remote_marker_static_test.sh
 
