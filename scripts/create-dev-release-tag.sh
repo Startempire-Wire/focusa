@@ -345,6 +345,7 @@ if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
 fi
 
 echo "Next release tag: ${TAG}"
+python3 scripts/verify-release-tag-trigger.py "${TAG}"
 
 if [[ "$FORCE_RELEASE" -eq 1 && -z "$RELEASE_REASON" ]]; then
   echo "Blocked: --force-release requires --release-reason with a plain-language reason." >&2

@@ -179,7 +179,7 @@ require(
     RELEASE,
     [
         "tags:",
-        "'v*-dev'",
+        "'v*'",
         "release-${{ github.ref }}",
         "Swatinem/rust-cache@v2",
         "Lock exact release candidate",

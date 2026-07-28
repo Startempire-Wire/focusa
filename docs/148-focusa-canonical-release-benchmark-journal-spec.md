@@ -133,14 +133,15 @@ The client reads `AGENT_KB_API_URL` (default `http://127.0.0.1:8791`) and bearer
 1. Verify exact candidate and absent stable tag.
 2. Deploy and verify agent-kb-api journal endpoints.
 3. Backfill immutable historical release metadata.
-4. Stamp stable version surfaces and run protocol v1.
-5. Publish `plan` and `benchmark` events before tag creation.
-6. Commit benchmark tooling, docs, tests, and stable stamp.
-7. Run final local gates; tag and push exactly once.
-8. Publish progress/problem events while workflows run.
-9. Verify CI, Release, Deploy, assets, signatures, and production.
-10. Publish `final` event with actual-versus-estimate and historical comparison.
-11. Query the grouped API history and capture the receipt as release evidence.
+4. Verify the intended stable tag matches the Release workflow trigger before any immutable tag is created.
+5. Stamp stable version surfaces and run protocol v1.
+6. Publish `plan` and `benchmark` events before tag creation.
+7. Commit benchmark tooling, docs, tests, and stable stamp.
+8. Run final local gates; tag and push exactly once.
+9. Publish progress/problem events while workflows run.
+10. Verify CI, Release, Deploy, assets, signatures, and production.
+11. Publish `final` event with actual-versus-estimate and historical comparison.
+12. Query the grouped API history and capture the receipt as release evidence.
 
 ## 8. Acceptance criteria
 
@@ -148,6 +149,7 @@ The client reads `AGENT_KB_API_URL` (default `http://127.0.0.1:8791`) and bearer
 - [ ] API appends hash-linked events durably and supports bounded filters plus grouped release history.
 - [ ] Plan captures time/statistic estimates before release publication.
 - [ ] Benchmark runs before publication and blocks on required-check failure.
+- [ ] Pre-tag verification proves the Release workflow trigger matches the intended stable or preview tag.
 - [ ] Problems during release are appended with diagnosis and recovery.
 - [ ] Final event records all results and actual-versus-estimate deltas.
 - [ ] Historical comparisons expose raw values and comparability boundaries.

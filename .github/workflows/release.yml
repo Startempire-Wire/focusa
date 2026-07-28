@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*-dev'
+      - 'v*'
 
 concurrency:
   group: release-${{ github.ref }}
@@ -88,7 +88,7 @@ jobs:
       - name: Release workflow validation
         run: |
           echo "release_tag_validation=ok"
-          echo "Release workflow accepted immutable dev tag ${GITHUB_REF_NAME}."
+          echo "Release workflow accepted immutable stable or preview tag ${GITHUB_REF_NAME}."
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
