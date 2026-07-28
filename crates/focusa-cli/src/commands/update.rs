@@ -2001,7 +2001,7 @@ async fn execute_verified_apply_locked(
                     "schema": "focusa.pi_extension_restart_required.v1",
                     "version": plan.latest.version,
                     "installed_at": chrono_like_timestamp(),
-                    "action": "Focusa Pi extension queues /focusa-activate-updated-extension and reloads automatically when idle"
+                    "action": "Focusa Pi extension activates through a non-conversational safe-idle runtime reload when supported, otherwise on the next natural Pi process start"
                 }))?,
             )?;
             package_promoted.push(part.part.to_string());
