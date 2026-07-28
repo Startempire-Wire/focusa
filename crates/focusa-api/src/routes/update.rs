@@ -791,10 +791,17 @@ fn build_notifications_envelope(inventory: Value) -> Value {
         .iter()
         .filter_map(Value::as_str)
         .collect::<Vec<_>>();
-    let pi_restart =
-        std::fs::read_to_string(update_state_root().join("pi-extension-restart-required.json"))
+    let state_root = update_state_root();
+    let pi_restart = [
+        "pi-extension-silent-restart-required.json",
+        "pi-extension-restart-required.json",
+    ]
+    .into_iter()
+    .find_map(|name| {
+        std::fs::read_to_string(state_root.join(name))
             .ok()
-            .and_then(|raw| serde_json::from_str::<Value>(&raw).ok());
+            .and_then(|raw| serde_json::from_str::<Value>(&raw).ok())
+    });
     let severity = if !stale_names.is_empty() || pi_restart.is_some() {
         "warning"
     } else {
@@ -802,7 +809,7 @@ fn build_notifications_envelope(inventory: Value) -> Value {
     };
     let body = if let Some(restart) = &pi_restart {
         format!(
-            "Focusa Pi extension {} was updated; restart or /reload Pi to activate it.",
+            "Focusa Pi extension {} was updated and will activate silently at the next safe lifecycle boundary.",
             restart
                 .get("version")
                 .and_then(Value::as_str)

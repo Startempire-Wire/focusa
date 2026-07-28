@@ -15,4 +15,5 @@ Proof:
 - pi_extension_archive_install_is_checksum_stage_and_activation_safe: PASS
 - failed_update_restores_exact_pre_transaction_daemon_state: PASS
 - atomic_rollback_restores_previous_binary_and_removes_failed_candidate: PASS
-- GitHub release cycle remains responsible for signed x86_64-apple-darwin build and deploy proof
+- native Intel macOS gate now installs a real launchd v0.9.134 daemon, forces extension failure, verifies running v0.9.134 rollback, then retries through a ServBay-like inherited PATH and requires v0.9.135 success
+- GitHub release cycle remains responsible for the final signed x86_64-apple-darwin artifact proof

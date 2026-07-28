@@ -1996,7 +1996,7 @@ async fn execute_verified_apply_locked(
                 None,
             )?;
             std::fs::write(
-                state.join("pi-extension-restart-required.json"),
+                state.join("pi-extension-silent-restart-required.json"),
                 serde_json::to_vec_pretty(&json!({
                     "schema": "focusa.pi_extension_restart_required.v1",
                     "version": plan.latest.version,
