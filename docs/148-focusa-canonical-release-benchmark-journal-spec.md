@@ -187,7 +187,9 @@ Remediation applied after the audit:
 - duplicate KH API service and stamp-only refresh/cache timers disabled
 - SQLite WAL projections active on both hosts
 - daily bounded backups active on both hosts; isolated restore rebuilt all 29 events
-- OVH generated Cargo cleanup reduced disk to 89.7%; KH remains 97.2% and blocks the next release
+- bounded cleanup reduced KH disk to 88.8% and OVH to 89.7%; the dual-server resource gate passed before and after v0.9.139
+- v0.9.139 finalized with 60 uploaded assets, green CI/Release/Deploy workflows, live daemon version 0.9.139, and all five planned predictions scored 1.0
+- both journal projections reached 39 events with zero replication backlog; recovered resource and dependency failures remain retained as future recurrence lessons
 
 ## 10. Target dual-server storage architecture
 
