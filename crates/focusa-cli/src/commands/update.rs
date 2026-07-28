@@ -3743,6 +3743,84 @@ mod tests {
         );
     }
 
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn launchd_stop_restart_round_trip_restores_running_state() {
+        let root = std::env::temp_dir().join(format!(
+            "focusa-launchd-rollback-{}-{}",
+            std::process::id(),
+            super::chrono_like_timestamp()
+        ));
+        std::fs::create_dir_all(&root).expect("create launchd fixture");
+        let plist = root.join("com.startempire.focusa-daemon.plist");
+        std::fs::write(
+            &plist,
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>Label</key><string>com.startempire.focusa-daemon</string>
+<key>ProgramArguments</key><array><string>/bin/sleep</string><string>300</string></array>
+<key>RunAtLoad</key><true/><key>KeepAlive</key><false/>
+</dict></plist>
+"#,
+        )
+        .expect("write launchd fixture");
+        let uid = String::from_utf8_lossy(
+            &std::process::Command::new("id")
+                .arg("-u")
+                .output()
+                .expect("read uid")
+                .stdout,
+        )
+        .trim()
+        .to_string();
+        let domain = format!("gui/{uid}");
+        let target = format!("{domain}/com.startempire.focusa-daemon");
+        let _ = std::process::Command::new("launchctl")
+            .args(["bootout", &target])
+            .status();
+
+        let running = || {
+            std::process::Command::new("launchctl")
+                .args(["print", &target])
+                .output()
+                .is_ok_and(|output| {
+                    output.status.success()
+                        && String::from_utf8_lossy(&output.stdout).contains("state = running")
+                })
+        };
+        let wait_for = |expected: bool| {
+            for _ in 0..50 {
+                if running() == expected {
+                    return true;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+            false
+        };
+        let result = (|| -> anyhow::Result<()> {
+            anyhow::ensure!(
+                std::process::Command::new("launchctl")
+                    .args(["bootstrap", &domain])
+                    .arg(&plist)
+                    .status()?
+                    .success(),
+                "bootstrap launchd fixture"
+            );
+            anyhow::ensure!(wait_for(true), "fixture did not start");
+            stop_daemon_service()?;
+            anyhow::ensure!(wait_for(false), "fixture did not stop");
+            restart_daemon_service(std::path::Path::new("/bin/false"))?;
+            anyhow::ensure!(wait_for(true), "fixture did not restart");
+            Ok(())
+        })();
+        let _ = std::process::Command::new("launchctl")
+            .args(["bootout", &target])
+            .status();
+        let _ = std::fs::remove_dir_all(root);
+        result.expect("real launchd state round trip");
+    }
+
     #[test]
     fn rollback_new_install_without_backup_removes_promoted_target() {
         let root = std::env::temp_dir().join(format!(
