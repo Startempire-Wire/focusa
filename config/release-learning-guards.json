@@ -7,6 +7,11 @@
       "command": ["python3", "scripts/check-release-resource-gate.py"]
     },
     {
+      "failure_class": "isolated_release_dependency_install",
+      "lesson_ref": "agent-kb:focusa:v0.9.139:problem:benchmark:5",
+      "command": ["npm", "ci", "--ignore-scripts", "--prefix", "apps/pi-extension"]
+    },
+    {
       "failure_class": "stable_tag_trigger_mismatch",
       "lesson_ref": "agent-kb:focusa:v0.9.136:problem:release-trigger:9",
       "command": ["python3", "scripts/verify-release-tag-trigger.py", "{tag}"]
