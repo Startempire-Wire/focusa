@@ -15,5 +15,9 @@ Result:
 - wrong paths: 4 → 0
 - circular Workpoint lease, stale broad-root block, conversational OTA, prose promotion, and default expert-menu roads removed
 - preflight gate: PASS
+- full focusa-core: 581 passed
+- full focusa-api: 417 passed
+- full focusa-cli: PASS
+- filesystem-root marker contamination removed from inferred child-project binding
 
 Final mode additionally requires external-owner #45/PR #73 Mission Canvas v2 integration. Campaign does not mutate #45; final release cannot pass until its owner merges it.

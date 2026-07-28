@@ -289,10 +289,12 @@ fn insert_binding_candidate(
     let git = resolve_git_working_context(&root).ok().flatten();
     let active_worktree_root = git
         .as_ref()
-        .map(|context| context.active_worktree_root.clone());
+        .map(|context| context.active_worktree_root.clone())
+        .filter(|value| !value.trim().is_empty());
     let canonical_parent_root = git
         .as_ref()
         .map(|context| context.canonical_parent_root.clone())
+        .filter(|value| !value.trim().is_empty())
         .or_else(|| Some(root_text.clone()));
     let authoritative_root = active_worktree_root
         .clone()
@@ -331,6 +333,10 @@ fn collect_parent_binding_candidates(
     let mut current = Some(canonical(start));
     for depth in 0..12 {
         let Some(path) = current else { break };
+        // Filesystem/account roots are session envelopes, never inferred projects.
+        if path.parent().is_none() {
+            break;
+        }
         let markers = binding_markers(&path);
         if !markers.is_empty() {
             let marker_score: u16 = if markers.iter().any(|value| value == "focusa_marker") {
