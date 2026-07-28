@@ -9,7 +9,6 @@ import hashlib
 import json
 import os
 import re
-import shutil
 import statistics
 import subprocess
 import sys
@@ -27,7 +26,8 @@ PROTOCOL = "focusa.release_benchmark.v1"
 PROJECT_ID = "focusa"
 DEFAULT_API = "http://127.0.0.1:8791"
 DEFAULT_FOCUSA_API = "http://127.0.0.1:8787"
-FOCUSA_PROJECT_ROOT = str(ROOT)
+FOCUSA_PROJECT_ROOT = os.environ.get("FOCUSA_PROJECT_ROOT", "/home/wirebot/focusa")
+FOCUSA_PROJECT_FINGERPRINT = os.environ.get("FOCUSA_PROJECT_FINGERPRINT", "project-fnv1a64:c435b14d4fb3ab67")
 FOCUSA_CONTINUITY_ID = os.environ.get("FOCUSA_CONTINUITY_ID", "focusa-v0.9.135-locked-14")
 WORKFLOW_NAMES = ("CI", "Release", "Deploy Live Daemon")
 
@@ -96,10 +96,23 @@ def focusa_request(path: str, payload: dict[str, Any]) -> dict[str, Any]:
         return json.loads(response.read())
 
 
-def focusa_cli_json(args: list[str]) -> dict[str, Any]:
-    executable = os.environ.get("FOCUSA_CLI") or shutil.which("focusa") or "/usr/local/bin/focusa"
-    run = command([executable, *args], cwd=ROOT)
-    return json.loads(run.stdout)
+def focusa_get(path: str) -> dict[str, Any]:
+    base = os.environ.get("FOCUSA_API_URL", DEFAULT_FOCUSA_API).rstrip("/")
+    with urllib.request.urlopen(base + path, timeout=30) as response:
+        return json.loads(response.read())
+
+
+def prediction_scope() -> dict[str, Any]:
+    return {
+        "root_scope": {
+            "scope_kind": "project",
+            "scope_id": "focusa",
+            "root_path": FOCUSA_PROJECT_ROOT,
+            "canonical_name": "focusa",
+            "fingerprint": FOCUSA_PROJECT_FINGERPRINT,
+        },
+        "continuity_id": FOCUSA_CONTINUITY_ID,
+    }
 
 
 def retrieve_release_lessons(tag: str) -> dict[str, Any]:
@@ -131,6 +144,18 @@ def retrieve_release_lessons(tag: str) -> dict[str, Any]:
 
 def record_release_predictions(tag: str) -> dict[str, str]:
     predictions = {}
+    query = urllib.parse.urlencode(
+        {
+            "scope_kind": "project",
+            "scope_id": "focusa",
+            "root_path": FOCUSA_PROJECT_ROOT,
+            "canonical_name": "focusa",
+            "fingerprint": FOCUSA_PROJECT_FINGERPRINT,
+            "continuity_id": FOCUSA_CONTINUITY_ID,
+            "limit": 100,
+        }
+    )
+    recent = focusa_get("/v1/predictions/recent?" + query).get("data", {}).get("predictions", [])
     stages = {
         "benchmark": "candidate benchmark passes every required release protocol check",
         "candidate-ci": "exact stamped candidate CI passes before immutable tagging",
@@ -139,19 +164,32 @@ def record_release_predictions(tag: str) -> dict[str, str]:
         "final": "release finalizes within its journal estimate with production and learning proof",
     }
     for stage, outcome in stages.items():
-        response = focusa_cli_json(
-            [
-                "predict", "record", "--project-root", FOCUSA_PROJECT_ROOT,
-                "--continuity-id", FOCUSA_CONTINUITY_ID,
-                "--prediction-type", f"release_{stage}_success",
-                "--predicted-outcome", f"{tag}: {outcome}",
-                "--confidence", "0.9",
-                "--recommended-action", f"Run and evidence the {stage} guard before settlement",
-                "--why", "Prior release problems are now explicit recurrence guards in the measured release cycle",
-                "--json",
-            ]
+        predicted_outcome = f"{tag}: {outcome}"
+        existing = next(
+            (
+                row for row in recent
+                if row.get("prediction", {}).get("prediction_type") == f"release_{stage}_success"
+                and row.get("prediction", {}).get("predicted_outcome") == predicted_outcome
+                and row.get("prediction", {}).get("evaluated_at") is None
+            ),
+            None,
         )
-        prediction_id = response.get("prediction_id") or response.get("ids", {}).get("prediction_id")
+        if existing:
+            predictions[stage] = existing["record_id"]
+            continue
+        response = focusa_request(
+            "/v1/predictions",
+            {
+                "scope": prediction_scope(),
+                "prediction_type": f"release_{stage}_success",
+                "context_refs": [f"release:{tag}"],
+                "predicted_outcome": predicted_outcome,
+                "confidence": 0.9,
+                "recommended_action": f"Run and evidence the {stage} guard before settlement",
+                "why": "Prior release problems are now explicit recurrence guards in the measured release cycle",
+            },
+        )
+        prediction_id = response.get("data", {}).get("record", {}).get("record_id")
         if prediction_id:
             predictions[stage] = prediction_id
     return predictions
@@ -187,17 +225,15 @@ def evaluate_stage_prediction(tag: str, stage: str, outcome: str, score: float, 
     if not prediction_id:
         return None
     try:
-        args = [
-            "predict", "evaluate", prediction_id,
-            "--project-root", FOCUSA_PROJECT_ROOT,
-            "--continuity-id", FOCUSA_CONTINUITY_ID,
-            "--actual-outcome", outcome,
-            "--score", str(score),
-            "--json",
-        ]
-        if lesson_ref:
-            args.extend(["--learning-signal-ref", lesson_ref])
-        return focusa_cli_json(args)
+        return focusa_request(
+            f"/v1/predictions/{prediction_id}/evaluate",
+            {
+                "scope": prediction_scope(),
+                "actual_outcome": outcome,
+                "score": score,
+                "learning_signal_ref": lesson_ref,
+            },
+        )
     except Exception:
         return None
 
