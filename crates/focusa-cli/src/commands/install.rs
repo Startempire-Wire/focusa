@@ -2960,6 +2960,137 @@ fn install_agent_context_archive(
     Ok(destination)
 }
 
+fn remove_path_if_present(path: &std::path::Path) -> Result<()> {
+    let Ok(metadata) = std::fs::symlink_metadata(path) else {
+        return Ok(());
+    };
+    if metadata.file_type().is_dir() && !metadata.file_type().is_symlink() {
+        std::fs::remove_dir_all(path)?;
+    } else {
+        std::fs::remove_file(path)?;
+    }
+    Ok(())
+}
+
+fn copy_skill_tree(source: &std::path::Path, destination: &std::path::Path) -> Result<()> {
+    std::fs::create_dir_all(destination)?;
+    for entry in std::fs::read_dir(source)? {
+        let entry = entry?;
+        let file_type = entry.file_type()?;
+        let target = destination.join(entry.file_name());
+        if file_type.is_dir() {
+            copy_skill_tree(&entry.path(), &target)?;
+        } else if file_type.is_file() {
+            std::fs::copy(entry.path(), target)?;
+        } else {
+            bail!("agent context skill contains unsupported link or special file");
+        }
+    }
+    Ok(())
+}
+
+fn synchronize_agent_context_skills(
+    context_root: &std::path::Path,
+    home: &std::path::Path,
+) -> Result<Vec<std::path::PathBuf>> {
+    let canonical_root = context_root.join("skills");
+    let mut skills = std::fs::read_dir(&canonical_root)?
+        .filter_map(Result::ok)
+        .filter(|entry| entry.file_type().is_ok_and(|kind| kind.is_dir()))
+        .filter(|entry| entry.path().join("SKILL.md").is_file())
+        .collect::<Vec<_>>();
+    skills.sort_by_key(|entry| entry.file_name());
+    if skills.is_empty() {
+        bail!("agent context has no synchronizable skills");
+    }
+    if skills.iter().any(|entry| {
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        !name.starts_with("focusa") && name != "predictive-power"
+    }) {
+        bail!("agent context skill synchronization is limited to Focusa-owned names");
+    }
+
+    let target_roots = [home.join(".pi/skills"), home.join(".pi/agent/skills")];
+    let transaction = uuid::Uuid::now_v7();
+    let mut activated = Vec::<(std::path::PathBuf, Option<std::path::PathBuf>)>::new();
+    let result = (|| -> Result<Vec<std::path::PathBuf>> {
+        for target_root in target_roots {
+            std::fs::create_dir_all(&target_root)?;
+            for skill in &skills {
+                let name = skill.file_name();
+                let destination = target_root.join(&name);
+                let stage = target_root.join(format!(
+                    ".focusa-skill-stage-{transaction}-{}",
+                    name.to_string_lossy()
+                ));
+                let backup = target_root.join(format!(
+                    ".focusa-skill-backup-{transaction}-{}",
+                    name.to_string_lossy()
+                ));
+                remove_path_if_present(&stage)?;
+                copy_skill_tree(&skill.path(), &stage)?;
+                let prior = if destination.exists() || destination.is_symlink() {
+                    std::fs::rename(&destination, &backup)?;
+                    Some(backup)
+                } else {
+                    None
+                };
+                if let Err(error) = std::fs::rename(&stage, &destination) {
+                    if let Some(backup) = prior.as_ref() {
+                        let _ = std::fs::rename(backup, &destination);
+                    }
+                    let _ = remove_path_if_present(&stage);
+                    return Err(error).context("activate synchronized Focusa skill");
+                }
+                activated.push((destination, prior));
+            }
+        }
+        Ok(activated
+            .iter()
+            .map(|(destination, _)| destination.clone())
+            .collect())
+    })();
+
+    let destinations = match result {
+        Ok(destinations) => destinations,
+        Err(error) => {
+            for (destination, backup) in activated.into_iter().rev() {
+                let _ = remove_path_if_present(&destination);
+                if let Some(backup) = backup {
+                    let _ = std::fs::rename(backup, destination);
+                }
+            }
+            return Err(error);
+        }
+    };
+    for (_, backup) in &activated {
+        if let Some(backup) = backup {
+            remove_path_if_present(backup)?;
+        }
+    }
+    Ok(destinations)
+}
+
+fn install_skill_doctor(
+    context_root: &std::path::Path,
+    install_root: &std::path::Path,
+) -> Result<()> {
+    let source = context_root.join("bin/focusa-skill-doctor");
+    if !source.is_file() {
+        return Ok(());
+    }
+    let destination = install_root.join("bin/focusa-skill-doctor");
+    std::fs::create_dir_all(install_root.join("bin"))?;
+    std::fs::copy(&source, &destination)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&destination, std::fs::Permissions::from_mode(0o755))?;
+    }
+    Ok(())
+}
+
 fn install_root_for(target: InstallTarget) -> std::path::PathBuf {
     let home = std::env::var_os("HOME")
         .map(std::path::PathBuf::from)
@@ -3698,7 +3829,8 @@ async fn execute_real_install(
         .iter()
         .find(|asset| asset.triple == "all")
         .ok_or_else(|| anyhow!("verified agent context asset missing"))?;
-    install_agent_context_archive(agent_context_asset, install_root)?;
+    let agent_context_root = install_agent_context_archive(agent_context_asset, install_root)?;
+    install_skill_doctor(&agent_context_root, install_root)?;
     // Prove all promoted binaries before any external symlink, service, or shell
     // profile mutation. A failed fresh install can then remove the install root
     // without leaving dangling links or a partially registered service.
@@ -3769,6 +3901,10 @@ async fn execute_real_install(
         message: "Preparing installed-binary health checks".into(),
     });
 
+    let home = install_root
+        .parent()
+        .ok_or_else(|| anyhow!("install root has no home parent"))?;
+    synchronize_agent_context_skills(&agent_context_root, home)?;
     let walkthrough =
         build_first_install_walkthrough(target, channel, &bin_dir, install_root, assets.len());
     sink.emit(InstallEvent::PhaseSucceeded {
@@ -4230,10 +4366,16 @@ mod tests {
         ));
         let package = fixture.join("package/focusa-agent-context");
         std::fs::create_dir_all(package.join("skills/focusa")).unwrap();
+        std::fs::create_dir_all(package.join("bin")).unwrap();
         std::fs::write(package.join("AGENTS.md"), "# Focusa agents\n").unwrap();
         std::fs::write(
             package.join("skills/focusa/SKILL.md"),
             "---\nname: focusa\n---\n",
+        )
+        .unwrap();
+        std::fs::write(
+            package.join("bin/focusa-skill-doctor"),
+            "#!/bin/sh\nexit 0\n",
         )
         .unwrap();
         let archive = fixture.join("focusa-agent-context-vtest.tar.gz");
@@ -4246,9 +4388,12 @@ mod tests {
             .status()
             .unwrap();
         assert!(status.success());
-        let install_root = fixture.join("install");
+        let home = fixture.join("home");
+        let install_root = home.join(".focusa");
         std::fs::create_dir_all(install_root.join("agent-context")).unwrap();
         std::fs::write(install_root.join("agent-context/old-marker"), "old").unwrap();
+        std::fs::create_dir_all(home.join(".pi/skills/focusa")).unwrap();
+        std::fs::write(home.join(".pi/skills/focusa/SKILL.md"), "stale").unwrap();
         let asset = InstalledAsset {
             name: "focusa-agent-context-vtest.tar.gz".to_string(),
             version: "vtest".to_string(),
@@ -4260,6 +4405,16 @@ mod tests {
         assert!(installed.join("AGENTS.md").is_file());
         assert!(installed.join("skills/focusa/SKILL.md").is_file());
         assert!(!installed.join("old-marker").exists());
+        let synchronized = synchronize_agent_context_skills(&installed, &home).unwrap();
+        assert_eq!(synchronized.len(), 2);
+        for target in [home.join(".pi/skills"), home.join(".pi/agent/skills")] {
+            assert_eq!(
+                std::fs::read_to_string(target.join("focusa/SKILL.md")).unwrap(),
+                "---\nname: focusa\n---\n"
+            );
+        }
+        install_skill_doctor(&installed, &install_root).unwrap();
+        assert!(install_root.join("bin/focusa-skill-doctor").is_file());
         let _ = std::fs::remove_dir_all(fixture);
     }
 
