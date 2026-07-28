@@ -18,9 +18,13 @@ def listed(base, surface_id, binding_id=None):
     query = {**SCOPE, "work_surface_id": surface_id}
     if binding_id:
         query["binding_id"] = binding_id
-    status, payload = h.call(base, "GET", f"{LIST}?{urllib.parse.urlencode(query)}")
-    assert status == 200, payload
-    return payload
+    for attempt in range(20):
+        status, payload = h.call(base, "GET", f"{LIST}?{urllib.parse.urlencode(query)}")
+        assert status == 200, payload
+        if not binding_id or payload.get("bindings") or attempt == 19:
+            return payload
+        time.sleep(0.05)
+    raise AssertionError("unreachable bounded binding read loop")
 
 
 def mutate(base, action, key, surface_id, binding=None, **extra):
