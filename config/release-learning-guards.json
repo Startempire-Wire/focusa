@@ -2,6 +2,11 @@
   "schema": "focusa.release_learning_guards.v1",
   "guards": [
     {
+      "failure_class": "cross_server_resource_pressure",
+      "lesson_ref": "audit:dual-server-2026-07-28:disk-pressure",
+      "command": ["python3", "scripts/check-release-resource-gate.py"]
+    },
+    {
       "failure_class": "stable_tag_trigger_mismatch",
       "lesson_ref": "agent-kb:focusa:v0.9.136:problem:release-trigger:9",
       "command": ["python3", "scripts/verify-release-tag-trigger.py", "{tag}"]
@@ -30,11 +35,6 @@
       "failure_class": "journal_publisher_scope_auth",
       "lesson_ref": "agent-kb:focusa:v0.9.136:problem:release-journal-auth:4",
       "command": ["python3", "scripts/canonical-release-journal.py", "history", "--project-id", "focusa", "--limit", "1"]
-    },
-    {
-      "failure_class": "cross_server_resource_pressure",
-      "lesson_ref": "audit:dual-server-2026-07-28:disk-pressure",
-      "command": ["python3", "scripts/check-release-resource-gate.py"]
     }
   ]
 }
