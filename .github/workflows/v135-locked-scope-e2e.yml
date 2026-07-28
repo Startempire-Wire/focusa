@@ -141,6 +141,16 @@ jobs:
           printf 'stale_runtime_synthetic_message=%s\nmarker_remaining=%s\nreceipt_present=%s\n' \
             "$verdict" "$(test -f "$marker" && echo true || echo false)" "$(test -f "$receipt" && echo true || echo false)" \
             | tee "$RUNNER_TEMP/stale-runtime-verdict.txt"
+      - name: Enforce immediate-previous-version OTA acceptance
+        run: |
+          set -euo pipefail
+          grep -q '^previous_updater_rc=0$' "$RUNNER_TEMP/previous-updater-verdict.txt"
+          grep -q '^post_rollback_daemon=running$' "$RUNNER_TEMP/previous-updater-verdict.txt"
+          grep -q '^post_rollback_version=0.9.135-dev$' "$RUNNER_TEMP/previous-updater-verdict.txt"
+          grep -q '^post_rollback_extension=0.9.135-dev$' "$RUNNER_TEMP/previous-updater-verdict.txt"
+          grep -q '^stale_runtime_synthetic_message=ABSENT$' "$RUNNER_TEMP/stale-runtime-verdict.txt"
+          grep -q '^marker_remaining=false$' "$RUNNER_TEMP/stale-runtime-verdict.txt"
+          grep -q '^receipt_present=true$' "$RUNNER_TEMP/stale-runtime-verdict.txt"
       - name: Upload native macOS E2E evidence
         if: always()
         uses: actions/upload-artifact@v4
