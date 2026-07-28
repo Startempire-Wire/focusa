@@ -44,13 +44,18 @@ def git(*args: str) -> str:
 
 
 def token() -> str:
-    value = os.environ.get("AGENT_KB_TOKEN", "").strip()
-    if value:
-        return value
-    path = Path("/etc/agent-kb/token")
-    if path.exists():
-        return path.read_text().strip()
-    raise RuntimeError("agent-kb bearer token unavailable")
+    for name in ("AGENT_KB_RELEASE_TOKEN", "AGENT_KB_TOKEN"):
+        value = os.environ.get(name, "").strip()
+        if value:
+            return value
+    for path in (Path("/etc/agent-kb/release-publisher.token"), Path("/etc/agent-kb/token")):
+        try:
+            value = path.read_text().strip()
+        except PermissionError:
+            continue
+        if value:
+            return value
+    raise RuntimeError("agent-kb release publisher token unavailable")
 
 
 def api_request(method: str, path: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:

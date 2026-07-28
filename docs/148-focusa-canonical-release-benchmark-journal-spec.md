@@ -126,7 +126,7 @@ python3 scripts/canonical-release-journal.py finalize --tag v0.9.136 --channel s
 python3 scripts/canonical-release-journal.py history --project-id focusa --limit 50
 ```
 
-The client reads `AGENT_KB_API_URL` (default `http://127.0.0.1:8791`) and bearer credentials from `AGENT_KB_TOKEN` or `/etc/agent-kb/token`. Secrets never enter events or logs.
+The client reads `AGENT_KB_API_URL` (default `http://127.0.0.1:8791`) and bearer credentials from `AGENT_KB_RELEASE_TOKEN`, `AGENT_KB_TOKEN`, `/etc/agent-kb/release-publisher.token`, or `/etc/agent-kb/token` in that order. The scoped publisher token is accepted only by the journal endpoint. Secrets never enter events or logs.
 
 ## 7. Stable v0.9.136 sequence
 
