@@ -102,8 +102,9 @@ jobs:
           for _ in $(seq 1 150); do curl -fsS http://127.0.0.1:8787/v1/health >/dev/null && break; sleep 0.1; done
 
           set +e
-          HOME="$home" XDG_STATE_HOME="$state" PATH=/usr/bin:/bin:/usr/sbin \
-            "$bin/focusa" update apply --channel dev --latest-version v0.9.135-dev \
+          HOME="$home" XDG_STATE_HOME="$state" \
+            FOCUSA_PI_EXTENSION_PACKAGE_JSON="$home/.pi/agent/extensions/focusa/package.json" \
+            PATH=/usr/bin:/bin:/usr/sbin "$bin/focusa" update apply --channel dev --latest-version v0.9.135-dev \
               --dry-run false --yes --allow-apply --json >"$RUNNER_TEMP/previous-updater-failure.json" 2>&1
           failure_rc=$?
           set -e
@@ -115,8 +116,8 @@ jobs:
 
           set +e
           HOME="$home" XDG_STATE_HOME="$state" FOCUSA_NPM_BIN="$RUNNER_TEMP/servbay-old/bin/npm" \
-            PATH="$RUNNER_TEMP/servbay-old/bin:/usr/bin:/bin:/usr/sbin" \
-            "$bin/focusa" update apply --channel dev --latest-version v0.9.135-dev \
+            FOCUSA_PI_EXTENSION_PACKAGE_JSON="$home/.pi/agent/extensions/focusa/package.json" \
+            PATH="$RUNNER_TEMP/servbay-old/bin:/usr/bin:/bin:/usr/sbin" "$bin/focusa" update apply --channel dev --latest-version v0.9.135-dev \
               --dry-run false --yes --allow-apply --json >"$RUNNER_TEMP/previous-updater.json" 2>&1
           updater_rc=$?
           set -e
