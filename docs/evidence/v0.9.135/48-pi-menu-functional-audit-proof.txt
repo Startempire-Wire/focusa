@@ -1,12 +1,14 @@
 GitHub #48 exhaustive Pi interaction audit — 2026-07-27
 
 Generated inventory: docs/contracts/48-49-focusa-pi-menu-inventory.json
-Coverage: 9 commands, 37 simple/advanced setting placements, 3 contextual authority prompts = 49 entries.
+Coverage: 12 commands, 37 simple/advanced setting placements, 3 contextual authority prompts = 52 entries.
 
 Every entry records owner, user job, placement, rationale, help, scope, risk, values, and interaction evidence. Gate compares source digest and fails on unregistered inventory changes, missing values/callbacks, silent persistence paths, or missing exception restoration.
 
 Proof:
-- menu audit gate: PASS (49/49)
+- menu audit gate: PASS (52/52)
+- quick-profile state is exact-match derived; divergent settings render `custom`
+- simple and advanced work-loop choices include defaults and every profile-applied value
 - Pi typecheck: PASS
 - settings attachment/lost-context regression: PASS
 - OTA activation interaction: PASS

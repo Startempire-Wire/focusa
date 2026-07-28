@@ -1,7 +1,7 @@
 GitHub #49 Pi menu IA rationalization — 2026-07-27
 
-Before: 9 top-level commands, 11 default settings choices, 29 searchable advanced choices.
-After: 9 compatibility-safe commands, 8 default choices, 29 searchable advanced choices.
+Before: 12 top-level commands, 11 default settings choices, 29 searchable advanced choices.
+After: 12 compatibility-safe commands, 8 default choices, 29 searchable advanced choices.
 
 Relocated from default to advanced search:
 - OTA profile (expert release-channel policy)
@@ -12,6 +12,7 @@ Canonical simple home remains for ordinary jobs: automatic updates, quick profil
 
 Proof:
 - default choice depth reduced 27% (11 → 8)
-- 49/49 inventory classification gate: PASS
+- 52/52 inventory classification gate: PASS
+- quick-profile label uses exact preset matching and reports divergent state as `custom`: PASS
 - explicit migration map: PASS
 - typecheck and all affected interaction regressions: PASS
