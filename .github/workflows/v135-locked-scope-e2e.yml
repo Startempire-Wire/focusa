@@ -123,7 +123,7 @@ jobs:
           if ! command -v tmux >/dev/null; then brew install tmux; fi
           tmux kill-session -t focusa-ota-e2e 2>/dev/null || true
           tmux new-session -d -s focusa-ota-e2e -x 140 -y 45 -c "$RUNNER_TEMP/pi-project" \
-            "env HOME=$RUNNER_TEMP/ota-home XDG_STATE_HOME=$RUNNER_TEMP/ota-home/.local/state PI_CODING_AGENT_SESSION_DIR=$RUNNER_TEMP/ota-sessions pi --no-extensions -e $RUNNER_TEMP/previous/pi-extension/src/index.ts"
+            "env HOME=$RUNNER_TEMP/ota-home XDG_STATE_HOME=$RUNNER_TEMP/ota-home/.local/state PI_CODING_AGENT_SESSION_DIR=$RUNNER_TEMP/ota-sessions OPENAI_API_KEY=dummy pi --provider openai --model gpt-4o-mini --no-extensions -e $RUNNER_TEMP/previous/pi-extension/src/index.ts"
           sleep 12
           tmux send-keys -t focusa-ota-e2e Escape
           sleep 10
