@@ -67,7 +67,7 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
   const hltStatus = compact((trajectory as { hlt_status?: string }).hlt_status, "unknown", 40);
   const attachmentKey = currentAttachmentKey();
   const interactionMode = attachmentKey
-    ? getAttachmentRuntime(attachmentKey).cfg.interactionMode
+    ? getAttachmentRuntime(attachmentKey).cfg?.interactionMode || "canvas-guided"
     : "canvas-guided";
   const prefix = mode === "visible" ? "# Focusa" : "## Focusa awareness";
 
