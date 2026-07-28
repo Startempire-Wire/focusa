@@ -1,0 +1,485 @@
+#!/usr/bin/env python3
+"""Publish Focusa release lifecycle measurements to agent-kb-api."""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import json
+import os
+import re
+import statistics
+import subprocess
+import sys
+import tempfile
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from pathlib import Path
+from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+SCHEMA = "agent-kb.release_journal.event.v1"
+PROTOCOL = "focusa.release_benchmark.v1"
+PROJECT_ID = "focusa"
+DEFAULT_API = "http://127.0.0.1:8791"
+WORKFLOW_NAMES = ("CI", "Release", "Deploy Live Daemon")
+
+
+def utcnow() -> str:
+    return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def parse_time(value: str) -> dt.datetime:
+    return dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def command(args: list[str], *, cwd: Path = ROOT, check: bool = True) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(args, cwd=cwd, text=True, capture_output=True, check=check)
+
+
+def git(*args: str) -> str:
+    return command(["git", *args]).stdout.strip()
+
+
+def token() -> str:
+    value = os.environ.get("AGENT_KB_TOKEN", "").strip()
+    if value:
+        return value
+    path = Path("/etc/agent-kb/token")
+    if path.exists():
+        return path.read_text().strip()
+    raise RuntimeError("agent-kb bearer token unavailable")
+
+
+def api_request(method: str, path: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    base = os.environ.get("AGENT_KB_API_URL", DEFAULT_API).rstrip("/")
+    body = None if payload is None else json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    request = urllib.request.Request(
+        base + path,
+        data=body,
+        method=method,
+        headers={"Authorization": f"Bearer {token()}", "Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            return json.loads(response.read())
+    except urllib.error.HTTPError as error:
+        detail = error.read().decode(errors="replace")[:1000]
+        raise RuntimeError(f"agent-kb-api {error.code}: {detail}") from error
+
+
+def query_events(release_id: str | None = None, *, view: str | None = None, limit: int = 1000) -> dict[str, Any]:
+    params: dict[str, str] = {"project_id": PROJECT_ID, "limit": str(limit)}
+    if release_id:
+        params["release_id"] = release_id
+    if view:
+        params["view"] = view
+    return api_request("GET", "/v1/releases/journal?" + urllib.parse.urlencode(params))
+
+
+def release_id(tag: str) -> str:
+    return f"{PROJECT_ID}:{tag}"
+
+
+def release_events(tag: str) -> list[dict[str, Any]]:
+    return query_events(release_id(tag)).get("events", [])
+
+
+def next_sequence(tag: str) -> int:
+    return max((int(event["sequence"]) for event in release_events(tag)), default=0) + 1
+
+
+def existing_phase(tag: str, phase: str) -> dict[str, Any] | None:
+    return next((row for row in release_events(tag) if row.get("phase") == phase), None)
+
+
+def event(
+    tag: str,
+    phase: str,
+    sequence: int,
+    *,
+    event_id: str,
+    protocol: str = PROTOCOL,
+    estimates: dict[str, Any] | None = None,
+    measurements: dict[str, Any] | None = None,
+    problems: list[dict[str, Any]] | None = None,
+    comparison: dict[str, Any] | None = None,
+    evidence_refs: list[str] | None = None,
+    source: str = "focusa_release_automation",
+    observed_at: str | None = None,
+) -> dict[str, Any]:
+    return {
+        "schema": SCHEMA,
+        "event_id": event_id,
+        "release_id": release_id(tag),
+        "project_id": PROJECT_ID,
+        "tag": tag,
+        "phase": phase,
+        "sequence": sequence,
+        "observed_at": observed_at or utcnow(),
+        "protocol_version": protocol,
+        "source": source,
+        "estimates": estimates or {},
+        "measurements": measurements or {},
+        "problems": problems or [],
+        "comparison": comparison or {},
+        "evidence_refs": evidence_refs or [f"git:commit:{git('rev-parse', 'HEAD')}"],
+    }
+
+
+def publish(payload: dict[str, Any]) -> dict[str, Any]:
+    return api_request("POST", "/v1/releases/journal", payload)
+
+
+def median(values: list[float]) -> float | None:
+    return round(statistics.median(values), 3) if values else None
+
+
+def metric_comparison(current: float | int | None, baseline: float | int | None, unit: str, lower_better: bool) -> dict[str, Any]:
+    if current is None or baseline is None:
+        return {"current": current, "baseline": baseline, "delta": None, "unit": unit, "direction": "not_comparable"}
+    delta = round(float(current) - float(baseline), 3)
+    if delta == 0:
+        direction = "unchanged"
+    elif (delta < 0) == lower_better:
+        direction = "improved"
+    else:
+        direction = "degraded"
+    return {"current": current, "baseline": baseline, "delta": delta, "unit": unit, "direction": direction}
+
+
+def gh_json(args: list[str]) -> Any:
+    result = command(["gh", *args])
+    return json.loads(result.stdout)
+
+
+def github_release(tag: str) -> dict[str, Any]:
+    return gh_json(["api", f"repos/Startempire-Wire/focusa/releases/tags/{tag}"])
+
+
+def workflow_metrics(commit_sha: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    data = gh_json(["api", f"repos/Startempire-Wire/focusa/actions/runs?head_sha={commit_sha}&per_page=100"])
+    runs = data.get("workflow_runs", [])
+    selected: dict[str, Any] = {}
+    problems: list[dict[str, Any]] = []
+    for name in WORKFLOW_NAMES:
+        matching = [row for row in runs if row.get("name") == name]
+        successful = [row for row in matching if row.get("status") == "completed" and row.get("conclusion") == "success"]
+        chosen = sorted(successful, key=lambda row: row.get("updated_at", ""), reverse=True)
+        if chosen:
+            row = chosen[0]
+            started = parse_time(row["run_started_at"])
+            ended = parse_time(row["updated_at"])
+            selected[name] = {
+                "run_id": row["id"],
+                "conclusion": row["conclusion"],
+                "duration_seconds": round((ended - started).total_seconds(), 3),
+                "started_at": row["run_started_at"],
+                "completed_at": row["updated_at"],
+                "url": row["html_url"],
+            }
+        for row in matching:
+            if row.get("status") == "completed" and row.get("conclusion") not in ("success", "skipped", "neutral"):
+                problems.append({
+                    "stage": name,
+                    "diagnosis": f"workflow concluded {row.get('conclusion')}",
+                    "impact": "release workflow retry or recovery required",
+                    "recovery": "subsequent successful exact-commit run" if successful else "unresolved",
+                    "run_id": row.get("id"),
+                    "evidence_ref": row.get("html_url"),
+                })
+    return selected, problems
+
+
+def release_measurements(tag: str) -> tuple[dict[str, Any], list[dict[str, Any]], list[str]]:
+    release = github_release(tag)
+    commit_sha = git("rev-list", "-n1", tag)
+    workflows, problems = workflow_metrics(commit_sha)
+    starts = [parse_time(row["started_at"]) for row in workflows.values()]
+    ends = [parse_time(row["completed_at"]) for row in workflows.values()]
+    remote_seconds = round((max(ends) - min(starts)).total_seconds(), 3) if starts and ends else None
+    assets = [asset["name"] for asset in release.get("assets", [])]
+    measurements = {
+        "release_commit": commit_sha,
+        "published_at": release.get("published_at"),
+        "asset_count": len(assets),
+        "signed_asset_count": len([name for name in assets if name.endswith(".sig")]),
+        "checksum_manifest_present": "SHA256SUMS.txt" in assets,
+        "release_manifest_present": "release-manifest.json" in assets,
+        "deploy_receipt_present": "deploy-success.json" in assets,
+        "workflow_count": len(workflows),
+        "workflows": workflows,
+        "remote_pipeline_seconds": remote_seconds,
+        "problems_count": len(problems),
+    }
+    refs = [release.get("html_url", f"github:release:{tag}")] + [row["url"] for row in workflows.values()]
+    return measurements, problems, refs
+
+
+def latest_final(exclude_release_id: str | None = None) -> dict[str, Any] | None:
+    releases = query_events(view="releases").get("releases", [])
+    finals = [row for row in releases if row.get("actuals") and row.get("release_id") != exclude_release_id]
+    return finals[-1] if finals else None
+
+
+def historical_comparison(measurements: dict[str, Any], baseline: dict[str, Any] | None) -> dict[str, Any]:
+    actuals = (baseline or {}).get("actuals", {})
+    metrics = {
+        "remote_pipeline_seconds": metric_comparison(measurements.get("remote_pipeline_seconds"), actuals.get("remote_pipeline_seconds"), "seconds", True),
+        "problems_count": metric_comparison(measurements.get("problems_count"), actuals.get("problems_count"), "count", True),
+        "asset_count": metric_comparison(measurements.get("asset_count"), actuals.get("asset_count"), "count", False),
+    }
+    return {"baseline_release_id": (baseline or {}).get("release_id"), "metrics": metrics}
+
+
+def cmd_backfill(args: argparse.Namespace) -> dict[str, Any]:
+    receipts = []
+    for tag in args.tags:
+        rid = release_id(tag)
+        if query_events(rid).get("events"):
+            receipts.append({"release_id": rid, "status": "already_present"})
+            continue
+        measurements, problems, refs = release_measurements(tag)
+        release = github_release(tag)
+        baseline = latest_final(rid)
+        payload = event(
+            tag, "final", 1, event_id=f"{rid}:historical-backfill:v1",
+            protocol="focusa.release_metadata.v1", measurements=measurements,
+            problems=problems, comparison=historical_comparison(measurements, baseline),
+            evidence_refs=refs, source="historical_backfill", observed_at=release["published_at"],
+        )
+        receipts.append(publish(payload))
+    return {"status": "completed", "events": receipts}
+
+
+def estimate_from_history() -> dict[str, Any]:
+    releases = query_events(view="releases").get("releases", [])
+    actuals = [row.get("actuals", {}) for row in releases if row.get("actuals")]
+    workflow_values: dict[str, list[float]] = {name: [] for name in WORKFLOW_NAMES}
+    for row in actuals:
+        for name in WORKFLOW_NAMES:
+            value = row.get("workflows", {}).get(name, {}).get("duration_seconds")
+            if isinstance(value, (int, float)):
+                workflow_values[name].append(float(value))
+    remote = [float(row["remote_pipeline_seconds"]) for row in actuals if isinstance(row.get("remote_pipeline_seconds"), (int, float))]
+    assets = [float(row["asset_count"]) for row in actuals if isinstance(row.get("asset_count"), (int, float))]
+    problems = [float(row["problems_count"]) for row in actuals if isinstance(row.get("problems_count"), (int, float))]
+    remote_estimate = median(remote) or 1800
+    return {
+        "total_elapsed_seconds": round(remote_estimate + 1200, 3),
+        "local_preparation_seconds": 1200,
+        "remote_pipeline_seconds": remote_estimate,
+        "workflow_seconds": {name: median(values) for name, values in workflow_values.items()},
+        "asset_count": round(median(assets) or 60),
+        "problems_count": round(median(problems) or 0),
+        "required_workflow_count": len(WORKFLOW_NAMES),
+        "agent_intelligence_minimum_score": 0.8,
+        "estimate_source": "historical_median_plus_explicit_1200s_local_preparation",
+        "historical_samples": len(actuals),
+    }
+
+
+def cmd_plan(args: argparse.Namespace) -> dict[str, Any]:
+    rid = release_id(args.tag)
+    existing = existing_phase(args.tag, "plan")
+    if existing:
+        return {"status": "already_present", "event_id": existing["event_id"], "event_hash": existing["event_hash"]}
+    payload = event(
+        args.tag, "plan", 1, event_id=f"{rid}:plan:v1",
+        estimates=estimate_from_history(),
+        measurements={
+            "candidate_commit": git("rev-parse", "HEAD"),
+            "channel": args.channel,
+            "risks": [
+                "stable version-surface mismatch",
+                "benchmark regression",
+                "exact-tag CI failure",
+                "release asset or signature incompleteness",
+                "production version mismatch",
+            ],
+        },
+        evidence_refs=[f"git:commit:{git('rev-parse', 'HEAD')}", "agent-kb-api:view=releases"],
+    )
+    return publish(payload)
+
+
+def run_benchmark(tag: str) -> dict[str, Any]:
+    started = time.monotonic()
+    agent_run = command(["bash", "scripts/run-agent-intelligence-evals.sh"])
+    cases = json.loads((ROOT / "tests/evals/agent_intelligence_cases.json").read_text())
+    aggregate = sum(float(row["score"]) for row in cases["cases"]) / len(cases["cases"])
+    live_run = command([sys.executable, "scripts/spec135-live-performance-proof.py"])
+    live = json.loads(live_run.stdout)
+    gap = command(["bash", "tests/final_release_gap_gate.sh"])
+    gate = command([sys.executable, "scripts/release-gate.py"])
+    version = command([sys.executable, "scripts/verify-version-surfaces.py", tag])
+    gate_score_match = re.search(r"score=(\d+)", gate.stdout + gate.stderr)
+    return {
+        "status": "passed",
+        "elapsed_seconds": round(time.monotonic() - started, 3),
+        "agent_intelligence": {
+            "status": "passed", "case_count": len(cases["cases"]),
+            "category_count": len(cases["required_categories"]),
+            "aggregate_score": round(aggregate, 6), "threshold": cases["aggregate_threshold"],
+            "result": agent_run.stdout.strip()[-240:],
+        },
+        "live_performance": live,
+        "final_release_gap_gate": {"status": "passed", "result": gap.stdout.strip()[-240:]},
+        "release_gate": {"status": "passed", "score": int(gate_score_match.group(1)) if gate_score_match else None},
+        "version_surfaces": {"status": "passed", "tag": tag, "result": version.stdout.strip()[-240:]},
+    }
+
+
+def cmd_benchmark(args: argparse.Namespace) -> dict[str, Any]:
+    existing = existing_phase(args.tag, "benchmark")
+    if existing:
+        return {"status": "already_present", "event_id": existing["event_id"], "event_hash": existing["event_hash"], "measurements": existing["measurements"]}
+    measurements = run_benchmark(args.tag)
+    artifact = Path(args.artifact or f"/tmp/focusa-{args.tag.removeprefix('v')}-benchmark.json")
+    artifact.write_text(json.dumps(measurements, indent=2, sort_keys=True) + "\n")
+    rid = release_id(args.tag)
+    payload = event(
+        args.tag, "benchmark", next_sequence(args.tag), event_id=f"{rid}:benchmark:v1",
+        measurements=measurements,
+        comparison={"baseline_release_id": None, "direction": "not_comparable", "reason": "first focusa.release_benchmark.v1 measurement"},
+        evidence_refs=[f"artifact:{artifact}", "scripts/run-agent-intelligence-evals.sh", "scripts/spec135-live-performance-proof.py", "tests/final_release_gap_gate.sh", "scripts/release-gate.py", "scripts/verify-version-surfaces.py"],
+    )
+    receipt = publish(payload)
+    return {"status": "completed", "artifact": str(artifact), "receipt": receipt, "measurements": measurements}
+
+
+def cmd_progress(args: argparse.Namespace) -> dict[str, Any]:
+    sequence = next_sequence(args.tag)
+    payload = event(
+        args.tag, "progress", sequence,
+        event_id=f"{release_id(args.tag)}:progress:{args.stage}:{sequence}",
+        measurements={"stage": args.stage, "stage_status": args.status, "details": args.details or ""},
+        evidence_refs=args.evidence_ref or [f"release-stage:{args.stage}"],
+    )
+    return publish(payload)
+
+
+def cmd_problem(args: argparse.Namespace) -> dict[str, Any]:
+    sequence = next_sequence(args.tag)
+    problem = {
+        "stage": args.stage, "diagnosis": args.diagnosis, "impact": args.impact,
+        "recovery": args.recovery, "added_duration_seconds": args.added_duration_seconds,
+    }
+    payload = event(
+        args.tag, "problem", sequence,
+        event_id=f"{release_id(args.tag)}:problem:{args.stage}:{sequence}",
+        measurements={"stage": args.stage}, problems=[problem],
+        evidence_refs=args.evidence_ref or [f"release-problem:{args.stage}"],
+    )
+    return publish(payload)
+
+
+def estimate_deltas(actuals: dict[str, Any], estimates: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "total_elapsed_seconds": metric_comparison(actuals.get("total_elapsed_seconds"), estimates.get("total_elapsed_seconds"), "seconds", True),
+        "remote_pipeline_seconds": metric_comparison(actuals.get("remote_pipeline_seconds"), estimates.get("remote_pipeline_seconds"), "seconds", True),
+        "asset_count": metric_comparison(actuals.get("asset_count"), estimates.get("asset_count"), "count", False),
+        "problems_count": metric_comparison(actuals.get("problems_count"), estimates.get("problems_count"), "count", True),
+    }
+
+
+def production_version() -> str:
+    with urllib.request.urlopen("http://127.0.0.1:8787/v1/health", timeout=10) as response:
+        return str(json.loads(response.read()).get("version", ""))
+
+
+def cmd_finalize(args: argparse.Namespace) -> dict[str, Any]:
+    rid = release_id(args.tag)
+    current_events = query_events(rid).get("events", [])
+    existing = next((row for row in current_events if row.get("phase") == "final"), None)
+    if existing:
+        return {"status": "already_present", "event_id": existing["event_id"], "event_hash": existing["event_hash"], "actuals": existing["measurements"], "comparison": existing["comparison"]}
+    if not current_events:
+        raise RuntimeError("release plan is missing")
+    plan = next((row for row in current_events if row["phase"] == "plan"), None)
+    benchmark = next((row for row in current_events if row["phase"] == "benchmark"), None)
+    if plan is None or benchmark is None:
+        raise RuntimeError("plan and benchmark events are required")
+    actuals, discovered_problems, refs = release_measurements(args.tag)
+    expected_version = args.tag.removeprefix("v")
+    actuals["production_version"] = production_version()
+    actuals["total_elapsed_seconds"] = round((parse_time(utcnow()) - parse_time(plan["observed_at"])).total_seconds(), 3)
+    actuals["benchmark"] = benchmark.get("measurements", {})
+    prior_problems = [problem for row in current_events for problem in row.get("problems", [])]
+    all_problems = prior_problems + discovered_problems
+    actuals["problems_count"] = len(all_problems)
+    if actuals["production_version"] != expected_version:
+        raise RuntimeError(f"production version {actuals['production_version']} != {expected_version}")
+    if actuals["workflow_count"] != len(WORKFLOW_NAMES):
+        raise RuntimeError("required successful workflow evidence is incomplete")
+    if not all((actuals["checksum_manifest_present"], actuals["release_manifest_present"], actuals["deploy_receipt_present"])):
+        raise RuntimeError("required release assets are incomplete")
+    baseline = latest_final(rid)
+    comparison = {
+        "against_estimate": estimate_deltas(actuals, plan.get("estimates", {})),
+        "against_previous_release": historical_comparison(actuals, baseline),
+    }
+    payload = event(
+        args.tag, "final", next_sequence(args.tag), event_id=f"{rid}:final:v1",
+        estimates=plan.get("estimates", {}), measurements=actuals, problems=all_problems,
+        comparison=comparison, evidence_refs=refs + ["production:http://127.0.0.1:8787/v1/health"],
+    )
+    receipt = publish(payload)
+    return {"status": "completed", "receipt": receipt, "actuals": actuals, "comparison": comparison}
+
+
+def cmd_history(args: argparse.Namespace) -> dict[str, Any]:
+    return query_events(view="releases", limit=args.limit)
+
+
+def parser() -> argparse.ArgumentParser:
+    root = argparse.ArgumentParser(description=__doc__)
+    sub = root.add_subparsers(dest="command", required=True)
+    backfill = sub.add_parser("backfill")
+    backfill.add_argument("--tags", nargs="+", required=True)
+    backfill.set_defaults(func=cmd_backfill)
+    for name, func in (("plan", cmd_plan), ("benchmark", cmd_benchmark), ("finalize", cmd_finalize)):
+        item = sub.add_parser(name)
+        item.add_argument("--tag", required=True)
+        item.add_argument("--channel", default="stable")
+        if name == "benchmark":
+            item.add_argument("--artifact")
+        item.set_defaults(func=func)
+    progress = sub.add_parser("progress")
+    progress.add_argument("--tag", required=True)
+    progress.add_argument("--stage", required=True)
+    progress.add_argument("--status", default="completed")
+    progress.add_argument("--details")
+    progress.add_argument("--evidence-ref", action="append")
+    progress.set_defaults(func=cmd_progress)
+    problem = sub.add_parser("problem")
+    problem.add_argument("--tag", required=True)
+    problem.add_argument("--stage", required=True)
+    problem.add_argument("--diagnosis", required=True)
+    problem.add_argument("--impact", default="release progress affected")
+    problem.add_argument("--recovery", default="pending")
+    problem.add_argument("--added-duration-seconds", type=float)
+    problem.add_argument("--evidence-ref", action="append")
+    problem.set_defaults(func=cmd_problem)
+    history = sub.add_parser("history")
+    history.add_argument("--project-id", default=PROJECT_ID, choices=[PROJECT_ID])
+    history.add_argument("--limit", type=int, default=50)
+    history.set_defaults(func=cmd_history)
+    return root
+
+
+def main() -> int:
+    args = parser().parse_args()
+    try:
+        result = args.func(args)
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0
+    except (RuntimeError, subprocess.CalledProcessError, urllib.error.URLError, json.JSONDecodeError) as error:
+        print(json.dumps({"status": "blocked", "error": str(error)[:1000]}, sort_keys=True), file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -11,11 +11,16 @@
 #   scripts/create-dev-release-tag.sh --push --force-release --release-reason "critical deploy fix"
 # Pin a major/minor lane:
 #   scripts/create-dev-release-tag.sh --base 0.9 --push
+# Publish an exact stable or preview tag:
+#   scripts/create-dev-release-tag.sh --tag v0.9.136 --push
+# Canonical journal mode: auto (default), required, or off.
+#   FOCUSA_RELEASE_JOURNAL_MODE=required scripts/create-dev-release-tag.sh --tag v0.9.136 --push
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 BASE="0.9"
+EXACT_TAG=""
 PUSH=0
 DRY_RUN=0
 WAIT_CI=1
@@ -23,11 +28,17 @@ WAIT_DEPLOY=1
 CI_TIMEOUT_SECS=1200
 FORCE_RELEASE=0
 RELEASE_REASON=""
+RELEASE_JOURNAL_MODE="${FOCUSA_RELEASE_JOURNAL_MODE:-auto}"
+RELEASE_JOURNAL_ACTIVE=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --base)
       BASE="${2:?--base requires MAJOR.MINOR, e.g. 0.9}"
+      shift 2
+      ;;
+    --tag)
+      EXACT_TAG="${2:?--tag requires an exact tag, e.g. v0.9.136}"
       shift 2
       ;;
     --push)
@@ -79,6 +90,16 @@ done
 
 if ! [[ "$BASE" =~ ^[0-9]+\.[0-9]+$ ]]; then
   echo "Invalid --base '$BASE'; expected MAJOR.MINOR, e.g. 0.9" >&2
+  exit 2
+fi
+
+if [[ -n "$EXACT_TAG" ]] && ! [[ "$EXACT_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z][0-9A-Za-z.-]*)?$ ]]; then
+  echo "Invalid --tag '$EXACT_TAG'; expected a semantic release tag, e.g. v0.9.136" >&2
+  exit 2
+fi
+
+if ! [[ "$RELEASE_JOURNAL_MODE" =~ ^(auto|required|off)$ ]]; then
+  echo "Invalid FOCUSA_RELEASE_JOURNAL_MODE '$RELEASE_JOURNAL_MODE'; expected auto, required, or off" >&2
   exit 2
 fi
 
@@ -269,6 +290,26 @@ wait_for_workflow() {
   exit 1
 }
 
+journal_client() {
+  python3 scripts/canonical-release-journal.py "$@"
+}
+
+journal_problem_on_error() {
+  local exit_code="$1"
+  local line_number="$2"
+  trap - ERR
+  if [[ "$RELEASE_JOURNAL_ACTIVE" -eq 1 ]]; then
+    journal_client problem --tag "$TAG" --stage "release-script" \
+      --diagnosis "release script exited with code ${exit_code} at line ${line_number}" \
+      --impact "canonical release did not finalize" \
+      --recovery "inspect the failed command, preserve immutable tags, then append recovery progress" \
+      --evidence-ref "script:scripts/create-dev-release-tag.sh:${line_number}" >/dev/null 2>&1 || true
+  fi
+  exit "$exit_code"
+}
+
+trap 'journal_problem_on_error $? $LINENO' ERR
+
 if [[ -n "$(git status --porcelain)" ]]; then
   echo "Working tree is not clean. Commit/revert current changes before creating a release tag." >&2
   git status --short >&2
@@ -277,24 +318,33 @@ fi
 
 git fetch --tags --quiet origin || git fetch --tags --quiet
 
-LATEST_PATCH=$(
-  git tag --list "v${BASE}.*-dev" |
-    sed -E "s/^v${BASE//./\.}\.([0-9]+)-dev$/\1/" |
-    grep -E '^[0-9]+$' |
-    sort -n |
-    tail -1
-)
-LATEST_PATCH="${LATEST_PATCH:-0}"
-NEXT_PATCH=$((LATEST_PATCH + 1))
-TAG="v${BASE}.${NEXT_PATCH}-dev"
+if [[ -n "$EXACT_TAG" ]]; then
+  TAG="$EXACT_TAG"
+else
+  LATEST_PATCH=$(
+    git tag --list "v${BASE}.*-dev" |
+      sed -E "s/^v${BASE//./\.}\.([0-9]+)-dev$/\1/" |
+      grep -E '^[0-9]+$' |
+      sort -n |
+      tail -1
+  )
+  LATEST_PATCH="${LATEST_PATCH:-0}"
+  NEXT_PATCH=$((LATEST_PATCH + 1))
+  TAG="v${BASE}.${NEXT_PATCH}-dev"
+fi
 VERSION="${TAG#v}"
+case "$TAG" in
+  *-nightly*) RELEASE_CHANNEL="nightly" ;;
+  *-dev*|*-rc*) RELEASE_CHANNEL="preview" ;;
+  *) RELEASE_CHANNEL="stable" ;;
+esac
 
 if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
   echo "Tag already exists: ${TAG}" >&2
   exit 1
 fi
 
-echo "Next dev release tag: ${TAG}"
+echo "Next release tag: ${TAG}"
 
 if [[ "$FORCE_RELEASE" -eq 1 && -z "$RELEASE_REASON" ]]; then
   echo "Blocked: --force-release requires --release-reason with a plain-language reason." >&2
@@ -332,6 +382,19 @@ python3 tests/spec145_canonical_release_cycle_static_test.py
 jq -e '.schema == "focusa.release_topology.v1" and (.surfaces | length) > 0' \
   config/focusa-release-topology.json >/dev/null
 
+if [[ "$PUSH" -eq 1 && "$RELEASE_JOURNAL_MODE" != "off" ]]; then
+  if journal_client history --project-id focusa --limit 1 >/dev/null 2>&1; then
+    journal_client plan --tag "$TAG" --channel "$RELEASE_CHANNEL"
+    RELEASE_JOURNAL_ACTIVE=1
+    echo "Canonical release journal plan accepted for ${TAG}."
+  elif [[ "$RELEASE_JOURNAL_MODE" == "required" ]]; then
+    echo "Canonical release journal is required but agent-kb-api is unavailable." >&2
+    exit 1
+  else
+    echo "Canonical release journal unavailable; continuing in auto mode without lifecycle publishing." >&2
+  fi
+fi
+
 if [[ -f docs/current/.release-version-stamp ]] && \
   [[ "$(tr -d '[:space:]' < docs/current/.release-version-stamp)" == "$VERSION" ]]; then
   echo "Release surfaces already stamped ${VERSION}; preserving exact retry SHA."
@@ -343,6 +406,11 @@ fi
 python3 scripts/verify-version-surfaces.py "${TAG}"
 scripts/verify-doc-version-consistency
 node scripts/validate-docs-runtime-parity.mjs
+
+if [[ "$RELEASE_JOURNAL_ACTIVE" -eq 1 ]]; then
+  journal_client benchmark --tag "$TAG" --channel "$RELEASE_CHANNEL"
+  echo "Canonical pre-release benchmark accepted for ${TAG}."
+fi
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
   git diff --stat
@@ -375,6 +443,11 @@ if [[ "$PUSH" -eq 1 ]]; then
   HEAD_SHA=$(git rev-parse HEAD)
   echo "Waiting for exact stamped-candidate preflight before immutable tag: ${HEAD_SHA}"
   wait_for_source_workflow "CI" "$HEAD_SHA"
+  if [[ "$RELEASE_JOURNAL_ACTIVE" -eq 1 ]]; then
+    journal_client progress --tag "$TAG" --stage "candidate-ci" --status "completed" \
+      --details "exact stamped candidate passed pre-tag CI" \
+      --evidence-ref "github:commit:${HEAD_SHA}"
+  fi
   if git diff --name-only "${PREVIOUS_TAG:-HEAD^}"..HEAD | grep -Eq \
     '^(crates/focusa-terminal-ui/|crates/focusa-cli/src/commands/(install|update)\.rs$|crates/focusa-core/src/silent_sessions/|crates/focusa-session-runner/|apps/pi-extension/(package|package-lock)\.json$|tests/132-e5-|\.github/workflows/spec132-terminal-matrix\.yml$)'; then
     ensure_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"
@@ -393,12 +466,23 @@ echo "Created tag ${TAG} at $(git rev-parse --short HEAD)"
 if [[ "$PUSH" -eq 1 ]]; then
   git push origin "${TAG}"
   echo "Pushed exact green candidate ${TAG}."
+  if [[ "$RELEASE_JOURNAL_ACTIVE" -eq 1 ]]; then
+    journal_client progress --tag "$TAG" --stage "tag-pushed" --status "completed" \
+      --details "immutable tag pushed after exact-candidate CI" \
+      --evidence-ref "github:tag:${TAG}"
+  fi
   if [[ "$WAIT_CI" -eq 1 ]]; then
     wait_for_workflow "CI" "$HEAD_SHA"
     wait_for_workflow "Release" "$HEAD_SHA" "${TAG}"
     if [[ "$WAIT_DEPLOY" -eq 1 ]]; then
       wait_for_workflow "Deploy Live Daemon" "$HEAD_SHA"
       echo "GitHub CI, Release, and Deploy workflows passed for ${TAG}."
+      if [[ "$RELEASE_JOURNAL_ACTIVE" -eq 1 ]]; then
+        journal_client finalize --tag "$TAG" --channel "$RELEASE_CHANNEL"
+        RELEASE_JOURNAL_ACTIVE=0
+        trap - ERR
+        echo "Canonical release journal finalized for ${TAG}."
+      fi
     else
       echo "GitHub CI and Release workflows passed for ${TAG}."
     fi
