@@ -180,6 +180,15 @@ Observed faults that block cross-server canonicality:
 4. No dedicated release-journal backup or remote replica exists.
 5. OVH and KH SQLite indexes are independent and expose different generations.
 
+Remediation applied after the audit:
+
+- journal-capable agent-kb-api parity deployed to OVH and KH
+- 29 existing events, 6 release rows and 9 problem rows replicated with zero pending acknowledgements
+- duplicate KH API service and stamp-only refresh/cache timers disabled
+- SQLite WAL projections active on both hosts
+- daily bounded backups active on both hosts; isolated restore rebuilt all 29 events
+- OVH generated Cargo cleanup reduced disk to 89.7%; KH remains 97.2% and blocks the next release
+
 ## 10. Target dual-server storage architecture
 
 ### 10.1 OVH master

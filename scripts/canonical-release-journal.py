@@ -262,7 +262,19 @@ def event(
 
 
 def publish(payload: dict[str, Any]) -> dict[str, Any]:
-    return api_request("POST", "/v1/releases/journal", payload)
+    receipt = api_request("POST", "/v1/releases/journal", payload)
+    if os.environ.get("AGENT_KB_REQUIRE_MASTER_ACK", "1") != "0":
+        deadline = time.monotonic() + 45
+        while time.monotonic() < deadline:
+            projection = api_request("GET", "/v1/releases/journal?view=projection").get("projection", {})
+            if projection.get("status") == "ok" and projection.get("replication_pending") == 0:
+                receipt["master_acknowledged"] = True
+                receipt["projection"] = projection
+                break
+            time.sleep(1)
+        else:
+            raise RuntimeError("agent-kb master acknowledgement timed out")
+    return receipt
 
 
 def median(values: list[float]) -> float | None:
@@ -420,10 +432,15 @@ def cmd_plan(args: argparse.Namespace) -> dict[str, Any]:
         return {"status": "already_present", "event_id": existing["event_id"], "event_hash": existing["event_hash"]}
     lessons = retrieve_release_lessons(args.tag)
     predictions = record_release_predictions(args.tag)
-    guards_path = Path(f"/tmp/focusa-{args.tag.removeprefix('v')}-learning-guards.json")
-    guards = json.loads(guards_path.read_text()) if guards_path.exists() else {"status": "missing", "guards": []}
-    if guards.get("status") != "passed":
-        raise RuntimeError("learned release recurrence guards have not passed")
+    guard_config = json.loads((ROOT / "config/release-learning-guards.json").read_text())
+    guards = {
+        "status": "planned",
+        "guards_total": len(guard_config.get("guards", [])),
+        "guards": [
+            {"failure_class": row["failure_class"], "lesson_ref": row["lesson_ref"]}
+            for row in guard_config.get("guards", [])
+        ],
+    }
     learning_refs = [
         f"metacog:{row['capture_id']}" for row in lessons["lessons"] if row.get("capture_id")
     ] + [f"prediction:{value}" for value in predictions.values()]
@@ -446,7 +463,7 @@ def cmd_plan(args: argparse.Namespace) -> dict[str, Any]:
                 "recurrence_guards": guards,
             },
         },
-        evidence_refs=[f"git:commit:{git('rev-parse', 'HEAD')}", "agent-kb-api:view=releases", *learning_refs],
+        evidence_refs=[f"git:commit:{git('rev-parse', 'HEAD')}", "agent-kb-api:view=releases", "config:release-learning-guards", *learning_refs],
     )
     return publish(payload)
 
@@ -615,12 +632,13 @@ def cmd_finalize(args: argparse.Namespace) -> dict[str, Any]:
         for stage in ("release", "deploy", "final")
     }
     plan_learning = plan.get("measurements", {}).get("learning", {})
+    guard_artifact = Path(f"/tmp/focusa-{args.tag.removeprefix('v')}-learning-guards.json")
+    guard_result = json.loads(guard_artifact.read_text()) if guard_artifact.exists() else {"guards": []}
     actuals["learning"] = {
         "retrieved_lesson_count": plan_learning.get("retrieved_lessons", {}).get("candidate_count", 0),
-        "recurrence_guards_total": plan_learning.get("recurrence_guards", {}).get("guards_total", 0),
+        "recurrence_guards_total": guard_result.get("guards_total", 0),
         "recurrence_guards_passed": len([
-            row for row in plan_learning.get("recurrence_guards", {}).get("guards", [])
-            if row.get("status") == "passed"
+            row for row in guard_result.get("guards", []) if row.get("status") == "passed"
         ]),
         "final_metacog_capture_id": final_lesson_ref,
         "prediction_evaluations": prediction_evaluations,

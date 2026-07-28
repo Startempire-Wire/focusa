@@ -383,11 +383,6 @@ python3 tests/spec145_canonical_release_cycle_static_test.py
 jq -e '.schema == "focusa.release_topology.v1" and (.surfaces | length) > 0' \
   config/focusa-release-topology.json >/dev/null
 
-if [[ "$PUSH" -eq 1 ]]; then
-  python3 scripts/run-release-learning-guards.py --tag "$TAG"
-  echo "Learned release recurrence guards passed for ${TAG}."
-fi
-
 if [[ "$PUSH" -eq 1 && "$RELEASE_JOURNAL_MODE" != "off" ]]; then
   if journal_client history --project-id focusa --limit 1 >/dev/null 2>&1; then
     journal_client plan --tag "$TAG" --channel "$RELEASE_CHANNEL"
@@ -398,6 +393,25 @@ if [[ "$PUSH" -eq 1 && "$RELEASE_JOURNAL_MODE" != "off" ]]; then
     exit 1
   else
     echo "Canonical release journal unavailable; continuing in auto mode without lifecycle publishing." >&2
+  fi
+fi
+
+if [[ "$PUSH" -eq 1 ]]; then
+  if ! python3 scripts/run-release-learning-guards.py --tag "$TAG"; then
+    if [[ "$RELEASE_JOURNAL_ACTIVE" -eq 1 ]]; then
+      journal_client problem --tag "$TAG" --stage "learning-guards" \
+        --diagnosis "one or more retrieved release recurrence guards blocked" \
+        --impact "release stopped before version stamping or immutable tagging" \
+        --recovery "resolve the blocking resource or regression and rerun the same planned release" \
+        --evidence-ref "artifact:/tmp/focusa-${VERSION}-learning-guards.json"
+    fi
+    exit 1
+  fi
+  echo "Learned release recurrence guards passed for ${TAG}."
+  if [[ "$RELEASE_JOURNAL_ACTIVE" -eq 1 ]]; then
+    journal_client progress --tag "$TAG" --stage "learning-guards" --status "completed" \
+      --details "all retrieved recurrence guards passed before version stamping" \
+      --evidence-ref "artifact:/tmp/focusa-${VERSION}-learning-guards.json"
   fi
 fi
 
