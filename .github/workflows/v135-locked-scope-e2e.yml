@@ -1,0 +1,101 @@
+name: v0.9.135 locked-scope E2E reverification
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/v135-locked-scope-e2e.yml'
+      - 'crates/focusa-cli/src/commands/install.rs'
+      - 'crates/focusa-cli/src/commands/update.rs'
+      - 'apps/pi-extension/src/ota-activation.ts'
+      - 'apps/pi-extension/tests/ota-activation.test.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  macos-intel-ota-e2e:
+    name: macOS Intel OTA and stale-runtime E2E
+    runs-on: macos-15-intel
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - uses: dtolnay/rust-toolchain@nightly
+      - name: Prove updater integration and rollback on native Intel macOS
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = x86_64
+          cargo test -p focusa-cli commands::install::tests::npm_resolution_accepts_absolute_nonstandard_install -- --exact
+          cargo test -p focusa-cli commands::install::tests::pi_extension_archive_install_is_checksum_stage_and_activation_safe -- --exact
+          cargo test -p focusa-cli commands::update::tests::failed_update_restores_exact_pre_transaction_daemon_state -- --exact
+          cargo test -p focusa-cli commands::update::tests::atomic_rollback_restores_previous_binary_and_removes_failed_candidate -- --exact
+      - name: Exercise official signed extension through a ServBay-like npm path
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/current" "$RUNNER_TEMP/servbay/bin" "$RUNNER_TEMP/staged package"
+          gh release download v0.9.135-dev --repo Startempire-Wire/focusa --dir "$RUNNER_TEMP/current" \
+            --pattern focusa-pi-extension-v0.9.135-dev.tar.gz \
+            --pattern SHA256SUMS.txt
+          expected="$(awk '$2=="focusa-pi-extension-v0.9.135-dev.tar.gz"{print $1}' "$RUNNER_TEMP/current/SHA256SUMS.txt")"
+          actual="$(shasum -a 256 "$RUNNER_TEMP/current/focusa-pi-extension-v0.9.135-dev.tar.gz" | awk '{print $1}')"
+          test -n "$expected" && test "$actual" = "$expected"
+          tar -xzf "$RUNNER_TEMP/current/focusa-pi-extension-v0.9.135-dev.tar.gz" -C "$RUNNER_TEMP/staged package"
+          ln -s "$(command -v node)" "$RUNNER_TEMP/servbay/bin/node"
+          ln -s "$(command -v npm)" "$RUNNER_TEMP/servbay/bin/npm"
+          (
+            cd "$RUNNER_TEMP/staged package/pi-extension"
+            FOCUSA_NPM_BIN="$RUNNER_TEMP/servbay/bin/npm" "$RUNNER_TEMP/servbay/bin/npm" ci --ignore-scripts --no-audit --no-fund
+            npm run check
+            npm run test:ota-activation
+          )
+      - name: Reproduce immediate-previous stale runtime through actual Pi
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/previous" "$RUNNER_TEMP/ota-home/.local/state/focusa/update" "$RUNNER_TEMP/ota-sessions" "$RUNNER_TEMP/pi-project"
+          gh release download v0.9.134-dev --repo Startempire-Wire/focusa --dir "$RUNNER_TEMP/previous" \
+            --pattern focusa-pi-extension-v0.9.134-dev.tar.gz
+          tar -xzf "$RUNNER_TEMP/previous/focusa-pi-extension-v0.9.134-dev.tar.gz" -C "$RUNNER_TEMP/previous"
+          npm --prefix "$RUNNER_TEMP/previous/pi-extension" ci --ignore-scripts --no-audit --no-fund
+          npm install --global @earendil-works/pi-coding-agent@0.82.1
+          git -C "$RUNNER_TEMP/pi-project" init -q
+          cat > "$RUNNER_TEMP/pi-project/.focusa-project.json" <<JSON
+          {"schema":"focusa.project.v1","project_id":"mac-intel-ota-e2e","canonical_name":"Mac Intel OTA E2E","project_root":"$RUNNER_TEMP/pi-project"}
+          JSON
+          cat > "$RUNNER_TEMP/ota-home/.local/state/focusa/update/pi-extension-restart-required.json" <<JSON
+          {"schema":"focusa.pi_extension_restart_required.v1","version":"0.9.135-dev","installed_at":"2026-07-28T00:00:00Z"}
+          JSON
+          cat > "$RUNNER_TEMP/drive-pi.exp" <<'EXPECT'
+          log_user 1
+          set timeout 30
+          log_file -noappend $env(RUNNER_TEMP)/stale-runtime-pi.log
+          spawn env HOME=$env(RUNNER_TEMP)/ota-home XDG_STATE_HOME=$env(RUNNER_TEMP)/ota-home/.local/state PI_CODING_AGENT_SESSION_DIR=$env(RUNNER_TEMP)/ota-sessions pi --no-extensions -e $env(RUNNER_TEMP)/previous/pi-extension/src/index.ts
+          after 6000
+          send "\033"
+          after 8000
+          send "\003"
+          after 1000
+          send "\003"
+          expect eof
+          EXPECT
+          (cd "$RUNNER_TEMP/pi-project" && expect "$RUNNER_TEMP/drive-pi.exp") || true
+          if grep -q 'focusa-activate-updated-extension' "$RUNNER_TEMP/stale-runtime-pi.log"; then
+            echo 'stale_runtime_synthetic_message=DETECTED' | tee "$RUNNER_TEMP/stale-runtime-verdict.txt"
+          else
+            echo 'stale_runtime_synthetic_message=ABSENT' | tee "$RUNNER_TEMP/stale-runtime-verdict.txt"
+          fi
+      - name: Upload native macOS E2E evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v135-macos-intel-ota-e2e
+          path: |
+            ${{ runner.temp }}/stale-runtime-pi.log
+            ${{ runner.temp }}/stale-runtime-verdict.txt
+          if-no-files-found: warn
