@@ -25,7 +25,8 @@
     "test:ota-activation": "node tests/ota-activation.test.mjs",
     "test:work-rail-width": "node tests/work-rail-widget-width.test.mjs",
     "test:settings-attachment": "node tests/settings-attachment-safety.test.mjs",
-    "test:interaction-mode": "node tests/interaction-mode.test.mjs"
+    "test:interaction-mode": "node tests/interaction-mode.test.mjs",
+    "test:menu-audit": "node tests/menu-audit-gate.test.mjs"
   },
   "dependencies": {
     "@sinclair/typebox": "^0.34.0"

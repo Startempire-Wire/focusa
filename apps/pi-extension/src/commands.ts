@@ -541,12 +541,6 @@ export function registerCommands(pi: ExtensionAPI) {
           values: BOOLEAN_OPTIONS,
         },
         {
-          id: "otaProfile",
-          label: "OTA profile (all surfaces)",
-          currentValue: otaProfile,
-          values: ["dev_auto_all", "stable_auto_all", "stable_prompt", "notify"],
-        },
-        {
           id: "simpleProfile",
           label: "Quick profile",
           currentValue: simpleProfile,
@@ -565,12 +559,6 @@ export function registerCommands(pi: ExtensionAPI) {
           values: ["1200000", "3600000", "7200000", "14400000"],
         },
         {
-          id: "workLoopStatusHeartbeatMs",
-          label: "Refresh heartbeat (ms)",
-          currentValue: String(draft.workLoopStatusHeartbeatMs),
-          values: ["1500", "2000", "3000", "5000"],
-        },
-        {
           id: "interactionMode",
           label: "Project interaction mode",
           currentValue: draft.interactionMode,
@@ -587,18 +575,6 @@ export function registerCommands(pi: ExtensionAPI) {
           label: "Vital project info prompt",
           currentValue: draft.vitalInfoPromptMode,
           values: VITAL_INFO_PROMPT_MODE_OPTIONS,
-        },
-        {
-          id: "vitalInfoPromptSurfaces",
-          label: "Vital prompt surfaces",
-          currentValue: draft.vitalInfoPromptSurfaces,
-          values: [
-            "project_root,project_verify,workpoint,trajectory",
-            "project_root",
-            "project_root,project_verify",
-            "project_root,workpoint",
-            "project_root,trajectory",
-          ],
         },
         {
           id: "workLoopRequireVerificationBeforePersist",
