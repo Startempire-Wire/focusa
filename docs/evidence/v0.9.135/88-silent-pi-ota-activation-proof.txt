@@ -4,6 +4,7 @@ Fix:
 - removes synthetic slash-command/user-message activation entirely
 - uses non-conversational safe-idle reload capability when runtime provides it
 - otherwise leaves activation pending until the next natural Pi process start; no manual /reload required
+- candidate daemon quarantines the legacy marker within 100ms into the silent marker namespace before the v0.9.134 runtime's 2.5s conversational poll
 - old runtime cannot write a false activation receipt
 - new runtime verifies marker version equals loaded package version before receipt
 - failed reload restores retry marker
@@ -11,9 +12,11 @@ Fix:
 Proof:
 - Pi extension TypeScript typecheck: PASS
 - test:ota-activation: PASS
-- stale-runtime → activating marker → new-runtime receipt: PASS
+- actual Pi v0.9.134 runtime + candidate daemon bridge produced no synthetic control turn: PASS
+- legacy marker → silent marker → actual new Pi process-start receipt: PASS
 - natural process-start activation receipt: PASS
 - failed reload marker restoration: PASS
 - static negative check for sendUserMessage and hidden activation command: PASS
 - cargo check -p focusa-cli: PASS
-- official GitHub release cycle provides cross-platform artifact/build/deploy proof
+- native Intel macOS fail-closed workflow now repeats the actual stale-runtime bridge and receipt proof
+- official GitHub release cycle provides final signed cross-platform artifact proof

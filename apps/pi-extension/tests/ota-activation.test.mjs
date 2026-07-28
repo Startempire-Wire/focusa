@@ -34,8 +34,9 @@ try {
     },
   };
 
-  writeFileSync(paths.restart, JSON.stringify({ version: "9.9.9" }));
+  writeFileSync(paths.legacy, JSON.stringify({ version: "9.9.9" }));
   const cleanupStartup = activation.registerAutomaticOtaActivation(inertPi);
+  assert.equal(existsSync(paths.legacy), false);
   assert.equal(existsSync(paths.restart), false);
   const startupReceipt = JSON.parse(readFileSync(paths.receipt, "utf8"));
   assert.equal(startupReceipt.status, "activated");

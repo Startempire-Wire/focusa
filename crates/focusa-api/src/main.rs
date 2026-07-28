@@ -46,6 +46,51 @@ fn resolved_data_dir(config: &FocusaConfig) -> PathBuf {
     expand_home_dir(&config.data_dir, home)
 }
 
+fn pi_ota_update_state_root() -> PathBuf {
+    std::env::var_os("XDG_STATE_HOME")
+        .map(PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".local/state")))
+        .unwrap_or_else(|| PathBuf::from(".local/state"))
+        .join("focusa/update")
+}
+
+fn bridge_legacy_pi_activation_marker(root: &Path) -> std::io::Result<Option<PathBuf>> {
+    let legacy = root.join("pi-extension-restart-required.json");
+    if !legacy.is_file() {
+        return Ok(None);
+    }
+    let silent = root.join("pi-extension-silent-restart-required.json");
+    let destination = if silent.exists() {
+        root.join(format!(
+            "pi-extension-legacy-quarantined-{}.json",
+            uuid::Uuid::now_v7()
+        ))
+    } else {
+        silent
+    };
+    std::fs::rename(legacy, &destination)?;
+    Ok(Some(destination))
+}
+
+async fn run_legacy_pi_activation_bridge() {
+    let root = pi_ota_update_state_root();
+    let mut interval = tokio::time::interval(std::time::Duration::from_millis(100));
+    loop {
+        interval.tick().await;
+        match bridge_legacy_pi_activation_marker(&root) {
+            Ok(Some(destination)) => tracing::info!(
+                marker = %destination.display(),
+                "quarantined legacy conversational Pi OTA marker"
+            ),
+            Ok(None) => {}
+            Err(error) => tracing::warn!(
+                error = %error,
+                "legacy Pi OTA marker quarantine deferred"
+            ),
+        }
+    }
+}
+
 struct DaemonInstanceLock {
     path: PathBuf,
     pid: u32,
@@ -220,6 +265,7 @@ async fn main() -> anyhow::Result<()> {
     );
 
     let _instance_lock = DaemonInstanceLock::acquire(&config)?;
+    let _legacy_pi_activation_bridge = tokio::spawn(run_legacy_pi_activation_bridge());
 
     // License plane: evaluate tier + log current capability posture.
     // Bead focusa-nbai.1: wire LicenseGuard into daemon startup.
@@ -392,5 +438,59 @@ mod tests {
         };
         let err = enforce_bind_auth_guard(&config).expect_err("non-loopback requires auth");
         assert!(err.to_string().contains("INSECURE_BIND_WITHOUT_AUTH"));
+    }
+
+    #[test]
+    fn legacy_pi_activation_marker_is_atomically_quarantined() {
+        let root =
+            std::env::temp_dir().join(format!("focusa-legacy-pi-marker-{}", uuid::Uuid::now_v7()));
+        std::fs::create_dir_all(&root).unwrap();
+        let legacy = root.join("pi-extension-restart-required.json");
+        std::fs::write(&legacy, r#"{"version":"0.9.135-dev"}"#).unwrap();
+
+        let destination = bridge_legacy_pi_activation_marker(&root)
+            .unwrap()
+            .expect("legacy marker should move");
+        assert_eq!(
+            destination,
+            root.join("pi-extension-silent-restart-required.json")
+        );
+        assert!(!legacy.exists());
+        assert!(destination.is_file());
+        assert!(bridge_legacy_pi_activation_marker(&root).unwrap().is_none());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn legacy_marker_remains_recoverable_when_silent_marker_exists() {
+        let root = std::env::temp_dir().join(format!(
+            "focusa-legacy-pi-marker-conflict-{}",
+            uuid::Uuid::now_v7()
+        ));
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(
+            root.join("pi-extension-restart-required.json"),
+            r#"{"version":"0.9.136-dev"}"#,
+        )
+        .unwrap();
+        std::fs::write(
+            root.join("pi-extension-silent-restart-required.json"),
+            r#"{"version":"0.9.135-dev"}"#,
+        )
+        .unwrap();
+
+        let destination = bridge_legacy_pi_activation_marker(&root)
+            .unwrap()
+            .expect("legacy marker should be quarantined");
+        assert!(destination.file_name().is_some_and(|name| {
+            name.to_string_lossy()
+                .starts_with("pi-extension-legacy-quarantined-")
+        }));
+        assert!(destination.is_file());
+        assert!(
+            root.join("pi-extension-silent-restart-required.json")
+                .is_file()
+        );
+        std::fs::remove_dir_all(root).unwrap();
     }
 }

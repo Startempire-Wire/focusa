@@ -32,6 +32,7 @@ jobs:
           cargo test -p focusa-cli commands::install::tests::pi_extension_archive_install_is_checksum_stage_and_activation_safe -- --exact
           cargo test -p focusa-cli commands::update::tests::failed_update_restores_exact_pre_transaction_daemon_state -- --exact
           cargo test -p focusa-cli commands::update::tests::atomic_rollback_restores_previous_binary_and_removes_failed_candidate -- --exact
+          cargo build -p focusa-api --bin focusa-daemon
       - name: Exercise official signed extension through a ServBay-like npm path
         env:
           GH_TOKEN: ${{ github.token }}
@@ -58,82 +59,115 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/previous" "$RUNNER_TEMP/old-home/.pi/agent/extensions" "$RUNNER_TEMP/old-data" "$RUNNER_TEMP/servbay-old/bin"
+          home="$RUNNER_TEMP/old-home"
+          bin="$home/.focusa/bin"
+          state="$home/.local/state"
+          label="com.startempire.focusa-daemon"
+          domain="gui/$(id -u)"
+          plist="$home/Library/LaunchAgents/$label.plist"
+          mkdir -p "$RUNNER_TEMP/previous" "$home/.pi/agent/extensions" "$bin" "$state" "$RUNNER_TEMP/old-data" "$RUNNER_TEMP/servbay-old/bin" "$(dirname "$plist")"
           gh release download v0.9.134-dev --repo Startempire-Wire/focusa --dir "$RUNNER_TEMP/previous" \
             --pattern focusa-v0.9.134-dev-x86_64-apple-darwin \
             --pattern focusa-daemon-v0.9.134-dev-x86_64-apple-darwin \
             --pattern focusa-tui-v0.9.134-dev-x86_64-apple-darwin \
             --pattern focusa-pi-extension-v0.9.134-dev.tar.gz
-          chmod +x "$RUNNER_TEMP/previous"/*-x86_64-apple-darwin
-          tar -xzf "$RUNNER_TEMP/previous/focusa-pi-extension-v0.9.134-dev.tar.gz" -C "$RUNNER_TEMP/old-home/.pi/agent/extensions"
-          mv "$RUNNER_TEMP/old-home/.pi/agent/extensions/pi-extension" "$RUNNER_TEMP/old-home/.pi/agent/extensions/focusa"
+          install -m 0755 "$RUNNER_TEMP/previous/focusa-v0.9.134-dev-x86_64-apple-darwin" "$bin/focusa"
+          install -m 0755 "$RUNNER_TEMP/previous/focusa-daemon-v0.9.134-dev-x86_64-apple-darwin" "$bin/focusa-daemon"
+          install -m 0755 "$RUNNER_TEMP/previous/focusa-tui-v0.9.134-dev-x86_64-apple-darwin" "$bin/focusa-tui"
+          tar -xzf "$RUNNER_TEMP/previous/focusa-pi-extension-v0.9.134-dev.tar.gz" -C "$home/.pi/agent/extensions"
+          mv "$home/.pi/agent/extensions/pi-extension" "$home/.pi/agent/extensions/focusa"
           ln -s "$(command -v node)" "$RUNNER_TEMP/servbay-old/bin/node"
           ln -s "$(command -v npm)" "$RUNNER_TEMP/servbay-old/bin/npm"
-          FOCUSA_BIND=127.0.0.1:8787 FOCUSA_DATA_DIR="$RUNNER_TEMP/old-data" \
-            "$RUNNER_TEMP/previous/focusa-daemon-v0.9.134-dev-x86_64-apple-darwin" \
-            >"$RUNNER_TEMP/old-daemon.log" 2>&1 &
-          daemon_pid=$!
-          trap 'kill "$daemon_pid" 2>/dev/null || true' EXIT
-          for _ in $(seq 1 100); do curl -fsS http://127.0.0.1:8787/v1/health >/dev/null && break; sleep 0.1; done
+          cat >"$plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+          <key>Label</key><string>$label</string>
+          <key>ProgramArguments</key><array><string>$bin/focusa-daemon</string></array>
+          <key>RunAtLoad</key><true/><key>KeepAlive</key><true/>
+          <key>EnvironmentVariables</key><dict>
+          <key>HOME</key><string>$home</string>
+          <key>XDG_STATE_HOME</key><string>$state</string>
+          <key>FOCUSA_DATA_DIR</key><string>$RUNNER_TEMP/old-data</string>
+          <key>FOCUSA_BIND</key><string>127.0.0.1:8787</string>
+          </dict>
+          <key>StandardOutPath</key><string>$RUNNER_TEMP/old-daemon.log</string>
+          <key>StandardErrorPath</key><string>$RUNNER_TEMP/old-daemon.log</string>
+          </dict></plist>
+          PLIST
+          launchctl bootout "$domain/$label" 2>/dev/null || true
+          launchctl bootstrap "$domain" "$plist"
+          launchctl kickstart -k "$domain/$label"
+          trap 'launchctl bootout "$domain/$label" 2>/dev/null || true' EXIT
+          for _ in $(seq 1 150); do curl -fsS http://127.0.0.1:8787/v1/health >/dev/null && break; sleep 0.1; done
+
           set +e
-          HOME="$RUNNER_TEMP/old-home" FOCUSA_DEV_MODE=1 \
-            FOCUSA_PI_EXTENSION_PACKAGE_JSON="$RUNNER_TEMP/old-home/.pi/agent/extensions/focusa/package.json" \
-            FOCUSA_NPM_BIN="$RUNNER_TEMP/servbay-old/bin/npm" \
-            PATH=/usr/bin:/bin:/usr/sbin \
-            "$RUNNER_TEMP/previous/focusa-v0.9.134-dev-x86_64-apple-darwin" update apply \
-              --channel dev --latest-version v0.9.135-dev --dry-run false --yes --allow-apply --json \
-              >"$RUNNER_TEMP/previous-updater.json" 2>&1
+          HOME="$home" XDG_STATE_HOME="$state" PATH=/usr/bin:/bin:/usr/sbin \
+            "$bin/focusa" update apply --channel dev --latest-version v0.9.135-dev \
+              --dry-run false --yes --allow-apply --json >"$RUNNER_TEMP/previous-updater-failure.json" 2>&1
+          failure_rc=$?
+          set -e
+          test "$failure_rc" -ne 0
+          rollback_version="$(curl -fsS http://127.0.0.1:8787/v1/health | jq -r '.version')"
+          rollback_extension="$(jq -r '.version' "$home/.pi/agent/extensions/focusa/package.json")"
+          test "$rollback_version" = 0.9.134-dev
+          test "$rollback_extension" = 0.9.134-dev
+
+          set +e
+          HOME="$home" XDG_STATE_HOME="$state" FOCUSA_NPM_BIN="$RUNNER_TEMP/servbay-old/bin/npm" \
+            PATH="$RUNNER_TEMP/servbay-old/bin:/usr/bin:/bin:/usr/sbin" \
+            "$bin/focusa" update apply --channel dev --latest-version v0.9.135-dev \
+              --dry-run false --yes --allow-apply --json >"$RUNNER_TEMP/previous-updater.json" 2>&1
           updater_rc=$?
           set -e
-          if curl -fsS http://127.0.0.1:8787/v1/health >"$RUNNER_TEMP/post-rollback-health.json"; then
-            daemon_state=running
-            daemon_version="$(jq -r '.version // .data.version // "unknown"' "$RUNNER_TEMP/post-rollback-health.json")"
-          else
-            daemon_state=stopped
-            daemon_version=unavailable
-          fi
-          extension_version="$(jq -r '.version' "$RUNNER_TEMP/old-home/.pi/agent/extensions/focusa/package.json")"
-          printf 'previous_updater_rc=%s\npost_rollback_daemon=%s\npost_rollback_version=%s\npost_rollback_extension=%s\n' \
-            "$updater_rc" "$daemon_state" "$daemon_version" "$extension_version" \
+          final_version="$(curl -fsS http://127.0.0.1:8787/v1/health | jq -r '.version')"
+          final_extension="$(jq -r '.version' "$home/.pi/agent/extensions/focusa/package.json")"
+          printf 'rollback_updater_rc=%s\npost_rollback_daemon=running\npost_rollback_version=%s\npost_rollback_extension=%s\nprevious_updater_rc=%s\nfinal_daemon_version=%s\nfinal_extension_version=%s\n' \
+            "$failure_rc" "$rollback_version" "$rollback_extension" "$updater_rc" "$final_version" "$final_extension" \
             | tee "$RUNNER_TEMP/previous-updater-verdict.txt"
-          cat "$RUNNER_TEMP/previous-updater.json"
-          kill "$daemon_pid" 2>/dev/null || true
-          wait "$daemon_pid" 2>/dev/null || true
+          test "$updater_rc" = 0
+          test "$final_version" = 0.9.135-dev
+          test "$final_extension" = 0.9.135-dev
+          launchctl bootout "$domain/$label"
           trap - EXIT
       - name: Reproduce immediate-previous stale runtime through actual Pi
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/previous" "$RUNNER_TEMP/ota-home/.local/state/focusa/update" "$RUNNER_TEMP/ota-sessions" "$RUNNER_TEMP/pi-project"
-          if ! test -d "$RUNNER_TEMP/previous/pi-extension"; then
-            gh release download v0.9.134-dev --repo Startempire-Wire/focusa --dir "$RUNNER_TEMP/previous" \
-              --pattern focusa-pi-extension-v0.9.134-dev.tar.gz --clobber
-            tar -xzf "$RUNNER_TEMP/previous/focusa-pi-extension-v0.9.134-dev.tar.gz" -C "$RUNNER_TEMP/previous"
-          fi
-          npm --prefix "$RUNNER_TEMP/previous/pi-extension" ci --ignore-scripts --no-audit --no-fund
+          state="$RUNNER_TEMP/ota-home/.local/state"
+          mkdir -p "$RUNNER_TEMP/previous-stale" "$state/focusa/update" "$RUNNER_TEMP/ota-sessions-old" "$RUNNER_TEMP/ota-sessions-new" "$RUNNER_TEMP/pi-project" "$RUNNER_TEMP/bridge-data"
+          tar -xzf "$RUNNER_TEMP/previous/focusa-pi-extension-v0.9.134-dev.tar.gz" -C "$RUNNER_TEMP/previous-stale"
+          npm --prefix "$RUNNER_TEMP/previous-stale/pi-extension" ci --ignore-scripts --no-audit --no-fund
+          npm --prefix apps/pi-extension ci --ignore-scripts --no-audit --no-fund
           npm install --global @earendil-works/pi-coding-agent@0.82.1
-          git -C "$RUNNER_TEMP/pi-project" init -q
-          cat > "$RUNNER_TEMP/pi-project/.focusa-project.json" <<JSON
-          {"schema":"focusa.project.v1","project_id":"mac-intel-ota-e2e","canonical_name":"Mac Intel OTA E2E","project_root":"$RUNNER_TEMP/pi-project"}
-          JSON
-          cat > "$RUNNER_TEMP/ota-home/.local/state/focusa/update/pi-extension-restart-required.json" <<JSON
-          {"schema":"focusa.pi_extension_restart_required.v1","version":"0.9.135-dev","installed_at":"2026-07-28T00:00:00Z"}
-          JSON
+          XDG_STATE_HOME="$state" HOME="$RUNNER_TEMP/ota-home" FOCUSA_BIND=127.0.0.1:39886 FOCUSA_DATA_DIR="$RUNNER_TEMP/bridge-data" \
+            target/debug/focusa-daemon >"$RUNNER_TEMP/candidate-daemon.log" 2>&1 &
+          bridge_pid=$!
+          trap 'kill "$bridge_pid" 2>/dev/null || true; tmux kill-session -t focusa-ota-old 2>/dev/null || true; tmux kill-session -t focusa-ota-new 2>/dev/null || true' EXIT
+          for _ in $(seq 1 150); do curl -fsS http://127.0.0.1:39886/v1/health >/dev/null && break; sleep 0.1; done
           if ! command -v tmux >/dev/null; then brew install tmux; fi
-          tmux kill-session -t focusa-ota-e2e 2>/dev/null || true
-          tmux new-session -d -s focusa-ota-e2e -x 140 -y 45 -c "$RUNNER_TEMP/pi-project" \
-            "env HOME=$RUNNER_TEMP/ota-home XDG_STATE_HOME=$RUNNER_TEMP/ota-home/.local/state PI_CODING_AGENT_SESSION_DIR=$RUNNER_TEMP/ota-sessions OPENAI_API_KEY=dummy pi --provider openai --model gpt-4o-mini --no-extensions -e $RUNNER_TEMP/previous/pi-extension/src/index.ts"
+          tmux new-session -d -s focusa-ota-old -x 140 -y 45 -c "$RUNNER_TEMP/pi-project" \
+            "env HOME=$RUNNER_TEMP/ota-home XDG_STATE_HOME=$state PI_CODING_AGENT_SESSION_DIR=$RUNNER_TEMP/ota-sessions-old OPENAI_API_KEY=dummy pi --provider openai --model gpt-4o-mini --no-extensions -e $RUNNER_TEMP/previous-stale/pi-extension/src/index.ts"
           sleep 12
-          tmux send-keys -t focusa-ota-e2e Escape
-          sleep 10
-          tmux capture-pane -epJt focusa-ota-e2e -S -100 >"$RUNNER_TEMP/stale-runtime-pi.log"
-          tmux kill-session -t focusa-ota-e2e 2>/dev/null || true
-          marker="$RUNNER_TEMP/ota-home/.local/state/focusa/update/pi-extension-restart-required.json"
-          receipt="$RUNNER_TEMP/ota-home/.local/state/focusa/update/pi-extension-activation-receipt.json"
-          if grep -q 'focusa-activate-updated-extension' "$RUNNER_TEMP/stale-runtime-pi.log"; then
+          cat >"$state/focusa/update/pi-extension-restart-required.json" <<JSON
+          {"schema":"focusa.pi_extension_restart_required.v1","version":"0.9.135-dev","installed_at":"native-macos-e2e"}
+          JSON
+          sleep 4
+          tmux capture-pane -epJt focusa-ota-old -S -100 >"$RUNNER_TEMP/stale-runtime-pi.log"
+          tmux kill-session -t focusa-ota-old
+          test ! -f "$state/focusa/update/pi-extension-restart-required.json"
+          test -f "$state/focusa/update/pi-extension-silent-restart-required.json"
+          tmux new-session -d -s focusa-ota-new -x 140 -y 45 -c "$RUNNER_TEMP/pi-project" \
+            "env HOME=$RUNNER_TEMP/ota-home XDG_STATE_HOME=$state PI_CODING_AGENT_SESSION_DIR=$RUNNER_TEMP/ota-sessions-new OPENAI_API_KEY=dummy pi --provider openai --model gpt-4o-mini --no-extensions -e $GITHUB_WORKSPACE/apps/pi-extension/src/index.ts"
+          sleep 12
+          tmux capture-pane -epJt focusa-ota-new -S -100 >"$RUNNER_TEMP/new-runtime-pi.log" || true
+          tmux kill-session -t focusa-ota-new 2>/dev/null || true
+          marker="$state/focusa/update/pi-extension-silent-restart-required.json"
+          receipt="$state/focusa/update/pi-extension-activation-receipt.json"
+          if grep -q 'focusa-activate-updated-extension' "$RUNNER_TEMP/stale-runtime-pi.log" "$RUNNER_TEMP/new-runtime-pi.log"; then
             verdict=DETECTED
-          elif test -f "$marker" && ! test -f "$receipt"; then
+          elif test -f "$marker" || ! test -f "$receipt"; then
             verdict=INVALID_NOT_PROCESSED
           else
             verdict=ABSENT
@@ -141,13 +175,17 @@ jobs:
           printf 'stale_runtime_synthetic_message=%s\nmarker_remaining=%s\nreceipt_present=%s\n' \
             "$verdict" "$(test -f "$marker" && echo true || echo false)" "$(test -f "$receipt" && echo true || echo false)" \
             | tee "$RUNNER_TEMP/stale-runtime-verdict.txt"
+          kill "$bridge_pid"; wait "$bridge_pid" 2>/dev/null || true
+          trap - EXIT
       - name: Enforce immediate-previous-version OTA acceptance
         run: |
           set -euo pipefail
           grep -q '^previous_updater_rc=0$' "$RUNNER_TEMP/previous-updater-verdict.txt"
           grep -q '^post_rollback_daemon=running$' "$RUNNER_TEMP/previous-updater-verdict.txt"
-          grep -q '^post_rollback_version=0.9.135-dev$' "$RUNNER_TEMP/previous-updater-verdict.txt"
-          grep -q '^post_rollback_extension=0.9.135-dev$' "$RUNNER_TEMP/previous-updater-verdict.txt"
+          grep -q '^post_rollback_version=0.9.134-dev$' "$RUNNER_TEMP/previous-updater-verdict.txt"
+          grep -q '^post_rollback_extension=0.9.134-dev$' "$RUNNER_TEMP/previous-updater-verdict.txt"
+          grep -q '^final_daemon_version=0.9.135-dev$' "$RUNNER_TEMP/previous-updater-verdict.txt"
+          grep -q '^final_extension_version=0.9.135-dev$' "$RUNNER_TEMP/previous-updater-verdict.txt"
           grep -q '^stale_runtime_synthetic_message=ABSENT$' "$RUNNER_TEMP/stale-runtime-verdict.txt"
           grep -q '^marker_remaining=false$' "$RUNNER_TEMP/stale-runtime-verdict.txt"
           grep -q '^receipt_present=true$' "$RUNNER_TEMP/stale-runtime-verdict.txt"
@@ -157,10 +195,12 @@ jobs:
         with:
           name: v135-macos-intel-ota-e2e
           path: |
+            ${{ runner.temp }}/previous-updater-failure.json
             ${{ runner.temp }}/previous-updater.json
             ${{ runner.temp }}/previous-updater-verdict.txt
-            ${{ runner.temp }}/post-rollback-health.json
             ${{ runner.temp }}/old-daemon.log
+            ${{ runner.temp }}/candidate-daemon.log
             ${{ runner.temp }}/stale-runtime-pi.log
+            ${{ runner.temp }}/new-runtime-pi.log
             ${{ runner.temp }}/stale-runtime-verdict.txt
           if-no-files-found: warn

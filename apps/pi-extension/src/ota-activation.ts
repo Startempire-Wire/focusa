@@ -4,7 +4,8 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const RESTART_MARKER = "pi-extension-restart-required.json";
+const LEGACY_RESTART_MARKER = "pi-extension-restart-required.json";
+const RESTART_MARKER = "pi-extension-silent-restart-required.json";
 const ACTIVATING_MARKER = "pi-extension-activating.json";
 const ACTIVATION_RECEIPT = "pi-extension-activation-receipt.json";
 const POLL_MS = 2_500;
@@ -33,11 +34,13 @@ export function otaActivationStateRoot(env: NodeJS.ProcessEnv = process.env): st
 }
 
 export function otaActivationPaths(root = otaActivationStateRoot()): {
+  legacy: string;
   restart: string;
   activating: string;
   receipt: string;
 } {
   return {
+    legacy: join(root, LEGACY_RESTART_MARKER),
     restart: join(root, RESTART_MARKER),
     activating: join(root, ACTIVATING_MARKER),
     receipt: join(root, ACTIVATION_RECEIPT),
@@ -90,6 +93,9 @@ export function registerAutomaticOtaActivation(pi: ExtensionAPI): () => void {
   let reloading = false;
 
   try {
+    if (existsSync(paths.legacy) && !existsSync(paths.restart)) {
+      renameSync(paths.legacy, paths.restart);
+    }
     const loaded = loadedExtensionVersion();
     const activatingVersion = String(readMarker(paths.activating).version || "").replace(/^v/, "");
     const restartVersion = String(readMarker(paths.restart).version || "").replace(/^v/, "");
