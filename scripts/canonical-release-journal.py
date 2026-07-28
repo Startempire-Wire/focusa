@@ -692,6 +692,8 @@ def cmd_finalize(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def cmd_history(args: argparse.Namespace) -> dict[str, Any]:
+    if args.release_id:
+        return query_events(args.release_id, limit=args.limit)
     return query_events(view="releases", limit=args.limit)
 
 
@@ -726,6 +728,7 @@ def parser() -> argparse.ArgumentParser:
     problem.set_defaults(func=cmd_problem)
     history = sub.add_parser("history")
     history.add_argument("--project-id", default=PROJECT_ID, choices=[PROJECT_ID])
+    history.add_argument("--release-id")
     history.add_argument("--limit", type=int, default=50)
     history.set_defaults(func=cmd_history)
     return root
