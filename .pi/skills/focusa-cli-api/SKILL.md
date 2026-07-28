@@ -31,3 +31,15 @@ Read `references/01-focusa-cli-api-runbook.md` for cross-interface parity, scope
 - Use Workpoint resume/checkpoint around compaction, context overflow, model switch, fork, or risky release work.
 - Use writer-status/preflight before mutating work-loop state.
 - Do not describe Focusa as complete or frozen; use current snapshot/version language.
+
+
+## Routing metadata
+- prerequisites: verified project identity and typed continuity when durable scope matters
+- use_instead_when: use the narrower owner in `docs/contracts/65-focusa-skill-ownership-manifest.json`
+- next_skills: `focusa-workpoint`, `focusa-evidence-outcomes`, `focusa-metacognition`
+- failure_handoff: `focusa-troubleshooting`
+- authority_boundary: operator steering leads; daemon and typed Workpoint/Trajectory contracts remain canonical
+- workflow: `focusa-project-scope` → `focusa-cli-api` → `focusa-workpoint` → `focusa-evidence-outcomes`
+- minimum_contract: `focusa.tool_affordance_catalog.v1`
+- source_status: hand-authored; no automatic sibling-body injection
+- supersession: none

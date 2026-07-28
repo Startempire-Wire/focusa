@@ -5865,7 +5865,9 @@ export function registerTools(pi: ExtensionAPI) {
       canonical_name: Type.Optional(Type.String()),
       continuity_id: Type.Optional(Type.String()),
       idempotency_key: Type.Optional(Type.String()),
-      discipline_profile: Type.Optional(Type.String({ description: "Defaults to standard_software_project." })),
+      discipline_profile: Type.Optional(
+        Type.String({ description: "Defaults to standard_software_project." })
+      ),
       initialize_git: Type.Optional(Type.Boolean()),
       initialize_task_provider: Type.Optional(Type.Boolean()),
       task_provider: Type.Optional(Type.String()),
@@ -5876,15 +5878,23 @@ export function registerTools(pi: ExtensionAPI) {
       specification_ref: Type.Optional(Type.String()),
       acceptance_criteria: Type.Optional(Type.Array(Type.String())),
       confirm: Type.Optional(Type.Boolean()),
-      repair_action: Type.Optional(Type.String({ description: "retry or rollback; rollback requires confirm=true." })),
+      repair_action: Type.Optional(
+        Type.String({ description: "retry or rollback; rollback requires confirm=true." })
+      ),
     }),
     async execute(_toolCallId: string, params: any) {
       const action = String(params.action || "status");
       const projectRoot = normalizeProjectRoot(params.project_root);
       if (!projectRoot || !isProjectRootAuthoritySafe(projectRoot)) {
         return {
-          content: [{ type: "text", text: "project bootstrap → blocked: supply an explicit safe project root" }],
-          details: { status: "blocked", failure_class: "unsafe_project_root", next_tools: ["focusa_project_verify"] },
+          content: [
+            { type: "text", text: "project bootstrap → blocked: supply an explicit safe project root" },
+          ],
+          details: {
+            status: "blocked",
+            failure_class: "unsafe_project_root",
+            next_tools: ["focusa_project_verify"],
+          },
         } as any;
       }
       const continuityId = params.continuity_id || getContinuityId() || ensureContinuityId(projectRoot);
@@ -5901,7 +5911,8 @@ export function registerTools(pi: ExtensionAPI) {
             action: undefined,
             project_root: projectRoot,
             project_id: params.project_id || projectRoot.split("/").filter(Boolean).pop() || "project",
-            canonical_name: params.canonical_name || projectRoot.split("/").filter(Boolean).pop() || "Project",
+            canonical_name:
+              params.canonical_name || projectRoot.split("/").filter(Boolean).pop() || "Project",
             continuity_id: continuityId,
             idempotency_key: params.idempotency_key || `bootstrap:${continuityId}`,
           }),
@@ -5910,7 +5921,12 @@ export function registerTools(pi: ExtensionAPI) {
       const body = result.body || {};
       const status = String(body.status || (result.ok ? "completed" : "blocked"));
       return {
-        content: [{ type: "text", text: `project bootstrap ${action} → ${status}\nnext: ${body.next_action || "inspect readiness"}` }],
+        content: [
+          {
+            type: "text",
+            text: `project bootstrap ${action} → ${status}\nnext: ${body.next_action || "inspect readiness"}`,
+          },
+        ],
         details: {
           ok: result.ok,
           status,
@@ -5918,7 +5934,10 @@ export function registerTools(pi: ExtensionAPI) {
           project_root: projectRoot,
           continuity_id: continuityId,
           bootstrap_packet: compactApiEcho(body),
-          next_tools: status === "ready" ? ["focusa_project_genesis", "focusa_workpoint_resume"] : ["focusa_project_bootstrap", "focusa_project_verify"],
+          next_tools:
+            status === "ready"
+              ? ["focusa_project_genesis", "focusa_workpoint_resume"]
+              : ["focusa_project_bootstrap", "focusa_project_verify"],
         },
       } as any;
     },
@@ -5934,12 +5953,7 @@ export function registerTools(pi: ExtensionAPI) {
     parameters: Type.Object({
       action: Type.Optional(
         Type.Union(
-          [
-            Type.Literal("start"),
-            Type.Literal("resume"),
-            Type.Literal("status"),
-            Type.Literal("commit"),
-          ],
+          [Type.Literal("start"), Type.Literal("resume"), Type.Literal("status"), Type.Literal("commit")],
           { description: "Genesis operation; defaults to status." }
         )
       ),
@@ -5959,7 +5973,9 @@ export function registerTools(pi: ExtensionAPI) {
       allow_task_decomposition: Type.Optional(Type.Boolean()),
       confirm: Type.Optional(Type.Boolean({ description: "Required true for commit or takeover." })),
       takeover: Type.Optional(
-        Type.Boolean({ description: "Take over a conflicting active project workstream; requires confirm=true." })
+        Type.Boolean({
+          description: "Take over a conflicting active project workstream; requires confirm=true.",
+        })
       ),
     }),
     async execute(_toolCallId: string, params: any) {
@@ -5977,8 +5993,7 @@ export function registerTools(pi: ExtensionAPI) {
           },
         } as any;
       }
-      const continuityId =
-        params.continuity_id || getContinuityId() || ensureContinuityId(projectRoot);
+      const continuityId = params.continuity_id || getContinuityId() || ensureContinuityId(projectRoot);
       let result: any;
       if (action === "status") {
         result = await focusaFetchDetailed(
@@ -6107,7 +6122,14 @@ export function registerTools(pi: ExtensionAPI) {
     parameters: Type.Object({
       action: Type.Optional(
         Type.Union(
-          [Type.Literal("status"), Type.Literal("commit"), Type.Literal("revise"), Type.Literal("observe"), Type.Literal("forecast"), Type.Literal("preflight")],
+          [
+            Type.Literal("status"),
+            Type.Literal("commit"),
+            Type.Literal("revise"),
+            Type.Literal("observe"),
+            Type.Literal("forecast"),
+            Type.Literal("preflight"),
+          ],
           { description: "Temporal operation; defaults to status." }
         )
       ),
@@ -6136,12 +6158,14 @@ export function registerTools(pi: ExtensionAPI) {
           source_ref: Type.Optional(Type.String()),
           operator_confirmed: Type.Boolean(),
           confidence: Type.String(),
-          uncertainty: Type.Optional(Type.Object({
-            earliest_at: Type.Optional(Type.String()),
-            latest_at: Type.Optional(Type.String()),
-            coverage_probability: Type.Optional(Type.Number()),
-            reason: Type.Optional(Type.String()),
-          })),
+          uncertainty: Type.Optional(
+            Type.Object({
+              earliest_at: Type.Optional(Type.String()),
+              latest_at: Type.Optional(Type.String()),
+              coverage_probability: Type.Optional(Type.Number()),
+              reason: Type.Optional(Type.String()),
+            })
+          ),
           observed_at: Type.String(),
           effective_at: Type.String(),
           expires_at: Type.Optional(Type.String()),
@@ -6159,7 +6183,11 @@ export function registerTools(pi: ExtensionAPI) {
       if (!projectRoot || !isProjectRootAuthoritySafe(projectRoot)) {
         return {
           content: [{ type: "text", text: "temporal authority → blocked: verify a safe project root" }],
-          details: { status: "blocked", failure_class: "project_identity_required", next_tools: ["focusa_project_verify"] },
+          details: {
+            status: "blocked",
+            failure_class: "project_identity_required",
+            next_tools: ["focusa_project_verify"],
+          },
         } as any;
       }
       const continuityId = params.continuity_id || getContinuityId() || ensureContinuityId(projectRoot);
@@ -6184,7 +6212,12 @@ export function registerTools(pi: ExtensionAPI) {
       const body = result.body || {};
       const status = String(body.status || (result.ok ? "completed" : "blocked"));
       return {
-        content: [{ type: "text", text: `temporal ${action} → ${status}\nnext: ${body.next_action || "inspect temporal projection"}` }],
+        content: [
+          {
+            type: "text",
+            text: `temporal ${action} → ${status}\nnext: ${body.next_action || "inspect temporal projection"}`,
+          },
+        ],
         details: {
           ok: result.ok,
           status,
@@ -8457,9 +8490,11 @@ export function registerTools(pi: ExtensionAPI) {
     const body: any = { code, error };
     if (expectedSchema) {
       body.expected_schema = expectedSchema;
-      const rejectedField = expectedSchema.required_fields.find(
-        (field) => !request || request[field] === undefined || error.toLowerCase().includes(field.toLowerCase())
-      ) || expectedSchema.required_fields[0];
+      const rejectedField =
+        expectedSchema.required_fields.find(
+          (field) =>
+            !request || request[field] === undefined || error.toLowerCase().includes(field.toLowerCase())
+        ) || expectedSchema.required_fields[0];
       const rejectedValue = request?.[rejectedField];
       body.validation_errors = [
         {
@@ -10102,9 +10137,7 @@ export function registerTools(pi: ExtensionAPI) {
           { required_fields: ["id"], field_types: { id: "string" }, example: { id: "DXUX-004" } }
         );
       const id = idCheck.value;
-      const result = await focusaFetchDetailed(
-        `/dxux/requirement/${encodeURIComponent(id)}`
-      );
+      const result = await focusaFetchDetailed(`/dxux/requirement/${encodeURIComponent(id)}`);
       const body = result.body || {};
       const req = body.requirement || null;
       const ok = result.ok && body.status === "completed";
@@ -10170,9 +10203,7 @@ export function registerTools(pi: ExtensionAPI) {
             example: { failure: "daemon unavailable" },
           }
         );
-      const result = await focusaFetchDetailed(
-        `/dxux/explain/${encodeURIComponent(failureCheck.value)}`
-      );
+      const result = await focusaFetchDetailed(`/dxux/explain/${encodeURIComponent(failureCheck.value)}`);
       const body = result.body || {};
       const ok = result.ok && body.status === "completed";
       const toolResult = focusaToolResult({
@@ -13849,6 +13880,58 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
           ...((body as any).data || (body as any).stats || {}),
           scope,
           next_tools: ["focusa_predict_record", "focusa_predict_recent"],
+        },
+      } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_prediction_authority",
+    label: "Prediction Authority",
+    description:
+      "Append or project immutable Spec 138 prediction/outcome/learning/transfer authority in one typed project/workstream scope.",
+    parameters: Type.Object({
+      action: Type.Union([Type.Literal("append"), Type.Literal("projection")]),
+      event: Type.Optional(Type.Any({ description: "ScopedAuthorityEvent when action=append." })),
+      project_root: Type.Optional(Type.String({ description: "Explicit or current verified project root." })),
+      continuity_id: Type.Optional(Type.String({ description: "Explicit or current continuity id." })),
+    }),
+    async execute(_id, params) {
+      const p = params as any;
+      const projectRoot = await resolveFocusaToolProjectRoot(p.project_root);
+      const gate = projectRootConfirmationGate(projectRoot, p.project_root);
+      if (gate) return gate;
+      const continuityId = String(p.continuity_id || getContinuityId() || "").trim();
+      if (!continuityId)
+        return {
+          content: [{ type: "text", text: "prediction authority blocked → typed continuity scope required" }],
+          details: {
+            ok: false,
+            status: "blocked",
+            recovery: "Provide continuity_id or bind a verified project workstream.",
+          },
+        } as any;
+      if (p.action === "append" && !p.event)
+        return {
+          content: [{ type: "text", text: "prediction authority append blocked → event required" }],
+          details: { ok: false, status: "blocked", recovery: "Provide one ScopedAuthorityEvent." },
+        } as any;
+      const scope = buildProjectWorkstreamKey(projectRoot, continuityId);
+      const endpoint =
+        p.action === "append" ? "/prediction-authority/events" : "/prediction-authority/projection";
+      const res = await focusaFetchDetailed(endpoint, {
+        method: "POST",
+        body: JSON.stringify(p.action === "append" ? { scope, event: p.event } : { scope }),
+      });
+      const summary = `prediction authority ${p.action} → ${res.body?.status || (res.ok ? "completed" : "blocked")}`;
+      return {
+        content: [{ type: "text", text: summary }],
+        details: {
+          ok: res.ok,
+          status: res.body?.status,
+          response: res.body,
+          project_root: projectRoot,
+          continuity_id: continuityId,
         },
       } as any;
     },
