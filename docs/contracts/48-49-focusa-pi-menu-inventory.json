@@ -1,7 +1,7 @@
 {
   "schema": "focusa.pi_menu_inventory.v1",
   "generated": true,
-  "source_sha256": "17734c620865ebacb51b921fbd1bb5232d46fd0c1004c184b4d48e10f6562518",
+  "source_sha256": "057390d7c20c0820da4be8273e1e27d022c03625b116ecb447b7be4d7ca18c02",
   "baseline": {
     "top_level_commands": 9,
     "simple_settings": 11,
@@ -191,7 +191,8 @@
         "starter",
         "builder",
         "hands_off",
-        "audit_safe"
+        "audit_safe",
+        "custom"
       ],
       "interaction_test": "settings attachment safety + exhaustive value callback gate"
     },
@@ -207,7 +208,10 @@
       "scope": "project_config",
       "risk": "persistent_config_write",
       "values": [
+        "6",
         "10",
+        "12",
+        "16",
         "24",
         "60",
         "120",
@@ -227,7 +231,9 @@
       "scope": "project_config",
       "risk": "persistent_config_write",
       "values": [
+        "900000",
         "1200000",
+        "1800000",
         "3600000",
         "7200000",
         "14400000"
@@ -607,7 +613,11 @@
         "6",
         "10",
         "12",
-        "24"
+        "16",
+        "24",
+        "60",
+        "120",
+        "200"
       ],
       "interaction_test": "settings attachment safety + exhaustive value callback gate"
     },
@@ -626,7 +636,9 @@
         "900000",
         "1200000",
         "1800000",
-        "3600000"
+        "3600000",
+        "7200000",
+        "14400000"
       ],
       "interaction_test": "settings attachment safety + exhaustive value callback gate"
     },
@@ -645,7 +657,8 @@
         "1",
         "2",
         "3",
-        "4"
+        "4",
+        "8"
       ],
       "interaction_test": "settings attachment safety + exhaustive value callback gate"
     },
@@ -662,6 +675,7 @@
       "risk": "persistent_config_write",
       "values": [
         "500",
+        "800",
         "1000",
         "1500",
         "2000"
@@ -820,7 +834,8 @@
       "values": [
         "1",
         "2",
-        "3"
+        "3",
+        "4"
       ],
       "interaction_test": "settings attachment safety + exhaustive value callback gate"
     },
@@ -836,6 +851,7 @@
       "scope": "project_config",
       "risk": "persistent_config_write",
       "values": [
+        "1500",
         "2000",
         "3000",
         "5000"
