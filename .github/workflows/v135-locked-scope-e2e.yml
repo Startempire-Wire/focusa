@@ -53,15 +53,54 @@ jobs:
             npm run check
             npm run test:ota-activation
           )
+      - name: Exercise v0.9.134 updater against v0.9.135 with nonstandard npm
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/previous" "$RUNNER_TEMP/old-home/.pi/agent/extensions" "$RUNNER_TEMP/old-data" "$RUNNER_TEMP/servbay-old/bin"
+          gh release download v0.9.134-dev --repo Startempire-Wire/focusa --dir "$RUNNER_TEMP/previous" \
+            --pattern focusa-v0.9.134-dev-x86_64-apple-darwin \
+            --pattern focusa-daemon-v0.9.134-dev-x86_64-apple-darwin \
+            --pattern focusa-tui-v0.9.134-dev-x86_64-apple-darwin \
+            --pattern focusa-pi-extension-v0.9.134-dev.tar.gz
+          chmod +x "$RUNNER_TEMP/previous"/*-x86_64-apple-darwin
+          tar -xzf "$RUNNER_TEMP/previous/focusa-pi-extension-v0.9.134-dev.tar.gz" -C "$RUNNER_TEMP/old-home/.pi/agent/extensions"
+          mv "$RUNNER_TEMP/old-home/.pi/agent/extensions/pi-extension" "$RUNNER_TEMP/old-home/.pi/agent/extensions/focusa"
+          ln -s "$(command -v node)" "$RUNNER_TEMP/servbay-old/bin/node"
+          ln -s "$(command -v npm)" "$RUNNER_TEMP/servbay-old/bin/npm"
+          FOCUSA_BIND=127.0.0.1:8787 FOCUSA_DATA_DIR="$RUNNER_TEMP/old-data" \
+            "$RUNNER_TEMP/previous/focusa-daemon-v0.9.134-dev-x86_64-apple-darwin" \
+            >"$RUNNER_TEMP/old-daemon.log" 2>&1 &
+          daemon_pid=$!
+          trap 'kill "$daemon_pid" 2>/dev/null || true' EXIT
+          for _ in $(seq 1 100); do curl -fsS http://127.0.0.1:8787/v1/health >/dev/null && break; sleep 0.1; done
+          set +e
+          HOME="$RUNNER_TEMP/old-home" FOCUSA_DEV_MODE=1 \
+            FOCUSA_PI_EXTENSION_PACKAGE_JSON="$RUNNER_TEMP/old-home/.pi/agent/extensions/focusa/package.json" \
+            FOCUSA_NPM_BIN="$RUNNER_TEMP/servbay-old/bin/npm" \
+            PATH=/usr/bin:/bin:/usr/sbin \
+            "$RUNNER_TEMP/previous/focusa-v0.9.134-dev-x86_64-apple-darwin" update apply \
+              --channel dev --latest-version v0.9.135-dev --dry-run false --yes --allow-apply --json \
+              >"$RUNNER_TEMP/previous-updater.json" 2>&1
+          updater_rc=$?
+          set -e
+          printf 'previous_updater_rc=%s\n' "$updater_rc" | tee "$RUNNER_TEMP/previous-updater-verdict.txt"
+          cat "$RUNNER_TEMP/previous-updater.json"
+          kill "$daemon_pid" 2>/dev/null || true
+          wait "$daemon_pid" 2>/dev/null || true
+          trap - EXIT
       - name: Reproduce immediate-previous stale runtime through actual Pi
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/previous" "$RUNNER_TEMP/ota-home/.local/state/focusa/update" "$RUNNER_TEMP/ota-sessions" "$RUNNER_TEMP/pi-project"
-          gh release download v0.9.134-dev --repo Startempire-Wire/focusa --dir "$RUNNER_TEMP/previous" \
-            --pattern focusa-pi-extension-v0.9.134-dev.tar.gz
-          tar -xzf "$RUNNER_TEMP/previous/focusa-pi-extension-v0.9.134-dev.tar.gz" -C "$RUNNER_TEMP/previous"
+          if ! test -d "$RUNNER_TEMP/previous/pi-extension"; then
+            gh release download v0.9.134-dev --repo Startempire-Wire/focusa --dir "$RUNNER_TEMP/previous" \
+              --pattern focusa-pi-extension-v0.9.134-dev.tar.gz --clobber
+            tar -xzf "$RUNNER_TEMP/previous/focusa-pi-extension-v0.9.134-dev.tar.gz" -C "$RUNNER_TEMP/previous"
+          fi
           npm --prefix "$RUNNER_TEMP/previous/pi-extension" ci --ignore-scripts --no-audit --no-fund
           npm install --global @earendil-works/pi-coding-agent@0.82.1
           git -C "$RUNNER_TEMP/pi-project" init -q
@@ -103,6 +142,9 @@ jobs:
         with:
           name: v135-macos-intel-ota-e2e
           path: |
+            ${{ runner.temp }}/previous-updater.json
+            ${{ runner.temp }}/previous-updater-verdict.txt
+            ${{ runner.temp }}/old-daemon.log
             ${{ runner.temp }}/stale-runtime-pi.log
             ${{ runner.temp }}/stale-runtime-verdict.txt
           if-no-files-found: warn
