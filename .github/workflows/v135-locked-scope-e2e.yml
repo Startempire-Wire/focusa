@@ -73,23 +73,30 @@ jobs:
           JSON
           cat > "$RUNNER_TEMP/drive-pi.exp" <<'EXPECT'
           log_user 1
-          set timeout 30
+          set timeout 70
           log_file -noappend $env(RUNNER_TEMP)/stale-runtime-pi.log
           spawn env HOME=$env(RUNNER_TEMP)/ota-home XDG_STATE_HOME=$env(RUNNER_TEMP)/ota-home/.local/state PI_CODING_AGENT_SESSION_DIR=$env(RUNNER_TEMP)/ota-sessions pi --no-extensions -e $env(RUNNER_TEMP)/previous/pi-extension/src/index.ts
-          after 6000
+          after 20000
           send "\033"
-          after 8000
+          after 15000
           send "\003"
           after 1000
           send "\003"
           expect eof
           EXPECT
           (cd "$RUNNER_TEMP/pi-project" && expect "$RUNNER_TEMP/drive-pi.exp") || true
+          marker="$RUNNER_TEMP/ota-home/.local/state/focusa/update/pi-extension-restart-required.json"
+          receipt="$RUNNER_TEMP/ota-home/.local/state/focusa/update/pi-extension-activation-receipt.json"
           if grep -q 'focusa-activate-updated-extension' "$RUNNER_TEMP/stale-runtime-pi.log"; then
-            echo 'stale_runtime_synthetic_message=DETECTED' | tee "$RUNNER_TEMP/stale-runtime-verdict.txt"
+            verdict=DETECTED
+          elif test -f "$marker" && ! test -f "$receipt"; then
+            verdict=INVALID_NOT_PROCESSED
           else
-            echo 'stale_runtime_synthetic_message=ABSENT' | tee "$RUNNER_TEMP/stale-runtime-verdict.txt"
+            verdict=ABSENT
           fi
+          printf 'stale_runtime_synthetic_message=%s\nmarker_remaining=%s\nreceipt_present=%s\n' \
+            "$verdict" "$(test -f "$marker" && echo true || echo false)" "$(test -f "$receipt" && echo true || echo false)" \
+            | tee "$RUNNER_TEMP/stale-runtime-verdict.txt"
       - name: Upload native macOS E2E evidence
         if: always()
         uses: actions/upload-artifact@v4
