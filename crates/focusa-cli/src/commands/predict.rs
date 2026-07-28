@@ -83,6 +83,18 @@ pub enum PredictCmd {
         #[command(flatten)]
         scope: PredictionScopeArgs,
     },
+    /// Append one immutable Spec 138 authority event from JSON.
+    AuthorityAppend {
+        #[command(flatten)]
+        scope: PredictionScopeArgs,
+        #[arg(long)]
+        event_json: String,
+    },
+    /// Read the durable Spec 138 authority projection.
+    AuthorityProjection {
+        #[command(flatten)]
+        scope: PredictionScopeArgs,
+    },
 }
 
 fn parse_ontology_context(raw: Option<String>) -> anyhow::Result<Value> {
@@ -244,6 +256,24 @@ pub async fn run(cmd: PredictCmd, json_mode: bool) -> anyhow::Result<()> {
                 "/v1/predictions/stats?{}",
                 scoped_query(&scope, None)
             ))
+            .await?
+        }
+        PredictCmd::AuthorityAppend { scope, event_json } => {
+            let scope = resolve_prediction_scope(&scope)?;
+            let event: Value = serde_json::from_str(&event_json)
+                .context("--event-json must be a Spec 138 ScopedAuthorityEvent")?;
+            api.post(
+                "/v1/prediction-authority/events",
+                &json!({"scope":scope,"event":event}),
+            )
+            .await?
+        }
+        PredictCmd::AuthorityProjection { scope } => {
+            let scope = resolve_prediction_scope(&scope)?;
+            api.post(
+                "/v1/prediction-authority/projection",
+                &json!({"scope":scope}),
+            )
             .await?
         }
     };

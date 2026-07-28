@@ -1,0 +1,24 @@
+GitHub #15 Spec 138 first generic authority slice — 2026-07-27
+
+Implemented:
+PredictionQuestion → immutable PredictionCommitment → InformationSetRef → OutcomeClaim → OutcomeResolution → frozen/versioned ScoringPolicy → PredictionEvaluation → CalibrationProjection → LearningCandidate → PromotionDecision → LearningRecord → TransferPrediction/TransferOutcome.
+
+Authority:
+- focusa-core canonical types and deterministic scorer/learning logic
+- append-only typed scoped events and durable API CRDT partitions
+- replay/restart projection and scope isolation
+- temporal authority references for as-of, horizon, review, expiry, transfer windows
+- distinct probability/evidence/source/model/resolution confidence
+- typed metrics, baseline, sample-size, applicability, expiry, negative-effect promotion gates
+- supersession, revocation, rollback, failed learning, negative transfer
+- Evidence and Receipt references
+- API append/projection and CLI predict authority append/projection
+- legacy Prediction/Metacognition records and commands unchanged
+- no market/domain/live-activation types
+
+Proof:
+- cargo test -p focusa-core prediction_authority --lib: 7 passed
+- cargo check -p focusa-api -p focusa-cli: PASS
+- duplicate event, sequence gap, frozen policy, scope isolation, recovery, high-confidence miss, prose-only rejection, negative effect, negative transfer: PASS
+- files remain below 500 LOC
+- git diff --check: PASS
