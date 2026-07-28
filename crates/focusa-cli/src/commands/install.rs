@@ -1200,8 +1200,25 @@ fn uiai_engine_url() -> String {
 
 fn uiai_engine_healthy() -> bool {
     let health_url = format!("{}/v1/health", uiai_engine_url().trim_end_matches('/'));
-    std::process::Command::new("curl")
-        .args(["--max-time", "0.25", "--fail", "--silent", &health_url])
+    let auth_header = std::env::var("UIAI_BEARER_TOKEN")
+        .ok()
+        .map(|token| token.trim().to_string())
+        .filter(|token| !token.is_empty())
+        .map(|token| format!("Authorization: Bearer {token}"));
+    let mut command = std::process::Command::new("curl");
+    command.args([
+        "--max-time",
+        "2",
+        "--fail",
+        "--silent",
+        "--output",
+        "/dev/null",
+    ]);
+    if let Some(header) = auth_header.as_deref() {
+        command.args(["--header", header]);
+    }
+    command
+        .arg(health_url)
         .status()
         .is_ok_and(|status| status.success())
 }
@@ -1221,7 +1238,7 @@ fn uiai_engine_install_command() -> String {
          install -d \"$HOME/.focusa/bin\" \"$HOME/.config/systemd/user\" \"$HOME/.local/state/focusa\"; \
          install -m 0755 \"$tmp/uiai-engine\" \"$HOME/.focusa/bin/uiai-engine\"; \
          printf '%s\\n' '[Unit]' 'Description=Focusa-managed UIAI Engine' 'After=network-online.target' '' '[Service]' 'Type=simple' 'ExecStart=%h/.focusa/bin/uiai-engine' 'Restart=on-failure' 'RestartSec=3' 'StandardOutput=append:%h/.local/state/focusa/uiai-engine.log' 'StandardError=append:%h/.local/state/focusa/uiai-engine.log' '' '[Install]' 'WantedBy=default.target' > \"$HOME/.config/systemd/user/focusa-uiai-engine.service\"; \
-         systemctl --user daemon-reload; systemctl --user enable --now focusa-uiai-engine.service; \
+         systemctl --user daemon-reload; systemctl --user enable --now \"$HOME/.config/systemd/user/focusa-uiai-engine.service\"; \
          i=0; until curl --max-time 1 --fail --silent '{}/v1/health' >/dev/null; do i=$((i+1)); [ \"$i\" -lt 20 ] || exit 3; sleep 0.25; done",
         uiai_engine_url().trim_end_matches('/')
     )
@@ -4466,6 +4483,9 @@ mod tests {
                 .contains(UIAI_ENGINE_LINUX_AMD64_SHA256)
         );
         assert!(!uiai.install_command.contains("/latest/"));
+        assert!(uiai.install_command.contains(
+            "systemctl --user enable --now \"$HOME/.config/systemd/user/focusa-uiai-engine.service\""
+        ));
         assert!(uiai.dry_run_command.contains("/v1/health"));
     }
 

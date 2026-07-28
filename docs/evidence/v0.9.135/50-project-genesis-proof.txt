@@ -7,5 +7,9 @@ Merged implementation:
 Proof:
 - spec143_project_genesis_release_gate_test.py: PASS
 - worktree_discipline_guardrail_test.sh: 2 passed
-- install/bootstrap → confirmed trajectory → task provider → first Workpoint; rerun/repair/conflict guards and no stack/remote inference: PASS
+- authenticated private UIAI health detection (500ms response) through `UIAI_BEARER_TOKEN`: PASS
+- nonstandard-HOME UIAI service installation uses the absolute generated unit path
+- official artifact install into an isolated HOME with no dependency mutation: PASS
+- installed CLI/daemon bootstrap → confirmed trajectory → first canonical Workpoint/readiness receipt: PASS
+- rerun/repair/conflict guards and no stack/remote inference: PASS
 - git diff --check: PASS
