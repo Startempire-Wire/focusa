@@ -283,7 +283,10 @@ export function registerCommands(pi: ExtensionAPI) {
         return;
       }
       const runtime = getAttachmentRuntime(attachmentKey);
-      const tokens = String(args || "").trim().split(/\s+/).filter(Boolean);
+      const tokens = String(args || "")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
       const requested = tokens[0] || "status";
       const aliases: Record<string, InteractionMode> = {
         canvas: "canvas_guided",
@@ -308,7 +311,10 @@ export function registerCommands(pi: ExtensionAPI) {
       }
       const mode = aliases[requested];
       if (!mode) {
-        ctx.ui.notify("Usage: /focusa-mode canvas|terminal|headless|status|clear [--project|--user]", "warning");
+        ctx.ui.notify(
+          "Usage: /focusa-mode canvas|terminal|headless|status|clear [--project|--user]",
+          "warning"
+        );
         return;
       }
       if (tokens.includes("--project") || tokens.includes("--user")) {
@@ -415,8 +421,7 @@ export function registerCommands(pi: ExtensionAPI) {
         interactionMode: settingsRuntime.cfg?.interactionMode || "terminal_guided",
         vitalInfoPromptMode: settingsRuntime.cfg?.vitalInfoPromptMode || "prompt",
         vitalInfoPromptSurfaces:
-          settingsRuntime.cfg?.vitalInfoPromptSurfaces ||
-          "project_root,project_verify,workpoint,trajectory",
+          settingsRuntime.cfg?.vitalInfoPromptSurfaces || "project_root,project_verify,workpoint,trajectory",
         warnPct: settingsRuntime.cfg?.warnPct || 50,
         compactPct: settingsRuntime.cfg?.compactPct || 70,
         hardPct: settingsRuntime.cfg?.hardPct || 85,
@@ -440,8 +445,7 @@ export function registerCommands(pi: ExtensionAPI) {
         workLoopMaxConsecutiveLowProductivityTurns:
           settingsRuntime.cfg?.workLoopMaxConsecutiveLowProductivityTurns || 3,
         workLoopMaxConsecutiveFailures: settingsRuntime.cfg?.workLoopMaxConsecutiveFailures || 3,
-        workLoopAutoPauseOnOperatorMessage:
-          settingsRuntime.cfg?.workLoopAutoPauseOnOperatorMessage ?? true,
+        workLoopAutoPauseOnOperatorMessage: settingsRuntime.cfg?.workLoopAutoPauseOnOperatorMessage ?? true,
         workLoopRequireExplainableContinueReason:
           settingsRuntime.cfg?.workLoopRequireExplainableContinueReason ?? true,
         workLoopMaxSameSubproblemRetries: settingsRuntime.cfg?.workLoopMaxSameSubproblemRetries || 2,

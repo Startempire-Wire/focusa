@@ -64,11 +64,7 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
     180
   );
   const continuity = scopeVerified ? line(packet?.continuity_id || getContinuityId()) : "unverified";
-  const hltStatus = compact(
-    (trajectory as { hlt_status?: string }).hlt_status,
-    "unknown",
-    40
-  );
+  const hltStatus = compact((trajectory as { hlt_status?: string }).hlt_status, "unknown", 40);
   const attachmentKey = currentAttachmentKey();
   const interactionMode = attachmentKey
     ? getAttachmentRuntime(attachmentKey).cfg.interactionMode

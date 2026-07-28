@@ -3540,8 +3540,10 @@ mod trajectory_ladder_ledger_tests {
 
     fn test_persistence() -> (SqlitePersistence, PathBuf) {
         let root = std::env::temp_dir().join(format!("focusa-ladder-ledger-{}", Uuid::now_v7()));
-        let mut config = FocusaConfig::default();
-        config.data_dir = root.display().to_string();
+        let config = FocusaConfig {
+            data_dir: root.display().to_string(),
+            ..FocusaConfig::default()
+        };
         let persistence = SqlitePersistence::new(&config).expect("test persistence");
         (persistence, root)
     }

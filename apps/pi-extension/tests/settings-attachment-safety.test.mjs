@@ -14,7 +14,11 @@ const settings = commandsSource.slice(settingsStart, settingsEnd);
 
 assert.match(settings, /const settingsAttachmentKey = currentAttachmentKey\(\)/);
 assert.match(settings, /const settingsRuntime = getAttachmentRuntime\(settingsAttachmentKey\)/);
-assert.doesNotMatch(settings, /getAttachmentRuntime\(\)/, "deferred settings code must not depend on async context");
+assert.doesNotMatch(
+  settings,
+  /getAttachmentRuntime\(\)/,
+  "deferred settings code must not depend on async context"
+);
 assert.match(settings, /Focusa setting was not saved; prior configuration remains active/);
 assert.match(settings, /prior value restored/);
 assert.match(settings, /if \(!persistDraft\(\)\) Object\.assign\(draft, priorDraft\)/);

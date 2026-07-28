@@ -200,7 +200,7 @@ fn append_only_recovery_and_scope_isolation_are_deterministic() {
         horizon_claim_ref: "temporal:horizon".into(),
         evidence_refs: vec!["evidence:1".into()],
     };
-    let events = vec![
+    let events = [
         ScopedAuthorityEvent {
             event_id: "event:1".into(),
             sequence: 1,
