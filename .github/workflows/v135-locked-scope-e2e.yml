@@ -85,7 +85,17 @@ jobs:
               >"$RUNNER_TEMP/previous-updater.json" 2>&1
           updater_rc=$?
           set -e
-          printf 'previous_updater_rc=%s\n' "$updater_rc" | tee "$RUNNER_TEMP/previous-updater-verdict.txt"
+          if curl -fsS http://127.0.0.1:8787/v1/health >"$RUNNER_TEMP/post-rollback-health.json"; then
+            daemon_state=running
+            daemon_version="$(jq -r '.version // .data.version // "unknown"' "$RUNNER_TEMP/post-rollback-health.json")"
+          else
+            daemon_state=stopped
+            daemon_version=unavailable
+          fi
+          extension_version="$(jq -r '.version' "$RUNNER_TEMP/old-home/.pi/agent/extensions/focusa/package.json")"
+          printf 'previous_updater_rc=%s\npost_rollback_daemon=%s\npost_rollback_version=%s\npost_rollback_extension=%s\n' \
+            "$updater_rc" "$daemon_state" "$daemon_version" "$extension_version" \
+            | tee "$RUNNER_TEMP/previous-updater-verdict.txt"
           cat "$RUNNER_TEMP/previous-updater.json"
           kill "$daemon_pid" 2>/dev/null || true
           wait "$daemon_pid" 2>/dev/null || true
@@ -110,20 +120,15 @@ jobs:
           cat > "$RUNNER_TEMP/ota-home/.local/state/focusa/update/pi-extension-restart-required.json" <<JSON
           {"schema":"focusa.pi_extension_restart_required.v1","version":"0.9.135-dev","installed_at":"2026-07-28T00:00:00Z"}
           JSON
-          cat > "$RUNNER_TEMP/drive-pi.exp" <<'EXPECT'
-          log_user 1
-          set timeout 70
-          log_file -noappend $env(RUNNER_TEMP)/stale-runtime-pi.log
-          spawn env HOME=$env(RUNNER_TEMP)/ota-home XDG_STATE_HOME=$env(RUNNER_TEMP)/ota-home/.local/state PI_CODING_AGENT_SESSION_DIR=$env(RUNNER_TEMP)/ota-sessions pi --no-extensions -e $env(RUNNER_TEMP)/previous/pi-extension/src/index.ts
-          after 20000
-          send "\033"
-          after 15000
-          send "\003"
-          after 1000
-          send "\003"
-          expect eof
-          EXPECT
-          (cd "$RUNNER_TEMP/pi-project" && expect "$RUNNER_TEMP/drive-pi.exp") || true
+          if ! command -v tmux >/dev/null; then brew install tmux; fi
+          tmux kill-session -t focusa-ota-e2e 2>/dev/null || true
+          tmux new-session -d -s focusa-ota-e2e -x 140 -y 45 -c "$RUNNER_TEMP/pi-project" \
+            "env HOME=$RUNNER_TEMP/ota-home XDG_STATE_HOME=$RUNNER_TEMP/ota-home/.local/state PI_CODING_AGENT_SESSION_DIR=$RUNNER_TEMP/ota-sessions pi --no-extensions -e $RUNNER_TEMP/previous/pi-extension/src/index.ts"
+          sleep 12
+          tmux send-keys -t focusa-ota-e2e Escape
+          sleep 10
+          tmux capture-pane -epJt focusa-ota-e2e -S -100 >"$RUNNER_TEMP/stale-runtime-pi.log"
+          tmux kill-session -t focusa-ota-e2e 2>/dev/null || true
           marker="$RUNNER_TEMP/ota-home/.local/state/focusa/update/pi-extension-restart-required.json"
           receipt="$RUNNER_TEMP/ota-home/.local/state/focusa/update/pi-extension-activation-receipt.json"
           if grep -q 'focusa-activate-updated-extension' "$RUNNER_TEMP/stale-runtime-pi.log"; then
@@ -144,6 +149,7 @@ jobs:
           path: |
             ${{ runner.temp }}/previous-updater.json
             ${{ runner.temp }}/previous-updater-verdict.txt
+            ${{ runner.temp }}/post-rollback-health.json
             ${{ runner.temp }}/old-daemon.log
             ${{ runner.temp }}/stale-runtime-pi.log
             ${{ runner.temp }}/stale-runtime-verdict.txt
