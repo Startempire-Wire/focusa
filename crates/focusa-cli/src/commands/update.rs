@@ -3593,6 +3593,8 @@ mod tests {
         normalize_version, path_is_git_managed, pi_extension_package_from_settings,
         rollback_promoted_parts,
     };
+    #[cfg(target_os = "macos")]
+    use super::{restart_daemon_service, stop_daemon_service};
 
     #[test]
     fn normalizes_common_version_outputs() {
