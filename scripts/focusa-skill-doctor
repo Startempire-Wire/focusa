@@ -3,11 +3,26 @@ import hashlib, json, os
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
-canonical = root / ".pi/skills"
+candidates = [
+    Path(os.environ["FOCUSA_CANONICAL_SKILLS"]) if os.environ.get("FOCUSA_CANONICAL_SKILLS") else None,
+    root / ".pi/skills",
+    root / "skills",
+    root / "agent-context/skills",
+]
+canonical = next((path for path in candidates if path and path.is_dir()), None)
 targets = [Path.home() / ".pi/skills", Path.home() / ".pi/agent/skills"]
 
 def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+if canonical is None:
+    print(json.dumps({
+        "schema":"focusa.skill_doctor.v1",
+        "status":"blocked",
+        "findings":[{"status":"missing_canonical_root"}],
+        "recovery":"Rerun the signed Focusa installer or set FOCUSA_CANONICAL_SKILLS to the verified skill root.",
+    }, indent=2))
+    raise SystemExit(2)
 
 canonical_skills = {p.parent.name: p for p in canonical.glob("*/SKILL.md")}
 findings = []
@@ -23,7 +38,7 @@ for target in targets:
                 "canonical_digest":digest(source),"installed_digest":digest(candidate)
             })
     for name, candidate in installed.items():
-        if name.startswith("focusa") and name not in canonical_skills:
+        if (name.startswith("focusa") or name == "predictive-power") and name not in canonical_skills:
             findings.append({"status":"orphaned","skill":name,"target":str(candidate)})
 shadowed = sorted({f["skill"] for f in findings if f["status"] == "stale_or_conflicting"})
 payload = {
@@ -33,7 +48,7 @@ payload = {
     "status":"healthy" if not findings else "degraded",
     "shadowed":shadowed,
     "findings":findings,
-    "recovery":"Synchronize from the signed focusa-agent-context release asset; retire orphaned Focusa skills only after backup.",
+    "recovery":"Rerun the signed Focusa installer to synchronize missing or stale skills; retire orphaned Focusa skills only after backup.",
 }
 print(json.dumps(payload, indent=2))
 raise SystemExit(0 if not findings else 2)
