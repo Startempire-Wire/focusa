@@ -1,7 +1,7 @@
 {
   "schema": "focusa.tool_contracts.v1",
   "version": "spec90.tool_contracts.v1",
-  "tool_count": 115,
+  "tool_count": 116,
   "contracts": [
     {
       "name": "focusa_preload_profiles",
@@ -3682,6 +3682,38 @@
       "scope_requirement": {
         "kind": "read",
         "route_family": "awareness:read"
+      },
+      "authority_requirement": {
+        "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_prediction_authority",
+      "label": "Prediction Authority",
+      "purpose": "Append or project immutable Spec 138 authority in typed scope.",
+      "family": "metacognition",
+      "ontology_action": "prediction.authority",
+      "ontology_objects": [
+        "ScopedCapabilityRecord"
+      ],
+      "api_routes": [
+        "POST /v1/prediction-authority/events",
+        "POST /v1/prediction-authority/projection"
+      ],
+      "cli_commands": [
+        "focusa predict authority-append",
+        "focusa predict authority-projection"
+      ],
+      "core_surface": "Scoped Focusa authority",
+      "doc_path": "docs/focusa-tools/tools/focusa_prediction_authority.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "write_or_read_prediction_authority",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus scoped API smoke test",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "auto"
       },
       "authority_requirement": {
         "kind": "advisory_only"

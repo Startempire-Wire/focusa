@@ -667,6 +667,13 @@ mod tests {
                 "predictions-test",
                 "test-actor",
             )),
+            prediction_authority_store: Arc::new(ScopedCrdtLedger::<
+                focusa_core::prediction_authority::ScopedAuthorityEvent,
+            >::new(
+                &cfg.data_dir,
+                "prediction-authority-test",
+                "test-actor",
+            )),
             recent_completed_turns_by_scope: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             snapshots_by_scope: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             metacog_by_scope: Arc::new(std::sync::Mutex::new(HashMap::new())),

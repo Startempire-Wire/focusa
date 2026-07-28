@@ -1,0 +1,18 @@
+GitHub #64 broad-root binding and first-Workpoint lease proof — 2026-07-27
+
+Fix:
+- explicit marker/Git child project outranks stale broad session roots (/root, /home/<user>, /Users/<user>)
+- stale broad candidate remains visible as warning, not blocking mismatch
+- specific cross-project conflicts remain fail-closed
+- mismatch text reports actual signal expected/actual values, not project-id/display-name nonsense
+- first Pi Workpoint checkpoint accepts writer identity without requiring a pre-existing fenced Work Loop lease
+- later Work Loop mutations still require lease/fencing
+- typed focusa_project_bootstrap/genesis tools remain the agent-native init route
+
+Proof:
+- stale account-root authority test: PASS
+- Spec102 project mismatch semantics: PASS
+- work-loop scoped lease client contract: PASS
+- Pi extension typecheck: PASS
+- focusa-api compile/tests: PASS
+- git diff --check: PASS

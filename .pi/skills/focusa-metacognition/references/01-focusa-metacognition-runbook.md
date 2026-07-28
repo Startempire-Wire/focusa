@@ -1,23 +1,58 @@
 # Focusa Metacognition Runbook
 
-## Workflow
+## Preconditions
 
-1. Retrieve before planning with `focusa_metacog_retrieve` or diagnose with `focusa_metacog_doctor`.
-2. Capture only concise, reusable, evidence-backed lessons—not transcript blobs.
-3. Reflect across a bounded turn range after an outcome exists.
-4. Turn selected updates into an adjustment and evaluate observed metrics before promotion.
-5. Link resulting evidence to the active Workpoint.
+- Verify project root plus continuity scope when project-bound.
+- Resume or checkpoint the canonical Workpoint before long/risky work.
+- Confirm current operator steering and mutation approval boundaries.
+- Use targeted local gates during development; CI requires explicit release authorization.
 
-## Tool discovery
+## Dependency graph
 
-Use `focusa_tool_search` for `metacognition`, then `focusa_tool_describe` for exact schemas. All metacognition Pi tools are projected in `docs/contracts/spec141/generated-capability-v2/pi-tools.json` and documented under `docs/focusa-tools/tools/`.
+```text
+focusa_metacog_capture -> focusa_metacog_doctor
+focusa_metacog_doctor -> focusa_metacog_evaluate_outcome
+focusa_metacog_evaluate_outcome -> focusa_metacog_loop_run
+focusa_metacog_loop_run -> focusa_metacog_plan_adjust
+focusa_metacog_plan_adjust -> focusa_metacog_recent_adjustments
+focusa_metacog_recent_adjustments -> focusa_metacog_recent_reflections
+focusa_metacog_recent_reflections -> focusa_metacog_reflect
+focusa_metacog_reflect -> focusa_metacog_retrieve
+```
 
-## Recovery
+## Minimal path
 
-- Validation rejection: inspect the live contract with `focusa_tool_doctor`; do not retry unchanged.
-- Scope mismatch: verify `project_root + continuity_id` before recording learning.
-- No outcome evidence: defer evaluation rather than inventing success.
+1. Call `focusa_metacog_capture` with only required bounded inputs.
+2. Call `focusa_metacog_doctor` with only required bounded inputs.
+3. Call `focusa_metacog_evaluate_outcome` with only required bounded inputs.
+4. Call `focusa_metacog_loop_run` with only required bounded inputs.
+5. Call `focusa_metacog_plan_adjust` with only required bounded inputs.
+6. Call `focusa_metacog_recent_adjustments` with only required bounded inputs.
+7. Call `focusa_metacog_recent_reflections` with only required bounded inputs.
+8. Call `focusa_metacog_reflect` with only required bounded inputs.
+9. Call `focusa_metacog_retrieve` with only required bounded inputs.
 
-## Done condition
+## Current domain procedure
 
-A learning record has scoped evidence, a measurable adjustment, and an evaluated outcome; otherwise it remains a candidate.
+1. Verify typed project/workstream scope before durable mutation.
+2. Return bounded evidence and executable recovery.
+
+## Branches
+
+- Unknown tool/schema: `focusa_tool_search` → `focusa_tool_describe`.
+- Scope conflict: `focusa_project_verify` → `focusa_workpoint_checkpoint`.
+- Daemon/degraded state: `focusa_tool_doctor`; retry only with safe posture.
+- Resource timeout: `focusa_resource_mode` → bounded `focusa_traverse`.
+- Browser failure: UIAI diagnostics → `focusa_browser_diagnostics_intake` → evidence.
+- Mutation ambiguity: inspect side effects/receipts before retry; require operator confirmation when declared.
+
+## Evidence and closure
+
+- Capture stable file/test/API/browser/receipt refs.
+- Link proof to the active Workpoint.
+- Evaluate relevant predictions and reusable learning only after outcome is known.
+- Done: The scoped operation is verified, evidenced, and handed to the next owning skill.
+
+## Cross-harness mapping
+
+Resolve equivalent Pi, MCP, OpenAI, CLI, and REST bindings through Agent Capability Descriptor V2; semantics and authority must remain identical.

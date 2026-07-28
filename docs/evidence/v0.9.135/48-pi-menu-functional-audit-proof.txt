@@ -1,0 +1,15 @@
+GitHub #48 exhaustive Pi interaction audit — 2026-07-27
+
+Generated inventory: docs/contracts/48-49-focusa-pi-menu-inventory.json
+Coverage: 9 commands, 37 simple/advanced setting placements, 3 contextual authority prompts = 49 entries.
+
+Every entry records owner, user job, placement, rationale, help, scope, risk, values, and interaction evidence. Gate compares source digest and fails on unregistered inventory changes, missing values/callbacks, silent persistence paths, or missing exception restoration.
+
+Proof:
+- menu audit gate: PASS (49/49)
+- Pi typecheck: PASS
+- settings attachment/lost-context regression: PASS
+- OTA activation interaction: PASS
+- interaction-mode test: PASS
+- generated inventory is the bounded headless render tree/coverage report
+- git diff --check: PASS

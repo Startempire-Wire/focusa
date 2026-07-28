@@ -1,6 +1,6 @@
 {
   "schema": "focusa.cli_command_projection.v2",
-  "registry_digest": "sha256:8da28148bf9c812232c01a2ec9fb60ef431e6722d84a4982f5f94e13bf4fd02f",
+  "registry_digest": "sha256:d7bb4c8fb927058bd546672f85ab3a3b9e6ffbbaf3a113d51f6671d8ecf4ba95",
   "commands": [
     {
       "command": "focusa workpoint resolve-object",
@@ -3085,6 +3085,110 @@
           "arguments": {},
           "human_invocation": "focusa predict stats",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_predict_stats.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa predict authority-append",
+      "capability_id": "focusa.prediction.authority",
+      "summary": "Append or project immutable Spec 138 authority in typed scope.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "const": "append",
+                "type": "string"
+              },
+              {
+                "const": "projection",
+                "type": "string"
+              }
+            ]
+          },
+          "event": {
+            "description": "ScopedAuthorityEvent when action=append."
+          },
+          "project_root": {
+            "description": "Explicit or current verified project root.",
+            "type": "string"
+          },
+          "continuity_id": {
+            "description": "Explicit or current continuity id.",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "write_or_read_prediction_authority",
+        "write_or_read_prediction_authority"
+      ],
+      "examples": [
+        {
+          "description": "Append or project immutable Spec 138 authority in typed scope.",
+          "arguments": {
+            "action": "append"
+          },
+          "human_invocation": "focusa predict authority-append",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_prediction_authority.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa predict authority-projection",
+      "capability_id": "focusa.prediction.authority",
+      "summary": "Append or project immutable Spec 138 authority in typed scope.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "const": "append",
+                "type": "string"
+              },
+              {
+                "const": "projection",
+                "type": "string"
+              }
+            ]
+          },
+          "event": {
+            "description": "ScopedAuthorityEvent when action=append."
+          },
+          "project_root": {
+            "description": "Explicit or current verified project root.",
+            "type": "string"
+          },
+          "continuity_id": {
+            "description": "Explicit or current continuity id.",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "write_or_read_prediction_authority",
+        "write_or_read_prediction_authority"
+      ],
+      "examples": [
+        {
+          "description": "Append or project immutable Spec 138 authority in typed scope.",
+          "arguments": {
+            "action": "append"
+          },
+          "human_invocation": "focusa predict authority-append",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_prediction_authority.md"
         }
       ],
       "deprecation": null

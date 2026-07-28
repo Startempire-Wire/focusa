@@ -1,10 +1,10 @@
 {
   "schema": "focusa.agent_route_classification.v1",
-  "route_count": 475,
+  "route_count": 477,
   "classification_counts": {
     "agent_eligible": 100,
     "internal": 6,
-    "operator_only": 363,
+    "operator_only": 365,
     "public_pairing": 6
   },
   "allowed_classifications": [
@@ -2960,6 +2960,30 @@
       ],
       "methods": [
         "GET"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/prediction-authority/events",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/prediction_authority.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": []
+    },
+    {
+      "path": "/v1/prediction-authority/projection",
+      "classification": "operator_only",
+      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "sources": [
+        "crates/focusa-api/src/routes/prediction_authority.rs"
+      ],
+      "methods": [
+        "POST"
       ],
       "operation_refs": []
     },

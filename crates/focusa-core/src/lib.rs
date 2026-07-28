@@ -47,6 +47,8 @@ pub mod memory;
 pub mod permissions;
 pub mod pre;
 pub mod prediction;
+pub mod prediction_authority;
+pub mod prediction_authority_ledger;
 pub mod provider_execution;
 pub mod reducer;
 pub mod reference;

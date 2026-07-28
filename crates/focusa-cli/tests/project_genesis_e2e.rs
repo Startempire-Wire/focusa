@@ -209,7 +209,7 @@ fn find_string<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
     }
 }
 
-fn mutation_args<'a>(project_root: &'a str, confirm: bool) -> Vec<&'a str> {
+fn mutation_args(project_root: &str, confirm: bool) -> Vec<&str> {
     let mut args = vec![
         "project",
         "genesis",

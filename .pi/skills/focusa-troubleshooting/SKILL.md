@@ -1,64 +1,55 @@
 ---
 name: focusa-troubleshooting
-description: "Use when Focusa is offline, degraded, stale, writer-conflicted, non-canonical, or tools return pending/blocked results that need recovery."
+description: "Use for troubleshooting workflows with bounded Focusa authority."
 ---
 
-# Focusa Troubleshooting Playbook
+# Focusa Troubleshooting
 
-Use when Focusa is offline, degraded, stale, writer-conflicted, non-canonical, or tools return pending/blocked results that need recovery.
+Use for troubleshooting workflows with bounded Focusa authority.
 
 ## Progressive disclosure
 
-Read `references/01-focusa-troubleshooting-runbook.md` for scoped diagnosis, contract drift, resource pressure, browser diagnostics, and safe retry posture.
+1. Load this core file only when its trigger matches.
+2. Read `references/01-focusa-troubleshooting-runbook.md` only for the selected workflow.
+3. Use `focusa_tool_describe` to cold-load exact schemas only for selected tools.
+4. Open linked specs/evidence only when a branch requires them.
 
-## Start here
+## Trigger examples
 
-1. Load the main Focusa skill if you need the whole system model: `/skill:focusa`.
-2. Read the focused tool doc: `docs/focusa-tools/diagnostics-hygiene.md`.
-3. Prefer canonical Focusa state over transcript memory.
-4. Preserve proof as evidence refs, not pasted logs.
+- troubleshooting workflows with bounded Focusa authority
 
-## Primary docs
+## Non-trigger examples
 
-- Focused tools: `docs/focusa-tools/diagnostics-hygiene.md`
-- Tool index: `docs/focusa-tools/README.md`
-- Operator guide: `docs/SPEC89_HARDENED_FOCUSA_TOOL_OPERATOR_GUIDE_2026-04-28.md`
-- Live release proof: `docs/evidence/SPEC89_REAL_RELEASE_LIVE_PROOF_2026-04-28.md`
+- unrelated implementation work
+- a narrower skill owns the selected capability
 
-## Common recovery playbooks
+## Required sequence
 
-### Trajectory cached-advisory timeout
+1. `focusa_tool_search`
 
-Message pattern: `trajectory view preserved cached advisory ...; cause=timeout` or older `timeout_preserved; noncanonical cached clarity`.
+Current operator steering, verified project scope, and canonical Workpoint authority remain higher priority than this default sequence.
 
-Meaning: trajectory hot-path timed out and the Pi wrapper preserved advisory cached orientation. It is not a task failure and is not canonical truth.
+## Failure recovery
 
-Recovery:
+- `focusa_tool_doctor`
+- `focusa_project_verify`
+- `focusa_workpoint_resume`
 
-1. Continue from canonical Workpoint/project identity if already verified.
-2. Run `focusa_resource_mode action="status"` and `focusa_tool_doctor scope="trajectory"`.
-3. Retry `focusa_trajectory_view mode="summary"` with explicit `project_root` and `continuity_id`.
-4. Avoid full lineage, full ontology, deep telemetry, or cold/full payload routes while resource mode is emergency/lowmem.
+Treat `blocked`, `pending`, `degraded`, `canonical=false`, validation rejection, and ambiguous side effects as recovery states—not completion.
 
-### UIAI/browser diagnostics intake blocked
+## Routing metadata
+- prerequisites: verified project identity and typed continuity when durable scope matters
+- use_instead_when: use the narrower owner in `docs/contracts/65-focusa-skill-ownership-manifest.json`
+- next_skills: `focusa-workpoint`, `focusa-evidence-outcomes`, `focusa-metacognition`
+- failure_handoff: `focusa-troubleshooting`
+- authority_boundary: operator steering leads; daemon and typed Workpoint/Trajectory contracts remain canonical
+- workflow: `focusa-project-scope` → `focusa-troubleshooting` → `focusa-workpoint` → `focusa-evidence-outcomes`
+- minimum_contract: `focusa.tool_affordance_catalog.v1`
+- source_status: generated core plus hand-authored registry content; no sibling-body injection
+- supersession: none
 
-If `focusa_browser_diagnostics_intake` is blocked by scope or trajectory clarity, preserve the diagnostics file path in the response, run `focusa_workpoint_resume`, then retry with explicit `project_root`/`workpoint_id` or use `attach_to_workpoint=false` for dry intake. If UIAI returned `url_not_allowed`, treat it as hardened private-target policy evidence; Focusa intake can record it but cannot bypass UIAI URL safety.
+## Done condition
 
-### KH/OVH UIAI route failure
+The scoped operation is verified, evidenced, and handed to the next owning skill.
 
-KH clients continue to use `http://localhost:7456`, but `uiai-engine.service` is now an SSH compatibility forward to OVH sticky RR `7460`; UIAI/Chromium compute must not run on KH. Check the KH unit, then OVH `uiai-engine-ovh`, `uiai-engine-ovh-w2`, and `uiai-ovh-rr`. Require Pi-native health plus open/read/snapshot/diagnostics proof because malformed compression or duplicate framing may pass curl while breaking Node fetch. Use `/root/dual-server-master-plan/runbooks/21-focusa-ovh-uiai-and-build-offload-runbook.md` for rollback.
-
-### KH local build detected
-
-Inside `/home/wirebot/focusa`, root Pi resolves Cargo/npm/npx through `/root/.pi/agent/bin/` shims to `/usr/local/bin/focusa-ovh-build`; compile/test execution belongs on OVH as `wirebot`. `cargo test` must use the isolated OVH test daemon, never the KH production daemon. Commands outside Focusa remain local. Release builds stay GitHub-hosted and the KH `focusa-deploy` runner remains artifact-only.
-
-## Safety rules
-
-- Treat `canonical=false`, `degraded=true`, `pending`, or `blocked` as recovery states, not success.
-- Use Workpoint resume/checkpoint around compaction, context overflow, model switch, fork, or risky release work.
-- Healthy Workpoint continuity makes generic `/fork`/`/new` context-pressure warnings redundant; treat them as recovery prompts only when Focusa is degraded.
-- Same-project post-compaction `session_id` drift is normal continuity metadata; `project_root` and `continuity_id` mismatches are isolation errors.
-- Multiple same-root sessions remain distinct through continuity_id; trajectory/goals are corroborating signals only.
-- If a Focus State write rejects validation, record the full note in `focusa_scratch`, retry once with declarative boundary phrasing, then continue.
-- Use writer-status/preflight before mutating work-loop state.
-- Do not describe Focusa as complete or frozen; use current snapshot/version language.
+Stable evidence or receipt refs must support any completion claim.

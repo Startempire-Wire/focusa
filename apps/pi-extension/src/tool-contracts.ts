@@ -411,7 +411,13 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "Preview, apply, inspect, or repair an idempotent local project-discipline baseline with explicit Git/task choices, receipts, rollback, and Project Genesis handoff.",
     family: "project_identity",
     ontology_action: "project.bootstrap",
-    ontology_objects: ["ProjectIdentity", "TaskProvider", "TrajectoryProjection", "WorkpointRecord", "EvidenceRef"],
+    ontology_objects: [
+      "ProjectIdentity",
+      "TaskProvider",
+      "TrajectoryProjection",
+      "WorkpointRecord",
+      "EvidenceRef",
+    ],
     api_routes: [
       "POST /v1/project/bootstrap/preview",
       "POST /v1/project/bootstrap/apply",
@@ -426,7 +432,8 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     side_effect_profile: "preview_read_or_confirmed_local_bootstrap_repair",
     parity_status: "full",
     exemptions: [],
-    live_check: "Spec143 bootstrap preview/apply/status/repair, local-only, Beads, Genesis, replay, rollback, and concurrency gates",
+    live_check:
+      "Spec143 bootstrap preview/apply/status/repair, local-only, Beads, Genesis, replay, rollback, and concurrency gates",
     scope_requirement: { kind: "write", route_family: "explicit_project_continuity" },
     authority_requirement: { kind: "canonical", path: "daemon:/v1/project/bootstrap/apply" },
   },
@@ -459,7 +466,8 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     side_effect_profile: "start_resume_read_or_confirmed_atomic_commit",
     parity_status: "full",
     exemptions: [],
-    live_check: "Spec143 Project Genesis API, CLI, Pi, idempotency, HLT Impasse, task-provider, first Workpoint, and marker-ready-last gates",
+    live_check:
+      "Spec143 Project Genesis API, CLI, Pi, idempotency, HLT Impasse, task-provider, first Workpoint, and marker-ready-last gates",
     scope_requirement: { kind: "write", route_family: "explicit_project_continuity" },
     authority_requirement: { kind: "canonical", path: "daemon:/v1/project/genesis/commit" },
   },
@@ -487,7 +495,8 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     side_effect_profile: "status_preflight_read_or_confirmed_claim_write_or_observation",
     parity_status: "full",
     exemptions: [],
-    live_check: "Spec137 no-deadline, scope, commitment, revision, observation, forecast, calibration, resume, and cross-surface gates",
+    live_check:
+      "Spec137 no-deadline, scope, commitment, revision, observation, forecast, calibration, resume, and cross-surface gates",
     scope_requirement: { kind: "write", route_family: "explicit_project_continuity" },
     authority_requirement: { kind: "canonical", path: "daemon:/v1/temporal/commit" },
   },
@@ -2421,6 +2430,25 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     scope_requirement: { kind: "read", route_family: "awareness:read" },
     authority_requirement: { kind: "advisory_only" },
   },
+  {
+    name: "focusa_prediction_authority",
+    label: "Prediction Authority",
+    purpose: "Append or project immutable Spec 138 authority in typed scope.",
+    family: "metacognition",
+    ontology_action: "prediction.authority",
+    ontology_objects: ["ScopedCapabilityRecord"],
+    api_routes: ["POST /v1/prediction-authority/events", "POST /v1/prediction-authority/projection"],
+    cli_commands: ["focusa predict authority-append", "focusa predict authority-projection"],
+    core_surface: "Scoped Focusa authority",
+    doc_path: "docs/focusa-tools/tools/focusa_prediction_authority.md",
+    result_envelope: "tool_result_v1",
+    side_effect_profile: "write_or_read_prediction_authority",
+    parity_status: "full",
+    exemptions: [],
+    live_check: "contract_static plus scoped API smoke test",
+    scope_requirement: { kind: "read", route_family: "auto" },
+    authority_requirement: { kind: "advisory_only" },
+  },
 ];
 
 export function focusaToolContractSummary() {
@@ -2460,6 +2488,7 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
   focusa_tool_graph: ["focusa_tool_describe", "focusa_tool_bundle", "focusa_tool_search"],
   focusa_tool_bundle: ["focusa_tool_describe", "focusa_tool_graph", "focusa_tool_search"],
   focusa_agent_card: ["focusa_tool_search", "focusa_tool_bundle", "focusa_project_identity"],
+  focusa_prediction_authority: ["focusa_predict_recent", "focusa_evidence_capture", "focusa_metacog_capture"],
   focusa_browser_capabilities_intake: [
     "focusa_browser_workflow_plan",
     "focusa_browser_diagnostics_intake",
@@ -2499,21 +2528,9 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
     "focusa_workpoint_resume",
     "focusa_tool_doctor",
   ],
-  focusa_project_bootstrap: [
-    "focusa_project_genesis",
-    "focusa_project_verify",
-    "focusa_workpoint_resume",
-  ],
-  focusa_project_genesis: [
-    "focusa_workpoint_resume",
-    "focusa_trajectory_view",
-    "focusa_project_verify",
-  ],
-  focusa_temporal_authority: [
-    "focusa_trajectory_view",
-    "focusa_workpoint_resume",
-    "focusa_project_verify",
-  ],
+  focusa_project_bootstrap: ["focusa_project_genesis", "focusa_project_verify", "focusa_workpoint_resume"],
+  focusa_project_genesis: ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_project_verify"],
+  focusa_temporal_authority: ["focusa_trajectory_view", "focusa_workpoint_resume", "focusa_project_verify"],
   focusa_trajectory_view: [
     "focusa_temporal_authority",
     "focusa_trajectory_assess",

@@ -1,0 +1,18 @@
+GitHub #87 cloud proof — 2026-07-27
+
+Commit: fa9ad7b7
+
+Fix:
+- resolves npm to an absolute launcher path while preserving its sibling-node directory
+- supports FOCUSA_NPM_BIN and nonstandard distributions such as ServBay
+- reports executable/cwd paths and existence on ENOENT
+- restores exact pre-transaction daemon running/stopped state after rollback
+- verifies recovered daemon health; never silently claims successful state restoration
+
+Proof:
+- cargo check -p focusa-cli: PASS
+- npm_resolution_accepts_absolute_nonstandard_install: PASS
+- pi_extension_archive_install_is_checksum_stage_and_activation_safe: PASS
+- failed_update_restores_exact_pre_transaction_daemon_state: PASS
+- atomic_rollback_restores_previous_binary_and_removes_failed_candidate: PASS
+- GitHub release cycle remains responsible for signed x86_64-apple-darwin build and deploy proof

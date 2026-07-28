@@ -1,0 +1,12 @@
+GitHub #59 Trajectory Ladder integrity proof — 2026-07-27
+
+Merged foundation: PR #60 / 78a3864d, including canonical HLT authority/history, typed Waypoint migration, marker integrity guard, route/tool parity, and restart-safe ledger/query.
+
+Campaign fix: awareness output now preserves explicit hlt_status instead of hiding authority posture.
+
+Proof:
+- spec143_trajectory_ladder_integrity_static_test.py: PASS
+- spec125_hlt_status_model_static_test.sh: PASS
+- Pi extension typecheck: PASS
+- canonical HLT, history/session fallback, generic marker rejection, Waypoint migration, awareness/compaction propagation: PASS
+- git diff --check: PASS

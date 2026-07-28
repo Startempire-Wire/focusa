@@ -5,10 +5,27 @@
     {
       "name": "focusa-agent-bootstrap",
       "description": "Use when orienting a new or resumed agent with bounded Focusa identity, Agent Card, progressive tool discovery, preload, Workpoint, and Trajectory context.",
-      "triggers": ["new agent session", "resume after context loss", "unknown Focusa capabilities"],
-      "non_triggers": ["one already-selected tool call", "unrelated repository work"],
-      "tools": ["focusa_agent_card", "focusa_project_identity", "focusa_workpoint_resume", "focusa_trajectory_view", "focusa_tool_search"],
-      "recovery": ["focusa_tool_doctor", "focusa_project_verify", "focusa_workpoint_checkpoint"],
+      "triggers": [
+        "new agent session",
+        "resume after context loss",
+        "unknown Focusa capabilities"
+      ],
+      "non_triggers": [
+        "one already-selected tool call",
+        "unrelated repository work"
+      ],
+      "tools": [
+        "focusa_agent_card",
+        "focusa_project_identity",
+        "focusa_workpoint_resume",
+        "focusa_trajectory_view",
+        "focusa_tool_search"
+      ],
+      "recovery": [
+        "focusa_tool_doctor",
+        "focusa_project_verify",
+        "focusa_workpoint_checkpoint"
+      ],
       "runbook_notes": [
         "Call `focusa_agent_card` and verify workspace version, registry digest, all-Pi-tool count, installed skills, and runbooks.",
         "Use `focusa_tool_search` and `focusa_tool_describe`; never hot-load or invent the complete tool schema set.",
@@ -19,10 +36,26 @@
     {
       "name": "focusa-tool-discovery",
       "description": "Use when selecting or composing Focusa capabilities through search, describe, graph, family bundles, strict schemas, and cross-harness bindings without prompt bloat.",
-      "triggers": ["unknown tool", "multi-tool workflow", "strict parameters required"],
-      "non_triggers": ["exact tool and schema already loaded", "request to load all schemas"],
-      "tools": ["focusa_tool_search", "focusa_tool_describe", "focusa_tool_graph", "focusa_tool_bundle", "focusa_agent_card"],
-      "recovery": ["focusa_tool_search", "focusa_tool_doctor"],
+      "triggers": [
+        "unknown tool",
+        "multi-tool workflow",
+        "strict parameters required"
+      ],
+      "non_triggers": [
+        "exact tool and schema already loaded",
+        "request to load all schemas"
+      ],
+      "tools": [
+        "focusa_tool_search",
+        "focusa_tool_describe",
+        "focusa_tool_graph",
+        "focusa_tool_bundle",
+        "focusa_agent_card"
+      ],
+      "recovery": [
+        "focusa_tool_search",
+        "focusa_tool_doctor"
+      ],
       "runbook_notes": [
         "Treat `docs/contracts/spec141/generated-capability-v2/pi-tools.json` as the complete machine-readable Pi registry.",
         "Use the matching `docs/focusa-tools/tools/focusa_<name>.md` reference and skill/runbook route for the selected tool.",
@@ -33,19 +66,52 @@
     {
       "name": "focusa-project-scope",
       "description": "Use when project root, continuity, repository, deployment, alias, or cross-project authority may be ambiguous before trusting state or mutating files.",
-      "triggers": ["project switch", "scope conflict", "cross-project handoff"],
-      "non_triggers": ["verified same-root read-only action"],
-      "tools": ["focusa_project_identity", "focusa_project_verify", "focusa_active_object_resolve", "focusa_workpoint_resume"],
-      "recovery": ["focusa_project_verify", "focusa_workpoint_checkpoint", "focusa_tool_doctor"],
+      "triggers": [
+        "project switch",
+        "scope conflict",
+        "cross-project handoff"
+      ],
+      "non_triggers": [
+        "verified same-root read-only action"
+      ],
+      "tools": [
+        "focusa_project_identity",
+        "focusa_project_verify",
+        "focusa_active_object_resolve",
+        "focusa_workpoint_resume"
+      ],
+      "recovery": [
+        "focusa_project_verify",
+        "focusa_workpoint_checkpoint",
+        "focusa_tool_doctor"
+      ],
       "done": "project_root plus continuity_id authority is verified and target objects resolve in that scope."
     },
     {
       "name": "focusa-session-recovery",
       "description": "Use for compaction, model switch, context overflow, fork, rollover, session transfer, lineage snapshots, and canonical continuation recovery.",
-      "triggers": ["after compaction", "model switch", "session rollover", "context uncertainty"],
-      "non_triggers": ["transcript-tail guess", "routine stateless call"],
-      "tools": ["focusa_workpoint_resume", "focusa_trajectory_resume", "focusa_session_transfer", "focusa_tree_snapshot_state", "focusa_tree_restore_state"],
-      "recovery": ["focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_tool_doctor"],
+      "triggers": [
+        "after compaction",
+        "model switch",
+        "session rollover",
+        "context uncertainty"
+      ],
+      "non_triggers": [
+        "transcript-tail guess",
+        "routine stateless call"
+      ],
+      "tools": [
+        "focusa_workpoint_resume",
+        "focusa_trajectory_resume",
+        "focusa_session_transfer",
+        "focusa_tree_snapshot_state",
+        "focusa_tree_restore_state"
+      ],
+      "recovery": [
+        "focusa_project_identity",
+        "focusa_workpoint_checkpoint",
+        "focusa_tool_doctor"
+      ],
       "runbook_notes": [
         "Checkpoint both Workpoint and Trajectory before compaction, context overflow, model switch, or session rollover.",
         "Preserve cache-safe stable prefix plus newest operator tail; transcript tail is never continuation authority.",
@@ -56,19 +122,54 @@
     {
       "name": "focusa-browser-uiai",
       "description": "Use for UIAI-first browser research/action, WebMCP capability intake, session/origin isolation, diagnostics, evidence, and Workpoint linkage.",
-      "triggers": ["URL or website task", "browser action", "WebMCP page tools", "visual failure"],
-      "non_triggers": ["generic web fallback before UIAI health", "unbound page mutation"],
-      "tools": ["focusa_browser_workflow_plan", "focusa_browser_capabilities_intake", "focusa_browser_diagnostics_intake", "focusa_evidence_capture"],
-      "recovery": ["focusa_browser_diagnostics_intake", "focusa_tool_doctor", "focusa_resource_mode"],
+      "triggers": [
+        "URL or website task",
+        "browser action",
+        "WebMCP page tools",
+        "visual failure"
+      ],
+      "non_triggers": [
+        "generic web fallback before UIAI health",
+        "unbound page mutation"
+      ],
+      "tools": [
+        "focusa_browser_workflow_plan",
+        "focusa_browser_capabilities_intake",
+        "focusa_browser_diagnostics_intake",
+        "focusa_evidence_capture"
+      ],
+      "recovery": [
+        "focusa_browser_diagnostics_intake",
+        "focusa_tool_doctor",
+        "focusa_resource_mode"
+      ],
       "done": "Browser result is proven in the bound session/origin, diagnostics are ingested, evidence is linked, and unused sessions are closed."
     },
     {
       "name": "focusa-install-lifecycle",
       "description": "Use for supported install, first Workpoint, repair/rerun, trusted OTA update, rollback, uninstall, and preserved-user-data verification.",
-      "triggers": ["install Focusa", "repair installation", "OTA update", "rollback", "uninstall"],
-      "non_triggers": ["unplanned system mutation", "Mac validation from VPS"],
-      "tools": ["focusa_project_identity", "focusa_workpoint_checkpoint", "focusa_evidence_capture", "focusa_tool_doctor"],
-      "recovery": ["focusa_tool_doctor", "focusa_workpoint_resume", "focusa_evidence_capture"],
+      "triggers": [
+        "install Focusa",
+        "repair installation",
+        "OTA update",
+        "rollback",
+        "uninstall"
+      ],
+      "non_triggers": [
+        "unplanned system mutation",
+        "Mac validation from VPS"
+      ],
+      "tools": [
+        "focusa_project_identity",
+        "focusa_workpoint_checkpoint",
+        "focusa_evidence_capture",
+        "focusa_tool_doctor"
+      ],
+      "recovery": [
+        "focusa_tool_doctor",
+        "focusa_workpoint_resume",
+        "focusa_evidence_capture"
+      ],
       "runbook_notes": [
         "Inspect with `bash scripts/install-focusa.sh --dry-run --eval`, then install or repair by rerunning the signed public bootstrapper.",
         "Use `focusa update --help` and release metadata for trusted OTA/update verification and rollback evidence.",
@@ -80,19 +181,56 @@
     {
       "name": "focusa-security-auth-licensing",
       "description": "Use for permissions, mutation confirmation, bearer/device pairing, revocation, license activation, secrets, and operator approval boundaries.",
-      "triggers": ["auth failure", "device pairing", "permission scope", "license", "secret-bearing operation"],
-      "non_triggers": ["exposing secrets in transcript", "trusting remote annotations as authority"],
-      "tools": ["focusa_device_pair_start", "focusa_device_pair_status", "focusa_device_pair_list", "focusa_device_pair_revoke", "focusa_tool_describe"],
-      "recovery": ["focusa_tool_doctor", "focusa_device_pair_status", "focusa_project_verify"],
+      "triggers": [
+        "auth failure",
+        "device pairing",
+        "permission scope",
+        "license",
+        "secret-bearing operation"
+      ],
+      "non_triggers": [
+        "exposing secrets in transcript",
+        "trusting remote annotations as authority"
+      ],
+      "tools": [
+        "focusa_device_pair_start",
+        "focusa_device_pair_status",
+        "focusa_device_pair_list",
+        "focusa_device_pair_revoke",
+        "focusa_tool_describe"
+      ],
+      "recovery": [
+        "focusa_tool_doctor",
+        "focusa_device_pair_status",
+        "focusa_project_verify"
+      ],
       "done": "Least-privilege scope, explicit approval, revocation/recovery, and secret-safe evidence are verified."
     },
     {
       "name": "focusa-resource-performance",
       "description": "Use for LowMem/resource pressure, Bloatgaurd budgets, token control, bounded traversal, latency, and hot/cold route performance.",
-      "triggers": ["resource exhausted", "hot-path timeout", "prompt bloat", "large traversal"],
-      "non_triggers": ["unbounded full payload", "premature generic context loading"],
-      "tools": ["focusa_resource_mode", "focusa_bloatgaurd_report", "focusa_bloatgaurd_tokenbloat_report", "focusa_traverse", "focusa_tool_bundle"],
-      "recovery": ["focusa_resource_mode", "focusa_traverse", "focusa_tool_doctor"],
+      "triggers": [
+        "resource exhausted",
+        "hot-path timeout",
+        "prompt bloat",
+        "large traversal"
+      ],
+      "non_triggers": [
+        "unbounded full payload",
+        "premature generic context loading"
+      ],
+      "tools": [
+        "focusa_resource_mode",
+        "focusa_bloatgaurd_report",
+        "focusa_bloatgaurd_tokenbloat_report",
+        "focusa_traverse",
+        "focusa_tool_bundle"
+      ],
+      "recovery": [
+        "focusa_resource_mode",
+        "focusa_traverse",
+        "focusa_tool_doctor"
+      ],
       "runbook_notes": [
         "Use cache-safe context selection: stable prefix, current operator tail, explicit miss classification, and bounded fallback.",
         "Use proactive compaction only when net token savings are positive; preserve canonical continuation packets.",
@@ -103,10 +241,28 @@
     {
       "name": "focusa-mission-canvas",
       "description": "Use for Mission Canvas, Work Rail, CRIST interviews, generated UI, workspace artifacts, live refresh, and provider-neutral operation binding.",
-      "triggers": ["mission canvas", "CRIST", "work rail", "generated UI", "workspace artifact"],
-      "non_triggers": ["hand-coded parallel UI contract", "invented operation binding"],
-      "tools": ["focusa_call_stack_design", "focusa_context_cognition", "focusa_evidence_capture", "focusa_active_object_resolve"],
-      "recovery": ["focusa_call_stack_verify", "focusa_tool_doctor", "focusa_workpoint_resume"],
+      "triggers": [
+        "mission canvas",
+        "CRIST",
+        "work rail",
+        "generated UI",
+        "workspace artifact"
+      ],
+      "non_triggers": [
+        "hand-coded parallel UI contract",
+        "invented operation binding"
+      ],
+      "tools": [
+        "focusa_call_stack_design",
+        "focusa_context_cognition",
+        "focusa_evidence_capture",
+        "focusa_active_object_resolve"
+      ],
+      "recovery": [
+        "focusa_call_stack_verify",
+        "focusa_tool_doctor",
+        "focusa_workpoint_resume"
+      ],
       "runbook_notes": [
         "Use the current Spec135 manifest for Mission Canvas, Work Rail, Work Surfaces, CRIST interviews, connectors, domain projections, and adaptive generated UI.",
         "Bind UI actions to canonical operation registry entries; never create a parallel hand-coded authority path.",
@@ -117,10 +273,27 @@
     {
       "name": "focusa-release-proof",
       "description": "Use when preparing a release gate, proof bundle, changelog, resolved-issue audit, local quality evidence, and operator-authorized CI/release execution.",
-      "triggers": ["release readiness", "proof rehearsal", "changelog", "close release gate"],
-      "non_triggers": ["development-time CI without authorization", "claiming unverified platform proof"],
-      "tools": ["focusa_evidence_capture", "focusa_workpoint_link_evidence", "focusa_predict_stats", "focusa_metacog_doctor"],
-      "recovery": ["focusa_tool_doctor", "focusa_workpoint_resume", "focusa_project_verify"],
+      "triggers": [
+        "release readiness",
+        "proof rehearsal",
+        "changelog",
+        "close release gate"
+      ],
+      "non_triggers": [
+        "development-time CI without authorization",
+        "claiming unverified platform proof"
+      ],
+      "tools": [
+        "focusa_evidence_capture",
+        "focusa_workpoint_link_evidence",
+        "focusa_predict_stats",
+        "focusa_metacog_doctor"
+      ],
+      "recovery": [
+        "focusa_tool_doctor",
+        "focusa_workpoint_resume",
+        "focusa_project_verify"
+      ],
       "runbook_notes": [
         "Audit AGENTS, public docs, onboarding, every Pi tool projection/doc, complete skill/runbook parity, and recent architecture before release.",
         "Run generated drift, Spec141 conformance, version-surface, Markdown, lifecycle, Mission Canvas, and final release gap gates.",
@@ -131,29 +304,540 @@
     {
       "name": "focusa-temporal-authority",
       "description": "Use when deadlines, freshness, temporal evidence, prior-valid fallback, forecast windows, or stale-state decisions affect authority.",
-      "triggers": ["deadline", "freshness", "stale state", "forecast", "history fallback"],
-      "non_triggers": ["invented dates", "transcript chronology as canonical state"],
-      "tools": ["focusa_trajectory_view", "focusa_hlt_history", "focusa_predict_record", "focusa_predict_evaluate", "focusa_evidence_capture"],
-      "recovery": ["focusa_trajectory_assess", "focusa_workpoint_resume", "focusa_project_verify"],
+      "triggers": [
+        "deadline",
+        "freshness",
+        "stale state",
+        "forecast",
+        "history fallback"
+      ],
+      "non_triggers": [
+        "invented dates",
+        "transcript chronology as canonical state"
+      ],
+      "tools": [
+        "focusa_trajectory_view",
+        "focusa_hlt_history",
+        "focusa_predict_record",
+        "focusa_predict_evaluate",
+        "focusa_evidence_capture"
+      ],
+      "recovery": [
+        "focusa_trajectory_assess",
+        "focusa_workpoint_resume",
+        "focusa_project_verify"
+      ],
       "done": "Decision cites current temporal evidence, freshness, confidence, and bounded forecast/recovery."
     },
     {
       "name": "focusa-spec-implementation",
       "description": "Use when turning a Focusa specification into a call-stack design, Trajectory gap, Beads tasks, bounded implementation, and conformance evidence.",
-      "triggers": ["implement spec", "new agent feature", "cross-layer refactor"],
-      "non_triggers": ["coding without spec/trajectory/tasks", "scope expansion by inference"],
-      "tools": ["focusa_call_stack_design", "focusa_trajectory_assess", "focusa_workpoint_checkpoint", "focusa_call_stack_verify", "focusa_evidence_capture"],
-      "recovery": ["focusa_project_verify", "focusa_workpoint_resume", "focusa_tool_doctor"],
+      "triggers": [
+        "implement spec",
+        "new agent feature",
+        "cross-layer refactor"
+      ],
+      "non_triggers": [
+        "coding without spec/trajectory/tasks",
+        "scope expansion by inference"
+      ],
+      "tools": [
+        "focusa_call_stack_design",
+        "focusa_trajectory_assess",
+        "focusa_workpoint_checkpoint",
+        "focusa_call_stack_verify",
+        "focusa_evidence_capture"
+      ],
+      "recovery": [
+        "focusa_project_verify",
+        "focusa_workpoint_resume",
+        "focusa_tool_doctor"
+      ],
       "done": "Implementation matches the typed call stack, acceptance criteria, task closure, and linked proof."
     },
     {
       "name": "focusa-evidence-outcomes",
       "description": "Use for evidence refs, receipts, prediction evaluation, proposal settlement, project-card outcomes, acceptance truth, and false-completion prevention.",
-      "triggers": ["claim completion", "settle proposal", "evaluate prediction", "attach proof"],
-      "non_triggers": ["raw transcript as proof", "closing on degraded/pending status"],
-      "tools": ["focusa_evidence_capture", "focusa_workpoint_link_evidence", "focusa_predict_evaluate", "focusa_project_card_outcome", "focusa_metacog_capture"],
-      "recovery": ["focusa_active_object_resolve", "focusa_workpoint_resume", "focusa_tool_doctor"],
+      "triggers": [
+        "claim completion",
+        "settle proposal",
+        "evaluate prediction",
+        "attach proof"
+      ],
+      "non_triggers": [
+        "raw transcript as proof",
+        "closing on degraded/pending status"
+      ],
+      "tools": [
+        "focusa_evidence_capture",
+        "focusa_workpoint_link_evidence",
+        "focusa_predict_evaluate",
+        "focusa_project_card_outcome",
+        "focusa_metacog_capture"
+      ],
+      "recovery": [
+        "focusa_active_object_resolve",
+        "focusa_workpoint_resume",
+        "focusa_tool_doctor"
+      ],
       "done": "Canonical outcome status is backed by stable evidence/receipt refs and evaluated learning signals."
+    },
+    {
+      "name": "focusa-trajectory",
+      "description": "Use for trajectory authority, routing, evidence, and recovery.",
+      "triggers": [
+        "trajectory authority, routing, evidence, and recovery"
+      ],
+      "non_triggers": [
+        "unrelated implementation work",
+        "a narrower skill owns the selected capability"
+      ],
+      "tools": [
+        "focusa_trajectory_view",
+        "focusa_hlt_history",
+        "focusa_trajectory_define_goal",
+        "focusa_trajectory_assess",
+        "focusa_trajectory_propose_workpoint",
+        "focusa_trajectory_checkpoint",
+        "focusa_trajectory_resume"
+      ],
+      "recovery": [
+        "focusa_tool_doctor",
+        "focusa_project_verify",
+        "focusa_workpoint_resume"
+      ],
+      "runbook_notes": [
+        "Verify typed project/workstream scope before durable mutation.",
+        "Return bounded evidence and executable recovery."
+      ],
+      "done": "The scoped operation is verified, evidenced, and handed to the next owning skill."
+    },
+    {
+      "name": "focusa-context-cognition",
+      "description": "Use for context cognition authority, routing, evidence, and recovery.",
+      "triggers": [
+        "context cognition authority, routing, evidence, and recovery"
+      ],
+      "non_triggers": [
+        "unrelated implementation work",
+        "a narrower skill owns the selected capability"
+      ],
+      "tools": [
+        "focusa_context_cognition",
+        "focusa_context_cognition_render",
+        "focusa_context_cognition_proof",
+        "focusa_context_cognition_curate",
+        "focusa_context_cognition_curate_eval",
+        "focusa_context_cognition_curate_optimize",
+        "focusa_context_cognition_optimizer_artifacts"
+      ],
+      "recovery": [
+        "focusa_tool_doctor",
+        "focusa_project_verify",
+        "focusa_workpoint_resume"
+      ],
+      "runbook_notes": [
+        "Verify typed project/workstream scope before durable mutation.",
+        "Return bounded evidence and executable recovery."
+      ],
+      "done": "The scoped operation is verified, evidenced, and handed to the next owning skill."
+    },
+    {
+      "name": "focusa-focus-state",
+      "description": "Use for focus state authority, routing, evidence, and recovery.",
+      "triggers": [
+        "focus state authority, routing, evidence, and recovery"
+      ],
+      "non_triggers": [
+        "unrelated implementation work",
+        "a narrower skill owns the selected capability"
+      ],
+      "tools": [
+        "focusa_decide",
+        "focusa_constraint",
+        "focusa_failure",
+        "focusa_intent",
+        "focusa_current_focus",
+        "focusa_next_step",
+        "focusa_open_question",
+        "focusa_recent_result",
+        "focusa_note",
+        "focusa_state_hygiene_doctor"
+      ],
+      "recovery": [
+        "focusa_tool_doctor",
+        "focusa_project_verify",
+        "focusa_workpoint_resume"
+      ],
+      "runbook_notes": [
+        "Verify typed project/workstream scope before durable mutation.",
+        "Return bounded evidence and executable recovery."
+      ],
+      "done": "The scoped operation is verified, evidenced, and handed to the next owning skill."
+    },
+    {
+      "name": "focusa-device-pairing",
+      "description": "Use for device pairing authority, routing, evidence, and recovery.",
+      "triggers": [
+        "device pairing authority, routing, evidence, and recovery"
+      ],
+      "non_triggers": [
+        "unrelated implementation work",
+        "a narrower skill owns the selected capability"
+      ],
+      "tools": [
+        "focusa_device_pair_start",
+        "focusa_device_pair_qr",
+        "focusa_device_pair_complete",
+        "focusa_device_pair_status",
+        "focusa_device_pair_list",
+        "focusa_device_pair_revoke"
+      ],
+      "recovery": [
+        "focusa_tool_doctor",
+        "focusa_project_verify",
+        "focusa_workpoint_resume"
+      ],
+      "runbook_notes": [
+        "Verify typed project/workstream scope before durable mutation.",
+        "Return bounded evidence and executable recovery."
+      ],
+      "done": "The scoped operation is verified, evidenced, and handed to the next owning skill."
+    },
+    {
+      "name": "focusa-lineage",
+      "description": "Use for lineage authority, routing, evidence, and recovery.",
+      "triggers": [
+        "lineage authority, routing, evidence, and recovery"
+      ],
+      "non_triggers": [
+        "unrelated implementation work",
+        "a narrower skill owns the selected capability"
+      ],
+      "tools": [
+        "focusa_tree_head",
+        "focusa_tree_path",
+        "focusa_tree_snapshot_state",
+        "focusa_tree_restore_state",
+        "focusa_tree_diff_context",
+        "focusa_lineage_tree",
+        "focusa_li_tree_extract"
+      ],
+      "recovery": [
+        "focusa_tool_doctor",
+        "focusa_project_verify",
+        "focusa_workpoint_resume"
+      ],
+      "runbook_notes": [
+        "Verify typed project/workstream scope before durable mutation.",
+        "Return bounded evidence and executable recovery."
+      ],
+      "done": "The scoped operation is verified, evidenced, and handed to the next owning skill."
+    },
+    {
+      "name": "focusa-project-card",
+      "description": "Use for project card authority, routing, evidence, and recovery.",
+      "triggers": [
+        "project card authority, routing, evidence, and recovery"
+      ],
+      "non_triggers": [
+        "unrelated implementation work",
+        "a narrower skill owns the selected capability"
+      ],
+      "tools": [
+        "focusa_project_card",
+        "focusa_project_card_outcome",
+        "focusa_predict_record",
+        "focusa_workpoint_checkpoint"
+      ],
+      "recovery": [
+        "focusa_tool_doctor",
+        "focusa_project_verify",
+        "focusa_workpoint_resume"
+      ],
+      "runbook_notes": [
+        "Verify typed project/workstream scope before durable mutation.",
+        "Return bounded evidence and executable recovery."
+      ],
+      "done": "The scoped operation is verified, evidenced, and handed to the next owning skill."
+    },
+    {
+      "name": "focusa-dxux-recovery",
+      "description": "Use for dxux recovery authority, routing, evidence, and recovery.",
+      "triggers": [
+        "dxux recovery authority, routing, evidence, and recovery"
+      ],
+      "non_triggers": [
+        "unrelated implementation work",
+        "a narrower skill owns the selected capability"
+      ],
+      "tools": [
+        "focusa_dxux_report",
+        "focusa_dxux_requirement",
+        "focusa_dxux_explain",
+        "focusa_dxux_digest",
+        "focusa_tool_doctor"
+      ],
+      "recovery": [
+        "focusa_tool_doctor",
+        "focusa_project_verify",
+        "focusa_workpoint_resume"
+      ],
+      "runbook_notes": [
+        "Verify typed project/workstream scope before durable mutation.",
+        "Return bounded evidence and executable recovery."
+      ],
+      "done": "The scoped operation is verified, evidenced, and handed to the next owning skill."
+    },
+    {
+      "name": "focusa",
+      "description": "Use for focusa workflows with bounded Focusa authority.",
+      "triggers": [
+        "focusa workflows with bounded Focusa authority"
+      ],
+      "non_triggers": [
+        "unrelated implementation work",
+        "a narrower skill owns the selected capability"
+      ],
+      "tools": [
+        "focusa_agent_prompt",
+        "focusa_awareness_packet",
+        "focusa_constraint",
+        "focusa_current_focus",
+        "focusa_decide",
+        "focusa_failure",
+        "focusa_intent",
+        "focusa_next_step",
+        "focusa_note",
+        "focusa_open_question",
+        "focusa_recent_result",
+        "focusa_reflex_primitives",
+        "focusa_scratch",
+        "focusa_tool_doctor",
+        "focusa_utility_card"
+      ],
+      "recovery": [
+        "focusa_tool_doctor",
+        "focusa_project_verify",
+        "focusa_workpoint_resume"
+      ],
+      "runbook_notes": [
+        "Verify typed project/workstream scope before durable mutation.",
+        "Return bounded evidence and executable recovery."
+      ],
+      "done": "The scoped operation is verified, evidenced, and handed to the next owning skill."
+    },
+    {
+      "name": "focusa-cli-api",
+      "description": "Use for cli api workflows with bounded Focusa authority.",
+      "triggers": [
+        "cli api workflows with bounded Focusa authority"
+      ],
+      "non_triggers": [
+        "unrelated implementation work",
+        "a narrower skill owns the selected capability"
+      ],
+      "tools": [
+        "focusa_tool_search"
+      ],
+      "recovery": [
+        "focusa_tool_doctor",
+        "focusa_project_verify",
+        "focusa_workpoint_resume"
+      ],
+      "runbook_notes": [
+        "Verify typed project/workstream scope before durable mutation.",
+        "Return bounded evidence and executable recovery."
+      ],
+      "done": "The scoped operation is verified, evidenced, and handed to the next owning skill."
+    },
+    {
+      "name": "focusa-docs-maintenance",
+      "description": "Use for docs maintenance workflows with bounded Focusa authority.",
+      "triggers": [
+        "docs maintenance workflows with bounded Focusa authority"
+      ],
+      "non_triggers": [
+        "unrelated implementation work",
+        "a narrower skill owns the selected capability"
+      ],
+      "tools": [
+        "focusa_tool_search"
+      ],
+      "recovery": [
+        "focusa_tool_doctor",
+        "focusa_project_verify",
+        "focusa_workpoint_resume"
+      ],
+      "runbook_notes": [
+        "Verify typed project/workstream scope before durable mutation.",
+        "Return bounded evidence and executable recovery."
+      ],
+      "done": "The scoped operation is verified, evidenced, and handed to the next owning skill."
+    },
+    {
+      "name": "focusa-metacognition",
+      "description": "Use for metacognition workflows with bounded Focusa authority.",
+      "triggers": [
+        "metacognition workflows with bounded Focusa authority"
+      ],
+      "non_triggers": [
+        "unrelated implementation work",
+        "a narrower skill owns the selected capability"
+      ],
+      "tools": [
+        "focusa_metacog_capture",
+        "focusa_metacog_doctor",
+        "focusa_metacog_evaluate_outcome",
+        "focusa_metacog_loop_run",
+        "focusa_metacog_plan_adjust",
+        "focusa_metacog_recent_adjustments",
+        "focusa_metacog_recent_reflections",
+        "focusa_metacog_reflect",
+        "focusa_metacog_retrieve"
+      ],
+      "recovery": [
+        "focusa_tool_doctor",
+        "focusa_project_verify",
+        "focusa_workpoint_resume"
+      ],
+      "runbook_notes": [
+        "Verify typed project/workstream scope before durable mutation.",
+        "Return bounded evidence and executable recovery."
+      ],
+      "done": "The scoped operation is verified, evidenced, and handed to the next owning skill."
+    },
+    {
+      "name": "focusa-silent-sessions",
+      "description": "Use for silent sessions workflows with bounded Focusa authority.",
+      "triggers": [
+        "silent sessions workflows with bounded Focusa authority"
+      ],
+      "non_triggers": [
+        "unrelated implementation work",
+        "a narrower skill owns the selected capability"
+      ],
+      "tools": [
+        "focusa_silent_sessions"
+      ],
+      "recovery": [
+        "focusa_tool_doctor",
+        "focusa_project_verify",
+        "focusa_workpoint_resume"
+      ],
+      "runbook_notes": [
+        "Verify typed project/workstream scope before durable mutation.",
+        "Return bounded evidence and executable recovery."
+      ],
+      "done": "The scoped operation is verified, evidenced, and handed to the next owning skill."
+    },
+    {
+      "name": "focusa-troubleshooting",
+      "description": "Use for troubleshooting workflows with bounded Focusa authority.",
+      "triggers": [
+        "troubleshooting workflows with bounded Focusa authority"
+      ],
+      "non_triggers": [
+        "unrelated implementation work",
+        "a narrower skill owns the selected capability"
+      ],
+      "tools": [
+        "focusa_tool_search"
+      ],
+      "recovery": [
+        "focusa_tool_doctor",
+        "focusa_project_verify",
+        "focusa_workpoint_resume"
+      ],
+      "runbook_notes": [
+        "Verify typed project/workstream scope before durable mutation.",
+        "Return bounded evidence and executable recovery."
+      ],
+      "done": "The scoped operation is verified, evidenced, and handed to the next owning skill."
+    },
+    {
+      "name": "focusa-work-loop",
+      "description": "Use for work loop workflows with bounded Focusa authority.",
+      "triggers": [
+        "work loop workflows with bounded Focusa authority"
+      ],
+      "non_triggers": [
+        "unrelated implementation work",
+        "a narrower skill owns the selected capability"
+      ],
+      "tools": [
+        "focusa_work_loop_checkpoint",
+        "focusa_work_loop_context",
+        "focusa_work_loop_control",
+        "focusa_work_loop_select_next",
+        "focusa_work_loop_status",
+        "focusa_work_loop_writer_status"
+      ],
+      "recovery": [
+        "focusa_tool_doctor",
+        "focusa_project_verify",
+        "focusa_workpoint_resume"
+      ],
+      "runbook_notes": [
+        "Verify typed project/workstream scope before durable mutation.",
+        "Return bounded evidence and executable recovery."
+      ],
+      "done": "The scoped operation is verified, evidenced, and handed to the next owning skill."
+    },
+    {
+      "name": "focusa-workpoint",
+      "description": "Use for workpoint workflows with bounded Focusa authority.",
+      "triggers": [
+        "workpoint workflows with bounded Focusa authority"
+      ],
+      "non_triggers": [
+        "unrelated implementation work",
+        "a narrower skill owns the selected capability"
+      ],
+      "tools": [
+        "focusa_active_object_resolve",
+        "focusa_workpoint_checkpoint",
+        "focusa_workpoint_link_evidence",
+        "focusa_workpoint_resume"
+      ],
+      "recovery": [
+        "focusa_tool_doctor",
+        "focusa_project_verify",
+        "focusa_workpoint_resume"
+      ],
+      "runbook_notes": [
+        "Verify typed project/workstream scope before durable mutation.",
+        "Return bounded evidence and executable recovery."
+      ],
+      "done": "The scoped operation is verified, evidenced, and handed to the next owning skill."
+    },
+    {
+      "name": "predictive-power",
+      "description": "Use for predictive power workflows with bounded Focusa authority.",
+      "triggers": [
+        "predictive power workflows with bounded Focusa authority"
+      ],
+      "non_triggers": [
+        "unrelated implementation work",
+        "a narrower skill owns the selected capability"
+      ],
+      "tools": [
+        "focusa_predict_evaluate",
+        "focusa_predict_recent",
+        "focusa_predict_record",
+        "focusa_predict_stats",
+        "focusa_prediction_authority"
+      ],
+      "recovery": [
+        "focusa_tool_doctor",
+        "focusa_project_verify",
+        "focusa_workpoint_resume"
+      ],
+      "runbook_notes": [
+        "Verify typed project/workstream scope before durable mutation.",
+        "Return bounded evidence and executable recovery."
+      ],
+      "done": "The scoped operation is verified, evidenced, and handed to the next owning skill."
     }
   ]
 }

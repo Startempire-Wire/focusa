@@ -1,4 +1,6 @@
 import {
+  currentAttachmentKey,
+  getAttachmentRuntime,
   getContinuityId,
   getFocusaAvailable,
   getLastProjectIdentity,
@@ -62,6 +64,11 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
     180
   );
   const continuity = scopeVerified ? line(packet?.continuity_id || getContinuityId()) : "unverified";
+  const hltStatus = compact((trajectory as { hlt_status?: string }).hlt_status, "unknown", 40);
+  const attachmentKey = currentAttachmentKey();
+  const interactionMode = attachmentKey
+    ? getAttachmentRuntime(attachmentKey).cfg.interactionMode
+    : "canvas-guided";
   const prefix = mode === "visible" ? "# Focusa" : "## Focusa awareness";
 
   return [
@@ -71,6 +78,8 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
       ? `Scope: verified · ${projectName} · ${projectRoot} · continuity=${continuity || "not checkpointed"}`
       : "Scope: unverified",
     `Mission: ${mission}`,
+    `HLT status: ${hltStatus}`,
+    `Interaction: ${interactionMode}`,
     `Next: ${next}`,
     scopeVerified
       ? "Boundary: operator steering leads; scoped mutation tools enforce durable-write authority."

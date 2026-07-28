@@ -1,0 +1,11 @@
+GitHub #50 Project Genesis proof — 2026-07-27
+
+Merged implementation:
+- PR #62 / 947164b3: atomic Project Genesis, confirmed HLT hierarchy, Waypoints, tasks, first canonical Workpoint
+- PR #63 / b52d0c41: idempotent project-discipline bootstrap/readiness and repair
+
+Proof:
+- spec143_project_genesis_release_gate_test.py: PASS
+- worktree_discipline_guardrail_test.sh: 2 passed
+- install/bootstrap → confirmed trajectory → task provider → first Workpoint; rerun/repair/conflict guards and no stack/remote inference: PASS
+- git diff --check: PASS

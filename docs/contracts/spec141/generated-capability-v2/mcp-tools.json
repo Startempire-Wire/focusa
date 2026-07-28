@@ -1,6 +1,6 @@
 {
   "schema": "focusa.mcp_tool_projection.v2",
-  "registry_digest": "sha256:8da28148bf9c812232c01a2ec9fb60ef431e6722d84a4982f5f94e13bf4fd02f",
+  "registry_digest": "sha256:d7bb4c8fb927058bd546672f85ab3a3b9e6ffbbaf3a113d51f6671d8ecf4ba95",
   "tools": [
     {
       "name": "focusa.active.object.resolve",
@@ -13334,6 +13334,232 @@
           {
             "method": "GET",
             "path": "/v1/predictions/stats"
+          }
+        ],
+        "authority": {
+          "kind": "advisory_only"
+        }
+      }
+    },
+    {
+      "name": "focusa.prediction.authority",
+      "title": "Prediction Authority",
+      "description": "Append or project immutable Spec 138 prediction/outcome/learning/transfer authority in one typed project/workstream scope. Use it when Append or project immutable Spec 138 authority in typed scope. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "const": "append",
+                "type": "string"
+              },
+              {
+                "const": "projection",
+                "type": "string"
+              }
+            ]
+          },
+          "event": {
+            "description": "ScopedAuthorityEvent when action=append."
+          },
+          "project_root": {
+            "description": "Explicit or current verified project root.",
+            "type": "string"
+          },
+          "continuity_id": {
+            "description": "Explicit or current continuity id.",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "capability_id": "focusa.prediction.authority",
+        "version": "2.0.0",
+        "skill_refs": [
+          "skill:focusa",
+          "skill:focusa-metacognition",
+          "skill:predictive-power"
+        ],
+        "docs_ref": "docs/focusa-tools/tools/focusa_prediction_authority.md",
+        "rest": [
+          {
+            "method": "POST",
+            "path": "/v1/prediction-authority/events"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/prediction-authority/projection"
           }
         ],
         "authority": {

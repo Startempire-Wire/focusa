@@ -10,6 +10,7 @@ README="$ROOT_DIR/README.md"
 LLMS="$ROOT_DIR/docs/llms.txt"
 ONBOARDING="$ROOT_DIR/docs/current/FOCUSA_FRIENDLY_ONBOARDING.md"
 AGENT_CARD="$ROOT_DIR/docs/contracts/spec141/generated-capability-v2/agent-card.json"
+TOOL_CONTRACTS="$ROOT_DIR/docs/current/focusa-tool-contracts.json"
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
 pass() { echo "PASS: $*"; }
@@ -81,7 +82,10 @@ for required in 'first-agent walkthrough' 'focusa_agent_card' 'all Focusa Pi too
   grep -q -- "$required" "$ONBOARDING" || fail "onboarding missing current walkthrough coverage: $required"
 done
 
-jq -e '.pi_tool_count == 115 and .pi_tool_docs_count == 115 and .skill_count >= 22 and .runbook_count >= .skill_count' "$AGENT_CARD" >/dev/null \
+TOOL_COUNT="$(jq -r '.tool_count' "$TOOL_CONTRACTS")"
+jq -e --argjson tool_count "$TOOL_COUNT" \
+  '.pi_tool_count == $tool_count and .pi_tool_docs_count == $tool_count and .skill_count >= 22 and .runbook_count >= .skill_count' \
+  "$AGENT_CARD" >/dev/null \
   || fail "Agent Card lacks complete Pi tool/skill/runbook inventory"
 
 if rg -n '/home/wirebot|/root/|wpuiai.com/wp-admin|signalos\.pro|raw transcript|raw transcripts|docs/evidence/transcripts|\.focusa-private' "$DOC" "$SPEC"; then

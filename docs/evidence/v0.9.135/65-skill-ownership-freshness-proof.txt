@@ -1,0 +1,16 @@
+GitHub #65 skill system proof — 2026-07-27
+
+Implemented:
+- 116/116 current advertised Pi capabilities have exactly one skill owner and complete tool contract
+- seven missing focused skills added; 29/29 skills declare prerequisites, alternate route, next skills, failure handoff, authority boundary, workflow, compatibility and supersession
+- generated digest-locked ownership manifest
+- bounded routing graph; no sibling skill body injection
+- skill doctor reports missing, stale/conflicting, shadowed and orphaned user/global installs with safe recovery
+- signed agent-context installer remains atomic synchronization authority
+- Spec 138 prediction authority has API/CLI/Pi parity; dynamic preload registrations are included in the current total of 116
+
+Proof:
+- spec65_skill_ownership_gate.py: PASS (116/116 capabilities, 29/29 skills)
+- Pi extension typecheck: PASS
+- ownership manifest contract digest matches source
+- git diff --check: PASS

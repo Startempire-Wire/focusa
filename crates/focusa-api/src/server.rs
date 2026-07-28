@@ -14,6 +14,7 @@ use crate::scoped_store::ScopedCrdtLedger;
 use axum::middleware as axum_mw;
 use axum::{Router, extract::DefaultBodyLimit};
 use focusa_core::prediction::PredictionValue;
+use focusa_core::prediction_authority::ScopedAuthorityEvent;
 use focusa_core::runtime::persistence_actor::PersistenceActor;
 use focusa_core::runtime::persistence_sqlite::SqlitePersistence;
 use focusa_core::scoped_state::WorkstreamKey;
@@ -258,6 +259,8 @@ pub struct AppState {
     pub focus_stack_by_scope: Arc<TokioRwLock<HashMap<String, FocusStackState>>>,
     /// Typed ProjectRootKey + WorkstreamKey scoped prediction CRDT ledger.
     pub prediction_store: Arc<ScopedCrdtLedger<PredictionValue>>,
+    /// Append-only Spec 138 authority events, partitioned by typed workstream.
+    pub prediction_authority_store: Arc<ScopedCrdtLedger<ScopedAuthorityEvent>>,
     /// Request-local turn completion idempotency, keyed by typed WorkstreamKey.
     pub(crate) recent_completed_turns_by_scope:
         Arc<TokioRwLock<HashMap<WorkstreamKey, VecDeque<String>>>>,
@@ -587,6 +590,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::project_bootstrap::router())
         .merge(routes::project_genesis::router())
         .merge(routes::predictions::router())
+        .merge(routes::prediction_authority::router())
         .merge(routes::rfm::router())
         .merge(routes::resource::router())
         .merge(routes::reflection::router())
@@ -1077,6 +1081,11 @@ pub async fn run(
         "predictions",
         format!("daemon:{}", std::process::id()),
     ));
+    let prediction_authority_store = Arc::new(ScopedCrdtLedger::new(
+        &config.data_dir,
+        "prediction-authority",
+        format!("daemon:{}", std::process::id()),
+    ));
 
     let state = Arc::new(AppState {
         focusa,
@@ -1095,6 +1104,7 @@ pub async fn run(
         )),
         focus_stack_by_scope: Arc::new(TokioRwLock::new(HashMap::new())),
         prediction_store,
+        prediction_authority_store,
         recent_completed_turns_by_scope: Arc::new(TokioRwLock::new(HashMap::new())),
         snapshots_by_scope: Arc::new(TokioRwLock::new(HashMap::new())),
         metacog_by_scope: Arc::new(std::sync::Mutex::new(HashMap::new())),

@@ -1,0 +1,887 @@
+{
+  "schema": "focusa.pi_menu_inventory.v1",
+  "generated": true,
+  "source_sha256": "17734c620865ebacb51b921fbd1bb5232d46fd0c1004c184b4d48e10f6562518",
+  "baseline": {
+    "top_level_commands": 9,
+    "simple_settings": 11,
+    "advanced_settings": 29,
+    "simple_choice_depth": 11
+  },
+  "after": {
+    "top_level_commands": 12,
+    "simple_settings": 8,
+    "advanced_settings": 29,
+    "simple_choice_depth": 8
+  },
+  "items": [
+    {
+      "id": "mission-canvas-mode",
+      "kind": "command",
+      "owner": "focusa-pi-extension",
+      "user_job": "Set the durable project interaction mode: canvas, terminal, or headless",
+      "placement": "top_level_command",
+      "rationale": "direct operator action or compatibility entrypoint",
+      "help": "Set the durable project interaction mode: canvas, terminal, or headless",
+      "scope": "attachment_or_explicit_project",
+      "risk": "mutation_gated_by_handler",
+      "interaction_test": "Pi typecheck plus command-specific contract test"
+    },
+    {
+      "id": "mission-canvas-profile",
+      "kind": "command",
+      "owner": "focusa-pi-extension",
+      "user_job": "Set the durable Mission Canvas workspace profile and visual variant",
+      "placement": "top_level_command",
+      "rationale": "direct operator action or compatibility entrypoint",
+      "help": "Set the durable Mission Canvas workspace profile and visual variant",
+      "scope": "attachment_or_explicit_project",
+      "risk": "mutation_gated_by_handler",
+      "interaction_test": "Pi typecheck plus command-specific contract test"
+    },
+    {
+      "id": "mission-canvas",
+      "kind": "command",
+      "owner": "focusa-pi-extension",
+      "user_job": "Open the keyboard-first Focusa Mission Canvas in Pi",
+      "placement": "top_level_command",
+      "rationale": "direct operator action or compatibility entrypoint",
+      "help": "Open the keyboard-first Focusa Mission Canvas in Pi",
+      "scope": "attachment_or_explicit_project",
+      "risk": "mutation_gated_by_handler",
+      "interaction_test": "Pi typecheck plus command-specific contract test"
+    },
+    {
+      "id": "focusa-context",
+      "kind": "command",
+      "owner": "focusa-pi-extension",
+      "user_job": "Render current Focusa context inline in the conversation",
+      "placement": "top_level_command",
+      "rationale": "direct operator action or compatibility entrypoint",
+      "help": "Render current Focusa context inline in the conversation",
+      "scope": "attachment_or_explicit_project",
+      "risk": "mutation_gated_by_handler",
+      "interaction_test": "Pi typecheck plus command-specific contract test"
+    },
+    {
+      "id": "focusa-mode",
+      "kind": "command",
+      "owner": "focusa-pi-extension",
+      "user_job": "Show or switch Canvas, terminal, or headless interaction mode",
+      "placement": "top_level_command",
+      "rationale": "direct operator action or compatibility entrypoint",
+      "help": "Show or switch Canvas, terminal, or headless interaction mode",
+      "scope": "attachment_or_explicit_project",
+      "risk": "mutation_gated_by_handler",
+      "interaction_test": "Pi typecheck plus command-specific contract test"
+    },
+    {
+      "id": "focusa-settings",
+      "kind": "command",
+      "owner": "focusa-pi-extension",
+      "user_job": "Open Focusa settings panel",
+      "placement": "top_level_command",
+      "rationale": "direct operator action or compatibility entrypoint",
+      "help": "Open Focusa settings panel",
+      "scope": "attachment_or_explicit_project",
+      "risk": "mutation_gated_by_handler",
+      "interaction_test": "Pi typecheck plus command-specific contract test"
+    },
+    {
+      "id": "focusa-rollover",
+      "kind": "command",
+      "owner": "focusa-pi-extension",
+      "user_job": "Inspect, dry-run, or execute a bounded native-session rollover: /focusa-rollover inspect|dry-run|execute [output-dir]",
+      "placement": "top_level_command",
+      "rationale": "direct operator action or compatibility entrypoint",
+      "help": "Inspect, dry-run, or execute a bounded native-session rollover: /focusa-rollover inspect|dry-run|execute [output-dir]",
+      "scope": "attachment_or_explicit_project",
+      "risk": "mutation_gated_by_handler",
+      "interaction_test": "Pi typecheck plus command-specific contract test"
+    },
+    {
+      "id": "focusa-status",
+      "kind": "command",
+      "owner": "focusa-pi-extension",
+      "user_job": "Show Focusa integration status",
+      "placement": "top_level_command",
+      "rationale": "direct operator action or compatibility entrypoint",
+      "help": "Show Focusa integration status",
+      "scope": "attachment_or_explicit_project",
+      "risk": "mutation_gated_by_handler",
+      "interaction_test": "Pi typecheck plus command-specific contract test"
+    },
+    {
+      "id": "focus-work",
+      "kind": "command",
+      "owner": "focusa-pi-extension",
+      "user_job": "Continuous work loop controls: on|off|pause|resume|stop|status|checkpoint|checkpoints",
+      "placement": "top_level_command",
+      "rationale": "direct operator action or compatibility entrypoint",
+      "help": "Continuous work loop controls: on|off|pause|resume|stop|status|checkpoint|checkpoints",
+      "scope": "attachment_or_explicit_project",
+      "risk": "mutation_gated_by_handler",
+      "interaction_test": "Pi typecheck plus command-specific contract test"
+    },
+    {
+      "id": "focusa-on",
+      "kind": "command",
+      "owner": "focusa-pi-extension",
+      "user_job": "Re-enable Focusa integration and writes",
+      "placement": "top_level_command",
+      "rationale": "direct operator action or compatibility entrypoint",
+      "help": "Re-enable Focusa integration and writes",
+      "scope": "attachment_or_explicit_project",
+      "risk": "mutation_gated_by_handler",
+      "interaction_test": "Pi typecheck plus command-specific contract test"
+    },
+    {
+      "id": "focusa-off",
+      "kind": "command",
+      "owner": "focusa-pi-extension",
+      "user_job": "Stop all Focusa writes \u2014 Focus State local only",
+      "placement": "top_level_command",
+      "rationale": "direct operator action or compatibility entrypoint",
+      "help": "Stop all Focusa writes \u2014 Focus State local only",
+      "scope": "attachment_or_explicit_project",
+      "risk": "mutation_gated_by_handler",
+      "interaction_test": "Pi typecheck plus command-specific contract test"
+    },
+    {
+      "id": "focusa-reset",
+      "kind": "command",
+      "owner": "focusa-pi-extension",
+      "user_job": "Clear Focus State in Focusa + push fresh Pi frame",
+      "placement": "top_level_command",
+      "rationale": "direct operator action or compatibility entrypoint",
+      "help": "Clear Focus State in Focusa + push fresh Pi frame",
+      "scope": "attachment_or_explicit_project",
+      "risk": "mutation_gated_by_handler",
+      "interaction_test": "Pi typecheck plus command-specific contract test"
+    },
+    {
+      "id": "otaEnabled",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Automatic OTA updates",
+      "placement": "simple_default",
+      "canonical_home": "simple_default",
+      "rationale": "common workflow",
+      "help": "Automatic OTA updates",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "true",
+        "false"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "simpleProfile",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Quick profile",
+      "placement": "simple_default",
+      "canonical_home": "simple_default",
+      "rationale": "common workflow",
+      "help": "Quick profile",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "starter",
+        "builder",
+        "hands_off",
+        "audit_safe"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "workLoopMaxTurns",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "How many turns before pause",
+      "placement": "simple_default",
+      "canonical_home": "simple_default",
+      "rationale": "common workflow",
+      "help": "How many turns before pause",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "10",
+        "24",
+        "60",
+        "120",
+        "200"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "workLoopMaxWallClockMs",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Max run time (ms)",
+      "placement": "simple_default",
+      "canonical_home": "simple_default",
+      "rationale": "common workflow",
+      "help": "Max run time (ms)",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "1200000",
+        "3600000",
+        "7200000",
+        "14400000"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "interactionMode",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Project interaction mode",
+      "placement": "simple_default",
+      "canonical_home": "simple_default",
+      "rationale": "common workflow",
+      "help": "Project interaction mode",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "canvas-guided",
+        "terminal-guided",
+        "headless"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "contextStatusMode",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Footer hints",
+      "placement": "simple_default",
+      "canonical_home": "simple_default",
+      "rationale": "common workflow",
+      "help": "Footer hints",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "off",
+        "actionable",
+        "all"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "vitalInfoPromptMode",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Vital project info prompt",
+      "placement": "simple_default",
+      "canonical_home": "simple_default",
+      "rationale": "common workflow",
+      "help": "Vital project info prompt",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "prompt",
+        "warn_only",
+        "off"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "workLoopRequireVerificationBeforePersist",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Require verification before done",
+      "placement": "simple_default",
+      "canonical_home": "simple_default",
+      "rationale": "common workflow",
+      "help": "Require verification before done",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "true",
+        "false"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "otaEnabled",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Automatic OTA updates",
+      "placement": "advanced_searchable",
+      "canonical_home": "simple_default",
+      "rationale": "common workflow",
+      "help": "Automatic OTA updates",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "true",
+        "false"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "otaProfile",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "OTA profile (all surfaces)",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "OTA profile (all surfaces)",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "dev_auto_all",
+        "stable_auto_all",
+        "stable_prompt",
+        "notify"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "interactionMode",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Project interaction mode",
+      "placement": "advanced_searchable",
+      "canonical_home": "simple_default",
+      "rationale": "common workflow",
+      "help": "Project interaction mode",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "canvas-guided",
+        "terminal-guided",
+        "headless"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "contextStatusMode",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Footer context badge",
+      "placement": "advanced_searchable",
+      "canonical_home": "simple_default",
+      "rationale": "common workflow",
+      "help": "Footer context badge",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "off",
+        "actionable",
+        "all"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "vitalInfoPromptMode",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Vital project info prompt",
+      "placement": "advanced_searchable",
+      "canonical_home": "simple_default",
+      "rationale": "common workflow",
+      "help": "Vital project info prompt",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "prompt",
+        "warn_only",
+        "off"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "vitalInfoPromptSurfaces",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Vital prompt surfaces",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Vital prompt surfaces",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "project_root,project_verify,workpoint,trajectory",
+        "project_root",
+        "project_root,project_verify",
+        "project_root,workpoint",
+        "project_root,trajectory",
+        "project_root,project_verify,workpoint,trajectory,evidence,active_object,resource_mode"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "warnPct",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Warn threshold %",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Warn threshold %",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "40",
+        "50",
+        "60",
+        "70"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "compactPct",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Auto-compact threshold %",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Auto-compact threshold %",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "50",
+        "60",
+        "70",
+        "75",
+        "80",
+        "85",
+        "90"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "autoCompactionEnabled",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Proactive auto-compaction",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Proactive auto-compaction",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "true",
+        "false"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "autoCompactionTokenCap",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Absolute trigger tokens (0 = off)",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Absolute trigger tokens (0 = off)",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "128000",
+        "192000",
+        "256000",
+        "384000",
+        "0"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "autoCompactionReserveTokens",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Minimum reserve tokens",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Minimum reserve tokens",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "8192",
+        "16384",
+        "32768",
+        "65536"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "autoCompactionReservePct",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Reserve percent",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Reserve percent",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "5",
+        "10",
+        "15",
+        "20",
+        "25"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "autoCompactionCooldownMs",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Auto-compact cooldown ms",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Auto-compact cooldown ms",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "30000",
+        "60000",
+        "120000",
+        "180000",
+        "300000"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "hardPct",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Critical threshold %",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Critical threshold %",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "75",
+        "85",
+        "92",
+        "95",
+        "97"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "workLoopPreset",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Work-loop preset",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Work-loop preset",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "conservative",
+        "balanced",
+        "push",
+        "audit"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "workLoopMaxTurns",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Work-loop max turns",
+      "placement": "advanced_searchable",
+      "canonical_home": "simple_default",
+      "rationale": "common workflow",
+      "help": "Work-loop max turns",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "6",
+        "10",
+        "12",
+        "24"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "workLoopMaxWallClockMs",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Work-loop max wall clock ms",
+      "placement": "advanced_searchable",
+      "canonical_home": "simple_default",
+      "rationale": "common workflow",
+      "help": "Work-loop max wall clock ms",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "900000",
+        "1200000",
+        "1800000",
+        "3600000"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "workLoopMaxRetries",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Work-loop retries",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Work-loop retries",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "workLoopCooldownMs",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Work-loop cooldown ms",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Work-loop cooldown ms",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "500",
+        "1000",
+        "1500",
+        "2000"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "workLoopAllowDestructiveActions",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Work-loop allow destructive actions",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Work-loop allow destructive actions",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "true",
+        "false"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "workLoopRequireOperatorForGovernance",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Work-loop require operator for governance",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Work-loop require operator for governance",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "true",
+        "false"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "workLoopRequireOperatorForScopeChange",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Work-loop require operator for scope change",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Work-loop require operator for scope change",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "true",
+        "false"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "workLoopRequireVerificationBeforePersist",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Work-loop require verification before persist",
+      "placement": "advanced_searchable",
+      "canonical_home": "simple_default",
+      "rationale": "common workflow",
+      "help": "Work-loop require verification before persist",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "true",
+        "false"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "workLoopMaxConsecutiveLowProductivityTurns",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Work-loop max low-productivity turns",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Work-loop max low-productivity turns",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "2",
+        "3",
+        "4"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "workLoopMaxConsecutiveFailures",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Work-loop max consecutive failures",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Work-loop max consecutive failures",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "2",
+        "3",
+        "4"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "workLoopAutoPauseOnOperatorMessage",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Work-loop auto-pause on operator message",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Work-loop auto-pause on operator message",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "true",
+        "false"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "workLoopRequireExplainableContinueReason",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Work-loop require explainable continue reason",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Work-loop require explainable continue reason",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "true",
+        "false"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "workLoopMaxSameSubproblemRetries",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Work-loop max same-subproblem retries",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Work-loop max same-subproblem retries",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "1",
+        "2",
+        "3"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "workLoopStatusHeartbeatMs",
+      "kind": "setting",
+      "owner": "focusa-config",
+      "user_job": "Work-loop status heartbeat ms",
+      "placement": "advanced_searchable",
+      "canonical_home": "advanced_searchable",
+      "rationale": "expert tuning kept out of default menu",
+      "help": "Work-loop status heartbeat ms",
+      "scope": "project_config",
+      "risk": "persistent_config_write",
+      "values": [
+        "2000",
+        "3000",
+        "5000"
+      ],
+      "interaction_test": "settings attachment safety + exhaustive value callback gate"
+    },
+    {
+      "id": "project_trust_confirm",
+      "kind": "confirm",
+      "owner": "focusa-session",
+      "user_job": "Confirm project trust before activation",
+      "placement": "contextual_only",
+      "rationale": "shown only when authority is ambiguous",
+      "help": "Confirm project trust before activation",
+      "scope": "session",
+      "risk": "authority_selection",
+      "interaction_test": "session interaction contract"
+    },
+    {
+      "id": "project_root_select",
+      "kind": "select",
+      "owner": "focusa-session",
+      "user_job": "Choose one verified project root",
+      "placement": "contextual_only",
+      "rationale": "shown only when authority is ambiguous",
+      "help": "Choose one verified project root",
+      "scope": "session",
+      "risk": "authority_selection",
+      "interaction_test": "session interaction contract"
+    },
+    {
+      "id": "continuity_select",
+      "kind": "select",
+      "owner": "focusa-session",
+      "user_job": "Choose bounded continuation scope",
+      "placement": "contextual_only",
+      "rationale": "shown only when authority is ambiguous",
+      "help": "Choose bounded continuation scope",
+      "scope": "session",
+      "risk": "authority_selection",
+      "interaction_test": "session interaction contract"
+    }
+  ],
+  "migration": {
+    "otaProfile": "advanced settings search",
+    "workLoopStatusHeartbeatMs": "advanced settings search",
+    "vitalInfoPromptSurfaces": "advanced settings search"
+  }
+}

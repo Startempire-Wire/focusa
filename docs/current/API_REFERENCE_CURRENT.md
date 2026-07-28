@@ -2,9 +2,9 @@
 
 Generated from current Axum route registration plus the Spec135/Spec141 operation registry. This public inventory is release-gated; do not edit route rows manually.
 
-- Classified paths: `475`
+- Classified paths: `477`
 - Agent eligible: `100`
-- Operator only: `363`
+- Operator only: `365`
 - Public health/pairing: `6`
 - Internal: `6`
 
@@ -1966,6 +1966,22 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Classification: `agent_eligible`
 - Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/agent_capabilities.rs`
+- Agent operations: none
+
+### `/v1/prediction-authority/events`
+
+- Methods: `POST /v1/prediction-authority/events`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/prediction_authority.rs`
+- Agent operations: none
+
+### `/v1/prediction-authority/projection`
+
+- Methods: `POST /v1/prediction-authority/projection`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/prediction_authority.rs`
 - Agent operations: none
 
 ### `/v1/predictions`
