@@ -385,9 +385,14 @@ jq -e '.schema == "focusa.release_topology.v1" and (.surfaces | length) > 0' \
 
 if [[ "$PUSH" -eq 1 && "$RELEASE_JOURNAL_MODE" != "off" ]]; then
   if journal_client history --project-id focusa --limit 1 >/dev/null 2>&1; then
-    journal_client plan --tag "$TAG" --channel "$RELEASE_CHANNEL"
+    RELEASE_HISTORY="$(journal_client history --release-id "focusa:${TAG}" --limit 100)"
+    if python3 -c 'import json,sys; data=json.load(sys.stdin); raise SystemExit(0 if any(event.get("phase") == "plan" for event in data.get("events", [])) else 1)' <<<"$RELEASE_HISTORY"; then
+      echo "Canonical release journal plan resumed for ${TAG}."
+    else
+      journal_client plan --tag "$TAG" --channel "$RELEASE_CHANNEL"
+      echo "Canonical release journal plan accepted for ${TAG}."
+    fi
     RELEASE_JOURNAL_ACTIVE=1
-    echo "Canonical release journal plan accepted for ${TAG}."
   elif [[ "$RELEASE_JOURNAL_MODE" == "required" ]]; then
     echo "Canonical release journal is required but agent-kb-api is unavailable." >&2
     exit 1

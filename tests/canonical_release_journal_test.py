@@ -60,6 +60,8 @@ for lifecycle_command in ("journal_client plan", "journal_client benchmark", "jo
     assert lifecycle_command in release_script
 assert "FOCUSA_RELEASE_JOURNAL_MODE" in release_script
 assert "run-release-learning-guards.py" in release_script
+assert "journal_client history --release-id" in release_script
+assert "Canonical release journal plan resumed" in release_script
 assert "--tag" in release_script
 
 client_source = SCRIPT.read_text()
