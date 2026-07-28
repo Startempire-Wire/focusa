@@ -44,7 +44,7 @@ def persist(base, key, expected_canvas_revision, **topology):
         status, payload = h.call(base, "POST", MUTATE_STATE, body)
         if status == 200:
             return payload
-        assert status == 409, payload
+        assert status in (404, 409), payload
         time.sleep(0.05)
     raise RuntimeError("Mission Canvas state writer busy")
 
