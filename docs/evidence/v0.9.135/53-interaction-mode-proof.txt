@@ -1,0 +1,17 @@
+GitHub #53 interaction-mode proof — 2026-07-27
+
+Implemented first-class canvas_guided, terminal_guided, and headless_automation configuration.
+- terminal_guided default
+- /focusa-mode session override with immediate awareness refresh
+- clear restores prior mode
+- --project and --user persist through existing scoped config authority
+- native settings exposes durable project mode
+- attachment-scoped runtime; no cross-session global mutation
+- terminal awareness remains concise and reports effective mode
+
+Proof:
+- Pi extension typecheck: PASS
+- interaction-mode contract: PASS
+- settings attachment safety regression: PASS
+- all three modes, persistence, session restore, immediate runtime state: PASS
+- git diff --check: PASS

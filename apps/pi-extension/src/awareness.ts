@@ -1,4 +1,6 @@
 import {
+  currentAttachmentKey,
+  getAttachmentRuntime,
   getContinuityId,
   getFocusaAvailable,
   getLastProjectIdentity,
@@ -67,6 +69,10 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
     "unknown",
     40
   );
+  const attachmentKey = currentAttachmentKey();
+  const interactionMode = attachmentKey
+    ? getAttachmentRuntime(attachmentKey).cfg.interactionMode
+    : "terminal_guided";
   const prefix = mode === "visible" ? "# Focusa" : "## Focusa awareness";
 
   return [
@@ -77,6 +83,7 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
       : "Scope: unverified",
     `Mission: ${mission}`,
     `HLT status: ${hltStatus}`,
+    `Interaction: ${interactionMode}`,
     `Next: ${next}`,
     scopeVerified
       ? "Boundary: operator steering leads; scoped mutation tools enforce durable-write authority."

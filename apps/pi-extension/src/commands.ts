@@ -241,6 +241,11 @@ function renderFocusaContext(data: { frame: any; fs: any }): string {
     .trim();
 }
 
+type InteractionMode = "canvas_guided" | "terminal_guided" | "headless_automation";
+type InteractionAttachmentKey = NonNullable<ReturnType<typeof currentAttachmentKey>>;
+const sessionInteractionModes = new Map<InteractionAttachmentKey, InteractionMode>();
+const priorInteractionModes = new Map<InteractionAttachmentKey, InteractionMode>();
+
 export function registerCommands(pi: ExtensionAPI) {
   // /focusa-context (§34.2H runtime render)
   pi.registerCommand("focusa-context", {
@@ -266,6 +271,65 @@ export function registerCommands(pi: ExtensionAPI) {
       const rendered = renderFocusaContext(data);
       ctx.ui.notify("Rendered live Focusa context", "info");
       pi.sendMessage({ customType: "focusa-context", content: rendered, display: true });
+    },
+  });
+
+  pi.registerCommand("focusa-mode", {
+    description: "Show or switch Canvas, terminal, or headless interaction mode",
+    handler: async (args, ctx) => {
+      const attachmentKey = currentAttachmentKey();
+      if (!attachmentKey) {
+        ctx.ui.notify("Interaction mode unavailable: verified attachment scope required.", "error");
+        return;
+      }
+      const runtime = getAttachmentRuntime(attachmentKey);
+      const tokens = String(args || "").trim().split(/\s+/).filter(Boolean);
+      const requested = tokens[0] || "status";
+      const aliases: Record<string, InteractionMode> = {
+        canvas: "canvas_guided",
+        canvas_guided: "canvas_guided",
+        terminal: "terminal_guided",
+        terminal_guided: "terminal_guided",
+        headless: "headless_automation",
+        headless_automation: "headless_automation",
+      };
+      if (requested === "status") {
+        const mode = sessionInteractionModes.get(attachmentKey) || runtime.cfg.interactionMode;
+        ctx.ui.notify(`Focusa interaction mode: ${mode}.`, "info");
+        return;
+      }
+      if (requested === "clear") {
+        sessionInteractionModes.delete(attachmentKey);
+        const prior = priorInteractionModes.get(attachmentKey);
+        if (prior) runtime.cfg = { ...runtime.cfg, interactionMode: prior };
+        priorInteractionModes.delete(attachmentKey);
+        ctx.ui.notify(`Session override cleared; effective mode: ${runtime.cfg.interactionMode}.`, "info");
+        return;
+      }
+      const mode = aliases[requested];
+      if (!mode) {
+        ctx.ui.notify("Usage: /focusa-mode canvas|terminal|headless|status|clear [--project|--user]", "warning");
+        return;
+      }
+      if (tokens.includes("--project") || tokens.includes("--user")) {
+        const scope = tokens.includes("--user") ? "user" : "project";
+        try {
+          const saved = saveConfigOverrides(ctx.cwd, { interactionMode: mode }, scope);
+          runtime.cfg = saved.config;
+          sessionInteractionModes.delete(attachmentKey);
+          priorInteractionModes.delete(attachmentKey);
+          ctx.ui.notify(`Focusa ${scope} interaction mode saved: ${mode}.`, "info");
+        } catch (error) {
+          ctx.ui.notify(`Interaction mode not saved: ${String(error).slice(0, 180)}`, "error");
+        }
+        return;
+      }
+      if (!sessionInteractionModes.has(attachmentKey)) {
+        priorInteractionModes.set(attachmentKey, runtime.cfg.interactionMode);
+      }
+      sessionInteractionModes.set(attachmentKey, mode);
+      runtime.cfg = { ...runtime.cfg, interactionMode: mode };
+      ctx.ui.notify(`Focusa session interaction mode: ${mode}.`, "info");
     },
   });
 
@@ -348,6 +412,7 @@ export function registerCommands(pi: ExtensionAPI) {
 
       const draft = {
         contextStatusMode: settingsRuntime.cfg?.contextStatusMode || "actionable",
+        interactionMode: settingsRuntime.cfg?.interactionMode || "terminal_guided",
         vitalInfoPromptMode: settingsRuntime.cfg?.vitalInfoPromptMode || "prompt",
         vitalInfoPromptSurfaces:
           settingsRuntime.cfg?.vitalInfoPromptSurfaces ||
@@ -506,6 +571,12 @@ export function registerCommands(pi: ExtensionAPI) {
           values: ["1500", "2000", "3000", "5000"],
         },
         {
+          id: "interactionMode",
+          label: "Project interaction mode",
+          currentValue: draft.interactionMode,
+          values: ["canvas_guided", "terminal_guided", "headless_automation"],
+        },
+        {
           id: "contextStatusMode",
           label: "Footer hints",
           currentValue: draft.contextStatusMode,
@@ -549,6 +620,12 @@ export function registerCommands(pi: ExtensionAPI) {
           label: "OTA profile (all surfaces)",
           currentValue: otaProfile,
           values: ["dev_auto_all", "stable_auto_all", "stable_prompt", "notify"],
+        },
+        {
+          id: "interactionMode",
+          label: "Project interaction mode",
+          currentValue: draft.interactionMode,
+          values: ["canvas_guided", "terminal_guided", "headless_automation"],
         },
         {
           id: "contextStatusMode",
@@ -779,6 +856,7 @@ export function registerCommands(pi: ExtensionAPI) {
               if (!persistDraft()) Object.assign(draft, priorDraft);
               return;
             }
+            if (id === "interactionMode") draft.interactionMode = String(newValue) as any;
             if (id === "contextStatusMode") draft.contextStatusMode = String(newValue) as any;
             if (id === "vitalInfoPromptMode") draft.vitalInfoPromptMode = String(newValue) as any;
             if (id === "vitalInfoPromptSurfaces") draft.vitalInfoPromptSurfaces = String(newValue);

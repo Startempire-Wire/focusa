@@ -39,6 +39,7 @@ export interface FocusaConfig {
   autoCompactionReservePct: number;
   autoCompactionCooldownMs: number;
   contextStatusMode: "off" | "actionable" | "all";
+  interactionMode: "canvas_guided" | "terminal_guided" | "headless_automation";
   agentReminderMode: "off" | "shell";
   agentReminderShellFrequency: number;
   agentReminderCooldownMs: number;
@@ -136,6 +137,7 @@ const DEFAULTS: FocusaConfig = {
   autoCompactionReservePct: 10,
   autoCompactionCooldownMs: 60_000,
   contextStatusMode: "actionable",
+  interactionMode: "terminal_guided",
   agentReminderMode: "shell",
   agentReminderShellFrequency: 1,
   agentReminderCooldownMs: 30_000,
@@ -200,6 +202,7 @@ const ENV_MAP: Record<string, keyof FocusaConfig> = {
   FOCUSA_PI_AUTO_COMPACTION_RESERVE_PCT: "autoCompactionReservePct",
   FOCUSA_PI_AUTO_COMPACTION_COOLDOWN_MS: "autoCompactionCooldownMs",
   FOCUSA_PI_CONTEXT_STATUS_MODE: "contextStatusMode",
+  FOCUSA_PI_INTERACTION_MODE: "interactionMode",
   FOCUSA_PI_AGENT_REMINDER_MODE: "agentReminderMode",
   FOCUSA_PI_AGENT_REMINDER_SHELL_FREQUENCY: "agentReminderShellFrequency",
   FOCUSA_PI_AGENT_REMINDER_COOLDOWN_MS: "agentReminderCooldownMs",
@@ -263,6 +266,10 @@ function validate(cfg: FocusaConfig): string[] {
     errs.push(`autoCompactionCooldownMs(${cfg.autoCompactionCooldownMs}) must be >= 10000`);
   if (!["off", "actionable", "all"].includes(cfg.contextStatusMode))
     errs.push(`contextStatusMode(${cfg.contextStatusMode}) must be one of: off, actionable, all`);
+  if (!["canvas_guided", "terminal_guided", "headless_automation"].includes(cfg.interactionMode))
+    errs.push(
+      `interactionMode(${cfg.interactionMode}) must be canvas_guided, terminal_guided, or headless_automation`
+    );
   if (cfg.vitalInfoPromptMode === "notify") cfg.vitalInfoPromptMode = "warn_only";
   if (!["off", "warn_only", "prompt"].includes(cfg.vitalInfoPromptMode))
     errs.push(`vitalInfoPromptMode(${cfg.vitalInfoPromptMode}) must be one of: off, warn_only, prompt`);
