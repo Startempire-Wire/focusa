@@ -1,0 +1,16 @@
+{
+  "schema": "focusa.spec135.framework_runtime_audit.v1",
+  "authority_ref": "docs/contracts/spec135-framework-lock.v1.yaml",
+  "policy": "adopt_wrap_configure_extend_then_custom_only_after_failed_conformance",
+  "forbidden_runtime_dependencies": [],
+  "areas": [
+    {"area":"contracts","status":"adopted","owner_beads":["focusa-mc-full-j1","focusa-mc-full-j2"],"evidence":["Cargo.toml","scripts/generate-spec135-clients.sh","packages/generated/spec135/typescript/package.json"]},
+    {"area":"generated_ui","status":"partial","owner_beads":["focusa-mc-full-i1","focusa-mc-full-i2"],"evidence":["packages/a2ui-renderer/package.json"]},
+    {"area":"model_execution","status":"partial","owner_beads":["focusa-mc-full-b7","focusa-mc-full-i4"],"evidence":["apps/pi-extension/src/index.ts"]},
+    {"area":"documents_retrieval","status":"partial","owner_beads":["focusa-mc-full-b2","focusa-mc-full-f2"],"evidence":["tests/spec135_context_ingestion_test.py","tests/spec135_context_retrieval_test.py"]},
+    {"area":"ui","status":"partial","owner_beads":["focusa-mc-full-a5","focusa-mc-full-a6","focusa-mc-full-a7"],"evidence":["apps/pi-extension/src/mission-canvas-view.ts"]},
+    {"area":"artifacts_code_graph","status":"partial","owner_beads":["focusa-mc-full-c1","focusa-mc-full-f2","focusa-mc-full-f3"],"evidence":["crates/focusa-core/src/software_domain.rs"]},
+    {"area":"testing","status":"partial","owner_beads":["focusa-mc-full-d3","focusa-mc-full-c4","focusa-mc-full-h1","focusa-mc-full-h2"],"evidence":["scripts/spec135-z4-closure-gate.py"]},
+    {"area":"compliance","status":"partial","owner_beads":["focusa-mc-full-e1","focusa-mc-full-z1"],"evidence":["deny.toml","about.toml","scripts/generate-supply-chain-artifacts.sh"]}
+  ]
+}

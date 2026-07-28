@@ -12330,17 +12330,17 @@
           "agent"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "agent",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "compatibility_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_state",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -12423,17 +12423,17 @@
           "agent"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "agent",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "fail_closed_negotiation",
-          "requires_preview_token": false,
           "side_effect_profile": "read_state",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -12502,17 +12502,17 @@
           "agent"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "agent",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "registry_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_state",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -12587,17 +12587,17 @@
           "agent"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "agent",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "registry_projection",
-          "requires_preview_token": false,
           "side_effect_profile": "read_state",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -12675,17 +12675,17 @@
           "agent"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "agent",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "capability_projection",
-          "requires_preview_token": false,
           "side_effect_profile": "read_state",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -12764,17 +12764,17 @@
           "awareness"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "awareness",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_awareness",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -12785,7 +12785,7 @@
         "x-focusa-core-action": "focusa.awareness.packet",
         "x-focusa-generated-ui": true,
         "x-focusa-idempotency": false,
-        "x-focusa-mode": "commit",
+        "x-focusa-mode": "read",
         "x-focusa-permissions": [
           "awareness:read"
         ],
@@ -12842,17 +12842,17 @@
           "bloatgaurd"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "bloatgaurd",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_bloatgaurd",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": true,
         "x-focusa-capabilities": [
@@ -12930,18 +12930,18 @@
           "call_stack"
         ],
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "call_stack",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "daemon_dispatch",
-          "requires_preview_token": false,
           "side_effect_profile": "write_call_stack",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -13019,17 +13019,17 @@
           "call_stack"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "call_stack",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_call_stack_verify",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -13040,7 +13040,7 @@
         "x-focusa-core-action": "focusa.call_stack.verify",
         "x-focusa-generated-ui": true,
         "x-focusa-idempotency": false,
-        "x-focusa-mode": "commit",
+        "x-focusa-mode": "read",
         "x-focusa-permissions": [
           "call_stack:read"
         ],
@@ -13116,17 +13116,17 @@
           "context_cognition"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "context_cognition",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_context_curate",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -13137,7 +13137,7 @@
         "x-focusa-core-action": "focusa.context_cognition.curate",
         "x-focusa-generated-ui": true,
         "x-focusa-idempotency": false,
-        "x-focusa-mode": "commit",
+        "x-focusa-mode": "read",
         "x-focusa-permissions": [
           "context:read"
         ],
@@ -13204,17 +13204,17 @@
           "context_cognition"
         ],
         "x-focusa": {
-          "budget_profile": "heavy_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "context_cognition",
+          "canonical": true,
+          "budget_profile": "heavy_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_context",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -13301,17 +13301,17 @@
           "context"
         ],
         "x-focusa": {
-          "budget_profile": "light_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "context",
+          "canonical": true,
+          "budget_profile": "light_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_context",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -13399,17 +13399,17 @@
           "context"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "context",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "canonical_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_context",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -13507,16 +13507,16 @@
           "context"
         ],
         "x-focusa": {
-          "budget_profile": "standard_write",
-          "canonical": true,
-          "deprecation": null,
           "family": "context",
+          "canonical": true,
+          "budget_profile": "standard_write",
           "materialization_mode": "canonical_event",
-          "requires_preview_token": false,
           "side_effect_profile": "write_context",
           "supports_side_effect_policy": [
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -13614,17 +13614,17 @@
           "context"
         ],
         "x-focusa": {
-          "budget_profile": "heavy_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "context",
+          "canonical": true,
+          "budget_profile": "heavy_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_context",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -13635,7 +13635,7 @@
         "x-focusa-core-action": "focusa.context.retrieve",
         "x-focusa-generated-ui": true,
         "x-focusa-idempotency": false,
-        "x-focusa-mode": "commit",
+        "x-focusa-mode": "read",
         "x-focusa-permissions": [
           "context:read"
         ],
@@ -13712,17 +13712,17 @@
           "context"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "context",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "canonical_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_context",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -13820,16 +13820,16 @@
           "context"
         ],
         "x-focusa": {
-          "budget_profile": "standard_write",
-          "canonical": true,
-          "deprecation": null,
           "family": "context",
+          "canonical": true,
+          "budget_profile": "standard_write",
           "materialization_mode": "canonical_event",
-          "requires_preview_token": false,
           "side_effect_profile": "write_context",
           "supports_side_effect_policy": [
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -13927,16 +13927,16 @@
           "context"
         ],
         "x-focusa": {
-          "budget_profile": "heavy_write",
-          "canonical": true,
-          "deprecation": null,
           "family": "context",
+          "canonical": true,
+          "budget_profile": "heavy_write",
           "materialization_mode": "canonical_event",
-          "requires_preview_token": false,
           "side_effect_profile": "write_context",
           "supports_side_effect_policy": [
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -14006,18 +14006,18 @@
           "device"
         ],
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "device",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "daemon_dispatch",
-          "requires_preview_token": false,
           "side_effect_profile": "write_pairing",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -14073,17 +14073,17 @@
           "device"
         ],
         "x-focusa": {
-          "budget_profile": "light_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "device",
+          "canonical": true,
+          "budget_profile": "light_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_pairing",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -14149,17 +14149,17 @@
           "dxux"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "dxux",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_dxux",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": true,
         "x-focusa-capabilities": [
@@ -14282,17 +14282,17 @@
           "events"
         ],
         "x-focusa": {
-          "budget_profile": "streaming_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "events",
+          "canonical": true,
+          "budget_profile": "streaming_read",
           "materialization_mode": "durable_replay_live_tail",
-          "requires_preview_token": false,
           "side_effect_profile": "read_state",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -14377,18 +14377,18 @@
           "evidence"
         ],
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "evidence",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "daemon_dispatch",
-          "requires_preview_token": false,
           "side_effect_profile": "write_evidence",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -14447,17 +14447,17 @@
           "health"
         ],
         "x-focusa": {
-          "budget_profile": "light_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "health",
+          "canonical": true,
+          "budget_profile": "light_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_health",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -14551,16 +14551,16 @@
           "interview_strategy"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "interview_strategy",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "advisory_projection",
-          "requires_preview_token": false,
           "side_effect_profile": "propose_one_interview_question",
           "supports_side_effect_policy": [
             "preview"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -14571,7 +14571,7 @@
         "x-focusa-core-action": "focusa.interview.strategy.grill_with_docs.next_question",
         "x-focusa-generated-ui": true,
         "x-focusa-idempotency": false,
-        "x-focusa-mode": "commit",
+        "x-focusa-mode": "read",
         "x-focusa-permissions": [
           "interview:read"
         ],
@@ -14648,17 +14648,17 @@
           "project_interview"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "project_interview",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "canonical_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_interview_session",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -14756,18 +14756,18 @@
           "project_interview"
         ],
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "project_interview",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "canonical_event",
-          "requires_preview_token": false,
           "side_effect_profile": "append_interview_session_revision",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -14837,18 +14837,18 @@
           "license"
         ],
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "license",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "daemon_dispatch",
-          "requires_preview_token": false,
           "side_effect_profile": "write_license",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -14914,17 +14914,17 @@
           "lineage"
         ],
         "x-focusa": {
-          "budget_profile": "light_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "lineage",
+          "canonical": true,
+          "budget_profile": "light_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_lineage",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -14992,17 +14992,17 @@
           "lineage"
         ],
         "x-focusa": {
-          "budget_profile": "heavy_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "lineage",
+          "canonical": true,
+          "budget_profile": "heavy_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_lineage_tree",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -15079,17 +15079,17 @@
           "memory"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "memory",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_memory",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -15177,16 +15177,16 @@
           "memory"
         ],
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "memory",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "daemon_dispatch",
-          "requires_preview_token": false,
           "side_effect_profile": "write_memory",
           "supports_side_effect_policy": [
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -15264,17 +15264,17 @@
           "memory"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "memory",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_memory",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -15362,16 +15362,16 @@
           "memory"
         ],
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "memory",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "daemon_dispatch",
-          "requires_preview_token": false,
           "side_effect_profile": "write_memory",
           "supports_side_effect_policy": [
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -15459,18 +15459,18 @@
           "metacognition"
         ],
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "metacognition",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "daemon_dispatch",
-          "requires_preview_token": false,
           "side_effect_profile": "write_metacog_signal",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -15558,17 +15558,17 @@
           "metacognition"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "metacognition",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_metacog_doctor",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -15579,7 +15579,7 @@
         "x-focusa-core-action": "focusa.metacog.doctor",
         "x-focusa-generated-ui": true,
         "x-focusa-idempotency": false,
-        "x-focusa-mode": "commit",
+        "x-focusa-mode": "read",
         "x-focusa-permissions": [
           "metacog:read"
         ],
@@ -15656,17 +15656,17 @@
           "metacognition"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "metacognition",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_metacog_reflect",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -15677,7 +15677,7 @@
         "x-focusa-core-action": "focusa.metacog.reflect",
         "x-focusa-generated-ui": true,
         "x-focusa-idempotency": false,
-        "x-focusa-mode": "commit",
+        "x-focusa-mode": "read",
         "x-focusa-permissions": [
           "metacog:read"
         ],
@@ -15754,17 +15754,17 @@
           "metacognition"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "metacognition",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_metacog",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -15775,7 +15775,7 @@
         "x-focusa-core-action": "focusa.metacog.retrieve",
         "x-focusa-generated-ui": true,
         "x-focusa-idempotency": false,
-        "x-focusa-mode": "commit",
+        "x-focusa-mode": "read",
         "x-focusa-permissions": [
           "metacog:read"
         ],
@@ -15869,21 +15869,21 @@
           "mission_canvas"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "mission_canvas",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "canonical_projection_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_mission_canvas_surfaces",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
-          "mission_canvas"
+          "task_plan"
         ],
         "x-focusa-concurrency": false,
         "x-focusa-confirmation": "none",
@@ -15894,7 +15894,7 @@
         "x-focusa-permissions": [
           "mission_canvas:read"
         ],
-        "x-focusa-plain-label": "List Exact Work Surface Bindings",
+        "x-focusa-plain-label": "List Mission Canvas Work Surface Revisions",
         "x-focusa-receipt": false,
         "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
@@ -15978,22 +15978,22 @@
           "mission_canvas"
         ],
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "mission_canvas",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "canonical_projection_event",
-          "requires_preview_token": true,
           "side_effect_profile": "append_mission_canvas_surface_revision",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": true,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
-          "mission_canvas"
+          "task_plan"
         ],
         "x-focusa-concurrency": true,
         "x-focusa-confirmation": "none",
@@ -16004,7 +16004,7 @@
         "x-focusa-permissions": [
           "mission_canvas:write"
         ],
-        "x-focusa-plain-label": "Bind or Unbind an Exact Work Surface Target",
+        "x-focusa-plain-label": "Create, Arrange, Suspend, Resume, or Close Work Surface",
         "x-focusa-receipt": true,
         "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
@@ -16078,21 +16078,21 @@
           "mission_canvas"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "mission_canvas",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "canonical_projection_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_mission_canvas_surfaces",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
-          "mission_canvas"
+          "task_plan"
         ],
         "x-focusa-concurrency": false,
         "x-focusa-confirmation": "none",
@@ -16186,22 +16186,22 @@
           "mission_canvas"
         ],
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "mission_canvas",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "canonical_projection_event",
-          "requires_preview_token": true,
           "side_effect_profile": "append_mission_canvas_surface_revision",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": true,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
-          "mission_canvas"
+          "task_plan"
         ],
         "x-focusa-concurrency": true,
         "x-focusa-confirmation": "none",
@@ -16286,18 +16286,18 @@
           "prediction"
         ],
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "prediction",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "daemon_dispatch",
-          "requires_preview_token": false,
           "side_effect_profile": "write_prediction_eval",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -16375,17 +16375,17 @@
           "prediction"
         ],
         "x-focusa": {
-          "budget_profile": "light_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "prediction",
+          "canonical": true,
+          "budget_profile": "light_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_prediction",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -16473,18 +16473,18 @@
           "prediction"
         ],
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "prediction",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "daemon_dispatch",
-          "requires_preview_token": false,
           "side_effect_profile": "write_prediction",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -16553,17 +16553,17 @@
           "project"
         ],
         "x-focusa": {
-          "budget_profile": "light_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "project",
+          "canonical": true,
+          "budget_profile": "light_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_identity",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -16631,17 +16631,17 @@
           "project"
         ],
         "x-focusa": {
-          "budget_profile": "light_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "project",
+          "canonical": true,
+          "budget_profile": "light_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_verify",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -16737,18 +16737,18 @@
           "provider_execution"
         ],
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "provider_execution",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "governed_validation",
-          "requires_preview_token": false,
           "side_effect_profile": "evaluate_provider_conformance",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -16836,17 +16836,17 @@
           "provider_execution"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "provider_execution",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "canonical_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_provider_contracts",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -16916,17 +16916,17 @@
           "resource"
         ],
         "x-focusa": {
-          "budget_profile": "light_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "resource",
+          "canonical": true,
+          "budget_profile": "light_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_resource",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -17012,17 +17012,17 @@
           "project_role_profile"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "project_role_profile",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "canonical_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_role_profiles",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -17120,16 +17120,16 @@
           "project_role_profile"
         ],
         "x-focusa": {
-          "budget_profile": "standard_write",
-          "canonical": true,
-          "deprecation": null,
           "family": "project_role_profile",
+          "canonical": true,
+          "budget_profile": "standard_write",
           "materialization_mode": "canonical_event",
-          "requires_preview_token": false,
           "side_effect_profile": "draft_role_profile_revision",
           "supports_side_effect_policy": [
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -17227,16 +17227,16 @@
           "project_role_profile"
         ],
         "x-focusa": {
-          "budget_profile": "standard_write",
-          "canonical": true,
-          "deprecation": null,
           "family": "project_role_profile",
+          "canonical": true,
+          "budget_profile": "standard_write",
           "materialization_mode": "canonical_event",
-          "requires_preview_token": false,
           "side_effect_profile": "review_role_profile_revision",
           "supports_side_effect_policy": [
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -17334,18 +17334,18 @@
           "spec_workbench"
         ],
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "spec_workbench",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "canonical_event",
-          "requires_preview_token": false,
           "side_effect_profile": "append_spec_workbench_revision",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -17433,17 +17433,17 @@
           "spec_workbench"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "spec_workbench",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "canonical_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_spec_workbench",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -17513,17 +17513,17 @@
           "state"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "state",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_state",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -17609,17 +17609,17 @@
           "task_plan"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "task_plan",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "canonical_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_task_plan",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -17717,18 +17717,18 @@
           "task_plan"
         ],
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "task_plan",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "external_governed_mutation",
-          "requires_preview_token": true,
           "side_effect_profile": "materialize_task_plan_beads",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": true,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -17826,18 +17826,18 @@
           "task_plan"
         ],
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "task_plan",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "canonical_event",
-          "requires_preview_token": true,
           "side_effect_profile": "append_task_plan_revision",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": true,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -17907,17 +17907,17 @@
           "diagnostics"
         ],
         "x-focusa": {
-          "budget_profile": "light_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "diagnostics",
+          "canonical": true,
+          "budget_profile": "light_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_diagnostics",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -18004,17 +18004,17 @@
           "trajectory"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "trajectory",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_trajectory_assess",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -18025,7 +18025,7 @@
         "x-focusa-core-action": "focusa.trajectory.assess",
         "x-focusa-generated-ui": true,
         "x-focusa-idempotency": false,
-        "x-focusa-mode": "commit",
+        "x-focusa-mode": "read",
         "x-focusa-permissions": [
           "trajectory:read"
         ],
@@ -18102,18 +18102,18 @@
           "trajectory"
         ],
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "trajectory",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "daemon_dispatch",
-          "requires_preview_token": false,
           "side_effect_profile": "write_trajectory_checkpoint",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -18201,18 +18201,18 @@
           "trajectory"
         ],
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "trajectory",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "daemon_dispatch",
-          "requires_preview_token": false,
           "side_effect_profile": "write_trajectory_goal",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -18300,17 +18300,17 @@
           "trajectory"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "trajectory",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_trajectory_propose",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -18321,7 +18321,7 @@
         "x-focusa-core-action": "focusa.trajectory.propose_workpoint",
         "x-focusa-generated-ui": true,
         "x-focusa-idempotency": false,
-        "x-focusa-mode": "commit",
+        "x-focusa-mode": "read",
         "x-focusa-permissions": [
           "trajectory:read"
         ],
@@ -18398,17 +18398,17 @@
           "trajectory"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "trajectory",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_trajectory_resume",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -18419,7 +18419,7 @@
         "x-focusa-core-action": "focusa.trajectory.resume",
         "x-focusa-generated-ui": true,
         "x-focusa-idempotency": false,
-        "x-focusa-mode": "commit",
+        "x-focusa-mode": "read",
         "x-focusa-permissions": [
           "trajectory:read"
         ],
@@ -18486,17 +18486,17 @@
           "trajectory"
         ],
         "x-focusa": {
-          "budget_profile": "light_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "trajectory",
+          "canonical": true,
+          "budget_profile": "light_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_trajectory",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -18575,17 +18575,17 @@
           "traverse"
         ],
         "x-focusa": {
-          "budget_profile": "heavy_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "traverse",
+          "canonical": true,
+          "budget_profile": "heavy_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_traverse",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": true,
         "x-focusa-capabilities": [
@@ -18596,7 +18596,7 @@
         "x-focusa-core-action": "focusa.traverse",
         "x-focusa-generated-ui": true,
         "x-focusa-idempotency": false,
-        "x-focusa-mode": "commit",
+        "x-focusa-mode": "read",
         "x-focusa-permissions": [
           "traverse:read"
         ],
@@ -18672,16 +18672,16 @@
           "turn"
         ],
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "turn",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "daemon_dispatch",
-          "requires_preview_token": false,
           "side_effect_profile": "write_turn_chunk",
           "supports_side_effect_policy": [
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -18769,16 +18769,16 @@
           "turn"
         ],
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "turn",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "daemon_dispatch",
-          "requires_preview_token": false,
           "side_effect_profile": "write_turn_completion",
           "supports_side_effect_policy": [
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -18866,16 +18866,16 @@
           "turn"
         ],
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "turn",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "daemon_dispatch",
-          "requires_preview_token": false,
           "side_effect_profile": "write_turn",
           "supports_side_effect_policy": [
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -18963,18 +18963,18 @@
           "work_loop"
         ],
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "work_loop",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "daemon_dispatch",
-          "requires_preview_token": false,
           "side_effect_profile": "write_work_loop",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -19062,16 +19062,16 @@
           "work_loop"
         ],
         "x-focusa": {
-          "budget_profile": "process_control",
-          "canonical": true,
-          "deprecation": null,
           "family": "work_loop",
+          "canonical": true,
+          "budget_profile": "process_control",
           "materialization_mode": "pi_rpc",
-          "requires_preview_token": false,
           "side_effect_profile": "write_process",
           "supports_side_effect_policy": [
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -19159,16 +19159,16 @@
           "work_loop"
         ],
         "x-focusa": {
-          "budget_profile": "process_control",
-          "canonical": true,
-          "deprecation": null,
           "family": "work_loop",
+          "canonical": true,
+          "budget_profile": "process_control",
           "materialization_mode": "pi_rpc",
-          "requires_preview_token": false,
           "side_effect_profile": "write_process",
           "supports_side_effect_policy": [
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -19256,16 +19256,16 @@
           "work_loop"
         ],
         "x-focusa": {
-          "budget_profile": "process_control",
-          "canonical": true,
-          "deprecation": null,
           "family": "work_loop",
+          "canonical": true,
+          "budget_profile": "process_control",
           "materialization_mode": "pi_rpc",
-          "requires_preview_token": false,
           "side_effect_profile": "write_process",
           "supports_side_effect_policy": [
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -19353,16 +19353,16 @@
           "work_loop"
         ],
         "x-focusa": {
-          "budget_profile": "process_control",
-          "canonical": true,
-          "deprecation": null,
           "family": "work_loop",
+          "canonical": true,
+          "budget_profile": "process_control",
           "materialization_mode": "pi_rpc",
-          "requires_preview_token": false,
           "side_effect_profile": "write_process",
           "supports_side_effect_policy": [
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -19440,17 +19440,17 @@
           "work_loop"
         ],
         "x-focusa": {
-          "budget_profile": "light_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "work_loop",
+          "canonical": true,
+          "budget_profile": "light_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_work_loop",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -19554,21 +19554,21 @@
           "work_rail"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "work_rail",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "canonical_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_work_rail",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
-          "work_rail"
+          "task_plan"
         ],
         "x-focusa-concurrency": false,
         "x-focusa-confirmation": "none",
@@ -19672,22 +19672,22 @@
           "work_rail"
         ],
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "work_rail",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "canonical_and_provider_event",
-          "requires_preview_token": true,
           "side_effect_profile": "append_work_rail_revision",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": true,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
-          "work_rail"
+          "task_plan"
         ],
         "x-focusa-concurrency": true,
         "x-focusa-confirmation": "none",
@@ -19773,18 +19773,18 @@
           "workpoint"
         ],
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "workpoint",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "daemon_dispatch",
-          "requires_preview_token": false,
           "side_effect_profile": "write_workpoint_checkpoint",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -19872,18 +19872,18 @@
           "workpoint"
         ],
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "workpoint",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "daemon_dispatch",
-          "requires_preview_token": false,
           "side_effect_profile": "write_workpoint_evidence",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -19961,17 +19961,17 @@
           "workpoint"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "workpoint",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "advisory_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_workpoint_resume",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -20058,17 +20058,17 @@
           "workspace_artifact"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "workspace_artifact",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "canonical_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_artifact_links",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -20166,16 +20166,16 @@
           "workspace_artifact"
         ],
         "x-focusa": {
-          "budget_profile": "standard_write",
-          "canonical": true,
-          "deprecation": null,
           "family": "workspace_artifact",
+          "canonical": true,
+          "budget_profile": "standard_write",
           "materialization_mode": "canonical_event",
-          "requires_preview_token": false,
           "side_effect_profile": "link_artifact_descriptor",
           "supports_side_effect_policy": [
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -20275,21 +20275,21 @@
           }
         },
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "mission_canvas",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "canonical_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_mission_canvas_state",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
-          "mission_canvas"
+          "task_plan"
         ],
         "x-focusa-concurrency": false,
         "x-focusa-confirmation": "none",
@@ -20358,22 +20358,22 @@
           }
         },
         "x-focusa": {
-          "budget_profile": "standard_mutation",
-          "canonical": true,
-          "deprecation": null,
           "family": "mission_canvas",
+          "canonical": true,
+          "budget_profile": "standard_mutation",
           "materialization_mode": "canonical_projection_event",
-          "requires_preview_token": true,
           "side_effect_profile": "append_mission_canvas_state_revision",
           "supports_side_effect_policy": [
             "dry_run",
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": true,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
-          "mission_canvas"
+          "task_plan"
         ],
         "x-focusa-concurrency": true,
         "x-focusa-confirmation": "none",
@@ -20459,17 +20459,17 @@
           "project_interview"
         ],
         "x-focusa": {
-          "budget_profile": "standard_read",
-          "canonical": true,
-          "deprecation": null,
           "family": "project_interview",
+          "canonical": true,
+          "budget_profile": "standard_read",
           "materialization_mode": "canonical_read",
-          "requires_preview_token": false,
           "side_effect_profile": "read_interview_session",
           "supports_side_effect_policy": [
             "preview",
             "commit"
-          ]
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         },
         "x-focusa-advanced-only": false,
         "x-focusa-capabilities": [
@@ -20477,14 +20477,14 @@
         ],
         "x-focusa-concurrency": false,
         "x-focusa-confirmation": "none",
-        "x-focusa-core-action": "focusa.interview.closure_package.get",
+        "x-focusa-core-action": "project_interview_closure_package",
         "x-focusa-generated-ui": true,
         "x-focusa-idempotency": false,
         "x-focusa-mode": "read",
         "x-focusa-permissions": [
           "interview:read"
         ],
-        "x-focusa-plain-label": "Get Governed Interview Closure Package",
+        "x-focusa-plain-label": "List Durable Interview Session Revisions",
         "x-focusa-receipt": false,
         "x-focusa-result-envelope": "focusa.tool_result.v1",
         "x-focusa-reversible": false,
@@ -20525,6 +20525,44 @@
               }
             }
           }
+        },
+        "x-focusa-subsystem": "project",
+        "x-focusa-core-action": "focusa.project.genesis.start",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "project:write"
+        ],
+        "x-focusa-capabilities": [
+          "project",
+          "trajectory",
+          "workpoint"
+        ],
+        "x-focusa-mode": "commit",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": true,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": true,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Project Genesis Start",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "project",
+          "canonical": true,
+          "budget_profile": "bounded_write",
+          "materialization_mode": "canonical_mutation",
+          "side_effect_profile": "durable_staging",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         }
       }
     },
@@ -20556,6 +20594,44 @@
               }
             }
           }
+        },
+        "x-focusa-subsystem": "project",
+        "x-focusa-core-action": "focusa.project.genesis.resume",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "project:write"
+        ],
+        "x-focusa-capabilities": [
+          "project",
+          "trajectory",
+          "workpoint"
+        ],
+        "x-focusa-mode": "commit",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": true,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": true,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Project Genesis Resume",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "project",
+          "canonical": true,
+          "budget_profile": "bounded_write",
+          "materialization_mode": "canonical_mutation",
+          "side_effect_profile": "durable_staging",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         }
       }
     },
@@ -20587,7 +20663,44 @@
               "type": "string"
             }
           }
-        ]
+        ],
+        "x-focusa-subsystem": "project",
+        "x-focusa-core-action": "focusa.project.genesis.status",
+        "x-focusa-scope-keys": [
+          "project_root"
+        ],
+        "x-focusa-permissions": [
+          "project:read"
+        ],
+        "x-focusa-capabilities": [
+          "project",
+          "trajectory",
+          "workpoint"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Project Genesis Status",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "project",
+          "canonical": true,
+          "budget_profile": "light_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_status",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
+        }
       }
     },
     "/v1/project/genesis/commit": {
@@ -20618,6 +20731,44 @@
               }
             }
           }
+        },
+        "x-focusa-subsystem": "project",
+        "x-focusa-core-action": "focusa.project.genesis.commit",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "project:write"
+        ],
+        "x-focusa-capabilities": [
+          "project",
+          "trajectory",
+          "workpoint"
+        ],
+        "x-focusa-mode": "commit",
+        "x-focusa-confirmation": "consequential",
+        "x-focusa-idempotency": true,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Project Genesis Commit",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "consequential",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "project",
+          "canonical": true,
+          "budget_profile": "bounded_write",
+          "materialization_mode": "canonical_mutation",
+          "side_effect_profile": "confirmed_atomic_commit",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         }
       }
     },
@@ -20649,6 +20800,44 @@
               }
             }
           }
+        },
+        "x-focusa-subsystem": "project",
+        "x-focusa-core-action": "focusa.project.bootstrap.preview",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "project:read"
+        ],
+        "x-focusa-capabilities": [
+          "project",
+          "trajectory",
+          "workpoint"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Project Bootstrap Preview",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "project",
+          "canonical": true,
+          "budget_profile": "light_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_status",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         }
       }
     },
@@ -20680,6 +20869,44 @@
               }
             }
           }
+        },
+        "x-focusa-subsystem": "project",
+        "x-focusa-core-action": "focusa.project.bootstrap.apply",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "project:write"
+        ],
+        "x-focusa-capabilities": [
+          "project",
+          "trajectory",
+          "workpoint"
+        ],
+        "x-focusa-mode": "commit",
+        "x-focusa-confirmation": "consequential",
+        "x-focusa-idempotency": true,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": true,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Project Bootstrap Apply",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "consequential",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "project",
+          "canonical": true,
+          "budget_profile": "bounded_write",
+          "materialization_mode": "canonical_mutation",
+          "side_effect_profile": "confirmed_local_mutation",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         }
       }
     },
@@ -20711,7 +20938,44 @@
               "type": "string"
             }
           }
-        ]
+        ],
+        "x-focusa-subsystem": "project",
+        "x-focusa-core-action": "focusa.project.bootstrap.status",
+        "x-focusa-scope-keys": [
+          "project_root"
+        ],
+        "x-focusa-permissions": [
+          "project:read"
+        ],
+        "x-focusa-capabilities": [
+          "project",
+          "trajectory",
+          "workpoint"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Project Bootstrap Status",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "project",
+          "canonical": true,
+          "budget_profile": "light_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_status",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
+        }
       }
     },
     "/v1/project/bootstrap/repair": {
@@ -20742,6 +21006,44 @@
               }
             }
           }
+        },
+        "x-focusa-subsystem": "project",
+        "x-focusa-core-action": "focusa.project.bootstrap.repair",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "project:write"
+        ],
+        "x-focusa-capabilities": [
+          "project",
+          "trajectory",
+          "workpoint"
+        ],
+        "x-focusa-mode": "commit",
+        "x-focusa-confirmation": "consequential",
+        "x-focusa-idempotency": true,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": true,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Project Bootstrap Repair",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "consequential",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "project",
+          "canonical": true,
+          "budget_profile": "bounded_write",
+          "materialization_mode": "canonical_mutation",
+          "side_effect_profile": "confirmed_local_mutation",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         }
       }
     },
@@ -20781,7 +21083,45 @@
               "type": "string"
             }
           }
-        ]
+        ],
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.temporal.status",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:read"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Temporal Status",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "trajectory",
+          "canonical": true,
+          "budget_profile": "light_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_or_advisory_projection",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
+        }
       }
     },
     "/v1/temporal/commit": {
@@ -20812,6 +21152,44 @@
               }
             }
           }
+        },
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.temporal.commit",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:write"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "commit",
+        "x-focusa-confirmation": "consequential",
+        "x-focusa-idempotency": true,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Temporal Commit",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "consequential",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "trajectory",
+          "canonical": true,
+          "budget_profile": "bounded_write",
+          "materialization_mode": "canonical_mutation",
+          "side_effect_profile": "append_only_temporal_event",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         }
       }
     },
@@ -20843,6 +21221,44 @@
               }
             }
           }
+        },
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.temporal.revise",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:write"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "commit",
+        "x-focusa-confirmation": "consequential",
+        "x-focusa-idempotency": true,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": true,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Temporal Revise",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "consequential",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "trajectory",
+          "canonical": true,
+          "budget_profile": "bounded_write",
+          "materialization_mode": "canonical_mutation",
+          "side_effect_profile": "append_only_temporal_event",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         }
       }
     },
@@ -20874,6 +21290,44 @@
               }
             }
           }
+        },
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.temporal.observe",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:write"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "commit",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": true,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Temporal Observe",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "trajectory",
+          "canonical": true,
+          "budget_profile": "bounded_write",
+          "materialization_mode": "canonical_mutation",
+          "side_effect_profile": "append_only_temporal_event",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         }
       }
     },
@@ -20905,6 +21359,44 @@
               }
             }
           }
+        },
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.temporal.forecast",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:read"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Temporal Forecast",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "trajectory",
+          "canonical": true,
+          "budget_profile": "light_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_or_advisory_projection",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         }
       }
     },
@@ -20936,6 +21428,44 @@
               }
             }
           }
+        },
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.temporal.preflight",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "temporal:read"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Temporal Preflight",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "trajectory",
+          "canonical": true,
+          "budget_profile": "light_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_or_advisory_projection",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
         }
       }
     }
@@ -20946,5 +21476,6 @@
       "url": "/"
     }
   ],
-  "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema"
+  "x-focusa-json-schema-dialect": "https://json-schema.org/draft/2020-12/schema",
+  "x-focusa-operation-registry-ref": "operation-registry.json"
 }

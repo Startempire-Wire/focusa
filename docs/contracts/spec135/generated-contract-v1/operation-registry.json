@@ -400,7 +400,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "trajectory:read"
@@ -478,7 +478,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "trajectory:read"
@@ -633,7 +633,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "trajectory:read"
@@ -1023,7 +1023,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "metacog:read"
@@ -1101,7 +1101,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "metacog:read"
@@ -1178,7 +1178,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "metacog:read"
@@ -1644,7 +1644,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "context:read"
@@ -2828,7 +2828,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "interview:read"
@@ -3139,7 +3139,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "context:read"
@@ -3530,7 +3530,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "awareness:read"
@@ -3682,7 +3682,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "traverse:read"
@@ -4092,7 +4092,7 @@
         "device:write"
       ],
       "request_schema_ref": "focusa.device_pair_start.request.v1",
-      "requires_idempotency_key": false,
+      "requires_idempotency_key": true,
       "requires_if_match_version": false,
       "requires_preview_token": false,
       "response_detail_supported": [
@@ -4597,7 +4597,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "call_stack:read"
@@ -4700,7 +4700,7 @@
         "turn:write"
       ],
       "request_schema_ref": "focusa.turn_start.request.v1",
-      "requires_idempotency_key": false,
+      "requires_idempotency_key": true,
       "requires_if_match_version": false,
       "requires_preview_token": false,
       "response_detail_supported": [
@@ -4776,7 +4776,7 @@
         "turn:write"
       ],
       "request_schema_ref": "focusa.turn_append.request.v1",
-      "requires_idempotency_key": false,
+      "requires_idempotency_key": true,
       "requires_if_match_version": false,
       "requires_preview_token": false,
       "response_detail_supported": [
@@ -4852,7 +4852,7 @@
         "turn:write"
       ],
       "request_schema_ref": "focusa.turn_complete.request.v1",
-      "requires_idempotency_key": false,
+      "requires_idempotency_key": true,
       "requires_if_match_version": false,
       "requires_preview_token": false,
       "response_detail_supported": [
@@ -5005,7 +5005,7 @@
         "memory:write"
       ],
       "request_schema_ref": "focusa.memory_semantic_upsert.request.v1",
-      "requires_idempotency_key": false,
+      "requires_idempotency_key": true,
       "requires_if_match_version": false,
       "requires_preview_token": false,
       "response_detail_supported": [
@@ -5158,7 +5158,7 @@
         "memory:write"
       ],
       "request_schema_ref": "focusa.memory_procedural_reinforce.request.v1",
-      "requires_idempotency_key": false,
+      "requires_idempotency_key": true,
       "requires_if_match_version": false,
       "requires_preview_token": false,
       "response_detail_supported": [
@@ -5603,7 +5603,7 @@
         "project:read"
       ],
       "request_schema_ref": "focusa.protocol_handshake.request.v1",
-      "requires_idempotency_key": false,
+      "requires_idempotency_key": true,
       "requires_if_match_version": false,
       "requires_preview_token": false,
       "response_detail_supported": [
@@ -6677,9 +6677,9 @@
           "trajectory",
           "workpoint"
         ],
-        "confirmation": "explicit",
+        "confirmation": "consequential",
         "idempotency_required": true,
-        "mode": "write",
+        "mode": "commit",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "project:write"
@@ -6758,7 +6758,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "write",
+        "mode": "commit",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "project:write"
@@ -6837,7 +6837,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "write",
+        "mode": "commit",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "project:write"
@@ -6999,7 +6999,7 @@
         "permission_scopes": [
           "project:read"
         ],
-        "receipt_required": false,
+        "receipt_required": true,
         "reversible": false
       },
       "deprecation": null,
@@ -7071,9 +7071,9 @@
           "trajectory",
           "workpoint"
         ],
-        "confirmation": "explicit",
+        "confirmation": "consequential",
         "idempotency_required": true,
-        "mode": "write",
+        "mode": "commit",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "project:write"
@@ -7228,9 +7228,9 @@
           "trajectory",
           "workpoint"
         ],
-        "confirmation": "explicit",
+        "confirmation": "consequential",
         "idempotency_required": true,
-        "mode": "write",
+        "mode": "commit",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "project:write"
@@ -7386,9 +7386,9 @@
           "workpoint",
           "release"
         ],
-        "confirmation": "explicit",
+        "confirmation": "consequential",
         "idempotency_required": true,
-        "mode": "write",
+        "mode": "commit",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "temporal:write"
@@ -7465,9 +7465,9 @@
           "workpoint",
           "release"
         ],
-        "confirmation": "explicit",
+        "confirmation": "consequential",
         "idempotency_required": true,
-        "mode": "write",
+        "mode": "commit",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "temporal:write"
@@ -7546,7 +7546,7 @@
         ],
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "write",
+        "mode": "commit",
         "optimistic_concurrency_required": false,
         "permission_scopes": [
           "temporal:write"
@@ -7630,7 +7630,7 @@
         "permission_scopes": [
           "temporal:read"
         ],
-        "receipt_required": false,
+        "receipt_required": true,
         "reversible": false
       },
       "deprecation": null,
@@ -7709,7 +7709,7 @@
         "permission_scopes": [
           "temporal:read"
         ],
-        "receipt_required": false,
+        "receipt_required": true,
         "reversible": false
       },
       "deprecation": null,

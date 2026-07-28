@@ -26,11 +26,28 @@ import {
   setCompilationErrors,
   resetFileEditCounts,
 } from "./state.js";
-import { saveConfigOverrides } from "./config.js";
+import {
+  loadConfig,
+  resolveInteractionMode,
+  saveConfigOverrides,
+  type FocusaInteractionMode,
+  type MissionCanvasVisualVariant,
+  type MissionCanvasWorkspaceProfile,
+} from "./config.js";
 import { buildProjectWorkstreamKey, type WorkstreamKey } from "./scoped-state.js";
 import { measureNativeSessionPressure, migrateNativeSessionBounded } from "./session-pressure.js";
 import { prepareCompactionRollover } from "./compaction.js";
 import { dirname, resolve } from "path";
+import { MissionCanvasView, type MissionCanvasModel } from "./mission-canvas-view.js";
+import { refreshMissionCanvasWidget } from "./mission-canvas-widget.js";
+import { workRailDetailRows, workRailSnapshotFromPacket } from "./work-rail-widget.js";
+import {
+  MAX_MISSION_CANVAS_ROWS,
+  projectWorkSurfaces,
+  workSurfaceDetail,
+  workSurfaceLabel,
+} from "./mission-canvas-model.js";
+import { projectSessionInventory, sessionInventoryLabel } from "./mission-canvas-session-inventory.js";
 
 async function commandWorkLoopWriterHeaders(): Promise<Record<string, string>> {
   const writerId = `pi-${process.pid}`;
@@ -241,6 +258,229 @@ function renderFocusaContext(data: { frame: any; fs: any }): string {
 }
 
 export function registerCommands(pi: ExtensionAPI) {
+  pi.registerCommand("mission-canvas-mode", {
+    description: "Set the durable project interaction mode: canvas, terminal, or headless",
+    handler: async (args, ctx) => {
+      const requested = String(args || "")
+        .trim()
+        .toLowerCase();
+      const modes: Record<string, FocusaInteractionMode> = {
+        canvas: "canvas-guided",
+        "canvas-guided": "canvas-guided",
+        terminal: "terminal-guided",
+        "terminal-guided": "terminal-guided",
+        headless: "headless",
+      };
+      const mode = modes[requested];
+      if (!mode) {
+        const current = resolveInteractionMode(getSessionCwd());
+        ctx.ui.notify(
+          `Mission Canvas mode: ${current.mode} (source: ${current.source}). Usage: /mission-canvas-mode canvas|terminal|headless`,
+          "info"
+        );
+        return;
+      }
+      const saved = saveConfigOverrides(getSessionCwd(), { interactionMode: mode }, "project");
+      if (saved.errors.length) throw new Error(saved.errors.join("; "));
+      refreshMissionCanvasWidget(ctx);
+      ctx.ui.notify(`Focusa interaction mode set to ${mode} for this project`, "info");
+    },
+  });
+
+  pi.registerCommand("mission-canvas-profile", {
+    description: "Set the durable Mission Canvas workspace profile and visual variant",
+    handler: async (args, ctx) => {
+      const [profileArg, variantArg] = String(args || "")
+        .trim()
+        .toLowerCase()
+        .split(/\s+/);
+      const profiles = new Set<MissionCanvasWorkspaceProfile>([
+        "general",
+        "software",
+        "legal",
+        "markets",
+        "research",
+        "custom",
+      ]);
+      const variants = new Set<MissionCanvasVisualVariant>(["default", "high-contrast", "monochrome"]);
+      if (
+        !profiles.has(profileArg as MissionCanvasWorkspaceProfile) ||
+        (variantArg && !variants.has(variantArg as MissionCanvasVisualVariant))
+      ) {
+        const current = loadConfig(getSessionCwd()).config;
+        ctx.ui.notify(
+          `Mission Canvas profile: ${current.missionCanvasWorkspaceProfile} ${current.missionCanvasVisualVariant}. Usage: /mission-canvas-profile general|software|legal|markets|research|custom [default|high-contrast|monochrome]`,
+          "info"
+        );
+        return;
+      }
+      const saved = saveConfigOverrides(
+        getSessionCwd(),
+        {
+          missionCanvasWorkspaceProfile: profileArg as MissionCanvasWorkspaceProfile,
+          missionCanvasVisualVariant: (variantArg || "default") as MissionCanvasVisualVariant,
+        },
+        "project"
+      );
+      if (saved.errors.length) throw new Error(saved.errors.join("; "));
+      refreshMissionCanvasWidget(ctx);
+      ctx.ui.notify(
+        `Mission Canvas profile set to ${saved.config.missionCanvasWorkspaceProfile} · ${saved.config.missionCanvasVisualVariant}`,
+        "info"
+      );
+    },
+  });
+
+  pi.registerCommand("mission-canvas", {
+    description: "Open the keyboard-first Focusa Mission Canvas in Pi",
+    handler: async (_args, ctx) => {
+      const interactionMode = resolveInteractionMode(getSessionCwd());
+      if (interactionMode.mode !== "canvas-guided") {
+        ctx.ui.notify(
+          `Mission Canvas is disabled by interaction mode: ${interactionMode.mode} (source: ${interactionMode.source})`,
+          "info"
+        );
+        return;
+      }
+      const loadModel = async (): Promise<MissionCanvasModel> => {
+        const [
+          workpoint,
+          trajectory,
+          workLoop,
+          sessions,
+          silentSessions,
+          surfaces,
+          interviews,
+          closurePackage,
+          artifacts,
+        ] = await Promise.all([
+          focusaFetch("/v1/workpoint/resume").catch(() => null),
+          focusaFetch("/v1/trajectory/view").catch(() => null),
+          focusaFetch("/work-loop/status?summary_only=true").catch(() => null),
+          focusaFetch("/v1/session/discover").catch(() => null),
+          focusaFetch("/v1/silent-sessions").catch(() => null),
+          focusaFetch("/v1/mission-canvas/surfaces").catch(() => null),
+          focusaFetch("/v1/interviews/sessions").catch(() => null),
+          focusaFetch("/v1/interviews/closure-package").catch(() => null),
+          focusaFetch("/v1/workspace/artifacts").catch(() => null),
+        ]);
+        const packet = workpoint?.workpoint ?? workpoint?.resume_packet ?? workpoint ?? {};
+        const evidenceRefs = Array.isArray(packet?.verification_records)
+          ? packet.verification_records
+              .slice(0, MAX_MISSION_CANVAS_ROWS)
+              .map((record: any) => String(record?.evidence_ref ?? record?.result ?? record))
+          : Array.isArray(packet?.evidence_refs)
+            ? packet.evidence_refs.slice(0, MAX_MISSION_CANVAS_ROWS).map(String)
+            : [];
+        const projectedSurfaces = projectWorkSurfaces(surfaces);
+        const sessionRows = projectSessionInventory(sessions, projectedSurfaces, silentSessions).map(
+          sessionInventoryLabel
+        );
+        const surfaceRows = projectedSurfaces.map(workSurfaceLabel);
+        const contentionRows = projectedSurfaces
+          .filter((surface) => surface.conflictCount || surface.blockerCount || surface.writerLeaseRef)
+          .map(
+            (surface) =>
+              `${surface.displayName} · ${surface.conflictCount} conflicts · ${surface.blockerCount} blockers · ${surface.writerLeaseRef || "no writer lease"}`
+          );
+        const artifactRows = Array.isArray(artifacts?.artifacts)
+          ? artifacts.artifacts
+              .slice(0, MAX_MISSION_CANVAS_ROWS)
+              .map((artifact: any) =>
+                [artifact?.title ?? artifact?.artifact_id, artifact?.kind, artifact?.evidence_ref]
+                  .filter(Boolean)
+                  .join(" · ")
+              )
+          : [];
+        const historyRows = Array.isArray(packet?.verification_records)
+          ? packet.verification_records
+              .slice(0, MAX_MISSION_CANVAS_ROWS)
+              .map((record: any) =>
+                [record?.verified_at ?? record?.created_at, record?.result, record?.evidence_ref]
+                  .filter(Boolean)
+                  .join(" · ")
+              )
+          : [];
+        const interviewRows = Array.isArray(interviews?.sessions) ? interviews.sessions : [];
+        const activeInterview =
+          interviewRows.find((session: any) => session?.status === "active") ?? interviewRows[0];
+        const presentation = loadConfig(getSessionCwd()).config;
+        const workRail = workRailSnapshotFromPacket(workpoint);
+        const model: MissionCanvasModel = {
+          mission: String(packet?.mission ?? packet?.current_ask ?? "No active Mission Canvas Workpoint"),
+          trajectory: String(
+            trajectory?.short_term_goal ??
+              trajectory?.stg ??
+              trajectory?.long_term_goal ??
+              "No trajectory loaded"
+          ),
+          nextAction: String(
+            packet?.next_action ?? packet?.next_slice ?? "Create or resume a canonical Workpoint"
+          ),
+          workpointId: String(packet?.workpoint_id ?? ""),
+          workItemId: String(packet?.work_item_id ?? ""),
+          workRailDetails: workRailDetailRows(workRail),
+          projectRoot: String(packet?.project_root ?? getSessionCwd() ?? ""),
+          continuityId: String(packet?.continuity_id ?? getContinuityId() ?? ""),
+          evidenceRefs,
+          blockers: Array.isArray(packet?.blockers)
+            ? packet.blockers.slice(0, MAX_MISSION_CANVAS_ROWS).map(String)
+            : [],
+          sessions: sessionRows,
+          workSurfaces: surfaceRows.length
+            ? surfaceRows
+            : sessionRows.length
+              ? sessionRows
+              : [String(packet?.attachment_id ?? "Current Pi attachment")],
+          workSurfaceDetails: projectedSurfaces.map(workSurfaceDetail),
+          contention: contentionRows,
+          researchArtifacts: artifactRows,
+          history: historyRows,
+          contextStatus: String(
+            trajectory?.current_state ?? packet?.context_status ?? "Context review required"
+          ),
+          roleStatus: String(
+            closurePackage?.role_profile?.summary ??
+              activeInterview?.role_summary ??
+              "Role profile not reported"
+          ),
+          interviewStatus: String(
+            activeInterview
+              ? `${activeInterview.status ?? "unknown"} · ${activeInterview.session_id ?? "unidentified session"}`
+              : "No durable interview session reported"
+          ),
+          specStatus: String(
+            closurePackage?.spec_package?.status ??
+              closurePackage?.status ??
+              packet?.spec_status ??
+              "Spec state not reported"
+          ),
+          workLoopStatus: String(workLoop?.status ?? workLoop?.state ?? "Unavailable"),
+          scopeStatus: `${String(workpoint?.status ?? "advisory")} · mode ${interactionMode.mode} (${interactionMode.source})`,
+          workspaceProfile: presentation.missionCanvasWorkspaceProfile,
+          visualVariant: presentation.missionCanvasVisualVariant,
+        };
+        return model;
+      };
+      const model = await loadModel();
+
+      await ctx.ui.custom(
+        (tui, theme, _kb, done) =>
+          new MissionCanvasView(
+            model,
+            theme,
+            () => tui.requestRender(),
+            () => done(undefined),
+            loadModel,
+            (reference) => {
+              ctx.ui.setEditorText(reference);
+              ctx.ui.notify(`Copied stable Mission Canvas reference: ${reference}`, "info");
+            }
+          )
+      );
+    },
+  });
+
   // /focusa-context (§34.2H runtime render)
   pi.registerCommand("focusa-context", {
     description: "Render current Focusa context inline in the conversation",

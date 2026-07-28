@@ -177,7 +177,7 @@ def main() -> int:
         check=False,
     )
     descriptor_generator = subprocess.run(
-        ["bun", "scripts/generate-agent-capability-descriptors.ts", "--check"],
+        ["npx", "--yes", "tsx", "scripts/generate-agent-capability-descriptors.ts", "--check"],
         cwd=ROOT,
         text=True,
         capture_output=True,

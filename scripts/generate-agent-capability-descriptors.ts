@@ -1,9 +1,10 @@
-#!/usr/bin/env bun
+#!/usr/bin/env -S npx tsx
 /** Generate Spec141 Agent Capability Descriptor V2 and cross-harness projections. */
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 import { registerTools } from "../apps/pi-extension/src/tools.ts";
 import {
   FOCUSA_TOOL_CONTRACTS,
@@ -12,7 +13,7 @@ import {
   type FocusaToolContract,
 } from "../apps/pi-extension/src/tool-contracts.ts";
 
-const ROOT = resolve(import.meta.dir, "..");
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(ROOT, "docs/contracts/spec141/generated-capability-v2");
 const CHECK = process.argv.includes("--check");
 const WRITE = process.argv.includes("--write") || !CHECK;
