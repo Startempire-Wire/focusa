@@ -28,14 +28,21 @@
     {"rank":3,"seam":"settings callback lost attachment","decision":"explicit scoped runtime","proof":"#47"},
     {"rank":4,"seam":"default menu exposed expert tuning","decision":"relocate to advanced search","proof":"#48/#49"},
     {"rank":5,"seam":"discipline disconnected from Genesis","decision":"atomic bootstrap/Genesis chain","proof":"#50"},
-    {"rank":6,"seam":"Canvas/terminal choice absent","decision":"typed scoped interaction mode","proof":"#53"}
+    {"rank":6,"seam":"Canvas/terminal choice absent","decision":"typed scoped interaction mode","proof":"#53"},
+    {"rank":7,"seam":"typed project prediction body rejected by generic JSON guard","decision":"connect typed scope vocabulary","proof":"#15"},
+    {"rank":8,"seam":"signed skills installed without Pi-global synchronization","decision":"atomic dual-root synchronization and doctor","proof":"#65"},
+    {"rank":9,"seam":"OTA rollback restored files but not launchd process state","decision":"restore and health-check exact prior daemon state","proof":"#87"},
+    {"rank":10,"seam":"legacy Pi runtime exposed activation command","decision":"daemon-side marker quarantine","proof":"#88"}
   ],
   "dead_road_decisions": [
     {"candidate":"CLI-only project initialization","decision":"supersede","replacement":"focusa_project_bootstrap/genesis Pi tools"},
     {"candidate":"synthetic conversational OTA activation","decision":"remove","replacement":"safe-idle capability or natural process start"},
     {"candidate":"prose-only learning promotion","decision":"reject","replacement":"typed Spec138 metrics"},
     {"candidate":"expert OTA/profile/heartbeat/surface controls in default menu","decision":"relocate","replacement":"advanced searchable settings"},
-    {"candidate":"stale broad persisted root as mutation blocker","decision":"downgrade to warning","replacement":"explicit verified child authority"}
+    {"candidate":"stale broad persisted root as mutation blocker","decision":"downgrade to warning","replacement":"explicit verified child authority"},
+    {"candidate":"conversation-only scope_kind allowlist at the global JSON boundary","decision":"merge","replacement":"typed project/host and conversation scope vocabulary"},
+    {"candidate":"agent-context-only skill placement","decision":"connect","replacement":"atomic `.pi/skills` and `.pi/agent/skills` synchronization"},
+    {"candidate":"legacy conversational Pi OTA marker namespace","decision":"supersede","replacement":"daemon-quarantined silent lifecycle marker"}
   ],
   "before_trace": {"steps":12,"repeated_prompts":3,"wrong_paths":4},
   "after_trace": {"steps":8,"repeated_prompts":0,"wrong_paths":0},
