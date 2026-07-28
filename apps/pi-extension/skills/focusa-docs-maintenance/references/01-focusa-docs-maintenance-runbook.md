@@ -1,25 +1,43 @@
-# Focusa Documentation Maintenance Runbook
+# Focusa Docs Maintenance Runbook
 
-## Coverage map
+## Preconditions
 
-Every behavior change must update the applicable surfaces:
+- Verify project root plus continuity scope when project-bound.
+- Resume or checkpoint the canonical Workpoint before long/risky work.
+- Confirm current operator steering and mutation approval boundaries.
+- Use targeted local gates during development; CI requires explicit release authorization.
 
-1. public `README.md` or `docs/current/` operator documentation;
-2. `AGENTS.md` and `docs/agent/01-focusa-agent-docs-index.md` for agent routing;
-3. `.pi/skills/` plus packaged `apps/pi-extension/skills/` skill/runbook parity;
-4. Spec141 generated capability projections and all per-tool docs;
-5. onboarding, lifecycle, recovery, and release proof where behavior affects users.
+## Dependency graph
 
-## Workflow
+```text
 
-1. Map changed code since the previous release to feature/architecture terms.
-2. Run `scripts/generate-agent-capability-descriptors.ts` and `scripts/generate-agent-tool-docs.ts`.
-3. Run `scripts/generate-agent-skills.py` and verify root/package parity.
-4. Run Spec141 conformance, Markdown links/lint, version-surface, and generated-drift checks.
-5. Record gaps and proof on the canonical Workpoint.
+```
 
-## Boundaries
+## Minimal path
 
-- New docs use numbered descriptive names except tool-mandated `README.md`, `AGENTS.md`, and `SKILL.md`.
-- Keep private operational/commercial material outside public docs.
-- Never claim completion from documentation presence alone; validate links, generated counts, and runtime parity.
+1. Call `focusa_tool_search` with only required bounded inputs.
+
+## Current domain procedure
+
+1. Verify typed project/workstream scope before durable mutation.
+2. Return bounded evidence and executable recovery.
+
+## Branches
+
+- Unknown tool/schema: `focusa_tool_search` → `focusa_tool_describe`.
+- Scope conflict: `focusa_project_verify` → `focusa_workpoint_checkpoint`.
+- Daemon/degraded state: `focusa_tool_doctor`; retry only with safe posture.
+- Resource timeout: `focusa_resource_mode` → bounded `focusa_traverse`.
+- Browser failure: UIAI diagnostics → `focusa_browser_diagnostics_intake` → evidence.
+- Mutation ambiguity: inspect side effects/receipts before retry; require operator confirmation when declared.
+
+## Evidence and closure
+
+- Capture stable file/test/API/browser/receipt refs.
+- Link proof to the active Workpoint.
+- Evaluate relevant predictions and reusable learning only after outcome is known.
+- Done: The scoped operation is verified, evidenced, and handed to the next owning skill.
+
+## Cross-harness mapping
+
+Resolve equivalent Pi, MCP, OpenAI, CLI, and REST bindings through Agent Capability Descriptor V2; semantics and authority must remain identical.

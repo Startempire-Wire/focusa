@@ -1,6 +1,6 @@
 {
   "schema": "focusa.openai_tool_projection.v2",
-  "registry_digest": "sha256:8da28148bf9c812232c01a2ec9fb60ef431e6722d84a4982f5f94e13bf4fd02f",
+  "registry_digest": "sha256:d7bb4c8fb927058bd546672f85ab3a3b9e6ffbbaf3a113d51f6671d8ecf4ba95",
   "tools": [
     {
       "type": "function",
@@ -2029,6 +2029,46 @@
             },
             "continuity_id": {
               "description": "Explicit or current workstream continuity id.",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_prediction_authority",
+        "description": "Append or project immutable Spec 138 prediction/outcome/learning/transfer authority in one typed project/workstream scope. Use it when Append or project immutable Spec 138 authority in typed scope. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "action"
+          ],
+          "properties": {
+            "action": {
+              "anyOf": [
+                {
+                  "const": "append",
+                  "type": "string"
+                },
+                {
+                  "const": "projection",
+                  "type": "string"
+                }
+              ]
+            },
+            "event": {
+              "description": "ScopedAuthorityEvent when action=append."
+            },
+            "project_root": {
+              "description": "Explicit or current verified project root.",
+              "type": "string"
+            },
+            "continuity_id": {
+              "description": "Explicit or current continuity id.",
               "type": "string"
             }
           },

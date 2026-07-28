@@ -1,7 +1,7 @@
 {
   "schema": "focusa.skill_ownership_manifest.v1",
-  "advertised_capability_count": 112,
-  "tool_contract_sha256": "3f4018964fa5cf36eeff36ee7a30b79426f8adacefd035e7843487b3f44e93c1",
+  "advertised_capability_count": 116,
+  "tool_contract_sha256": "cc3beef5394883ee1720efb5351fc4b985bd595dad7ec55a94855ef511b0a24f",
   "generated": true,
   "capabilities": [
     {
@@ -383,6 +383,18 @@
       "failure_handoff": "focusa-troubleshooting"
     },
     {
+      "tool": "focusa_preload_build",
+      "owner_skill": "focusa-session-recovery",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_preload_doctor",
+      "owner_skill": "focusa-session-recovery",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
       "tool": "focusa_preload_profiles",
       "owner_skill": "focusa-session-recovery",
       "authority_boundary": "tool contract and daemon remain canonical",
@@ -396,6 +408,18 @@
     },
     {
       "tool": "focusa_preload_receipt_preview",
+      "owner_skill": "focusa-session-recovery",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_preload_render",
+      "owner_skill": "focusa-session-recovery",
+      "authority_boundary": "tool contract and daemon remain canonical",
+      "failure_handoff": "focusa-troubleshooting"
+    },
+    {
+      "tool": "focusa_preload_verify",
       "owner_skill": "focusa-session-recovery",
       "authority_boundary": "tool contract and daemon remain canonical",
       "failure_handoff": "focusa-troubleshooting"

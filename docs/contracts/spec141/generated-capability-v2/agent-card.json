@@ -22,22 +22,28 @@
     "device_pairing",
     "local_trusted"
   ],
-  "registry_digest": "sha256:8da28148bf9c812232c01a2ec9fb60ef431e6722d84a4982f5f94e13bf4fd02f",
-  "pi_tool_count": 115,
-  "pi_tool_docs_count": 115,
+  "registry_digest": "sha256:d7bb4c8fb927058bd546672f85ab3a3b9e6ffbbaf3a113d51f6671d8ecf4ba95",
+  "pi_tool_count": 116,
+  "pi_tool_docs_count": 116,
   "pi_tool_registry_path": "docs/contracts/spec141/generated-capability-v2/pi-tools.json",
   "pi_tool_docs_path": "docs/focusa-tools/tools/",
-  "skill_count": 22,
+  "skill_count": 29,
   "skills": [
     "skill:focusa",
     "skill:focusa-agent-bootstrap",
     "skill:focusa-browser-uiai",
     "skill:focusa-cli-api",
+    "skill:focusa-context-cognition",
+    "skill:focusa-device-pairing",
     "skill:focusa-docs-maintenance",
+    "skill:focusa-dxux-recovery",
     "skill:focusa-evidence-outcomes",
+    "skill:focusa-focus-state",
     "skill:focusa-install-lifecycle",
+    "skill:focusa-lineage",
     "skill:focusa-metacognition",
     "skill:focusa-mission-canvas",
+    "skill:focusa-project-card",
     "skill:focusa-project-scope",
     "skill:focusa-release-proof",
     "skill:focusa-resource-performance",
@@ -47,6 +53,7 @@
     "skill:focusa-spec-implementation",
     "skill:focusa-temporal-authority",
     "skill:focusa-tool-discovery",
+    "skill:focusa-trajectory",
     "skill:focusa-troubleshooting",
     "skill:focusa-work-loop",
     "skill:focusa-workpoint",
@@ -58,7 +65,8 @@
       "manifest_ref": ".pi/skills/focusa/SKILL.md",
       "packaged_manifest_ref": "apps/pi-extension/skills/focusa/SKILL.md",
       "runbook_refs": [
-        ".pi/skills/focusa/references/01-focusa-core-agent-runbook.md"
+        ".pi/skills/focusa/references/01-focusa-core-agent-runbook.md",
+        ".pi/skills/focusa/references/01-focusa-runbook.md"
       ]
     },
     {
@@ -86,11 +94,35 @@
       ]
     },
     {
+      "skill_ref": "skill:focusa-context-cognition",
+      "manifest_ref": ".pi/skills/focusa-context-cognition/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-context-cognition/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-context-cognition/references/01-focusa-context-cognition-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:focusa-device-pairing",
+      "manifest_ref": ".pi/skills/focusa-device-pairing/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-device-pairing/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-device-pairing/references/01-focusa-device-pairing-runbook.md"
+      ]
+    },
+    {
       "skill_ref": "skill:focusa-docs-maintenance",
       "manifest_ref": ".pi/skills/focusa-docs-maintenance/SKILL.md",
       "packaged_manifest_ref": "apps/pi-extension/skills/focusa-docs-maintenance/SKILL.md",
       "runbook_refs": [
         ".pi/skills/focusa-docs-maintenance/references/01-focusa-docs-maintenance-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:focusa-dxux-recovery",
+      "manifest_ref": ".pi/skills/focusa-dxux-recovery/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-dxux-recovery/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-dxux-recovery/references/01-focusa-dxux-recovery-runbook.md"
       ]
     },
     {
@@ -102,11 +134,27 @@
       ]
     },
     {
+      "skill_ref": "skill:focusa-focus-state",
+      "manifest_ref": ".pi/skills/focusa-focus-state/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-focus-state/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-focus-state/references/01-focusa-focus-state-runbook.md"
+      ]
+    },
+    {
       "skill_ref": "skill:focusa-install-lifecycle",
       "manifest_ref": ".pi/skills/focusa-install-lifecycle/SKILL.md",
       "packaged_manifest_ref": "apps/pi-extension/skills/focusa-install-lifecycle/SKILL.md",
       "runbook_refs": [
         ".pi/skills/focusa-install-lifecycle/references/01-focusa-install-lifecycle-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:focusa-lineage",
+      "manifest_ref": ".pi/skills/focusa-lineage/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-lineage/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-lineage/references/01-focusa-lineage-runbook.md"
       ]
     },
     {
@@ -123,6 +171,14 @@
       "packaged_manifest_ref": "apps/pi-extension/skills/focusa-mission-canvas/SKILL.md",
       "runbook_refs": [
         ".pi/skills/focusa-mission-canvas/references/01-focusa-mission-canvas-runbook.md"
+      ]
+    },
+    {
+      "skill_ref": "skill:focusa-project-card",
+      "manifest_ref": ".pi/skills/focusa-project-card/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-project-card/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-project-card/references/01-focusa-project-card-runbook.md"
       ]
     },
     {
@@ -198,6 +254,14 @@
       ]
     },
     {
+      "skill_ref": "skill:focusa-trajectory",
+      "manifest_ref": ".pi/skills/focusa-trajectory/SKILL.md",
+      "packaged_manifest_ref": "apps/pi-extension/skills/focusa-trajectory/SKILL.md",
+      "runbook_refs": [
+        ".pi/skills/focusa-trajectory/references/01-focusa-trajectory-runbook.md"
+      ]
+    },
+    {
       "skill_ref": "skill:focusa-troubleshooting",
       "manifest_ref": ".pi/skills/focusa-troubleshooting/SKILL.md",
       "packaged_manifest_ref": "apps/pi-extension/skills/focusa-troubleshooting/SKILL.md",
@@ -226,7 +290,8 @@
       "manifest_ref": ".pi/skills/predictive-power/SKILL.md",
       "packaged_manifest_ref": "apps/pi-extension/skills/predictive-power/SKILL.md",
       "runbook_refs": [
-        ".pi/skills/predictive-power/references/01-focusa-predictive-power-runbook.md"
+        ".pi/skills/predictive-power/references/01-focusa-predictive-power-runbook.md",
+        ".pi/skills/predictive-power/references/01-predictive-power-runbook.md"
       ]
     }
   ],
@@ -249,16 +314,22 @@
     "skill:focusa-workpoint",
     "skill:predictive-power"
   ],
-  "runbook_count": 22,
+  "runbook_count": 31,
   "runbook_refs": [
     ".pi/skills/focusa-agent-bootstrap/references/01-focusa-agent-bootstrap-runbook.md",
     ".pi/skills/focusa-browser-uiai/references/01-focusa-browser-uiai-runbook.md",
     ".pi/skills/focusa-cli-api/references/01-focusa-cli-api-runbook.md",
+    ".pi/skills/focusa-context-cognition/references/01-focusa-context-cognition-runbook.md",
+    ".pi/skills/focusa-device-pairing/references/01-focusa-device-pairing-runbook.md",
     ".pi/skills/focusa-docs-maintenance/references/01-focusa-docs-maintenance-runbook.md",
+    ".pi/skills/focusa-dxux-recovery/references/01-focusa-dxux-recovery-runbook.md",
     ".pi/skills/focusa-evidence-outcomes/references/01-focusa-evidence-outcomes-runbook.md",
+    ".pi/skills/focusa-focus-state/references/01-focusa-focus-state-runbook.md",
     ".pi/skills/focusa-install-lifecycle/references/01-focusa-install-lifecycle-runbook.md",
+    ".pi/skills/focusa-lineage/references/01-focusa-lineage-runbook.md",
     ".pi/skills/focusa-metacognition/references/01-focusa-metacognition-runbook.md",
     ".pi/skills/focusa-mission-canvas/references/01-focusa-mission-canvas-runbook.md",
+    ".pi/skills/focusa-project-card/references/01-focusa-project-card-runbook.md",
     ".pi/skills/focusa-project-scope/references/01-focusa-project-scope-runbook.md",
     ".pi/skills/focusa-release-proof/references/01-focusa-release-proof-runbook.md",
     ".pi/skills/focusa-resource-performance/references/01-focusa-resource-performance-runbook.md",
@@ -268,11 +339,14 @@
     ".pi/skills/focusa-spec-implementation/references/01-focusa-spec-implementation-runbook.md",
     ".pi/skills/focusa-temporal-authority/references/01-focusa-temporal-authority-runbook.md",
     ".pi/skills/focusa-tool-discovery/references/01-focusa-tool-discovery-runbook.md",
+    ".pi/skills/focusa-trajectory/references/01-focusa-trajectory-runbook.md",
     ".pi/skills/focusa-troubleshooting/references/01-focusa-troubleshooting-runbook.md",
     ".pi/skills/focusa-work-loop/references/01-focusa-work-loop-runbook.md",
     ".pi/skills/focusa-workpoint/references/01-focusa-workpoint-runbook.md",
     ".pi/skills/focusa/references/01-focusa-core-agent-runbook.md",
-    ".pi/skills/predictive-power/references/01-focusa-predictive-power-runbook.md"
+    ".pi/skills/focusa/references/01-focusa-runbook.md",
+    ".pi/skills/predictive-power/references/01-focusa-predictive-power-runbook.md",
+    ".pi/skills/predictive-power/references/01-predictive-power-runbook.md"
   ],
   "capability_families": [
     "awareness",
@@ -289,5 +363,5 @@
     "workpoint"
   ],
   "extended_card_path": "/v1/agent/card",
-  "card_digest": "sha256:82029ca07448a27c82d0247339c9abfca10e2b5d9f802f59ce3757274180d3fb"
+  "card_digest": "sha256:1f65a19aab7e2fb940b1870bc9e431d86bd8811a1c2c5bfb7f8f1e105f1b7176"
 }

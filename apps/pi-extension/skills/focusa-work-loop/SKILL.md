@@ -1,33 +1,60 @@
 ---
 name: focusa-work-loop
-description: "Use when controlling Focusa continuous work-loop state, checking writer ownership, preflighting pause/resume/stop, or selecting next ready work."
+description: "Use for work loop workflows with bounded Focusa authority."
 ---
 
-# Focusa Work-loop Playbook
+# Focusa Work Loop
 
-Use when controlling Focusa continuous work-loop state, checking writer ownership, preflighting pause/resume/stop, or selecting next ready work.
+Use for work loop workflows with bounded Focusa authority.
 
 ## Progressive disclosure
 
-Read `references/01-focusa-work-loop-runbook.md` for writer ownership, preflighted mutation, Silent Session handoff, rollover, and evidence closure.
+1. Load this core file only when its trigger matches.
+2. Read `references/01-focusa-work-loop-runbook.md` only for the selected workflow.
+3. Use `focusa_tool_describe` to cold-load exact schemas only for selected tools.
+4. Open linked specs/evidence only when a branch requires them.
 
-## Start here
+## Trigger examples
 
-1. Load the main Focusa skill if you need the whole system model: `/skill:focusa`.
-2. Read the focused tool doc: `docs/focusa-tools/work-loop.md`.
-3. Prefer canonical Focusa state over transcript memory.
-4. Preserve proof as evidence refs, not pasted logs.
+- work loop workflows with bounded Focusa authority
 
-## Primary docs
+## Non-trigger examples
 
-- Focused tools: `docs/focusa-tools/work-loop.md`
-- Tool index: `docs/focusa-tools/README.md`
-- Operator guide: `docs/SPEC89_HARDENED_FOCUSA_TOOL_OPERATOR_GUIDE_2026-04-28.md`
-- Live release proof: `docs/evidence/SPEC89_REAL_RELEASE_LIVE_PROOF_2026-04-28.md`
+- unrelated implementation work
+- a narrower skill owns the selected capability
 
-## Safety rules
+## Required sequence
 
-- Treat `canonical=false`, `degraded=true`, `pending`, or `blocked` as recovery states, not success.
-- Use Workpoint resume/checkpoint around compaction, context overflow, model switch, fork, or risky release work.
-- Use writer-status/preflight before mutating work-loop state.
-- Do not describe Focusa as complete or frozen; use current snapshot/version language.
+1. `focusa_work_loop_checkpoint`
+2. `focusa_work_loop_context`
+3. `focusa_work_loop_control`
+4. `focusa_work_loop_select_next`
+5. `focusa_work_loop_status`
+6. `focusa_work_loop_writer_status`
+
+Current operator steering, verified project scope, and canonical Workpoint authority remain higher priority than this default sequence.
+
+## Failure recovery
+
+- `focusa_tool_doctor`
+- `focusa_project_verify`
+- `focusa_workpoint_resume`
+
+Treat `blocked`, `pending`, `degraded`, `canonical=false`, validation rejection, and ambiguous side effects as recovery states—not completion.
+
+## Routing metadata
+- prerequisites: verified project identity and typed continuity when durable scope matters
+- use_instead_when: use the narrower owner in `docs/contracts/65-focusa-skill-ownership-manifest.json`
+- next_skills: `focusa-workpoint`, `focusa-evidence-outcomes`, `focusa-metacognition`
+- failure_handoff: `focusa-troubleshooting`
+- authority_boundary: operator steering leads; daemon and typed Workpoint/Trajectory contracts remain canonical
+- workflow: `focusa-project-scope` → `focusa-work-loop` → `focusa-workpoint` → `focusa-evidence-outcomes`
+- minimum_contract: `focusa.tool_affordance_catalog.v1`
+- source_status: generated core plus hand-authored registry content; no sibling-body injection
+- supersession: none
+
+## Done condition
+
+The scoped operation is verified, evidenced, and handed to the next owning skill.
+
+Stable evidence or receipt refs must support any completion claim.

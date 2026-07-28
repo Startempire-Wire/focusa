@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:8da28148bf9c812232c01a2ec9fb60ef431e6722d84a4982f5f94e13bf4fd02f`
+Registry digest: `sha256:d7bb4c8fb927058bd546672f85ab3a3b9e6ffbbaf3a113d51f6671d8ecf4ba95`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -685,6 +685,17 @@ Report prediction calibration for one typed project/workstream scope. Use it whe
 - Skills: `skill:focusa`, `skill:focusa-metacognition`, `skill:predictive-power`
 - Dependencies/next: `focusa_predict_recent`, `focusa_metacog_doctor`, `focusa_tool_doctor`
 - Documentation: `docs/focusa-tools/tools/focusa_predict_stats.md`
+
+## focusa_prediction_authority
+
+Append or project immutable Spec 138 prediction/outcome/learning/transfer authority in one typed project/workstream scope. Use it when Append or project immutable Spec 138 authority in typed scope. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.prediction.authority`
+- Family: `metacognition`
+- Side effects: `write_or_read_prediction_authority`, `write_or_read_prediction_authority`
+- Skills: `skill:focusa`, `skill:focusa-metacognition`, `skill:predictive-power`
+- Dependencies/next: `focusa_predict_recent`, `focusa_evidence_capture`, `focusa_metacog_capture`
+- Documentation: `docs/focusa-tools/tools/focusa_prediction_authority.md`
 
 ## focusa_preload_build
 

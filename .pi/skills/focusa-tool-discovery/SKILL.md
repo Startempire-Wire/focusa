@@ -42,13 +42,6 @@ Current operator steering, verified project scope, and canonical Workpoint autho
 
 Treat `blocked`, `pending`, `degraded`, `canonical=false`, validation rejection, and ambiguous side effects as recovery states—not completion.
 
-## Done condition
-
-The narrowest valid capability and dependency sequence are selected under token budget.
-
-Stable evidence or receipt refs must support any completion claim.
-
-
 ## Routing metadata
 - prerequisites: verified project identity and typed continuity when durable scope matters
 - use_instead_when: use the narrower owner in `docs/contracts/65-focusa-skill-ownership-manifest.json`
@@ -57,5 +50,11 @@ Stable evidence or receipt refs must support any completion claim.
 - authority_boundary: operator steering leads; daemon and typed Workpoint/Trajectory contracts remain canonical
 - workflow: `focusa-project-scope` → `focusa-tool-discovery` → `focusa-workpoint` → `focusa-evidence-outcomes`
 - minimum_contract: `focusa.tool_affordance_catalog.v1`
-- source_status: hand-authored; no automatic sibling-body injection
+- source_status: generated core plus hand-authored registry content; no sibling-body injection
 - supersession: none
+
+## Done condition
+
+The narrowest valid capability and dependency sequence are selected under token budget.
+
+Stable evidence or receipt refs must support any completion claim.
