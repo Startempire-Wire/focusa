@@ -139,6 +139,7 @@ run_gate python3 scripts/generate-spec135-reconnect-recovery.py
 run_gate python3 ./tests/spec135_j4_reconnect_recovery_test.py
 run_gate python3 scripts/generate-spec135-generated-ui-protocol.py
 run_gate python3 ./tests/spec135_i1_generated_ui_test.py
+run_gate python3 ./tests/spec135_i2_crist_pi_ui_test.py
 run_gate python3 ./tests/spec135_m4_surface_bindings_static_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_m4_surface_bindings_e2e_test.py
 run_gate python3 ./tests/spec135_m5_browser_context_isolation_test.py
