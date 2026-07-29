@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docs.startempire.ai/focusa/spec135/focusa.reconnect_recovery.v1.json",
+  "title": "Focusa Reconnect Recovery v1",
+  "description": "A durable reconnect recovery plan that restores exact UI state without loss, duplication, or false freshness after daemon disconnect/reconnect.",
+  "type": "object",
+  "required": [
+    "schema",
+    "recovery_id",
+    "project_root",
+    "continuity_id",
+    "last_known_cursor",
+    "last_known_sequence",
+    "snapshot_ref",
+    "dedup_strategy",
+    "gap_detection",
+    "stale_label_policy",
+    "refetch_bound",
+    "replay_order"
+  ],
+  "properties": {
+    "schema": {
+      "const": "focusa.reconnect_recovery.v1"
+    },
+    "recovery_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "project_root": {
+      "type": "string",
+      "minLength": 1
+    },
+    "continuity_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "last_known_cursor": {
+      "type": "string",
+      "minLength": 1
+    },
+    "last_known_sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "snapshot_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dedup_strategy": {
+      "type": "string",
+      "enum": [
+        "event_id_exact",
+        "invalidation_key",
+        "sequence_gte",
+        "composite"
+      ]
+    },
+    "gap_detection": {
+      "type": "object",
+      "required": [
+        "method",
+        "action"
+      ],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": [
+            "sequence_gap",
+            "heartbeat_timeout",
+            "cursor_hash_mismatch"
+          ]
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "refetch_from_cursor",
+            "full_snapshot_resync",
+            "bounded_refetch"
+          ]
+        }
+      }
+    },
+    "stale_label_policy": {
+      "type": "object",
+      "required": [
+        "label",
+        "visibility"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "visibility": {
+          "type": "string",
+          "enum": [
+            "always",
+            "on_gap",
+            "never"
+          ]
+        }
+      }
+    },
+    "refetch_bound": {
+      "type": "object",
+      "required": [
+        "max_events",
+        "max_tokens"
+      ],
+      "properties": {
+        "max_events": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_tokens": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "replay_order": {
+      "type": "string",
+      "enum": [
+        "sequence_ascending",
+        "snapshot_then_delta",
+        "delta_then_snapshot_verify"
+      ]
+    }
+  },
+  "additionalProperties": false
+}
