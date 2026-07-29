@@ -62,6 +62,89 @@ pub struct SqlitePersistence {
     conn: Arc<Mutex<Connection>>,
 }
 
+impl SqlitePersistence {
+    pub fn save_runtime_constitution(
+        &self,
+        constitution: &crate::agent_runtime_constitution::ProjectAgentRuntimeConstitution,
+    ) -> anyhow::Result<()> {
+        let connection = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        crate::agent_runtime_constitution_store::save_runtime_constitution(
+            &connection,
+            constitution,
+        )
+    }
+
+    pub fn load_runtime_constitution(
+        &self,
+        constitution_id: &str,
+    ) -> anyhow::Result<Option<crate::agent_runtime_constitution::ProjectAgentRuntimeConstitution>>
+    {
+        let connection = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        crate::agent_runtime_constitution_store::load_runtime_constitution(
+            &connection,
+            constitution_id,
+        )
+    }
+
+    pub fn append_runtime_constitution_event(
+        &self,
+        event_id: &str,
+        constitution_id: &str,
+        idempotency_key: &str,
+        event: &crate::agent_runtime_constitution::RuntimeConstitutionEvent,
+    ) -> anyhow::Result<crate::agent_runtime_constitution_store::StoredRuntimeConstitutionEvent>
+    {
+        let mut connection = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        crate::agent_runtime_constitution_store::append_runtime_constitution_event(
+            &mut connection,
+            event_id,
+            constitution_id,
+            idempotency_key,
+            event,
+        )
+    }
+
+    pub fn runtime_constitution_events(
+        &self,
+        constitution_id: &str,
+    ) -> anyhow::Result<Vec<crate::agent_runtime_constitution_store::StoredRuntimeConstitutionEvent>>
+    {
+        let connection = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        crate::agent_runtime_constitution_store::runtime_constitution_events(
+            &connection,
+            constitution_id,
+        )
+    }
+
+    pub fn latest_runtime_constitution_event(
+        &self,
+        constitution_id: &str,
+    ) -> anyhow::Result<
+        Option<crate::agent_runtime_constitution_store::StoredRuntimeConstitutionEvent>,
+    > {
+        let connection = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        crate::agent_runtime_constitution_store::latest_runtime_constitution_event(
+            &connection,
+            constitution_id,
+        )
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct RawEventLogRow {
     pub event_id: String,

@@ -2,13 +2,14 @@
 
 use crate::agent_runtime_constitution::*;
 use crate::agent_runtime_constitution_enforcement::compile_validation_matrix;
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const STABLE_TEMPORAL_OBLIGATION: &str =
     "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md";
 pub const STABLE_PRESENCE_OBLIGATION: &str = "docs/139-focusa-presence-awareness-system-spec.md";
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CristRuntimeInput {
     pub project_ref: String,
     pub genesis_ref: String,
@@ -29,7 +30,7 @@ pub struct CristRuntimeInput {
     pub changed_paths: Vec<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RuntimeConstitutionComposition {
     pub constitution: ProjectAgentRuntimeConstitution,
     pub assembly_plan: SystemPromptAssemblyPlan,

@@ -959,7 +959,7 @@ requirements:
   positive_tests:
   - s140_api_cli_pi_parity
   - s140_target_loader_verification
-  status: not_started
+  status: active
 - requirement_id: S140-REQ-037
   spec_section: '33'
   requirement_text: Migrate by inventorying/quarantining current sources, implementing canonical contracts, integrating C.R.I.S.T.,

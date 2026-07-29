@@ -1,4 +1,5 @@
 pub mod agent_capabilities;
+pub mod agent_runtime;
 pub mod ascc;
 pub mod attachments;
 pub mod autonomy;

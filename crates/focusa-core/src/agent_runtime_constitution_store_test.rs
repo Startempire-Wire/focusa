@@ -70,4 +70,36 @@ fn append_is_hash_chained_and_idempotent() {
     assert_eq!(first.event_hash, replay.event_hash);
     assert_eq!(first.sequence, 1);
     assert_eq!(first.previous_event_hash, None);
+
+    let approved =
+        RuntimeConstitutionEvent::RuntimeConstitutionApproved(RuntimeConstitutionVersion {
+            version: "1".into(),
+            parent_version: None,
+            content_sha256: "a".repeat(64),
+            lifecycle: RuntimeConstitutionLifecycleState::Approved,
+            created_at: Utc::now(),
+        });
+    let second = append_runtime_constitution_event(
+        &mut connection,
+        "event-2",
+        "constitution-1",
+        "approve-v1",
+        &approved,
+    )
+    .unwrap();
+    assert_eq!(second.sequence, 2);
+    assert_eq!(
+        second.previous_event_hash.as_deref(),
+        Some(first.event_hash.as_str())
+    );
+    let events = runtime_constitution_events(&connection, "constitution-1").unwrap();
+    assert_eq!(events.len(), 2);
+    assert_eq!(events[0].event_id, "event-1");
+    assert_eq!(
+        latest_runtime_constitution_event(&connection, "constitution-1")
+            .unwrap()
+            .unwrap()
+            .event_id,
+        "event-2"
+    );
 }

@@ -153,6 +153,75 @@ pub fn append_runtime_constitution_event(
     Ok(stored)
 }
 
+pub fn save_runtime_constitution(
+    connection: &Connection,
+    constitution: &crate::agent_runtime_constitution::ProjectAgentRuntimeConstitution,
+) -> Result<()> {
+    let payload_json = serde_json::to_string(constitution)?;
+    let content_sha256 = hex::encode(Sha256::digest(payload_json.as_bytes()));
+    connection.execute(
+        "INSERT INTO runtime_constitutions(constitution_id,version,project_ref,lifecycle,payload_json,content_sha256,created_at) \
+         VALUES(?1,?2,?3,?4,?5,?6,?7) \
+         ON CONFLICT(constitution_id,version) DO NOTHING",
+        params![
+            constitution.constitution_id,
+            constitution.revision.to_string(),
+            constitution.project_ref,
+            format!("{:?}", constitution.status).to_lowercase(),
+            payload_json,
+            content_sha256,
+            Utc::now().to_rfc3339(),
+        ],
+    )?;
+    Ok(())
+}
+
+pub fn load_runtime_constitution(
+    connection: &Connection,
+    constitution_id: &str,
+) -> Result<Option<crate::agent_runtime_constitution::ProjectAgentRuntimeConstitution>> {
+    let payload = connection
+        .query_row(
+            "SELECT payload_json FROM runtime_constitutions WHERE constitution_id=?1 \
+             ORDER BY CAST(version AS INTEGER) DESC,created_at DESC LIMIT 1",
+            [constitution_id],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()?;
+    payload
+        .map(|value| serde_json::from_str(&value).map_err(Into::into))
+        .transpose()
+}
+
+pub fn runtime_constitution_events(
+    connection: &Connection,
+    constitution_id: &str,
+) -> Result<Vec<StoredRuntimeConstitutionEvent>> {
+    let mut statement = connection.prepare(
+        "SELECT event_id,constitution_id,sequence,idempotency_key,kind,payload_json,previous_event_hash,event_hash,occurred_at \
+         FROM runtime_constitution_events WHERE constitution_id=?1 ORDER BY sequence,event_hash",
+    )?;
+    let events = statement
+        .query_map([constitution_id], row_to_event)?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    Ok(events)
+}
+
+pub fn latest_runtime_constitution_event(
+    connection: &Connection,
+    constitution_id: &str,
+) -> Result<Option<StoredRuntimeConstitutionEvent>> {
+    connection
+        .query_row(
+            "SELECT event_id,constitution_id,sequence,idempotency_key,kind,payload_json,previous_event_hash,event_hash,occurred_at \
+             FROM runtime_constitution_events WHERE constitution_id=?1 ORDER BY sequence DESC,event_hash DESC LIMIT 1",
+            [constitution_id],
+            row_to_event,
+        )
+        .optional()
+        .map_err(Into::into)
+}
+
 fn row_to_event(row: &rusqlite::Row<'_>) -> rusqlite::Result<StoredRuntimeConstitutionEvent> {
     Ok(StoredRuntimeConstitutionEvent {
         event_id: row.get(0)?,
