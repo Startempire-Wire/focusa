@@ -38,6 +38,9 @@ mod agent_runtime_constitution_enforcement_test;
 pub mod agent_runtime_constitution_lifecycle;
 #[cfg(test)]
 mod agent_runtime_constitution_lifecycle_test;
+pub mod agent_runtime_constitution_orchestrator;
+#[cfg(test)]
+mod agent_runtime_constitution_orchestrator_test;
 pub mod agent_runtime_constitution_store;
 #[cfg(test)]
 mod agent_runtime_constitution_store_test;

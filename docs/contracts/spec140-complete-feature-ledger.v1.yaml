@@ -164,8 +164,13 @@ requirements:
   generated_contracts:
   - focusa.project_agent_runtime_constitution.v1
   positive_tests:
+  - agent_runtime_constitution_orchestrator_test::crist_composition_is_operator_gated_and_complete
   - s140_constitution_composition
-  status: active
+  status: verified
+  negative_tests:
+  - agent_runtime_constitution_orchestrator_test::incomplete_operating_contract_fails_closed
+  evidence_refs:
+  - test:/tmp/lock-spec140-orchestrator-tests.txt
 - requirement_id: S140-REQ-007
   spec_section: '6'
   requirement_text: Extend the C.R.I.S.T. lifecycle with source scanning, claim extraction, conflict resolution, Runtime Constitution
@@ -385,8 +390,13 @@ requirements:
   generated_contracts:
   - focusa.agent_operating_contract.v1
   positive_tests:
+  - agent_runtime_constitution_orchestrator_test::crist_composition_is_operator_gated_and_complete
   - s140_procedure_constitution_separation
-  status: active
+  status: verified
+  negative_tests:
+  - agent_runtime_constitution_orchestrator_test::incomplete_operating_contract_fails_closed
+  evidence_refs:
+  - test:/tmp/lock-spec140-orchestrator-tests.txt
 - requirement_id: S140-REQ-016
   spec_section: '12'
   requirement_text: Implement SystemPromptAssemblyPlan with ordered sections, source refs, token budgets, mutability classes,
@@ -823,10 +833,14 @@ requirements:
   core_types:
   - RuntimeAwarenessContractReference
   positive_tests:
+  - agent_runtime_constitution_orchestrator_test::crist_composition_is_operator_gated_and_complete
   - s140_temporal_presence_obligation
   negative_tests:
+  - agent_runtime_constitution_orchestrator_test::incomplete_operating_contract_fails_closed
   - s140_volatile_topology_in_system_prompt
-  status: not_started
+  status: verified
+  evidence_refs:
+  - test:/tmp/lock-spec140-orchestrator-tests.txt
 - requirement_id: S140-REQ-033
   spec_section: '26'
   requirement_text: Evaluate default, append, full replacement, and runtime-compiled prompt variants across role, safety,
