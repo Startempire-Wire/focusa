@@ -31,6 +31,7 @@ import { registerSession } from "./session.js";
 import { registerTurns } from "./turns.js";
 import { registerPolishHooks } from "./polish.js";
 import { registerMissionCanvasWidget } from "./mission-canvas-widget.js";
+import { registerRoleComposer } from "./role-composer.js";
 
 export default function focusaPiBridge(pi: ExtensionAPI) {
   const extensionKey = makeAttachmentKey({
@@ -151,6 +152,7 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     registerTools(pi);
     registerCommands(pi);
     registerMissionCanvasWidget(pi);
+    registerRoleComposer(pi);
     registerAutomaticOtaActivation(pi);
     registerWbm(pi);
     registerCompaction(pi);
@@ -270,5 +272,6 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     };
     pi.registerMessageRenderer("focusa-state", renderFocusaState);
     pi.registerMessageRenderer("focusa-wbm-state", renderFocusaState);
+    pi.registerMessageRenderer("focusa-role-profile", renderFocusaState);
   });
 }

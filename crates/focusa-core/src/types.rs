@@ -2422,6 +2422,17 @@ pub struct RoleReviewRecord {
     pub rationale: String,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RoleAlternativeRecord {
+    pub alternative_id: String,
+    pub title: String,
+    pub purpose: String,
+    #[serde(default)]
+    pub tradeoffs: Vec<String>,
+    #[serde(default)]
+    pub grounding_refs: Vec<String>,
+}
+
 /// Versioned, Context-grounded project role. It describes responsibility, never permission.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProjectAgentRoleProfile {
@@ -2462,6 +2473,8 @@ pub struct ProjectAgentRoleProfile {
     pub tool_preferences: Vec<String>,
     #[serde(default)]
     pub reviewer_lenses: Vec<String>,
+    #[serde(default)]
+    pub alternatives: Vec<RoleAlternativeRecord>,
     pub grounding: RoleProfileGrounding,
     #[serde(default)]
     pub assumptions: Vec<RoleAssumptionRecord>,

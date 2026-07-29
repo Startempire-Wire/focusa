@@ -3093,6 +3093,12 @@ export interface components {
             title: string;
             tool_preferences: string[];
             unresolved_questions: string[];
+            alternatives?: {
+                title: string;
+                purpose: string;
+                tradeoffs: string[];
+                grounding_refs: string[];
+            }[];
         };
         /** focusa.project_agent_role_profile_list.request.v1 */
         focusa_project_agent_role_profile_list_request_v1: {
@@ -3165,6 +3171,7 @@ export interface components {
                 unresolved_questions: string[];
                 /** Format: date-time */
                 updated_at: string;
+                alternatives: components["schemas"]["focusa_role_alternative_v1"][];
             };
             latest?: {
                 assumptions: {
@@ -3229,6 +3236,7 @@ export interface components {
                 unresolved_questions: string[];
                 /** Format: date-time */
                 updated_at: string;
+                alternatives: components["schemas"]["focusa_role_alternative_v1"][];
             };
             profiles: {
                 assumptions: {
@@ -3293,6 +3301,7 @@ export interface components {
                 unresolved_questions: string[];
                 /** Format: date-time */
                 updated_at: string;
+                alternatives: components["schemas"]["focusa_role_alternative_v1"][];
             }[];
             /** @constant */
             responsibility_is_not_permission: true;
@@ -3368,6 +3377,7 @@ export interface components {
                 unresolved_questions: string[];
                 /** Format: date-time */
                 updated_at: string;
+                alternatives: components["schemas"]["focusa_role_alternative_v1"][];
             };
             receipt_ref: string;
             replayed: boolean;
@@ -5329,6 +5339,13 @@ export interface components {
             source_revision?: string;
             title: string;
             artifact: components["schemas"]["focusa_project_context_artifact_v1"];
+        };
+        focusa_role_alternative_v1: {
+            alternative_id?: string;
+            title: string;
+            purpose: string;
+            tradeoffs: string[];
+            grounding_refs: string[];
         };
     };
     responses: never;

@@ -3751,6 +3751,48 @@
             },
             "maxItems": 64,
             "type": "array"
+          },
+          "alternatives": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "title": {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                "purpose": {
+                  "maxLength": 2000,
+                  "type": "string"
+                },
+                "tradeoffs": {
+                  "items": {
+                    "maxLength": 512,
+                    "type": "string"
+                  },
+                  "maxItems": 32,
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "grounding_refs": {
+                  "items": {
+                    "maxLength": 512,
+                    "type": "string"
+                  },
+                  "maxItems": 32,
+                  "minItems": 1,
+                  "type": "array"
+                }
+              },
+              "required": [
+                "title",
+                "purpose",
+                "tradeoffs",
+                "grounding_refs"
+              ],
+              "type": "object"
+            },
+            "maxItems": 16,
+            "type": "array"
           }
         },
         "required": [
@@ -4122,6 +4164,12 @@
               "updated_at": {
                 "format": "date-time",
                 "type": "string"
+              },
+              "alternatives": {
+                "items": {
+                  "$ref": "#/components/schemas/focusa_role_alternative_v1"
+                },
+                "type": "array"
               }
             },
             "required": [
@@ -4158,7 +4206,8 @@
               "status",
               "idempotency_key",
               "created_at",
-              "updated_at"
+              "updated_at",
+              "alternatives"
             ],
             "type": "object"
           },
@@ -4454,6 +4503,12 @@
               "updated_at": {
                 "format": "date-time",
                 "type": "string"
+              },
+              "alternatives": {
+                "items": {
+                  "$ref": "#/components/schemas/focusa_role_alternative_v1"
+                },
+                "type": "array"
               }
             },
             "required": [
@@ -4490,7 +4545,8 @@
               "status",
               "idempotency_key",
               "created_at",
-              "updated_at"
+              "updated_at",
+              "alternatives"
             ],
             "type": "object"
           },
@@ -4787,6 +4843,12 @@
                 "updated_at": {
                   "format": "date-time",
                   "type": "string"
+                },
+                "alternatives": {
+                  "items": {
+                    "$ref": "#/components/schemas/focusa_role_alternative_v1"
+                  },
+                  "type": "array"
                 }
               },
               "required": [
@@ -4823,7 +4885,8 @@
                 "status",
                 "idempotency_key",
                 "created_at",
-                "updated_at"
+                "updated_at",
+                "alternatives"
               ],
               "type": "object"
             },
@@ -5153,6 +5216,12 @@
               "updated_at": {
                 "format": "date-time",
                 "type": "string"
+              },
+              "alternatives": {
+                "items": {
+                  "$ref": "#/components/schemas/focusa_role_alternative_v1"
+                },
+                "type": "array"
               }
             },
             "required": [
@@ -5189,7 +5258,8 @@
               "status",
               "idempotency_key",
               "created_at",
-              "updated_at"
+              "updated_at",
+              "alternatives"
             ],
             "type": "object"
           },
@@ -12285,6 +12355,48 @@
           "receipt",
           "health",
           "artifact"
+        ],
+        "type": "object"
+      },
+      "focusa_role_alternative_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "alternative_id": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "purpose": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "tradeoffs": {
+            "items": {
+              "maxLength": 512,
+              "type": "string"
+            },
+            "maxItems": 32,
+            "minItems": 1,
+            "type": "array"
+          },
+          "grounding_refs": {
+            "items": {
+              "maxLength": 512,
+              "type": "string"
+            },
+            "maxItems": 32,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "title",
+          "purpose",
+          "tradeoffs",
+          "grounding_refs"
         ],
         "type": "object"
       }
