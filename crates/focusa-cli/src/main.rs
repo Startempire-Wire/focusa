@@ -302,6 +302,10 @@ enum Commands {
     #[command(subcommand)]
     Constitution(commands::constitution::ConstitutionCmd),
 
+    /// Project Agent Runtime Constitution compiler and delivery.
+    #[command(subcommand)]
+    AgentRuntime(commands::agent_runtime::AgentRuntimeCmd),
+
     /// Cognitive telemetry.
     #[command(subcommand)]
     Telemetry(commands::telemetry::TelemetryCmd),
@@ -1069,6 +1073,7 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::Autonomy(cmd) => commands::autonomy::run(cmd, cli.json).await,
         Commands::Awareness(cmd) => commands::awareness::run(cmd, cli.json).await,
         Commands::Constitution(cmd) => commands::constitution::run(cmd, cli.json).await,
+        Commands::AgentRuntime(cmd) => commands::agent_runtime::run(cmd, cli.json).await,
         Commands::Telemetry(cmd) => commands::telemetry::run(cmd, cli.json).await,
         Commands::Rfm(cmd) => commands::rfm::run(cmd, cli.json).await,
         Commands::Release(cmd) => commands::release::run(cmd, cli.json).await,

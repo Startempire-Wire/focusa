@@ -96,6 +96,42 @@ fn pairing_start_is_canonical_command() {
 }
 
 #[test]
+fn agent_runtime_help_exposes_spec140_hierarchy() {
+    let (output, out) = run(&["agent-runtime", "--help"]);
+    assert!(output.status.success(), "agent-runtime help failed: {out}");
+    for command in [
+        "scan",
+        "sources",
+        "claims",
+        "conflicts",
+        "reconcile",
+        "simulate",
+        "effective",
+        "drift",
+        "constitution",
+        "prompt",
+        "artifacts",
+        "doctor",
+    ] {
+        assert!(
+            out.contains(command),
+            "agent-runtime help missing {command}: {out}"
+        );
+    }
+    for args in [
+        &["agent-runtime", "constitution", "--help"][..],
+        &["agent-runtime", "prompt", "--help"][..],
+        &["agent-runtime", "artifacts", "--help"][..],
+    ] {
+        let (nested_output, nested) = run(args);
+        assert!(
+            nested_output.status.success(),
+            "nested help failed: {nested}"
+        );
+    }
+}
+
+#[test]
 fn cli_version_comes_from_package_version() {
     let (output, out) = run(&["--version"]);
     assert!(
