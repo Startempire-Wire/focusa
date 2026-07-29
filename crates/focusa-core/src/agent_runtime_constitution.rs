@@ -199,8 +199,11 @@ pub struct AgentOperatingContract {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TargetCapabilityProfile {
+    pub profile_version: String,
     pub target: String,
     pub supported_layers: BTreeSet<PromptLayer>,
+    pub supported_features: BTreeSet<String>,
+    pub unsupported_features: BTreeMap<String, String>,
     pub max_prompt_bytes: usize,
     pub supports_session_pinning: bool,
 }

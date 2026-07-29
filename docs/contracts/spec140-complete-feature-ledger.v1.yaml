@@ -405,8 +405,15 @@ requirements:
   generated_contracts:
   - focusa.system_prompt_assembly_plan.v1
   positive_tests:
+  - agent_runtime_constitution_compiler_test::compiler_is_deterministic_and_keeps_dynamic_context_out_of_stable_hash
+  - agent_runtime_constitution_compiler_test::cross_harness_outputs_are_explicit_and_unknown_targets_fail_closed
   - s140_prompt_plan_roundtrip
-  status: not_started
+  status: verified
+  negative_tests:
+  - agent_runtime_constitution_compiler_test::missing_required_section_blocks_compilation
+  - agent_runtime_constitution_compiler_test::safe_fallback_preserves_harness_default_without_claiming_integrity
+  evidence_refs:
+  - test:/tmp/lock-spec140-compiler-tests.txt
 - requirement_id: S140-REQ-017
   spec_section: '13'
   requirement_text: Separate stable constitutional prompt, session-stable environment binding, and turn-dynamic operational
@@ -423,12 +430,18 @@ requirements:
   - PromptLayer
   - SessionEnvironmentBinding
   positive_tests:
+  - agent_runtime_constitution_compiler_test::compiler_is_deterministic_and_keeps_dynamic_context_out_of_stable_hash
+  - agent_runtime_constitution_compiler_test::cross_harness_outputs_are_explicit_and_unknown_targets_fail_closed
   - s140_three_layer_prompt
   negative_tests:
+  - agent_runtime_constitution_compiler_test::missing_required_section_blocks_compilation
+  - agent_runtime_constitution_compiler_test::safe_fallback_preserves_harness_default_without_claiming_integrity
   - s140_dynamic_presence_in_stable_prefix
   performance_tests:
   - s140_prompt_cache_stability
-  status: not_started
+  status: verified
+  evidence_refs:
+  - test:/tmp/lock-spec140-compiler-tests.txt
 - requirement_id: S140-REQ-018
   spec_section: '14.1'
   requirement_text: Compile Pi append mode while preserving Pi's default prompt and adding approved Focusa sections.
@@ -441,8 +454,15 @@ requirements:
   target_compilers:
   - pi_append
   positive_tests:
+  - agent_runtime_constitution_compiler_test::compiler_is_deterministic_and_keeps_dynamic_context_out_of_stable_hash
+  - agent_runtime_constitution_compiler_test::cross_harness_outputs_are_explicit_and_unknown_targets_fail_closed
   - s140_pi_append_preserves_default
-  status: not_started
+  status: verified
+  negative_tests:
+  - agent_runtime_constitution_compiler_test::missing_required_section_blocks_compilation
+  - agent_runtime_constitution_compiler_test::safe_fallback_preserves_harness_default_without_claiming_integrity
+  evidence_refs:
+  - test:/tmp/lock-spec140-compiler-tests.txt
 - requirement_id: S140-REQ-019
   spec_section: '14.1'
   requirement_text: Compile Pi full-replacement mode only after explicit approval and evaluation against baseline.
@@ -457,10 +477,16 @@ requirements:
   target_compilers:
   - pi_system_replace
   positive_tests:
+  - agent_runtime_constitution_compiler_test::compiler_is_deterministic_and_keeps_dynamic_context_out_of_stable_hash
+  - agent_runtime_constitution_compiler_test::cross_harness_outputs_are_explicit_and_unknown_targets_fail_closed
   - s140_pi_full_replacement
   negative_tests:
+  - agent_runtime_constitution_compiler_test::missing_required_section_blocks_compilation
+  - agent_runtime_constitution_compiler_test::safe_fallback_preserves_harness_default_without_claiming_integrity
   - s140_unevaluated_replacement_activation
-  status: not_started
+  status: verified
+  evidence_refs:
+  - test:/tmp/lock-spec140-compiler-tests.txt
 - requirement_id: S140-REQ-020
   spec_section: '14.1'
   requirement_text: Compile a session-stable Pi prompt at runtime from approved constitution, environment profile, actual
@@ -483,8 +509,15 @@ requirements:
   target_compilers:
   - pi_runtime_compiled
   positive_tests:
+  - agent_runtime_constitution_compiler_test::compiler_is_deterministic_and_keeps_dynamic_context_out_of_stable_hash
+  - agent_runtime_constitution_compiler_test::cross_harness_outputs_are_explicit_and_unknown_targets_fail_closed
   - s140_pi_runtime_compiled_stable
-  status: not_started
+  status: verified
+  negative_tests:
+  - agent_runtime_constitution_compiler_test::missing_required_section_blocks_compilation
+  - agent_runtime_constitution_compiler_test::safe_fallback_preserves_harness_default_without_claiming_integrity
+  evidence_refs:
+  - test:/tmp/lock-spec140-compiler-tests.txt
 - requirement_id: S140-REQ-021
   spec_section: '14.2'
   requirement_text: Use a safe Pi fallback that preserves default behavior plus minimal verified Focusa doctrine and explicit
@@ -496,10 +529,16 @@ requirements:
   blocking_dependencies:
   - S140-REQ-018
   positive_tests:
+  - agent_runtime_constitution_compiler_test::compiler_is_deterministic_and_keeps_dynamic_context_out_of_stable_hash
+  - agent_runtime_constitution_compiler_test::cross_harness_outputs_are_explicit_and_unknown_targets_fail_closed
   - s140_pi_focusa_outage_fallback
   negative_tests:
+  - agent_runtime_constitution_compiler_test::missing_required_section_blocks_compilation
+  - agent_runtime_constitution_compiler_test::safe_fallback_preserves_harness_default_without_claiming_integrity
   - s140_stale_profile_fallback
-  status: not_started
+  status: verified
+  evidence_refs:
+  - test:/tmp/lock-spec140-compiler-tests.txt
 - requirement_id: S140-REQ-022
   spec_section: '15'
   requirement_text: Support the complete logical Pi prompt section architecture for identity, mission, authority, doctrine,
@@ -512,10 +551,16 @@ requirements:
   blocking_dependencies:
   - S140-REQ-018
   positive_tests:
+  - agent_runtime_constitution_compiler_test::compiler_is_deterministic_and_keeps_dynamic_context_out_of_stable_hash
+  - agent_runtime_constitution_compiler_test::cross_harness_outputs_are_explicit_and_unknown_targets_fail_closed
   - s140_required_prompt_sections
   negative_tests:
+  - agent_runtime_constitution_compiler_test::missing_required_section_blocks_compilation
+  - agent_runtime_constitution_compiler_test::safe_fallback_preserves_harness_default_without_claiming_integrity
   - s140_missing_authority_or_recovery_section
-  status: not_started
+  status: verified
+  evidence_refs:
+  - test:/tmp/lock-spec140-compiler-tests.txt
 - requirement_id: S140-REQ-023
   spec_section: '16'
   requirement_text: Compile a concise root AGENTS.md and nested delta-only AGENTS.md files from canonical universal and path
@@ -533,13 +578,19 @@ requirements:
   - agents_md_root
   - agents_md_nested
   positive_tests:
+  - agent_runtime_constitution_compiler_test::compiler_is_deterministic_and_keeps_dynamic_context_out_of_stable_hash
+  - agent_runtime_constitution_compiler_test::cross_harness_outputs_are_explicit_and_unknown_targets_fail_closed
   - s140_agents_root_budget
   - s140_nested_deltas
   negative_tests:
+  - agent_runtime_constitution_compiler_test::missing_required_section_blocks_compilation
+  - agent_runtime_constitution_compiler_test::safe_fallback_preserves_harness_default_without_claiming_integrity
   - s140_nested_repeats_or_weakens_root
   performance_tests:
   - s140_agents_context_budget
-  status: not_started
+  status: verified
+  evidence_refs:
+  - test:/tmp/lock-spec140-compiler-tests.txt
 - requirement_id: S140-REQ-024
   spec_section: '17'
   requirement_text: Implement versioned target capability profiles and truthful compilers for Pi, Claude, Gemini, GitHub Copilot,
@@ -559,10 +610,16 @@ requirements:
   - github_copilot
   - generic
   positive_tests:
+  - agent_runtime_constitution_compiler_test::compiler_is_deterministic_and_keeps_dynamic_context_out_of_stable_hash
+  - agent_runtime_constitution_compiler_test::cross_harness_outputs_are_explicit_and_unknown_targets_fail_closed
   - s140_cross_harness_equivalent_intent
   negative_tests:
+  - agent_runtime_constitution_compiler_test::missing_required_section_blocks_compilation
+  - agent_runtime_constitution_compiler_test::safe_fallback_preserves_harness_default_without_claiming_integrity
   - s140_claims_unsupported_target_feature
-  status: not_started
+  status: verified
+  evidence_refs:
+  - test:/tmp/lock-spec140-compiler-tests.txt
 - requirement_id: S140-REQ-025
   spec_section: '18'
   requirement_text: Implement SkillActivationPlan with progressive disclosure, applicability, tool/capability dependencies,
