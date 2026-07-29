@@ -1,0 +1,59 @@
+{
+  "schema": "focusa.spec135.alpha1_4_production_proof.v1",
+  "acceptance_criteria": "Alpha 1\u20134 pass with runtime receipts, UIAI diagnostics where applicable, and resolved blockers.",
+  "workflows": [
+    {
+      "alpha": 1,
+      "proof_ref": "docs/contracts/spec135/generated-contract-v1/spec135-alpha1-context-ingestion-proof.json",
+      "status": "passed",
+      "evidence_refs": [
+        "spec135-c1-context-ingestion-proof.json",
+        "spec135-c2-context-retrieval-proof.json",
+        "spec135-c3-context-claim-graph-proof.json",
+        "spec135-u1-workspace-artifact-proof.json",
+        "spec135-u2-workspace-live-refresh-proof.json",
+        "tests/spec135_alpha1_closure_test.py"
+      ],
+      "acceptance": "Real Markdown, code, and PDF sources ingest, retrieve, cite, and render through generated UI with restart-safe canonical state."
+    },
+    {
+      "alpha": 2,
+      "proof_ref": "docs/contracts/spec135/generated-contract-v1/spec135-alpha2-role-interview-proof.json",
+      "status": "passed",
+      "evidence_refs": [],
+      "acceptance": "Role approval and Interview exact resume work through generated UI"
+    },
+    {
+      "alpha": 3,
+      "proof_ref": "docs/contracts/spec135/generated-contract-v1/spec135-alpha3-spec-task-proof.json",
+      "status": "passed",
+      "evidence_refs": [],
+      "acceptance": "An operator-approved Spec 120 asset produces an approved provider-neutral DAG and materializes stable dependency-linked tasks into canonical parent Beads JSONL."
+    },
+    {
+      "alpha": 4,
+      "proof_ref": "docs/contracts/spec135/generated-contract-v1/spec135-alpha4-work-rail-proof.json",
+      "status": "passed",
+      "evidence_refs": [
+        "Workpoint verification record",
+        "provider closure reconciliation",
+        "Work Rail closure claim",
+        "Work Rail closure Receipt"
+      ],
+      "acceptance": "A provider task executes through one exact-scoped canonical Workpoint and reaches verified complete only after linked Evidence, provider reconciliation, closure claim, and Receipt."
+    }
+  ],
+  "runtime_test_refs": [
+    "tests/spec135_b2_context_connectors_e2e_test.py",
+    "tests/spec135_role_profile_e2e_test.py",
+    "tests/spec135_interview_session_e2e_test.py",
+    "tests/spec135_b5_spec120_integration_e2e_test.py",
+    "tests/spec135_task_plan_e2e_test.py",
+    "tests/spec135_work_rail_e2e_test.py"
+  ],
+  "pi_ui_refs": [
+    "apps/pi-extension/src/crist-canvas.ts",
+    "apps/pi-extension/src/work-rail-interactions.ts"
+  ],
+  "blockers": []
+}

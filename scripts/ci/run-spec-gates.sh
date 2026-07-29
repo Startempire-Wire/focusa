@@ -145,6 +145,8 @@ run_gate python3 ./tests/spec135_i2_crist_pi_ui_test.py
 run_gate python3 ./tests/spec135_i3_nontechnical_onboarding_test.py
 run_gate python3 scripts/generate-spec135-first-workpoint-proof.py
 run_gate python3 ./tests/spec135_i4_first_workpoint_integration_test.py
+run_gate python3 scripts/generate-spec135-alpha1-4-proof.py
+run_gate python3 ./tests/spec135_h1_alpha1_4_test.py
 run_gate python3 ./tests/spec135_m4_surface_bindings_static_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_m4_surface_bindings_e2e_test.py
 run_gate python3 ./tests/spec135_m5_browser_context_isolation_test.py
