@@ -11003,7 +11003,7 @@
           },
           "compendium": {
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/focusa_interview_compendium_entry_v1"
             },
             "maxItems": 128,
             "type": "array"
@@ -12397,6 +12397,92 @@
           "purpose",
           "tradeoffs",
           "grounding_refs"
+        ],
+        "type": "object"
+      },
+      "focusa_interview_answer_provenance_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "answer_id": {
+            "type": "string"
+          },
+          "operator_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "confidence": {
+            "nullable": true,
+            "type": "number"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "supersedes": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "answer_id",
+          "operator_id",
+          "status",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "focusa_interview_compendium_entry_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "question_id": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "answer": {},
+          "answer_provenance": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/focusa_interview_answer_provenance_v1"
+              }
+            ],
+            "nullable": true
+          },
+          "notes": {
+            "nullable": true,
+            "type": "string"
+          },
+          "attachment_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "context_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "spec_sections": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "question_id",
+          "question",
+          "answer",
+          "answer_provenance",
+          "notes",
+          "attachment_refs",
+          "context_refs",
+          "spec_sections"
         ],
         "type": "object"
       }

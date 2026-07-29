@@ -4961,7 +4961,7 @@ export interface components {
             approved_role_profile_ref?: string | null;
             attachment_id: string;
             closure_ref: string;
-            compendium: Record<string, never>[];
+            compendium: components["schemas"]["focusa_interview_compendium_entry_v1"][];
             continuity_id: string;
             glossary_candidates: Record<string, never>[];
             interview_session_id: string;
@@ -5346,6 +5346,25 @@ export interface components {
             purpose: string;
             tradeoffs: string[];
             grounding_refs: string[];
+        };
+        focusa_interview_answer_provenance_v1: {
+            answer_id: string;
+            operator_id: string;
+            status: string;
+            confidence?: number | null;
+            /** Format: date-time */
+            created_at: string;
+            supersedes?: string | null;
+        };
+        focusa_interview_compendium_entry_v1: {
+            question_id: string;
+            question: string;
+            answer: unknown;
+            answer_provenance: components["schemas"]["focusa_interview_answer_provenance_v1"] | null;
+            notes: string | null;
+            attachment_refs: string[];
+            context_refs: string[];
+            spec_sections: string[];
         };
     };
     responses: never;

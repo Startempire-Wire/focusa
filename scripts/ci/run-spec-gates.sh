@@ -72,8 +72,12 @@ run_gate python3 ./tests/spec135_b2_context_connectors_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_b2_context_connectors_e2e_test.py
 run_gate python3 ./tests/spec135_b3_role_composer_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_role_profile_e2e_test.py
+run_gate python3 ./tests/spec135_b4_interview_compendium_test.py
+run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_interview_session_e2e_test.py
+run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_interview_strategy_e2e_test.py
 run_gate python3 ./scripts/generate-spec135-context-artifact-contracts.py --check
 run_gate python3 ./scripts/generate-spec135-role-contracts.py --check
+run_gate python3 ./scripts/generate-spec135-interview-contracts.py --check
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_task_materialization_e2e_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_work_rail_e2e_test.py
 run_gate bash ./tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh

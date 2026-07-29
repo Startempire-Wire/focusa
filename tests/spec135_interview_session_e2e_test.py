@@ -25,6 +25,14 @@ def listed(base, session_id=None, scope=SCOPE):
     return payload
 
 
+def closure_package(base, session):
+    query = "&".join(f"{key}={value}" for key, value in SCOPE.items())
+    query += f"&interview_session_id={session['interview_session_id']}"
+    status, payload = ri1.call(base, "GET", f"/v1/interviews/closure-package?{query}")
+    assert status == 200, payload
+    return payload
+
+
 def mutate(base, action, key, session=None, **extra):
     for _ in range(30):
         current = listed(base, session["interview_session_id"] if session else None)
@@ -208,6 +216,17 @@ def main():
         assert session["questions"][-1]["status"] == "answered"
         assert session["answers"][-1]["answer"] is True
         assert session["answers"][-1]["operator_id"] == "operator:vsmith"
+        session = mutate(base, "close", "ri3-close-after-answer", session)["session"]
+        package = closure_package(base, session)
+        assert package["schema"] == "focusa.interview_closure_package.v1"
+        assert package["source_state_revision"] == session["state_revision"]
+        assert package["receipt_ref"].startswith("receipt:interview-closure:")
+        assert any(
+            entry.get("answer_provenance", {}).get("operator_id") == "operator:vsmith"
+            and entry["answer_provenance"].get("answer_id")
+            and entry["answer_provenance"].get("created_at")
+            for entry in package["compendium"]
+        )
 
         other = {**SCOPE, "attachment_id": "attachment-unrelated"}
         assert listed(base, scope=other)["sessions"] == []
