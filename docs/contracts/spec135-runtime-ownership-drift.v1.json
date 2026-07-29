@@ -1,0 +1,735 @@
+{
+  "schema": "focusa.spec135.runtime_ownership_drift.v1",
+  "acceptance_criteria": "One runtime path owns each operation and all failure envelopes provide typed recovery.",
+  "operation_count": 100,
+  "duplicate_operation_ids": [],
+  "operations": [
+    {
+      "operation_id": "focusa.health.check",
+      "runtime_owner": "health",
+      "core_action_ref": "focusa.health.check",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.project.identity",
+      "runtime_owner": "project",
+      "core_action_ref": "focusa.project.identity",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.project.verify",
+      "runtime_owner": "project",
+      "core_action_ref": "focusa.project.verify",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.trajectory.view",
+      "runtime_owner": "trajectory",
+      "core_action_ref": "focusa.trajectory.view",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.trajectory.define_goal",
+      "runtime_owner": "trajectory",
+      "core_action_ref": "focusa.trajectory.define_goal",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.trajectory.assess",
+      "runtime_owner": "trajectory",
+      "core_action_ref": "focusa.trajectory.assess",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.trajectory.propose_workpoint",
+      "runtime_owner": "trajectory",
+      "core_action_ref": "focusa.trajectory.propose_workpoint",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.trajectory.checkpoint",
+      "runtime_owner": "trajectory",
+      "core_action_ref": "focusa.trajectory.checkpoint",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.trajectory.resume",
+      "runtime_owner": "trajectory",
+      "core_action_ref": "focusa.trajectory.resume",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.workpoint.checkpoint",
+      "runtime_owner": "workpoint",
+      "core_action_ref": "focusa.workpoint.checkpoint",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.workpoint.resume",
+      "runtime_owner": "workpoint",
+      "core_action_ref": "focusa.workpoint.resume",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.workpoint.link_evidence",
+      "runtime_owner": "workpoint",
+      "core_action_ref": "focusa.workpoint.link_evidence",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.metacog.capture",
+      "runtime_owner": "metacognition",
+      "core_action_ref": "focusa.metacog.capture",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.metacog.retrieve",
+      "runtime_owner": "metacognition",
+      "core_action_ref": "focusa.metacog.retrieve",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.metacog.reflect",
+      "runtime_owner": "metacognition",
+      "core_action_ref": "focusa.metacog.reflect",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.metacog.doctor",
+      "runtime_owner": "metacognition",
+      "core_action_ref": "focusa.metacog.doctor",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.evidence.capture",
+      "runtime_owner": "evidence",
+      "core_action_ref": "focusa.evidence.capture",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.prediction.record",
+      "runtime_owner": "prediction",
+      "core_action_ref": "focusa.prediction.record",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.prediction.evaluate",
+      "runtime_owner": "prediction",
+      "core_action_ref": "focusa.prediction.evaluate",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.prediction.recent",
+      "runtime_owner": "prediction",
+      "core_action_ref": "focusa.prediction.recent",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.context_cognition.packet",
+      "runtime_owner": "context_cognition",
+      "core_action_ref": "focusa.context_cognition.packet",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.context_cognition.curate",
+      "runtime_owner": "context_cognition",
+      "core_action_ref": "focusa.context_cognition.curate",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.workspace.artifact.list",
+      "runtime_owner": "workspace_artifact",
+      "core_action_ref": "focusa.workspace.artifact.list",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.workspace.artifact.intake",
+      "runtime_owner": "workspace_artifact",
+      "core_action_ref": "focusa.workspace.artifact.intake",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.role_profile.list",
+      "runtime_owner": "project_role_profile",
+      "core_action_ref": "focusa.role_profile.list",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.role_profile.draft",
+      "runtime_owner": "project_role_profile",
+      "core_action_ref": "focusa.role_profile.draft",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.role_profile.review",
+      "runtime_owner": "project_role_profile",
+      "core_action_ref": "focusa.role_profile.review",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.task_plan.list",
+      "runtime_owner": "task_plan",
+      "core_action_ref": "focusa.task_plan.list",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.task_plan.mutate",
+      "runtime_owner": "task_plan",
+      "core_action_ref": "focusa.task_plan.mutate",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.provider.contract.list",
+      "runtime_owner": "provider_execution",
+      "core_action_ref": "focusa.provider.contract.list",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.provider.conformance.evaluate",
+      "runtime_owner": "provider_execution",
+      "core_action_ref": "focusa.provider.conformance.evaluate",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.spec_workbench.session.list",
+      "runtime_owner": "spec_workbench",
+      "core_action_ref": "focusa.spec_workbench.session.list",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.spec_workbench.session.mutate",
+      "runtime_owner": "spec_workbench",
+      "core_action_ref": "focusa.spec_workbench.session.mutate",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.interview.session.list",
+      "runtime_owner": "project_interview",
+      "core_action_ref": "focusa.interview.session.list",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.interview.closure_package.get",
+      "runtime_owner": "project_interview",
+      "core_action_ref": "project_interview_closure_package",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.interview.session.mutate",
+      "runtime_owner": "project_interview",
+      "core_action_ref": "focusa.interview.session.mutate",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.interview.strategy.grill_with_docs.next_question",
+      "runtime_owner": "interview_strategy",
+      "core_action_ref": "focusa.interview.strategy.grill_with_docs.next_question",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.context.source.list",
+      "runtime_owner": "context",
+      "core_action_ref": "focusa.context.source.list",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.context.source.commit",
+      "runtime_owner": "context",
+      "core_action_ref": "focusa.context.source.commit",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.context.source.ingest",
+      "runtime_owner": "context",
+      "core_action_ref": "focusa.context.source.ingest",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.context.retrieve",
+      "runtime_owner": "context",
+      "core_action_ref": "focusa.context.retrieve",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.context.graph.read",
+      "runtime_owner": "context",
+      "core_action_ref": "focusa.context.graph.read",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.context.graph.mutate",
+      "runtime_owner": "context",
+      "core_action_ref": "focusa.context.graph.mutate",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.context.adapter.docling.health",
+      "runtime_owner": "context",
+      "core_action_ref": "focusa.context.adapter.docling.health",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.tool_doctor",
+      "runtime_owner": "diagnostics",
+      "core_action_ref": "focusa.tool_doctor",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.awareness.packet",
+      "runtime_owner": "awareness",
+      "core_action_ref": "focusa.awareness.packet",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.resource_mode",
+      "runtime_owner": "resource",
+      "core_action_ref": "focusa.resource_mode",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.traverse",
+      "runtime_owner": "traverse",
+      "core_action_ref": "focusa.traverse",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.state.current",
+      "runtime_owner": "state",
+      "core_action_ref": "focusa.state.current",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.lineage.head",
+      "runtime_owner": "lineage",
+      "core_action_ref": "focusa.lineage.head",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.lineage.tree",
+      "runtime_owner": "lineage",
+      "core_action_ref": "focusa.lineage.tree",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.bloatgaurd.report",
+      "runtime_owner": "bloatgaurd",
+      "core_action_ref": "focusa.bloatgaurd.report",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.device_pair.start",
+      "runtime_owner": "device",
+      "core_action_ref": "focusa.device_pair.start",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.device_pair.status",
+      "runtime_owner": "device",
+      "core_action_ref": "focusa.device_pair.status",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.work_loop.status",
+      "runtime_owner": "work_loop",
+      "core_action_ref": "focusa.work_loop.status",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.work_loop.control",
+      "runtime_owner": "work_loop",
+      "core_action_ref": "focusa.work_loop.control",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.license.validate",
+      "runtime_owner": "license",
+      "core_action_ref": "focusa.license.validate",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.dxux.report",
+      "runtime_owner": "dxux",
+      "core_action_ref": "focusa.dxux.report",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.call_stack.design",
+      "runtime_owner": "call_stack",
+      "core_action_ref": "focusa.call_stack.design",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.call_stack.verify",
+      "runtime_owner": "call_stack",
+      "core_action_ref": "focusa.call_stack.verify",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.turn.start",
+      "runtime_owner": "turn",
+      "core_action_ref": "focusa.turn.start",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.turn.append",
+      "runtime_owner": "turn",
+      "core_action_ref": "focusa.turn.append",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.turn.complete",
+      "runtime_owner": "turn",
+      "core_action_ref": "focusa.turn.complete",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.memory.semantic.read",
+      "runtime_owner": "memory",
+      "core_action_ref": "focusa.memory.semantic.read",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.memory.semantic.upsert",
+      "runtime_owner": "memory",
+      "core_action_ref": "focusa.memory.semantic.upsert",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.memory.procedural.read",
+      "runtime_owner": "memory",
+      "core_action_ref": "focusa.memory.procedural.read",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.memory.procedural.reinforce",
+      "runtime_owner": "memory",
+      "core_action_ref": "focusa.memory.procedural.reinforce",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.operation_registry.read",
+      "runtime_owner": "agent",
+      "core_action_ref": "focusa.operation_registry.read",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.ui_action_bindings.read",
+      "runtime_owner": "agent",
+      "core_action_ref": "focusa.ui_action_bindings.read",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.ui_capability_snapshot.read",
+      "runtime_owner": "agent",
+      "core_action_ref": "focusa.ui_capability_snapshot.read",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.events.stream",
+      "runtime_owner": "events",
+      "core_action_ref": "focusa.events.stream",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.compatibility_lock.read",
+      "runtime_owner": "agent",
+      "core_action_ref": "focusa.compatibility_lock.read",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.protocol.handshake",
+      "runtime_owner": "agent",
+      "core_action_ref": "focusa.protocol.handshake",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.agent_execution.start",
+      "runtime_owner": "work_loop",
+      "core_action_ref": "focusa.agent_execution.start",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.agent_execution.prompt",
+      "runtime_owner": "work_loop",
+      "core_action_ref": "focusa.agent_execution.prompt",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.agent_execution.abort",
+      "runtime_owner": "work_loop",
+      "core_action_ref": "focusa.agent_execution.abort",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.agent_execution.stop",
+      "runtime_owner": "work_loop",
+      "core_action_ref": "focusa.agent_execution.stop",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.task_plan.materialize.beads",
+      "runtime_owner": "task_plan",
+      "core_action_ref": "focusa.task_plan.materialize.beads",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.work_rail.list",
+      "runtime_owner": "work_rail",
+      "core_action_ref": "focusa.work_rail.list",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.work_rail.mutate",
+      "runtime_owner": "work_rail",
+      "core_action_ref": "focusa.work_rail.mutate",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.mission_canvas.surface_binding.list",
+      "runtime_owner": "mission_canvas",
+      "core_action_ref": "focusa.mission_canvas.surface_binding.list",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.mission_canvas.surface_binding.mutate",
+      "runtime_owner": "mission_canvas",
+      "core_action_ref": "focusa.mission_canvas.surface_binding.mutate",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.mission_canvas.surface.list",
+      "runtime_owner": "mission_canvas",
+      "core_action_ref": "focusa.mission_canvas.surface.list",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.mission_canvas.surface.mutate",
+      "runtime_owner": "mission_canvas",
+      "core_action_ref": "focusa.mission_canvas.surface.mutate",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.mission_canvas.state.get",
+      "runtime_owner": "mission_canvas",
+      "core_action_ref": "focusa.mission_canvas.state.get",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.mission_canvas.state.mutate",
+      "runtime_owner": "mission_canvas",
+      "core_action_ref": "focusa.mission_canvas.state.mutate",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.project.genesis.commit",
+      "runtime_owner": "project",
+      "core_action_ref": "focusa.project.genesis.commit",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.project.genesis.resume",
+      "runtime_owner": "project",
+      "core_action_ref": "focusa.project.genesis.resume",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.project.genesis.start",
+      "runtime_owner": "project",
+      "core_action_ref": "focusa.project.genesis.start",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.project.genesis.status",
+      "runtime_owner": "project",
+      "core_action_ref": "focusa.project.genesis.status",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.project.bootstrap.preview",
+      "runtime_owner": "project",
+      "core_action_ref": "focusa.project.bootstrap.preview",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.project.bootstrap.apply",
+      "runtime_owner": "project",
+      "core_action_ref": "focusa.project.bootstrap.apply",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.project.bootstrap.status",
+      "runtime_owner": "project",
+      "core_action_ref": "focusa.project.bootstrap.status",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.project.bootstrap.repair",
+      "runtime_owner": "project",
+      "core_action_ref": "focusa.project.bootstrap.repair",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.temporal.status",
+      "runtime_owner": "temporal",
+      "core_action_ref": "focusa.temporal.status",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.temporal.commit",
+      "runtime_owner": "temporal",
+      "core_action_ref": "focusa.temporal.commit",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.temporal.revise",
+      "runtime_owner": "temporal",
+      "core_action_ref": "focusa.temporal.revise",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.temporal.observe",
+      "runtime_owner": "temporal",
+      "core_action_ref": "focusa.temporal.observe",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.temporal.forecast",
+      "runtime_owner": "temporal",
+      "core_action_ref": "focusa.temporal.forecast",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    },
+    {
+      "operation_id": "focusa.temporal.preflight",
+      "runtime_owner": "temporal",
+      "core_action_ref": "focusa.temporal.preflight",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "recovery_typed": true
+    }
+  ],
+  "error_envelope": {
+    "schema": "focusa.tool_result.v1",
+    "required_fields": [
+      "status",
+      "error_code",
+      "message",
+      "scope_status",
+      "recovery_actions",
+      "evidence_refs"
+    ],
+    "recovery_actions_typed": true,
+    "raw_stack_visible": false
+  },
+  "drift_gates": [
+    "operation registry operation IDs are unique",
+    "OpenAPI operation IDs equal registry operation IDs",
+    "TypeScript client exposes every operation",
+    "A2UI actions bind only registered operations",
+    "generated contract regeneration is clean",
+    "route ownership resolves to exactly one subsystem"
+  ],
+  "proof_refs": [
+    "tests/spec135_operation_registry_test.py",
+    "tests/tool_contract_test.sh",
+    "tests/spec135_p5_parity_migration_lint.py",
+    "tests/spec135_i1_generated_ui_test.py"
+  ]
+}
