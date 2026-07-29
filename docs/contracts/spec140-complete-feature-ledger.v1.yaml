@@ -761,10 +761,16 @@ requirements:
   - a2ui_catalog
   - ui_action_bindings
   positive_tests:
+  - agent_runtime_studio::tests::renders_bounded_studio_panels
+  - agent_runtime_tests::runtime_studio_exposes_every_spec140_workbench
   - s140_runtime_studio_end_to_end
   accessibility_tests:
   - s140_runtime_studio_accessibility
-  status: not_started
+  status: verified
+  negative_tests: []
+  evidence_refs:
+  - test:/tmp/lock-spec140-studio-api-tests.txt
+  - test:/tmp/lock-spec140-studio-tui-tests.txt
 - requirement_id: S140-REQ-030
   spec_section: '23'
   requirement_text: Allow only approved/source-linked prompt inputs; quarantine prompt injection; exclude secrets, raw private

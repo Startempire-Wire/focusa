@@ -1,6 +1,7 @@
 pub mod agent_capabilities;
 pub mod agent_runtime;
 pub mod agent_runtime_delivery;
+pub mod agent_runtime_studio;
 #[cfg(test)]
 mod agent_runtime_tests;
 pub mod ascc;

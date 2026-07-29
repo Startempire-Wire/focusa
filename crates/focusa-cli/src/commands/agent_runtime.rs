@@ -21,6 +21,10 @@ pub enum AgentRuntimeCmd {
     Prompt(PromptCmd),
     #[command(subcommand)]
     Artifacts(ArtifactsCmd),
+    /// Render the Agent Runtime Studio in the terminal.
+    Studio {
+        constitution_id: String,
+    },
     Doctor,
 }
 
@@ -127,6 +131,24 @@ pub async fn run(command: AgentRuntimeCmd, output_json: bool) -> anyhow::Result<
         AgentRuntimeCmd::Constitution(command) => run_constitution(&api, command).await?,
         AgentRuntimeCmd::Prompt(command) => run_prompt(&api, command).await?,
         AgentRuntimeCmd::Artifacts(command) => run_artifacts(&api, command).await?,
+        AgentRuntimeCmd::Studio { constitution_id } => {
+            let response = api
+                .get(&format!(
+                    "/v1/agent-runtime/studio?constitution_id={}",
+                    encoded(&constitution_id)
+                ))
+                .await?;
+            if !output_json {
+                println!(
+                    "{}",
+                    focusa_terminal_ui::agent_runtime_studio::render_agent_runtime_studio(
+                        &response
+                    )?
+                );
+                return Ok(());
+            }
+            response
+        }
         AgentRuntimeCmd::Doctor => api.get("/v1/agent-runtime/doctor").await?,
     };
     render(&response, output_json)?;

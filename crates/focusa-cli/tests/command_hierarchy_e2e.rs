@@ -111,6 +111,7 @@ fn agent_runtime_help_exposes_spec140_hierarchy() {
         "constitution",
         "prompt",
         "artifacts",
+        "studio",
         "doctor",
     ] {
         assert!(

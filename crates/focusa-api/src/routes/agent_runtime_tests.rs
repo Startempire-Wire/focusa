@@ -48,6 +48,30 @@ fn mutations_are_permission_confirmation_receipt_and_idempotency_gated() {
 }
 
 #[test]
+fn runtime_studio_exposes_every_spec140_workbench() {
+    let studio = include_str!("agent_runtime_studio.rs");
+    assert!(studio.contains("/v1/agent-runtime/studio"));
+    for panel in [
+        "role-grounding",
+        "source-inventory",
+        "conflict-workbench",
+        "prompt-composition",
+        "prompt-modes",
+        "environment-variants",
+        "skills-tools",
+        "execution-boundaries",
+        "targets",
+        "delivery",
+        "activation",
+        "rollback",
+    ] {
+        assert!(studio.contains(panel), "Runtime Studio missing {panel}");
+    }
+    assert!(studio.contains("a2ui_messages"));
+    assert!(studio.contains("self_activation_forbidden"));
+}
+
+#[test]
 fn preview_and_simulation_are_non_mutating() {
     let runtime = include_str!("agent_runtime.rs");
     let delivery = include_str!("agent_runtime_delivery.rs");
