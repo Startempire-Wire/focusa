@@ -98,7 +98,7 @@ import {
   markRecentTurnsSliceEmitted,
   type RecentTurnSlice,
 } from "./state.js";
-import { renderWorkRailWidget, workRailSnapshotFromPacket } from "./work-rail-widget.js";
+import { refreshMissionCanvasWidget } from "./mission-canvas-widget.js";
 import { checkCompactionTier, checkMicroCompact, contextTierLabel } from "./compaction.js";
 import { catalogueFromMessages } from "./wbm.js";
 import { pushDelta } from "./tools.js";
@@ -2440,35 +2440,9 @@ export function registerTurns(pi: ExtensionAPI) {
     if (liveFocus?.frame?.thread_thesis) w.push(`🎯 ${liveFocus.frame.thread_thesis.slice(0, 50)}`);
     // §30: Metacognitive indicator
     if (getAttachmentRuntime().lastMetacogEvent) w.push(`✨ ${getAttachmentRuntime().lastMetacogEvent}`);
-    const workRailWidget = workRailSnapshotFromPacket(getActiveWorkpointPacket());
-    workRailWidget.badges = w;
-    const asciiWorkRail = process.env.FOCUSA_ASCII_UI === "1" || process.env.TERM === "dumb";
-    // Pi ExtensionContext exposes hasUI, not a runtime mode discriminator.
-    // Keep widgets out of print/RPC surfaces while remaining compatible across Pi builds.
-    if (ctx.hasUI) {
-      ctx.ui.setWidget("focusa", (_tui, theme) => ({
-        render(width: number) {
-          return renderWorkRailWidget(
-            workRailWidget,
-            width,
-            {
-              accent: (text) => theme.fg("accent", text),
-              dim: (text) => theme.fg("dim", text),
-              good: (text) => theme.fg("accent", text),
-            },
-            asciiWorkRail
-          );
-        },
-        invalidate() {},
-      }));
-    } else {
-      const plain = {
-        accent: (text: string) => text,
-        dim: (text: string) => text,
-        good: (text: string) => text,
-      };
-      ctx.ui.setWidget("focusa", renderWorkRailWidget(workRailWidget, 80, plain, true));
-    }
+    // Spec 135A compatibility mode owns one canonical Work Rail above the editor.
+    // Refresh the named Mission Canvas widget instead of registering a second legacy rail.
+    refreshMissionCanvasWidget(ctx, w);
 
     // §34.2C: Update Focus State on significant progress
     if (getAttachmentRuntime().focusaAvailable && getAttachmentRuntime().activeFrameId) {

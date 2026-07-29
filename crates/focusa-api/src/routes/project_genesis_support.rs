@@ -381,10 +381,39 @@ pub(super) fn build_staged_packet(
         "incomplete"
     };
     let receipt_id = stable_id("genesis", root, &req.idempotency_key);
+    let genesis_id = stable_id("project-genesis-record", root, &req.continuity_id);
+    let crist_stage = if status == "hlt_impasse" || status == "incomplete" {
+        "project_scope_verified"
+    } else {
+        "context_collecting"
+    };
     json!({
         "schema": GENESIS_SCHEMA,
+        "genesis_id": genesis_id,
+        "project_root": root,
+        "continuity_id": req.continuity_id,
         "status": status,
+        "crist_stage": crist_stage,
+        "revision": 1,
+        "created_at": Utc::now().to_rfc3339(),
+        "updated_at": Utc::now().to_rfc3339(),
+        "ownership": {
+            "owner_ref": stable_id("crist-owner", root, &req.continuity_id),
+            "continuity_id": req.continuity_id,
+            "authority": "operator_steering_then_reducer",
+            "status": "active"
+        },
+        "transition_receipts": [],
         "project_identity": {"project_root": root, "verified": true},
+        "workspace": {"active_profile_ref": "general", "visual_variant": "default", "project_overrides_ref": Value::Null},
+        "domain_semantics": {"registry_version": "focusa.ontology.registry.v1", "active_domain_pack_refs": [], "compatibility_profile_ref": Value::Null, "semantic_projection_ref": Value::Null},
+        "context": {"source_refs": [], "accepted_claim_refs": [], "pending_claim_refs": [], "contradictions": [], "last_growth_at": Value::Null},
+        "role": {"active_role_profile_ref": Value::Null, "pending_revision_ref": Value::Null},
+        "interview": {"session_refs": [], "answered_count": 0, "open_count": 0, "blocker_count": 0},
+        "spec": {"workbench_session_ref": Value::Null, "approved_spec_ref": req.specification_ref, "spec_revision": 0, "reconciliation_status": "not_started"},
+        "tasks": {"task_plan_ref": Value::Null, "materialization_status": "not_started", "provider_refs": []},
+        "trajectory": {"trajectory_proposal_ref": Value::Null, "active_workpoint_ref": Value::Null},
+        "receipts": [receipt_id],
         "bootstrap_receipt": GenesisReceipt { receipt_id: receipt_id.clone(), phase: "inventory".into(), status: status.into(), recorded_at: Utc::now().to_rfc3339(), idempotency_key: req.idempotency_key.clone() },
         "hlt": hlt,
         "hlt_status": if status == "hlt_impasse" { "missing_required" } else { "canonical_explicit" },
@@ -406,6 +435,28 @@ pub(super) fn build_staged_packet(
         "idempotency_key": req.idempotency_key,
         "evidence_refs": (req.specification_ref.iter().cloned().collect::<Vec<_>>()),
         "next_action": if status == "hlt_impasse" { "answer one concise HLT intent question" } else if status == "staged" { "commit Project Genesis" } else { "supply the listed missing links" },
+        "resolved_project_operating_profile": {
+            "schema": "focusa.resolved_project_operating_profile.v1",
+            "project_identity": {"project_root": root, "continuity_id": req.continuity_id, "verified": true},
+            "crist_state": {"stage": crist_stage, "revision": 1, "status": "active"},
+            "ownership": {"owner_ref": stable_id("crist-owner", root, &req.continuity_id), "continuity_id": req.continuity_id},
+            "workspace_projection": {"active_profile_ref": "general", "visual_variant": "default"},
+            "domain_semantic_summary": {"registry_version": "focusa.ontology.registry.v1"},
+            "active_domain_pack_refs": [],
+            "agent_role": Value::Null,
+            "context_summary": {"source_count": 0, "claim_count": 0, "contradiction_count": 0},
+            "interview_summary": {"session_count": 0, "answered_count": 0, "open_count": 0, "blocker_count": 0},
+            "approved_spec_summary": req.specification_ref,
+            "task_summary": {"provider": provider, "task_count": tasks.len(), "materialization_status": "not_started"},
+            "trajectory_summary": {"hlt_status": if status == "hlt_impasse" { "missing_required" } else { "canonical_explicit" }},
+            "active_workpoint": Value::Null,
+            "evidence_summary": {"evidence_refs": req.specification_ref.iter().cloned().collect::<Vec<_>>()},
+            "authority_summary": {"operator_steering_precedence": true, "scope_verified": true},
+            "connector_health": [],
+            "stale_components": [],
+            "required_operator_actions": if status == "hlt_impasse" { vec!["confirm_hlt"] } else { Vec::<&str>::new() },
+            "next_safe_action": if status == "hlt_impasse" { "confirm HLT" } else if status == "staged" { "commit Project Genesis" } else { "supply missing links" }
+        },
         "recovery_tools": ["focusa_project_verify", "focusa_trajectory_view", "focusa_workpoint_resume"],
     })
 }

@@ -6,16 +6,31 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 
-project_uid="$(stat -c '%u' .)"
-project_user="$(stat -c '%U' .)"
+stat_owner_uid() {
+  if stat -c '%u' "$1" >/dev/null 2>&1; then
+    stat -c '%u' "$1"
+  else
+    stat -f '%u' "$1"
+  fi
+}
+stat_owner_name() {
+  if stat -c '%U' "$1" >/dev/null 2>&1; then
+    stat -c '%U' "$1"
+  else
+    stat -f '%Su' "$1"
+  fi
+}
+
+project_uid="$(stat_owner_uid .)"
+project_user="$(stat_owner_name .)"
 failed=0
 
 check_owner() {
   local path="$1"
   [[ -e "$path" ]] || return 0
   local uid user
-  uid="$(stat -c '%u' "$path")"
-  user="$(stat -c '%U' "$path")"
+  uid="$(stat_owner_uid "$path")"
+  user="$(stat_owner_name "$path")"
   if [[ "$uid" != "$project_uid" ]]; then
     echo "✗ $path owned by $user(uid=$uid), expected $project_user(uid=$project_uid)" >&2
     failed=1

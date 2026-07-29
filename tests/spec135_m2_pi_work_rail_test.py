@@ -7,6 +7,7 @@ R = Path(__file__).resolve().parents[1]
 
 def main():
     widget = (R / "apps/pi-extension/src/work-rail-widget.ts").read_text()
+    mission_widget = (R / "apps/pi-extension/src/mission-canvas-widget.ts").read_text()
     turns = (R / "apps/pi-extension/src/turns.ts").read_text()
     index = (R / "apps/pi-extension/src/index.ts").read_text()
     page = (R / "apps/menubar/src/routes/+page.svelte").read_text()
@@ -23,11 +24,12 @@ def main():
         "ascii",
         "FOCUSA_ASCII_UI",
     ]:
-        assert marker in widget + turns
+        assert marker in widget + mission_widget + turns
     assert (
-        "renderWorkRailWidget" in turns
-        and 'setWidget("focusa"' in turns
-        and "if (ctx.hasUI)" in turns
+        "renderWorkRailWidget" in mission_widget
+        and 'WIDGET_ID = "focusa-mission-canvas-work-rail"' in mission_widget
+        and "refreshMissionCanvasWidget(ctx, w)" in turns
+        and 'setWidget("focusa"' not in turns
     )
     assert (
         "ctrl+shift+r" in index

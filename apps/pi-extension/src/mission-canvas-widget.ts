@@ -3,35 +3,45 @@ import { getActiveWorkpointPacket, getEffectiveFocusSnapshot, getSessionCwd } fr
 import { resolveInteractionMode } from "./config.js";
 import { renderWorkRailWidget, workRailSnapshotFromPacket } from "./work-rail-widget.js";
 
+const WIDGET_ID = "focusa-mission-canvas-work-rail";
+
 /**
  * Pi-native persistent Mission Canvas entry surface.
- * The detailed canvas opens with /mission-canvas; this Work Rail keeps the
- * active mission visible at the point of work without inventing state.
+ * Spec 135A requires one Work Rail above the editor in compatibility mode.
  */
-export function refreshMissionCanvasWidget(ctx: any): void {
+export function refreshMissionCanvasWidget(ctx: any, badges: string[] = []): void {
   if (!ctx.hasUI) return;
   const interactionMode = resolveInteractionMode(getSessionCwd());
   if (interactionMode.mode !== "canvas-guided") {
-    ctx.ui.setWidget("focusa-mission-canvas-work-rail", undefined);
+    ctx.ui.setWidget(WIDGET_ID, undefined);
     return;
   }
   const workpoint = getActiveWorkpointPacket();
   const focus = getEffectiveFocusSnapshot();
   const snapshot = workRailSnapshotFromPacket(workpoint ?? focus ?? null);
-  const lines = renderWorkRailWidget(
-    snapshot,
-    120,
-    {
-      accent: (text) => text,
-      dim: (text) => text,
-      good: (text) => text,
-    },
-    true
+  snapshot.badges = badges;
+  const ascii = process.env.FOCUSA_ASCII_UI === "1" || process.env.TERM === "dumb";
+  ctx.ui.setWidget(
+    WIDGET_ID,
+    (_tui: any, theme: any) => ({
+      render(width: number) {
+        return renderWorkRailWidget(
+          snapshot,
+          width,
+          {
+            accent: (text) => theme.fg("accent", text),
+            dim: (text) => theme.fg("dim", text),
+            good: (text) => theme.fg("accent", text),
+          },
+          ascii
+        );
+      },
+      invalidate() {},
+    }),
+    { placement: "aboveEditor" }
   );
-  ctx.ui.setWidget("focusa-mission-canvas-work-rail", lines, { placement: "aboveEditor" });
 }
 
 export function registerMissionCanvasWidget(pi: ExtensionAPI): void {
   pi.on("session_start", (_event, ctx) => refreshMissionCanvasWidget(ctx));
-  pi.on("turn_end", (_event, ctx) => refreshMissionCanvasWidget(ctx));
 }
