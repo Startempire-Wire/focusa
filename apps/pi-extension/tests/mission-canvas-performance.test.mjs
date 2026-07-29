@@ -8,11 +8,25 @@ import ts from "typescript";
 
 const root = resolve(import.meta.dirname, "..");
 const source = readFileSync(resolve(root, "src/mission-canvas-view.ts"), "utf8");
-const compiled = ts.transpileModule(source, {
-  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-}).outputText;
+const accessibilitySource = readFileSync(
+  resolve(root, "src/mission-canvas-accessibility.ts"),
+  "utf8"
+);
+const accessibilityName = `.mission-canvas-accessibility-performance-${process.pid}.mjs`;
+const compiled = ts
+  .transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+  })
+  .outputText.replace("./mission-canvas-accessibility.js", `./${accessibilityName}`);
 const modulePath = resolve(root, `.mission-canvas-performance-${process.pid}.mjs`);
+const accessibilityPath = resolve(root, accessibilityName);
 writeFileSync(modulePath, compiled);
+writeFileSync(
+  accessibilityPath,
+  ts.transpileModule(accessibilitySource, {
+    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+  }).outputText
+);
 const { MissionCanvasView } = await import(`${pathToFileURL(modulePath).href}?v=${Date.now()}`);
 
 const many = Array.from({ length: 200 }, (_, index) => `row-${index} evidence and bounded detail`);
@@ -66,5 +80,6 @@ view.dispose();
 timings.sort((a, b) => a - b);
 const p95 = timings[Math.floor(timings.length * 0.95)];
 rmSync(modulePath, { force: true });
+rmSync(accessibilityPath, { force: true });
 assert(p95 < 100, `Mission Canvas render p95 ${p95.toFixed(2)}ms exceeded 100ms`);
 console.log(`Mission Canvas performance: PASS (200 rows, render p95=${p95.toFixed(2)}ms)`);

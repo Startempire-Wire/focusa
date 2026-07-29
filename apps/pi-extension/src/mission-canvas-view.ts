@@ -1,5 +1,13 @@
 import type { Theme } from "@earendil-works/pi-coding-agent";
 import { Key, matchesKey, truncateToWidth, wrapTextWithAnsi, type Component } from "@earendil-works/pi-tui";
+import {
+  accessibilityPreferences,
+  accessibleStateLabel,
+  focusRestorationLabel,
+  responsiveCanvasMode,
+  surfaceCapacity,
+  virtualWindow,
+} from "./mission-canvas-accessibility.js";
 
 export type MissionCanvasPanel =
   | "Now"
@@ -159,6 +167,12 @@ export class MissionCanvasView implements Component {
 
   render(width: number): string[] {
     const panel = PANELS[this.selected];
+    const mode = responsiveCanvasMode(width);
+    const preferences = accessibilityPreferences();
+    const navigationHelp =
+      mode === "narrow"
+        ? "←/→ panel · Alt+←/→ surface · Esc close"
+        : "N/W/S/P/H/C panels · Y copy ref · R refresh · Esc close · ←/→ panel · Alt+←/→ surface";
     const lines = [
       this.theme.fg(
         "accent",
@@ -168,9 +182,9 @@ export class MissionCanvasView implements Component {
       ),
       this.theme.fg(
         "muted",
-        `${this.model.scopeStatus} · ${text(this.model.projectRoot)} · ${this.refreshing ? "refreshing" : "live"} · N/W/S/P/H/C panels · Y copy ref · R refresh · Esc close · ←/→ panel · Alt+←/→ surface`
+        `${accessibleStateLabel("pi", this.refreshing ? "refreshing" : "live", "attachment-scoped")} · ${this.model.scopeStatus} · ${text(this.model.projectRoot)} · layout:${mode} · contrast:${preferences.highContrast ? "high" : "theme"} · motion:${preferences.reducedMotion ? "reduced" : "state-change-only"} · ${focusRestorationLabel(preferences)} · ${navigationHelp}`
       ),
-      this.surfaceStrip(),
+      this.surfaceStrip(width),
       "",
       PANELS.map((name, index) =>
         index === this.selected
@@ -198,10 +212,10 @@ export class MissionCanvasView implements Component {
     }
   }
 
-  private surfaceStrip(): string {
+  private surfaceStrip(width: number): string {
     const surfaces = this.model.workSurfaces.length ? this.model.workSurfaces : ["Current Pi attachment"];
-    const start = Math.max(0, Math.min(this.selectedSurface - 3, surfaces.length - 8));
-    const visible = surfaces.slice(start, start + 8);
+    const window = virtualWindow(surfaces, this.selectedSurface, surfaceCapacity(width));
+    const { start, values: visible } = window;
     const labels = visible.map((surface, offset) => {
       const index = start + offset;
       return index === this.selectedSurface
