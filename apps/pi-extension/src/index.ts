@@ -39,6 +39,7 @@ import { registerWorkspaceVerticals } from "./workspace-verticals.js";
 import { registerRichArtifactRenderers } from "./rich-artifact-renderers.js";
 import { registerResearchBridge } from "./research-bridge.js";
 import { registerCristCanvas } from "./crist-canvas.js";
+import { registerNontechnicalOnboarding } from "./nontechnical-onboarding.js";
 
 export default function focusaPiBridge(pi: ExtensionAPI) {
   const extensionKey = makeAttachmentKey({
@@ -167,6 +168,7 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     registerRichArtifactRenderers(pi);
     registerResearchBridge(pi);
     registerCristCanvas(pi);
+    registerNontechnicalOnboarding(pi);
     registerAutomaticOtaActivation(pi);
     registerWbm(pi);
     registerCompaction(pi);
@@ -294,5 +296,6 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     pi.registerMessageRenderer("focusa-rich-artifact", renderFocusaState);
     pi.registerMessageRenderer("focusa-research-packet", renderFocusaState);
     pi.registerMessageRenderer("focusa-crist-stage", renderFocusaState);
+    pi.registerMessageRenderer("focusa-onboarding", renderFocusaState);
   });
 }
