@@ -170,6 +170,119 @@ fn coordination_conflict_uses_plain_language_and_confirmed_takeover() {
 }
 
 #[test]
+fn staged_genesis_enforces_continuity_ownership_after_reconnect() {
+    let root = test_root("staged-ownership");
+    let owner = complete_request(&root);
+    let mut packet = build_staged_packet(&root, &owner, None);
+    initialize_crist_state(&root, &mut packet).unwrap();
+    write_json_atomic(&packet_path(&root), &packet).unwrap();
+
+    let same_owner_start = existing_genesis_guard(&root, &owner, true)
+        .unwrap()
+        .expect("same-owner start must return the staged packet idempotently");
+    assert_eq!(
+        same_owner_start["ownership"]["continuity_id"],
+        owner.continuity_id
+    );
+    assert!(
+        existing_genesis_guard(&root, &owner, false)
+            .unwrap()
+            .is_none()
+    );
+
+    let mut other = complete_request(&root);
+    other.continuity_id = "other-continuity".to_string();
+    let (status, Json(body)) = existing_genesis_guard(&root, &other, false).unwrap_err();
+    assert_eq!(status, StatusCode::CONFLICT);
+    assert_eq!(body["existing_continuity_id"], owner.continuity_id);
+    assert_eq!(body["requested_continuity_id"], "other-continuity");
+
+    other.takeover = Some(true);
+    other.confirm = Some(true);
+    assert!(
+        existing_genesis_guard(&root, &other, false)
+            .unwrap()
+            .is_none()
+    );
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn crist_state_and_operating_profile_survive_disk_reconnect() {
+    let root = test_root("crist-reconnect");
+    let request = complete_request(&root);
+    let mut packet = build_staged_packet(&root, &request, None);
+    initialize_crist_state(&root, &mut packet).unwrap();
+    assert_eq!(packet["crist_stage"], "context_collecting");
+    assert_eq!(packet["revision"], 2);
+    assert_eq!(
+        packet["resolved_project_operating_profile"]["crist_state"]["stage"],
+        "context_collecting"
+    );
+    assert_eq!(packet["ownership"]["continuity_id"], request.continuity_id);
+
+    let receipt = record_crist_transition(&root, &mut packet, "context_ready", "accept_context")
+        .expect("the next canonical C.R.I.S.T. transition must be accepted");
+    assert_eq!(receipt["outcome"], "accepted");
+    write_json_atomic(&packet_path(&root), &packet).unwrap();
+
+    let reconnected = read_json(&packet_path(&root)).expect("persisted C.R.I.S.T. state");
+    assert_eq!(reconnected["crist_stage"], "context_ready");
+    assert_eq!(reconnected["revision"], 3);
+    assert_eq!(
+        reconnected["resolved_project_operating_profile"]["crist_state"]["stage"],
+        "context_ready"
+    );
+    assert_eq!(
+        reconnected["transition_receipts"].as_array().unwrap().len(),
+        3
+    );
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn invalid_crist_transition_fails_closed_with_durable_receipt() {
+    let root = test_root("crist-invalid-transition");
+    let request = complete_request(&root);
+    let mut packet = build_staged_packet(&root, &request, None);
+    initialize_crist_state(&root, &mut packet).unwrap();
+    let receipt = record_crist_transition(&root, &mut packet, "operational", "skip_to_operational")
+        .expect_err("non-adjacent C.R.I.S.T. transition must fail closed");
+    assert_eq!(receipt["outcome"], "rejected");
+    assert_eq!(receipt["reason_code"], "invalid_crist_transition");
+    let second_receipt =
+        record_crist_transition(&root, &mut packet, "operational", "skip_to_operational")
+            .expect_err("each repeated invalid attempt must fail closed");
+    assert_ne!(receipt["receipt_id"], second_receipt["receipt_id"]);
+    assert_eq!(second_receipt["attempt"], 4);
+    for durable_receipt in [receipt, second_receipt] {
+        let receipt_id = durable_receipt["receipt_id"].as_str().unwrap();
+        assert!(
+            root.join(".focusa/project-genesis/transition-receipts")
+                .join(format!("{receipt_id}.json"))
+                .is_file()
+        );
+    }
+    assert_eq!(packet["crist_stage"], "context_collecting");
+    assert_eq!(packet["revision"], 2);
+    write_json_atomic(&packet_path(&root), &packet).unwrap();
+
+    let reconnected = read_json(&packet_path(&root)).expect("receipt journal persists");
+    assert_eq!(reconnected["crist_stage"], "context_collecting");
+    assert_eq!(reconnected["revision"], 2);
+    assert_eq!(
+        reconnected["transition_receipts"][2]["reason_code"],
+        "invalid_crist_transition"
+    );
+    assert_eq!(
+        reconnected["transition_receipts"].as_array().unwrap().len(),
+        4
+    );
+    assert_eq!(reconnected["receipts"].as_array().unwrap().len(), 5);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn marker_is_committed_only_after_ready_packet_in_source_contract() {
     let source = include_str!("project_genesis.rs");
     let ready = source

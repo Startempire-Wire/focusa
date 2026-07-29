@@ -2,7 +2,14 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-EXPECTED_OWNER="$(stat -c %U "$ROOT_DIR")"
+stat_owner_name() {
+  if stat -c %U "$1" >/dev/null 2>&1; then
+    stat -c %U "$1"
+  else
+    stat -f %Su "$1"
+  fi
+}
+EXPECTED_OWNER="$(stat_owner_name "$ROOT_DIR")"
 find_owner_drift() {
   find "$ROOT_DIR" -xdev     \( -path "$ROOT_DIR/.git" -o -path "$ROOT_DIR/target" -o -path '*/node_modules' -o -path "$ROOT_DIR/data" -o -path "$ROOT_DIR/ecs" \) -prune -o     -user root -print -quit
 }
@@ -60,6 +67,7 @@ run_gate ./tests/command_write_contract_test.sh
 run_gate ./tests/trace_dimensions_test.sh
 run_gate ./tests/pi_extension_contract_test.sh
 run_gate bash ./tests/spec142_workflow_dependency_onboarding_static_test.sh
+run_gate python3 ./tests/spec135_crist_state_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_task_materialization_e2e_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_work_rail_e2e_test.py
 run_gate bash ./tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh
