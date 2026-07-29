@@ -1,17 +1,22 @@
 {
-  "schema": "focusa.locked_release_decomposition_audit.v1",
+  "schema": "focusa.locked_release_decomposition_audit.v2",
   "status": "verified",
   "original_locked_issues": 38,
+  "operator_authorized_post_lock_additions": 2,
+  "current_explicit_issues": 40,
+  "current_locked_beads": 236,
   "spec137_requirements": 86,
   "spec138_requirements": 542,
   "spec140_requirements": 38,
   "addendum_leaf_beads": 15,
   "unmapped": 0,
   "dependency_cycles": 0,
-  "bead_resolution_proof": "229/229 mapped refs resolved",
+  "bead_resolution_proof": "236/236 locked members resolved; all mapped refs present",
   "evidence_refs": [
     "release-proof/audit/next-locked-release-scope.json",
     "release-proof/audit/next-locked-release-decomposition.json",
-    "bead:focusa-vbcqu.9"
+    "bead:focusa-vbcqu.9",
+    "bead:focusa-vbcqu.5.7",
+    "bead:focusa-vbcqu.3.4"
   ]
 }

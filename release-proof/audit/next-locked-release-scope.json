@@ -10,7 +10,34 @@
     "focusa-vbcqu.9.7"
   ],
   "locked_at": "2026-07-28T18:45:00-07:00",
-  "operator_scope": "all currently open issues plus Specs 137, 137a, 138, 138a, and 140",
+  "lock_revision": 2,
+  "relocked_at": "2026-07-29T12:14:32-07:00",
+  "scope_state": "locked",
+  "current_explicit_issue_count": 40,
+  "current_locked_bead_member_count": 236,
+  "operator_authorized_post_lock_additions": [
+    {
+      "issue_id": "focusa-vbcqu.5.7",
+      "kind": "bug",
+      "priority": "P0",
+      "lane": "locked-wave-4",
+      "parent": "focusa-vbcqu.5",
+      "terminal_gate": "focusa-vbcqu.9.7",
+      "summary": "Mac Pi context overflow compaction stalls through repeated WebSocket summarization failures",
+      "authorization_source": "operator_message:bug_1"
+    },
+    {
+      "issue_id": "focusa-vbcqu.3.4",
+      "kind": "bug",
+      "priority": "P0",
+      "lane": "locked-wave-2",
+      "parent": "focusa-vbcqu.3",
+      "terminal_gate": "focusa-vbcqu.9.7",
+      "summary": "Pi startup blocks on degraded project verification instead of safely inferring scope",
+      "authorization_source": "operator_message:bug_2"
+    }
+  ],
+  "operator_scope": "original 38-item snapshot plus Specs 137, 137a, 138, 138a, and 140 plus two operator-authorized P0 bugs",
   "pre_decomposition_open_issue_count": 38,
   "pre_decomposition_open_issue_ids": [
     "focusa-vbcqu.4.4",
@@ -53,7 +80,7 @@
     "focusa-84px"
   ],
   "publication_gate": "forbidden_until_all_locked_items_and_acceptance_proof_are_complete",
-  "schema": "focusa.locked_release_scope.v1",
+  "schema": "focusa.locked_release_scope.v2",
   "specs": {
     "137": {
       "path": "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md",

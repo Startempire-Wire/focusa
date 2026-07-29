@@ -1,8 +1,26 @@
 {
-  "schema": "focusa.locked_release_decomposition.v1",
+  "schema": "focusa.locked_release_decomposition.v2",
   "generated_at": "2026-07-29T16:10:05.921430+00:00",
   "scope_manifest_ref": "release-proof/audit/next-locked-release-scope.json",
   "decomposition_epic": "focusa-vbcqu.9",
+  "operator_authorized_post_lock_additions": [
+    {
+      "issue_id": "focusa-vbcqu.5.7",
+      "kind": "bug",
+      "lane": "locked-wave-4",
+      "parent": "focusa-vbcqu.5",
+      "terminal_gate": "focusa-vbcqu.9.7",
+      "acceptance_ref": "bead:focusa-vbcqu.5.7"
+    },
+    {
+      "issue_id": "focusa-vbcqu.3.4",
+      "kind": "bug",
+      "lane": "locked-wave-2",
+      "parent": "focusa-vbcqu.3",
+      "terminal_gate": "focusa-vbcqu.9.7",
+      "acceptance_ref": "bead:focusa-vbcqu.3.4"
+    }
+  ],
   "original_locked_issues": [
     {
       "locked_issue_id": "focusa-vbcqu.4.4",
