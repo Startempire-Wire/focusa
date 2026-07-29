@@ -1008,6 +1008,7 @@ mod tests {
             ingestion_status: "indexed".to_string(),
             extraction_diagnostics: Vec::new(),
             health: ContextSourceHealth::default(),
+            artifact: Default::default(),
         }
     }
 

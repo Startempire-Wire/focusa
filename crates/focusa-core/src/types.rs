@@ -2059,10 +2059,87 @@ pub struct ContextSourceHealth {
     pub status: String,
     pub adapter_id: String,
     pub message: String,
+    #[serde(default)]
+    pub read_write_posture: String,
+    #[serde(default)]
+    pub oauth_scopes: Vec<String>,
+    #[serde(default)]
+    pub incremental_sync_method: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cursor_state: Option<String>,
+    #[serde(default)]
+    pub rate_limit_posture: String,
+    #[serde(default)]
+    pub revocation_behavior: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub recovery_action: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_successful_sync: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectContextArtifactScope {
+    pub project_root: String,
+    pub continuity_id: String,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectContextArtifactProvenance {
+    pub connector_id: String,
+    pub account_ref: String,
+    pub author: String,
+    pub source_url: String,
+    pub page_or_message_ref: String,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectContextArtifactClassification {
+    pub sensitivity: String,
+    pub confidentiality: String,
+    pub retention_class: String,
+    pub freshness_status: String,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectContextArtifactExtraction {
+    pub status: String,
+    pub diagnostic_refs: Vec<String>,
+    pub extracted_claim_ids: Vec<String>,
+    pub entity_refs: Vec<String>,
+    pub date_refs: Vec<String>,
+    pub task_refs: Vec<String>,
+    pub contradiction_refs: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectContextArtifactSemantic {
+    pub domain_pack_refs: Vec<String>,
+    pub candidate_object_refs: Vec<String>,
+    pub candidate_link_refs: Vec<String>,
+    pub verification_policy_refs: Vec<String>,
+}
+
+/// Source-linked artifact contract required by Spec 135B Context ingestion.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectContextArtifact {
+    pub schema: String,
+    pub artifact_id: String,
+    pub source_kind: String,
+    pub source_ref: String,
+    pub source_revision: String,
+    pub title: String,
+    pub mime_type: String,
+    pub content_handle: String,
+    pub content_sha256: String,
+    pub created_at: DateTime<Utc>,
+    pub observed_at: DateTime<Utc>,
+    pub scope: ProjectContextArtifactScope,
+    pub provenance: ProjectContextArtifactProvenance,
+    pub classification: ProjectContextArtifactClassification,
+    pub extraction: ProjectContextArtifactExtraction,
+    pub semantic: ProjectContextArtifactSemantic,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duplicate_of_artifact_ref: Option<String>,
 }
 
 /// Canonical, scoped Context source retained by the Focusa reducer.
@@ -2095,6 +2172,8 @@ pub struct ContextSourceRecord {
     pub extraction_diagnostics: Vec<String>,
     #[serde(default)]
     pub health: ContextSourceHealth,
+    #[serde(default)]
+    pub artifact: ProjectContextArtifact,
 }
 
 /// Stable bounded content handle for a rich Workspace Artifact; never stores a large browser blob.

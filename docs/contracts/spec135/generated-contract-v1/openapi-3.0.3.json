@@ -1569,184 +1569,7 @@
             "const": "focusa.context_source_commit_result.v1"
           },
           "source": {
-            "properties": {
-              "adapter_id": {
-                "type": "string"
-              },
-              "attachment_id": {
-                "type": "string"
-              },
-              "committed_at": {
-                "format": "date-time",
-                "type": "string"
-              },
-              "content": {
-                "maxLength": 2097152,
-                "type": "string"
-              },
-              "content_hash": {
-                "pattern": "^[a-f0-9]{64}$",
-                "type": "string"
-              },
-              "continuity_id": {
-                "type": "string"
-              },
-              "evidence": {
-                "properties": {
-                  "captured_at": {
-                    "format": "date-time",
-                    "type": "string"
-                  },
-                  "content_hash": {
-                    "type": "string"
-                  },
-                  "evidence_ref": {
-                    "type": "string"
-                  },
-                  "result": {
-                    "type": "string"
-                  },
-                  "target_ref": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "evidence_ref",
-                  "target_ref",
-                  "result",
-                  "content_hash",
-                  "captured_at"
-                ],
-                "type": "object"
-              },
-              "extraction_diagnostics": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "health": {
-                "properties": {
-                  "adapter_id": {
-                    "type": "string"
-                  },
-                  "last_successful_sync": {
-                    "format": "date-time",
-                    "type": "string"
-                  },
-                  "message": {
-                    "type": "string"
-                  },
-                  "recovery_action": {
-                    "type": "string"
-                  },
-                  "status": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "status",
-                  "adapter_id",
-                  "message"
-                ],
-                "type": "object"
-              },
-              "idempotency_key": {
-                "maxLength": 160,
-                "type": "string"
-              },
-              "ingestion_status": {
-                "type": "string"
-              },
-              "mime_type": {
-                "type": "string"
-              },
-              "project_root": {
-                "type": "string"
-              },
-              "receipt": {
-                "properties": {
-                  "after_state_version": {
-                    "minimum": 1,
-                    "type": "integer"
-                  },
-                  "before_state_version": {
-                    "minimum": 0,
-                    "type": "integer"
-                  },
-                  "committed_at": {
-                    "format": "date-time",
-                    "type": "string"
-                  },
-                  "idempotency_key": {
-                    "type": "string"
-                  },
-                  "operation_id": {
-                    "enum": [
-                      "focusa.context.source.commit",
-                      "focusa.context.source.ingest"
-                    ]
-                  },
-                  "receipt_ref": {
-                    "type": "string"
-                  },
-                  "reversible": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "receipt_ref",
-                  "operation_id",
-                  "idempotency_key",
-                  "before_state_version",
-                  "after_state_version",
-                  "reversible",
-                  "committed_at"
-                ],
-                "type": "object"
-              },
-              "revision": {
-                "minimum": 1,
-                "type": "integer"
-              },
-              "source_id": {
-                "type": "string"
-              },
-              "source_kind": {
-                "enum": [
-                  "markdown",
-                  "text",
-                  "code",
-                  "pdf"
-                ]
-              },
-              "source_locator": {
-                "type": "string"
-              },
-              "source_revision": {
-                "type": "string"
-              },
-              "title": {
-                "maxLength": 240,
-                "type": "string"
-              }
-            },
-            "required": [
-              "source_id",
-              "project_root",
-              "continuity_id",
-              "attachment_id",
-              "source_kind",
-              "title",
-              "content",
-              "content_hash",
-              "idempotency_key",
-              "revision",
-              "committed_at",
-              "evidence",
-              "receipt"
-            ],
-            "type": "object"
+            "$ref": "#/components/schemas/focusa_context_source_record_v1"
           },
           "state_version": {
             "minimum": 1,
@@ -1816,7 +1639,12 @@
             "enum": [
               "markdown",
               "code",
-              "pdf"
+              "pdf",
+              "file",
+              "web",
+              "research",
+              "connected",
+              "focusa_native"
             ]
           },
           "source_locator": {
@@ -1833,6 +1661,82 @@
             "maxLength": 240,
             "minLength": 1,
             "type": "string"
+          },
+          "connector_id": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "account_ref": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "author": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "source_url": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "page_or_message_ref": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "sensitivity": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "confidentiality": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "retention_class": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "freshness_status": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "sync_cursor": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "incremental_sync_method": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "rate_limit_posture": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "recovery_action": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "domain_pack_refs": {
+            "items": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "maxItems": 32,
+            "type": "array"
+          },
+          "verification_policy_refs": {
+            "items": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "maxItems": 32,
+            "type": "array"
+          },
+          "oauth_scopes": {
+            "items": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "maxItems": 32,
+            "type": "array"
           }
         },
         "required": [
@@ -1871,184 +1775,7 @@
             "const": "focusa.context_source_ingest_result.v1"
           },
           "source": {
-            "properties": {
-              "adapter_id": {
-                "type": "string"
-              },
-              "attachment_id": {
-                "type": "string"
-              },
-              "committed_at": {
-                "format": "date-time",
-                "type": "string"
-              },
-              "content": {
-                "maxLength": 2097152,
-                "type": "string"
-              },
-              "content_hash": {
-                "pattern": "^[a-f0-9]{64}$",
-                "type": "string"
-              },
-              "continuity_id": {
-                "type": "string"
-              },
-              "evidence": {
-                "properties": {
-                  "captured_at": {
-                    "format": "date-time",
-                    "type": "string"
-                  },
-                  "content_hash": {
-                    "type": "string"
-                  },
-                  "evidence_ref": {
-                    "type": "string"
-                  },
-                  "result": {
-                    "type": "string"
-                  },
-                  "target_ref": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "evidence_ref",
-                  "target_ref",
-                  "result",
-                  "content_hash",
-                  "captured_at"
-                ],
-                "type": "object"
-              },
-              "extraction_diagnostics": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "health": {
-                "properties": {
-                  "adapter_id": {
-                    "type": "string"
-                  },
-                  "last_successful_sync": {
-                    "format": "date-time",
-                    "type": "string"
-                  },
-                  "message": {
-                    "type": "string"
-                  },
-                  "recovery_action": {
-                    "type": "string"
-                  },
-                  "status": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "status",
-                  "adapter_id",
-                  "message"
-                ],
-                "type": "object"
-              },
-              "idempotency_key": {
-                "maxLength": 160,
-                "type": "string"
-              },
-              "ingestion_status": {
-                "type": "string"
-              },
-              "mime_type": {
-                "type": "string"
-              },
-              "project_root": {
-                "type": "string"
-              },
-              "receipt": {
-                "properties": {
-                  "after_state_version": {
-                    "minimum": 1,
-                    "type": "integer"
-                  },
-                  "before_state_version": {
-                    "minimum": 0,
-                    "type": "integer"
-                  },
-                  "committed_at": {
-                    "format": "date-time",
-                    "type": "string"
-                  },
-                  "idempotency_key": {
-                    "type": "string"
-                  },
-                  "operation_id": {
-                    "enum": [
-                      "focusa.context.source.commit",
-                      "focusa.context.source.ingest"
-                    ]
-                  },
-                  "receipt_ref": {
-                    "type": "string"
-                  },
-                  "reversible": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "receipt_ref",
-                  "operation_id",
-                  "idempotency_key",
-                  "before_state_version",
-                  "after_state_version",
-                  "reversible",
-                  "committed_at"
-                ],
-                "type": "object"
-              },
-              "revision": {
-                "minimum": 1,
-                "type": "integer"
-              },
-              "source_id": {
-                "type": "string"
-              },
-              "source_kind": {
-                "enum": [
-                  "markdown",
-                  "text",
-                  "code",
-                  "pdf"
-                ]
-              },
-              "source_locator": {
-                "type": "string"
-              },
-              "source_revision": {
-                "type": "string"
-              },
-              "title": {
-                "maxLength": 240,
-                "type": "string"
-              }
-            },
-            "required": [
-              "source_id",
-              "project_root",
-              "continuity_id",
-              "attachment_id",
-              "source_kind",
-              "title",
-              "content",
-              "content_hash",
-              "idempotency_key",
-              "revision",
-              "committed_at",
-              "evidence",
-              "receipt"
-            ],
-            "type": "object"
+            "$ref": "#/components/schemas/focusa_context_source_record_v1"
           },
           "state_version": {
             "minimum": 1,
@@ -2111,184 +1838,7 @@
           },
           "sources": {
             "items": {
-              "properties": {
-                "adapter_id": {
-                  "type": "string"
-                },
-                "attachment_id": {
-                  "type": "string"
-                },
-                "committed_at": {
-                  "format": "date-time",
-                  "type": "string"
-                },
-                "content": {
-                  "maxLength": 2097152,
-                  "type": "string"
-                },
-                "content_hash": {
-                  "pattern": "^[a-f0-9]{64}$",
-                  "type": "string"
-                },
-                "continuity_id": {
-                  "type": "string"
-                },
-                "evidence": {
-                  "properties": {
-                    "captured_at": {
-                      "format": "date-time",
-                      "type": "string"
-                    },
-                    "content_hash": {
-                      "type": "string"
-                    },
-                    "evidence_ref": {
-                      "type": "string"
-                    },
-                    "result": {
-                      "type": "string"
-                    },
-                    "target_ref": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "evidence_ref",
-                    "target_ref",
-                    "result",
-                    "content_hash",
-                    "captured_at"
-                  ],
-                  "type": "object"
-                },
-                "extraction_diagnostics": {
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                },
-                "health": {
-                  "properties": {
-                    "adapter_id": {
-                      "type": "string"
-                    },
-                    "last_successful_sync": {
-                      "format": "date-time",
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "recovery_action": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "adapter_id",
-                    "message"
-                  ],
-                  "type": "object"
-                },
-                "idempotency_key": {
-                  "maxLength": 160,
-                  "type": "string"
-                },
-                "ingestion_status": {
-                  "type": "string"
-                },
-                "mime_type": {
-                  "type": "string"
-                },
-                "project_root": {
-                  "type": "string"
-                },
-                "receipt": {
-                  "properties": {
-                    "after_state_version": {
-                      "minimum": 1,
-                      "type": "integer"
-                    },
-                    "before_state_version": {
-                      "minimum": 0,
-                      "type": "integer"
-                    },
-                    "committed_at": {
-                      "format": "date-time",
-                      "type": "string"
-                    },
-                    "idempotency_key": {
-                      "type": "string"
-                    },
-                    "operation_id": {
-                      "enum": [
-                        "focusa.context.source.commit",
-                        "focusa.context.source.ingest"
-                      ]
-                    },
-                    "receipt_ref": {
-                      "type": "string"
-                    },
-                    "reversible": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "receipt_ref",
-                    "operation_id",
-                    "idempotency_key",
-                    "before_state_version",
-                    "after_state_version",
-                    "reversible",
-                    "committed_at"
-                  ],
-                  "type": "object"
-                },
-                "revision": {
-                  "minimum": 1,
-                  "type": "integer"
-                },
-                "source_id": {
-                  "type": "string"
-                },
-                "source_kind": {
-                  "enum": [
-                    "markdown",
-                    "text",
-                    "code",
-                    "pdf"
-                  ]
-                },
-                "source_locator": {
-                  "type": "string"
-                },
-                "source_revision": {
-                  "type": "string"
-                },
-                "title": {
-                  "maxLength": 240,
-                  "type": "string"
-                }
-              },
-              "required": [
-                "source_id",
-                "project_root",
-                "continuity_id",
-                "attachment_id",
-                "source_kind",
-                "title",
-                "content",
-                "content_hash",
-                "idempotency_key",
-                "revision",
-                "committed_at",
-                "evidence",
-                "receipt"
-              ],
-              "type": "object"
+              "$ref": "#/components/schemas/focusa_context_source_record_v1"
             },
             "type": "array"
           },
@@ -12288,6 +11838,455 @@
             "type": "string"
           }
         }
+      },
+      "focusa_project_context_artifact_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "schema": {
+            "const": "focusa.project_context_artifact.v1",
+            "type": "string"
+          },
+          "artifact_id": {
+            "type": "string"
+          },
+          "source_kind": {
+            "type": "string"
+          },
+          "source_ref": {
+            "type": "string"
+          },
+          "source_revision": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "mime_type": {
+            "type": "string"
+          },
+          "content_handle": {
+            "type": "string"
+          },
+          "content_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "scope": {
+            "additionalProperties": false,
+            "properties": {
+              "project_root": {
+                "type": "string"
+              },
+              "continuity_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "project_root",
+              "continuity_id"
+            ],
+            "type": "object"
+          },
+          "provenance": {
+            "additionalProperties": false,
+            "properties": {
+              "connector_id": {
+                "type": "string"
+              },
+              "account_ref": {
+                "type": "string"
+              },
+              "author": {
+                "type": "string"
+              },
+              "source_url": {
+                "type": "string"
+              },
+              "page_or_message_ref": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "connector_id",
+              "account_ref",
+              "author",
+              "source_url",
+              "page_or_message_ref"
+            ],
+            "type": "object"
+          },
+          "classification": {
+            "additionalProperties": false,
+            "properties": {
+              "sensitivity": {
+                "type": "string"
+              },
+              "confidentiality": {
+                "type": "string"
+              },
+              "retention_class": {
+                "type": "string"
+              },
+              "freshness_status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "sensitivity",
+              "confidentiality",
+              "retention_class",
+              "freshness_status"
+            ],
+            "type": "object"
+          },
+          "extraction": {
+            "additionalProperties": false,
+            "properties": {
+              "status": {
+                "type": "string"
+              },
+              "diagnostic_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 32,
+                "type": "array"
+              },
+              "extracted_claim_ids": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 32,
+                "type": "array"
+              },
+              "entity_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 32,
+                "type": "array"
+              },
+              "date_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 32,
+                "type": "array"
+              },
+              "task_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 32,
+                "type": "array"
+              },
+              "contradiction_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 32,
+                "type": "array"
+              }
+            },
+            "required": [
+              "status",
+              "diagnostic_refs",
+              "extracted_claim_ids",
+              "entity_refs",
+              "date_refs",
+              "task_refs",
+              "contradiction_refs"
+            ],
+            "type": "object"
+          },
+          "semantic": {
+            "additionalProperties": false,
+            "properties": {
+              "domain_pack_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 32,
+                "type": "array"
+              },
+              "candidate_object_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 32,
+                "type": "array"
+              },
+              "candidate_link_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 32,
+                "type": "array"
+              },
+              "verification_policy_refs": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 32,
+                "type": "array"
+              }
+            },
+            "required": [
+              "domain_pack_refs",
+              "candidate_object_refs",
+              "candidate_link_refs",
+              "verification_policy_refs"
+            ],
+            "type": "object"
+          },
+          "duplicate_of_artifact_ref": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema",
+          "artifact_id",
+          "source_kind",
+          "source_ref",
+          "source_revision",
+          "title",
+          "mime_type",
+          "content_handle",
+          "content_sha256",
+          "created_at",
+          "observed_at",
+          "scope",
+          "provenance",
+          "classification",
+          "extraction",
+          "semantic"
+        ],
+        "type": "object"
+      },
+      "focusa_context_source_record_v1": {
+        "properties": {
+          "adapter_id": {
+            "type": "string"
+          },
+          "attachment_id": {
+            "type": "string"
+          },
+          "committed_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "content": {
+            "maxLength": 2097152,
+            "type": "string"
+          },
+          "content_hash": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "evidence": {
+            "properties": {
+              "captured_at": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "content_hash": {
+                "type": "string"
+              },
+              "evidence_ref": {
+                "type": "string"
+              },
+              "result": {
+                "type": "string"
+              },
+              "target_ref": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "evidence_ref",
+              "target_ref",
+              "result",
+              "content_hash",
+              "captured_at"
+            ],
+            "type": "object"
+          },
+          "extraction_diagnostics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "health": {
+            "additionalProperties": false,
+            "properties": {
+              "status": {
+                "type": "string"
+              },
+              "adapter_id": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "read_write_posture": {
+                "type": "string"
+              },
+              "oauth_scopes": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 32,
+                "type": "array"
+              },
+              "incremental_sync_method": {
+                "type": "string"
+              },
+              "cursor_state": {
+                "nullable": true,
+                "type": "string"
+              },
+              "rate_limit_posture": {
+                "type": "string"
+              },
+              "revocation_behavior": {
+                "type": "string"
+              },
+              "recovery_action": {
+                "nullable": true,
+                "type": "string"
+              },
+              "last_successful_sync": {
+                "format": "date-time",
+                "nullable": true,
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "adapter_id",
+              "message",
+              "read_write_posture",
+              "oauth_scopes",
+              "incremental_sync_method",
+              "rate_limit_posture",
+              "revocation_behavior"
+            ],
+            "type": "object"
+          },
+          "idempotency_key": {
+            "maxLength": 160,
+            "type": "string"
+          },
+          "ingestion_status": {
+            "type": "string"
+          },
+          "mime_type": {
+            "type": "string"
+          },
+          "project_root": {
+            "type": "string"
+          },
+          "receipt": {
+            "properties": {
+              "after_state_version": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "before_state_version": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "committed_at": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "idempotency_key": {
+                "type": "string"
+              },
+              "operation_id": {
+                "enum": [
+                  "focusa.context.source.commit",
+                  "focusa.context.source.ingest"
+                ]
+              },
+              "receipt_ref": {
+                "type": "string"
+              },
+              "reversible": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "receipt_ref",
+              "operation_id",
+              "idempotency_key",
+              "before_state_version",
+              "after_state_version",
+              "reversible",
+              "committed_at"
+            ],
+            "type": "object"
+          },
+          "revision": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "source_id": {
+            "type": "string"
+          },
+          "source_kind": {
+            "enum": [
+              "markdown",
+              "text",
+              "code",
+              "pdf"
+            ]
+          },
+          "source_locator": {
+            "type": "string"
+          },
+          "source_revision": {
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 240,
+            "type": "string"
+          },
+          "artifact": {
+            "$ref": "#/components/schemas/focusa_project_context_artifact_v1"
+          }
+        },
+        "required": [
+          "source_id",
+          "project_root",
+          "continuity_id",
+          "attachment_id",
+          "source_kind",
+          "title",
+          "content",
+          "content_hash",
+          "idempotency_key",
+          "revision",
+          "committed_at",
+          "evidence",
+          "receipt",
+          "health",
+          "artifact"
+        ],
+        "type": "object"
       }
     }
   },

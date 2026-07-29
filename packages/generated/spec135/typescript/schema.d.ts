@@ -2413,54 +2413,7 @@ export interface components {
             replayed: boolean;
             /** @constant */
             schema: "focusa.context_source_commit_result.v1";
-            source: {
-                adapter_id?: string;
-                attachment_id: string;
-                /** Format: date-time */
-                committed_at: string;
-                content: string;
-                content_hash: string;
-                continuity_id: string;
-                evidence: {
-                    /** Format: date-time */
-                    captured_at: string;
-                    content_hash: string;
-                    evidence_ref: string;
-                    result: string;
-                    target_ref: string;
-                };
-                extraction_diagnostics?: string[];
-                health?: {
-                    adapter_id: string;
-                    /** Format: date-time */
-                    last_successful_sync?: string;
-                    message: string;
-                    recovery_action?: string;
-                    status: string;
-                };
-                idempotency_key: string;
-                ingestion_status?: string;
-                mime_type?: string;
-                project_root: string;
-                receipt: {
-                    after_state_version: number;
-                    before_state_version: number;
-                    /** Format: date-time */
-                    committed_at: string;
-                    idempotency_key: string;
-                    /** @enum {unknown} */
-                    operation_id: "focusa.context.source.commit" | "focusa.context.source.ingest";
-                    receipt_ref: string;
-                    reversible: boolean;
-                };
-                revision: number;
-                source_id: string;
-                /** @enum {unknown} */
-                source_kind: "markdown" | "text" | "code" | "pdf";
-                source_locator?: string;
-                source_revision?: string;
-                title: string;
-            };
+            source: components["schemas"]["focusa_context_source_record_v1"];
             state_version: number;
             tool_result: Record<string, never>;
         };
@@ -2475,10 +2428,26 @@ export interface components {
             mime_type: string;
             project_root: string;
             /** @enum {unknown} */
-            source_kind: "markdown" | "code" | "pdf";
+            source_kind: "markdown" | "code" | "pdf" | "file" | "web" | "research" | "connected" | "focusa_native";
             source_locator: string;
             source_revision: string;
             title: string;
+            connector_id?: string;
+            account_ref?: string;
+            author?: string;
+            source_url?: string;
+            page_or_message_ref?: string;
+            sensitivity?: string;
+            confidentiality?: string;
+            retention_class?: string;
+            freshness_status?: string;
+            sync_cursor?: string;
+            incremental_sync_method?: string;
+            rate_limit_posture?: string;
+            recovery_action?: string;
+            domain_pack_refs?: string[];
+            verification_policy_refs?: string[];
+            oauth_scopes?: string[];
         };
         /** focusa.context_source_ingest_result.v1 */
         focusa_context_source_ingest_result_v1: {
@@ -2489,54 +2458,7 @@ export interface components {
             replayed: boolean;
             /** @constant */
             schema: "focusa.context_source_ingest_result.v1";
-            source: {
-                adapter_id?: string;
-                attachment_id: string;
-                /** Format: date-time */
-                committed_at: string;
-                content: string;
-                content_hash: string;
-                continuity_id: string;
-                evidence: {
-                    /** Format: date-time */
-                    captured_at: string;
-                    content_hash: string;
-                    evidence_ref: string;
-                    result: string;
-                    target_ref: string;
-                };
-                extraction_diagnostics?: string[];
-                health?: {
-                    adapter_id: string;
-                    /** Format: date-time */
-                    last_successful_sync?: string;
-                    message: string;
-                    recovery_action?: string;
-                    status: string;
-                };
-                idempotency_key: string;
-                ingestion_status?: string;
-                mime_type?: string;
-                project_root: string;
-                receipt: {
-                    after_state_version: number;
-                    before_state_version: number;
-                    /** Format: date-time */
-                    committed_at: string;
-                    idempotency_key: string;
-                    /** @enum {unknown} */
-                    operation_id: "focusa.context.source.commit" | "focusa.context.source.ingest";
-                    receipt_ref: string;
-                    reversible: boolean;
-                };
-                revision: number;
-                source_id: string;
-                /** @enum {unknown} */
-                source_kind: "markdown" | "text" | "code" | "pdf";
-                source_locator?: string;
-                source_revision?: string;
-                title: string;
-            };
+            source: components["schemas"]["focusa_context_source_record_v1"];
             state_version: number;
             tool_result: Record<string, never>;
         };
@@ -2552,54 +2474,7 @@ export interface components {
             canonical: true;
             /** @constant */
             schema: "focusa.context_source_list.v1";
-            sources: {
-                adapter_id?: string;
-                attachment_id: string;
-                /** Format: date-time */
-                committed_at: string;
-                content: string;
-                content_hash: string;
-                continuity_id: string;
-                evidence: {
-                    /** Format: date-time */
-                    captured_at: string;
-                    content_hash: string;
-                    evidence_ref: string;
-                    result: string;
-                    target_ref: string;
-                };
-                extraction_diagnostics?: string[];
-                health?: {
-                    adapter_id: string;
-                    /** Format: date-time */
-                    last_successful_sync?: string;
-                    message: string;
-                    recovery_action?: string;
-                    status: string;
-                };
-                idempotency_key: string;
-                ingestion_status?: string;
-                mime_type?: string;
-                project_root: string;
-                receipt: {
-                    after_state_version: number;
-                    before_state_version: number;
-                    /** Format: date-time */
-                    committed_at: string;
-                    idempotency_key: string;
-                    /** @enum {unknown} */
-                    operation_id: "focusa.context.source.commit" | "focusa.context.source.ingest";
-                    receipt_ref: string;
-                    reversible: boolean;
-                };
-                revision: number;
-                source_id: string;
-                /** @enum {unknown} */
-                source_kind: "markdown" | "text" | "code" | "pdf";
-                source_locator?: string;
-                source_revision?: string;
-                title: string;
-            }[];
+            sources: components["schemas"]["focusa_context_source_record_v1"][];
             state_version: number;
         };
         /**
@@ -5350,6 +5225,110 @@ export interface components {
             next_action?: string;
         } & {
             [key: string]: unknown;
+        };
+        focusa_project_context_artifact_v1: {
+            /** @constant */
+            schema: "focusa.project_context_artifact.v1";
+            artifact_id: string;
+            source_kind: string;
+            source_ref: string;
+            source_revision: string;
+            title: string;
+            mime_type: string;
+            content_handle: string;
+            content_sha256: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            observed_at: string;
+            scope: {
+                project_root: string;
+                continuity_id: string;
+            };
+            provenance: {
+                connector_id: string;
+                account_ref: string;
+                author: string;
+                source_url: string;
+                page_or_message_ref: string;
+            };
+            classification: {
+                sensitivity: string;
+                confidentiality: string;
+                retention_class: string;
+                freshness_status: string;
+            };
+            extraction: {
+                status: string;
+                diagnostic_refs: string[];
+                extracted_claim_ids: string[];
+                entity_refs: string[];
+                date_refs: string[];
+                task_refs: string[];
+                contradiction_refs: string[];
+            };
+            semantic: {
+                domain_pack_refs: string[];
+                candidate_object_refs: string[];
+                candidate_link_refs: string[];
+                verification_policy_refs: string[];
+            };
+            duplicate_of_artifact_ref?: string | null;
+        };
+        focusa_context_source_record_v1: {
+            adapter_id?: string;
+            attachment_id: string;
+            /** Format: date-time */
+            committed_at: string;
+            content: string;
+            content_hash: string;
+            continuity_id: string;
+            evidence: {
+                /** Format: date-time */
+                captured_at: string;
+                content_hash: string;
+                evidence_ref: string;
+                result: string;
+                target_ref: string;
+            };
+            extraction_diagnostics?: string[];
+            health: {
+                status: string;
+                adapter_id: string;
+                message: string;
+                read_write_posture: string;
+                oauth_scopes: string[];
+                incremental_sync_method: string;
+                cursor_state?: string | null;
+                rate_limit_posture: string;
+                revocation_behavior: string;
+                recovery_action?: string | null;
+                /** Format: date-time */
+                last_successful_sync?: string | null;
+            };
+            idempotency_key: string;
+            ingestion_status?: string;
+            mime_type?: string;
+            project_root: string;
+            receipt: {
+                after_state_version: number;
+                before_state_version: number;
+                /** Format: date-time */
+                committed_at: string;
+                idempotency_key: string;
+                /** @enum {unknown} */
+                operation_id: "focusa.context.source.commit" | "focusa.context.source.ingest";
+                receipt_ref: string;
+                reversible: boolean;
+            };
+            revision: number;
+            source_id: string;
+            /** @enum {unknown} */
+            source_kind: "markdown" | "text" | "code" | "pdf";
+            source_locator?: string;
+            source_revision?: string;
+            title: string;
+            artifact: components["schemas"]["focusa_project_context_artifact_v1"];
         };
     };
     responses: never;
