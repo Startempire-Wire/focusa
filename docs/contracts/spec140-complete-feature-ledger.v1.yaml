@@ -988,8 +988,17 @@ requirements:
   - s140_phase5_enforcement
   - s140_phase6_ui_evaluation
   positive_tests:
+  - agent_runtime_constitution_migration_test::migration_inventory_is_complete_deterministic_and_zero_hidden_change
+  - agent_runtime_tests::migration_preview_is_zero_hidden_change_and_non_mutating
   - s140_migration_compatibility
-  status: not_started
+  status: verified
+  negative_tests:
+  - agent_runtime_constitution_migration_test::unresolved_conflict_and_manual_mapping_block_delivery
+  - agent_runtime_constitution_migration_test::verification_rejects_unmapped_source
+  evidence_refs:
+  - test:/tmp/lock-spec140-migration-tests.txt
+  - test:/tmp/lock-spec140-migration-api-tests.txt
+  - test:/tmp/lock-spec140-migration-cli-tests.txt
 - requirement_id: S140-REQ-038
   spec_section: 34-35
   requirement_text: Pass the full discovery, authority, prompt, AGENTS, cross-harness, skill/tool, C.R.I.S.T., evaluation,

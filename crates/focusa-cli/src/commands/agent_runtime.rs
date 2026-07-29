@@ -15,6 +15,8 @@ pub enum AgentRuntimeCmd {
     Simulate(SimulateArgs),
     Effective(ProjectArgs),
     Drift(ProjectArgs),
+    /// Preview zero-hidden-change instruction migration and quarantine.
+    Migration(ProjectArgs),
     #[command(subcommand)]
     Constitution(ConstitutionCmd),
     #[command(subcommand)]
@@ -128,6 +130,10 @@ pub async fn run(command: AgentRuntimeCmd, output_json: bool) -> anyhow::Result<
         }
         AgentRuntimeCmd::Effective(args) => api.get(&project_query("effective", &args)?).await?,
         AgentRuntimeCmd::Drift(args) => api.get(&project_query("drift", &args)?).await?,
+        AgentRuntimeCmd::Migration(args) => {
+            api.post("/v1/agent-runtime/migration/preview", &project_body(&args)?)
+                .await?
+        }
         AgentRuntimeCmd::Constitution(command) => run_constitution(&api, command).await?,
         AgentRuntimeCmd::Prompt(command) => run_prompt(&api, command).await?,
         AgentRuntimeCmd::Artifacts(command) => run_artifacts(&api, command).await?,

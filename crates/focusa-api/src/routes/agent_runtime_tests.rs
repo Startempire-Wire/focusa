@@ -48,6 +48,15 @@ fn mutations_are_permission_confirmation_receipt_and_idempotency_gated() {
 }
 
 #[test]
+fn migration_preview_is_zero_hidden_change_and_non_mutating() {
+    let migration = include_str!("agent_runtime_migration.rs");
+    assert!(migration.contains("/v1/agent-runtime/migration/preview"));
+    assert!(migration.contains("verify_migration_plan"));
+    assert!(migration.contains("\"committed\":false"));
+    assert!(migration.contains("\"hidden_behavior_changes\":false"));
+}
+
+#[test]
 fn runtime_studio_exposes_every_spec140_workbench() {
     let studio = include_str!("agent_runtime_studio.rs");
     assert!(studio.contains("/v1/agent-runtime/studio"));
