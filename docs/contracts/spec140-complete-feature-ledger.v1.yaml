@@ -130,7 +130,15 @@ requirements:
   security_tests:
   - s140_unapproved_context_excluded
   - s140_raw_document_instruction_blocked
-  status: not_started
+  status: verified
+  positive_tests:
+  - agent_runtime_constitution_authority_test::bounded_paths_reject_escape_and_denied_paths
+  - agent_runtime_constitution_authority_test::higher_authority_wins_without_last_write_inference
+  negative_tests:
+  - agent_runtime_constitution_authority_test::equal_authority_requires_operator_resolution
+  - agent_runtime_constitution_authority_test::untrusted_injection_is_quarantined
+  evidence_refs:
+  - test:/tmp/lock-spec140-authority-tests.txt
 - requirement_id: S140-REQ-006
   spec_section: '5'
   requirement_text: Compose the Runtime Constitution from Constitutional Kernel, approved role/mission, Operating Contract,
@@ -227,7 +235,15 @@ requirements:
   - InstructionOverlay
   security_tests:
   - s140_machine_overlay_not_committed
-  status: not_started
+  status: verified
+  positive_tests:
+  - agent_runtime_constitution_authority_test::bounded_paths_reject_escape_and_denied_paths
+  - agent_runtime_constitution_authority_test::higher_authority_wins_without_last_write_inference
+  negative_tests:
+  - agent_runtime_constitution_authority_test::equal_authority_requires_operator_resolution
+  - agent_runtime_constitution_authority_test::untrusted_injection_is_quarantined
+  evidence_refs:
+  - test:/tmp/lock-spec140-authority-tests.txt
 - requirement_id: S140-REQ-010
   spec_section: '7.4'
   requirement_text: Classify every source by authority, enforcement, trust, freshness, scope, target, task, environment, and
@@ -243,8 +259,15 @@ requirements:
   - InstructionTrustClass
   - InstructionFreshness
   positive_tests:
+  - agent_runtime_constitution_authority_test::bounded_paths_reject_escape_and_denied_paths
+  - agent_runtime_constitution_authority_test::higher_authority_wins_without_last_write_inference
   - s140_source_classification
-  status: not_started
+  status: verified
+  negative_tests:
+  - agent_runtime_constitution_authority_test::equal_authority_requires_operator_resolution
+  - agent_runtime_constitution_authority_test::untrusted_injection_is_quarantined
+  evidence_refs:
+  - test:/tmp/lock-spec140-authority-tests.txt
 - requirement_id: S140-REQ-011
   spec_section: '8'
   requirement_text: Parse source content into atomic typed InstructionClaims with subject, action, object, modality, conditions,
@@ -282,10 +305,16 @@ requirements:
   - InstructionAuthorityGraph
   - InstructionApplicability
   positive_tests:
+  - agent_runtime_constitution_authority_test::bounded_paths_reject_escape_and_denied_paths
+  - agent_runtime_constitution_authority_test::higher_authority_wins_without_last_write_inference
   - s140_precedence_and_specialization
   negative_tests:
+  - agent_runtime_constitution_authority_test::equal_authority_requires_operator_resolution
+  - agent_runtime_constitution_authority_test::untrusted_injection_is_quarantined
   - s140_nested_rule_weakens_hard_prohibition
-  status: not_started
+  status: verified
+  evidence_refs:
+  - test:/tmp/lock-spec140-authority-tests.txt
 - requirement_id: S140-REQ-013
   spec_section: 9.4-9.5
   requirement_text: Create durable InstructionConflict records and operator-governed resolution dispositions.
@@ -327,10 +356,17 @@ requirements:
   - InstructionSmell
   - InstructionAnalysisFinding
   positive_tests:
+  - agent_runtime_constitution_authority_test::bounded_paths_reject_escape_and_denied_paths
+  - agent_runtime_constitution_authority_test::higher_authority_wins_without_last_write_inference
   - s140_instruction_smell_matrix
   security_tests:
   - s140_instruction_injection_detection
-  status: not_started
+  status: verified
+  negative_tests:
+  - agent_runtime_constitution_authority_test::equal_authority_requires_operator_resolution
+  - agent_runtime_constitution_authority_test::untrusted_injection_is_quarantined
+  evidence_refs:
+  - test:/tmp/lock-spec140-authority-tests.txt
 - requirement_id: S140-REQ-015
   spec_section: '11'
   requirement_text: Represent project-specific procedural rules in AgentOperatingContract instead of mutating the declarative

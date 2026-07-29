@@ -26,6 +26,9 @@
 
 pub mod adapters;
 pub mod agent_runtime_constitution;
+pub mod agent_runtime_constitution_authority;
+#[cfg(test)]
+mod agent_runtime_constitution_authority_test;
 pub mod agent_runtime_constitution_store;
 #[cfg(test)]
 mod agent_runtime_constitution_store_test;
