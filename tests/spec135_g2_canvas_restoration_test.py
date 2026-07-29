@@ -3,10 +3,10 @@
 import json
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-S=json.loads((ROOT/"docs/contracts/spec135/generated-contract-v1/json-schema/focusa.mission_canvas_state.v1.json").read_text())
+S=json.loads((ROOT/"docs/contracts/spec135/generated-contract-v1/json-schema/focusa.mission_canvas_layout_state.v1.json").read_text())
 C=json.loads((ROOT/"docs/contracts/spec135-canvas-layout-restoration.v1.json").read_text())
 T=(ROOT/"crates/focusa-core/src/types.rs").read_text()
-assert S["title"] == "Focusa Mission Canvas State v1"
+assert S["title"] == "Focusa Mission Canvas Layout State v1"
 assert C["acceptance_criteria"] == "Layout restores after restart without mutating canonical project state."
 for group in ("open_focus","split_group","filters","revision"):
     assert C["restoration_groups"][group]

@@ -1,27 +1,29 @@
 {
+  "$id": "/v1/agent/schemas/focusa.workspace_event.v1",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://docs.startempire.ai/focusa/spec135/focusa.workspace_event.v1.json",
-  "title": "Focusa Workspace Invalidation Event v1",
-  "type": "object",
-  "required": [
-    "schema",
-    "event",
-    "event_id",
-    "cursor",
-    "project_root",
-    "continuity_id",
-    "session_id",
-    "attachment_id",
-    "invalidate"
-  ],
+  "additionalProperties": false,
+  "description": "Bounded ref-only Mission Canvas projection invalidation; never semantic authority",
   "properties": {
-    "schema": {
-      "const": "focusa.workspace_event.v1"
+    "artifact_id": {
+      "type": "string"
+    },
+    "artifact_kind": {
+      "type": "string"
+    },
+    "attachment_id": {
+      "type": "string"
+    },
+    "browser_context_id": {
+      "type": "string"
+    },
+    "browser_target_id": {
+      "type": "string"
+    },
+    "continuity_id": {
+      "type": "string"
     },
     "event": {
-      "type": "string",
       "enum": [
-        "workspace_artifact_added",
         "uiai_session_opened",
         "uiai_session_status_changed",
         "uiai_fpv_share_created",
@@ -41,44 +43,63 @@
         "workspace_artifact_render_failed"
       ]
     },
-    "event_id": {
-      "type": "string",
-      "minLength": 1
+    "instance_id": {
+      "type": "string"
     },
-    "cursor": {
-      "type": "string",
-      "minLength": 1
+    "invalidate": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 16,
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "payload_ref": {
+      "type": "string"
     },
     "project_root": {
-      "type": "string",
-      "minLength": 1
+      "type": "string"
     },
-    "continuity_id": {
-      "type": "string",
-      "minLength": 1
+    "schema": {
+      "const": "focusa.workspace_event.v1"
+    },
+    "semantic_authority": {
+      "const": false
     },
     "session_id": {
-      "type": "string",
-      "minLength": 1
+      "type": "string"
     },
-    "attachment_id": {
-      "type": "string",
-      "minLength": 1
+    "source_state_revision": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "uiai_session_id": {
+      "type": "string"
     },
     "work_surface_id": {
       "type": "string"
     },
-    "artifact_id": {
+    "workpoint_id": {
       "type": "string"
-    },
-    "invalidate": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "string",
-        "pattern": "^(mission_canvas|workspace|workpoint|context|connectors)\\."
-      }
     }
   },
-  "additionalProperties": false
+  "required": [
+    "schema",
+    "event",
+    "project_root",
+    "continuity_id",
+    "instance_id",
+    "attachment_id",
+    "artifact_id",
+    "artifact_kind",
+    "source_state_revision",
+    "payload_ref",
+    "invalidate",
+    "semantic_authority"
+  ],
+  "title": "Focusa Workspace Invalidation Event v1",
+  "type": "object",
+  "x-focusa-generated-from": "WorkspaceEventRecord",
+  "x-focusa-schema-id": "focusa.workspace_event.v1"
 }

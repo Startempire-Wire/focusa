@@ -151,6 +151,8 @@ run_gate python3 scripts/generate-spec135-alpha5-8-proof.py
 run_gate python3 ./tests/spec135_h2_alpha5_8_test.py
 run_gate python3 scripts/generate-spec135-e1-closure.py
 run_gate python3 ./tests/spec135_e1_cross_spec_closure_test.py
+run_gate python3 scripts/generate-spec135-master-acceptance.py
+run_gate python3 ./tests/spec135_z1_master_acceptance_test.py
 run_gate python3 scripts/generate-spec135-interaction-mode-proof.py
 run_gate python3 ./tests/spec135_k1_interaction_mode_test.py
 run_gate python3 scripts/generate-spec135-friction-capture.py

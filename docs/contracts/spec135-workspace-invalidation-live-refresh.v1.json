@@ -19,7 +19,6 @@
     "Disconnect shows stale state until cursor replay reaches live"
   ],
   "event_types": [
-    "workspace_artifact_added",
     "uiai_session_opened",
     "uiai_session_status_changed",
     "uiai_fpv_share_created",

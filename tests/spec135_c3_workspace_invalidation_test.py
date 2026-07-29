@@ -8,7 +8,7 @@ CONTRACT = json.loads((ROOT / "docs/contracts/spec135-workspace-invalidation-liv
 ROUTER = (ROOT / "apps/pi-extension/src/workspace-invalidation.ts").read_text()
 SESSION = (ROOT / "apps/pi-extension/src/session.ts").read_text()
 assert SCHEMA["title"] == "Focusa Workspace Invalidation Event v1"
-for field in ("cursor", "project_root", "continuity_id", "session_id", "attachment_id", "invalidate"):
+for field in ("project_root", "continuity_id", "instance_id", "attachment_id", "invalidate", "semantic_authority"):
     assert field in SCHEMA["required"], field
 assert CONTRACT["primary_transport"] == "Focusa SSE"
 assert "bounded polling" in CONTRACT["fallback_transport"]

@@ -1,0 +1,79 @@
+{
+  "schema": "focusa.spec135.master_final_acceptance.v1",
+  "acceptance_criteria": "All 135\u2013135K Beads close from runtime evidence, completion gate passes 12/12, CI passes, and PR is merge-ready.",
+  "gate_count": 12,
+  "checks": [
+    {
+      "check_id": "install_to_first_workpoint",
+      "evidence_ref": "docs/contracts/spec135-first-workpoint-integration.v1.json",
+      "status": "passed"
+    },
+    {
+      "check_id": "client_parity",
+      "evidence_ref": "docs/contracts/spec135-client-operation-parity.v1.json",
+      "status": "passed"
+    },
+    {
+      "check_id": "security_scope",
+      "evidence_ref": "docs/contracts/spec135-q2-security-privacy-gates.v1.yaml",
+      "status": "passed"
+    },
+    {
+      "check_id": "performance",
+      "evidence_ref": "docs/contracts/spec135-q3-performance-budgets.v1.yaml",
+      "status": "passed"
+    },
+    {
+      "check_id": "recovery",
+      "evidence_ref": "docs/contracts/spec135-reconnect-replay-recovery.v1.json",
+      "status": "passed"
+    },
+    {
+      "check_id": "dogfood",
+      "evidence_ref": "docs/contracts/spec135-alpha5-8-production-proof.v1.json",
+      "status": "passed"
+    },
+    {
+      "check_id": "issue_53",
+      "evidence_ref": "docs/contracts/spec135-interaction-mode-toggle.v1.json",
+      "status": "passed"
+    },
+    {
+      "check_id": "alpha_1_4",
+      "evidence_ref": "docs/contracts/spec135-alpha1-4-production-proof.v1.json",
+      "status": "passed"
+    },
+    {
+      "check_id": "multiplexing",
+      "evidence_ref": "docs/contracts/spec135-multiplexing-concurrency-proof.v1.json",
+      "status": "passed"
+    },
+    {
+      "check_id": "generated_contracts",
+      "evidence_ref": "docs/contracts/spec135/generated-contract-v1/operation-registry.json",
+      "status": "passed"
+    },
+    {
+      "check_id": "cross_spec_migration",
+      "evidence_ref": "docs/contracts/spec135-cross-spec-closure.v1.json",
+      "status": "passed"
+    },
+    {
+      "check_id": "clean_pr_lineage",
+      "evidence_ref": "docs/contracts/spec135/generated-contract-v1/spec135-z3-worktree-lineage-proof.json",
+      "status": "passed"
+    }
+  ],
+  "passed_count": 12,
+  "beads_closure_authority": "runtime evidence maps to provider items; provider JSONL remains provider-owned and is not hand-edited",
+  "branch_policy": "feature branch + PR only; never direct commit to main",
+  "go_sdk": "excluded; Pi TUI uses TypeScript",
+  "merge_ready_conditions": [
+    "12/12 evidence gate",
+    "strict CI pass",
+    "generated contracts converge",
+    "worktree clean after final commit",
+    "feature branch pushed",
+    "PR checks green and mergeable"
+  ]
+}
