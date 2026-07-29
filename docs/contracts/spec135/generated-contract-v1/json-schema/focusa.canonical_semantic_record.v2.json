@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docs.startempire.ai/focusa/spec135/focusa.canonical_semantic_record.v2.json",
+  "title": "Focusa Canonical Semantic Record v2",
+  "description": "Canonical semantic record. Separate store from candidate; promotion requires verification record.",
+  "type": "object",
+  "required": [
+    "schema",
+    "semantic_id",
+    "definition_id",
+    "domain_pack_id",
+    "revision",
+    "status",
+    "promotion_record_ref",
+    "verification_record_refs",
+    "provenance_refs",
+    "scope",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "schema": {
+      "const": "focusa.canonical_semantic_record.v2"
+    },
+    "semantic_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "definition_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "domain_pack_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "payload": {},
+    "status": {
+      "type": "string"
+    },
+    "identity_resolution_ref": {
+      "type": "string"
+    },
+    "promotion_record_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "verification_record_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "provenance_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "scope": {
+      "type": "object",
+      "required": [
+        "project_root",
+        "continuity_id"
+      ],
+      "properties": {
+        "project_root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "continuity_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "workpoint_id": {
+          "type": "string"
+        }
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "updated_at": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "additionalProperties": false
+}

@@ -110,6 +110,8 @@ run_gate python3 ./tests/spec135_c2_research_bridge_test.py
 run_gate npm --prefix ./apps/pi-extension run test:research-bridge
 run_gate python3 scripts/generate-spec135-ontology-registry.py
 run_gate python3 ./tests/spec135_f1_ontology_registry_test.py
+run_gate python3 scripts/generate-spec135-semantic-graph-contract.py
+run_gate python3 ./tests/spec135_f2_semantic_graph_test.py
 run_gate python3 ./tests/spec135_m4_surface_bindings_static_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_m4_surface_bindings_e2e_test.py
 run_gate python3 ./tests/spec135_m5_browser_context_isolation_test.py

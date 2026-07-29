@@ -1,0 +1,36 @@
+{
+  "schema": "focusa.spec135.semantic_graph_provenance.v1",
+  "spec_ref": "docs/135f-domain-general-ontology-core-semantic-graph-domain-packs-and-reactive-context-spec.md",
+  "acceptance_criteria": "Graph queries return evidence-backed results and preserve exact source/session/project identity.",
+  "structural_separation": "Candidate and canonical records use separate stores and indexes. A status field alone is insufficient separation.",
+  "semantic_kinds": [
+    "object",
+    "link",
+    "status_change",
+    "membership",
+    "action_result",
+    "identity_resolution"
+  ],
+  "provenance_invariants": [
+    "Every candidate and canonical record carries source_ref and provenance_refs",
+    "Graph queries preserve exact source/session/project identity",
+    "Contradiction records link contradicting claims with evidence",
+    "Confidence is 0.0-1.0 per candidate",
+    "Freshness is explicit and may expire",
+    "Provenance and identity are preserved through projection, never guessed"
+  ],
+  "traversal_bounds": {
+    "depth": true,
+    "node": true,
+    "edge": true,
+    "time": true,
+    "token": true
+  },
+  "contradiction": {
+    "link_type": "focusa.core/contradicts@1",
+    "requires_evidence": true,
+    "preserves_both_claims": true
+  },
+  "candidate_schema_ref": "docs/contracts/spec135/generated-contract-v1/json-schema/focusa.semantic_candidate.v2.json",
+  "canonical_schema_ref": "docs/contracts/spec135/generated-contract-v1/json-schema/focusa.canonical_semantic_record.v2.json"
+}
