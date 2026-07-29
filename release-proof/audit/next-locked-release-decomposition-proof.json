@@ -1,0 +1,17 @@
+{
+  "schema": "focusa.locked_release_decomposition_audit.v1",
+  "status": "verified",
+  "original_locked_issues": 38,
+  "spec137_requirements": 86,
+  "spec138_requirements": 542,
+  "spec140_requirements": 38,
+  "addendum_leaf_beads": 15,
+  "unmapped": 0,
+  "dependency_cycles": 0,
+  "bead_resolution_proof": "229/229 mapped refs resolved",
+  "evidence_refs": [
+    "release-proof/audit/next-locked-release-scope.json",
+    "release-proof/audit/next-locked-release-decomposition.json",
+    "bead:focusa-vbcqu.9"
+  ]
+}

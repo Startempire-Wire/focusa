@@ -1,0 +1,3936 @@
+{
+  "schema": "focusa.locked_release_decomposition.v1",
+  "generated_at": "2026-07-29T16:10:05.921430+00:00",
+  "scope_manifest_ref": "release-proof/audit/next-locked-release-scope.json",
+  "decomposition_epic": "focusa-vbcqu.9",
+  "original_locked_issues": [
+    {
+      "locked_issue_id": "focusa-vbcqu.4.4",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-vbcqu.4.4"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-vbcqu.8.3",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-vbcqu.8.3"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-vbcqu.8.2",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-vbcqu.8.2"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-vbcqu.8.1",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-vbcqu.8.1"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-vbcqu.5.4",
+      "issue_type": "bug",
+      "decomposition_leaf_refs": [
+        "focusa-vbcqu.5.4"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-vbcqu.4.3",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-vbcqu.4.3"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-vbcqu.8",
+      "issue_type": "epic",
+      "decomposition_leaf_refs": [
+        "focusa-vbcqu.8.3",
+        "focusa-vbcqu.8.2",
+        "focusa-vbcqu.8.1"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-vbcqu.7",
+      "issue_type": "epic",
+      "decomposition_leaf_refs": [
+        "focusa-vbcqu.7.5",
+        "focusa-vbcqu.7.4",
+        "focusa-vbcqu.7.3",
+        "focusa-vbcqu.7.2",
+        "focusa-vbcqu.7.1"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-vbcqu.6",
+      "issue_type": "epic",
+      "decomposition_leaf_refs": [
+        "focusa-vbcqu.6.3",
+        "focusa-vbcqu.6.2",
+        "focusa-vbcqu.6.1"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-vbcqu.5",
+      "issue_type": "epic",
+      "decomposition_leaf_refs": [
+        "focusa-vbcqu.5.6",
+        "focusa-vbcqu.5.5",
+        "focusa-vbcqu.5.4",
+        "focusa-vbcqu.5.3",
+        "focusa-vbcqu.5.2",
+        "focusa-vbcqu.5.1"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-vbcqu.4",
+      "issue_type": "epic",
+      "decomposition_leaf_refs": [
+        "focusa-vbcqu.4.4",
+        "focusa-vbcqu.4.3",
+        "focusa-vbcqu.4.2",
+        "focusa-vbcqu.4.1"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-vbcqu.3",
+      "issue_type": "epic",
+      "decomposition_leaf_refs": [
+        "focusa-vbcqu.3.3",
+        "focusa-vbcqu.3.2",
+        "focusa-vbcqu.3.1"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-vbcqu.2",
+      "issue_type": "epic",
+      "decomposition_leaf_refs": [
+        "focusa-vbcqu.2.3",
+        "focusa-vbcqu.2.2",
+        "focusa-vbcqu.2.1"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-vbcqu",
+      "issue_type": "epic",
+      "decomposition_leaf_refs": [
+        "focusa-vbcqu.9",
+        "focusa-vbcqu.8",
+        "focusa-vbcqu.7",
+        "focusa-vbcqu.6",
+        "focusa-vbcqu.5",
+        "focusa-vbcqu.4",
+        "focusa-vbcqu.3",
+        "focusa-vbcqu.2",
+        "focusa-vbcqu.1"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-w26jj.9.7.4",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-w26jj.9.7.4"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-w26jj.9.7.3",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-w26jj.9.7.3"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-w26jj.9.7.2",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-w26jj.9.7.2"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-w26jj.9.7.1",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-w26jj.9.7.1"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-w26jj.9.6.5",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-w26jj.9.6.5"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-w26jj.9.6.4",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-w26jj.9.6.4"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-w26jj.9.6.3",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-w26jj.9.6.3"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-w26jj.9.6.2",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-w26jj.9.6.2"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-w26jj.9.6.1",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-w26jj.9.6.1"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-w26jj.9.4.6",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-w26jj.9.4.6"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-w26jj.9.3.5",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-w26jj.9.3.5"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-ux2qx.17",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-ux2qx.17"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-a6yq6.10.9",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-a6yq6.10.9"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-a6yq6.10.8",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-a6yq6.10.8"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-a6yq6.10.7",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-a6yq6.10.7"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-a6yq6.10.5",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-a6yq6.10.5"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-a6yq6.10.4",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-a6yq6.10.4"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-58wee",
+      "issue_type": "bug",
+      "decomposition_leaf_refs": [
+        "focusa-58wee"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-8305",
+      "issue_type": "bug",
+      "decomposition_leaf_refs": [
+        "focusa-8305"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-vfsrg",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-vfsrg"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-n68k",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-n68k.63",
+        "focusa-n68k.62",
+        "focusa-n68k.61",
+        "focusa-n68k.60",
+        "focusa-n68k.59",
+        "focusa-n68k.58",
+        "focusa-n68k.57",
+        "focusa-n68k.56",
+        "focusa-n68k.55",
+        "focusa-n68k.54",
+        "focusa-n68k.53",
+        "focusa-n68k.52",
+        "focusa-n68k.51",
+        "focusa-n68k.50",
+        "focusa-n68k.49",
+        "focusa-n68k.48",
+        "focusa-n68k.47",
+        "focusa-n68k.46",
+        "focusa-n68k.45",
+        "focusa-n68k.44",
+        "focusa-n68k.43",
+        "focusa-n68k.42",
+        "focusa-n68k.41",
+        "focusa-n68k.40",
+        "focusa-n68k.39",
+        "focusa-n68k.38",
+        "focusa-n68k.37",
+        "focusa-n68k.36",
+        "focusa-n68k.35",
+        "focusa-n68k.34",
+        "focusa-n68k.33",
+        "focusa-n68k.32",
+        "focusa-n68k.31",
+        "focusa-n68k.30",
+        "focusa-n68k.29",
+        "focusa-n68k.28",
+        "focusa-n68k.27",
+        "focusa-n68k.26",
+        "focusa-n68k.25",
+        "focusa-n68k.24",
+        "focusa-n68k.23",
+        "focusa-n68k.22",
+        "focusa-n68k.21",
+        "focusa-n68k.20",
+        "focusa-n68k.19",
+        "focusa-n68k.18",
+        "focusa-n68k.17",
+        "focusa-n68k.16",
+        "focusa-n68k.15",
+        "focusa-n68k.14",
+        "focusa-n68k.13",
+        "focusa-n68k.12",
+        "focusa-n68k.11",
+        "focusa-n68k.10",
+        "focusa-n68k.9",
+        "focusa-n68k.7",
+        "focusa-n68k.5",
+        "focusa-n68k.2",
+        "focusa-n68k.1"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-pskm",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-pskm"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-nodn",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-nodn.54",
+        "focusa-nodn.53",
+        "focusa-nodn.52",
+        "focusa-nodn.51",
+        "focusa-nodn.50",
+        "focusa-nodn.49",
+        "focusa-nodn.48",
+        "focusa-nodn.47",
+        "focusa-nodn.46",
+        "focusa-nodn.45",
+        "focusa-nodn.44",
+        "focusa-nodn.43",
+        "focusa-nodn.42",
+        "focusa-nodn.41",
+        "focusa-nodn.40",
+        "focusa-nodn.39",
+        "focusa-nodn.38",
+        "focusa-nodn.37",
+        "focusa-nodn.36",
+        "focusa-nodn.35",
+        "focusa-nodn.34",
+        "focusa-nodn.33",
+        "focusa-nodn.32",
+        "focusa-nodn.31",
+        "focusa-nodn.30",
+        "focusa-nodn.29",
+        "focusa-nodn.28",
+        "focusa-nodn.27",
+        "focusa-nodn.26",
+        "focusa-nodn.25",
+        "focusa-nodn.24",
+        "focusa-nodn.23",
+        "focusa-nodn.22",
+        "focusa-nodn.21",
+        "focusa-nodn.20",
+        "focusa-nodn.19",
+        "focusa-nodn.18",
+        "focusa-nodn.17",
+        "focusa-nodn.16",
+        "focusa-nodn.15",
+        "focusa-nodn.14",
+        "focusa-nodn.13",
+        "focusa-nodn.12",
+        "focusa-nodn.11",
+        "focusa-nodn.10",
+        "focusa-nodn.9",
+        "focusa-nodn.8",
+        "focusa-nodn.7",
+        "focusa-nodn.6",
+        "focusa-nodn.5",
+        "focusa-nodn.4",
+        "focusa-nodn.3",
+        "focusa-nodn.2",
+        "focusa-nodn.1"
+      ]
+    },
+    {
+      "locked_issue_id": "focusa-84px",
+      "issue_type": "task",
+      "decomposition_leaf_refs": [
+        "focusa-84px.27",
+        "focusa-84px.26",
+        "focusa-84px.25",
+        "focusa-84px.24",
+        "focusa-84px.23",
+        "focusa-84px.22",
+        "focusa-84px.21",
+        "focusa-84px.20",
+        "focusa-84px.19",
+        "focusa-84px.18",
+        "focusa-84px.17",
+        "focusa-84px.16",
+        "focusa-84px.15",
+        "focusa-84px.14",
+        "focusa-84px.13",
+        "focusa-84px.12",
+        "focusa-84px.11",
+        "focusa-84px.10",
+        "focusa-84px.2",
+        "focusa-84px.1"
+      ]
+    }
+  ],
+  "specs": {
+    "137": {
+      "parent": "focusa-vbcqu.9.2",
+      "requirement_mappings": [
+        {
+          "requirement_id": "S137-REQ-001",
+          "implementation_slice": "slice-1",
+          "bead_ref": "focusa-vbcqu.9.2.1"
+        },
+        {
+          "requirement_id": "S137-REQ-002",
+          "implementation_slice": "slice-1",
+          "bead_ref": "focusa-vbcqu.9.2.1"
+        },
+        {
+          "requirement_id": "S137-REQ-003",
+          "implementation_slice": "slice-1",
+          "bead_ref": "focusa-vbcqu.9.2.1"
+        },
+        {
+          "requirement_id": "S137-REQ-004",
+          "implementation_slice": "slice-1",
+          "bead_ref": "focusa-vbcqu.9.2.1"
+        },
+        {
+          "requirement_id": "S137-REQ-005",
+          "implementation_slice": "slice-1",
+          "bead_ref": "focusa-vbcqu.9.2.1"
+        },
+        {
+          "requirement_id": "S137-REQ-006",
+          "implementation_slice": "slice-1",
+          "bead_ref": "focusa-vbcqu.9.2.1"
+        },
+        {
+          "requirement_id": "S137-REQ-007",
+          "implementation_slice": "slice-3",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-008",
+          "implementation_slice": "slice-3",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-009",
+          "implementation_slice": "slice-3",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-010",
+          "implementation_slice": "slice-3",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-011",
+          "implementation_slice": "slice-3",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-012",
+          "implementation_slice": "slice-3",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-013",
+          "implementation_slice": "slice-5",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-014",
+          "implementation_slice": "slice-5",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-015",
+          "implementation_slice": "slice-5",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-016",
+          "implementation_slice": "slice-5",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-017",
+          "implementation_slice": "slice-5",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-018",
+          "implementation_slice": "slice-5",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-019",
+          "implementation_slice": "slice-5",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-020",
+          "implementation_slice": "slice-5",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-021",
+          "implementation_slice": "slice-4",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-022",
+          "implementation_slice": "slice-4",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-023",
+          "implementation_slice": "slice-4",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-024",
+          "implementation_slice": "slice-4",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-025",
+          "implementation_slice": "slice-4",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-026",
+          "implementation_slice": "slice-4",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-027",
+          "implementation_slice": "slice-4",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-028",
+          "implementation_slice": "slice-4",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-029",
+          "implementation_slice": "slice-2",
+          "bead_ref": "focusa-vbcqu.9.2.1"
+        },
+        {
+          "requirement_id": "S137-REQ-030",
+          "implementation_slice": "slice-2",
+          "bead_ref": "focusa-vbcqu.9.2.1"
+        },
+        {
+          "requirement_id": "S137-REQ-031",
+          "implementation_slice": "slice-2",
+          "bead_ref": "focusa-vbcqu.9.2.1"
+        },
+        {
+          "requirement_id": "S137-REQ-032",
+          "implementation_slice": "slice-2",
+          "bead_ref": "focusa-vbcqu.9.2.1"
+        },
+        {
+          "requirement_id": "S137-REQ-033",
+          "implementation_slice": "slice-8",
+          "bead_ref": "focusa-vbcqu.9.2.4"
+        },
+        {
+          "requirement_id": "S137-REQ-034",
+          "implementation_slice": "slice-8",
+          "bead_ref": "focusa-vbcqu.9.2.4"
+        },
+        {
+          "requirement_id": "S137-REQ-035",
+          "implementation_slice": "slice-8",
+          "bead_ref": "focusa-vbcqu.9.2.4"
+        },
+        {
+          "requirement_id": "S137-REQ-036",
+          "implementation_slice": "slice-5",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-037",
+          "implementation_slice": "slice-7",
+          "bead_ref": "focusa-vbcqu.9.2.3"
+        },
+        {
+          "requirement_id": "S137-REQ-038",
+          "implementation_slice": "slice-7",
+          "bead_ref": "focusa-vbcqu.9.2.3"
+        },
+        {
+          "requirement_id": "S137-REQ-039",
+          "implementation_slice": "slice-7",
+          "bead_ref": "focusa-vbcqu.9.2.3"
+        },
+        {
+          "requirement_id": "S137-REQ-040",
+          "implementation_slice": "slice-6",
+          "bead_ref": "focusa-vbcqu.9.2.3"
+        },
+        {
+          "requirement_id": "S137-REQ-041",
+          "implementation_slice": "slice-7",
+          "bead_ref": "focusa-vbcqu.9.2.3"
+        },
+        {
+          "requirement_id": "S137-REQ-042",
+          "implementation_slice": "slice-7",
+          "bead_ref": "focusa-vbcqu.9.2.3"
+        },
+        {
+          "requirement_id": "S137-REQ-043",
+          "implementation_slice": "slice-6",
+          "bead_ref": "focusa-vbcqu.9.2.3"
+        },
+        {
+          "requirement_id": "S137-REQ-044",
+          "implementation_slice": "slice-7",
+          "bead_ref": "focusa-vbcqu.9.2.3"
+        },
+        {
+          "requirement_id": "S137-REQ-045",
+          "implementation_slice": "slice-9",
+          "bead_ref": "focusa-vbcqu.9.2.4"
+        },
+        {
+          "requirement_id": "S137-REQ-046",
+          "implementation_slice": "slice-7",
+          "bead_ref": "focusa-vbcqu.9.2.3"
+        },
+        {
+          "requirement_id": "S137-REQ-047",
+          "implementation_slice": "slice-10",
+          "bead_ref": "focusa-vbcqu.9.2.4"
+        },
+        {
+          "requirement_id": "S137-REQ-048",
+          "implementation_slice": "slice-11",
+          "bead_ref": "focusa-vbcqu.9.2.5"
+        },
+        {
+          "requirement_id": "S137-REQ-049",
+          "implementation_slice": "slice-11",
+          "bead_ref": "focusa-vbcqu.9.2.5"
+        },
+        {
+          "requirement_id": "S137-REQ-050",
+          "implementation_slice": "slice-11",
+          "bead_ref": "focusa-vbcqu.9.2.5"
+        },
+        {
+          "requirement_id": "S137-REQ-051",
+          "implementation_slice": "slice-11",
+          "bead_ref": "focusa-vbcqu.9.2.5"
+        },
+        {
+          "requirement_id": "S137-REQ-052",
+          "implementation_slice": "slice-11",
+          "bead_ref": "focusa-vbcqu.9.2.5"
+        },
+        {
+          "requirement_id": "S137-REQ-053",
+          "implementation_slice": "slice-11",
+          "bead_ref": "focusa-vbcqu.9.2.5"
+        },
+        {
+          "requirement_id": "S137-REQ-054",
+          "implementation_slice": "slice-11",
+          "bead_ref": "focusa-vbcqu.9.2.5"
+        },
+        {
+          "requirement_id": "S137-REQ-055",
+          "implementation_slice": "slice-11",
+          "bead_ref": "focusa-vbcqu.9.2.5"
+        },
+        {
+          "requirement_id": "S137-REQ-056",
+          "implementation_slice": "slice-11",
+          "bead_ref": "focusa-vbcqu.9.2.5"
+        },
+        {
+          "requirement_id": "S137-REQ-057",
+          "implementation_slice": "slice-11",
+          "bead_ref": "focusa-vbcqu.9.2.5"
+        },
+        {
+          "requirement_id": "S137-REQ-058",
+          "implementation_slice": "slice-11",
+          "bead_ref": "focusa-vbcqu.9.2.5"
+        },
+        {
+          "requirement_id": "S137-REQ-059",
+          "implementation_slice": "slice-11",
+          "bead_ref": "focusa-vbcqu.9.2.5"
+        },
+        {
+          "requirement_id": "S137-REQ-060",
+          "implementation_slice": "slice-0",
+          "bead_ref": "focusa-vbcqu.9.2.1"
+        },
+        {
+          "requirement_id": "S137-REQ-061",
+          "implementation_slice": "slice-12",
+          "bead_ref": "focusa-vbcqu.9.2.5"
+        },
+        {
+          "requirement_id": "S137-REQ-062",
+          "implementation_slice": "slice-12",
+          "bead_ref": "focusa-vbcqu.9.2.5"
+        },
+        {
+          "requirement_id": "S137-REQ-063",
+          "implementation_slice": "slice-12",
+          "bead_ref": "focusa-vbcqu.9.2.5"
+        },
+        {
+          "requirement_id": "S137-REQ-064",
+          "implementation_slice": "slice-12",
+          "bead_ref": "focusa-vbcqu.9.2.5"
+        },
+        {
+          "requirement_id": "S137-REQ-065",
+          "implementation_slice": "slice-12",
+          "bead_ref": "focusa-vbcqu.9.2.5"
+        },
+        {
+          "requirement_id": "S137-REQ-066",
+          "implementation_slice": "slice-1",
+          "bead_ref": "focusa-vbcqu.9.2.1"
+        },
+        {
+          "requirement_id": "S137-REQ-067",
+          "implementation_slice": "slice-1",
+          "bead_ref": "focusa-vbcqu.9.2.1"
+        },
+        {
+          "requirement_id": "S137-REQ-068",
+          "implementation_slice": "slice-1",
+          "bead_ref": "focusa-vbcqu.9.2.1"
+        },
+        {
+          "requirement_id": "S137-REQ-069",
+          "implementation_slice": "slice-3",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-070",
+          "implementation_slice": "slice-3",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-071",
+          "implementation_slice": "slice-6",
+          "bead_ref": "focusa-vbcqu.9.2.3"
+        },
+        {
+          "requirement_id": "S137-REQ-072",
+          "implementation_slice": "slice-5",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-073",
+          "implementation_slice": "slice-5",
+          "bead_ref": "focusa-vbcqu.9.2.2"
+        },
+        {
+          "requirement_id": "S137-REQ-074",
+          "implementation_slice": "slice-6",
+          "bead_ref": "focusa-vbcqu.9.2.3"
+        },
+        {
+          "requirement_id": "S137-REQ-075",
+          "implementation_slice": "slice-6",
+          "bead_ref": "focusa-vbcqu.9.2.3"
+        },
+        {
+          "requirement_id": "S137-REQ-076",
+          "implementation_slice": "slice-6",
+          "bead_ref": "focusa-vbcqu.9.2.3"
+        },
+        {
+          "requirement_id": "S137-REQ-077",
+          "implementation_slice": "slice-11",
+          "bead_ref": "focusa-vbcqu.9.2.5"
+        },
+        {
+          "requirement_id": "S137-REQ-078",
+          "implementation_slice": "slice-11",
+          "bead_ref": "focusa-vbcqu.9.2.5"
+        },
+        {
+          "requirement_id": "S137-REQ-079",
+          "implementation_slice": "slice-11",
+          "bead_ref": "focusa-vbcqu.9.2.5"
+        },
+        {
+          "requirement_id": "S137-REQ-080",
+          "implementation_slice": "slice-11",
+          "bead_ref": "focusa-vbcqu.9.2.5"
+        },
+        {
+          "requirement_id": "S137-REQ-081",
+          "implementation_slice": "slice-1",
+          "bead_ref": "focusa-vbcqu.9.2.1"
+        },
+        {
+          "requirement_id": "S137-REQ-082",
+          "implementation_slice": "slice-11",
+          "bead_ref": "focusa-vbcqu.9.2.5"
+        },
+        {
+          "requirement_id": "S137-REQ-083",
+          "implementation_slice": "slice-8",
+          "bead_ref": "focusa-vbcqu.9.2.4"
+        },
+        {
+          "requirement_id": "S137-REQ-084",
+          "implementation_slice": "slice-0",
+          "bead_ref": "focusa-vbcqu.9.2.1"
+        },
+        {
+          "requirement_id": "S137-REQ-085",
+          "implementation_slice": "slice-8",
+          "bead_ref": "focusa-vbcqu.9.2.4"
+        },
+        {
+          "requirement_id": "S137-REQ-086",
+          "implementation_slice": "slice-7",
+          "bead_ref": "focusa-vbcqu.9.2.3"
+        }
+      ]
+    },
+    "137a": {
+      "parent": "focusa-vbcqu.9.3",
+      "leaf_refs": [
+        "focusa-vbcqu.9.3.1",
+        "focusa-vbcqu.9.3.2",
+        "focusa-vbcqu.9.3.3",
+        "focusa-vbcqu.9.3.4",
+        "focusa-vbcqu.9.3.5",
+        "focusa-vbcqu.9.3.6"
+      ],
+      "section_mappings": [
+        {
+          "sections": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4"
+          ],
+          "bead_ref": "focusa-vbcqu.9.3.1"
+        },
+        {
+          "sections": [
+            "5"
+          ],
+          "bead_ref": "focusa-vbcqu.9.3.2"
+        },
+        {
+          "sections": [
+            "6"
+          ],
+          "bead_ref": "focusa-vbcqu.9.3.3"
+        },
+        {
+          "sections": [
+            "7"
+          ],
+          "bead_ref": "focusa-vbcqu.9.3.4"
+        },
+        {
+          "sections": [
+            "8",
+            "9"
+          ],
+          "bead_ref": "focusa-vbcqu.9.3.5"
+        },
+        {
+          "sections": [
+            "10",
+            "11",
+            "12",
+            "13"
+          ],
+          "bead_ref": "focusa-vbcqu.9.3.6"
+        }
+      ]
+    },
+    "138": {
+      "parent": "focusa-vbcqu.9.4",
+      "requirement_mappings": [
+        {
+          "requirement_id": "S138-R-0007-32f149468aa2",
+          "source_line": 7,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0018-76ee19c9ff75",
+          "source_line": 18,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0040-ce02727b5889",
+          "source_line": 40,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0112-70284fe44409",
+          "source_line": 112,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0113-f2250bb9f434",
+          "source_line": 113,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0114-504229dea436",
+          "source_line": 114,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0115-c32416fdcbd8",
+          "source_line": 115,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0116-7f2b7d0f39a5",
+          "source_line": 116,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0117-3cb105f01b2c",
+          "source_line": 117,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0118-f28282be9b64",
+          "source_line": 118,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0119-de42e4bfa251",
+          "source_line": 119,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0120-36273cc237a0",
+          "source_line": 120,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0124-ce8caa223757",
+          "source_line": 124,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0125-59cd7bc97b10",
+          "source_line": 125,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0126-eea3442423c7",
+          "source_line": 126,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0127-496e854e28d5",
+          "source_line": 127,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0128-e9407dc1055b",
+          "source_line": 128,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0129-35d4f640132a",
+          "source_line": 129,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0130-21a74a1fe3de",
+          "source_line": 130,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0131-2b3ef52b5c07",
+          "source_line": 131,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0133-5af50cf50e8c",
+          "source_line": 133,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0139-04cba3437d4b",
+          "source_line": 139,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0165-3ee26da205b5",
+          "source_line": 165,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0166-0b531c35d559",
+          "source_line": 166,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0167-8c99044e4ded",
+          "source_line": 167,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0168-f21797eb4504",
+          "source_line": 168,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0169-325bdf898d5d",
+          "source_line": 169,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0170-5f03af0ceb95",
+          "source_line": 170,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0171-d013da67cd65",
+          "source_line": 171,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0172-fdd51706d0ad",
+          "source_line": 172,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0173-0b8a3ab4df8e",
+          "source_line": 173,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0174-6a095bae6206",
+          "source_line": 174,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0175-5a545b8d522f",
+          "source_line": 175,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0176-913cd385c5a9",
+          "source_line": 176,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0177-6c22844e209e",
+          "source_line": 177,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0178-3914c07dfdf0",
+          "source_line": 178,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0179-2905b1141b5e",
+          "source_line": 179,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0180-dd68d7c20a9f",
+          "source_line": 180,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0181-6fbeedfab431",
+          "source_line": 181,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0182-bbca81cb7ceb",
+          "source_line": 182,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0183-e7a09211f612",
+          "source_line": 183,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0184-b9ed500047c6",
+          "source_line": 184,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0185-18c75df84c2c",
+          "source_line": 185,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0186-0280df06c11b",
+          "source_line": 186,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0187-6bffe5c4f5d0",
+          "source_line": 187,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0188-2b6942714081",
+          "source_line": 188,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0189-e45cacced027",
+          "source_line": 189,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0190-210b05cffcff",
+          "source_line": 190,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0191-b37dbbd62c96",
+          "source_line": 191,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0192-6157976475c0",
+          "source_line": 192,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0193-5d25bd488d27",
+          "source_line": 193,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0194-59bfb4e8dd3e",
+          "source_line": 194,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0200-ce8824b73cb6",
+          "source_line": 200,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0294-b3ff5df8489a",
+          "source_line": 294,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0450-d17c1bb2a707",
+          "source_line": 450,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0623-2d91a2b50f81",
+          "source_line": 623,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0625-6a3fa16c3888",
+          "source_line": 625,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0661-e010a44f4063",
+          "source_line": 661,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-0866-ef67b2a69d10",
+          "source_line": 866,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-1059-936815685e12",
+          "source_line": 1059,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138-R-1370-39c9f2dbe651",
+          "source_line": 1370,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1374-b001aed99e04",
+          "source_line": 1374,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1387-fbdbb7711ed4",
+          "source_line": 1387,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1406-8be807599b33",
+          "source_line": 1406,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1420-7339b4970828",
+          "source_line": 1420,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1424-25207ed16ba5",
+          "source_line": 1424,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1435-cf73756d86bc",
+          "source_line": 1435,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1439-b3ae434f8dac",
+          "source_line": 1439,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1451-1ee75d633d14",
+          "source_line": 1451,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1453-375ed60ba4fe",
+          "source_line": 1453,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1471-ce8a911928a0",
+          "source_line": 1471,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1476-2f98a852cb57",
+          "source_line": 1476,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1485-081f8c553151",
+          "source_line": 1485,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1487-e8446ee30db3",
+          "source_line": 1487,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1498-02621a705f12",
+          "source_line": 1498,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1505-2ff0eb18d445",
+          "source_line": 1505,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1536-99dfeeee51e4",
+          "source_line": 1536,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1549-f67caabaaf33",
+          "source_line": 1549,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1552-470c8bef33de",
+          "source_line": 1552,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1575-b6e9b694e57f",
+          "source_line": 1575,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1577-d5ed27f17060",
+          "source_line": 1577,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1579-dae334b1d721",
+          "source_line": 1579,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1580-411324c35ae4",
+          "source_line": 1580,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1581-b4417655d774",
+          "source_line": 1581,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1582-20a4f1c974e8",
+          "source_line": 1582,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1583-0639a055bdb1",
+          "source_line": 1583,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1589-677271c32d71",
+          "source_line": 1589,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1591-35facf1629cf",
+          "source_line": 1591,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1593-32e42da26bdc",
+          "source_line": 1593,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1595-960accf77a7e",
+          "source_line": 1595,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1596-692bb530eaa9",
+          "source_line": 1596,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1597-d3ed14e1812d",
+          "source_line": 1597,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1598-b26948c75029",
+          "source_line": 1598,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1599-a329063d0e7e",
+          "source_line": 1599,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1600-1aacb87b29d8",
+          "source_line": 1600,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1601-d647ef2f00e9",
+          "source_line": 1601,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1602-0a78818c76c6",
+          "source_line": 1602,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1603-4032803be7e8",
+          "source_line": 1603,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1604-5498163c5b39",
+          "source_line": 1604,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1605-5378f9cc9934",
+          "source_line": 1605,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1606-f7bc7bbdd5b3",
+          "source_line": 1606,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1607-294d4732f47c",
+          "source_line": 1607,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1608-f559fa896ead",
+          "source_line": 1608,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1609-e1e53e61fb1f",
+          "source_line": 1609,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1610-30c738e3f1ac",
+          "source_line": 1610,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1611-c2e292ad5d86",
+          "source_line": 1611,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1612-9409a1131dba",
+          "source_line": 1612,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1614-2809ea7d23fe",
+          "source_line": 1614,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1616-cf9cea24fffa",
+          "source_line": 1616,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1618-8f753bc8db49",
+          "source_line": 1618,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1619-f784fd73a825",
+          "source_line": 1619,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1620-0ef200739db6",
+          "source_line": 1620,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1621-addd9f93535e",
+          "source_line": 1621,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1622-a69c955d6fa1",
+          "source_line": 1622,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1623-c388d1461827",
+          "source_line": 1623,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1624-8e7621e2a7f1",
+          "source_line": 1624,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1625-0e62e72d4b4e",
+          "source_line": 1625,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1626-425dae15db5a",
+          "source_line": 1626,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1627-d08752cf3bf9",
+          "source_line": 1627,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1628-b2447888c3ad",
+          "source_line": 1628,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1629-2efe9fee0414",
+          "source_line": 1629,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1630-41348ad919bc",
+          "source_line": 1630,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1631-1247b6c4b7fb",
+          "source_line": 1631,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1632-5b1a2f26bfd6",
+          "source_line": 1632,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1633-0a1ad3617d77",
+          "source_line": 1633,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1634-34c70bb5929b",
+          "source_line": 1634,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1635-2ee1aaa2874c",
+          "source_line": 1635,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1639-959fd6da9666",
+          "source_line": 1639,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1641-7c6d1d7a9c54",
+          "source_line": 1641,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1655-e80e04640cde",
+          "source_line": 1655,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1657-c24d056faa03",
+          "source_line": 1657,
+          "bead_ref": "focusa-vbcqu.9.4.2"
+        },
+        {
+          "requirement_id": "S138-R-1689-7f73f46f99b6",
+          "source_line": 1689,
+          "bead_ref": "focusa-vbcqu.9.4.3"
+        },
+        {
+          "requirement_id": "S138-R-1699-a1ab8d9eb840",
+          "source_line": 1699,
+          "bead_ref": "focusa-vbcqu.9.4.3"
+        },
+        {
+          "requirement_id": "S138-R-1703-54595a237f48",
+          "source_line": 1703,
+          "bead_ref": "focusa-vbcqu.9.4.3"
+        },
+        {
+          "requirement_id": "S138-R-1715-7c456e69a84a",
+          "source_line": 1715,
+          "bead_ref": "focusa-vbcqu.9.4.3"
+        },
+        {
+          "requirement_id": "S138-R-1729-52b40ffc93a9",
+          "source_line": 1729,
+          "bead_ref": "focusa-vbcqu.9.4.3"
+        },
+        {
+          "requirement_id": "S138-R-1731-3b9f16d2a91c",
+          "source_line": 1731,
+          "bead_ref": "focusa-vbcqu.9.4.3"
+        },
+        {
+          "requirement_id": "S138-R-1737-3a9e072a9aa2",
+          "source_line": 1737,
+          "bead_ref": "focusa-vbcqu.9.4.3"
+        },
+        {
+          "requirement_id": "S138-R-1758-2def4cc2eb82",
+          "source_line": 1758,
+          "bead_ref": "focusa-vbcqu.9.4.3"
+        },
+        {
+          "requirement_id": "S138-R-1762-2c00bf3590fb",
+          "source_line": 1762,
+          "bead_ref": "focusa-vbcqu.9.4.3"
+        },
+        {
+          "requirement_id": "S138-R-1785-1ec64000ed93",
+          "source_line": 1785,
+          "bead_ref": "focusa-vbcqu.9.4.3"
+        },
+        {
+          "requirement_id": "S138-R-1805-22025b0db83e",
+          "source_line": 1805,
+          "bead_ref": "focusa-vbcqu.9.4.4"
+        },
+        {
+          "requirement_id": "S138-R-1817-5c0d5be009b2",
+          "source_line": 1817,
+          "bead_ref": "focusa-vbcqu.9.4.4"
+        },
+        {
+          "requirement_id": "S138-R-1824-0d17ae65a1cf",
+          "source_line": 1824,
+          "bead_ref": "focusa-vbcqu.9.4.4"
+        },
+        {
+          "requirement_id": "S138-R-1828-7d639d5edf72",
+          "source_line": 1828,
+          "bead_ref": "focusa-vbcqu.9.4.4"
+        },
+        {
+          "requirement_id": "S138-R-1848-28033b2c468a",
+          "source_line": 1848,
+          "bead_ref": "focusa-vbcqu.9.4.4"
+        },
+        {
+          "requirement_id": "S138-R-1859-1ddae9474103",
+          "source_line": 1859,
+          "bead_ref": "focusa-vbcqu.9.4.4"
+        },
+        {
+          "requirement_id": "S138-R-1861-08cd949ad983",
+          "source_line": 1861,
+          "bead_ref": "focusa-vbcqu.9.4.4"
+        },
+        {
+          "requirement_id": "S138-R-1867-fe4b0dcc780d",
+          "source_line": 1867,
+          "bead_ref": "focusa-vbcqu.9.4.4"
+        },
+        {
+          "requirement_id": "S138-R-1913-ca7e5e233b77",
+          "source_line": 1913,
+          "bead_ref": "focusa-vbcqu.9.4.4"
+        },
+        {
+          "requirement_id": "S138-R-1921-cde1afa2227e",
+          "source_line": 1921,
+          "bead_ref": "focusa-vbcqu.9.4.5"
+        },
+        {
+          "requirement_id": "S138-R-1931-c219eea07a38",
+          "source_line": 1931,
+          "bead_ref": "focusa-vbcqu.9.4.5"
+        },
+        {
+          "requirement_id": "S138-R-1935-5576ff5bb4a4",
+          "source_line": 1935,
+          "bead_ref": "focusa-vbcqu.9.4.5"
+        },
+        {
+          "requirement_id": "S138-R-1937-a2a2232a91d8",
+          "source_line": 1937,
+          "bead_ref": "focusa-vbcqu.9.4.5"
+        },
+        {
+          "requirement_id": "S138-R-1948-b4e282e6a41d",
+          "source_line": 1948,
+          "bead_ref": "focusa-vbcqu.9.4.5"
+        },
+        {
+          "requirement_id": "S138-R-1952-3f8f5c0f2de5",
+          "source_line": 1952,
+          "bead_ref": "focusa-vbcqu.9.4.5"
+        },
+        {
+          "requirement_id": "S138-R-1967-c030970a0635",
+          "source_line": 1967,
+          "bead_ref": "focusa-vbcqu.9.4.5"
+        },
+        {
+          "requirement_id": "S138-R-1969-d4b211558138",
+          "source_line": 1969,
+          "bead_ref": "focusa-vbcqu.9.4.5"
+        },
+        {
+          "requirement_id": "S138-R-1971-3c76bfb59949",
+          "source_line": 1971,
+          "bead_ref": "focusa-vbcqu.9.4.5"
+        },
+        {
+          "requirement_id": "S138-R-1989-7612cce9ed33",
+          "source_line": 1989,
+          "bead_ref": "focusa-vbcqu.9.4.5"
+        },
+        {
+          "requirement_id": "S138-R-1991-e6cd3517fc68",
+          "source_line": 1991,
+          "bead_ref": "focusa-vbcqu.9.4.5"
+        },
+        {
+          "requirement_id": "S138-R-2004-154bd4cfac4c",
+          "source_line": 2004,
+          "bead_ref": "focusa-vbcqu.9.4.5"
+        },
+        {
+          "requirement_id": "S138-R-2006-737c9a4d144b",
+          "source_line": 2006,
+          "bead_ref": "focusa-vbcqu.9.4.5"
+        },
+        {
+          "requirement_id": "S138-R-2021-c96c4383efdd",
+          "source_line": 2021,
+          "bead_ref": "focusa-vbcqu.9.4.5"
+        },
+        {
+          "requirement_id": "S138-R-2034-486035e1f0d2",
+          "source_line": 2034,
+          "bead_ref": "focusa-vbcqu.9.4.5"
+        },
+        {
+          "requirement_id": "S138-R-2053-8f2fd50bad1a",
+          "source_line": 2053,
+          "bead_ref": "focusa-vbcqu.9.4.5"
+        },
+        {
+          "requirement_id": "S138-R-2087-92524481f047",
+          "source_line": 2087,
+          "bead_ref": "focusa-vbcqu.9.4.5"
+        },
+        {
+          "requirement_id": "S138-R-2089-1494197b9d5e",
+          "source_line": 2089,
+          "bead_ref": "focusa-vbcqu.9.4.5"
+        },
+        {
+          "requirement_id": "S138-R-2093-a3cb4a7d19e6",
+          "source_line": 2093,
+          "bead_ref": "focusa-vbcqu.9.4.5"
+        },
+        {
+          "requirement_id": "S138-R-2108-80080d74b762",
+          "source_line": 2108,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2138-ef6a8dc7078b",
+          "source_line": 2138,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2172-e19e85b9ebba",
+          "source_line": 2172,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2178-7f4f165fc767",
+          "source_line": 2178,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2219-09bc4395c85a",
+          "source_line": 2219,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2234-b1ecdaf81b63",
+          "source_line": 2234,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2240-5b42c8166326",
+          "source_line": 2240,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2242-80a86810c1e5",
+          "source_line": 2242,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2243-b62a9418662a",
+          "source_line": 2243,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2244-34b9706ceead",
+          "source_line": 2244,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2245-94e8c56938e5",
+          "source_line": 2245,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2246-21f8d4c09315",
+          "source_line": 2246,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2248-8aad6f7cf70f",
+          "source_line": 2248,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2254-d25becd10c6c",
+          "source_line": 2254,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2258-6e5afc9099ec",
+          "source_line": 2258,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2259-4be3082799e5",
+          "source_line": 2259,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2260-a0933c3007f2",
+          "source_line": 2260,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2261-ae5853dac6a0",
+          "source_line": 2261,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2262-d5dbad5ae745",
+          "source_line": 2262,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2263-a777d24298c7",
+          "source_line": 2263,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2267-bd4b709fe721",
+          "source_line": 2267,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2268-6e0809e9270a",
+          "source_line": 2268,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2269-410de3cf70ff",
+          "source_line": 2269,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2270-585d445afcef",
+          "source_line": 2270,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2274-4a41800c55e3",
+          "source_line": 2274,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2275-1eb0d9538beb",
+          "source_line": 2275,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2276-66884b0edae7",
+          "source_line": 2276,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2277-161d8ef56408",
+          "source_line": 2277,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2278-34d9738cf9a9",
+          "source_line": 2278,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2279-6f0760149337",
+          "source_line": 2279,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2283-14e9d6ccf326",
+          "source_line": 2283,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2284-d599cc879d46",
+          "source_line": 2284,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2285-055611e141cb",
+          "source_line": 2285,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2286-4e25ed68c476",
+          "source_line": 2286,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2290-28549be33ad5",
+          "source_line": 2290,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2291-4ada28fc00cd",
+          "source_line": 2291,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2292-5ce755788e7a",
+          "source_line": 2292,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2293-c92c1d9ea5f6",
+          "source_line": 2293,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2294-73fddd58f6cd",
+          "source_line": 2294,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2298-f367807a3da6",
+          "source_line": 2298,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2299-4ceb1d13d52a",
+          "source_line": 2299,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2300-df7f9755e41e",
+          "source_line": 2300,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2301-f97244decddc",
+          "source_line": 2301,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2302-52cbfeb2faff",
+          "source_line": 2302,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2306-b066e4e7f0df",
+          "source_line": 2306,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2307-d6d56aafd987",
+          "source_line": 2307,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2308-043a1c9f00b0",
+          "source_line": 2308,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2309-550d9238ccbf",
+          "source_line": 2309,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2310-63265577b2e8",
+          "source_line": 2310,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2311-f897e79a0864",
+          "source_line": 2311,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2312-7b97b653639f",
+          "source_line": 2312,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2316-3105edfe638a",
+          "source_line": 2316,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2317-85d50a799b45",
+          "source_line": 2317,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2318-af9ff80339e1",
+          "source_line": 2318,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2319-ef7ebe2d7ad0",
+          "source_line": 2319,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2354-3f8c2fc517c8",
+          "source_line": 2354,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2355-1fb79ed72c79",
+          "source_line": 2355,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2356-031e04219346",
+          "source_line": 2356,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2407-f73965e319d2",
+          "source_line": 2407,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2408-8417ec4fdc26",
+          "source_line": 2408,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2409-1e6a5217d125",
+          "source_line": 2409,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2410-3d83702502df",
+          "source_line": 2410,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2421-0defe74affa7",
+          "source_line": 2421,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2422-bdff1036c75f",
+          "source_line": 2422,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2423-75db6d8b8693",
+          "source_line": 2423,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2424-00e335d77285",
+          "source_line": 2424,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2437-1b20e4c12b93",
+          "source_line": 2437,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2463-ac65650216ca",
+          "source_line": 2463,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2464-2fca4872afe5",
+          "source_line": 2464,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2465-b780a795c912",
+          "source_line": 2465,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2466-c54bce1da0ad",
+          "source_line": 2466,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2467-35b27bb97abd",
+          "source_line": 2467,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2468-eb0f95cbca30",
+          "source_line": 2468,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2469-7ed94020b635",
+          "source_line": 2469,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2470-470dabd1d7bc",
+          "source_line": 2470,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2471-11d4c05ca892",
+          "source_line": 2471,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2472-4e25bf5863a0",
+          "source_line": 2472,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2473-3e8ed2e783e8",
+          "source_line": 2473,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2474-59cd85fb96e6",
+          "source_line": 2474,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2475-74e1c5c89213",
+          "source_line": 2475,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2476-4df65d11ce58",
+          "source_line": 2476,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2477-aa3ead6f2600",
+          "source_line": 2477,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2478-6961badda61b",
+          "source_line": 2478,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2479-af8ec420ebea",
+          "source_line": 2479,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2480-35099b314943",
+          "source_line": 2480,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2481-be87ff3a91e0",
+          "source_line": 2481,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2482-30e7f0a61f80",
+          "source_line": 2482,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2483-bb6aa362e439",
+          "source_line": 2483,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2484-3b4653cc5236",
+          "source_line": 2484,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2485-781d7ccd2b3d",
+          "source_line": 2485,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2486-209df62674e4",
+          "source_line": 2486,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2487-c35bd3152a4a",
+          "source_line": 2487,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2488-2fe67f14301f",
+          "source_line": 2488,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2489-6c639b4bb88a",
+          "source_line": 2489,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2490-c4993a094a70",
+          "source_line": 2490,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2491-511cb5f451d7",
+          "source_line": 2491,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2492-9c29a5be86fa",
+          "source_line": 2492,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2493-4744d96e1213",
+          "source_line": 2493,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2494-18b7cf31bf71",
+          "source_line": 2494,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2495-96f33aa6ac95",
+          "source_line": 2495,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2496-8a2771e08123",
+          "source_line": 2496,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2497-0b4dd25d118f",
+          "source_line": 2497,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2498-eebc279ba35a",
+          "source_line": 2498,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138-R-2503-d3d54e02309b",
+          "source_line": 2503,
+          "bead_ref": "focusa-vbcqu.9.4.6"
+        },
+        {
+          "requirement_id": "S138A-R-0021-8f439db6b0fa",
+          "source_line": 21,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0029-a40babce5784",
+          "source_line": 29,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0039-ef1c2466c87c",
+          "source_line": 39,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0040-079a32331b3f",
+          "source_line": 40,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0041-f181d0a0ccd6",
+          "source_line": 41,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0044-a332a6211c15",
+          "source_line": 44,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0057-7db80d6af96f",
+          "source_line": 57,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0059-9553824eeae0",
+          "source_line": 59,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0068-968a7dd5497f",
+          "source_line": 68,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0072-7d298eeb9fc0",
+          "source_line": 72,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0087-e13d523ecd50",
+          "source_line": 87,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0095-ed8d6c1d8728",
+          "source_line": 95,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0099-767f5b375987",
+          "source_line": 99,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0103-ea98f716bca3",
+          "source_line": 103,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0104-effd2dc24e8e",
+          "source_line": 104,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0105-51f3dcbfeeb8",
+          "source_line": 105,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0106-c2a4e1fe6f1d",
+          "source_line": 106,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0107-e495c12bf5cf",
+          "source_line": 107,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0115-007ad0c4b949",
+          "source_line": 115,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0117-6376cf28f364",
+          "source_line": 117,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0118-fb30d89d0da3",
+          "source_line": 118,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0119-205da9dad5b6",
+          "source_line": 119,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0120-eb9e78dc6072",
+          "source_line": 120,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0121-b421c9da3f1d",
+          "source_line": 121,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0123-205ee6a6b99c",
+          "source_line": 123,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0127-e4de836e6462",
+          "source_line": 127,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0130-abd7e96c9c0c",
+          "source_line": 130,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0131-e16cb1faf75f",
+          "source_line": 131,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0132-89fec3258606",
+          "source_line": 132,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0133-982ff75fc934",
+          "source_line": 133,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0134-681ae741de03",
+          "source_line": 134,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0135-7ff3461fa547",
+          "source_line": 135,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0136-8496f620d681",
+          "source_line": 136,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0137-6ff169c7f142",
+          "source_line": 137,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0138-fb8f9c8ebb4b",
+          "source_line": 138,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0139-9de565ce0114",
+          "source_line": 139,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0140-491330305337",
+          "source_line": 140,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0141-a7043d335c7d",
+          "source_line": 141,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0142-c6080dd72a00",
+          "source_line": 142,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0143-17e62ba49685",
+          "source_line": 143,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0144-d2dc68316a5a",
+          "source_line": 144,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0145-cdf6cd3963f1",
+          "source_line": 145,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0146-68f0ee477058",
+          "source_line": 146,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0147-f28e814251c8",
+          "source_line": 147,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0148-e4802a9a5158",
+          "source_line": 148,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0155-ef05851ba981",
+          "source_line": 155,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0168-3e71ac8d89a9",
+          "source_line": 168,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0170-1ab2682ed7eb",
+          "source_line": 170,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0172-7571440eee99",
+          "source_line": 172,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0174-892bc8303b72",
+          "source_line": 174,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0176-b85c74a4f17e",
+          "source_line": 176,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0212-7d49fcf9b793",
+          "source_line": 212,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0218-799aa259d703",
+          "source_line": 218,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0234-2b05030823a5",
+          "source_line": 234,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0240-df3377037f81",
+          "source_line": 240,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0242-f958ce9993c1",
+          "source_line": 242,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0248-86301c8bf435",
+          "source_line": 248,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0250-10ca96f3fd45",
+          "source_line": 250,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0286-6c8f860a5fc8",
+          "source_line": 286,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0288-90f49f57f1be",
+          "source_line": 288,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0295-a2584ddb65b9",
+          "source_line": 295,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0299-9c2d6007bfbb",
+          "source_line": 299,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0301-2399fe929d37",
+          "source_line": 301,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0309-cfb348e8987f",
+          "source_line": 309,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0311-0052381f6cfe",
+          "source_line": 311,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0312-c50b0a773850",
+          "source_line": 312,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0313-610eb60eefc3",
+          "source_line": 313,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0314-9009ab842417",
+          "source_line": 314,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0315-0ae621569fbd",
+          "source_line": 315,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0316-61c8fa3f20be",
+          "source_line": 316,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0317-cac452d3499f",
+          "source_line": 317,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0318-664431b436c4",
+          "source_line": 318,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0319-689ef2506320",
+          "source_line": 319,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0325-3f30c1c755a8",
+          "source_line": 325,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0327-adf7efa58150",
+          "source_line": 327,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0329-e20a93061b68",
+          "source_line": 329,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0331-572cd31ac0a1",
+          "source_line": 331,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0337-cce079588707",
+          "source_line": 337,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0339-de7065b8779f",
+          "source_line": 339,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0355-3e52835a3bb4",
+          "source_line": 355,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0366-494d725bcce1",
+          "source_line": 366,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0367-0164c3b4d988",
+          "source_line": 367,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0368-3130d4546377",
+          "source_line": 368,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0369-b7573b5f79da",
+          "source_line": 369,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0370-dce545241233",
+          "source_line": 370,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0371-0b9160c1cda0",
+          "source_line": 371,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0372-3562d4895939",
+          "source_line": 372,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0373-1371143cce59",
+          "source_line": 373,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0374-b27ba62b54a6",
+          "source_line": 374,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0375-5363087ddf0e",
+          "source_line": 375,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0376-71a237e067d1",
+          "source_line": 376,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0377-74dd989cfbe5",
+          "source_line": 377,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0378-9de8f2d5a19a",
+          "source_line": 378,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0379-e5279661f868",
+          "source_line": 379,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0380-cf5aced62f8c",
+          "source_line": 380,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0381-9f5c2b88ef0d",
+          "source_line": 381,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0382-501c4f61cc13",
+          "source_line": 382,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0383-89107fed291b",
+          "source_line": 383,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0384-6ead522b141e",
+          "source_line": 384,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0385-c690bceb3808",
+          "source_line": 385,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0386-7b83d777de46",
+          "source_line": 386,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0389-62a2d4b2dcfa",
+          "source_line": 389,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0391-b531802d981e",
+          "source_line": 391,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0392-179316cbbe2d",
+          "source_line": 392,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0393-ac0723ee0dd4",
+          "source_line": 393,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0394-784ce6d723bf",
+          "source_line": 394,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0395-0aa9593fab24",
+          "source_line": 395,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0396-72cb266210eb",
+          "source_line": 396,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0397-ad2a7ae22095",
+          "source_line": 397,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0398-33ec8ad53f8a",
+          "source_line": 398,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0399-af01d2854dbe",
+          "source_line": 399,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0400-0e391562b0a0",
+          "source_line": 400,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0401-cb62b1b3a897",
+          "source_line": 401,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0402-21f177ae2216",
+          "source_line": 402,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0403-7c8763a74015",
+          "source_line": 403,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0404-ed1df3f08f9c",
+          "source_line": 404,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0412-cd1cba12e45e",
+          "source_line": 412,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0440-da64e48b7713",
+          "source_line": 440,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0441-3e0a7dfdf15c",
+          "source_line": 441,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0442-6cca57e42eaf",
+          "source_line": 442,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0443-0974ad0a7c2a",
+          "source_line": 443,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0444-6aef7577b575",
+          "source_line": 444,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0445-594bf24a7a8a",
+          "source_line": 445,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0446-1fdd23dbe8a8",
+          "source_line": 446,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0447-39162b5953c7",
+          "source_line": 447,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0448-d702deabc444",
+          "source_line": 448,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0449-efe3e64c80c9",
+          "source_line": 449,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0450-e094508d2383",
+          "source_line": 450,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0451-0ce661fabdd9",
+          "source_line": 451,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0452-ea8a98e476f2",
+          "source_line": 452,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0453-2557ceaeee0f",
+          "source_line": 453,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0454-adadd7ecba37",
+          "source_line": 454,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0455-26d6bfc4e0bf",
+          "source_line": 455,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0456-97cf11d517e9",
+          "source_line": 456,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0457-4c9fca409e18",
+          "source_line": 457,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0458-428e93df39e6",
+          "source_line": 458,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0459-99498a4bcae2",
+          "source_line": 459,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0460-6195cc1c08de",
+          "source_line": 460,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0461-e838f39de071",
+          "source_line": 461,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0462-73feed3a188b",
+          "source_line": 462,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0463-6ab1153fcd9c",
+          "source_line": 463,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0464-8b482aab635d",
+          "source_line": 464,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0465-b55541c9e70b",
+          "source_line": 465,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0466-1882b47836b6",
+          "source_line": 466,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0467-033e1dd7e8a0",
+          "source_line": 467,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0468-7b3df949f5c0",
+          "source_line": 468,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0469-5529ac91ed06",
+          "source_line": 469,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0470-249a9b846cbc",
+          "source_line": 470,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0471-49f2c7de7dc3",
+          "source_line": 471,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0472-5bfde7432c5c",
+          "source_line": 472,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0473-e4858e664b98",
+          "source_line": 473,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0474-4794ec004f74",
+          "source_line": 474,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0475-ec04da6896b9",
+          "source_line": 475,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0476-668204b4dac0",
+          "source_line": 476,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0477-7f75c236ab44",
+          "source_line": 477,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0478-a57b2f497532",
+          "source_line": 478,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0479-dd79f3f7672d",
+          "source_line": 479,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0519-de2d38062a10",
+          "source_line": 519,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0533-06a789a86591",
+          "source_line": 533,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0534-de67f4f949ca",
+          "source_line": 534,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0535-8c34d234c477",
+          "source_line": 535,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0536-42e4e23dbee5",
+          "source_line": 536,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0537-23c07069f490",
+          "source_line": 537,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0538-753ab0e86020",
+          "source_line": 538,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0539-27e2537c8f54",
+          "source_line": 539,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0540-da60e6fd97d9",
+          "source_line": 540,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0541-98024b27ab22",
+          "source_line": 541,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0542-a3792ce5cf2d",
+          "source_line": 542,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0543-c90aa57b903f",
+          "source_line": 543,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0544-65488417fe82",
+          "source_line": 544,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0545-d40d0003aa04",
+          "source_line": 545,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0546-2a4d798547c3",
+          "source_line": 546,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0547-e09bedea42c2",
+          "source_line": 547,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0548-128255cb1e6a",
+          "source_line": 548,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0549-d1fae2f0b7d9",
+          "source_line": 549,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0550-480065947916",
+          "source_line": 550,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0551-9932bc4cca85",
+          "source_line": 551,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0588-2b745dd267bc",
+          "source_line": 588,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0592-312b137c26c7",
+          "source_line": 592,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0596-694deafde888",
+          "source_line": 596,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0600-7af2fa439061",
+          "source_line": 600,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0604-458d5b088239",
+          "source_line": 604,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0608-2e3e56d80c70",
+          "source_line": 608,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0612-ba68da556dd1",
+          "source_line": 612,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0616-c473be069421",
+          "source_line": 616,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0632-89c4b18f507f",
+          "source_line": 632,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0668-2116bf6e2965",
+          "source_line": 668,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0669-8858fa024e8c",
+          "source_line": 669,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0670-29c1185d27d4",
+          "source_line": 670,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0671-38a1dec892f4",
+          "source_line": 671,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0672-a033b319db2d",
+          "source_line": 672,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0674-786835316d2a",
+          "source_line": 674,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0680-1ae8acd97071",
+          "source_line": 680,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0713-04a9e53025f0",
+          "source_line": 713,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0717-487e8a48aa5a",
+          "source_line": 717,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0718-17688117e1ef",
+          "source_line": 718,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0719-5f6a928de879",
+          "source_line": 719,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0720-94b1ad46dd3a",
+          "source_line": 720,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0721-03514ea8bb77",
+          "source_line": 721,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0722-6e4af735a24b",
+          "source_line": 722,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0723-fc8dc9d079f2",
+          "source_line": 723,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0724-c0e31365e540",
+          "source_line": 724,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0725-0fa8811a7697",
+          "source_line": 725,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0726-9cde3d9c4e10",
+          "source_line": 726,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0727-e0af529b0760",
+          "source_line": 727,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0744-fd4403426e0f",
+          "source_line": 744,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0752-3cff4d862c61",
+          "source_line": 752,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0758-3eae693266d2",
+          "source_line": 758,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0764-12627a362eb2",
+          "source_line": 764,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0772-15fb1a3e9b57",
+          "source_line": 772,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0773-7bc9f54416aa",
+          "source_line": 773,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0774-e03cbc25d52a",
+          "source_line": 774,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0775-9aff2ee5c25c",
+          "source_line": 775,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0776-db3335b95bdf",
+          "source_line": 776,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0777-89fa9a5af129",
+          "source_line": 777,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0778-51151ae807dc",
+          "source_line": 778,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0779-fa44982a7752",
+          "source_line": 779,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0780-257c4d3297d2",
+          "source_line": 780,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0781-9246d69681c1",
+          "source_line": 781,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0782-f0f8fbd89409",
+          "source_line": 782,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0783-6c48d81105b1",
+          "source_line": 783,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0784-0b9fdf69ec4a",
+          "source_line": 784,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0785-b487620ff256",
+          "source_line": 785,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0786-99244611ab6d",
+          "source_line": 786,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0787-d886c98fd46c",
+          "source_line": 787,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0788-7bbd8850adee",
+          "source_line": 788,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0789-3b5e3d67319b",
+          "source_line": 789,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0790-ee82b81f6593",
+          "source_line": 790,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0791-7d02b8ebf5a8",
+          "source_line": 791,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0792-ae992a1f729f",
+          "source_line": 792,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0793-7e20a147f0f4",
+          "source_line": 793,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0794-69efe0da08dd",
+          "source_line": 794,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0795-325f5bb17af4",
+          "source_line": 795,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0796-aa960a41dd7f",
+          "source_line": 796,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0797-ded89fc41173",
+          "source_line": 797,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0798-06c8dd1b241e",
+          "source_line": 798,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0799-a4f0534690ef",
+          "source_line": 799,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0800-8c822ba981a6",
+          "source_line": 800,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0801-f418e85b9071",
+          "source_line": 801,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0807-4d882afb92b7",
+          "source_line": 807,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0809-a8f4f42db329",
+          "source_line": 809,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0810-2df0c12ade17",
+          "source_line": 810,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0811-c46bd5170d57",
+          "source_line": 811,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0812-5d3007b71f85",
+          "source_line": 812,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0813-3a3691b6f297",
+          "source_line": 813,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0814-f5c1fb32e092",
+          "source_line": 814,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0815-fac0ba0fac7d",
+          "source_line": 815,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0816-f97fa3fbcc5b",
+          "source_line": 816,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0817-7a1b69e42606",
+          "source_line": 817,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0818-6424dc4ff8fa",
+          "source_line": 818,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0819-02d779d8099b",
+          "source_line": 819,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0820-5a0316456bd5",
+          "source_line": 820,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0821-7a064eed960c",
+          "source_line": 821,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0822-1027a0c7596f",
+          "source_line": 822,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0823-70008cb6a4fb",
+          "source_line": 823,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0824-c0af14a0b273",
+          "source_line": 824,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0825-7431ef62d76b",
+          "source_line": 825,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0826-af13ea5f5a9b",
+          "source_line": 826,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0827-f8fd10a3d633",
+          "source_line": 827,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0828-e664ef837949",
+          "source_line": 828,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0829-6c7d7271b2f9",
+          "source_line": 829,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0830-a19a5d20cf5d",
+          "source_line": 830,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0831-8128a412ed1b",
+          "source_line": 831,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0841-b00e6d76f500",
+          "source_line": 841,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0842-035b6ff27cd7",
+          "source_line": 842,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0843-917ca2e980ad",
+          "source_line": 843,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0844-bb94cdb49d18",
+          "source_line": 844,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0846-0e55c19dda6d",
+          "source_line": 846,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        },
+        {
+          "requirement_id": "S138A-R-0852-40368d0761a1",
+          "source_line": 852,
+          "bead_ref": "focusa-vbcqu.9.4.1"
+        }
+      ]
+    },
+    "138a": {
+      "parent": "focusa-vbcqu.9.5",
+      "leaf_refs": [
+        "focusa-vbcqu.9.5.1",
+        "focusa-vbcqu.9.5.2",
+        "focusa-vbcqu.9.5.3",
+        "focusa-vbcqu.9.5.4",
+        "focusa-vbcqu.9.5.5",
+        "focusa-vbcqu.9.5.6",
+        "focusa-vbcqu.9.5.7",
+        "focusa-vbcqu.9.5.8",
+        "focusa-vbcqu.9.5.9"
+      ],
+      "section_mappings": [
+        {
+          "sections": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4.1",
+            "5"
+          ],
+          "bead_ref": "focusa-vbcqu.9.5.1"
+        },
+        {
+          "sections": [
+            "4.2",
+            "4.3"
+          ],
+          "bead_ref": "focusa-vbcqu.9.5.2"
+        },
+        {
+          "sections": [
+            "4.4",
+            "4.5"
+          ],
+          "bead_ref": "focusa-vbcqu.9.5.3"
+        },
+        {
+          "sections": [
+            "4.6",
+            "4.7",
+            "10"
+          ],
+          "bead_ref": "focusa-vbcqu.9.5.4"
+        },
+        {
+          "sections": [
+            "4.8",
+            "4.9",
+            "4.10"
+          ],
+          "bead_ref": "focusa-vbcqu.9.5.5"
+        },
+        {
+          "sections": [
+            "9:A",
+            "9:B",
+            "9:C",
+            "9:D"
+          ],
+          "bead_ref": "focusa-vbcqu.9.5.6"
+        },
+        {
+          "sections": [
+            "9:E",
+            "9:F",
+            "9:G",
+            "9:H"
+          ],
+          "bead_ref": "focusa-vbcqu.9.5.7"
+        },
+        {
+          "sections": [
+            "6",
+            "7",
+            "8",
+            "12",
+            "13",
+            "14"
+          ],
+          "bead_ref": "focusa-vbcqu.9.5.8"
+        },
+        {
+          "sections": [
+            "11",
+            "15",
+            "16",
+            "17",
+            "18"
+          ],
+          "bead_ref": "focusa-vbcqu.9.5.9"
+        }
+      ]
+    },
+    "140": {
+      "parent": "focusa-vbcqu.9.6",
+      "requirement_mappings": [
+        {
+          "requirement_id": "S140-REQ-001",
+          "implementation_slice": "foundation",
+          "bead_ref": "focusa-vbcqu.9.6.1"
+        },
+        {
+          "requirement_id": "S140-REQ-002",
+          "implementation_slice": "foundation",
+          "bead_ref": "focusa-vbcqu.9.6.1"
+        },
+        {
+          "requirement_id": "S140-REQ-003",
+          "implementation_slice": "foundation",
+          "bead_ref": "focusa-vbcqu.9.6.1"
+        },
+        {
+          "requirement_id": "S140-REQ-004",
+          "implementation_slice": "foundation",
+          "bead_ref": "focusa-vbcqu.9.6.1"
+        },
+        {
+          "requirement_id": "S140-REQ-005",
+          "implementation_slice": "security_grounding",
+          "bead_ref": "focusa-vbcqu.9.6.2"
+        },
+        {
+          "requirement_id": "S140-REQ-006",
+          "implementation_slice": "foundation",
+          "bead_ref": "focusa-vbcqu.9.6.1"
+        },
+        {
+          "requirement_id": "S140-REQ-007",
+          "implementation_slice": "crist_integration",
+          "bead_ref": "focusa-vbcqu.9.6.5"
+        },
+        {
+          "requirement_id": "S140-REQ-008",
+          "implementation_slice": "instruction_graph",
+          "bead_ref": "focusa-vbcqu.9.6.2"
+        },
+        {
+          "requirement_id": "S140-REQ-009",
+          "implementation_slice": "instruction_graph",
+          "bead_ref": "focusa-vbcqu.9.6.2"
+        },
+        {
+          "requirement_id": "S140-REQ-010",
+          "implementation_slice": "instruction_graph",
+          "bead_ref": "focusa-vbcqu.9.6.2"
+        },
+        {
+          "requirement_id": "S140-REQ-011",
+          "implementation_slice": "instruction_graph",
+          "bead_ref": "focusa-vbcqu.9.6.2"
+        },
+        {
+          "requirement_id": "S140-REQ-012",
+          "implementation_slice": "instruction_graph",
+          "bead_ref": "focusa-vbcqu.9.6.2"
+        },
+        {
+          "requirement_id": "S140-REQ-013",
+          "implementation_slice": "instruction_graph",
+          "bead_ref": "focusa-vbcqu.9.6.2"
+        },
+        {
+          "requirement_id": "S140-REQ-014",
+          "implementation_slice": "instruction_graph",
+          "bead_ref": "focusa-vbcqu.9.6.2"
+        },
+        {
+          "requirement_id": "S140-REQ-015",
+          "implementation_slice": "foundation",
+          "bead_ref": "focusa-vbcqu.9.6.1"
+        },
+        {
+          "requirement_id": "S140-REQ-016",
+          "implementation_slice": "prompt_compiler",
+          "bead_ref": "focusa-vbcqu.9.6.3"
+        },
+        {
+          "requirement_id": "S140-REQ-017",
+          "implementation_slice": "prompt_compiler",
+          "bead_ref": "focusa-vbcqu.9.6.3"
+        },
+        {
+          "requirement_id": "S140-REQ-018",
+          "implementation_slice": "pi_prompt",
+          "bead_ref": "focusa-vbcqu.9.6.3"
+        },
+        {
+          "requirement_id": "S140-REQ-019",
+          "implementation_slice": "pi_prompt",
+          "bead_ref": "focusa-vbcqu.9.6.3"
+        },
+        {
+          "requirement_id": "S140-REQ-020",
+          "implementation_slice": "pi_prompt",
+          "bead_ref": "focusa-vbcqu.9.6.3"
+        },
+        {
+          "requirement_id": "S140-REQ-021",
+          "implementation_slice": "pi_prompt",
+          "bead_ref": "focusa-vbcqu.9.6.3"
+        },
+        {
+          "requirement_id": "S140-REQ-022",
+          "implementation_slice": "pi_prompt",
+          "bead_ref": "focusa-vbcqu.9.6.3"
+        },
+        {
+          "requirement_id": "S140-REQ-023",
+          "implementation_slice": "artifact_compilers",
+          "bead_ref": "focusa-vbcqu.9.6.3"
+        },
+        {
+          "requirement_id": "S140-REQ-024",
+          "implementation_slice": "artifact_compilers",
+          "bead_ref": "focusa-vbcqu.9.6.3"
+        },
+        {
+          "requirement_id": "S140-REQ-025",
+          "implementation_slice": "skills_tools",
+          "bead_ref": "focusa-vbcqu.9.6.4"
+        },
+        {
+          "requirement_id": "S140-REQ-026",
+          "implementation_slice": "skills_tools",
+          "bead_ref": "focusa-vbcqu.9.6.4"
+        },
+        {
+          "requirement_id": "S140-REQ-027",
+          "implementation_slice": "skills_tools",
+          "bead_ref": "focusa-vbcqu.9.6.4"
+        },
+        {
+          "requirement_id": "S140-REQ-028",
+          "implementation_slice": "enforcement",
+          "bead_ref": "focusa-vbcqu.9.6.4"
+        },
+        {
+          "requirement_id": "S140-REQ-029",
+          "implementation_slice": "ui",
+          "bead_ref": "focusa-vbcqu.9.6.5"
+        },
+        {
+          "requirement_id": "S140-REQ-030",
+          "implementation_slice": "security_grounding",
+          "bead_ref": "focusa-vbcqu.9.6.2"
+        },
+        {
+          "requirement_id": "S140-REQ-031",
+          "implementation_slice": "lifecycle_delivery",
+          "bead_ref": "focusa-vbcqu.9.6.7"
+        },
+        {
+          "requirement_id": "S140-REQ-032",
+          "implementation_slice": "cross_spec",
+          "bead_ref": "focusa-vbcqu.9.6.6"
+        },
+        {
+          "requirement_id": "S140-REQ-033",
+          "implementation_slice": "evaluation",
+          "bead_ref": "focusa-vbcqu.9.6.6"
+        },
+        {
+          "requirement_id": "S140-REQ-034",
+          "implementation_slice": "evaluation",
+          "bead_ref": "focusa-vbcqu.9.6.6"
+        },
+        {
+          "requirement_id": "S140-REQ-035",
+          "implementation_slice": "lifecycle_delivery",
+          "bead_ref": "focusa-vbcqu.9.6.7"
+        },
+        {
+          "requirement_id": "S140-REQ-036",
+          "implementation_slice": "lifecycle_delivery",
+          "bead_ref": "focusa-vbcqu.9.6.7"
+        },
+        {
+          "requirement_id": "S140-REQ-037",
+          "implementation_slice": "migration",
+          "bead_ref": "focusa-vbcqu.9.6.7"
+        },
+        {
+          "requirement_id": "S140-REQ-038",
+          "implementation_slice": "closure",
+          "bead_ref": "focusa-vbcqu.9.6.7"
+        }
+      ]
+    }
+  },
+  "acceptance_gate": "focusa-vbcqu.9.7",
+  "unmapped_locked_issue_ids": [],
+  "unmapped_requirement_ids": [],
+  "publication_gate": "forbidden_until_all_mapped_leaf_beads_and_acceptance_gate_are_closed_with_evidence"
+}
