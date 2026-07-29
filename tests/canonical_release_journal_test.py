@@ -60,6 +60,7 @@ for lifecycle_command in ("journal_client plan", "journal_client benchmark", "jo
     assert lifecycle_command in release_script
 assert "FOCUSA_RELEASE_JOURNAL_MODE" in release_script
 assert "run-release-learning-guards.py" in release_script
+assert "run-guardian-release-cleanup.sh post" in release_script
 assert "journal_client history --release-id" in release_script
 assert "Canonical release journal plan resumed" in release_script
 assert "Resuming exact stamped release surfaces" in release_script
@@ -72,6 +73,8 @@ for learning_binding in ("retrieve_release_lessons", "record_release_predictions
 
 guards = json.loads((ROOT / "config/release-learning-guards.json").read_text())
 assert guards["schema"] == "focusa.release_learning_guards.v1"
+assert guards["guards"][0]["failure_class"] == "guardian_release_artifact_cleanup"
+assert guards["guards"][1]["failure_class"] == "cross_server_resource_pressure"
 classes = [row["failure_class"] for row in guards["guards"]]
 assert len(classes) >= 6
 assert len(classes) == len(set(classes))

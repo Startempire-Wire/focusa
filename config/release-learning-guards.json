@@ -2,6 +2,11 @@
   "schema": "focusa.release_learning_guards.v1",
   "guards": [
     {
+      "failure_class": "guardian_release_artifact_cleanup",
+      "lesson_ref": "guardian:disk-pressure:routed-cleanup",
+      "command": ["bash", "scripts/run-guardian-release-cleanup.sh", "pre"]
+    },
+    {
       "failure_class": "cross_server_resource_pressure",
       "lesson_ref": "audit:dual-server-2026-07-28:disk-pressure",
       "command": ["python3", "scripts/check-release-resource-gate.py"]

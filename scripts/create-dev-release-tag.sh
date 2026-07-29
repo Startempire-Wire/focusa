@@ -529,6 +529,11 @@ if [[ "$PUSH" -eq 1 ]]; then
   else
     echo "Not waiting for GitHub workflows. Track with: gh run list --commit ${HEAD_SHA}"
   fi
+  if scripts/run-guardian-release-cleanup.sh post; then
+    echo "Guardian-routed post-release artifact cleanup completed."
+  else
+    echo "Guardian-routed post-release cleanup needs operator review; release state is unchanged." >&2
+  fi
 else
   echo "Local only. Push with: git push origin HEAD:main && git push origin ${TAG}"
 fi
