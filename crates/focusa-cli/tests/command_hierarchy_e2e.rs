@@ -47,8 +47,6 @@ fn help_migration_exposes_old_to_new_alias_map() {
         "help migration should exit 0, got: {out}"
     );
     for needle in [
-        "focusa init",
-        "focusa project new / focusa setup init",
         "focusa onboard",
         "focusa setup wizard",
         "focusa pair",
@@ -63,6 +61,14 @@ fn help_migration_exposes_old_to_new_alias_map() {
             "migration help missing {needle}, got: {out}"
         );
     }
+    assert!(
+        !out.contains("focusa init"),
+        "canonical existing-repository binding must not appear as a deprecated migration: {out}"
+    );
+    assert!(
+        !include_str!("../src/main.rs").contains("warn_alias(\"focusa init\""),
+        "focusa init must not emit a contradictory deprecation warning"
+    );
 }
 
 #[test]

@@ -33953,8 +33953,8 @@
       },
       "version": "2.0.0",
       "title": "Focusa Silent Sessions (daemon facade)",
-      "summary": "Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility.",
-      "description": "Daemon-native Spec133 Silent Session client for status, observation, steering, controls, config, receipts, capabilities, and legacy action compatibility. Use it when Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+      "summary": "Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery.",
+      "description": "Daemon-native Spec133 Silent Session client for status, observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery. Use it when Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
       "family": "work_loop",
       "namespace": "focusa.work_loop",
       "availability": {
@@ -34444,7 +34444,7 @@
       },
       "examples": [
         {
-          "description": "Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility.",
+          "description": "Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery.",
           "arguments": {},
           "human_invocation": "focusa silent",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md"
@@ -34530,7 +34530,7 @@
         "snippet": "Use as a thin daemon API client. Supply exact session_id/run_id/generation and durable approval/idempotency fields for mutations; the daemon remains canonical authority.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:fd20968ae33d9849337b1d6c7900b6edc736af138183c641dc564cff5acbebde"
+      "descriptor_digest": "sha256:c4f50f9ece077de64242b7c88afcc9c41c233365fc4481327c270c5b75740f8e"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -48319,5 +48319,5 @@
       "descriptor_digest": "sha256:ab9c9bbe2ed5cd1be3c2be60126fbc6114de34d72116a188fdd0b734de5b3e68"
     }
   ],
-  "registry_digest": "sha256:d7bb4c8fb927058bd546672f85ab3a3b9e6ffbbaf3a113d51f6671d8ecf4ba95"
+  "registry_digest": "sha256:90f1f14e40eb2ddeb24781ebeeb1d22da9b23aa2fefd5c11e0f35ddb4782fc9e"
 }

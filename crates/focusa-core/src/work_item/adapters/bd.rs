@@ -171,6 +171,15 @@ impl BdAdapter {
                 .into_iter()
                 .filter_map(|label| label.strip_prefix("spec:").map(str::to_string)),
         );
+        if let Some(spec_ref) = value
+            .get("external_ref")
+            .and_then(serde_json::Value::as_str)
+            .and_then(|entry| entry.strip_prefix("spec:"))
+            .map(str::trim)
+            .filter(|entry| !entry.is_empty())
+        {
+            spec_refs.push(spec_ref.to_string());
+        }
         spec_refs.sort();
         spec_refs.dedup();
 
@@ -400,6 +409,7 @@ mod tests {
             "status": "open",
             "priority": 1,
             "acceptance_criteria": "proof passes",
+            "external_ref": "spec:docs/133.md",
             "labels": ["work-loop", "spec:docs/79.md"],
             "dependencies": [
                 {"depends_on_id": "focusa-parent", "type": "parent-child"},
@@ -415,7 +425,7 @@ mod tests {
         assert_eq!(item.dependencies.len(), 1);
         assert_eq!(item.dependencies[0].provider_item_id, "focusa-dep");
         assert_eq!(item.acceptance_criteria, vec!["proof passes"]);
-        assert_eq!(item.spec_refs, vec!["docs/79.md"]);
+        assert_eq!(item.spec_refs, vec!["docs/133.md", "docs/79.md"]);
     }
 
     #[cfg(unix)]

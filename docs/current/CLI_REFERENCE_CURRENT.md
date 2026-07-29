@@ -188,7 +188,8 @@ Machine-readable CLI bindings live in `docs/contracts/spec141/generated-capabili
 
 | Old command | Canonical command |
 | --- | --- |
-| `focusa init` | `focusa project new` / `focusa setup init` |
+| `focusa init --quickstart --project-root <repo> --json` | Canonical existing-repository binding; creates/verifies `.focusa-project.json` and returns one next action |
+| `focusa project new` | New-project creation only; not an existing-repository binding alias |
 | `focusa onboard` | `focusa setup wizard` |
 | `focusa preflight` | `focusa setup doctor` / future `focusa quality preflight` |
 | `focusa pair` | `focusa pairing start` |

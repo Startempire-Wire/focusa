@@ -43,6 +43,9 @@ require 'latest\.json|updater' .github/workflows/release.yml 'release publishes 
 require 'focusa-daemon' .github/workflows/release.yml 'release packages daemon/API surface'
 require 'focusa-tui' .github/workflows/release.yml 'release packages TUI surface'
 bash tests/spec132_public_uninstall_preservation_test.sh
+bash tests/installer_explicit_target_alias_test.sh
+bash tests/spec114_public_benchmark_flywheel_static_test.sh
+python3 tests/spec114_observatory_ui_static_test.py
 pass 'public uninstall preserves user data unless purge is explicit'
 
 # Every Focusa Pi tool, skill, runbook, machine projection, and public agent
@@ -68,6 +71,7 @@ pass 'worktree and authority gates'
   npm run test:cache-safe-context
   npm run test:ota-activation
   npm run test:spec104-attachment
+  npm run test:unbound-project
 )
 pass 'cache miss mitigation and Pi OTA activation gates'
 

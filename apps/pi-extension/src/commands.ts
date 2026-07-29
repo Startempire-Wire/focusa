@@ -134,14 +134,7 @@ const AUTO_COMPACTION_RESERVE_PCT_OPTIONS = ["5", "10", "15", "20", "25"];
 const AUTO_COMPACTION_COOLDOWN_OPTIONS = ["30000", "60000", "120000", "180000", "300000"];
 const WORK_LOOP_PRESET_OPTIONS = ["conservative", "balanced", "push", "audit"];
 const WORK_LOOP_TURN_OPTIONS = ["6", "10", "12", "16", "24", "60", "120", "200"];
-const WORK_LOOP_WALL_CLOCK_OPTIONS = [
-  "900000",
-  "1200000",
-  "1800000",
-  "3600000",
-  "7200000",
-  "14400000",
-];
+const WORK_LOOP_WALL_CLOCK_OPTIONS = ["900000", "1200000", "1800000", "3600000", "7200000", "14400000"];
 const WORK_LOOP_RETRY_OPTIONS = ["1", "2", "3", "4", "8"];
 const WORK_LOOP_COOLDOWN_OPTIONS = ["500", "800", "1000", "1500", "2000"];
 const WORK_LOOP_LOW_PRODUCTIVITY_OPTIONS = ["2", "3", "4"];
@@ -1111,9 +1104,7 @@ export function registerCommands(pi: ExtensionAPI) {
         const syncDisplayedItems = () => {
           simpleProfile = inferSimpleProfile();
           const refreshedItems = advancedMode ? buildAdvancedItems() : buildSimpleItems();
-          const currentValues = new Map(
-            refreshedItems.map((item) => [item.id, item.currentValue] as const)
-          );
+          const currentValues = new Map(refreshedItems.map((item) => [item.id, item.currentValue] as const));
           for (const item of displayedItems) {
             const currentValue = currentValues.get(item.id);
             if (currentValue !== undefined) item.currentValue = currentValue;

@@ -30,7 +30,10 @@ assert.match(settings, /type SimpleProfileView = SimpleProfileId \| "custom"/);
 assert.match(settings, /simpleProfiles\.find\(\(profile\) =>/);
 assert.match(settings, /\["starter", "builder", "hands_off", "audit_safe", "custom"\]/);
 assert.match(settings, /if \(newValue === "custom"\) return/);
-assert.match(commandsSource, /const WORK_LOOP_TURN_OPTIONS = \["6", "10", "12", "16", "24", "60", "120", "200"\]/);
+assert.match(
+  commandsSource,
+  /const WORK_LOOP_TURN_OPTIONS = \["6", "10", "12", "16", "24", "60", "120", "200"\]/
+);
 assert.match(commandsSource, /const WORK_LOOP_RETRY_OPTIONS = \["1", "2", "3", "4", "8"\]/);
 assert.match(commandsSource, /const WORK_LOOP_SAME_SUBPROBLEM_OPTIONS = \["1", "2", "3", "4"\]/);
 

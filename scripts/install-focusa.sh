@@ -382,14 +382,42 @@ if [ "$TARGET" = "auto" ]; then
     Darwin-arm64|Darwin-aarch64) TRIPLE="aarch64-apple-darwin" ;;
     *) err "unsupported host: $HOST_OS-$HOST_ARCH"; exit 66 ;;
   esac
-  TARGET="$TRIPLE"
   # Map host OS to Rust InstallTarget enum variant.
   case "$HOST_OS" in
     Linux)   RUST_TARGET="linux" ;;
     Darwin)  RUST_TARGET="darwin" ;;
     Windows) RUST_TARGET="windows-x64" ;;
   esac
+else
+  # Public --target values are installer aliases, not release asset suffixes.
+  # Resolve both the immutable release triple and the Rust orchestrator enum.
+  case "$TARGET" in
+    linux)
+      RUST_TARGET="linux"
+      case "$HOST_ARCH" in
+        x86_64) TRIPLE="x86_64-unknown-linux-musl" ;;
+        aarch64|arm64) TRIPLE="aarch64-unknown-linux-gnu" ;;
+      esac
+      ;;
+    darwin)
+      RUST_TARGET="darwin"
+      case "$HOST_ARCH" in
+        x86_64) TRIPLE="x86_64-apple-darwin" ;;
+        aarch64|arm64) TRIPLE="aarch64-apple-darwin" ;;
+      esac
+      ;;
+    windows-x64)
+      RUST_TARGET="windows-x64"
+      TRIPLE="x86_64-pc-windows-msvc"
+      ;;
+    windows-arm64)
+      RUST_TARGET="windows-arm64"
+      TRIPLE="aarch64-pc-windows-msvc"
+      ;;
+    *) err "unsupported explicit target alias: $TARGET"; exit 66 ;;
+  esac
 fi
+TARGET="$TRIPLE"
 
 # ----------------------------------------------------------------------------
 # Channel → release-tag pattern.

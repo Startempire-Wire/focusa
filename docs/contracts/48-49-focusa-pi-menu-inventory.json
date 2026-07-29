@@ -1,7 +1,7 @@
 {
   "schema": "focusa.pi_menu_inventory.v1",
   "generated": true,
-  "source_sha256": "057390d7c20c0820da4be8273e1e27d022c03625b116ecb447b7be4d7ca18c02",
+  "source_sha256": "c049402b1b33fda049c569d7f30583df0a7acceaa7c15943a6ebb509a3d74e54",
   "baseline": {
     "top_level_commands": 9,
     "simple_settings": 11,
@@ -139,10 +139,10 @@
       "id": "focusa-off",
       "kind": "command",
       "owner": "focusa-pi-extension",
-      "user_job": "Stop all Focusa writes \u2014 Focus State local only",
+      "user_job": "Stop all Focusa writes — Focus State local only",
       "placement": "top_level_command",
       "rationale": "direct operator action or compatibility entrypoint",
-      "help": "Stop all Focusa writes \u2014 Focus State local only",
+      "help": "Stop all Focusa writes — Focus State local only",
       "scope": "attachment_or_explicit_project",
       "risk": "mutation_gated_by_handler",
       "interaction_test": "Pi typecheck plus command-specific contract test"

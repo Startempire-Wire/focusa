@@ -157,10 +157,10 @@ function queueUnboundProjectNag(pi: ExtensionAPI, ctx: any, reason: string): voi
   const prompt = [
     "Focusa project not bound: no .focusa-project.json marker found at this Pi session cwd.",
     `cwd: ${cwd}`,
-    "Next steps:",
-    "- focusa about        # inspect current Focusa/project binding",
-    "- focusa init         # create a local project marker when this is the right project root",
-    "- focusa onboard --remote <git-url> --project-root <path>  # bind a remote/VPS checkout marker",
+    "Bind this existing repository:",
+    `focusa init --quickstart --project-root ${JSON.stringify(cwd)} --json`,
+    "Success must report the .focusa-project.json marker and one next action before HLT/Workpoint guidance.",
+    "For a remote checkout instead: focusa onboard --remote <git-url> --project-root <path>",
     "Suppress for this session with --nag-suppress when intentionally working unbound.",
   ].join("\n");
   focusaPost("/telemetry/trace", {

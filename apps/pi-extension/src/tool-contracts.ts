@@ -1172,7 +1172,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     name: "focusa_silent_sessions",
     label: "Focusa Silent Sessions (daemon facade)",
     purpose:
-      "Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility.",
+      "Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery.",
     family: "work_loop",
     ontology_action: "work_loop.silent_session.control",
     ontology_objects: ["SilentSession", "SilentSessionRun", "ResourceMode"],

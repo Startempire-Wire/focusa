@@ -12,6 +12,7 @@
     ]
   },
   "scripts": {
+    "postinstall": "node scripts/patch-pi-shrinkwrap-dependencies.mjs",
     "check": "tsc -p tsconfig.json --pretty false",
     "typecheck": "tsc -p tsconfig.json --pretty false",
     "lint": "eslint . --max-warnings 0",
@@ -26,6 +27,8 @@
     "test:work-rail-width": "node tests/work-rail-widget-width.test.mjs",
     "test:settings-attachment": "node tests/settings-attachment-safety.test.mjs",
     "test:interaction-mode": "node tests/interaction-mode.test.mjs",
+    "test:unbound-project": "node tests/unbound-project-binding-guidance.test.mjs",
+    "test:pi-security": "node tests/pi-sdk-security.test.mjs",
     "test:menu-audit": "node tests/menu-audit-gate.test.mjs",
     "test:mission-canvas": "node tests/mission-canvas-pi-surface.test.mjs && node tests/mission-canvas-mode-precedence.test.mjs && node tests/mission-canvas-session-inventory.test.mjs && node tests/mission-canvas-performance.test.mjs"
   },
@@ -33,17 +36,17 @@
     "@sinclair/typebox": "^0.34.0"
   },
   "overrides": {
-    "protobufjs": "7.6.3",
-    "undici": "7.28.0"
+    "undici": "7.28.0",
+    "brace-expansion": "5.0.8"
   },
   "devDependencies": {
-    "@earendil-works/pi-coding-agent": "0.81.1",
-    "@earendil-works/pi-tui": "0.81.1",
+    "@earendil-works/pi-coding-agent": "0.82.1",
+    "@earendil-works/pi-tui": "0.82.1",
     "@types/node": "25.5.0",
     "@typescript-eslint/eslint-plugin": "^8.63.0",
     "@typescript-eslint/parser": "^8.63.0",
-    "eslint": "^9.39.4",
-    "eslint-config-prettier": "^9.1.2",
+    "eslint": "^10.8.0",
+    "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.9.4",
     "typescript": "^5.0.0"
   }

@@ -1012,10 +1012,7 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::Cleanup(args) => commands::cleanup::run(args, cli.json).await,
         Commands::Continue(args) => commands::continue_work::run(args, cli.json).await,
         Commands::Tui(args) => commands::tui::run(args, cli.json).await,
-        Commands::Init(args) => {
-            commands::help::warn_alias("focusa init", "focusa project new / focusa setup init");
-            commands::init::run(args, cli.json).await
-        }
+        Commands::Init(args) => commands::init::run(args, cli.json).await,
         Commands::Walkthrough(args) => {
             commands::help::warn_alias("focusa walkthrough", "focusa setup walkthrough");
             commands::walkthrough::run(args, cli.json).await

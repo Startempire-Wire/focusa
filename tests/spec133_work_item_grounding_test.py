@@ -5,7 +5,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 ISSUES = [json.loads(line) for line in (ROOT / ".beads/issues.jsonl").read_text().splitlines() if line.strip()]
-SPEC_REF = "spec:docs/133-daemon-native-durable-silent-sessions-and-governed-autonomous-execution-spec.md"
+SPEC_LABEL = "spec:133"
 ADAPTER = (ROOT / "crates/focusa-core/src/work_item/adapters/bd.rs").read_text()
 DAEMON = (ROOT / "crates/focusa-core/src/runtime/daemon.rs").read_text()
 
@@ -14,10 +14,10 @@ class Spec133WorkItemGrounding(unittest.TestCase):
         targets = [item for item in ISSUES if item["id"].startswith("focusa-a6yq6.") and item.get("status") not in {"closed", "done", "cancelled"}]
         self.assertGreater(len(targets), 0)
         for item in targets:
-            self.assertIn(SPEC_REF, item.get("labels", []), item["id"])
+            self.assertIn(SPEC_LABEL, item.get("labels", []), item["id"])
             self.assertTrue((item.get("acceptance_criteria") or "").strip(), item["id"])
 
-    def test_adapter_promotes_explicit_spec_labels_only(self):
+    def test_adapter_promotes_explicit_spec_metadata_only(self):
         self.assertIn('label.strip_prefix("spec:")', ADAPTER)
         self.assertNotIn("infer_spec", ADAPTER)
 

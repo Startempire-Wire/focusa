@@ -22,7 +22,7 @@
     "device_pairing",
     "local_trusted"
   ],
-  "registry_digest": "sha256:d7bb4c8fb927058bd546672f85ab3a3b9e6ffbbaf3a113d51f6671d8ecf4ba95",
+  "registry_digest": "sha256:90f1f14e40eb2ddeb24781ebeeb1d22da9b23aa2fefd5c11e0f35ddb4782fc9e",
   "pi_tool_count": 116,
   "pi_tool_docs_count": 116,
   "pi_tool_registry_path": "docs/contracts/spec141/generated-capability-v2/pi-tools.json",
@@ -363,5 +363,5 @@
     "workpoint"
   ],
   "extended_card_path": "/v1/agent/card",
-  "card_digest": "sha256:3438fffe30a53643ef9d35015fae931064604d183bdcbf261195018a4fc05551"
+  "card_digest": "sha256:657e3992dd721406f68396fffb581f0ba35decd7851b5e976b630549c1efa01a"
 }
