@@ -46,7 +46,7 @@ requirements:
   - s140_crist_to_runtime_constitution
   negative_tests:
   - s140_unapproved_crist_input
-  status: not_started
+  status: active
 - requirement_id: S140-REQ-002
   spec_section: 3.1-3.2
   requirement_text: Preserve Spec 16 Agent Constitution and Spec 16B Constitution Synthesizer ownership; compile approved
@@ -165,7 +165,7 @@ requirements:
   - focusa.project_agent_runtime_constitution.v1
   positive_tests:
   - s140_constitution_composition
-  status: not_started
+  status: active
 - requirement_id: S140-REQ-007
   spec_section: '6'
   requirement_text: Extend the C.R.I.S.T. lifecycle with source scanning, claim extraction, conflict resolution, Runtime Constitution
@@ -191,7 +191,7 @@ requirements:
   - s140_crist_extended_state_machine
   restart_recovery_tests:
   - s140_crist_runtime_stage_resume
-  status: not_started
+  status: active
 - requirement_id: S140-REQ-008
   spec_section: '7.1'
   requirement_text: Discover registered project instruction, system-prompt, harness-rule, skill, package/task, CI, runbook,
@@ -219,7 +219,7 @@ requirements:
   - s140_source_discovery_matrix
   negative_tests:
   - s140_out_of_scope_source_ingestion
-  status: not_started
+  status: active
 - requirement_id: S140-REQ-009
   spec_section: '7.2'
   requirement_text: Inventory authorized machine/user/managed overlays without silently committing or broadening them into
@@ -290,7 +290,7 @@ requirements:
   - s140_atomic_claim_extraction
   negative_tests:
   - s140_paragraph_as_authority_unit
-  status: not_started
+  status: active
 - requirement_id: S140-REQ-012
   spec_section: 9.1-9.3
   requirement_text: Implement an explicit internal authority/applicability graph and allow lower rules to specialize but not
@@ -340,7 +340,7 @@ requirements:
   - instruction_conflict_workbench
   positive_tests:
   - s140_conflict_resolution_lifecycle
-  status: not_started
+  status: active
 - requirement_id: S140-REQ-014
   spec_section: '10'
   requirement_text: Detect direct/conditional contradictions, scope errors, route conflicts, stale commands, blind references,
@@ -386,7 +386,7 @@ requirements:
   - focusa.agent_operating_contract.v1
   positive_tests:
   - s140_procedure_constitution_separation
-  status: not_started
+  status: active
 - requirement_id: S140-REQ-016
   spec_section: '12'
   requirement_text: Implement SystemPromptAssemblyPlan with ordered sections, source refs, token budgets, mutability classes,
@@ -641,10 +641,15 @@ requirements:
   - claude_skills
   - cross_agent_skills
   positive_tests:
+  - agent_runtime_constitution_enforcement_test::skills_use_explicit_applicability_and_progressive_disclosure
+  - agent_runtime_constitution_enforcement_test::validation_matrix_is_change_class_specific
   - s140_skill_progressive_disclosure
   negative_tests:
+  - agent_runtime_constitution_enforcement_test::missing_operation_route_fails_closed
   - s140_side_effect_skill_auto_invoked
-  status: not_started
+  status: verified
+  evidence_refs:
+  - test:/tmp/lock-spec140-enforcement-tests.txt
 - requirement_id: S140-REQ-026
   spec_section: '19'
   requirement_text: Implement ToolRoutingPlan that maps operation classes to preferred typed interfaces, fallbacks, preview/approval,
@@ -662,10 +667,15 @@ requirements:
   generated_contracts:
   - focusa.tool_routing_plan.v1
   positive_tests:
+  - agent_runtime_constitution_enforcement_test::skills_use_explicit_applicability_and_progressive_disclosure
+  - agent_runtime_constitution_enforcement_test::validation_matrix_is_change_class_specific
   - s140_tool_interface_routing
   negative_tests:
+  - agent_runtime_constitution_enforcement_test::missing_operation_route_fails_closed
   - s140_prompt_mentions_unavailable_tool
-  status: not_started
+  status: verified
+  evidence_refs:
+  - test:/tmp/lock-spec140-enforcement-tests.txt
 - requirement_id: S140-REQ-027
   spec_section: '20'
   requirement_text: Replace vague quality-gate prose with a typed ValidationMatrix by change class, path, required/forbidden
@@ -682,10 +692,15 @@ requirements:
   persistence:
   - validation_matrices
   positive_tests:
+  - agent_runtime_constitution_enforcement_test::skills_use_explicit_applicability_and_progressive_disclosure
+  - agent_runtime_constitution_enforcement_test::validation_matrix_is_change_class_specific
   - s140_change_class_validation
   negative_tests:
+  - agent_runtime_constitution_enforcement_test::missing_operation_route_fails_closed
   - s140_unscoped_run_tests_linters_builds
-  status: not_started
+  status: verified
+  evidence_refs:
+  - test:/tmp/lock-spec140-enforcement-tests.txt
 - requirement_id: S140-REQ-028
   spec_section: '21'
   requirement_text: Compile hard claims into deterministic daemon policy, Operation Registry, permissions, hooks, shell guards,
@@ -714,7 +729,7 @@ requirements:
   - s140_hard_rule_enforcement_mapping
   negative_tests:
   - s140_hard_rule_prose_only
-  status: not_started
+  status: active
 - requirement_id: S140-REQ-029
   spec_section: '22'
   requirement_text: Provide A2UI Agent Runtime Studio surfaces for role/grounding, source inventory, conflict workbench, prompt
@@ -758,7 +773,7 @@ requirements:
   - s140_prompt_injection
   - s140_secret_exclusion
   - s140_dynamic_fact_exclusion
-  status: not_started
+  status: active
 - requirement_id: S140-REQ-031
   spec_section: '24'
   requirement_text: Version and immutably activate Runtime Constitutions and PromptVariants, pin stable versions per session,

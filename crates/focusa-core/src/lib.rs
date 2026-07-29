@@ -32,6 +32,9 @@ mod agent_runtime_constitution_authority_test;
 pub mod agent_runtime_constitution_compiler;
 #[cfg(test)]
 mod agent_runtime_constitution_compiler_test;
+pub mod agent_runtime_constitution_enforcement;
+#[cfg(test)]
+mod agent_runtime_constitution_enforcement_test;
 pub mod agent_runtime_constitution_store;
 #[cfg(test)]
 mod agent_runtime_constitution_store_test;
