@@ -125,6 +125,8 @@ run_gate python3 scripts/generate-spec135-work-surface-schema.py
 run_gate python3 ./tests/spec135_g1_work_surface_test.py
 run_gate python3 scripts/generate-spec135-canvas-state.py
 run_gate python3 ./tests/spec135_g2_canvas_restoration_test.py
+run_gate python3 scripts/generate-spec135-surface-lifecycle.py
+run_gate python3 ./tests/spec135_g3_surface_lifecycle_test.py
 run_gate python3 scripts/generate-spec135-ui-event-stream.py
 run_gate python3 ./tests/spec135_j3_ui_event_stream_test.py
 run_gate python3 scripts/generate-spec135-reconnect-recovery.py
