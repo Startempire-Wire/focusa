@@ -5047,7 +5047,7 @@ export interface components {
             stg?: string;
             waypoints?: unknown[];
             task_provider_and_task_graph?: Record<string, never>;
-            first_workpoint?: Record<string, never> | null;
+            first_workpoint?: components["schemas"]["focusa_genesis_first_workpoint_v1"] | null;
             coordination_owner?: Record<string, never> | null;
             readiness_receipt?: Record<string, never> | null;
             missing_links?: string[];
@@ -5403,6 +5403,18 @@ export interface components {
             mutation_approval_required: boolean;
             adapter_ref: string;
             recovery_action: string;
+        };
+        focusa_genesis_first_workpoint_v1: {
+            workpoint_id: string;
+            work_item_id?: string | null;
+            project_root: string;
+            continuity_id: string;
+            /** @constant */
+            status: "active";
+            /** @constant */
+            canonical: true;
+            acceptance_criteria: string[];
+            evidence_refs: string[];
         };
     };
     responses: never;

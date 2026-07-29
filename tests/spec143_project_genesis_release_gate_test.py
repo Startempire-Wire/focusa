@@ -81,6 +81,7 @@ for path in (
     ROOT / "crates/focusa-api/src/routes/project_genesis.rs",
     ROOT / "crates/focusa-api/src/routes/project_genesis_support.rs",
     ROOT / "crates/focusa-api/src/routes/project_genesis_crist.rs",
+    ROOT / "crates/focusa-api/src/routes/project_genesis_resume.rs",
     ROOT / "crates/focusa-api/src/routes/project_genesis_tests.rs",
 ):
     assert len(path.read_text().splitlines()) < 500, path

@@ -8,6 +8,7 @@ SPEC = (ROOT / "docs/135b-crist-project-genesis-context-role-interview-spec-task
 ROUTE = (ROOT / "crates/focusa-api/src/routes/project_genesis.rs").read_text()
 SUPPORT = (ROOT / "crates/focusa-api/src/routes/project_genesis_support.rs").read_text()
 CRIST = (ROOT / "crates/focusa-api/src/routes/project_genesis_crist.rs").read_text()
+RESUME = (ROOT / "crates/focusa-api/src/routes/project_genesis_resume.rs").read_text()
 TESTS = (ROOT / "crates/focusa-api/src/routes/project_genesis_tests.rs").read_text()
 
 for stage in (
@@ -57,9 +58,9 @@ assert 'mod crist;' in ROUTE
 assert "initialize_crist_state(&root, &mut packet)" in ROUTE
 assert "record_crist_transition" in ROUTE
 assert "existing_genesis_guard" in ROUTE
-resume_route = ROUTE.split("async fn resume(", 1)[1].split("pub(super) async fn commit(", 1)[0]
-assert "start(State(state), Json(req)).await" in resume_route
-assert "idempotency_key" not in resume_route
+assert "resume_context_collection" in RESUME
+assert 'packet.get("idempotency_key")' not in RESUME
+assert "packet[key] = existing[key].clone()" in RESUME
 assert "crist_state_and_operating_profile_survive_disk_reconnect" in TESTS
 assert "invalid_crist_transition_fails_closed_with_durable_receipt" in TESTS
 assert "staged_genesis_enforces_continuity_ownership_after_reconnect" in TESTS

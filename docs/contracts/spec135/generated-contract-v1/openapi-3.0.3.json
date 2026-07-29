@@ -11343,10 +11343,12 @@
             "type": "object"
           },
           "first_workpoint": {
-            "type": [
-              "object",
-              "null"
-            ]
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/focusa_genesis_first_workpoint_v1"
+              }
+            ],
+            "nullable": true
           },
           "coordination_owner": {
             "type": [
@@ -12665,6 +12667,55 @@
           "mutation_approval_required",
           "adapter_ref",
           "recovery_action"
+        ],
+        "type": "object"
+      },
+      "focusa_genesis_first_workpoint_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "workpoint_id": {
+            "type": "string"
+          },
+          "work_item_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "project_root": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "status": {
+            "const": "active",
+            "type": "string"
+          },
+          "canonical": {
+            "const": true,
+            "type": "boolean"
+          },
+          "acceptance_criteria": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "workpoint_id",
+          "project_root",
+          "continuity_id",
+          "status",
+          "canonical",
+          "acceptance_criteria",
+          "evidence_refs"
         ],
         "type": "object"
       }

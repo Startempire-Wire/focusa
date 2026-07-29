@@ -30,9 +30,12 @@ use uuid::Uuid;
 
 #[path = "project_genesis_crist.rs"]
 mod crist;
+#[path = "project_genesis_resume.rs"]
+mod resume_flow;
 
 use super::project_genesis_support::*;
 use crist::{initialize_crist_state, record_crist_transition};
+use resume_flow::resume;
 
 async fn enrich_from_existing_trajectory(
     state: &Arc<AppState>,
@@ -204,13 +207,6 @@ async fn status(
     })
 }
 
-async fn resume(
-    State(state): State<Arc<AppState>>,
-    Json(req): Json<ProjectGenesisRequest>,
-) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    start(State(state), Json(req)).await
-}
-
 pub(super) async fn commit(
     State(state): State<Arc<AppState>>,
     Json(mut req): Json<ProjectGenesisRequest>,
@@ -338,7 +334,7 @@ pub(super) async fn commit(
         .to_string();
     let workpoint = WorkpointRecord {
         workpoint_id,
-        work_item_id,
+        work_item_id: work_item_id.clone(),
         continuity_id: Some(req.continuity_id.clone()),
         project_root: Some(root.to_string_lossy().to_string()),
         status: WorkpointStatus::Proposed,
@@ -387,9 +383,33 @@ pub(super) async fn commit(
     }
 
     let owner_id = stable_id("coordination", &root, &req.idempotency_key);
+    let mut first_workpoint_evidence_refs = first_task
+        .get("evidence_refs")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(str::to_string)
+        .collect::<Vec<_>>();
+    if let Some(specification_ref) = req.specification_ref.as_ref() {
+        first_workpoint_evidence_refs.push(specification_ref.clone());
+    }
+    if let Some(bootstrap_receipt_ref) = packet["bootstrap_receipt"]["receipt_id"].as_str() {
+        first_workpoint_evidence_refs.push(bootstrap_receipt_ref.to_string());
+    }
+    first_workpoint_evidence_refs.sort();
+    first_workpoint_evidence_refs.dedup();
     packet["status"] = json!("ready");
-    packet["first_workpoint"] =
-        json!({"workpoint_id": workpoint_id, "status": "active", "canonical": true});
+    packet["first_workpoint"] = json!({
+        "workpoint_id": workpoint_id,
+        "work_item_id": work_item_id,
+        "project_root": root.to_string_lossy(),
+        "continuity_id": req.continuity_id.clone(),
+        "status": "active",
+        "canonical": true,
+        "acceptance_criteria": req.acceptance_criteria.clone(),
+        "evidence_refs": first_workpoint_evidence_refs,
+    });
     packet["coordination_owner"] = json!({"owner_id": owner_id, "workpoint_id": workpoint_id, "status": "active", "internal": true});
     packet["readiness_receipt"] = json!({"receipt_id": stable_id("ready", &root, &req.idempotency_key), "trajectory_id": trajectory_id, "workpoint_id": workpoint_id, "marker_guard": "verified", "recorded_at": Utc::now().to_rfc3339()});
     packet["missing_links"] = json!([]);
