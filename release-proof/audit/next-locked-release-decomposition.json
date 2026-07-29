@@ -1,6 +1,6 @@
 {
   "schema": "focusa.locked_release_decomposition.v2",
-  "generated_at": "2026-07-29T16:10:05.921430+00:00",
+  "generated_at": "2026-07-29T21:20:50+00:00",
   "scope_manifest_ref": "release-proof/audit/next-locked-release-scope.json",
   "decomposition_epic": "focusa-vbcqu.9",
   "operator_authorized_post_lock_additions": [
@@ -19,6 +19,14 @@
       "parent": "focusa-vbcqu.3",
       "terminal_gate": "focusa-vbcqu.9.7",
       "acceptance_ref": "bead:focusa-vbcqu.3.4"
+    },
+    {
+      "issue_id": "focusa-gkwt",
+      "kind": "bug",
+      "lane": "locked-wave-2",
+      "parent": "focusa-vbcqu.3",
+      "terminal_gate": "focusa-vbcqu.9.7",
+      "acceptance_ref": "https://github.com/Startempire-Wire/focusa/issues/109"
     }
   ],
   "original_locked_issues": [

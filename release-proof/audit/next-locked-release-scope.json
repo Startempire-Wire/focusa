@@ -10,11 +10,11 @@
     "focusa-vbcqu.9.7"
   ],
   "locked_at": "2026-07-28T18:45:00-07:00",
-  "lock_revision": 2,
-  "relocked_at": "2026-07-29T12:14:32-07:00",
+  "lock_revision": 3,
+  "relocked_at": "2026-07-29T14:20:50-07:00",
   "scope_state": "locked",
-  "current_explicit_issue_count": 40,
-  "current_locked_bead_member_count": 236,
+  "current_explicit_issue_count": 41,
+  "current_locked_bead_member_count": 237,
   "operator_authorized_post_lock_additions": [
     {
       "issue_id": "focusa-vbcqu.5.7",
@@ -35,9 +35,19 @@
       "terminal_gate": "focusa-vbcqu.9.7",
       "summary": "Pi startup blocks on degraded project verification instead of safely inferring scope",
       "authorization_source": "operator_message:bug_2"
+    },
+    {
+      "issue_id": "focusa-gkwt",
+      "kind": "bug",
+      "priority": "P0",
+      "lane": "locked-wave-2",
+      "parent": "focusa-vbcqu.3",
+      "terminal_gate": "focusa-vbcqu.9.7",
+      "summary": "Foreign TRAJECTORY_CONTEXT contaminates exact-scoped Pi tool output",
+      "authorization_source": "operator_message:everything_should_be_scoped"
     }
   ],
-  "operator_scope": "original 38-item snapshot plus Specs 137, 137a, 138, 138a, and 140 plus two operator-authorized P0 bugs",
+  "operator_scope": "original 38-item snapshot plus Specs 137, 137a, 138, 138a, and 140 plus three operator-authorized P0 bugs",
   "pre_decomposition_open_issue_count": 38,
   "pre_decomposition_open_issue_ids": [
     "focusa-vbcqu.4.4",
