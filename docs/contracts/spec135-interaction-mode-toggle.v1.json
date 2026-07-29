@@ -1,0 +1,36 @@
+{
+  "schema": "focusa.spec135.interaction_mode_toggle.v1",
+  "acceptance_criteria": "All #53 toggle and headless acceptance scenarios pass without state loss, nags, or crashes.",
+  "modes": [
+    "canvas-guided",
+    "terminal-guided",
+    "headless"
+  ],
+  "precedence": [
+    "temporary-session override",
+    "project preference",
+    "user preference",
+    "environment",
+    "default canvas-guided"
+  ],
+  "properties": {
+    "durable": true,
+    "source_displayed": true,
+    "scope_exact": true,
+    "refresh_immediate": true,
+    "resume_survives": true,
+    "reconnect_survives": true,
+    "headless_no_ui_calls": true,
+    "state_loss": false,
+    "nag_on_headless": false
+  },
+  "implementation_refs": [
+    "apps/pi-extension/src/config.ts",
+    "apps/pi-extension/src/commands.ts",
+    "apps/pi-extension/src/turns.ts"
+  ],
+  "proof_refs": [
+    "apps/pi-extension/tests/mission-canvas-mode-precedence.test.mjs",
+    "tests/spec135_m2_pi_work_rail_test.py"
+  ]
+}
