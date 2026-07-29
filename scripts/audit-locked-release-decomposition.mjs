@@ -29,11 +29,28 @@ function sameSet(label, expected, actual) {
 if (manifest.schema !== "focusa.locked_release_scope.v2") failures.push("locked manifest schema is not v2");
 if (audit.schema !== "focusa.locked_release_decomposition.v2") failures.push("decomposition schema is not v2");
 if (manifest.pre_decomposition_open_issue_count !== 38) failures.push("original locked manifest count is not 38");
-if (manifest.lock_revision !== 4 || manifest.scope_state !== "locked" || !manifest.relocked_at) {
-  failures.push("release was not durably relocked at revision 4");
+if (manifest.lock_revision !== 5 || manifest.scope_state !== "locked" || !manifest.relocked_at) {
+  failures.push("release was not durably relocked at revision 5");
 }
 if (manifest.current_explicit_issue_count !== 42) failures.push("current explicit issue count is not 42");
-if (manifest.current_locked_bead_member_count !== 238) failures.push("current locked Bead member count is not 238");
+if (manifest.current_locked_bead_member_count !== 251) failures.push("current locked Bead member count is not 251");
+if (
+  manifest.execution_lock?.status !== "sealed" ||
+  manifest.execution_lock?.member_count !== 251 ||
+  manifest.execution_lock?.first_touch_issue_id !== "focusa-627th.4.3" ||
+  manifest.execution_lock?.audit_ref !== "scripts/audit-locked-release-execution.mjs" ||
+  manifest.execution_lock?.schema_audit_ref !== "scripts/audit-locked-release-workset-schema.py"
+) {
+  failures.push("revision 5 execution lock contract is incomplete");
+}
+if (
+  manifest.membership_reconciliation?.scope_expansion !== false ||
+  manifest.membership_reconciliation?.previous_declared_member_count !== 238 ||
+  manifest.membership_reconciliation?.reconciled_member_count !== 251 ||
+  manifest.membership_reconciliation?.restored_descendant_count !== 13
+) {
+  failures.push("locked-root descendant membership reconciliation is incomplete");
+}
 sameSet(
   "original locked issues",
   manifest.pre_decomposition_open_issue_ids,

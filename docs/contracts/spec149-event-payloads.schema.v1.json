@@ -809,7 +809,7 @@
           "$ref": "#/$defs/CreatedPayload"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "DefinitionEvent": {
       "type": "object",
@@ -828,7 +828,7 @@
           "$ref": "#/$defs/DefinitionPayload"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "ProviderEvent": {
       "type": "object",
@@ -849,7 +849,7 @@
           "$ref": "#/$defs/ProviderPayload"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "TombstoneEvent": {
       "type": "object",
@@ -865,7 +865,7 @@
           "$ref": "#/$defs/TombstonePayload"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "AdmissionPreviewEvent": {
       "type": "object",
@@ -881,7 +881,7 @@
           "$ref": "#/$defs/AdmissionPreviewPayload"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "AdmissionResultEvent": {
       "type": "object",
@@ -900,7 +900,7 @@
           "$ref": "#/$defs/AdmissionResultPayload"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "MemberEvent": {
       "type": "object",
@@ -920,7 +920,7 @@
           "$ref": "#/$defs/MemberPayload"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "RelationshipEvent": {
       "type": "object",
@@ -939,7 +939,7 @@
           "$ref": "#/$defs/RelationshipPayload"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "ExternalDependencyEvent": {
       "type": "object",
@@ -958,7 +958,7 @@
           "$ref": "#/$defs/ExternalDependencyPayload"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "EdgeEvent": {
       "type": "object",
@@ -977,7 +977,7 @@
           "$ref": "#/$defs/EdgePayload"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "EpochEvent": {
       "type": "object",
@@ -997,7 +997,7 @@
           "$ref": "#/$defs/EpochPayload"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "SealEvent": {
       "type": "object",
@@ -1017,7 +1017,7 @@
           "$ref": "#/$defs/SealPayload"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "CheckpointEvent": {
       "type": "object",
@@ -1039,7 +1039,7 @@
           "$ref": "#/$defs/CheckpointPayload"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "WorkpointProposalEvent": {
       "type": "object",
@@ -1055,7 +1055,7 @@
           "$ref": "#/$defs/WorkpointProposalPayload"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "CompletionEvent": {
       "type": "object",
@@ -1076,7 +1076,7 @@
           "$ref": "#/$defs/CompletionPayload"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "TransitionEvent": {
       "type": "object",
@@ -1096,7 +1096,7 @@
           "$ref": "#/$defs/TransitionPayload"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "ReleaseEvent": {
       "type": "object",
@@ -1112,7 +1112,7 @@
           "$ref": "#/$defs/ReleasePayload"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "LifecycleEvent": {
       "type": "object",
@@ -1132,7 +1132,7 @@
           "$ref": "#/$defs/LifecyclePayload"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "RepairEvent": {
       "type": "object",
@@ -1148,7 +1148,7 @@
           "$ref": "#/$defs/RepairPayload"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     }
   },
   "$ref": "#/$defs/EventVariant"

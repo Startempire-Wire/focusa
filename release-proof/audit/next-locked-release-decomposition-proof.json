@@ -4,15 +4,18 @@
   "original_locked_issues": 38,
   "operator_authorized_post_lock_additions": 4,
   "current_explicit_issues": 42,
-  "current_locked_beads": 238,
+  "current_locked_beads": 251,
   "first_touch_issue": "focusa-627th.4.3",
+  "execution_lock_revision": 5,
+  "workset_id": "workset:focusa-next-locked-release:r5",
   "spec137_requirements": 86,
   "spec138_requirements": 542,
   "spec140_requirements": 38,
   "addendum_leaf_beads": 15,
   "unmapped": 0,
   "dependency_cycles": 0,
-  "bead_resolution_proof": "238/238 locked members resolved; all mapped refs present",
+  "bead_resolution_proof": "251/251 locked members resolved; all mapped refs and locked-root descendants present",
+  "execution_order_proof": "251/251 members have one phase, an acyclic dependency path, and terminal coverage; unique ready frontier is focusa-627th.4.3",
   "evidence_refs": [
     "release-proof/audit/next-locked-release-scope.json",
     "release-proof/audit/next-locked-release-decomposition.json",
@@ -22,6 +25,13 @@
     "bead:focusa-gkwt",
     "https://github.com/Startempire-Wire/focusa/issues/109",
     "bead:focusa-627th.4.3",
-    "https://github.com/Startempire-Wire/focusa/issues/14#issuecomment-5123704895"
+    "https://github.com/Startempire-Wire/focusa/issues/14#issuecomment-5123704895",
+    "release-proof/audit/next-locked-release-workset-definition.json",
+    "release-proof/audit/next-locked-release-workset-members.jsonl",
+    "release-proof/audit/next-locked-release-workset-edges.jsonl",
+    "release-proof/audit/next-locked-release-execution-proof.json",
+    "scripts/audit-locked-release-execution.mjs",
+    "scripts/audit-locked-release-workset-schema.py",
+    "docs/contracts/spec149-event-payloads.schema.v1.json"
   ]
 }

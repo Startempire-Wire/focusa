@@ -1,0 +1,25 @@
+{
+  "require_sealed_revision": true,
+  "require_all_mandatory_dispositions": true,
+  "allowed_terminal_dispositions": [
+    "completed",
+    "superseded"
+  ],
+  "require_zero_dependency_cycles": true,
+  "require_zero_unresolved_blockers": true,
+  "require_zero_unknown_impacts": true,
+  "required_checkpoint_refs": [
+    "workpoint:phase-gate"
+  ],
+  "required_evidence_refs": [
+    "release-proof:audit",
+    "beads:settlement"
+  ],
+  "required_receipt_types": [
+    "phase_completion",
+    "terminal_coverage",
+    "publication_gate"
+  ],
+  "provider_freshness_max_age_ms": 300000,
+  "temporal_claim_ref": null
+}

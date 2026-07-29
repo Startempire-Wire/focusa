@@ -1,0 +1,179 @@
+{
+  "schema": "focusa.locked_release_execution_proof.v1",
+  "status": "verified",
+  "lock_revision": 5,
+  "workset_id": "workset:focusa-next-locked-release:r5",
+  "scope_member_count": 251,
+  "execution_edge_count": 589,
+  "phase_count": 9,
+  "phase_counts": {
+    "0": 6,
+    "1": 42,
+    "2": 14,
+    "3": 5,
+    "4": 8,
+    "5": 6,
+    "6": 163,
+    "7": 4,
+    "8": 3
+  },
+  "phase_gates": {
+    "0": "focusa-627th.4.3",
+    "1": "focusa-vbcqu.2",
+    "2": "focusa-vbcqu.3",
+    "3": "focusa-vbcqu.4",
+    "4": "focusa-vbcqu.5",
+    "5": "focusa-vbcqu.6",
+    "6": "focusa-vbcqu.7",
+    "7": "focusa-vbcqu.8",
+    "8": "focusa-vbcqu"
+  },
+  "unique_ready_frontier": [
+    "focusa-627th.4.3"
+  ],
+  "terminal_member_ref": "focusa-vbcqu",
+  "terminal_coverage_count": 251,
+  "dependency_cycles": 0,
+  "unresolved_external_blockers": 0,
+  "external_closed_blockers": [
+    {
+      "member": "focusa-a6yq6.10.4",
+      "blocker": "focusa-a6yq6.10.3",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-a6yq6.10.4",
+      "blocker": "focusa-a6yq6.9.6",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-a6yq6.10.5",
+      "blocker": "focusa-a6yq6.9.6",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-a6yq6.10.7",
+      "blocker": "focusa-a6yq6.10.6",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-a6yq6.10.7",
+      "blocker": "focusa-a6yq6.9.6",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-a6yq6.10.8",
+      "blocker": "focusa-a6yq6.9.6",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-a6yq6.10.9",
+      "blocker": "focusa-a6yq6.10.1",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-a6yq6.10.9",
+      "blocker": "focusa-a6yq6.10.2",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-a6yq6.10.9",
+      "blocker": "focusa-a6yq6.10.3",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-a6yq6.10.9",
+      "blocker": "focusa-a6yq6.10.6",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-a6yq6.10.9",
+      "blocker": "focusa-fsrc",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-n68k",
+      "blocker": "focusa-fsrc",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-pskm",
+      "blocker": "focusa-k2mi",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-pskm",
+      "blocker": "focusa-mlbp",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.3.5",
+      "blocker": "focusa-w26jj.9.3.4",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.4.6",
+      "blocker": "focusa-w26jj.9.4.5",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.6.1",
+      "blocker": "focusa-w26jj.9.2.4",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.6.1",
+      "blocker": "focusa-w26jj.9.5.8",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.6.2",
+      "blocker": "focusa-w26jj.9.2.4",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.6.2",
+      "blocker": "focusa-w26jj.9.5.8",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.6.3",
+      "blocker": "focusa-w26jj.9.2.4",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.6.3",
+      "blocker": "focusa-w26jj.9.5.8",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.6.4",
+      "blocker": "focusa-w26jj.9.2.4",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.6.4",
+      "blocker": "focusa-w26jj.9.5.8",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.7.4",
+      "blocker": "focusa-slxpz",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.7.4",
+      "blocker": "focusa-w26jj.5",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.7.4",
+      "blocker": "focusa-wefzg",
+      "status": "closed"
+    }
+  ],
+  "provider_missing_members": 0,
+  "membership_digest": "sha256:76cc958429ff2f02c4dbfe7ae31af4ccda5fd1184bf6484ff9a0eb486208edcb",
+  "graph_digest": "sha256:4902e8ed6bd1a7e68d4d8f8f08bb610f53a36f22bfc51683e0352ba9e04131a6",
+  "sealed_at": "2026-07-29T23:35:32Z"
+}

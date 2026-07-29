@@ -1,0 +1,22 @@
+{
+  "binding_id": "provider:bd:focusa-next-locked-release:r5",
+  "provider": "bd",
+  "provider_scope_ref": "/tmp/focusa-next-locked-release/.beads",
+  "provider_revision_ref": "git:081463b5+execution-lock-import",
+  "query_semantics": "explicit_ids",
+  "query": {
+    "member_count": 251,
+    "member_ids_digest": "sha256:09e45b2d50bc9f73ee4ca36868ec1e7bd5354cf730fcee718a1ebd168e1c2f40"
+  },
+  "cursor": null,
+  "ordering_key": "workset_phase_then_provider_dependency",
+  "cursor_expires_at": null,
+  "retention_horizon_ms": null,
+  "tombstone_horizon_ms": null,
+  "deduplication_window_ms": null,
+  "lag_limit_ms": 0,
+  "backpressure_mode": "pause_admission",
+  "last_verified_at": "2026-07-29T23:35:32Z",
+  "freshness": "current",
+  "capabilities_ref": "docs/149-focusa-workset-flow-ledger-and-release-completion-spec.md"
+}
