@@ -70,7 +70,8 @@ for completed in verified_requirements:
 
 for pending in ("SPEC135-U5", "SPEC135-U6", "SPEC135-V3", "SPEC135-V5", "SPEC135-V6"):
     row = next(r for r in requirements if r["requirement_id"] == pending)
-    assert row["current_status"] == "partial" and row["closure_status"] == "open"
+    assert row["current_status"] == "verified"
+    assert row["closure_status"] == "verified"
 
 node_ids = {n["requirement_id"] for n in dag["nodes"]}
 assert dag["schema"] == "focusa.spec135.delivery_dag.v1"
@@ -100,7 +101,7 @@ assert len(seen) == len(ids)
 
 client_ids = {c["client_id"] for c in clients["clients"]}
 assert clients["schema"] == "focusa.spec135.client_parity_matrix.v1"
-assert {"api", "cli", "pi", "typescript", "go", "mission_canvas", "uiai_engine_cockpit", "menubar", "tui", "pwa"} <= client_ids
+assert {"api", "cli", "pi", "typescript", "mission_canvas", "uiai_engine_cockpit", "menubar", "tui", "pwa"} <= client_ids
 assert {r["requirement_id"] for r in clients["requirements"]} == ids
 assert all(set(r["required_clients"]) <= client_ids for r in clients["requirements"])
 

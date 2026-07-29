@@ -100,6 +100,8 @@ run_gate python3 ./tests/spec135_a6_workspace_verticals_test.py
 run_gate npm --prefix ./apps/pi-extension run test:workspace-verticals
 run_gate python3 ./tests/spec135_a7_pi_accessibility_test.py
 run_gate npm --prefix ./apps/pi-extension run test:canvas-accessibility
+run_gate python3 scripts/generate-spec135-client-parity-matrix.py
+run_gate python3 ./tests/spec135_a8_client_parity_test.py
 run_gate python3 ./tests/spec135_m4_surface_bindings_static_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_m4_surface_bindings_e2e_test.py
 run_gate python3 ./tests/spec135_m5_browser_context_isolation_test.py

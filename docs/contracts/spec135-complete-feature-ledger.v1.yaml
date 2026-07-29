@@ -12,7 +12,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -35,7 +34,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -77,7 +75,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -102,7 +99,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -143,7 +139,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -168,7 +163,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -211,7 +205,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -237,7 +230,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -281,7 +273,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -307,7 +298,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -351,7 +341,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -376,7 +365,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -418,7 +406,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -443,7 +430,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -487,7 +473,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -513,7 +498,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -557,7 +541,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -583,7 +566,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -625,7 +607,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -652,7 +633,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -696,7 +676,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -721,7 +700,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -764,7 +742,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -790,7 +767,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -834,7 +810,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -867,7 +842,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -910,7 +884,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -935,7 +908,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -978,7 +950,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -1004,7 +975,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -1046,7 +1016,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -1072,7 +1041,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -1114,7 +1082,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -1140,7 +1107,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -2588,7 +2554,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -2615,7 +2580,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -2655,7 +2619,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -2680,7 +2643,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -2720,7 +2682,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -2744,7 +2705,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -2784,7 +2744,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -2809,7 +2768,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -2850,7 +2808,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -2875,7 +2832,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -2916,7 +2872,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -2944,7 +2899,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -2987,7 +2941,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "pi",
         "typescript",
         "uiai_engine_cockpit"
@@ -3013,7 +2966,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "pi",
         "typescript",
         "uiai_engine_cockpit"
@@ -3056,7 +3008,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "pi",
         "typescript",
         "uiai_engine_cockpit"
@@ -3081,7 +3032,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "pi",
         "typescript",
         "uiai_engine_cockpit"
@@ -3123,7 +3073,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "pi",
         "typescript",
         "uiai_engine_cockpit"
@@ -3147,7 +3096,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "pi",
         "typescript",
         "uiai_engine_cockpit"
@@ -3189,7 +3137,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "pi",
         "typescript",
         "uiai_engine_cockpit"
@@ -3213,7 +3160,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "pi",
         "typescript",
         "uiai_engine_cockpit"
@@ -3258,7 +3204,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "pi",
         "typescript",
         "uiai_engine_cockpit"
@@ -3284,7 +3229,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "pi",
         "typescript",
         "uiai_engine_cockpit"
@@ -4203,7 +4147,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -4229,7 +4172,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -4270,7 +4212,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -4297,7 +4238,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -4338,7 +4278,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -4367,7 +4306,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -4408,7 +4346,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -4437,7 +4374,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -4478,7 +4414,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -4507,7 +4442,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -4548,7 +4482,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "menubar",
         "mission_canvas",
         "pi",
@@ -4584,7 +4517,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "menubar",
         "mission_canvas",
         "pi",
@@ -4631,7 +4563,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "menubar",
         "mission_canvas",
         "pi",
@@ -4661,7 +4592,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "menubar",
         "mission_canvas",
         "pi",
@@ -4707,7 +4637,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "menubar",
         "mission_canvas",
         "pi",
@@ -4736,7 +4665,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "menubar",
         "mission_canvas",
         "pi",
@@ -4784,7 +4712,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "menubar",
         "mission_canvas",
         "pi",
@@ -4816,7 +4743,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "menubar",
         "mission_canvas",
         "pi",
@@ -4861,7 +4787,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "menubar",
         "mission_canvas",
         "pi",
@@ -4892,7 +4817,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "menubar",
         "mission_canvas",
         "pi",
