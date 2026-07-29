@@ -1,261 +1,145 @@
 {
-  "$id": "/v1/agent/schemas/focusa.mission_canvas_state.v1",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "focusa.mission_canvas_state.v1",
+  "$id": "https://docs.startempire.ai/focusa/spec135/focusa.mission_canvas_state.v1.json",
+  "title": "Focusa Mission Canvas State v1",
+  "description": "Per-user/device presentation state; never canonical project authority.",
   "type": "object",
-  "additionalProperties": false,
-  "x-focusa-schema-id": "focusa.mission_canvas_state.v1",
+  "required": [
+    "schema",
+    "canvas_id",
+    "state_revision",
+    "project_root",
+    "continuity_id",
+    "client_instance_id",
+    "user_id",
+    "device_id",
+    "open_work_surface_ids",
+    "group_order",
+    "aggregate_project_roots",
+    "aggregate_continuity_ids",
+    "aggregate_surface_kinds",
+    "aggregate_surface_states",
+    "selected_context_refs",
+    "session_projection_revision",
+    "idempotency_key",
+    "created_at",
+    "updated_at"
+  ],
   "properties": {
     "schema": {
       "const": "focusa.mission_canvas_state.v1"
     },
-    "state_version": {
+    "canvas_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "state_revision": {
       "type": "integer",
-      "minimum": 0
+      "minimum": 1
     },
-    "canvas": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "canvas_id": {
-          "type": "string"
-        },
-        "state_revision": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "project_root": {
-          "type": "string"
-        },
-        "continuity_id": {
-          "type": "string"
-        },
-        "client_instance_id": {
-          "type": "string"
-        },
-        "user_id": {
-          "type": "string"
-        },
-        "device_id": {
-          "type": "string"
-        },
-        "open_work_surface_ids": {
-          "type": "array",
-          "maxItems": 64,
-          "uniqueItems": true,
-          "items": {
-            "type": "string"
-          }
-        },
-        "focused_work_surface_id": {
-          "type": "string"
-        },
-        "secondary_focused_surface_id": {
-          "type": "string"
-        },
-        "split_layout_ref": {
-          "type": "string"
-        },
-        "group_order": {
-          "type": "array",
-          "maxItems": 64,
-          "uniqueItems": true,
-          "items": {
-            "type": "string"
-          }
-        },
-        "aggregate_project_roots": {
-          "type": "array",
-          "maxItems": 64,
-          "uniqueItems": true,
-          "items": {
-            "type": "string"
-          }
-        },
-        "aggregate_continuity_ids": {
-          "type": "array",
-          "maxItems": 64,
-          "uniqueItems": true,
-          "items": {
-            "type": "string"
-          }
-        },
-        "aggregate_surface_kinds": {
-          "type": "array",
-          "maxItems": 64,
-          "uniqueItems": true,
-          "items": {
-            "type": "string"
-          }
-        },
-        "aggregate_surface_states": {
-          "type": "array",
-          "maxItems": 64,
-          "uniqueItems": true,
-          "items": {
-            "type": "string"
-          }
-        },
-        "selected_context_refs": {
-          "type": "array",
-          "maxItems": 64,
-          "uniqueItems": true,
-          "items": {
-            "type": "string"
-          }
-        },
-        "unread_event_cursor": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "session_projection_revision": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "idempotency_key": {
-          "type": "string"
-        },
-        "created_at": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "updated_at": {
-          "type": "string",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "canvas_id",
-        "state_revision",
-        "project_root",
-        "continuity_id",
-        "client_instance_id",
-        "user_id",
-        "device_id",
-        "open_work_surface_ids",
-        "group_order",
-        "aggregate_project_roots",
-        "aggregate_continuity_ids",
-        "aggregate_surface_kinds",
-        "aggregate_surface_states",
-        "selected_context_refs",
-        "session_projection_revision",
-        "idempotency_key",
-        "created_at",
-        "updated_at"
-      ]
+    "project_root": {
+      "type": "string",
+      "minLength": 1
     },
-    "surfaces": {
-      "type": "array",
-      "items": {
-        "properties": {
-          "attachment_id": {
-            "type": "string"
-          },
-          "canonical_state_refs": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "continuity_id": {
-            "type": "string"
-          },
-          "created_at": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "idempotency_key": {
-            "type": "string"
-          },
-          "instance_id": {
-            "type": "string"
-          },
-          "mission_ref": {
-            "type": "string"
-          },
-          "pane_id": {
-            "type": "string"
-          },
-          "pinned": {
-            "type": "boolean"
-          },
-          "project_root": {
-            "type": "string"
-          },
-          "session_id": {
-            "type": "string"
-          },
-          "state_revision": {
-            "minimum": 1,
-            "type": "integer"
-          },
-          "status": {
-            "enum": [
-              "active",
-              "suspended",
-              "view_closed"
-            ]
-          },
-          "surface_kind": {
-            "type": "string"
-          },
-          "tab_index": {
-            "minimum": 0,
-            "type": "integer"
-          },
-          "title": {
-            "type": "string"
-          },
-          "unread": {
-            "type": "boolean"
-          },
-          "updated_at": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "work_surface_id": {
-            "type": "string"
-          },
-          "workpoint_id": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "work_surface_id",
-          "state_revision",
-          "project_root",
-          "continuity_id",
-          "attachment_id",
-          "instance_id",
-          "mission_ref",
-          "title",
-          "surface_kind",
-          "status",
-          "pane_id",
-          "tab_index",
-          "pinned",
-          "unread",
-          "canonical_state_refs",
-          "idempotency_key",
-          "created_at",
-          "updated_at"
-        ],
-        "type": "object"
-      }
+    "continuity_id": {
+      "type": "string",
+      "minLength": 1
     },
-    "recovery_actions": {
+    "client_instance_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "user_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "device_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "open_work_surface_ids": {
       "type": "array",
       "items": {
         "type": "string"
       }
+    },
+    "focused_work_surface_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "secondary_focused_surface_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "split_layout_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "group_order": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "aggregate_project_roots": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "aggregate_continuity_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "aggregate_surface_kinds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "aggregate_surface_states": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "selected_context_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "unread_event_cursor": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "session_projection_revision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "created_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "updated_at": {
+      "type": "string",
+      "minLength": 1
     }
   },
-  "required": [
-    "schema",
-    "state_version",
-    "canvas",
-    "surfaces",
-    "recovery_actions"
-  ]
+  "additionalProperties": false
 }
