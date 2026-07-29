@@ -1,13 +1,17 @@
 # Spec 149 — Focusa Workset Flow Ledger, Checkpoint Testing, Bounded Preload, and Formal Release Completion
 
-**Status:** DRAFT — OPERATOR REVIEW — NO IMPLEMENTATION OR RELEASE AUTHORITY  
-**Project:** Focusa  
-**Owner:** Focusa Core, Mission Canvas, Agent Runtime, and Release Engineering  
-**Bead:** `focusa-vbcqu.9.8`  
-**Call-stack design:** `019faef3-0645-72b2-8524-57dc04debdeb`  
-**Depends on:** Specs 100, 104, 109, 111, 116, 119, 130, 131, 135–135K, 140–148  
-**Supersedes:** none  
-**Implementation baseline:** `locked-release-all-open-spec137-138-140@cf65f34c`  
+- **Status:** NEXT-RELEASE CANDIDATE — SPECIFICATION HARDENED — FINAL APPROVAL AND IMPLEMENTATION NOT AUTHORIZED
+- **Project:** Focusa
+- **Owner:** Focusa Core, Mission Canvas, Agent Runtime, and Release Engineering
+- **Next-release Bead:** `focusa-a89or`
+- **Current-release disposition:** explicitly excluded; the current release remains locked
+- **Parent call-stack design:** `019faef3-0645-72b2-8524-57dc04debdeb`
+- **Path call-stack designs:** `019faf0a-42ea-7d42-aa34-468ad44f2720`, `019faf0a-4258-7e31-828a-cbcbb55fd008`, `019faf0a-42e1-79e1-8ffe-800c1ef1d3a5`, `019faf0a-42cd-7133-843b-81a1a80a62ca`, `019faf0a-42d5-79a1-a097-77bd5bd2e72c`
+- **Depends on:** Specs 100, 104, 109, 111, 116, 119, 130, 131, 135–135K, 137, 137a, 138, 138a, 140–148
+- **Machine contracts:** `docs/contracts/spec149-workset.schema.v1.json`, `docs/contracts/spec149-event-payloads.schema.v1.json`, `docs/contracts/spec149-openapi.v1.yaml`, `docs/contracts/spec149-operation-contracts.v1.yaml`, `docs/contracts/spec149-spec135-compatibility-packet.v1.yaml`, `docs/contracts/spec149-complete-feature-ledger.v1.yaml`, `docs/contracts/spec149-next-release-profile.v1.yaml`, `docs/contracts/spec149-reference-promotion-audit.v1.yaml`
+- **Supersedes:** none
+- **Implementation baseline:** `locked-release-all-open-spec137-138-140@cf65f34c`
+- **Approval boundary:** operator approval to harden and save for next release is recorded; final-spec, decomposition, and implementation approvals remain distinct
 
 ---
 
@@ -25,7 +29,7 @@ Focusa SHALL provide a provider-neutral **Workset Flow Ledger** that can represe
 
 A Workset is not a replacement for a task provider, Workpoint, Trajectory, Context Cognition, Preload, Agent Runtime Constitution, Mission Canvas, or the Canonical Release Cycle. It binds and projects those authorities without merging them.
 
-For the current locked Focusa release Workset, task closure alone is insufficient. The Workset reaches `completed` only after the canonical full-release flow reaches verified completion and its release journal is finalized.
+Spec 149 is reserved for the release after the current locked Focusa release. Its first implementation Workset uses task closure plus the canonical full-release flow; it reaches `completed` only after release verification and journal finalization. Spec 149 cannot alter the current release except through a later, explicit operator decision.
 
 ---
 
@@ -205,23 +209,27 @@ title:
 mission:
 cardinality_mode: fixed | rolling | provider_stream
 admission_state: draft | active | sealing | sealed
-lifecycle_state: planned | running | paused | completing | completed | failed | cancelled
+lifecycle_state: planned | running | paused | blocked | completing | completed | failed | cancelled
 revision: 1
+parent_workset_ref:
+relationship: root | child | successor | recurring_template | imported
+membership_policy: exclusive | shared_read | shared_closure
 membership_digest:
 graph_digest:
+digest_algorithm: sha256-jcs-v1
 constitution_ref:
 created_at:
 created_by:
 updated_at:
 event_ledger_ref:
-provider_bindings: []
-admission_policy: {}
-members: []
-edges: []
-epochs: []
-checkpoint_flows: []
-completion_contract: {}
-completion_transitions: []
+provider_binding_refs: []
+admission_policy_ref:
+member_ledger_ref:
+edge_ledger_ref:
+epoch_ledger_ref:
+checkpoint_flow_refs: []
+completion_contract_ref:
+completion_transition_refs: []
 evidence_refs: []
 receipt_refs: []
 ```
@@ -281,7 +289,40 @@ source_ref:
 created_event_ref:
 ```
 
-Within a sealed finite Workset or one epoch, blocking dependencies MUST form a DAG. Cross-epoch dependencies may point only to the same or an earlier epoch. Recurring behavior is represented by repeated checkpoint runs or new epochs, not dependency cycles.
+Within a sealed finite Workset or one epoch, blocking dependencies MUST form a DAG. `from_member_ref` is the prerequisite and `to_member_ref` is the dependent. Cross-epoch dependencies may point only to the same or an earlier epoch. Recurring behavior is represented by repeated checkpoint runs or new epochs, not dependency cycles.
+
+### 8.5 Workset relationships and shared membership
+
+A Workset MAY be a root, child, successor, recurring template, or imported projection. Relationships are explicit; ID hierarchy never grants authority.
+
+A `WorkItemRef` MAY appear in multiple Worksets only under a declared membership policy:
+
+- `exclusive`: one active owning Workset may control disposition;
+- `shared_read`: other Worksets may project state but cannot claim closure;
+- `shared_closure`: one provider-valid closure can satisfy declared members in several Worksets when each completion contract accepts the same evidence identity.
+
+Overlapping Worksets MUST expose ownership, shared evidence, conflicting mandatory dispositions, and terminal-flow interactions. Closing or cancelling one Workset MUST NOT silently close another.
+
+### 8.6 External dependencies
+
+Dependencies outside membership are represented by typed `ExternalDependencyRef` records, never hidden edges:
+
+```yaml
+external_dependency_id:
+work_item_ref:
+provider_binding_ref:
+required_by_member_refs: []
+policy: observe | block | admit_by_preview | evidence_only
+freshness:
+status_projection:
+resolution_ref:
+```
+
+`block` prevents readiness until the external dependency is provider-verified complete. `admit_by_preview` requires normal admission authority. Missing or deleted external dependencies fail closed.
+
+### 8.7 Canonical digests
+
+Sealed digests use SHA-256 over RFC 8785 JSON Canonicalization Scheme bytes with sorted stable identities, normalized UTC timestamps, explicit null handling, and volatile projection fields excluded. The machine schema declares every included field. Any canonical member, edge, flow, completion, constitution, or provider-snapshot change creates a new revision and digest.
 
 ---
 
@@ -322,6 +363,10 @@ Potentially unbounded Worksets SHALL be lazy. They store:
 - rehydrate references.
 
 They MUST NOT claim “all tasks loaded.”
+
+Stream contracts additionally define ordering key, cursor issuer, cursor expiry, page size, deduplication window, retention horizon, tombstone horizon, lag limit, retry budget, and backpressure mode. At-least-once delivery is normalized by stable provider identity and revision. Cursor expiry triggers bounded resnapshot plus reconciliation; it never skips silently. When producer rate exceeds safe processing, admission pauses, lag is surfaced, and no unchecked queue growth is allowed.
+
+Provider deletion, rename, transfer, and tombstone events preserve the admitted identity and provenance. A rename updates projection metadata; a transfer requires verified scope; a deletion becomes an unresolved tombstone until explicitly superseded, excluded, or restored.
 
 ### 9.5 Sealing an open-ended Workset
 
@@ -419,6 +464,17 @@ CANCELLED
 REOPENED
 ```
 
+Admission and lifecycle are orthogonal but constrained:
+
+| Admission state | Allowed lifecycle states |
+| --- | --- |
+| `draft` | `planned`, `cancelled` |
+| `active` | `planned`, `running`, `paused`, `blocked`, `failed`, `cancelled` |
+| `sealing` | `paused`, `blocked`, `failed`, `cancelled` |
+| `sealed` | `planned`, `running`, `paused`, `blocked`, `completing`, `completed`, `failed`, `cancelled` |
+
+`completed` requires `sealed`. `completing` freezes Workpoint promotion except completion/recovery Workpoints. `failed` and `cancelled` preserve ledger history and may be reopened only as a new revision. Impossible combinations are schema and reducer errors.
+
 ### 12.1 Transition laws
 
 - `draft → active`: definition validated and authority confirmed.
@@ -447,19 +503,27 @@ A green build, closed issue, tag, published asset, local binary, or agent statem
 ```yaml
 schema_version: focusa.workset_checkpoint_flow.v1
 flow_id:
+flow_revision:
 workset_ref:
 trigger:
   kind: after_members | before_member | epoch_seal | milestone | risk_change | manual | periodic
   member_refs: []
   epoch_ref:
+  temporal_claim_ref:
 mode: blocking | advisory
 operation_ref:
+operation_version:
 constitution_ref:
 input_template_ref:
+input_digest:
+environment_identity_ref:
+source_revision_refs: []
 validation_matrix_ref:
+acceptance_contract_revision:
 acceptance_criteria: []
 required_evidence_kinds: []
 required_receipt_types: []
+proof_reuse_policy: exact_identity_only | forbidden
 timeout_ms:
 retry_policy:
 rollback_ref:
@@ -479,6 +543,9 @@ on_indeterminate: []
 7. Retry policies require bounded attempts, cooldown, fingerprinting, and rollback where applicable.
 8. An indeterminate result fails closed for mandatory acceptance.
 9. Re-running a passed flow against changed inputs creates a new run; it does not rewrite prior proof.
+10. Changes to flow revision, operation version, constitution, validation matrix, acceptance contract, source revisions, inputs, or environment identity invalidate prior proof unless exact-identity reuse is explicitly proven.
+11. Periodic triggers, freshness windows, timeouts, retries, cooldowns, and expiry use Spec 137 Temporal Authority; Worksets cannot invent urgency or deadlines.
+12. Human approvals carry approver, scope, revision, effective time, optional expiry, and revocation state; expired or revoked approval fails closed.
 
 ### 13.3 Examples
 
@@ -515,16 +582,21 @@ provider_freshness_max_age_ms:
 ```yaml
 schema_version: focusa.workset_completion_transition.v1
 transition_id:
+transition_revision:
 trigger: epoch_complete | workset_complete
+depends_on_transition_refs: []
 operation_ref:
+operation_version:
 mode: blocking | advisory
 input_binding_ref:
 authority_requirement:
 confirmation_required:
 required_constitution_ref:
 required_receipt_types: []
+exactly_once_identity:
 on_success:
 on_failure:
+compensation_operation_ref:
 rollback_ref:
 ```
 
@@ -538,6 +610,8 @@ Completion transitions MAY:
 - produce an operator review packet.
 
 They MUST NOT contain arbitrary executable text.
+
+Completion transitions form an acyclic transition DAG. Independent advisory transitions may run in parallel; blocking transitions run only after all declared prerequisites succeed. Exactly-once identity binds Workset revision, transition revision, operation version, and input digest. Partial failure starts declared compensation in reverse dependency order and leaves the Workset `blocked` or `failed`, never falsely complete. A successful operation without its required Receipt remains incomplete.
 
 ---
 
@@ -585,14 +659,16 @@ Workset completion preflight
 → workset.completed
 ```
 
-### 15.3 Current Focusa Workset profile
+### 15.3 First Spec 149 next-release Workset profile
 
-The current locked Focusa Workset SHALL use this formal full-release terminal transition. It SHALL NOT complete until:
+Spec 149 SHALL NOT enter or alter the current locked release. After that release reaches verified terminal completion, the first Spec 149 implementation Workset is created from its own approved requirement decomposition and any separately admitted next-release items. It SHALL use this formal full-release terminal transition and SHALL NOT complete until:
 
-- every locked issue, Bead, spec requirement, addendum requirement, and accepted closure item has an evidence-backed disposition;
-- dependency-cycle and mapping audits pass;
-- all required targeted and full gates pass;
+- every admitted next-release issue, Bead, Spec 149 requirement, compatibility amendment, and closure item has an evidence-backed disposition;
+- dependency-cycle, external-dependency, overlap, and mapping audits pass;
+- all required targeted, checkpoint, full, restart, security, and parity gates pass;
 - Spec 135 impact is known and all required amendments/generated-contract updates are complete;
+- Specs 137/137a temporal claims and freshness rules are verified;
+- Specs 138/138a prediction, calibration, metacognitive, and epistemic requirements are settled;
 - Spec 140 conformance, enforcement, delivery, and cross-harness parity are verified;
 - the exact candidate SHA is accepted;
 - every intended artifact and surface is published and deployed;
@@ -601,7 +677,7 @@ The current locked Focusa Workset SHALL use this formal full-release terminal tr
 - the Spec 148 journal is finalized; and
 - release predictions, problems, outcomes, and reusable metacognitive learning are settled.
 
-Release execution still requires the canonical release authority and any required operator confirmation. Workset completion does not grant publication authority by itself.
+The completed current release may supply historical evidence, benchmark, and learning refs, but none of its locked membership is silently imported. Release execution still requires canonical release authority and any required operator confirmation. Workset completion does not grant publication authority by itself.
 
 ---
 
@@ -775,17 +851,39 @@ Workset artifacts and browser context SHALL remain scoped to the owning Work Sur
 
 ---
 
-## 19. Spec 140 Agent Runtime Constitution integration
+## 19. Temporal, epistemic, and Agent Runtime governance
 
-Spec 140 is a primary dependency, not a side integration.
+Specs 137/137a, 138/138a, and 140 are primary dependencies, not side integrations.
 
-### 19.1 Work item text is data
+### 19.1 Specs 137 and 137a Temporal Authority
+
+Worksets SHALL route target times, durations, freshness windows, periodic triggers, retry/cooldown timing, approval expiry, cursor expiry, checkpoint schedules, and release forecasts through Temporal Authority.
+
+- External commitments require operator confirmation and evidence.
+- Forecasts remain non-canonical uncertainty ranges.
+- Observed durations append evidence without rewriting prior claims.
+- Scope mismatch, stale evidence, and unsupported urgency fail closed.
+- Open-ended Worksets use epochs and observed cadence; they never fabricate an end date.
+- Spec 137a zero-deferral applicability and omission-firewall requirements apply to every temporal field and surface.
+
+### 19.2 Specs 138 and 138a Epistemic Governance
+
+Predictions, readiness confidence, critical-path estimates, adaptive recommendations, checkpoint reuse, provider-health inference, risk scoring, and metacognitive learning SHALL use typed Spec 138 records and applicable Spec 138a profiles.
+
+- Predictions never override operator steering or canonical task state.
+- Confidence, uncertainty, abstention, calibration, sample size, and provenance are visible.
+- Outcome settlement links exact Workset revision, flow run, environment, and evidence.
+- Learning may propose admissions or flow changes but cannot commit them.
+- Failed flows deduplicate problems and preserve reusable learning without self-activation.
+- Spec 138a zero-deferral profile applicability and omission-firewall requirements apply across API, CLI, Pi, MCP, Mission Canvas, and release surfaces.
+
+### 19.3 Work item text is data
 
 Provider titles, descriptions, comments, attachments, test logs, and imported plans MUST be treated as untrusted or provenance-scoped data. They SHALL NOT become system instructions merely because they appear in a Workset.
 
 Instruction-like provider content SHALL pass Spec 140 source classification and prompt-injection handling. Quarantined content remains inspectable but not executable.
 
-### 19.2 Prompt architecture
+### 19.4 Prompt architecture
 
 Workset context belongs in the turn-dynamic operational layer, not the stable constitutional system prompt. A Workset slice SHALL carry:
 
@@ -799,11 +897,11 @@ Workset context belongs in the turn-dynamic operational layer, not the stable co
 
 Changing Workset membership SHALL NOT silently regenerate or activate an Agent Runtime Constitution.
 
-### 19.3 Constitution binding
+### 19.5 Constitution binding
 
 Each consequential Workset operation SHALL evaluate against the active constitution and target capability profile. The Workset records `constitution_ref` and any `ContractImpactAssessment` required by Spec 140.
 
-### 19.4 Operation and enforcement
+### 19.6 Operation and enforcement
 
 Admission, edge mutation, sealing, checkpoint execution, Workpoint promotion, completion execution, release invocation, cancellation, and reopening SHALL:
 
@@ -816,11 +914,11 @@ Admission, edge mutation, sealing, checkpoint execution, Workpoint promotion, co
 7. emit Evidence and Receipts; and
 8. fail closed when capability or policy is missing.
 
-### 19.5 Cross-harness parity
+### 19.7 Cross-harness parity
 
 Pi, CLI, MCP, OpenAI-functions, REST, Mission Canvas, menubar, and any future supported harness SHALL preserve identical Workset semantics, authority, failure classes, and confirmation behavior. Unsupported target capabilities must degrade visibly; no harness may invent a local completion path.
 
-### 19.6 Agent Runtime Studio
+### 19.8 Agent Runtime Studio
 
 Runtime Studio SHALL show:
 
@@ -834,7 +932,7 @@ Runtime Studio SHALL show:
 
 Studio remains an inspection and governed-operation surface, not parallel authority.
 
-### 19.7 Security
+### 19.9 Security
 
 Spec 140 secret, prompt-integrity, instruction-injection, path, tool-routing, and delivery constraints apply to every Workset artifact, preload, UI surface, and flow.
 
@@ -875,6 +973,9 @@ No implementation may claim greenfield freedom. Existing contracts and generated
 worksets
 workset_provider_bindings
 workset_members
+workset_relationships
+workset_external_dependencies
+workset_provider_tombstones
 workset_edges
 workset_epochs
 workset_checkpoint_flows
@@ -882,7 +983,9 @@ workset_checkpoint_runs
 workset_completion_contracts
 workset_completion_transitions
 workset_release_bindings
+workset_digest_manifests
 workset_snapshots
+workset_stream_cursors
 workset_idempotency
 ```
 
@@ -897,10 +1000,18 @@ workset.activated
 workset.provider_bound
 workset.provider_reconciled
 workset.provider_stale
+workset.provider_cursor_expired
+workset.provider_tombstone_observed
 workset.member_admission_previewed
+workset.member_admission_rejected
 workset.member_admitted
+workset.member_projection_changed
 workset.member_excluded
 workset.member_superseded
+workset.relationship_added
+workset.relationship_removed
+workset.external_dependency_added
+workset.external_dependency_resolved
 workset.edge_added
 workset.edge_removed
 workset.epoch_opened
@@ -916,6 +1027,7 @@ workset.checkpoint_failed
 workset.checkpoint_indeterminate
 workset.workpoint_proposed
 workset.completion_preflighted
+workset.completion_blocked
 workset.completion_started
 workset.transition_started
 workset.transition_succeeded
@@ -938,6 +1050,9 @@ workset.repaired
 - Consequential events link Evidence and Spec 119 Receipts.
 - Replay after restart yields the same Workset projection.
 - CRDT/distributed merge, where used, SHALL preserve typed scope and reject conflicting sealed revisions.
+- Snapshots compact projections, never canonical events; event retention follows evidence, Receipt, release-journal, legal, and operator policy.
+- Provider-stream payload bodies may age into content-addressed cold storage while stable identities, hashes, tombstones, dispositions, and evidence refs remain hot.
+- Cursor and idempotency records outlive their deduplication windows long enough to prove safe replay; expiry is explicit and observable.
 
 ### 21.4 Projection freshness
 
@@ -965,14 +1080,32 @@ rehydrate_refs
 ```text
 POST /v1/worksets/preview
 POST /v1/worksets
+GET  /v1/worksets?status=&mode=&trajectory_ref=&cursor=&limit=
 GET  /v1/worksets/:workset_id
 GET  /v1/worksets/:workset_id/projection
 GET  /v1/worksets/:workset_id/members?cursor=&limit=
 GET  /v1/worksets/:workset_id/graph?anchor=&depth=&cursor=
 GET  /v1/worksets/:workset_id/events?after=&limit=
+GET  /v1/worksets/:workset_id/history?cursor=&limit=
+GET  /v1/worksets/:workset_id/diff?from_revision=&to_revision=
+GET  /v1/worksets/:workset_id/export?revision=&format=
 ```
 
-### 22.2 Admission and provider reconciliation
+### 22.2 Lifecycle and composition
+
+```text
+POST /v1/worksets/:workset_id/revise/preview
+POST /v1/worksets/:workset_id/revise/commit
+POST /v1/worksets/:workset_id/pause
+POST /v1/worksets/:workset_id/resume
+POST /v1/worksets/:workset_id/repair/preview
+POST /v1/worksets/:workset_id/repair/commit
+POST /v1/worksets/:workset_id/relationships/preview
+POST /v1/worksets/:workset_id/relationships/commit
+GET  /v1/worksets/:workset_id/relationships
+```
+
+### 22.3 Admission and provider reconciliation
 
 ```text
 POST /v1/worksets/:workset_id/admissions/preview
@@ -983,7 +1116,7 @@ POST /v1/worksets/:workset_id/epochs/:epoch_id/seal/preview
 POST /v1/worksets/:workset_id/epochs/:epoch_id/seal/commit
 ```
 
-### 22.3 Scope sealing
+### 22.4 Scope sealing
 
 ```text
 POST /v1/worksets/:workset_id/seal/preview
@@ -992,7 +1125,7 @@ POST /v1/worksets/:workset_id/reopen/preview
 POST /v1/worksets/:workset_id/reopen/commit
 ```
 
-### 22.4 Checkpoints and completion
+### 22.5 Checkpoints and completion
 
 ```text
 POST /v1/worksets/:workset_id/checkpoints/:flow_id/preview
@@ -1004,7 +1137,7 @@ POST /v1/worksets/:workset_id/cancel/preview
 POST /v1/worksets/:workset_id/cancel/commit
 ```
 
-### 22.5 Agent and UI projection
+### 22.6 Agent and UI projection
 
 ```text
 GET  /v1/worksets/:workset_id/preload
@@ -1013,7 +1146,7 @@ GET  /v1/worksets/:workset_id/stream?after=
 POST /v1/worksets/:workset_id/workpoint/propose
 ```
 
-### 22.6 API laws
+### 22.7 API laws
 
 - Reads are bounded and cursor-based.
 - Mutations require typed scope, expected revision, authority, and idempotency key.
@@ -1023,6 +1156,48 @@ POST /v1/worksets/:workset_id/workpoint/propose
 - Provider outage returns stale/degraded posture, never fabricated readiness.
 - Unknown fields are rejected for consequential mutations.
 
+### 22.8 Permission and error contract
+
+| Permission | Capability |
+| --- | --- |
+| `workset:read` | list, view, graph, history, diff, export, preload |
+| `workset:propose` | create/revise/admission/seal/checkpoint/completion previews |
+| `workset:write` | create, revise, reconcile, pause, resume, relationship mutation |
+| `workset:admit` | commit admissions and exclusions |
+| `workset:execute` | run approved checkpoint flows and propose Workpoints |
+| `workset:seal` | seal/reopen epochs or Workset revisions |
+| `workset:complete` | begin completion transition DAG |
+| `release:execute` | invoke canonical release operations; never implied by Workset permissions |
+| `workset:repair` | append governed repair events |
+
+Stable failure codes include:
+
+```text
+workset_not_found
+workset_scope_mismatch
+workset_revision_conflict
+workset_permission_denied
+workset_confirmation_required
+workset_idempotency_conflict
+workset_provider_unavailable
+workset_provider_stale
+workset_cursor_expired
+workset_backpressure_active
+workset_duplicate_member
+workset_external_dependency_unresolved
+workset_dependency_cycle
+workset_unknown_impact
+workset_constitution_blocked
+workset_checkpoint_blocked
+workset_receipt_missing
+workset_not_sealed
+workset_completion_blocked
+workset_release_authority_missing
+workset_resource_exhausted
+```
+
+Every error envelope carries `code`, bounded `message`, `scope`, `retry_posture`, `evidence_refs`, `recovery_tools`, and `next_safe_action`. Security-sensitive details remain redacted.
+
 ---
 
 ## 23. Operation Registry, Pi tools, CLI, and MCP
@@ -1031,11 +1206,24 @@ POST /v1/worksets/:workset_id/workpoint/propose
 
 ```text
 workset.read
+workset.history.read
+workset.export.read
 workset.define.preview
 workset.define.commit
+workset.revise.preview
+workset.revise.commit
+workset.pause
+workset.resume
+workset.relationship.preview
+workset.relationship.commit
 workset.admit.preview
 workset.admit.commit
 workset.reconcile
+workset.repair.preview
+workset.repair.commit
+workset.epoch.open
+workset.epoch.seal.preview
+workset.epoch.seal.commit
 workset.seal.preview
 workset.seal.commit
 workset.checkpoint.preview
@@ -1201,6 +1389,26 @@ LowMem mode SHALL reduce frontier size, disable nonessential graph expansion, re
 
 No Workset packet may silently exceed prompt/output budgets. Omitted counts, cursor, and rehydrate refs are mandatory when truncation occurs.
 
+### 27.5 Initial measurable budgets
+
+| Budget | Required target |
+| --- | --- |
+| Header/status hot read | p95 ≤ 100 ms with warm local SQLite |
+| Ready-frontier hot read | p95 ≤ 200 ms for 100,000 known members using indices; no provider rescan |
+| Default ready frontier | ≤ 12 items |
+| `budget_light` Workset slice | ≤ 800 estimated tokens |
+| `rules_and_context` Workset slice | ≤ 1,500 estimated tokens |
+| `budget_deep` Workset slice | ≤ 4,000 estimated tokens unless caller supplies lower budget |
+| Default graph neighborhood | depth ≤ 2 and nodes ≤ 50 |
+| Standard member page | ≤ 100 members |
+| Admission batch | ≤ 500 members per commit; larger imports use resumable batches |
+| Stream lag warning | visible within 5 seconds of threshold breach |
+| Live UI invalidation | p95 ≤ 1 second on local healthy daemon |
+| Restart replay | ≤ 5 seconds for 100,000 members with valid snapshot; otherwise visible cold recovery |
+| Resident projection memory | O(active frontier + indices), never O(raw historical event payload in prompt/UI) |
+
+Budgets require benchmark evidence and may be revised only through a versioned contract with baseline comparison; weakening a gate to pass is forbidden.
+
 ---
 
 ## 28. Failure, recovery, and rollback
@@ -1268,12 +1476,14 @@ Repair appends corrective events. It never rewrites canonical history.
 - Bind sealed Workset revision to Specs 145–148 release cycle and journal.
 - Rehearse failure, rollback, restart, and exact-SHA invalidation.
 
-### Phase 8 — Current locked Workset migration
+### Phase 8 — First next-release Workset creation
 
-- Preview import from current scope and decomposition artifacts.
-- Compare every locked issue, requirement, dependency, and disposition.
-- Require zero unmapped mandatory refs and zero cycles.
-- Commit only with operator confirmation and stable migration Receipt.
+- Require verified terminal completion of the current locked release before Spec 149 implementation starts.
+- Create the first Workset from the approved Spec 149 requirement decomposition and separately admitted next-release items.
+- Import only historical evidence, benchmark, prediction, learning, and reusable release-profile refs from the completed release; do not import its membership implicitly.
+- Compare every admitted next-release issue, requirement, dependency, external dependency, overlap, and disposition.
+- Require zero unmapped mandatory refs, zero cycles, and zero unknown impacts.
+- Commit only with operator confirmation and a stable creation Receipt.
 
 ---
 
@@ -1412,27 +1622,60 @@ Learning may recommend changes but cannot self-admit tasks, alter authority, or 
 
 ---
 
-## 32. Implementation order
+## 32. Machine contracts and Spec 120 promotion
 
-1. Freeze Spec 149 acceptance, terminology, and cross-spec impact.
-2. Produce detailed call-stack designs for ledger, provider binding, preload, UI, checkpoint, and release paths.
-3. Decompose every normative requirement into provider tasks and dependency edges.
-4. Implement schemas, events, reducers, storage, and replay.
-5. Implement provider/task-plan binding and readiness projection.
-6. Implement API, capability descriptors, Pi tools, CLI, MCP, and docs.
-7. Implement ProjectFlow/Context Cognition/Preload projections.
-8. Implement Spec 135 amendments, generated contracts, Mission Canvas, Work Rail, and UI tests.
-9. Implement Spec 140 operation/enforcement/prompt boundaries and cross-harness proof.
-10. Implement checkpoint flows and recovery.
-11. Bind and rehearse Specs 145–148 terminal full release.
-12. Preview and migrate the current locked Workset.
-13. Run exact-SHA integrated acceptance and only then authorize release through existing authority.
+The following companions are normative and drift-gated:
+
+| Artifact | Authority |
+| --- | --- |
+| `docs/contracts/spec149-workset.schema.v1.json` | exact core object, event-envelope, digest, and validation schema |
+| `docs/contracts/spec149-event-payloads.schema.v1.json` | strict event-type to payload-schema mapping for reducer inputs |
+| `docs/contracts/spec149-openapi.v1.yaml` | exact REST paths, parameters, mutation envelopes, permissions, and result/failure responses |
+| `docs/contracts/spec149-operation-contracts.v1.yaml` | operations, permissions, side effects, confirmations, failures, and call stacks |
+| `docs/contracts/spec149-spec135-compatibility-packet.v1.yaml` | exact frozen-series impact, amendments, generated artifacts, migrations, and tests |
+| `docs/contracts/spec149-complete-feature-ledger.v1.yaml` | S149-R-001..080 status, dependencies, tests, evidence, and closure truth |
+| `docs/contracts/spec149-next-release-profile.v1.yaml` | explicit next-release exclusion/current-release boundary and first Workset terminal profile |
+| `docs/contracts/spec149-reference-promotion-audit.v1.yaml` | reference audit, resolved objections, reconciliation, and distinct approval gates |
+
+Prose and machine contracts are one specification. Drift blocks decomposition, implementation, and release.
+
+Spec 120 promotion requires separate recorded gates for repository write, final specification approval, decomposition, and implementation start. The operator has authorized hardening and next-release preservation, not implementation. Before final approval:
+
+1. run Reference Auditor against every implementation claim and dependency;
+2. run adversarial whole-spec reconciliation;
+3. resolve all blocker objections or record explicit operator override;
+4. verify machine contracts and prose are consistent;
+5. preview the Spec 119 specification approval Receipt;
+6. receive explicit final-spec approval; and
+7. only then produce provider-neutral decomposition for `S149-R-001..080`.
+
+These are approval gates, not current-release blockers, because Spec 149 is explicitly excluded from the current release.
+
+---
+
+## 33. Implementation order
+
+1. Complete and terminally verify the current locked release; admit no Spec 149 implementation into it.
+2. Reconcile and obtain final approval for Spec 149 prose, machine contracts, compatibility packet, and acceptance.
+3. Finalize path-specific call-stack designs for ledger, provider binding, preload, UI, checkpoint, and release paths.
+4. Decompose every normative requirement into provider-neutral tasks and dependency edges under the next-release Bead.
+5. Implement schemas, events, reducers, storage, digesting, and replay.
+6. Implement provider/task-plan binding, relationships, external dependencies, streams, and readiness projection.
+7. Implement API, permissions, errors, capability descriptors, Pi tools, CLI, MCP, and docs.
+8. Implement ProjectFlow/Context Cognition/Preload projections and quantitative budgets.
+9. Implement Spec 135 amendments, generated contracts, Mission Canvas, Work Rail, and UI tests.
+10. Implement Specs 137/137a temporal and 138/138a epistemic bindings.
+11. Implement Spec 140 operation/enforcement/prompt boundaries and cross-harness proof.
+12. Implement checkpoint and completion DAG flows, compensation, and recovery.
+13. Bind and rehearse Specs 145–148 terminal full release.
+14. Preview and create the first next-release Workset without importing current membership.
+15. Run exact-SHA integrated acceptance and only then authorize release through existing authority.
 
 Parallel work is allowed only after shared schemas and operation contracts are frozen, with non-overlapping file ownership.
 
 ---
 
-## 33. Normative requirement ledger
+## 34. Normative requirement ledger
 
 | ID | Requirement |
 | --- | --- |
@@ -1462,7 +1705,7 @@ Parallel work is allowed only after shared schemas and operation contracts are f
 | S149-R-024 | Retry, cooldown, failure fingerprint, and rollback are bounded and typed. |
 | S149-R-025 | Completion contract is distinct from task closure. |
 | S149-R-026 | Completion transitions are typed operations. |
-| S149-R-027 | Current Focusa Workset terminal transition is canonical full release. |
+| S149-R-027 | The first next-release Spec 149 Workset terminal transition is canonical full release. |
 | S149-R-028 | Workset full release invokes Specs 145–147, not a duplicate release engine. |
 | S149-R-029 | Workset completion requires release publication, deployment, and live verification. |
 | S149-R-030 | Workset completion requires rollback/audit/self-heal/watchdog proof where applicable. |
@@ -1494,21 +1737,39 @@ Parallel work is allowed only after shared schemas and operation contracts are f
 | S149-R-056 | LowMem and Bloatgaurd reduce depth without removing authority or recovery fields. |
 | S149-R-057 | Migration imports existing locked artifacts through preview and confirmed commit. |
 | S149-R-058 | Migration preserves original scope, requirement, dependency, and evidence refs. |
-| S149-R-059 | Current locked migration requires zero unmapped mandatory refs and zero cycles. |
+| S149-R-059 | First next-release Workset creation requires zero unmapped mandatory refs, zero cycles, and zero unknown impacts. |
 | S149-R-060 | Full positive, negative, restart, security, parity, performance, and release tests are mandatory. |
 | S149-R-061 | Every consequential transition emits stable Evidence and Spec 119 Receipts. |
 | S149-R-062 | No implementation or release pass occurs with deferred or unknown mandatory requirements. |
+| S149-R-063 | Spec 149 remains excluded from the current locked release and starts only after its verified terminal completion. |
+| S149-R-064 | Specs 137/137a govern all timing, freshness, scheduling, retry, expiry, and forecast semantics. |
+| S149-R-065 | Specs 138/138a govern prediction, uncertainty, calibration, abstention, learning, and adaptive recommendations. |
+| S149-R-066 | Workset relationships and shared membership use explicit ownership and closure policies. |
+| S149-R-067 | Dependencies outside membership use typed external dependency records and fail-closed policies. |
+| S149-R-068 | Provider rename, transfer, deletion, and tombstones preserve identity and require explicit resolution. |
+| S149-R-069 | Provider streams define ordering, backpressure, retention, deduplication, and cursor-expiry recovery. |
+| S149-R-070 | Sealed digests use SHA-256 over RFC 8785 canonical JSON and declared stable fields. |
+| S149-R-071 | Admission and lifecycle state combinations are schema- and reducer-constrained. |
+| S149-R-072 | Completion transitions form an acyclic, compensatable, exactly-once transition DAG. |
+| S149-R-073 | Checkpoint proof identity binds flow, operation, constitution, validation, source, input, and environment revisions. |
+| S149-R-074 | API includes list, search, history, diff, export, pause, resume, relationship, and repair capabilities. |
+| S149-R-075 | Stable permission scopes and failure envelopes govern every Workset operation. |
+| S149-R-076 | Machine-readable schemas, operation contracts, compatibility packet, profile, and complete feature ledger remain authoritative with the prose spec. |
+| S149-R-077 | Numeric latency, token, graph, stream, replay, and memory budgets are benchmark-gated. |
+| S149-R-078 | The first Workset is created from approved next-release decomposition, never implicit current-release membership. |
+| S149-R-079 | Path-specific call-stack designs cover read, admission, preload, checkpoint, and completion flows before coding. |
+| S149-R-080 | Spec 120 reference audit, whole-spec reconciliation, final operator approval, Receipt preview, and decomposition gates precede implementation. |
 
 ---
 
-## 34. Terminal acceptance
+## 35. Terminal acceptance
 
 Spec 149 is implementation-complete only when all of the following are proven:
 
-1. All 62 requirements have `verified` dispositions in a complete ledger.
+1. All 80 requirements have `verified` dispositions in the machine-readable complete feature ledger.
 2. Finite, rolling, and provider-stream Worksets pass end-to-end tests.
 3. Intermediate checkpoint flows pass success, failure, retry, restart, and rollback tests.
-4. The current locked scope imports with exact membership/requirement/dependency parity.
+4. The current locked release is terminally complete before Spec 149 starts, and the first next-release Workset imports no current membership implicitly.
 5. Mission Canvas, Work Rail, Pi, CLI, API, MCP, and headless surfaces agree on one event version.
 6. Spec 135 impact/amendment/generated-contract gates are green.
 7. Spec 140 instruction, prompt, enforcement, delivery, and cross-harness gates are green.
@@ -1517,6 +1778,8 @@ Spec 149 is implementation-complete only when all of the following are proven:
 10. Sealed-revision and exact-SHA invalidation tests pass.
 11. The Canonical Full Release terminal flow completes through publication, deployment, live verification, rollback/audit/self-heal/watchdog proof, and journal finalization.
 12. The Workset terminal Receipt links the sealed Workset revision, candidate SHA, release cycle, deployed/runtime proof, and final journal record.
-13. No hidden fallback, duplicate renderer, parallel operation path, prompt-authority leak, or deferred mandatory row remains.
+13. Machine schemas, operation contracts, Spec 135 compatibility packet, next-release profile, generated clients, and prose remain drift-free.
+14. Spec 120 reference audit, whole-spec reconciliation, final operator approval, Receipt preview, and provider-neutral decomposition are complete.
+15. No hidden fallback, duplicate renderer, parallel operation path, prompt-authority leak, or deferred mandatory row remains.
 
 Until then, the status remains **NO IMPLEMENTATION PASS / NO RELEASE PASS**.

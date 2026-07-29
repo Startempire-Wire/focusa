@@ -1,0 +1,314 @@
+schema: focusa.spec149_operation_contracts.v1
+spec_ref: docs/149-focusa-workset-flow-ledger-and-release-completion-spec.md
+release_admission: next_release_only
+current_release_admitted: false
+authority:
+  project_scope: ProjectIdentity
+  task_state: provider_neutral_work_item_adapter
+  membership: WorksetFlowLedger
+  immediate_action: Workpoint
+  goal_priority: Trajectory
+  instruction_policy: AgentRuntimeConstitution
+  mutation: OperationRegistry_permission_confirmation_idempotency
+  release: CanonicalReleaseCycle
+permissions:
+  - permission: workset:read
+    operations: [workset.read, workset.history.read, workset.export.read]
+  - permission: workset:propose
+    operations: [workset.define.preview, workset.revise.preview, workset.admit.preview, workset.relationship.preview, workset.epoch.seal.preview, workset.seal.preview, workset.reopen.preview, workset.checkpoint.preview, workset.completion.preview, workset.cancel.preview, workset.repair.preview]
+  - permission: workset:write
+    operations: [workset.define.commit, workset.revise.commit, workset.pause, workset.resume, workset.relationship.commit, workset.reconcile, workset.epoch.open, workset.cancel.commit]
+  - permission: workset:admit
+    operations: [workset.admit.commit]
+  - permission: workset:execute
+    operations: [workset.checkpoint.run, workset.workpoint.propose]
+  - permission: workset:seal
+    operations: [workset.epoch.seal.commit, workset.seal.commit, workset.reopen.commit]
+  - permission: workset:complete
+    operations: [workset.completion.execute]
+  - permission: workset:repair
+    operations: [workset.repair.commit]
+  - permission: release:execute
+    operations: [release.cycle.execute]
+failure_envelope_ref: docs/contracts/spec149-workset.schema.v1.json#/$defs/WorksetFailureEnvelope
+stable_failure_codes:
+  - workset_not_found
+  - workset_scope_mismatch
+  - workset_revision_conflict
+  - workset_permission_denied
+  - workset_confirmation_required
+  - workset_idempotency_conflict
+  - workset_provider_unavailable
+  - workset_provider_stale
+  - workset_cursor_expired
+  - workset_backpressure_active
+  - workset_duplicate_member
+  - workset_external_dependency_unresolved
+  - workset_dependency_cycle
+  - workset_unknown_impact
+  - workset_constitution_blocked
+  - workset_checkpoint_blocked
+  - workset_receipt_missing
+  - workset_not_sealed
+  - workset_completion_blocked
+  - workset_release_authority_missing
+  - workset_resource_exhausted
+call_stacks:
+  - design_id: 019faf0a-42ea-7d42-aa34-468ad44f2720
+    path: read_projection
+    entry: focusa_workset_view
+    handlers: [workset_view, workset_list, workset_graph, workset_history, workset_diff, workset_export]
+    services: [WorksetProjectionService, WorksetQueryService]
+    adapters: [WorkItemAdapterRegistry, TrajectoryReader, WorkpointReader, ContextCognitionReader]
+    storage: [WorksetEventStore, WorksetSnapshotStore, WorksetIndexStore]
+    output: focusa.workset_projection.v1
+  - design_id: 019faf0a-4258-7e31-828a-cbcbb55fd008
+    path: admission
+    entry: focusa_workset_admit
+    handlers: [workset_admission_preview, workset_admission_commit]
+    services: [WorksetAdmissionService, WorksetImpactService, WorksetDigestService]
+    adapters: [WorkItemAdapterRegistry, ProviderNeutralTaskPlanAdapter, Spec135ImpactAdapter, AgentRuntimeImpactAdapter]
+    storage: [WorksetEventStore, WorksetIdempotencyStore]
+    output: focusa.workset_admission_result.v1
+  - design_id: 019faf0a-42e1-79e1-8ffe-800c1ef1d3a5
+    path: preload
+    entry: focusa_workset_preload
+    handlers: [workset_preload_view]
+    services: [WorksetProjectionService, WorksetPreloadService]
+    adapters: [ProjectFlowPacketAdapter, ContextCognitionCurator, Spec111PreloadAdapter, BloatgaurdBudgetAdapter]
+    storage: [WorksetSnapshotStore, WorksetIndexStore]
+    output: focusa.workset_preload_slice.v1
+  - design_id: 019faf0a-42cd-7133-843b-81a1a80a62ca
+    path: checkpoint_flow
+    entry: focusa_workset_checkpoint_flow
+    handlers: [checkpoint_preview, checkpoint_run]
+    services: [WorksetCheckpointService, WorksetProofIdentityService]
+    adapters: [OperationRegistryAdapter, TemporalAuthorityAdapter, EpistemicGovernanceAdapter, AgentRuntimeEnforcementAdapter, EvidenceAdapter, ReceiptAdapter]
+    storage: [WorksetEventStore, CheckpointRunStore, WorksetIdempotencyStore]
+    output: focusa.workset_checkpoint_result.v1
+  - design_id: 019faf0a-42d5-79a1-a097-77bd5bd2e72c
+    path: completion
+    entry: focusa_workset_completion
+    handlers: [completion_preview, completion_execute, completion_status]
+    services: [WorksetCompletionService, CompletionDagService, CompensationService]
+    adapters: [OperationRegistryAdapter, AgentRuntimeEnforcementAdapter, CanonicalReleaseCycleAdapter, ReleaseJournalAdapter, EvidenceAdapter, ReceiptAdapter]
+    storage: [WorksetEventStore, CompletionTransitionStore, WorksetIdempotencyStore]
+    output: focusa.workset_completion_result.v1
+operations:
+  - id: workset.read
+    kind: read
+    permission: workset:read
+    confirmation: none
+    idempotency: inherent
+    side_effects: [read_state]
+    evidence_required: false
+  - id: workset.history.read
+    kind: read
+    permission: workset:read
+    confirmation: none
+    idempotency: inherent
+    side_effects: [read_state]
+    evidence_required: false
+  - id: workset.export.read
+    kind: read
+    permission: workset:read
+    confirmation: none
+    idempotency: inherent
+    side_effects: [read_state, bounded_export]
+    evidence_required: false
+  - id: workset.define.preview
+    kind: preview
+    permission: workset:propose
+    confirmation: none
+    idempotency: required
+    side_effects: [read_state, compute_preview]
+    evidence_required: false
+  - id: workset.define.commit
+    kind: mutation
+    permission: workset:write
+    confirmation: explicit
+    idempotency: required
+    side_effects: [append_event, update_projection]
+    evidence_required: true
+  - id: workset.revise.preview
+    kind: preview
+    permission: workset:propose
+    confirmation: none
+    idempotency: required
+    side_effects: [read_state, compute_preview]
+    evidence_required: false
+  - id: workset.revise.commit
+    kind: mutation
+    permission: workset:write
+    confirmation: explicit
+    idempotency: required
+    side_effects: [append_event, update_projection]
+    evidence_required: true
+  - id: workset.pause
+    kind: mutation
+    permission: workset:write
+    confirmation: explicit
+    idempotency: required
+    side_effects: [append_event]
+    evidence_required: true
+  - id: workset.resume
+    kind: mutation
+    permission: workset:write
+    confirmation: explicit
+    idempotency: required
+    side_effects: [append_event, reconcile_provider]
+    evidence_required: true
+  - id: workset.relationship.preview
+    kind: preview
+    permission: workset:propose
+    confirmation: none
+    idempotency: required
+    side_effects: [read_state, compute_preview]
+    evidence_required: false
+  - id: workset.relationship.commit
+    kind: mutation
+    permission: workset:write
+    confirmation: explicit
+    idempotency: required
+    side_effects: [append_event, update_projection]
+    evidence_required: true
+  - id: workset.admit.preview
+    kind: preview
+    permission: workset:propose
+    confirmation: none
+    idempotency: required
+    side_effects: [read_provider, compute_preview]
+    evidence_required: false
+  - id: workset.admit.commit
+    kind: external_governed_mutation
+    permission: workset:admit
+    confirmation: explicit
+    idempotency: required
+    side_effects: [read_provider, append_event, update_projection]
+    evidence_required: true
+  - id: workset.reconcile
+    kind: mutation
+    permission: workset:write
+    confirmation: conditional
+    idempotency: required
+    side_effects: [read_provider, append_event, update_projection]
+    evidence_required: true
+  - id: workset.repair.preview
+    kind: preview
+    permission: workset:propose
+    confirmation: none
+    idempotency: required
+    side_effects: [read_state, compute_preview]
+    evidence_required: false
+  - id: workset.repair.commit
+    kind: mutation
+    permission: workset:repair
+    confirmation: explicit
+    idempotency: required
+    side_effects: [append_corrective_event, update_projection]
+    evidence_required: true
+  - id: workset.epoch.open
+    kind: mutation
+    permission: workset:write
+    confirmation: explicit
+    idempotency: required
+    side_effects: [append_event, update_projection]
+    evidence_required: true
+  - id: workset.epoch.seal.preview
+    kind: preview
+    permission: workset:propose
+    confirmation: none
+    idempotency: required
+    side_effects: [read_provider, compute_digest, compute_preview]
+    evidence_required: false
+  - id: workset.epoch.seal.commit
+    kind: mutation
+    permission: workset:seal
+    confirmation: explicit
+    idempotency: required
+    side_effects: [acquire_lease, append_event, freeze_epoch_digest]
+    evidence_required: true
+  - id: workset.seal.preview
+    kind: preview
+    permission: workset:propose
+    confirmation: none
+    idempotency: required
+    side_effects: [read_provider, compute_digest, compute_preview]
+    evidence_required: false
+  - id: workset.seal.commit
+    kind: mutation
+    permission: workset:seal
+    confirmation: explicit
+    idempotency: required
+    side_effects: [acquire_lease, append_event, freeze_digest]
+    evidence_required: true
+  - id: workset.reopen.preview
+    kind: preview
+    permission: workset:propose
+    confirmation: none
+    idempotency: required
+    side_effects: [read_state, compute_candidate_invalidation, compute_preview]
+    evidence_required: false
+  - id: workset.reopen.commit
+    kind: mutation
+    permission: workset:seal
+    confirmation: explicit
+    idempotency: required
+    side_effects: [invalidate_candidate, append_event, create_revision]
+    evidence_required: true
+  - id: workset.checkpoint.preview
+    kind: preview
+    permission: workset:propose
+    confirmation: none
+    idempotency: required
+    side_effects: [read_state, enforce_constitution, compute_preview]
+    evidence_required: false
+  - id: workset.checkpoint.run
+    kind: governed_execution
+    permission: workset:execute
+    confirmation: conditional
+    idempotency: required
+    side_effects: [execute_registered_operation, append_event, capture_evidence, commit_receipt]
+    evidence_required: true
+  - id: workset.workpoint.propose
+    kind: advisory_projection
+    permission: workset:execute
+    confirmation: none
+    idempotency: required
+    side_effects: [read_state, propose_workpoint]
+    evidence_required: false
+  - id: workset.completion.preview
+    kind: preview
+    permission: workset:propose
+    confirmation: none
+    idempotency: required
+    side_effects: [read_state, enforce_constitution, compute_preview]
+    evidence_required: false
+  - id: workset.completion.execute
+    kind: governed_execution
+    permission: workset:complete
+    confirmation: explicit
+    idempotency: required
+    side_effects: [acquire_lease, execute_transition_dag, append_event, capture_evidence, commit_receipt]
+    evidence_required: true
+  - id: workset.cancel.preview
+    kind: preview
+    permission: workset:propose
+    confirmation: none
+    idempotency: required
+    side_effects: [read_state, compute_preview]
+    evidence_required: false
+  - id: workset.cancel.commit
+    kind: mutation
+    permission: workset:write
+    confirmation: explicit
+    idempotency: required
+    side_effects: [append_event, stop_automation, update_projection]
+    evidence_required: true
+  - id: release.cycle.execute
+    kind: external_governed_mutation
+    permission: release:execute
+    confirmation: explicit
+    idempotency: required
+    side_effects: [publish, deploy, verify, journal]
+    evidence_required: true
