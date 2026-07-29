@@ -25,6 +25,12 @@
 //! - `reducer` — Core reducer (single writer)
 
 pub mod adapters;
+pub mod agent_runtime_constitution;
+pub mod agent_runtime_constitution_store;
+#[cfg(test)]
+mod agent_runtime_constitution_store_test;
+#[cfg(test)]
+mod agent_runtime_constitution_test;
 pub mod ascc;
 pub mod autonomy;
 pub mod awareness;
