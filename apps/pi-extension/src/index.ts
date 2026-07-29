@@ -37,6 +37,7 @@ import { registerWorkRailInteractions } from "./work-rail-interactions.js";
 import { registerMissionCanvasLayout } from "./mission-canvas-layout.js";
 import { registerWorkspaceVerticals } from "./workspace-verticals.js";
 import { registerRichArtifactRenderers } from "./rich-artifact-renderers.js";
+import { registerResearchBridge } from "./research-bridge.js";
 
 export default function focusaPiBridge(pi: ExtensionAPI) {
   const extensionKey = makeAttachmentKey({
@@ -163,6 +164,7 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     registerMissionCanvasLayout(pi);
     registerWorkspaceVerticals(pi);
     registerRichArtifactRenderers(pi);
+    registerResearchBridge(pi);
     registerAutomaticOtaActivation(pi);
     registerWbm(pi);
     registerCompaction(pi);
@@ -288,5 +290,6 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     pi.registerMessageRenderer("focusa-canvas-layout", renderFocusaState);
     pi.registerMessageRenderer("focusa-artifact-projection", renderFocusaState);
     pi.registerMessageRenderer("focusa-rich-artifact", renderFocusaState);
+    pi.registerMessageRenderer("focusa-research-packet", renderFocusaState);
   });
 }

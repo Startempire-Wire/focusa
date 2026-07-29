@@ -1,0 +1,33 @@
+{
+  "schema": "focusa.spec135.research_bridge_origin_isolation.v1",
+  "spec_ref": "docs/135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md",
+  "acceptance_criteria": "Research workflow produces cited durable artifacts without merging browser/session origins.",
+  "authority_split": {
+    "uiai_engine": "Browser/search/session/context/target/media/diagnostics execution and stable artifacts",
+    "focusa": "ProjectIdentity, Workstream/Attachment identity, Workpoint, Evidence, Context Authority, artifact linkage",
+    "mission_canvas": "Tool selection, artifact viewing, explicit steering, bounded session inventory"
+  },
+  "origin_isolation_invariants": [
+    "Each cited artifact retains its exact session_origin and browser_context_ref",
+    "Two Work Surfaces must not share a browser context without an explicit action and visible badge",
+    "Separate targets inside one context do not constitute container isolation",
+    "Isolation may not be inferred from separate tabs alone",
+    "Research packet fields must remain bounded and secret-safe"
+  ],
+  "packet_capture_types": [
+    "search",
+    "source_markdown",
+    "browser_read",
+    "snapshot",
+    "screenshot",
+    "diagnostics",
+    "error",
+    "share_fpv"
+  ],
+  "cleanup_postures": [
+    "keep",
+    "close_session",
+    "already_closed"
+  ],
+  "schema_ref": "docs/contracts/spec135/generated-contract-v1/json-schema/focusa.research_diagnostics_packet.v1.json"
+}
