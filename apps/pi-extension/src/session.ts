@@ -66,6 +66,8 @@ import { queueLifecycleAdvisory } from "./lifecycle-advisory.js";
 import { pushDelta } from "./tools.js";
 import { LifecycleGenerationGuard } from "./lifecycle-guard.js";
 
+import { planWorkspaceInvalidation } from "./workspace-invalidation.js";
+
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
 let sseAbort: AbortController | null = null;
 let sseReconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -880,6 +882,21 @@ function connectSSE() {
 
 // §30: Metacognitive awareness indicators + §37.10: Cross-surface events
 function handleSSEEvent(evt: any) {
+  if (evt?.schema === "focusa.workspace_event.v1") {
+    const plan = planWorkspaceInvalidation(
+      evt,
+      getSessionCwd() || process.cwd(),
+      getContinuityId(),
+      ["mission_canvas.summary", "mission_canvas.surface_detail", "workspace.sidebar.proof", "workspace.sidebar.research"],
+      ["workspace.artifacts", "workspace.history", "workpoint.current"]
+    );
+    if (!plan.accepted) return;
+    if (plan.refetchKeys.length) {
+      getAttachmentRuntime().lastMetacogEvent = `refresh ${plan.refetchKeys.join(", ")}`;
+      getAttachmentRuntime().uiCtx?.requestRender?.();
+    }
+    return;
+  }
   switch (evt.type) {
     case "worker_started":
       getAttachmentRuntime().lastMetacogEvent = "thinking...";

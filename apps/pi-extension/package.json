@@ -28,6 +28,7 @@
     "test:canvas-accessibility": "node tests/mission-canvas-accessibility.test.mjs",
     "test:rich-artifact-renderers": "node tests/rich-artifact-renderers.test.mjs",
     "test:research-bridge": "node tests/research-bridge.test.mjs",
+    "test:workspace-invalidation": "node tests/workspace-invalidation.test.mjs",
     "test:settings-attachment": "node tests/settings-attachment-safety.test.mjs",
     "test:interaction-mode": "node tests/interaction-mode.test.mjs",
     "test:menu-audit": "node tests/menu-audit-gate.test.mjs",

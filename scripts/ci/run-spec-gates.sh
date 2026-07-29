@@ -108,6 +108,9 @@ run_gate npm --prefix ./apps/pi-extension run test:rich-artifact-renderers
 run_gate python3 scripts/generate-spec135-research-bridge-contract.py
 run_gate python3 ./tests/spec135_c2_research_bridge_test.py
 run_gate npm --prefix ./apps/pi-extension run test:research-bridge
+run_gate python3 scripts/generate-spec135-workspace-invalidation.py
+run_gate python3 ./tests/spec135_c3_workspace_invalidation_test.py
+run_gate npm --prefix ./apps/pi-extension run test:workspace-invalidation
 run_gate python3 scripts/generate-spec135-ontology-registry.py
 run_gate python3 ./tests/spec135_f1_ontology_registry_test.py
 run_gate python3 scripts/generate-spec135-semantic-graph-contract.py
