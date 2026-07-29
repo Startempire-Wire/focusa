@@ -101,6 +101,39 @@ fn promotion_requires_gain_and_no_hard_dimension_regression() {
 }
 
 #[test]
+fn spec138_outcome_binding_preserves_epistemic_refs_and_forbids_self_activation() {
+    let record = PromptEpistemicOutcomeRecord {
+        record_id: "outcome-1".into(),
+        evaluation_id: "evaluation-1".into(),
+        prompt_identity_sha256: "a".repeat(64),
+        constitution_version: "1".into(),
+        source_manifest_sha256: "b".repeat(64),
+        environment_refs: vec!["environment:test".into()],
+        topology_refs: vec!["topology:local".into()],
+        prediction_refs: vec!["prediction:1".into()],
+        outcome_refs: vec!["outcome:1".into()],
+        calibration_refs: vec!["calibration:1".into()],
+        transfer_refs: vec!["transfer:1".into()],
+        drift_refs: vec![],
+        negative_transfer_refs: vec![],
+        proposal_ref: Some("proposal:prompt-change".into()),
+        activation_authorized: false,
+    };
+    assert_eq!(
+        bind_prompt_epistemic_outcome(record.clone())
+            .unwrap()
+            .record_id,
+        "outcome-1"
+    );
+    let mut forbidden = record;
+    forbidden.activation_authorized = true;
+    assert_eq!(
+        bind_prompt_epistemic_outcome(forbidden).unwrap_err(),
+        "runtime_agent_prompt_activation_forbidden"
+    );
+}
+
+#[test]
 fn impact_assessment_escalates_permission_and_release_drift() {
     let impact = assess_contract_impact(
         "impact-1",

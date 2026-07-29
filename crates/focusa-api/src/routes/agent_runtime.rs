@@ -11,7 +11,8 @@ use chrono::Utc;
 use focusa_core::{
     agent_runtime_constitution::{
         InstructionClaim, InstructionConflict, InstructionResolution, InstructionSource,
-        PromptEvaluation, RuntimeConstitutionEvent, RuntimeConstitutionVersion,
+        PromptEpistemicOutcomeRecord, PromptEvaluation, RuntimeConstitutionEvent,
+        RuntimeConstitutionVersion,
     },
     agent_runtime_constitution_authority::{
         default_authority_graph, detect_conflicts, discover_project_instructions, resolve_conflict,
@@ -19,7 +20,9 @@ use focusa_core::{
     agent_runtime_constitution_compiler::{
         CompiledPromptLayers, PromptCompileInput, compile_prompt, compile_prompt_with_safe_fallback,
     },
-    agent_runtime_constitution_lifecycle::evaluate_prompt_variant,
+    agent_runtime_constitution_lifecycle::{
+        bind_prompt_epistemic_outcome, evaluate_prompt_variant,
+    },
     agent_runtime_constitution_orchestrator::{
         CristRuntimeInput, RuntimeConstitutionComposition, compose_runtime_constitution,
     },
@@ -61,6 +64,7 @@ struct EvaluationRequest {
     evidence_refs: Vec<String>,
     constitution_id: String,
     idempotency_key: String,
+    epistemic_outcome: Option<PromptEpistemicOutcomeRecord>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -112,7 +116,6 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/agent-runtime/evaluations", post(evaluate))
         .route("/v1/agent-runtime/evaluations/{id}", get(evaluation_events))
         .route("/v1/agent-runtime/delivery/status", get(delivery_status))
-        .route("/v1/agent-runtime/doctor", get(doctor))
 }
 
 async fn scan(
@@ -375,9 +378,31 @@ async fn evaluate(
             &event,
         )
         .map_err(internal)?;
-    Ok(Json(
-        json!({"schema":SCHEMA,"evaluation":evaluation,"event_hash":stored.event_hash}),
-    ))
+    let transfer_event_hash = if let Some(record) = request.epistemic_outcome {
+        let record = bind_prompt_epistemic_outcome(record)
+            .map_err(|reason| unprocessable(&reason, Value::Null))?;
+        let event = RuntimeConstitutionEvent::PromptOutcomeTransferred(record);
+        Some(
+            state
+                .persistence
+                .append_runtime_constitution_event(
+                    &Uuid::now_v7().to_string(),
+                    &request.constitution_id,
+                    &format!("{}:spec138", request.idempotency_key),
+                    &event,
+                )
+                .map_err(internal)?
+                .event_hash,
+        )
+    } else {
+        None
+    };
+    Ok(Json(json!({
+        "schema":SCHEMA,
+        "evaluation":evaluation,
+        "event_hash":stored.event_hash,
+        "spec138_transfer_event_hash":transfer_event_hash
+    })))
 }
 
 async fn variant_events(
@@ -423,16 +448,6 @@ async fn delivery_status(
     require(&headers, &state, "work-loop:read")?;
     Ok(Json(
         json!({"schema":SCHEMA,"status":"available","commit_requires_operator_confirmation":true,"receipt_required":true}),
-    ))
-}
-
-async fn doctor(
-    State(state): State<Arc<AppState>>,
-    headers: HeaderMap,
-) -> Result<Json<Value>, ApiError> {
-    require(&headers, &state, "work-loop:read")?;
-    Ok(Json(
-        json!({"schema":SCHEMA,"status":"ready","safe_default":"append","replacement_requires_approval_and_baseline":true,"stable_prompt_excludes_dynamic_state":true}),
     ))
 }
 

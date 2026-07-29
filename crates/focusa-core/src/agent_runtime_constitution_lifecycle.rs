@@ -1,8 +1,9 @@
 //! Spec 140 immutable version lifecycle, session pinning, evaluation, and drift impact.
 
 use crate::agent_runtime_constitution::{
-    AgentContractImpactAssessment, PromptEvaluation, PromptRevocation,
-    RuntimeConstitutionLifecycleState, RuntimeConstitutionVersion, SessionPromptPin,
+    AgentContractImpactAssessment, PromptEpistemicOutcomeRecord, PromptEvaluation,
+    PromptRevocation, RuntimeConstitutionLifecycleState, RuntimeConstitutionVersion,
+    SessionPromptPin,
 };
 use chrono::Utc;
 use std::collections::{BTreeMap, BTreeSet};
@@ -195,6 +196,25 @@ pub fn decide_prompt_promotion(
             reason: "minimum_evidence_backed_gain_not_met".into(),
         }
     }
+}
+
+pub fn bind_prompt_epistemic_outcome(
+    record: PromptEpistemicOutcomeRecord,
+) -> Result<PromptEpistemicOutcomeRecord, String> {
+    if record.activation_authorized {
+        return Err("runtime_agent_prompt_activation_forbidden".into());
+    }
+    if record.prompt_identity_sha256.len() != 64 || record.source_manifest_sha256.len() != 64 {
+        return Err("prompt_and_source_manifest_hashes_required".into());
+    }
+    if record.environment_refs.is_empty()
+        || record.prediction_refs.is_empty()
+        || record.outcome_refs.is_empty()
+        || record.calibration_refs.is_empty()
+    {
+        return Err("spec138_epistemic_refs_incomplete".into());
+    }
+    Ok(record)
 }
 
 pub fn assess_contract_impact(

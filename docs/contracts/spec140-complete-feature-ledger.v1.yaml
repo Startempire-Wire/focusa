@@ -900,10 +900,15 @@ requirements:
   blocking_dependencies:
   - S140-REQ-033
   positive_tests:
+  - agent_runtime_constitution_lifecycle_test::spec138_outcome_binding_preserves_epistemic_refs_and_forbids_self_activation
   - s140_prompt_provenance_spec138
   negative_tests:
+  - agent_runtime_constitution_lifecycle_test::spec138_outcome_binding_preserves_epistemic_refs_and_forbids_self_activation
   - s140_agent_self_activates_prompt
-  status: not_started
+  status: verified
+  evidence_refs:
+  - test:/tmp/lock-spec140-spec138-tests.txt
+  - check:/tmp/lock-spec140-spec138-api-check.txt
 - requirement_id: S140-REQ-035
   spec_section: '27'
   requirement_text: Detect instruction/tool/skill/profile/spec/compiler drift, create impact assessments, and require review

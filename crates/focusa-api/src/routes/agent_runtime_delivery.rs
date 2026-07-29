@@ -5,7 +5,7 @@ use axum::{
     Json, Router,
     extract::{Path, State},
     http::{HeaderMap, StatusCode},
-    routing::post,
+    routing::{get, post},
 };
 use chrono::Utc;
 use focusa_core::{
@@ -94,6 +94,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/agent-runtime/delivery/preview", post(delivery_preview))
         .route("/v1/agent-runtime/delivery/commit", post(delivery_commit))
         .route("/v1/agent-runtime/delivery/verify", post(delivery_verify))
+        .route("/v1/agent-runtime/doctor", get(doctor))
 }
 
 async fn approve(
@@ -310,6 +311,21 @@ async fn delivery_verify(
     Ok(Json(
         json!({"schema":SCHEMA,"manifest_id":request.manifest_id,"verified":verified}),
     ))
+}
+
+async fn doctor(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+) -> Result<Json<Value>, ApiError> {
+    require(&headers, &state, "work-loop:read")?;
+    Ok(Json(json!({
+        "schema":SCHEMA,
+        "status":"ready",
+        "safe_default":"append",
+        "replacement_requires_approval_and_baseline":true,
+        "stable_prompt_excludes_dynamic_state":true,
+        "runtime_self_activation_forbidden":true
+    })))
 }
 
 fn manifest(request: &DeliveryRequest) -> AgentRuntimeDeliveryManifest {

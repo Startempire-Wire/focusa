@@ -312,6 +312,25 @@ pub struct PromptEvaluation {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PromptEpistemicOutcomeRecord {
+    pub record_id: String,
+    pub evaluation_id: String,
+    pub prompt_identity_sha256: String,
+    pub constitution_version: String,
+    pub source_manifest_sha256: String,
+    pub environment_refs: Vec<String>,
+    pub topology_refs: Vec<String>,
+    pub prediction_refs: Vec<String>,
+    pub outcome_refs: Vec<String>,
+    pub calibration_refs: Vec<String>,
+    pub transfer_refs: Vec<String>,
+    pub drift_refs: Vec<String>,
+    pub negative_transfer_refs: Vec<String>,
+    pub proposal_ref: Option<String>,
+    pub activation_authorized: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentContractImpactAssessment {
     pub assessment_id: String,
     pub changed_source_refs: Vec<String>,
@@ -434,6 +453,7 @@ pub enum RuntimeConstitutionEvent {
     RuntimeConstitutionRevoked(PromptRevocation),
     PromptVariantCompiled(PiPromptVariant),
     PromptVariantEvaluated(PromptEvaluation),
+    PromptOutcomeTransferred(PromptEpistemicOutcomeRecord),
     ArtifactDeliveryVerified(RuntimeArtifactProjection),
     ContractDriftDetected(AgentContractImpactAssessment),
     ContractRollbackActivated(RuntimeConstitutionVersion),
@@ -454,6 +474,7 @@ impl RuntimeConstitutionEvent {
             Self::RuntimeConstitutionRevoked(_) => "runtime_constitution.revoked",
             Self::PromptVariantCompiled(_) => "prompt.variant_compiled",
             Self::PromptVariantEvaluated(_) => "prompt.variant_evaluated",
+            Self::PromptOutcomeTransferred(_) => "prompt.outcome_transferred",
             Self::ArtifactDeliveryVerified(_) => "artifact.delivery_verified",
             Self::ContractDriftDetected(_) => "contract.drift_detected",
             Self::ContractRollbackActivated(_) => "contract.rollback_activated",
