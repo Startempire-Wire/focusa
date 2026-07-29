@@ -4459,6 +4459,13 @@ export interface components {
                 working_subpath_id: string;
                 /** Format: uuid */
                 workpoint_id: string;
+                instance_id?: string | null;
+                session_id?: string | null;
+                work_surface_ids?: string[];
+                priority?: number | null;
+                rank?: number | null;
+                change_set_ref?: string | null;
+                interaction_history?: components["schemas"]["focusa_work_rail_interaction_v1"][];
             }[];
             /** @constant */
             schema: "focusa.work_rail_list.v1";
@@ -4466,7 +4473,7 @@ export interface components {
         };
         focusa_work_rail_mutation_request_v1: {
             /** @enum {unknown} */
-            action: "bind" | "activate" | "verify_close" | "cancel";
+            action: "bind" | "activate" | "verify_close" | "cancel" | "steer" | "defer" | "request_approval" | "reopen";
             artifact_refs?: string[];
             attachment_id: string;
             cancellation_reason?: string;
@@ -4483,6 +4490,17 @@ export interface components {
             working_subpath_id: string;
             /** Format: uuid */
             workpoint_id: string;
+            /** @enum {string} */
+            side_effect_policy: "preview" | "commit";
+            preview_token?: string;
+            actor_ref?: string;
+            interaction_reason?: string;
+            instance_id?: string;
+            session_id?: string;
+            work_surface_ids?: string[];
+            priority?: number;
+            rank?: number;
+            change_set_ref?: string;
         };
         focusa_work_rail_mutation_result_v1: {
             evidence_ref: string;
@@ -4515,11 +4533,20 @@ export interface components {
                 working_subpath_id: string;
                 /** Format: uuid */
                 workpoint_id: string;
+                instance_id?: string | null;
+                session_id?: string | null;
+                work_surface_ids?: string[];
+                priority?: number | null;
+                rank?: number | null;
+                change_set_ref?: string | null;
+                interaction_history?: components["schemas"]["focusa_work_rail_interaction_v1"][];
             };
             /** @constant */
             schema: "focusa.work_rail_mutation_result.v1";
             state_version: number;
             tool_result: Record<string, never>;
+            committed: boolean;
+            preview_token: string;
         };
         /**
          * focusa.workpoint_checkpoint.request.v1
@@ -5415,6 +5442,15 @@ export interface components {
             canonical: true;
             acceptance_criteria: string[];
             evidence_refs: string[];
+        };
+        focusa_work_rail_interaction_v1: {
+            interaction_id: string;
+            action: string;
+            actor_ref: string;
+            reason: string;
+            receipt_ref: string;
+            /** Format: date-time */
+            committed_at: string;
         };
     };
     responses: never;

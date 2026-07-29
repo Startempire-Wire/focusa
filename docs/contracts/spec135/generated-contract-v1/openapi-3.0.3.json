@@ -8901,6 +8901,38 @@
                 "workpoint_id": {
                   "format": "uuid",
                   "type": "string"
+                },
+                "instance_id": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "session_id": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "work_surface_ids": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "priority": {
+                  "nullable": true,
+                  "type": "integer"
+                },
+                "rank": {
+                  "nullable": true,
+                  "type": "integer"
+                },
+                "change_set_ref": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "interaction_history": {
+                  "items": {
+                    "$ref": "#/components/schemas/focusa_work_rail_interaction_v1"
+                  },
+                  "type": "array"
                 }
               },
               "required": [
@@ -8950,7 +8982,11 @@
               "bind",
               "activate",
               "verify_close",
-              "cancel"
+              "cancel",
+              "steer",
+              "defer",
+              "request_approval",
+              "reopen"
             ]
           },
           "artifact_refs": {
@@ -9012,6 +9048,43 @@
           "workpoint_id": {
             "format": "uuid",
             "type": "string"
+          },
+          "side_effect_policy": {
+            "enum": [
+              "preview",
+              "commit"
+            ],
+            "type": "string"
+          },
+          "preview_token": {
+            "type": "string"
+          },
+          "actor_ref": {
+            "type": "string"
+          },
+          "interaction_reason": {
+            "type": "string"
+          },
+          "instance_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "work_surface_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "priority": {
+            "type": "integer"
+          },
+          "rank": {
+            "type": "integer"
+          },
+          "change_set_ref": {
+            "type": "string"
           }
         },
         "required": [
@@ -9024,7 +9097,8 @@
           "expected_rail_revision",
           "action",
           "workpoint_id",
-          "provider_item_id"
+          "provider_item_id",
+          "side_effect_policy"
         ],
         "type": "object"
       },
@@ -9128,6 +9202,38 @@
               "workpoint_id": {
                 "format": "uuid",
                 "type": "string"
+              },
+              "instance_id": {
+                "nullable": true,
+                "type": "string"
+              },
+              "session_id": {
+                "nullable": true,
+                "type": "string"
+              },
+              "work_surface_ids": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "priority": {
+                "nullable": true,
+                "type": "integer"
+              },
+              "rank": {
+                "nullable": true,
+                "type": "integer"
+              },
+              "change_set_ref": {
+                "nullable": true,
+                "type": "string"
+              },
+              "interaction_history": {
+                "items": {
+                  "$ref": "#/components/schemas/focusa_work_rail_interaction_v1"
+                },
+                "type": "array"
               }
             },
             "required": [
@@ -9161,6 +9267,12 @@
           },
           "tool_result": {
             "type": "object"
+          },
+          "committed": {
+            "type": "boolean"
+          },
+          "preview_token": {
+            "type": "string"
           }
         },
         "required": [
@@ -9170,7 +9282,9 @@
           "row",
           "evidence_ref",
           "receipt_ref",
-          "tool_result"
+          "tool_result",
+          "committed",
+          "preview_token"
         ],
         "type": "object"
       },
@@ -12716,6 +12830,39 @@
           "canonical",
           "acceptance_criteria",
           "evidence_refs"
+        ],
+        "type": "object"
+      },
+      "focusa_work_rail_interaction_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "interaction_id": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "actor_ref": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "receipt_ref": {
+            "type": "string"
+          },
+          "committed_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "interaction_id",
+          "action",
+          "actor_ref",
+          "reason",
+          "receipt_ref",
+          "committed_at"
         ],
         "type": "object"
       }

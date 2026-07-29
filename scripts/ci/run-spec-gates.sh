@@ -88,6 +88,8 @@ run_gate python3 ./scripts/generate-spec135-task-provider-contracts.py --check
 run_gate python3 ./tests/spec135_b7_genesis_resume_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_b7_genesis_resume_e2e_test.py
 run_gate python3 ./scripts/generate-spec135-genesis-contracts.py --check
+run_gate python3 ./tests/spec135_a3_work_rail_interactions_test.py
+run_gate python3 ./scripts/generate-spec135-work-rail-contracts.py --check
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_work_rail_e2e_test.py
 run_gate bash ./tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh
 run_gate python3 ./tests/spec135_m1_workspace_shell_test.py

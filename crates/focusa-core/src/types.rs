@@ -2933,6 +2933,16 @@ pub enum WorkRailStatus {
     Cancelled,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkRailInteractionRecord {
+    pub interaction_id: String,
+    pub action: String,
+    pub actor_ref: String,
+    pub reason: String,
+    pub receipt_ref: String,
+    pub committed_at: DateTime<Utc>,
+}
+
 /// Canonical Work Rail row joining Beads, Workpoint, proof, closure, and Receipt truth.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WorkRailRecord {
@@ -2948,6 +2958,16 @@ pub struct WorkRailRecord {
     pub working_subpath_id: String,
     pub continuity_id: String,
     pub attachment_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub instance_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
+    #[serde(default)]
+    pub work_surface_ids: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub priority: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rank: Option<i64>,
     #[serde(default)]
     pub dependencies: Vec<String>,
     #[serde(default)]
@@ -2957,9 +2977,13 @@ pub struct WorkRailRecord {
     #[serde(default)]
     pub artifact_refs: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub change_set_ref: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub receipt_ref: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub closure_claim_ref: Option<String>,
+    #[serde(default)]
+    pub interaction_history: Vec<WorkRailInteractionRecord>,
     pub idempotency_key: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
