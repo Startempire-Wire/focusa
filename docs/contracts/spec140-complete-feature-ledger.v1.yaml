@@ -800,7 +800,15 @@ requirements:
   - s140_session_pinning
   - s140_revocation_restart
   - s140_rollback
-  status: not_started
+  status: verified
+  positive_tests:
+  - agent_runtime_constitution_lifecycle_test::immutable_activation_pinning_and_rollback_require_authority
+  - agent_runtime_constitution_lifecycle_test::promotion_requires_gain_and_no_hard_dimension_regression
+  negative_tests:
+  - agent_runtime_constitution_lifecycle_test::evaluation_rejects_missing_evidence_and_out_of_range_scores
+  - agent_runtime_constitution_lifecycle_test::revocation_fails_closed_for_activation_and_rollback
+  evidence_refs:
+  - test:/tmp/lock-spec140-lifecycle-tests.txt
 - requirement_id: S140-REQ-032
   spec_section: '25'
   requirement_text: Compile stable obligations to consult Specs 137/139 while keeping changing time, presence, topology, placement,
@@ -852,8 +860,15 @@ requirements:
   - compaction
   - transfer
   positive_tests:
+  - agent_runtime_constitution_lifecycle_test::immutable_activation_pinning_and_rollback_require_authority
+  - agent_runtime_constitution_lifecycle_test::promotion_requires_gain_and_no_hard_dimension_regression
   - s140_champion_challenger_suite
-  status: not_started
+  status: verified
+  negative_tests:
+  - agent_runtime_constitution_lifecycle_test::evaluation_rejects_missing_evidence_and_out_of_range_scores
+  - agent_runtime_constitution_lifecycle_test::revocation_fails_closed_for_activation_and_rollback
+  evidence_refs:
+  - test:/tmp/lock-spec140-lifecycle-tests.txt
 - requirement_id: S140-REQ-034
   spec_section: 26.4-26.5
   requirement_text: Record prompt identity/version/environment/outcome/transfer in Spec 138 and forbid the runtime agent from
@@ -892,7 +907,7 @@ requirements:
   - s140_drift_impact_assessment
   negative_tests:
   - s140_silent_regeneration
-  status: not_started
+  status: active
 - requirement_id: S140-REQ-036
   spec_section: 28-32
   requirement_text: Implement durable events/persistence, typed API/CLI/Pi surfaces, delivery manifests, preview/commit/verify,
