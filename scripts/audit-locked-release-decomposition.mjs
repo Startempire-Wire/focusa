@@ -29,11 +29,11 @@ function sameSet(label, expected, actual) {
 if (manifest.schema !== "focusa.locked_release_scope.v2") failures.push("locked manifest schema is not v2");
 if (audit.schema !== "focusa.locked_release_decomposition.v2") failures.push("decomposition schema is not v2");
 if (manifest.pre_decomposition_open_issue_count !== 38) failures.push("original locked manifest count is not 38");
-if (manifest.lock_revision !== 3 || manifest.scope_state !== "locked" || !manifest.relocked_at) {
-  failures.push("release was not durably relocked at revision 3");
+if (manifest.lock_revision !== 4 || manifest.scope_state !== "locked" || !manifest.relocked_at) {
+  failures.push("release was not durably relocked at revision 4");
 }
-if (manifest.current_explicit_issue_count !== 41) failures.push("current explicit issue count is not 41");
-if (manifest.current_locked_bead_member_count !== 237) failures.push("current locked Bead member count is not 237");
+if (manifest.current_explicit_issue_count !== 42) failures.push("current explicit issue count is not 42");
+if (manifest.current_locked_bead_member_count !== 238) failures.push("current locked Bead member count is not 238");
 sameSet(
   "original locked issues",
   manifest.pre_decomposition_open_issue_ids,
@@ -44,8 +44,22 @@ for (const entry of audit.original_locked_issues) {
 }
 const manifestAdditions = manifest.operator_authorized_post_lock_additions ?? [];
 const decompositionAdditions = audit.operator_authorized_post_lock_additions ?? [];
-if (manifestAdditions.length !== 3 || decompositionAdditions.length !== 3) {
-  failures.push("operator-authorized post-lock addition count is not 3");
+if (manifestAdditions.length !== 4 || decompositionAdditions.length !== 4) {
+  failures.push("operator-authorized post-lock addition count is not 4");
+}
+const manifestFirstTouch = manifestAdditions.filter((entry) => entry.first_touch === true);
+const decompositionFirstTouch = decompositionAdditions.filter((entry) => entry.first_touch === true);
+if (
+  manifestFirstTouch.length !== 1 ||
+  decompositionFirstTouch.length !== 1 ||
+  manifestFirstTouch[0]?.issue_id !== "focusa-627th.4.3" ||
+  decompositionFirstTouch[0]?.issue_id !== "focusa-627th.4.3" ||
+  manifestFirstTouch[0]?.lane !== "locked-wave-0" ||
+  decompositionFirstTouch[0]?.lane !== "locked-wave-0" ||
+  manifestFirstTouch[0]?.execution_order !== 0 ||
+  decompositionFirstTouch[0]?.execution_order !== 0
+) {
+  failures.push("compaction regression is not the unique locked-wave-0 first-touch task");
 }
 sameSet(
   "operator-authorized post-lock additions",
