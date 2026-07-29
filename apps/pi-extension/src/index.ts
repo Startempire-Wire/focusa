@@ -34,6 +34,7 @@ import { registerMissionCanvasWidget } from "./mission-canvas-widget.js";
 import { registerRoleComposer } from "./role-composer.js";
 import { registerInterviewComposer } from "./interview-composer.js";
 import { registerWorkRailInteractions } from "./work-rail-interactions.js";
+import { registerMissionCanvasLayout } from "./mission-canvas-layout.js";
 
 export default function focusaPiBridge(pi: ExtensionAPI) {
   const extensionKey = makeAttachmentKey({
@@ -157,6 +158,7 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     registerRoleComposer(pi);
     registerInterviewComposer(pi);
     registerWorkRailInteractions(pi);
+    registerMissionCanvasLayout(pi);
     registerAutomaticOtaActivation(pi);
     registerWbm(pi);
     registerCompaction(pi);
@@ -279,5 +281,6 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     pi.registerMessageRenderer("focusa-role-profile", renderFocusaState);
     pi.registerMessageRenderer("focusa-interview-session", renderFocusaState);
     pi.registerMessageRenderer("focusa-work-rail-action", renderFocusaState);
+    pi.registerMessageRenderer("focusa-canvas-layout", renderFocusaState);
   });
 }

@@ -95,6 +95,7 @@ run_gate bash ./tests/spec135_mission_canvas_naming_and_multiplexing_static_test
 run_gate python3 ./tests/spec135_m1_workspace_shell_test.py
 run_gate python3 ./tests/spec135_m2_pi_work_rail_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_mission_canvas_surfaces_e2e_test.py
+run_gate python3 ./tests/spec135_a5_surface_layout_test.py
 run_gate python3 ./tests/spec135_m4_surface_bindings_static_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_m4_surface_bindings_e2e_test.py
 run_gate python3 ./tests/spec135_m5_browser_context_isolation_test.py
