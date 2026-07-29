@@ -79,6 +79,25 @@ def main():
         helper.SCOPE = SCOPE
         wb.SCOPE = SCOPE
         process, log, base = helper.start(data)
+        capabilities = listed(base)["provider_capabilities"]
+        assert {capability["provider"] for capability in capabilities} == {
+            "beads",
+            "github_issues",
+            "linear",
+            "asana",
+            "markdown_checklist",
+        }
+        allowed_states = {
+            "configured and operational",
+            "configured but unhealthy",
+            "read-only",
+            "credentials missing",
+            "adapter unavailable",
+            "schema-only support",
+            "mutation approval required",
+        }
+        assert all(capability["status"] in allowed_states for capability in capabilities)
+        assert all(capability["mutation_approval_required"] for capability in capabilities)
         source = helper.commit_context(base)["source"]
         spec = wb.mutate(
             base,

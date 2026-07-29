@@ -3813,6 +3813,7 @@ export interface components {
                 updated_at: string;
                 workbench_session_id: string;
             }[];
+            provider_capabilities: components["schemas"]["focusa_task_provider_capability_truth_v1"][];
         };
         /** focusa.provider_neutral_task_plan_mutation.request.v1 */
         focusa_provider_neutral_task_plan_mutation_request_v1: {
@@ -5389,6 +5390,19 @@ export interface components {
             known_contradictions: string[];
             /** @constant */
             desired_spec_template: "project_genesis";
+        };
+        focusa_task_provider_capability_truth_v1: {
+            /** @enum {string} */
+            provider: "beads" | "github_issues" | "linear" | "asana" | "markdown_checklist";
+            /** @enum {string} */
+            status: "configured and operational" | "configured but unhealthy" | "read-only" | "credentials missing" | "adapter unavailable" | "schema-only support" | "mutation approval required";
+            /** @enum {string} */
+            read_write_posture: "read-only" | "read-write";
+            configured: boolean;
+            credential_reference_present: boolean;
+            mutation_approval_required: boolean;
+            adapter_ref: string;
+            recovery_action: string;
         };
     };
     responses: never;

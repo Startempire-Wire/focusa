@@ -17,6 +17,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, BTreeSet},
+    env,
     io::Write,
     path::{Path, PathBuf},
     sync::Arc,
@@ -70,6 +71,106 @@ pub struct ListResponse {
     schema: &'static str,
     state_version: u64,
     task_plans: Vec<ProviderNeutralTaskPlanRecord>,
+    provider_capabilities: Vec<TaskProviderCapabilityTruth>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TaskProviderCapabilityTruth {
+    provider: &'static str,
+    status: &'static str,
+    read_write_posture: &'static str,
+    configured: bool,
+    credential_reference_present: bool,
+    mutation_approval_required: bool,
+    adapter_ref: &'static str,
+    recovery_action: String,
+}
+
+fn provider_capabilities(project_root: &str) -> Vec<TaskProviderCapabilityTruth> {
+    let root = Path::new(project_root);
+    let beads_ledger = root.join(".beads/issues.jsonl");
+    let beads_status = if root.join(".git").is_dir() && beads_ledger.is_file() {
+        "configured and operational"
+    } else if beads_ledger.is_file() {
+        "read-only"
+    } else {
+        "adapter unavailable"
+    };
+    let external = |provider: &'static str,
+                    credential_env: &str,
+                    adapter_ref: &'static str,
+                    recovery_without_credentials: &str| {
+        let credential_reference_present = env::var(credential_env)
+            .ok()
+            .is_some_and(|value| !value.trim().is_empty());
+        TaskProviderCapabilityTruth {
+            provider,
+            status: if credential_reference_present {
+                "schema-only support"
+            } else {
+                "credentials missing"
+            },
+            read_write_posture: "read-only",
+            configured: credential_reference_present,
+            credential_reference_present,
+            mutation_approval_required: true,
+            adapter_ref,
+            recovery_action: if credential_reference_present {
+                "install and verify the provider adapter before mutation".to_string()
+            } else {
+                recovery_without_credentials.to_string()
+            },
+        }
+    };
+    vec![
+        TaskProviderCapabilityTruth {
+            provider: "beads",
+            status: beads_status,
+            read_write_posture: if beads_status == "configured and operational" {
+                "read-write"
+            } else {
+                "read-only"
+            },
+            configured: beads_ledger.is_file(),
+            credential_reference_present: true,
+            mutation_approval_required: true,
+            adapter_ref: "focusa.work_item.adapters.bd.v1",
+            recovery_action: if beads_ledger.is_file() {
+                "use the canonical parent Git root and explicit permission grant".to_string()
+            } else {
+                "initialize canonical parent Beads before materialization".to_string()
+            },
+        },
+        external(
+            "github_issues",
+            "FOCUSA_GITHUB_CREDENTIAL_REF",
+            "focusa.task_provider.github_issues.schema.v1",
+            "configure a GitHub credential reference with minimum issue scopes",
+        ),
+        external(
+            "linear",
+            "FOCUSA_LINEAR_CREDENTIAL_REF",
+            "focusa.task_provider.linear.schema.v1",
+            "configure a Linear credential reference with minimum issue scopes",
+        ),
+        external(
+            "asana",
+            "FOCUSA_ASANA_CREDENTIAL_REF",
+            "focusa.task_provider.asana.schema.v1",
+            "configure an Asana credential reference with minimum task scopes",
+        ),
+        TaskProviderCapabilityTruth {
+            provider: "markdown_checklist",
+            status: "schema-only support",
+            read_write_posture: "read-only",
+            configured: true,
+            credential_reference_present: true,
+            mutation_approval_required: true,
+            adapter_ref: "focusa.task_provider.markdown_checklist.schema.v1",
+            recovery_action: "install and verify the Markdown Checklist mutation adapter"
+                .to_string(),
+        },
+    ]
 }
 #[derive(Debug, Serialize)]
 pub struct MutationResponse {
@@ -202,6 +303,7 @@ pub async fn list(
         schema: "focusa.provider_neutral_task_plan_list.v1",
         state_version: s.version,
         task_plans: plans,
+        provider_capabilities: provider_capabilities(&q.project_root),
     }))
 }
 pub async fn mutate(

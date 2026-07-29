@@ -6933,12 +6933,21 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "provider_capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/focusa_task_provider_capability_truth_v1"
+            },
+            "maxItems": 5,
+            "minItems": 5,
+            "type": "array"
           }
         },
         "required": [
           "schema",
           "state_version",
-          "task_plans"
+          "task_plans",
+          "provider_capabilities"
         ],
         "title": "focusa.provider_neutral_task_plan_list.v1",
         "type": "object",
@@ -12596,6 +12605,66 @@
           "unresolved_questions",
           "known_contradictions",
           "desired_spec_template"
+        ],
+        "type": "object"
+      },
+      "focusa_task_provider_capability_truth_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "provider": {
+            "enum": [
+              "beads",
+              "github_issues",
+              "linear",
+              "asana",
+              "markdown_checklist"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "configured and operational",
+              "configured but unhealthy",
+              "read-only",
+              "credentials missing",
+              "adapter unavailable",
+              "schema-only support",
+              "mutation approval required"
+            ],
+            "type": "string"
+          },
+          "read_write_posture": {
+            "enum": [
+              "read-only",
+              "read-write"
+            ],
+            "type": "string"
+          },
+          "configured": {
+            "type": "boolean"
+          },
+          "credential_reference_present": {
+            "type": "boolean"
+          },
+          "mutation_approval_required": {
+            "type": "boolean"
+          },
+          "adapter_ref": {
+            "type": "string"
+          },
+          "recovery_action": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "status",
+          "read_write_posture",
+          "configured",
+          "credential_reference_present",
+          "mutation_approval_required",
+          "adapter_ref",
+          "recovery_action"
         ],
         "type": "object"
       }
