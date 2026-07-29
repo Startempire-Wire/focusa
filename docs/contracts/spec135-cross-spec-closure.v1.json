@@ -1,0 +1,72 @@
+{
+  "schema": "focusa.spec135.cross_spec_closure.v1",
+  "acceptance_criteria": "All amendments and migrations pass; no authority fork or legacy Mission Canvas substitute remains.",
+  "migration_contracts": [
+    {
+      "ref": "docs/contracts/spec135-e1-migration-inventory.v1.yaml",
+      "schema": "focusa.spec135.migration_inventory.v1",
+      "acceptance": {
+        "all_changed_surfaces_have_old_and_new_owner": true,
+        "readers_and_writers_explicit": true,
+        "migration_state_explicit": true
+      },
+      "passed": true
+    },
+    {
+      "ref": "docs/contracts/spec135-e2-e4-migration-plan.v1.yaml",
+      "schema": "focusa.spec135.migration_plan.v1",
+      "acceptance": {
+        "replay_and_migration_proof_present": true,
+        "contract_authority_not_duplicated": true,
+        "native_ui_path_primary": true,
+        "proof_continuity_preserved": true
+      },
+      "passed": true
+    },
+    {
+      "ref": "docs/contracts/spec135-e5-rollout-closure.v1.yaml",
+      "schema": "focusa.spec135.rollout_closure.v1",
+      "acceptance": {
+        "no_unsupported_rows": true,
+        "no_silent_deferrals": true,
+        "all_readers_writers_clients_providers_and_proofs_migrated": true
+      },
+      "passed": true
+    }
+  ],
+  "authority": {
+    "canonical_operation_registry": "docs/contracts/spec135/generated-contract-v1/operation-registry.json",
+    "canonical_workpoint": "Focusa Workpoint reducer",
+    "presentation_clients_own_state": false,
+    "parallel_runtime": false
+  },
+  "legacy_removals": [
+    {
+      "surface": "Pi Work Rail",
+      "removed": "setWidget(\"focusa\") legacy duplicate",
+      "canonical": "focusa-mission-canvas-work-rail"
+    },
+    {
+      "surface": "generated UI",
+      "removed": "second Svelte A2UI renderer",
+      "canonical": "@a2ui/lit/v0_9"
+    },
+    {
+      "surface": "semantic registry",
+      "removed": "route-local competing registries",
+      "canonical": "focusa.ontology_registry.v2"
+    }
+  ],
+  "rollback": {
+    "exact_snapshot": true,
+    "append_only_history": true,
+    "original_state_preserved_on_failure": true,
+    "silent_empty_initialization": false
+  },
+  "proof_refs": [
+    "tests/spec135_e5_rollout_closure_lint.py",
+    "tests/spec135_machine_readable_delivery_graph_test.py",
+    "tests/spec135_j5_runtime_ownership_test.py",
+    "tests/spec135_m2_pi_work_rail_test.py"
+  ]
+}
