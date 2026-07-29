@@ -12,6 +12,17 @@ fn claim(id: &str, class: &str) -> InstructionClaim {
         applicability: InstructionApplicability::Applicable,
         scope_ref: "/project".into(),
         condition: None,
+        subject: None,
+        action: None,
+        object: None,
+        modality: None,
+        exceptions: vec![],
+        rationale: None,
+        verification_ref: None,
+        enforcement_ref: None,
+        authority_ref: None,
+        trust_ref: None,
+        provenance_refs: vec![],
     }
 }
 

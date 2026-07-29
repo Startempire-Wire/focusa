@@ -126,10 +126,7 @@ pub fn detect_instruction_injection(
         record_id: record_id.into(),
         source_ref: source.source_ref.clone(),
         trust: source.trust,
-        blocked: matches!(
-            source.trust,
-            InstructionTrustClass::Untrusted | InstructionTrustClass::Quarantined
-        ),
+        blocked: true,
         reason_code: format!("instruction_injection:{}", needle.replace(' ', "_")),
         content_sha256: hex::encode(Sha256::digest(body.as_bytes())),
     })
@@ -181,7 +178,7 @@ pub fn discover_project_instructions(
             "source:{}",
             &hex::encode(Sha256::digest(relative.as_bytes()))[..16]
         );
-        let source = instruction_source_from_bytes(
+        let mut source = instruction_source_from_bytes(
             source_id,
             relative,
             &bytes,
@@ -190,7 +187,20 @@ pub fn discover_project_instructions(
             root.display().to_string(),
         );
         if let Ok(body) = std::str::from_utf8(&bytes) {
-            claims.extend(extract_atomic_claims(&source, body));
+            if contains_secret_like_material(body) {
+                findings.push(format!("secret_like_source_excluded:{}", source.source_ref));
+                continue;
+            }
+            if let Some(injection) = detect_instruction_injection(
+                format!("injection:{}", source.source_id),
+                &source,
+                body,
+            ) {
+                source.trust = InstructionTrustClass::Quarantined;
+                findings.push(format!("{}:{}", injection.reason_code, source.source_ref));
+            } else {
+                claims.extend(extract_atomic_claims(&source, body));
+            }
         } else {
             findings.push(format!("non_utf8_source:{}", source.source_ref));
         }
@@ -241,6 +251,21 @@ fn collect_candidates(
     Ok(())
 }
 
+fn contains_secret_like_material(body: &str) -> bool {
+    let normalized = body.to_ascii_lowercase();
+    [
+        "-----begin private key-----",
+        "api_key=",
+        "api-key=",
+        "access_token=",
+        "client_secret=",
+        "password=",
+        "\"private_key\":",
+    ]
+    .iter()
+    .any(|needle| normalized.contains(needle))
+}
+
 fn is_registered_instruction_path(relative: &Path) -> bool {
     let normalized = relative.to_string_lossy().replace('\\', "/");
     let file_name = relative
@@ -257,7 +282,12 @@ fn is_registered_instruction_path(relative: &Path) -> bool {
             | ".windsurfrules"
             | ".pi/SYSTEM.md"
             | ".pi/APPEND_SYSTEM.md"
+            | ".focusa-project.json"
             | "package.json"
+            | "Cargo.toml"
+            | "pyproject.toml"
+            | "Taskfile.yml"
+            | "Taskfile.yaml"
             | "Makefile"
     ) || normalized == ".claude/CLAUDE.md"
         || (normalized.starts_with(".claude/rules/") && normalized.ends_with(".md"))
@@ -273,6 +303,15 @@ fn is_registered_instruction_path(relative: &Path) -> bool {
             && matches!(
                 relative.extension().and_then(|ext| ext.to_str()),
                 Some("yml" | "yaml")
+            ))
+        || (normalized.starts_with("docs/")
+            && normalized.to_ascii_lowercase().contains("runbook")
+            && normalized.ends_with(".md"))
+        || (normalized.starts_with("config/")
+            && normalized.to_ascii_lowercase().contains("policy")
+            && matches!(
+                relative.extension().and_then(|ext| ext.to_str()),
+                Some("json" | "yaml" | "yml")
             ))
 }
 
@@ -310,15 +349,59 @@ pub fn extract_atomic_claims(source: &InstructionSource, body: &str) -> Vec<Inst
             } else {
                 "operating_instruction"
             };
+            let words: Vec<_> = text.split_whitespace().collect();
+            let modality_index = words.iter().position(|word| {
+                matches!(
+                    word.to_ascii_lowercase().as_str(),
+                    "must" | "shall" | "should" | "may" | "never"
+                )
+            });
+            let modality = modality_index.map(|position| words[position].to_ascii_lowercase());
+            let action_index = modality_index.map(|position| position + 1).unwrap_or(0);
+            let condition = [" if ", " when ", " provided that "]
+                .iter()
+                .find_map(|delimiter| {
+                    lower
+                        .find(delimiter)
+                        .map(|position| text[position + delimiter.len()..].to_string())
+                });
+            let exceptions = [" unless ", " except "]
+                .iter()
+                .filter_map(|delimiter| {
+                    lower
+                        .find(delimiter)
+                        .map(|position| text[position + delimiter.len()..].to_string())
+                })
+                .collect();
             Some(InstructionClaim {
                 claim_id: format!("claim:{}:{}", source.source_id, index + 1),
                 source_id: source.source_id.clone(),
                 claim_class: claim_class.into(),
                 normalized_text: text.split_whitespace().collect::<Vec<_>>().join(" "),
-                source_text_sha256: text_hash,
+                source_text_sha256: text_hash.clone(),
                 applicability: InstructionApplicability::Applicable,
                 scope_ref: source.scope_ref.clone(),
-                condition: None,
+                condition,
+                subject: words.first().map(|word| (*word).to_string()),
+                action: words.get(action_index).map(|word| (*word).to_string()),
+                object: (action_index + 1 < words.len())
+                    .then(|| words[action_index + 1..].join(" ")),
+                modality,
+                exceptions,
+                rationale: lower
+                    .find(" because ")
+                    .map(|position| text[position + 9..].to_string()),
+                verification_ref: (lower.contains("test")
+                    || lower.contains("verify")
+                    || lower.contains("proof"))
+                .then(|| "instruction:verification_required".into()),
+                enforcement_ref: (lower.contains("must not")
+                    || lower.contains("never")
+                    || lower.contains("forbid"))
+                .then(|| "daemon:fail_closed".into()),
+                authority_ref: Some(format!("{:?}", source.authority).to_lowercase()),
+                trust_ref: Some(format!("{:?}", source.trust).to_lowercase()),
+                provenance_refs: vec![source.source_ref.clone(), format!("sha256:{text_hash}")],
             })
         })
         .collect()

@@ -193,10 +193,17 @@ requirements:
   ui_surfaces:
   - crist_runtime_constitution_stage
   positive_tests:
+  - agent_runtime_constitution_authority_test::scanner_discovers_registered_sources_and_extracts_atomic_claims
+  - agent_runtime_constitution_lifecycle_test::impact_assessment_escalates_permission_and_release_drift
   - s140_crist_extended_state_machine
   restart_recovery_tests:
   - s140_crist_runtime_stage_resume
-  status: active
+  status: verified
+  negative_tests:
+  - agent_runtime_constitution_authority_test::bounded_paths_reject_escape_and_denied_paths
+  - agent_runtime_constitution_authority_test::untrusted_injection_is_quarantined
+  evidence_refs:
+  - test:/tmp/lock-spec140-core-closure-tests2.txt
 - requirement_id: S140-REQ-008
   spec_section: '7.1'
   requirement_text: Discover registered project instruction, system-prompt, harness-rule, skill, package/task, CI, runbook,
@@ -221,10 +228,16 @@ requirements:
   - focusa_agent_runtime_scan
   - focusa_agent_runtime_sources
   positive_tests:
+  - agent_runtime_constitution_authority_test::scanner_discovers_registered_sources_and_extracts_atomic_claims
+  - agent_runtime_constitution_lifecycle_test::impact_assessment_escalates_permission_and_release_drift
   - s140_source_discovery_matrix
   negative_tests:
+  - agent_runtime_constitution_authority_test::bounded_paths_reject_escape_and_denied_paths
+  - agent_runtime_constitution_authority_test::untrusted_injection_is_quarantined
   - s140_out_of_scope_source_ingestion
-  status: active
+  status: verified
+  evidence_refs:
+  - test:/tmp/lock-spec140-core-closure-tests2.txt
 - requirement_id: S140-REQ-009
   spec_section: '7.2'
   requirement_text: Inventory authorized machine/user/managed overlays without silently committing or broadening them into
@@ -292,10 +305,16 @@ requirements:
   generated_contracts:
   - focusa.instruction_claim.v1
   positive_tests:
+  - agent_runtime_constitution_authority_test::scanner_discovers_registered_sources_and_extracts_atomic_claims
+  - agent_runtime_constitution_lifecycle_test::impact_assessment_escalates_permission_and_release_drift
   - s140_atomic_claim_extraction
   negative_tests:
+  - agent_runtime_constitution_authority_test::bounded_paths_reject_escape_and_denied_paths
+  - agent_runtime_constitution_authority_test::untrusted_injection_is_quarantined
   - s140_paragraph_as_authority_unit
-  status: active
+  status: verified
+  evidence_refs:
+  - test:/tmp/lock-spec140-core-closure-tests2.txt
 - requirement_id: S140-REQ-012
   spec_section: 9.1-9.3
   requirement_text: Implement an explicit internal authority/applicability graph and allow lower rules to specialize but not
@@ -789,7 +808,15 @@ requirements:
   - s140_prompt_injection
   - s140_secret_exclusion
   - s140_dynamic_fact_exclusion
-  status: active
+  status: verified
+  positive_tests:
+  - agent_runtime_constitution_authority_test::scanner_discovers_registered_sources_and_extracts_atomic_claims
+  - agent_runtime_constitution_lifecycle_test::impact_assessment_escalates_permission_and_release_drift
+  negative_tests:
+  - agent_runtime_constitution_authority_test::bounded_paths_reject_escape_and_denied_paths
+  - agent_runtime_constitution_authority_test::untrusted_injection_is_quarantined
+  evidence_refs:
+  - test:/tmp/lock-spec140-core-closure-tests2.txt
 - requirement_id: S140-REQ-031
   spec_section: '24'
   requirement_text: Version and immutably activate Runtime Constitutions and PromptVariants, pin stable versions per session,
@@ -929,10 +956,16 @@ requirements:
   api_operations:
   - agent_runtime.instructions_drift
   positive_tests:
+  - agent_runtime_constitution_authority_test::scanner_discovers_registered_sources_and_extracts_atomic_claims
+  - agent_runtime_constitution_lifecycle_test::impact_assessment_escalates_permission_and_release_drift
   - s140_drift_impact_assessment
   negative_tests:
+  - agent_runtime_constitution_authority_test::bounded_paths_reject_escape_and_denied_paths
+  - agent_runtime_constitution_authority_test::untrusted_injection_is_quarantined
   - s140_silent_regeneration
-  status: active
+  status: verified
+  evidence_refs:
+  - test:/tmp/lock-spec140-core-closure-tests2.txt
 - requirement_id: S140-REQ-036
   spec_section: 28-32
   requirement_text: Implement durable events/persistence, typed API/CLI/Pi surfaces, delivery manifests, preview/commit/verify,

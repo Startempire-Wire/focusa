@@ -113,6 +113,28 @@ pub struct InstructionClaim {
     pub applicability: InstructionApplicability,
     pub scope_ref: String,
     pub condition: Option<String>,
+    #[serde(default)]
+    pub subject: Option<String>,
+    #[serde(default)]
+    pub action: Option<String>,
+    #[serde(default)]
+    pub object: Option<String>,
+    #[serde(default)]
+    pub modality: Option<String>,
+    #[serde(default)]
+    pub exceptions: Vec<String>,
+    #[serde(default)]
+    pub rationale: Option<String>,
+    #[serde(default)]
+    pub verification_ref: Option<String>,
+    #[serde(default)]
+    pub enforcement_ref: Option<String>,
+    #[serde(default)]
+    pub authority_ref: Option<String>,
+    #[serde(default)]
+    pub trust_ref: Option<String>,
+    #[serde(default)]
+    pub provenance_refs: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
