@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docs.startempire.ai/focusa/spec135/focusa.domain_pack_manifest.v1.json",
+  "title": "Focusa Domain Pack Manifest v1",
+  "description": "Versioned package extending the shared cognition pack with domain-specific definitions. Composite projects may activate multiple compatible packs.",
+  "type": "object",
+  "required": [
+    "schema",
+    "pack_id",
+    "pack_version",
+    "compatibility_version",
+    "extends",
+    "object_type_ids",
+    "action_type_ids",
+    "status_vocabulary_ids",
+    "verification_policy_ids",
+    "promotion_policy_ids",
+    "slice_policy_ids",
+    "built_in"
+  ],
+  "properties": {
+    "schema": {
+      "const": "focusa.domain_pack_manifest.v1"
+    },
+    "pack_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pack_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "compatibility_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "extends": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "object_type_ids": {
+      "type": "array"
+    },
+    "link_type_ids": {
+      "type": "array"
+    },
+    "action_type_ids": {
+      "type": "array"
+    },
+    "status_vocabulary_ids": {
+      "type": "array"
+    },
+    "verification_policy_ids": {
+      "type": "array"
+    },
+    "promotion_policy_ids": {
+      "type": "array"
+    },
+    "slice_policy_ids": {
+      "type": "array"
+    },
+    "panel": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "renderer_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "migration_refs": {
+      "type": "array"
+    },
+    "legacy_aliases": {
+      "type": "object"
+    },
+    "built_in": {
+      "type": "boolean"
+    },
+    "custom": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}
