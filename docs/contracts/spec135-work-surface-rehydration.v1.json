@@ -1,0 +1,16 @@
+{
+  "schema": "focusa.spec135.work_surface_rehydration.v1",
+  "spec_ref": "docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md",
+  "acceptance_criteria": "Every Work Surface rehydrates with exact scope, attachment, lifecycle, queue, and isolation identity.",
+  "rehydration_identity_invariants": [
+    "scope: project_root + continuity_id must be identical across rehydrate",
+    "attachment: attachment_id + instance_id must be identical across rehydrate",
+    "lifecycle: surface_kind + status + state_revision preserved with versioning",
+    "queue: canonical_state_refs preserved exactly",
+    "isolation: pane_id + tab_index preserved for split/container identity",
+    "idempotency_key ensures replayable rehydration",
+    "focused Work Surface state never becomes singleton canonical authority"
+  ],
+  "rust_model_ref": "crates/focusa-core/src/types.rs::MissionCanvasWorkSurfaceRecord",
+  "schema_path": "docs/contracts/spec135/generated-contract-v1/json-schema/focusa.work_surface.v1.json"
+}
