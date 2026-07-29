@@ -131,6 +131,8 @@ run_gate python3 scripts/generate-spec135-writer-governance.py
 run_gate python3 ./tests/spec135_g4_writer_governance_test.py
 run_gate python3 scripts/generate-spec135-browser-isolation.py
 run_gate python3 ./tests/spec135_g5_browser_isolation_test.py
+run_gate python3 scripts/generate-spec135-multiplexing-proof.py
+run_gate python3 ./tests/spec135_g6_multiplexing_proof_test.py
 run_gate python3 scripts/generate-spec135-ui-event-stream.py
 run_gate python3 ./tests/spec135_j3_ui_event_stream_test.py
 run_gate python3 scripts/generate-spec135-reconnect-recovery.py
