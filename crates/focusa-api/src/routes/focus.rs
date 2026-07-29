@@ -198,9 +198,17 @@ fn exact_request_scope_matches(
             "missing": "x-scope-continuity-id",
         }));
     };
+    let normalized_body_root = normalize_project_root_authority(project_root);
+    let root_matches = normalize_project_root_authority(&request_root) == normalized_body_root
+        || scope
+            .active_worktree_root
+            .as_deref()
+            .and_then(|value| clean_scope_value(Some(value)))
+            .is_some_and(|active_worktree_root| {
+                normalize_project_root_authority(&active_worktree_root) == normalized_body_root
+            });
     if unsafe_project_root_reason(Some(request_root.as_str())).is_some()
-        || normalize_project_root_authority(&request_root)
-            != normalize_project_root_authority(project_root)
+        || !root_matches
         || request_continuity != continuity_id.trim()
     {
         return Err(json!({
@@ -1376,8 +1384,25 @@ mod tests {
             continuity_id: Some("cont-other".to_string()),
             ..Default::default()
         };
+        let worktree = ScopeContext {
+            project_root: Some("/home/wirebot/focusa".to_string()),
+            active_worktree_root: Some("/home/wirebot/focusa-mission-canvas".to_string()),
+            continuity_id: Some("cont-focusa".to_string()),
+            ..Default::default()
+        };
 
         assert!(exact_request_scope_matches(&exact, "/home/wirebot/focusa", "cont-focusa").is_ok());
+        assert!(
+            exact_request_scope_matches(
+                &worktree,
+                "/home/wirebot/focusa-mission-canvas",
+                "cont-focusa"
+            )
+            .is_ok()
+        );
+        assert!(
+            exact_request_scope_matches(&worktree, "/home/wirebot/other", "cont-focusa").is_err()
+        );
         assert!(exact_request_scope_matches(&host, "/home/wirebot/focusa", "cont-focusa").is_err());
         assert!(
             exact_request_scope_matches(&other, "/home/wirebot/focusa", "cont-focusa").is_err()
