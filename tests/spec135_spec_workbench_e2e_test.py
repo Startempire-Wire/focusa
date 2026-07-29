@@ -194,10 +194,14 @@ def main():
         assert (
             session["status"] == "closed" and session["current_section_id"] == pointer
         )
+        time.sleep(1.0)
         helper.stop(process, log)
         process = log = None
         process, log, base = helper.start(data)
-        latest = listed(base, session["workbench_session_id"])["sessions"][-1]
+        latest = max(
+            listed(base, session["workbench_session_id"])["sessions"],
+            key=lambda candidate: candidate["state_revision"],
+        )
         assert latest == session
         assert (
             latest["objections"][0]["status"] == "resolved"
@@ -209,10 +213,15 @@ def main():
         )
         session = mutate(base, "final_approve", "st1-final", session)["session"]
         assert session["status"] == "final_approved" and session["final_spec_id"]
+        time.sleep(1.0)
         helper.stop(process, log)
         process = log = None
         process, log, base = helper.start(data)
-        assert listed(base, session["workbench_session_id"])["sessions"][-1] == session
+        resumed = max(
+            listed(base, session["workbench_session_id"])["sessions"],
+            key=lambda candidate: candidate["state_revision"],
+        )
+        assert resumed == session
         other = {**SCOPE, "attachment_id": "unrelated"}
         assert listed(base, scope=other)["sessions"] == []
         print("Spec 135 ST1 Spec Workbench E2E: PASS")

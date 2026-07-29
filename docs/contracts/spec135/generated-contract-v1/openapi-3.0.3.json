@@ -7450,6 +7450,13 @@
           },
           "workbench_session_id": {
             "type": "string"
+          },
+          "desired_spec_template": {
+            "enum": [
+              "adversarial",
+              "project_genesis"
+            ],
+            "type": "string"
           }
         },
         "required": [
@@ -7687,6 +7694,12 @@
               },
               "workbench_session_id": {
                 "type": "string"
+              },
+              "desired_spec_template": {
+                "type": "string"
+              },
+              "crist_handoff": {
+                "$ref": "#/components/schemas/focusa_crist_spec_handoff_v1"
               }
             },
             "required": [
@@ -7708,7 +7721,9 @@
               "receipt_refs",
               "idempotency_key",
               "created_at",
-              "updated_at"
+              "updated_at",
+              "desired_spec_template",
+              "crist_handoff"
             ],
             "type": "object"
           },
@@ -7970,6 +7985,12 @@
                 },
                 "workbench_session_id": {
                   "type": "string"
+                },
+                "desired_spec_template": {
+                  "type": "string"
+                },
+                "crist_handoff": {
+                  "$ref": "#/components/schemas/focusa_crist_spec_handoff_v1"
                 }
               },
               "required": [
@@ -7991,7 +8012,9 @@
                 "receipt_refs",
                 "idempotency_key",
                 "created_at",
-                "updated_at"
+                "updated_at",
+                "desired_spec_template",
+                "crist_handoff"
               ],
               "type": "object"
             },
@@ -12483,6 +12506,96 @@
           "attachment_refs",
           "context_refs",
           "spec_sections"
+        ],
+        "type": "object"
+      },
+      "focusa_crist_spec_handoff_v1": {
+        "additionalProperties": false,
+        "properties": {
+          "schema": {
+            "const": "focusa.crist_spec_handoff.v1",
+            "type": "string"
+          },
+          "project_root": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "current_ask": {
+            "type": "string"
+          },
+          "workspace_profile_ref": {
+            "type": "string"
+          },
+          "active_domain_pack_refs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "semantic_registry_version": {
+            "type": "string"
+          },
+          "context_pack_refs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "accepted_project_claim_refs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "role_profile_ref": {
+            "type": "string"
+          },
+          "interview_session_refs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "unresolved_questions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "known_contradictions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 64,
+            "type": "array"
+          },
+          "desired_spec_template": {
+            "const": "project_genesis",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schema",
+          "project_root",
+          "continuity_id",
+          "current_ask",
+          "workspace_profile_ref",
+          "active_domain_pack_refs",
+          "semantic_registry_version",
+          "context_pack_refs",
+          "accepted_project_claim_refs",
+          "role_profile_ref",
+          "interview_session_refs",
+          "unresolved_questions",
+          "known_contradictions",
+          "desired_spec_template"
         ],
         "type": "object"
       }

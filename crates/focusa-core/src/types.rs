@@ -2737,6 +2737,7 @@ pub struct SpecSectionRecord {
     pub section_id: String,
     pub title: String,
     pub section_kind: String,
+    pub reality_classification: String,
     pub status: SpecSectionStatus,
     pub order_index: u32,
     pub revision: u64,
@@ -2754,6 +2755,30 @@ pub struct SpecSectionRecord {
     pub updated_at: DateTime<Utc>,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CristSpecHandoff {
+    pub schema: String,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub current_ask: String,
+    pub workspace_profile_ref: String,
+    #[serde(default)]
+    pub active_domain_pack_refs: Vec<String>,
+    pub semantic_registry_version: String,
+    #[serde(default)]
+    pub context_pack_refs: Vec<String>,
+    #[serde(default)]
+    pub accepted_project_claim_refs: Vec<String>,
+    pub role_profile_ref: String,
+    #[serde(default)]
+    pub interview_session_refs: Vec<String>,
+    #[serde(default)]
+    pub unresolved_questions: Vec<String>,
+    #[serde(default)]
+    pub known_contradictions: Vec<String>,
+    pub desired_spec_template: String,
+}
+
 /// Canonical Spec 120 Workbench asset; exports and agent rounds remain projections.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SpecWorkbenchSessionRecord {
@@ -2762,6 +2787,10 @@ pub struct SpecWorkbenchSessionRecord {
     pub continuity_id: String,
     pub attachment_id: String,
     pub current_ask: String,
+    #[serde(default)]
+    pub desired_spec_template: String,
+    #[serde(default)]
+    pub crist_handoff: CristSpecHandoff,
     pub state_revision: u64,
     pub status: SpecWorkbenchStatus,
     pub canonical: bool,

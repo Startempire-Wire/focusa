@@ -3949,6 +3949,8 @@ export interface components {
                 [key: string]: unknown;
             };
             workbench_session_id?: string;
+            /** @enum {string} */
+            desired_spec_template?: "adversarial" | "project_genesis";
         };
         /** focusa.spec_workbench_mutation_result.v1 */
         focusa_spec_workbench_mutation_result_v1: {
@@ -4013,6 +4015,8 @@ export interface components {
                 /** Format: date-time */
                 updated_at: string;
                 workbench_session_id: string;
+                desired_spec_template: string;
+                crist_handoff: components["schemas"]["focusa_crist_spec_handoff_v1"];
             };
             state_version: number;
             tool_result: Record<string, never>;
@@ -4082,6 +4086,8 @@ export interface components {
                 /** Format: date-time */
                 updated_at: string;
                 workbench_session_id: string;
+                desired_spec_template: string;
+                crist_handoff: components["schemas"]["focusa_crist_spec_handoff_v1"];
             }[];
             state_version: number;
         };
@@ -5365,6 +5371,24 @@ export interface components {
             attachment_refs: string[];
             context_refs: string[];
             spec_sections: string[];
+        };
+        focusa_crist_spec_handoff_v1: {
+            /** @constant */
+            schema: "focusa.crist_spec_handoff.v1";
+            project_root: string;
+            continuity_id: string;
+            current_ask: string;
+            workspace_profile_ref: string;
+            active_domain_pack_refs: string[];
+            semantic_registry_version: string;
+            context_pack_refs: string[];
+            accepted_project_claim_refs: string[];
+            role_profile_ref: string;
+            interview_session_refs: string[];
+            unresolved_questions: string[];
+            known_contradictions: string[];
+            /** @constant */
+            desired_spec_template: "project_genesis";
         };
     };
     responses: never;
