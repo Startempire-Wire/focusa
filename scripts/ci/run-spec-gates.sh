@@ -118,6 +118,8 @@ run_gate python3 scripts/generate-spec135-work-surface-schema.py
 run_gate python3 ./tests/spec135_g1_work_surface_test.py
 run_gate python3 scripts/generate-spec135-ui-event-stream.py
 run_gate python3 ./tests/spec135_j3_ui_event_stream_test.py
+run_gate python3 scripts/generate-spec135-generated-ui-protocol.py
+run_gate python3 ./tests/spec135_i1_generated_ui_test.py
 run_gate python3 ./tests/spec135_m4_surface_bindings_static_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_m4_surface_bindings_e2e_test.py
 run_gate python3 ./tests/spec135_m5_browser_context_isolation_test.py

@@ -1,0 +1,35 @@
+{
+  "schema": "focusa.spec135.generated_ui_protocol.v1",
+  "spec_ref": "docs/135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md",
+  "acceptance_criteria": "Generated components can invoke only registered governed operations and malformed UI fails safely.",
+  "permanent_renderer": "lit",
+  "permanent_renderer_law": "The maintained Lit renderer is the permanent A2UI renderer. Focusa MUST NOT build a complete second Svelte A2UI renderer, duplicate the A2UI message processor, duplicate SurfaceModel, or duplicate A2UI data binding.",
+  "component_registry_ref": "docs/contracts/spec135/generated-contract-v1/a2ui-catalog.json",
+  "governed_operation_binding": [
+    "Every action resolves to a generated typed Focusa operation and exact scope",
+    "Generated components can invoke only registered governed operations",
+    "Unsupported actions render disabled \u2014 never enabled and discoverable-as-broken",
+    "Preview required for any component bound to a side-effect operation",
+    "Bound scope uses project_root + continuity_id"
+  ],
+  "validation_and_fallback": [
+    "Malformed manifests fail closed with validation_status=malformed",
+    "Fallback component renders bounded summary, never raw stack trace or IDs",
+    "fallback_summary is plain language \u2014 no raw diagnostics in the default flow",
+    "Validation status is explicit: valid | malformed | fallback_required | disabled"
+  ],
+  "versioning": [
+    "Every component carries version and major.minor.patch lineage",
+    "Migration preserves history; unsupported versions route to fallback",
+    "AG-UI adapter MUST NOT own canonical state, event history, approvals, tool authority, or persistence"
+  ],
+  "renderer_surface_kinds": [
+    "surface",
+    "action",
+    "panel",
+    "card",
+    "dialog",
+    "form"
+  ],
+  "schema_path": "docs/contracts/spec135/generated-contract-v1/json-schema/focusa.generated_ui_component.v1.json"
+}
