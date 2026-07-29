@@ -7,7 +7,10 @@ use crate::agent_runtime_constitution::{
 };
 use chrono::Utc;
 use sha2::{Digest, Sha256};
-use std::path::{Component, Path, PathBuf};
+use std::{
+    fs,
+    path::{Component, Path, PathBuf},
+};
 
 pub const PROJECT_INSTRUCTION_FILES: &[&str] = &[
     "AGENTS.md",
@@ -129,6 +132,195 @@ pub fn detect_instruction_injection(
         reason_code: format!("instruction_injection:{}", needle.replace(' ', "_")),
         content_sha256: hex::encode(Sha256::digest(body.as_bytes())),
     })
+}
+
+#[derive(Debug, Clone)]
+pub struct DiscoveredInstructionSet {
+    pub sources: Vec<InstructionSource>,
+    pub claims: Vec<InstructionClaim>,
+    pub findings: Vec<String>,
+}
+
+pub fn discover_project_instructions(
+    project_root: &Path,
+    max_source_bytes: u64,
+) -> Result<DiscoveredInstructionSet, String> {
+    let root = project_root
+        .canonicalize()
+        .map_err(|_| "project_root_unreadable")?;
+    let mut candidates = Vec::new();
+    collect_candidates(&root, &root, 0, &mut candidates)?;
+    candidates.sort();
+    candidates.dedup();
+    let mut sources = Vec::new();
+    let mut claims = Vec::new();
+    let mut findings = Vec::new();
+    for path in candidates {
+        let metadata = fs::symlink_metadata(&path).map_err(|_| "instruction_source_unreadable")?;
+        if metadata.file_type().is_symlink() {
+            findings.push(format!("symlink_refused:{}", path.display()));
+            continue;
+        }
+        if metadata.len() > max_source_bytes {
+            findings.push(format!("source_too_large:{}", path.display()));
+            continue;
+        }
+        let bytes = fs::read(&path).map_err(|_| "instruction_source_unreadable")?;
+        let relative = path
+            .strip_prefix(&root)
+            .map_err(|_| "instruction_source_outside_project")?
+            .to_string_lossy()
+            .replace('\\', "/");
+        let authority = if path.parent() == Some(root.as_path()) {
+            InstructionSourceAuthority::ProjectRoot
+        } else {
+            InstructionSourceAuthority::PathLocal
+        };
+        let source_id = format!(
+            "source:{}",
+            &hex::encode(Sha256::digest(relative.as_bytes()))[..16]
+        );
+        let source = instruction_source_from_bytes(
+            source_id,
+            relative,
+            &bytes,
+            authority,
+            InstructionTrustClass::TrustedProject,
+            root.display().to_string(),
+        );
+        if let Ok(body) = std::str::from_utf8(&bytes) {
+            claims.extend(extract_atomic_claims(&source, body));
+        } else {
+            findings.push(format!("non_utf8_source:{}", source.source_ref));
+        }
+        sources.push(source);
+    }
+    Ok(DiscoveredInstructionSet {
+        sources,
+        claims,
+        findings,
+    })
+}
+
+fn collect_candidates(
+    root: &Path,
+    directory: &Path,
+    depth: usize,
+    output: &mut Vec<PathBuf>,
+) -> Result<(), String> {
+    if depth > 8 {
+        return Ok(());
+    }
+    let entries = fs::read_dir(directory).map_err(|_| "instruction_directory_unreadable")?;
+    for entry in entries {
+        let entry = entry.map_err(|_| "instruction_directory_unreadable")?;
+        let path = entry.path();
+        let file_type = entry
+            .file_type()
+            .map_err(|_| "instruction_source_unreadable")?;
+        let relative = path
+            .strip_prefix(root)
+            .map_err(|_| "instruction_source_outside_project")?;
+        let first = relative
+            .components()
+            .next()
+            .and_then(|part| part.as_os_str().to_str());
+        if matches!(first, Some(".git" | "node_modules" | "target" | ".focusa")) {
+            continue;
+        }
+        if file_type.is_symlink() {
+            continue;
+        }
+        if file_type.is_dir() {
+            collect_candidates(root, &path, depth + 1, output)?;
+        } else if file_type.is_file() && is_registered_instruction_path(relative) {
+            output.push(path);
+        }
+    }
+    Ok(())
+}
+
+fn is_registered_instruction_path(relative: &Path) -> bool {
+    let normalized = relative.to_string_lossy().replace('\\', "/");
+    let file_name = relative
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("");
+    matches!(
+        normalized.as_str(),
+        "AGENTS.md"
+            | "CLAUDE.md"
+            | "CLAUDE.local.md"
+            | "GEMINI.md"
+            | ".cursorrules"
+            | ".windsurfrules"
+            | ".pi/SYSTEM.md"
+            | ".pi/APPEND_SYSTEM.md"
+            | "package.json"
+            | "Makefile"
+    ) || normalized == ".claude/CLAUDE.md"
+        || (normalized.starts_with(".claude/rules/") && normalized.ends_with(".md"))
+        || normalized == ".github/copilot-instructions.md"
+        || (normalized.starts_with(".github/instructions/")
+            && normalized.ends_with(".instructions.md"))
+        || normalized.starts_with(".cursor/rules/")
+        || ((normalized.starts_with(".pi/skills/")
+            || normalized.starts_with(".agents/skills/")
+            || normalized.starts_with(".github/skills/"))
+            && file_name == "SKILL.md")
+        || (normalized.starts_with(".github/workflows/")
+            && matches!(
+                relative.extension().and_then(|ext| ext.to_str()),
+                Some("yml" | "yaml")
+            ))
+}
+
+pub fn extract_atomic_claims(source: &InstructionSource, body: &str) -> Vec<InstructionClaim> {
+    body.lines()
+        .enumerate()
+        .filter_map(|(index, raw)| {
+            let text = raw
+                .trim()
+                .trim_start_matches(['-', '*'])
+                .trim_start_matches(|character: char| {
+                    character.is_ascii_digit() || character == '.' || character == ')'
+                })
+                .trim();
+            let lower = text.to_ascii_lowercase();
+            let normative = lower.contains("must ")
+                || lower.contains("must not")
+                || lower.contains("never ")
+                || lower.contains("do not ")
+                || lower.contains("required")
+                || lower.starts_with("use ")
+                || lower.starts_with("run ");
+            if text.is_empty() || text.starts_with('#') || !normative {
+                return None;
+            }
+            let text_hash = hex::encode(Sha256::digest(text.as_bytes()));
+            let claim_class = if lower.contains("release") {
+                "release_authority"
+            } else if lower.contains("permission") || lower.contains("secret") {
+                "security_boundary"
+            } else if lower.contains("test") || lower.contains("proof") {
+                "verification"
+            } else if lower.contains("file") || lower.contains("edit") {
+                "file_mutation"
+            } else {
+                "operating_instruction"
+            };
+            Some(InstructionClaim {
+                claim_id: format!("claim:{}:{}", source.source_id, index + 1),
+                source_id: source.source_id.clone(),
+                claim_class: claim_class.into(),
+                normalized_text: text.split_whitespace().collect::<Vec<_>>().join(" "),
+                source_text_sha256: text_hash,
+                applicability: InstructionApplicability::Applicable,
+                scope_ref: source.scope_ref.clone(),
+                condition: None,
+            })
+        })
+        .collect()
 }
 
 pub fn detect_conflicts(
