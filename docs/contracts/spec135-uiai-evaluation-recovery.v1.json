@@ -1,0 +1,141 @@
+{
+  "schema": "focusa.spec135.uiai_evaluation_recovery.v1",
+  "acceptance_criteria": "UIAI evaluations pass production workflows and every failure produces bounded diagnostics and recovery.",
+  "evaluation_receipts": [
+    {
+      "result_ref": "docs/contracts/spec135/generated-contract-v1/uiai-eval.alpha0-context-commit.result.json",
+      "scenario_id": "spec135-alpha0-real-context-commit-restart-resume",
+      "status": "passed",
+      "browser_session_refs": [
+        "uiai-browser:session=xIze1Kcn"
+      ],
+      "browser_context_refs": [
+        "focusa-cont-mission-canvas-57e8c074-539f-44a2-86f6-527b478f9d80",
+        "attachment:f12-context"
+      ],
+      "has_diagnostics": true,
+      "has_recovery": true
+    },
+    {
+      "result_ref": "docs/contracts/spec135/generated-contract-v1/uiai-eval.alpha0-generated-ui.result.json",
+      "scenario_id": "spec135-alpha0-generated-ui-action-recovery",
+      "status": "passed",
+      "browser_session_refs": [
+        "uiai-browser:session=Aat70l1r"
+      ],
+      "browser_context_refs": [
+        "focusa-cont-mission-canvas-57e8c074-539f-44a2-86f6-527b478f9d80",
+        "attachment:context-alpha0"
+      ],
+      "has_diagnostics": true,
+      "has_recovery": true
+    },
+    {
+      "result_ref": "docs/contracts/spec135/generated-contract-v1/uiai-eval.c1-context-ingestion.result.json",
+      "scenario_id": "spec135-c1-real-context-ingestion",
+      "status": "passed",
+      "browser_session_refs": [
+        "uiai-browser:session=DOsySCMn"
+      ],
+      "browser_context_refs": [
+        "focusa-cont-mission-canvas-57e8c074-539f-44a2-86f6-527b478f9d80",
+        "attachment:c1-context"
+      ],
+      "has_diagnostics": true,
+      "has_recovery": true
+    },
+    {
+      "result_ref": "docs/contracts/spec135/generated-contract-v1/uiai-eval.c2-context-retrieval.result.json",
+      "scenario_id": "spec135-c2-cited-context-retrieval",
+      "status": "passed",
+      "browser_session_refs": [
+        "uiai-browser:session=biw4d3UW"
+      ],
+      "browser_context_refs": [
+        "focusa-cont-mission-canvas-57e8c074-539f-44a2-86f6-527b478f9d80",
+        "attachment:c2-context"
+      ],
+      "has_diagnostics": true,
+      "has_recovery": true
+    },
+    {
+      "result_ref": "docs/contracts/spec135/generated-contract-v1/uiai-eval.c3-context-claims.result.json",
+      "scenario_id": "spec135-c3-context-claim-review",
+      "status": "passed",
+      "browser_session_refs": [
+        "uiai-browser:session=gIc7kNV1"
+      ],
+      "browser_context_refs": [
+        "focusa-cont-mission-canvas-57e8c074-539f-44a2-86f6-527b478f9d80",
+        "attachment:c3-context"
+      ],
+      "has_diagnostics": true,
+      "has_recovery": true
+    },
+    {
+      "result_ref": "docs/contracts/spec135/generated-contract-v1/uiai-eval.u1-workspace-artifact.result.json",
+      "scenario_id": "spec135-u1-workspace-artifact-bridge",
+      "status": "passed",
+      "browser_session_refs": [
+        "uiai-browser:session=ZibUOJ2s"
+      ],
+      "browser_context_refs": [
+        "focusa-cont-mission-canvas-57e8c074-539f-44a2-86f6-527b478f9d80",
+        "attachment:u1-workspace-artifact"
+      ],
+      "has_diagnostics": true,
+      "has_recovery": true
+    },
+    {
+      "result_ref": "docs/contracts/spec135/generated-contract-v1/uiai-eval.u2-workspace-live-refresh.result.json",
+      "scenario_id": "spec135-u2-workspace-live-refresh",
+      "status": "passed",
+      "browser_session_refs": [
+        "uiai-browser:session=HhzgDPCj"
+      ],
+      "browser_context_refs": [
+        "focusa-cont-mission-canvas-57e8c074-539f-44a2-86f6-527b478f9d80",
+        "attachment:u2-surface-a",
+        "surface:u2-a"
+      ],
+      "has_diagnostics": true,
+      "has_recovery": true
+    }
+  ],
+  "diagnostic_categories": [
+    "visual",
+    "console",
+    "exceptions",
+    "network",
+    "scope",
+    "failed_requests"
+  ],
+  "failure_envelope": {
+    "bounded": true,
+    "required_fields": [
+      "failure_class",
+      "summary",
+      "session_origin",
+      "browser_context_ref",
+      "diagnostics_ref",
+      "recovery_steps"
+    ],
+    "secret_safe": true,
+    "raw_page_dump": false
+  },
+  "recovery_outcomes": [
+    "capture_pending",
+    "scope_mismatch",
+    "origin_mismatch",
+    "blocked",
+    "retry_from_cursor",
+    "snapshot_fallback"
+  ],
+  "laws": [
+    "A Focusa link failure must not destroy the UIAI artifact",
+    "Diagnostics preserve exact browser session and context origin",
+    "Visual failure evidence includes screenshot or stable artifact ref",
+    "Console and network evidence remain bounded and redacted",
+    "Every non-passed scenario requires explicit recovery steps"
+  ]
+}
