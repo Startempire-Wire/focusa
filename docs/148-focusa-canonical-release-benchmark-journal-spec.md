@@ -187,9 +187,10 @@ Remediation applied after the audit:
 - duplicate KH API service and stamp-only refresh/cache timers disabled
 - SQLite WAL projections active on both hosts
 - daily bounded backups active on both hosts; isolated restore rebuilt all 29 events
-- bounded cleanup reduced KH disk to 88.8% and OVH to 89.7%; the dual-server resource gate passed before and after v0.9.139
-- v0.9.139 finalized with 60 uploaded assets, green CI/Release/Deploy workflows, live daemon version 0.9.139, and all five planned predictions scored 1.0
-- both journal projections reached 39 events with zero replication backlog; recovered resource and dependency failures remain retained as future recurrence lessons
+- Guardian-routed cleanup reduced KH disk to 88.5% and OVH to 89.7%; the dual-server resource gate passed before and after v0.9.141
+- v0.9.141 finalized with 62 uploaded assets, green CI/Release/Deploy workflows, distinct Cosign installer proof, and CLI/TUI/extension/daemon version 0.9.141
+- both journal projections reached 55 events with zero replication backlog; recovered resource, dependency, trust-metadata and endpoint-contract failures remain retained as recurrence lessons
+- the release path now invokes Guardian-gated preflight and post-release cleanup for regenerable Cargo and npm artifacts
 
 ## 10. Target dual-server storage architecture
 
