@@ -6,6 +6,7 @@ use crate::agent_runtime_constitution::{
     InstructionSourceAuthority, InstructionTrustClass, PathInstructionPolicy,
 };
 use chrono::Utc;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
     fs,
@@ -134,7 +135,7 @@ pub fn detect_instruction_injection(
     })
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DiscoveredInstructionSet {
     pub sources: Vec<InstructionSource>,
     pub claims: Vec<InstructionClaim>,

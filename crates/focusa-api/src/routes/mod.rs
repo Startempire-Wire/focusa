@@ -1,5 +1,8 @@
 pub mod agent_capabilities;
 pub mod agent_runtime;
+pub mod agent_runtime_delivery;
+#[cfg(test)]
+mod agent_runtime_tests;
 pub mod ascc;
 pub mod attachments;
 pub mod autonomy;
