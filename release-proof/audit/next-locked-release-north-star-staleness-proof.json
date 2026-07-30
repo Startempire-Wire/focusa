@@ -87,6 +87,7 @@
     "apps/pi-extension/tests/north-star-gate.test.mjs",
     "crates/focusa-api/src/routes/work_loop.rs",
     "git:c052c096",
+    "git:1b983f25",
     "https://github.com/Startempire-Wire/focusa/issues/111"
   ]
 }
