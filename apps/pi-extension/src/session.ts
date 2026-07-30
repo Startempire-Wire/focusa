@@ -580,6 +580,9 @@ async function promptForProjectVerifyIfNeeded(
   projectRoot: string,
   reason: string
 ): Promise<boolean> {
+  // Canvas owns the visible shell and renders scope verification as state;
+  // presentation activation must never be blocked by a modal prerequisite.
+  if (getAttachmentRuntime().cfg?.interactionMode === "canvas-guided") return true;
   const mode = getAttachmentRuntime().cfg?.vitalInfoPromptMode || "prompt";
   if (
     !vitalPromptSurfaceEnabled("project_verify") ||
@@ -635,6 +638,8 @@ async function promptForProjectVerifyIfNeeded(
 }
 
 async function promptForWorkpointIfNeeded(ctx: any, projectRoot: string, reason: string): Promise<boolean> {
+  // Missing Workpoint state is an honest Canvas empty state, not a shell gate.
+  if (getAttachmentRuntime().cfg?.interactionMode === "canvas-guided") return true;
   const mode = getAttachmentRuntime().cfg?.vitalInfoPromptMode || "prompt";
   if (
     !vitalPromptSurfaceEnabled("workpoint") ||

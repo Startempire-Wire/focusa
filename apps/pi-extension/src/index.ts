@@ -160,7 +160,6 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     if (!ownsCompactionCoordinator) return;
     registerTools(pi);
     registerCommands(pi);
-    registerMissionCanvasTool(pi);
     registerMissionCanvasWidget(pi);
     registerRoleComposer(pi);
     registerInterviewComposer(pi);
@@ -177,6 +176,9 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     registerSession(pi);
     registerTurns(pi);
     registerPolishHooks(pi);
+    // Register the alternate-shell lifecycle last so stock Pi is fully
+    // initialized underneath it and can be restored by the off switch.
+    registerMissionCanvasTool(pi);
 
     // ── §33.6: Optional proxy provider registration ───────────────────────
     // Default off: normal Focusa/Pi bridge sessions use direct providers plus

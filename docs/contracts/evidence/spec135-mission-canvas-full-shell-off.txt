@@ -90,8 +90,6 @@
     skill path does not exist
 
 
- Warning: Focusa project verify is not clean for /Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas: unknown
-
  Warning: Project preparation is incomplete; Focusa preserved the Genesis packet and next action without creating a placeholder Workpoint.
 
  Warning: tmux extended-keys is off. Modified Enter keys may not work. Add `set -g extended-keys on` to ~/.tmux.conf and restart tmux.
@@ -103,44 +101,49 @@
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 
- Use the focusa_mission_canvas tool with action open now. Do not call any other tool.
+ Use the focusa_mission_canvas tool with action off now. Do not call any other tool.
 
 
 
  focusa_mission_canvas
 
 
- ⠦ Working...
+ Mission Canvas switched off; Focusa canonical runtime remains active.
 
-▶ no-bead  [UNBOUND]  WP no-workpoint  Pnormal/unranked
-✓ proof 0 · 0 deps · 0 blockers · 0 artifacts · surface-local · adapter-unavailable  → checkpoint next action
-FOCUSA WORKSPACE SYSTEM · MISSION CANVAS
-One Runtime. Many Workspaces. Same mission, Workpoint, evidence, and history.
-WORKSPACE  ○ General  ● Software Engineering  ○ Legal  ○ Markets  ○ Research  ○ Custom
-pi · state:live · isolation:attachment-scoped · advisory · mode canvas-guided (project) · /Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas · layout:desktop · contrast:theme
-· motion:state-change-only · focus-restoration:editor
-WORK SURFACES  [Current Pi attachment]
+ ⠙ Working...
 
-CURRENT WORKSPACE COCKPIT
-[1 Now]  2 Work  3 Sessions  4 Contention  5 Proof  6 Research  7 History  8 Context  9 Role  10 Interview  11 Spec  12 Controls
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-┌ CURRENT NOW ──────────────────────────────────────────────────────────────────────────┐  ┌ NEXT UP ──────────────────────────────────────────────────────────────────────────────┐
-│ MISSION                                                                               │  │ Create or resume a canonical Workpoint                                                │
-│   No active Mission Canvas Workpoint                                                  │  │ Task  Unavailable                                                                     │
-│ TRAJECTORY                                                                            │  │ Loop  Unavailable                                                                     │
-│   No trajectory loaded                                                                │  │ Proof 0 evidence reference(s)                                                         │
-│ NEXT SAFE ACTION                                                                      │  │ Surface Current Pi attachment                                                         │
-│   Create or resume a canonical Workpoint                                              │  └───────────────────────────────────────────────────────────────────────────────────────┘
-└───────────────────────────────────────────────────────────────────────────────────────┘
-
-┌ WHAT CHANGES ─────────────────────────────────────────────────────────────────────────┐  ┌ WHAT STAYS THE SAME ──────────────────────────────────────────────────────────────────┐
-│ ✓ Workspace layout: software                                                          │  │ ✓ Mission: No active Mission Canvas Workpoint                                         │
-│ ✓ Terminology and focused panel: Now                                                  │  │ ✓ Workpoint: Unavailable                                                              │
-│ ✓ Work Surface emphasis                                                               │  │ ✓ Session: focusa-cont-focusa-mission-canvas-6a47fd4a-ab00-40a4-91e5-e908d5472023     │
-│ ✓ Visual variant: default                                                             │  │ ✓ Canonical evidence and history                                                      │
-└───────────────────────────────────────────────────────────────────────────────────────┘  └───────────────────────────────────────────────────────────────────────────────────────┘
-
-N/W/S/P/H/C panels · [/] workspace · Y copy ref · R refresh · Esc close
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ~/focusa-mission-canvas (feature/spec-135-context-connectors-b2)
-↑23k ↓21 $0.114 (sub) 8.3%/272k (auto)                                                                                                           (openai-codex) gpt-5.6-sol • medium
+↑23k ↓21 $0.114 (sub) 8.3%/272k (auto)                                                                                                            (openai-codex) gpt-5.6-sol • xhigh
 🧭 Focusa
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

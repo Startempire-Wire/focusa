@@ -155,6 +155,7 @@ run_gate python3 scripts/generate-spec135-master-acceptance.py
 run_gate python3 ./tests/spec135_z1_master_acceptance_test.py
 run_gate python3 scripts/generate-spec135-interaction-mode-proof.py
 run_gate python3 ./tests/spec135_k1_interaction_mode_test.py
+run_gate python3 ./tests/spec135_mission_canvas_full_shell_gui_test.py
 run_gate python3 scripts/generate-spec135-friction-capture.py
 run_gate python3 ./tests/spec135_k2_friction_capture_test.py
 run_gate python3 scripts/generate-spec135-adaptive-ui.py

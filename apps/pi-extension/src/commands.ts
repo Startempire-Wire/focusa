@@ -39,7 +39,8 @@ import { buildProjectWorkstreamKey, type WorkstreamKey } from "./scoped-state.js
 import { measureNativeSessionPressure, migrateNativeSessionBounded } from "./session-pressure.js";
 import { prepareCompactionRollover } from "./compaction.js";
 import { dirname, resolve } from "path";
-import { MissionCanvasView, type MissionCanvasModel } from "./mission-canvas-view.js";
+import type { MissionCanvasModel } from "./mission-canvas-view.js";
+import { MissionCanvasShell, closeActiveMissionCanvasShell, hasActiveMissionCanvasShell } from "./mission-canvas-shell.js";
 import { refreshMissionCanvasWidget } from "./mission-canvas-widget.js";
 import { workRailDetailRows, workRailSnapshotFromPacket } from "./work-rail-widget.js";
 import {
@@ -354,7 +355,7 @@ export function registerCommands(pi: ExtensionAPI) {
   });
 
   const handleMissionCanvasAction: MissionCanvasActionHandler = async (args, ctx) => {
-      const action = String(args || "").trim().toLowerCase();
+      let action = String(args || "").trim().toLowerCase();
       const currentMode = resolveInteractionMode(getSessionCwd());
       if (action.startsWith("profile ")) {
         const profile = action.slice("profile ".length) as MissionCanvasWorkspaceProfile;
@@ -399,13 +400,18 @@ export function registerCommands(pi: ExtensionAPI) {
           `Mission Canvas switched ${mode === "canvas-guided" ? "on" : "off"}; Focusa canonical runtime remains active.`,
           "info"
         );
-        return;
+        if (mode !== "canvas-guided") {
+          closeActiveMissionCanvasShell();
+          return;
+        }
+        if (hasActiveMissionCanvasShell() || !ctx.hasUI) return;
+        action = "";
       }
       if (action) {
         ctx.ui.notify("Usage: /mission-canvas [on|off|toggle|status|profile <id>]", "info");
         return;
       }
-      const interactionMode = currentMode;
+      const interactionMode = resolveInteractionMode(getSessionCwd());
       if (interactionMode.mode !== "canvas-guided") {
         ctx.ui.notify(
           `Mission Canvas is off (${interactionMode.mode}, source: ${interactionMode.source}). Run /mission-canvas on to open it.`,
@@ -413,6 +419,7 @@ export function registerCommands(pi: ExtensionAPI) {
         );
         return;
       }
+      if (hasActiveMissionCanvasShell()) return;
       const loadModel = async (): Promise<MissionCanvasModel> => {
         const [
           workpoint,
@@ -535,14 +542,16 @@ export function registerCommands(pi: ExtensionAPI) {
       };
       const model = await loadModel();
 
-      await ctx.ui.custom(
-        (tui, theme, _kb, done) =>
-          new MissionCanvasView(
+      void ctx.ui
+        .custom((tui, theme, _kb, done) =>
+          new MissionCanvasShell(
             model,
             theme,
             () => tui.requestRender(),
             () => done(undefined),
             loadModel,
+            pi,
+            ctx,
             (reference) => {
               ctx.ui.setEditorText(reference);
               ctx.ui.notify(`Copied stable Mission Canvas reference: ${reference}`, "info");
@@ -559,9 +568,11 @@ export function registerCommands(pi: ExtensionAPI) {
               }
               refreshMissionCanvasWidget(ctx);
               ctx.ui.notify(`Workspace switched to ${profile}; canonical agent state is unchanged.`, "info");
-            }
+            },
+            () => void handleMissionCanvasAction("off", ctx)
           )
-      );
+        )
+        .catch((error) => ctx.ui.notify(`Mission Canvas shell failed: ${String(error)}`, "error"));
   };
   missionCanvasActionHandler = handleMissionCanvasAction;
   pi.registerCommand("mission-canvas", {

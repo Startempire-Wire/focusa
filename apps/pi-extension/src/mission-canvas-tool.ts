@@ -13,7 +13,14 @@ export function registerMissionCanvasTool(pi: ExtensionAPI): void {
   const bindContext = (_event: unknown, ctx: ExtensionContext) => {
     activePiContext = ctx;
   };
-  pi.on("session_start", bindContext);
+  pi.on("session_start", (event, ctx) => {
+    bindContext(event, ctx);
+    if (resolveInteractionMode(getSessionCwd()).mode === "canvas-guided" && ctx.hasUI) {
+      // Let Pi finish mounting its stock root before replacing it; that root
+      // remains alive underneath Canvas and is revealed by the off switch.
+      setTimeout(() => void executeMissionCanvasAction("", ctx), 1_000);
+    }
+  });
   pi.on("before_agent_start", bindContext);
   pi.on("turn_start", bindContext);
 
