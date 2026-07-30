@@ -195,7 +195,14 @@ const providerCompleted = (id) => issues.get(id)?.status === "closed";
 const ready = memberIds
   .filter((id) => !providerCompleted(id) && incoming.get(id).every(providerCompleted))
   .sort();
-sameSet("unique executable frontier", ["focusa-o4gkd"], ready);
+if (!ready.length) fail("execution frontier is empty before terminal completion");
+if (
+  ready.some(
+    (id) => Number(members.find((member) => member.member_id === id)?.task_plan_ref?.split(":")[1]) !== proof.active_phase
+  )
+) {
+  fail("execution frontier leaks outside the active phase");
+}
 const activeContainers = new Set(["focusa-vbcqu", "focusa-vbcqu.9"]);
 const outOfOrderActive = memberIds.filter(
   (id) => issues.get(id)?.status === "in_progress" && !ready.includes(id) && !activeContainers.has(id),

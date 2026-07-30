@@ -29,7 +29,25 @@
     "8": "focusa-vbcqu"
   },
   "unique_ready_frontier": [
-    "focusa-o4gkd"
+    "focusa-vbcqu.2.1",
+    "focusa-vbcqu.2.2",
+    "focusa-vbcqu.2.2.4",
+    "focusa-vbcqu.2.3",
+    "focusa-vbcqu.9.2",
+    "focusa-vbcqu.9.2.1",
+    "focusa-vbcqu.9.2.2",
+    "focusa-vbcqu.9.2.3",
+    "focusa-vbcqu.9.2.4",
+    "focusa-vbcqu.9.2.5",
+    "focusa-vbcqu.9.3.1",
+    "focusa-vbcqu.9.4",
+    "focusa-vbcqu.9.4.1",
+    "focusa-vbcqu.9.4.2",
+    "focusa-vbcqu.9.4.3",
+    "focusa-vbcqu.9.4.4",
+    "focusa-vbcqu.9.4.5",
+    "focusa-vbcqu.9.4.6",
+    "focusa-vbcqu.9.5.1"
   ],
   "terminal_member_ref": "focusa-vbcqu",
   "terminal_coverage_count": 252,
@@ -173,7 +191,7 @@
     }
   ],
   "provider_missing_members": 0,
-  "membership_digest": "sha256:c4581216fd9d9418ebc8d0041e184f6e285d4d8f49cf4ab64cf26ece51b2d1e9",
+  "membership_digest": "sha256:46232f2ee3e882d2c1d3710821b208991c72d77b5d92895139abd38a0f3d2003",
   "graph_digest": "sha256:86debebcd5a55e4449b88af669b591a2021acd51c88b90debace7fa31055efb4",
   "sealed_at": "2026-07-29T23:35:32Z",
   "out_of_order_in_progress": [],
@@ -189,9 +207,11 @@
     "https://github.com/Startempire-Wire/focusa/issues/111#issuecomment-5124731380",
     "bead:focusa-o4gkd"
   ],
-  "completed_member_count": 1,
+  "completed_member_count": 2,
   "phase0_completed_sequence": [
-    "focusa-627th.4.3"
+    "focusa-627th.4.3",
+    "focusa-o4gkd"
   ],
-  "phase0_next_member": "focusa-o4gkd"
+  "phase0_next_member": null,
+  "active_phase": 1
 }
