@@ -169,7 +169,12 @@
       "repair": "The current manifest now names and links the required current-reality audit before the operator intent lock.",
       "local_reproof": "Spec 135 generated UI/core integration audit static test PASS"
     },
-    "next_baseline_action": "Push the audit discoverability correction and use the next GitHub Spec Gates run as the complete clean baseline."
+    "github_ci_run_30566758366_following_gate": {
+      "result": "Delivery Contract regression would have failed on stale pre-correction dogfood wording and GNU-only find -printf",
+      "repair": "The gate now asserts the richer same-live-session rich Canvas plus real Work Surface switch/split/rehydration traversal and uses portable find -exec basename syntax.",
+      "local_reproof": "Spec 135 Delivery Contract regression static test PASS; all subsequent static release gates pass locally"
+    },
+    "next_baseline_action": "Push the Delivery Contract gate portability/semantic correction and use the next GitHub Spec Gates run as the complete clean baseline."
   },
   "p00_progress": {
     "completed": [
