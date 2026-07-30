@@ -119,11 +119,30 @@
   },
   "test_baseline": {
     "command": "bash scripts/ci/run-spec-gates.sh",
-    "result": "failed",
-    "last_passing_corrected_gate": "SPEC135-M4 exact attachment-scoped Work Surface binding lint",
-    "first_failure": "tests/spec135_m4_surface_bindings_e2e_test.py assertion comparing listed binding with created binding",
     "master_acceptance_observed": "2/14, merge_ready=false",
-    "next_baseline_action": "Diagnose M4 against a uniquely isolated daemon/data directory, repair it, then rerun the complete canonical gate suite."
+    "initial_run": {
+      "result": "failed at SPEC135-M4 binding E2E equality",
+      "diagnosis": "Transient result was not reproducible against the same release daemon; the real test uses a unique port and temporary data directory."
+    },
+    "m4_reproduction": {
+      "direct_runs": 5,
+      "passed": 5,
+      "debug_round_trip": "created and listed binding payloads were byte-for-byte JSON equivalent",
+      "subsequent_full_gate": "passed M4 and continued through later suites",
+      "classification": "non-reproducible transient; no production binding defect observed"
+    },
+    "clean_local_run": {
+      "result": "harness timeout after 2400 seconds with no assertion failure",
+      "last_completed_suite": "Spec 54/54a visible output boundary",
+      "next_suite_started": "Spec 51 Mode B proxy parity",
+      "worktree_at_start": "clean"
+    },
+    "github_ci_run_30558900096": {
+      "result": "failed after all earlier gates passed",
+      "first_failure": "apps/pi-extension/tests/mission-canvas-pi-surface.test.mjs retained obsolete full-shell title/footer markers after terminal-projection reclassification",
+      "repair": "Static assertions now require Terminal Projection title and FOCUSA TERMINAL CANVAS PROJECTION footer while explicitly rejecting rich-GUI classification."
+    },
+    "next_baseline_action": "Push the corrected Pi surface gate and use the new GitHub Spec Gates run as the complete clean baseline."
   },
   "p00_progress": {
     "completed": [
@@ -132,14 +151,14 @@
       "focusa-mc2.1.004 task-provider legacy schema repaired and canonical no-db visibility restored",
       "focusa-mc2.1.005 ledger/provider/Project Card/master-acceptance contradiction reconciled to focusa-mc2",
       "focusa-mc2.1.003 canonical Workpoint and bounded writer lease restored",
-      "focusa-mc2.1.006 identity wave gate"
+      "focusa-mc2.1.006 identity wave gate",
+      "focusa-mc2.1.008 M4 transient diagnosed with 5/5 direct passes and subsequent full-gate pass",
+      "focusa-mc2.1.009 35-file implementation/proof classification",
+      "focusa-mc2.1.010 stale closure claims reclassified to truthful reopened state"
     ],
     "blocked": [],
     "ready": [
-      "focusa-mc2.1.007 clean code/test/proof/release baseline",
-      "focusa-mc2.1.008 diagnose and repair SPEC135-M4 binding E2E",
-      "focusa-mc2.1.009 classify existing Mission Canvas artifacts",
-      "focusa-mc2.1.010 move stale closure claims to truthful reopened states"
+      "focusa-mc2.1.007 clean code/test/proof/release baseline pending corrected GitHub Spec Gates"
     ]
   }
 }

@@ -64,15 +64,18 @@ for completed in (
     "focusa-mc2.1.004",
     "focusa-mc2.1.005",
     "focusa-mc2.1.006",
+    "focusa-mc2.1.008",
+    "focusa-mc2.1.009",
+    "focusa-mc2.1.010",
 ):
     assert by_id[completed]["status"] == "closed"
-for ready in ("focusa-mc2.1.007", "focusa-mc2.1.008", "focusa-mc2.1.009", "focusa-mc2.1.010"):
-    assert by_id[ready]["status"] == "open"
-    assert all(
-        by_id[dependency["depends_on_id"]]["status"] == "closed"
-        for dependency in by_id[ready].get("dependencies") or []
-        if dependency["type"] == "blocks"
-    )
+ready = "focusa-mc2.1.007"
+assert by_id[ready]["status"] == "open"
+assert all(
+    by_id[dependency["depends_on_id"]]["status"] == "closed"
+    for dependency in by_id[ready].get("dependencies") or []
+    if dependency["type"] == "blocks"
+)
 
 subprocess.run(
     ["python3", "scripts/materialize-spec135-mission-canvas-completion-beads.py", "--check"],
