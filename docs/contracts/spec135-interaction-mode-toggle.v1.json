@@ -35,6 +35,10 @@
     "state_loss_observed": false,
     "nag_on_headless": false
   },
+  "rich_host_proof": {
+    "evidence_ref": "docs/contracts/spec135-mission-canvas-agent-first-gui-proof.v1.json",
+    "accepted": false
+  },
   "not_yet_proven": {
     "host_renderer_is_independently_resolved": true,
     "focusa_pi_rich_window_launches_from_pi": true,
