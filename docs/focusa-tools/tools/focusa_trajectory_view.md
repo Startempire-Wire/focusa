@@ -61,6 +61,12 @@ Declared failure classes: `scope_conflict`, `scope_mismatch`, `resource_exhauste
 Prerequisites: verified project_root plus continuity_id when project-bound.
 Likely next: `focusa_temporal_authority`, `focusa_trajectory_assess`, `focusa_trajectory_define_goal`, `focusa_workpoint_resume`.
 
+## Authority warnings
+
+- A generic or missing HLT is a **degraded placeholder**, never current action authority.
+- Prior-project/foreign trajectory fallback is advisory only.
+- Workpoint and Trajectory disagreement requires `verify_first`.
+
 ## Skills, protocols, and source authority
 
 - Skills: `skill:focusa`, `skill:focusa-workpoint`

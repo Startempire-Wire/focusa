@@ -1,0 +1,48 @@
+{
+  "schema": "focusa.locked_release_github59_settlement_proof.v1",
+  "status": "verified",
+  "workset_member": "focusa-vbcqu.2.1",
+  "github_issue": "https://github.com/Startempire-Wire/focusa/issues/59",
+  "upstream_state": "closed",
+  "released_in": {
+    "version": "v0.9.135-dev",
+    "commit": "99c3c25819ac47a92ba422b32095b6c26aaf350b",
+    "proof": "docs/evidence/v0.9.135/59-trajectory-integrity-proof.txt",
+    "proof_sha256": "b177c2bfddf14ac8db8303167d768d9e80c8d7b0f0aea2f7b3036ae3426d8073"
+  },
+  "provider_acceptance": {
+    "signed_release_daemon_e2e": "passed",
+    "operator_confirmed_hlt_and_waypoints_persisted": true,
+    "scoped_hlt_history_exact": true,
+    "daemon_restart_query_survival": true,
+    "marker_and_history_gates": "passed"
+  },
+  "leaf_beads": {
+    "focusa-vbcqu.2.1.1": "closed",
+    "focusa-vbcqu.2.1.2": "closed",
+    "focusa-vbcqu.2.1.3": "closed",
+    "focusa-vbcqu.2.1.4": "closed"
+  },
+  "current_branch_verification": {
+    "spec143_trajectory_ladder_integrity_static_test.py": "passed",
+    "spec96_trajectory_ladder_integration_static_test.sh": "passed",
+    "spec_context_authority_hlt_ladder_static_test.sh": "passed",
+    "spec125_hlt_status_model_static_test.sh": "passed",
+    "hlt_trajectory_visibility_static_test.sh": "passed",
+    "static_contract_drift_repaired": [
+      "current hlt_degraded_placeholder identifier",
+      "explicit define-goal recovery route",
+      "agent-facing generic/foreign/disagreement warnings"
+    ]
+  },
+  "cross_wave_boundary": "Project Genesis, Workpoint advance, security, LowMem, reconnect, compaction, concurrency, and integrated release acceptance remain owned by their sealed downstream Workset members; they are not duplicated here.",
+  "completion_gate": {
+    "ready_to_close_member": true,
+    "remaining_member_local_gaps": []
+  },
+  "evidence_refs": [
+    "github:Startempire-Wire/focusa#59",
+    "git:99c3c25819ac47a92ba422b32095b6c26aaf350b",
+    "docs/evidence/v0.9.135/59-trajectory-integrity-proof.txt"
+  ]
+}
