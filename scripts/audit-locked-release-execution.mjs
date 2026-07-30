@@ -195,7 +195,7 @@ const providerCompleted = (id) => issues.get(id)?.status === "closed";
 const ready = memberIds
   .filter((id) => !providerCompleted(id) && incoming.get(id).every(providerCompleted))
   .sort();
-sameSet("unique executable frontier", ["focusa-627th.4.3"], ready);
+sameSet("unique executable frontier", ["focusa-o4gkd"], ready);
 const activeContainers = new Set(["focusa-vbcqu", "focusa-vbcqu.9"]);
 const outOfOrderActive = memberIds.filter(
   (id) => issues.get(id)?.status === "in_progress" && !ready.includes(id) && !activeContainers.has(id),
@@ -292,12 +292,19 @@ if (proof.membership_digest !== definition.membership_digest || proof.graph_dige
   fail("execution proof digest mismatch");
 }
 
-if (events.length !== 2 || events.some((event) => event.event_type !== "workset.sealed")) {
+if (
+  events.length < 2 ||
+  events[0]?.event_type !== "workset.sealed" ||
+  events[1]?.event_type !== "workset.sealed"
+) {
   fail("revision-5/revision-6 Workset seal event chain is incomplete");
 }
-for (const event of events) {
+for (const [index, event] of events.entries()) {
   const { event_hash: eventHash, ...eventWithoutHash } = event;
-  if (eventHash !== digest(eventWithoutHash)) fail(`workset seal event hash mismatch: ${event.event_id}`);
+  if (eventHash !== digest(eventWithoutHash)) fail(`workset event hash mismatch: ${event.event_id}`);
+  if (index > 0 && event.previous_event_hash !== events[index - 1]?.event_hash) {
+    fail(`workset event chain break: ${event.event_id}`);
+  }
 }
 if (
   events[1]?.workset_revision !== 6 ||
@@ -305,6 +312,17 @@ if (
   events[1]?.previous_event_hash !== events[0]?.event_hash
 ) {
   fail("revision-6 seal event does not append to revision 5");
+}
+const github14Completion = events.find(
+  (event) =>
+    event.event_type === "workset.member_projection_changed" &&
+    event.payload?.member_ref === "focusa-627th.4.3"
+);
+if (
+  github14Completion?.payload?.disposition !== "completed" ||
+  github14Completion?.payload?.freshness !== "current"
+) {
+  fail("GitHub #14 Workset completion projection is missing");
 }
 if (
   completion.require_sealed_revision !== true ||
