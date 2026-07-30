@@ -47,12 +47,12 @@
     },
     {
       "check_id": "same_session_canvas_toggle",
-      "evidence_ref": "pending:runtime-evidence/pi-rich-canvas-toggle",
+      "evidence_ref": "docs/contracts/spec135-mission-canvas-agent-first-gui-proof.v1.json",
       "status": "pending"
     },
     {
       "check_id": "generated_crist_rich_work_surfaces",
-      "evidence_ref": "pending:uiai-eval/generated-crist-work-surfaces",
+      "evidence_ref": "docs/contracts/spec135-mission-canvas-agent-first-gui-proof.v1.json",
       "status": "pending"
     },
     {
@@ -62,7 +62,7 @@
     },
     {
       "check_id": "vertical_professional_workspaces",
-      "evidence_ref": "pending:uiai-eval/vertical-workspace-recomposition",
+      "evidence_ref": "docs/contracts/spec135-mission-canvas-agent-first-gui-proof.v1.json",
       "status": "pending"
     },
     {
@@ -73,12 +73,12 @@
     {
       "check_id": "cross_spec_migration_and_clean_lineage",
       "evidence_ref": "docs/contracts/spec135-cross-spec-closure.v1.json",
-      "status": "reopened_for_in_place_135a_135g_135i_135j_135k_harmonization"
+      "status": "reopened_for_in_place_harmonization"
     }
   ],
-  "passed_count": 3,
-  "partial_count": 5,
-  "pending_or_failed_count": 6,
+  "passed_count": 2,
+  "partial_count": 8,
+  "pending_or_failed_count": 4,
   "beads_closure_authority": "Runtime Evidence maps to provider items; provider JSONL remains provider-owned and is not hand-edited.",
   "branch_policy": "feature branch + PR only; never direct commit to main",
   "merge_ready_conditions": [
