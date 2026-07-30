@@ -255,6 +255,7 @@ function createAttachmentRuntime() {
       suppressionCount: number;
     },
     lastWorkpointUpdate: 0, // timestamp ms of last Workpoint update
+    northStarSnapshot: null as import("./north-star.js").NorthStarSnapshot | null,
     // lastStreamLen migrated to scope store (PI-07, removed from singleton)
     // Compaction delivery arbiter. Pi owns the native queue and next turn;
     // Focusa only persists a bounded next-turn projection/outcome.
@@ -601,6 +602,7 @@ export function resetPiSessionScopedState(reason = "session_boundary"): void {
   getAttachmentRuntime().currentAsk = null;
   getAttachmentRuntime().queryScope = null;
   getAttachmentRuntime().excludedContext = null;
+  getAttachmentRuntime().northStarSnapshot = null;
   getAttachmentRuntime().lastFocusSnapshot = {
     decisions: [],
     constraints: [],
@@ -3398,19 +3400,16 @@ export function isWorkpointPacketScopedToCurrentSession(packet: any): boolean {
   if (!packet || typeof packet !== "object") return false;
   const currentProjectRoot = resolvePiProjectRoot(getAttachmentRuntime().sessionCwd || process.cwd());
   const currentContinuityId = String(getAttachmentRuntime().continuityId || "").trim();
-  const currentSessionKey = String(getAttachmentRuntime().sessionFrameKey || "").trim();
   const packetProjectRoot = normalizeProjectRoot(packet.project_root);
   const packetContinuityId = String(packet.continuity_id || "").trim();
-  const packetPiSessionKey = String(packet.pi_session_frame_key || "").trim();
-  const packetSessionId = String(packet.session_id || "").trim();
   if (!currentProjectRoot || !currentContinuityId || !packetProjectRoot || !packetContinuityId) return false;
   if (!isProjectRootAuthoritySafe(currentProjectRoot) || !isProjectRootAuthoritySafe(packetProjectRoot))
     return false;
   if (currentProjectRoot !== packetProjectRoot) return false;
   if (currentContinuityId !== packetContinuityId) return false;
-  if (currentSessionKey && packetPiSessionKey && packetPiSessionKey !== currentSessionKey) return false;
-  if (currentSessionKey && !packetPiSessionKey && packetSessionId && packetSessionId !== currentSessionKey)
-    return false;
+  // Pi session ids are temporal metadata, never Workpoint identity. Exact
+  // project_root + continuity_id plus current-ask authority is the boundary;
+  // accepted packets are re-stamped for this Pi session.
   if (
     packet.canonical === false ||
     packet.status === "partial" ||
@@ -3937,6 +3936,7 @@ function buildPersistedRecoveryState(): Record<string, any> {
       status: getLastProjectVerify()?.status || null,
     }),
     latestReportSummary: getLatestReportSummary(),
+    northStarSnapshot: getAttachmentRuntime().northStarSnapshot,
     toolOutputPressure: getAttachmentRuntime().toolOutputPressure?.recapRequired
       ? {
           recapRequired: true,

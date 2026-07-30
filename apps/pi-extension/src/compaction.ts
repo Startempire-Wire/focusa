@@ -48,6 +48,7 @@ import {
   incrementTotalCompactions,
 } from "./state.js";
 import { pushDelta } from "./tools.js";
+import { updateNorthStarCard } from "./north-star.js";
 
 function basename(value: string): string {
   const parts = String(value || "")
@@ -1071,6 +1072,7 @@ async function runPostCompactionVerification(event: any, ctx: any): Promise<void
     runtime.compactionVerifyPendingKey = "";
     activeCompactionEpoch = null;
     persistState();
+    updateNorthStarCard(ctx, "post_compaction");
   }
 }
 

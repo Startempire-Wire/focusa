@@ -68,6 +68,7 @@ import {
   type ScopedResultEnvelope,
   type WorkstreamKey,
 } from "./scoped-state.js";
+import { buildNorthStarSnapshot, renderNorthStarCard } from "./north-star.js";
 
 const SCRATCHPAD_DIR = "/tmp/pi-scratch";
 
@@ -2176,6 +2177,36 @@ export function registerTools(pi: ExtensionAPI) {
     }
     return registerTool(normalized);
   }) as typeof pi.registerTool;
+
+  pi.registerTool({
+    name: "focusa_north_star_gate",
+    label: "North Star Gate",
+    description:
+      "Inspect the current verified Project → HLT → MLG → STG → waypoint → gap → Workpoint → frontier chain before meaningful action. Read-only and fail-closed.",
+    promptSnippet:
+      "Use before meaningful work and after session/compaction/model/project/provider/writer transitions; stale authority remains advisory.",
+    parameters: Type.Object({
+      trigger: Type.Optional(Type.String({ description: "Lifecycle or operator trigger being checked." })),
+    }),
+    async execute(params: any) {
+      const snapshot = buildNorthStarSnapshot(String(params?.trigger || "manual_gate"));
+      return {
+        content: [{ type: "text", text: renderNorthStarCard(snapshot).join("\n") }],
+        details: {
+          ok: snapshot.status === "ready",
+          status: snapshot.status,
+          canonical: false,
+          advisory: true,
+          snapshot,
+          next_tools:
+            snapshot.status === "ready"
+              ? ["focusa_workpoint_resume"]
+              : ["focusa_project_identity", "focusa_trajectory_view", "focusa_workpoint_resume"],
+        },
+      } as any;
+    },
+  });
+
   // ── focusa_scratch ──────────────────────────────────────────────────────
   // Agent's working notebook. Lives at /tmp/pi-scratch/. No Focus State write.
   // ALL working notes welcome: reasoning, task lists, hypotheses, dead ends,
@@ -7798,9 +7829,12 @@ export function registerTools(pi: ExtensionAPI) {
         blockers: blockers.map((reason: string) => ({ reason, severity: "medium", status: "open" })),
       };
       // First checkpoint bootstraps Workpoint authority before a Work Loop lease exists.
+      // Sending a writer id without a fencing token makes the daemon classify
+      // bootstrap as an expired/missing lease and creates a circular deadlock.
+      const checkpointLease = await currentWorkLoopLease();
       const res = await focusaFetchDetailed("/workpoint/checkpoint", {
         method: "POST",
-        headers: writerLeaseHeaders(localWriterId, await currentWorkLoopLease()),
+        headers: checkpointLease ? writerLeaseHeaders(localWriterId, checkpointLease) : {},
         body: JSON.stringify(payload),
       });
       if (!res.ok && res.body?.failure_class === "hot_path_timeout") {

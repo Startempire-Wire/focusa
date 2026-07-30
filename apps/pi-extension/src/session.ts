@@ -64,6 +64,7 @@ import { loadPersistedRecoveryState } from "./persistence.js";
 import { measureNativeSessionPressure, type NativeSessionPressureV1 } from "./session-pressure.js";
 import { queueLifecycleAdvisory } from "./lifecycle-advisory.js";
 import { pushDelta } from "./tools.js";
+import { updateNorthStarCard } from "./north-star.js";
 import { LifecycleGenerationGuard } from "./lifecycle-guard.js";
 
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
@@ -259,6 +260,7 @@ async function refreshSessionWorkpointPacket(reason: string): Promise<void> {
     return;
   }
   try {
+    const currentAsk = String(getAttachmentRuntime().currentAsk?.text || "").trim();
     const packet = await focusaFetch("/workpoint/resume", {
       method: "POST",
       body: JSON.stringify({
@@ -266,6 +268,7 @@ async function refreshSessionWorkpointPacket(reason: string): Promise<void> {
         continuity_id: ensureContinuityId(getSessionCwd() || process.cwd()),
         session_id: getAttachmentRuntime().sessionFrameKey,
         project_root: getSessionCwd() || process.cwd(),
+        current_ask: currentAsk || undefined,
       }),
     });
     if (packet?.status === "rejected_scope_mismatch") {
@@ -275,11 +278,25 @@ async function refreshSessionWorkpointPacket(reason: string): Promise<void> {
     }
     if (packet?.status === "completed") {
       const candidate = normalizeWorkpointResumePacketEnvelope(packet);
-      if (!isWorkpointPacketScopedToCurrentSession(candidate)) {
+      if (
+        packet?.action_authority_for_current_ask !== true ||
+        packet?.matches_current_ask_scope === false ||
+        !isWorkpointPacketScopedToCurrentSession(candidate)
+      ) {
         setActiveWorkpointPacket(null);
         setActiveWorkpointSummary("");
+        focusaPost("/telemetry/trace", {
+          event_type: "workpoint_resume_rejected_stale_current_ask",
+          payload: {
+            reason,
+            workpoint_id: packet?.workpoint_id,
+            action_authority_for_current_ask: packet?.action_authority_for_current_ask,
+            matches_current_ask_scope: packet?.matches_current_ask_scope,
+          },
+        });
         return;
       }
+      candidate.current_ask_binding = currentAsk;
       setActiveWorkpointPacket(stampWorkpointPacketForCurrentPiSession(candidate));
       setActiveWorkpointSummary(
         packet.rendered_summary || packet.resume_packet_v2?.rendered_summary || packet.next_step_hint || ""
@@ -579,12 +596,8 @@ async function promptForProjectVerifyIfNeeded(
   reason: string
 ): Promise<boolean> {
   const mode = getAttachmentRuntime().cfg?.vitalInfoPromptMode || "prompt";
-  if (
-    !vitalPromptSurfaceEnabled("project_verify") ||
-    mode === "off" ||
-    !isProjectRootAuthoritySafe(projectRoot)
-  )
-    return true;
+  if (!isProjectRootAuthoritySafe(projectRoot)) return false;
+  const promptEnabled = vitalPromptSurfaceEnabled("project_verify") && mode !== "off";
   const payload = { cwd: projectRoot, project_root: projectRoot };
   const res = await focusaFetch("/project/verify", { method: "POST", body: JSON.stringify(payload) }).catch(
     () => null
@@ -603,6 +616,7 @@ async function promptForProjectVerifyIfNeeded(
     return true;
   }
   const status = String(res?.project_identity?.status || res?.status || "unknown");
+  if (!promptEnabled) return false;
   const recovery = String(
     res?.verification?.required_recovery ||
       "verify project identity before durable cross-project state writes"
@@ -629,7 +643,9 @@ async function promptForProjectVerifyIfNeeded(
       payload: { reason, project_root: projectRoot, status },
     });
   }
-  return ok;
+  // Operator confirmation permits bounded read-only continuation, not durable
+  // project mutation under a mismatched verification result.
+  return false;
 }
 
 async function promptForWorkpointIfNeeded(ctx: any, projectRoot: string, reason: string): Promise<boolean> {
@@ -1253,15 +1269,28 @@ export function registerSession(pi: ExtensionAPI) {
       return;
     }
     ensureContinuityId(projectRoot);
-    await promptForProjectVerifyIfNeeded(ctx, projectRoot, "session_start");
+    const projectVerified = await promptForProjectVerifyIfNeeded(ctx, projectRoot, "session_start");
+    if (!projectVerified) {
+      setActiveWorkpointPacket(null);
+      setActiveWorkpointSummary("");
+      ctx.ui.notify(
+        "North-star gate blocked durable project startup: project verification is not canonical. Read-only diagnosis remains available.",
+        "warning"
+      );
+      updateNorthStarCard(ctx, "session_start_project_blocked");
+      return;
+    }
     await ensureFocusaSession({ ...ctx, cwd: projectRoot });
     await ensureActiveFrame(
       { ...ctx, cwd: projectRoot },
       (event as any).sessionId || `pi-session-${Date.now()}`
     );
-    await refreshSessionWorkpointPacket("session_start");
+    // North-star order is binding → HLT/MLG/STG/waypoints → Workpoint.
+    // A Workpoint loaded before trajectory refresh can be canonical for a stale
+    // saved ask while lacking authority for the current session.
     await refreshTrajectoryClarityLifecycle("session_start", projectRoot);
     await promptForTrajectoryIfNeeded(ctx, projectRoot, "session_start");
+    await refreshSessionWorkpointPacket("session_start");
     if (!getActiveWorkpointPacket()) {
       await refreshTrajectoryClarityLifecycle("session_start_genesis", projectRoot);
       const genesisReady = await ensureProjectGenesis(projectRoot, "session_start");
@@ -1275,6 +1304,7 @@ export function registerSession(pi: ExtensionAPI) {
         );
       }
     }
+    updateNorthStarCard(ctx, "session_start_ready_check");
 
     // §35.8: Pi owns the session display name (/name, session selector).
     // Focusa may cache its scoped frame title for context/status, but must not call the Pi session naming API.

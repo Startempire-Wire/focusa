@@ -54,6 +54,19 @@ const WORK_LOOP_TYPED_STATES: [&str; 8] = [
 #[derive(Clone)]
 struct WorkLoopScope(WorkstreamKey);
 
+fn stale_scope_rebind_allowed(
+    enabled: bool,
+    status: WorkLoopStatus,
+    has_current_task: bool,
+) -> bool {
+    !enabled
+        || matches!(
+            status,
+            WorkLoopStatus::Idle | WorkLoopStatus::Completed | WorkLoopStatus::Aborted
+        )
+        || (status == WorkLoopStatus::Blocked && !has_current_task)
+}
+
 struct WorkLoopScopeRejection {
     status: StatusCode,
     body: Value,
@@ -154,6 +167,21 @@ impl FromRequestParts<Arc<AppState>> for WorkLoopScope {
             .as_ref()
             .is_some_and(|active| active != &key)
         {
+            let approved = parts
+                .headers
+                .get("x-focusa-approval")
+                .and_then(|value| value.to_str().ok())
+                .is_some_and(|value| value == "approved");
+            let stale_enable_rebind = parts.uri.path() == "/v1/work-loop/enable"
+                && approved
+                && stale_scope_rebind_allowed(
+                    focusa.work_loop.enabled,
+                    focusa.work_loop.status,
+                    focusa.work_loop.current_task.is_some(),
+                );
+            if stale_enable_rebind {
+                return Ok(Self(key));
+            }
             return Err(WorkLoopScopeRejection {
                 status: StatusCode::CONFLICT,
                 body: json!({
@@ -4625,6 +4653,50 @@ mod tests {
         .unwrap_err();
         assert_eq!(rejected.0, StatusCode::CONFLICT);
         assert_eq!(claims.len(), 3);
+    }
+
+    #[test]
+    fn stale_inert_scope_can_rebind_only_at_safe_terminal_boundaries() {
+        assert!(stale_scope_rebind_allowed(
+            false,
+            WorkLoopStatus::Blocked,
+            false
+        ));
+        assert!(stale_scope_rebind_allowed(
+            true,
+            WorkLoopStatus::Idle,
+            false
+        ));
+        assert!(stale_scope_rebind_allowed(
+            true,
+            WorkLoopStatus::Completed,
+            false
+        ));
+        assert!(stale_scope_rebind_allowed(
+            true,
+            WorkLoopStatus::Aborted,
+            false
+        ));
+        assert!(stale_scope_rebind_allowed(
+            true,
+            WorkLoopStatus::Blocked,
+            false
+        ));
+        assert!(!stale_scope_rebind_allowed(
+            true,
+            WorkLoopStatus::Blocked,
+            true
+        ));
+        assert!(!stale_scope_rebind_allowed(
+            true,
+            WorkLoopStatus::Paused,
+            false
+        ));
+        assert!(!stale_scope_rebind_allowed(
+            true,
+            WorkLoopStatus::AwaitingHarnessTurn,
+            false
+        ));
     }
 
     #[test]

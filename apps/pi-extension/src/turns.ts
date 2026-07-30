@@ -112,6 +112,7 @@ import {
 } from "./cache-safe-context.js";
 import { selectFocusSliceToolAffordances } from "./tool-contracts.js";
 import { resolveInteractionMode } from "./config.js";
+import { updateNorthStarCard } from "./north-star.js";
 
 const cacheSafetyMonitor = new CacheSafetyMonitor();
 const CACHE_SAFE_DEGRADED_RETAINED_SECTIONS = new Set([
@@ -2087,6 +2088,23 @@ export function registerTurns(pi: ExtensionAPI) {
       projectRoot: getSessionCwd(),
       continuityId: getContinuityId(),
     };
+    const activeWorkpoint = getActiveWorkpointPacket();
+    const boundAsk = String((activeWorkpoint as any)?.current_ask_binding || "").trim();
+    if (activeWorkpoint && newTaskText && boundAsk !== newTaskText) {
+      setActiveWorkpointPacket({
+        ...activeWorkpoint,
+        action_authority_for_current_ask: false,
+        matches_current_ask_scope: false,
+        current_ask_scope: {
+          ...(activeWorkpoint as any).current_ask_scope,
+          action_authority_for_current_ask: false,
+          matches_current_ask_scope: false,
+          scope_conflict_reason: "operator_ask_changed_since_workpoint_binding",
+        },
+      });
+      persistState();
+    }
+    updateNorthStarCard(_ctx, "operator_input");
     observeProjectThreadHintsFromText(newTaskText, sourceTurnId, "current_ask", "current_ask_project_hints");
     const queryScope = deriveQueryScope(askKind);
     const steeringDetected = isOperatorSteeringInput(String(text), askKind);
@@ -2546,6 +2564,7 @@ export function registerTurns(pi: ExtensionAPI) {
     // because model/provider discontinuities are not prefix regressions.
     getAttachmentRuntime().lastRecentTurnsSliceTurn = -1;
     cacheSafetyMonitor.resetForDiscontinuity(cacheSessionKey());
+    updateNorthStarCard(_ctx, "model_switch");
   });
 
   // Provider overflow boundary: Pi auto-compacts, but Focusa checkpoints first when HTTP status exposes overflow-like failure.
