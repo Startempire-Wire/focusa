@@ -1,0 +1,133 @@
+{
+  "schema": "focusa.spec135.p00_recovery_baseline.v1",
+  "status": "identity_wave_partial_workpoint_blocked",
+  "captured_at": "2026-07-30T07:00:00Z",
+  "authority": {
+    "operator_steering": "continue",
+    "completion_graph": "docs/contracts/spec135-mission-canvas-completion-dag.v2.json",
+    "graph_status": "operator_approved_p00_execution",
+    "graph_digest": "6636bbdc72dd6b89f6edf724c7042702be0de37b4e5882b307f0b00fa37932fd"
+  },
+  "scope": {
+    "project_id": "focusa",
+    "canonical_name": "Focusa",
+    "parent_project_root": "/Volumes/Macintosh HD/Users/vsmith/focusa",
+    "working_subpath_root": "/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas",
+    "git_common_dir": "/Volumes/Macintosh HD/Users/vsmith/focusa/.git",
+    "branch": "feature/spec-135-context-connectors-b2",
+    "head_at_identity_check": "7b7806930403591184963e0d999696b39ccc5b1d",
+    "remote_head_at_identity_check": "7b7806930403591184963e0d999696b39ccc5b1d",
+    "remote": "https://github.com/Startempire-Wire/focusa.git",
+    "pull_request": "https://github.com/Startempire-Wire/focusa/pull/110",
+    "pull_request_draft": true,
+    "project_identity_warning": "The tracked deployment-specific project_root was removed from .focusa-project.json so the existing marker parser derives a portable root from marker location and git worktree context. Focusa ProjectIdentity writes still time out before returning a fresh verification packet."
+  },
+  "focusa_authority": {
+    "project_card_hlt": "Bring the Focusa Mission Canvas Spec series 135 into full existence and alignment with the current Focusa Core Product and make it fully operational.",
+    "prior_project_card_mlg": "Close all 30 remaining requirements in the machine-readable Spec 135 ledger in dependency order.",
+    "workpoint_status": "blocked",
+    "workpoint_blocker": "ProjectIdentity, Trajectory writes, ProjectCard, and Workpoint checkpoint routes exceed the 250 ms internal hot-route budget despite LowMem and emergency resource modes. Operator steering and verified git scope authorize bounded P00 recovery, but focusa-mc2.1.003 remains open until a canonical Workpoint and writer lease are restored.",
+    "active_writer": "none"
+  },
+  "task_provider_before": {
+    "mode": "SQLite auto-import",
+    "visible_issue_count": 0,
+    "failure": "Eight closed legacy records used unsupported issue types security/improvement; two records used unsupported deferred status. After migration, normal auto-import remained pathologically slow.",
+    "legacy_type_migrations": {
+      "security_to_bug": 3,
+      "improvement_to_feature": 5
+    },
+    "legacy_status_migrations": {
+      "deferred_to_blocked": 2
+    },
+    "history_preservation": "Original types/statuses are retained as legacy-type:* and legacy-status:* labels in canonical JSONL."
+  },
+  "task_provider_after": {
+    "canonical_mode": "Beads --no-db over tracked .beads/issues.jsonl",
+    "canonical_issue_count": 2553,
+    "sqlite_cache_new_graph_issue_count": 394,
+    "sqlite_cache_new_graph_dependency_count": 1014,
+    "new_epic": "focusa-mc2",
+    "new_materialized_records": 394,
+    "new_graph_nodes": 381,
+    "new_phase_epics": 12,
+    "new_dependency_edges": 1014,
+    "p00_initial_ready_tasks": [
+      "focusa-mc2.1.001",
+      "focusa-mc2.1.002",
+      "focusa-mc2.1.003",
+      "focusa-mc2.1.004",
+      "focusa-mc2.1.005"
+    ],
+    "provider_command": "bd --no-db --no-daemon",
+    "cache_sync": "scripts/materialize-spec135-mission-canvas-completion-beads.py --check --sync-db"
+  },
+  "ledger_reconciliation": {
+    "legacy_feature_ledger": {
+      "requirements": 73,
+      "provider_tasks": 73,
+      "provider_status": "all closed",
+      "repository_status": "73/73 verified",
+      "classification": "historical closure predating corrected rich-host/adaptive authority"
+    },
+    "superseded_recovery_epic": {
+      "prefix": "focusa-mc-full",
+      "records": 63,
+      "active_before": 53,
+      "dependency_edges_before": 0,
+      "architecture_conflict": "Root description declared Pi TUI the central Mission Canvas surface.",
+      "after": "All records retained closed with superseded_by=focusa-mc2 and historical labels."
+    },
+    "project_card_advisory": {
+      "remaining_count": 30,
+      "exact_ids_exposed": false,
+      "ready_frontier": [
+        "SPEC135-RI4",
+        "SPEC135-V3",
+        "SPEC135-V4",
+        "SPEC135-V5",
+        "SPEC135-P2",
+        "SPEC135-P4",
+        "SPEC135-Q1",
+        "SPEC135-Q3",
+        "SPEC135-Q4",
+        "SPEC135-E1"
+      ],
+      "classification": "Superseded as execution decomposition by operator-approved focusa-mc2 graph; HLT remains unchanged."
+    },
+    "generated_master_acceptance": {
+      "passed_gates": 2,
+      "total_gates": 14,
+      "status": "reopened",
+      "classification": "Current truthful closure baseline"
+    },
+    "authoritative_execution_decomposition": {
+      "epic": "focusa-mc2",
+      "implementation_tasks": 307,
+      "total_graph_nodes": 381,
+      "phase_count": 12,
+      "graph_edges": 621,
+      "beads_dependency_edges_including_parent_child": 1014
+    }
+  },
+  "test_baseline": {
+    "command": "bash scripts/ci/run-spec-gates.sh",
+    "result": "failed",
+    "last_passing_corrected_gate": "SPEC135-M4 exact attachment-scoped Work Surface binding lint",
+    "first_failure": "tests/spec135_m4_surface_bindings_e2e_test.py assertion comparing listed binding with created binding",
+    "master_acceptance_observed": "2/14, merge_ready=false",
+    "next_baseline_action": "Diagnose M4 against a uniquely isolated daemon/data directory, repair it, then rerun the complete canonical gate suite."
+  },
+  "p00_progress": {
+    "completed": [
+      "focusa-mc2.1.001 scope identity verified with root-marker warning",
+      "focusa-mc2.1.002 branch and remote reconciled before P00 mutations",
+      "focusa-mc2.1.004 task-provider legacy schema repaired and canonical no-db visibility restored",
+      "focusa-mc2.1.005 ledger/provider/Project Card/master-acceptance contradiction reconciled to focusa-mc2"
+    ],
+    "blocked": [
+      "focusa-mc2.1.003 canonical Focusa Workpoint and writer lease restoration"
+    ],
+    "not_started": "P00 baseline and governance waves remain dependency-blocked until the identity wave gate passes."
+  }
+}

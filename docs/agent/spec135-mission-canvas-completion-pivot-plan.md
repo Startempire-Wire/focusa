@@ -1,9 +1,9 @@
 # Spec 135 Mission Canvas Completion Pivot Plan
 
-**Status:** Operator approval required before implementation  
-**Graph:** `docs/contracts/spec135-mission-canvas-completion-dag.v2.json`  
-**Graph digest:** `b0ad6ac80d5054dbd17d057fdf0e6288ba2725f29b4366ed8e546c06b3b8ed69`  
-**Granularity:** 307 implementation tasks, 381 total nodes including gates, 621 dependency edges  
+**Status:** Operator approved P00 execution; later phases remain dependency-gated
+**Graph:** `docs/contracts/spec135-mission-canvas-completion-dag.v2.json`
+**Graph digest:** `6636bbdc72dd6b89f6edf724c7042702be0de37b4e5882b307f0b00fa37932fd`
+**Granularity:** 307 implementation tasks, 381 total nodes including gates, 621 dependency edges
 
 ## 1. Necessary pivot
 

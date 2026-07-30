@@ -1,7 +1,7 @@
 {
   "schema": "focusa.spec135.mission_canvas_completion_dag.v2",
   "version": 2,
-  "status": "operator_approval_required_before_implementation",
+  "status": "operator_approved_p00_execution",
   "mission": "Bring the Focusa Mission Canvas Spec 135 series into full production existence as a portable Pi-extension rich adaptive workspace without improvisation.",
   "authority_precedence": [
     "operator steering in the current Pi session",
@@ -14,6 +14,8 @@
     "Spec 135 through 135K normative sources referenced by the current manifest"
   ],
   "operator_confirmations": {
+    "completion_dag_approved_by_continue_steering": true,
+    "approval_scope": "P00 execution; later phases remain dependency-gated",
     "replacement_text_outranks_images_and_older_contracts_for_occupancy": true,
     "images_are_populated_examples_not_fixed_inventory": true,
     "quality_compromise_allowed": false,
@@ -16888,5 +16890,5 @@
   "implementation_start_gate": "P00-GATE",
   "first_production_dependency": "P02-W01-T01 after P00 and P01 operator/evidence gates",
   "final_gate": "P11-GATE",
-  "graph_digest_sha256": "b0ad6ac80d5054dbd17d057fdf0e6288ba2725f29b4366ed8e546c06b3b8ed69"
+  "graph_digest_sha256": "6636bbdc72dd6b89f6edf724c7042702be0de37b4e5882b307f0b00fa37932fd"
 }

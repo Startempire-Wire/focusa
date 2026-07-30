@@ -788,10 +788,12 @@ def build_graph() -> dict[str, Any]:
     graph = {
         "schema": "focusa.spec135.mission_canvas_completion_dag.v2",
         "version": 2,
-        "status": "operator_approval_required_before_implementation",
+        "status": "operator_approved_p00_execution",
         "mission": "Bring the Focusa Mission Canvas Spec 135 series into full production existence as a portable Pi-extension rich adaptive workspace without improvisation.",
         "authority_precedence": AUTHORITY,
         "operator_confirmations": {
+            "completion_dag_approved_by_continue_steering": True,
+            "approval_scope": "P00 execution; later phases remain dependency-gated",
             "replacement_text_outranks_images_and_older_contracts_for_occupancy": True,
             "images_are_populated_examples_not_fixed_inventory": True,
             "quality_compromise_allowed": False,
@@ -879,10 +881,10 @@ def render_report(graph: dict[str, Any]) -> str:
     lines = [
         "# Spec 135 Mission Canvas Completion Pivot Plan",
         "",
-        "**Status:** Operator approval required before implementation  ",
-        f"**Graph:** `{GRAPH_PATH.relative_to(ROOT)}`  ",
-        f"**Graph digest:** `{graph['graph_digest_sha256']}`  ",
-        f"**Granularity:** {graph['task_count_excluding_gates']} implementation tasks, {graph['node_count']} total nodes including gates, {graph['edge_count']} dependency edges  ",
+        "**Status:** Operator approved P00 execution; later phases remain dependency-gated",
+        f"**Graph:** `{GRAPH_PATH.relative_to(ROOT)}`",
+        f"**Graph digest:** `{graph['graph_digest_sha256']}`",
+        f"**Granularity:** {graph['task_count_excluding_gates']} implementation tasks, {graph['node_count']} total nodes including gates, {graph['edge_count']} dependency edges",
         "",
         "## 1. Necessary pivot",
         "",

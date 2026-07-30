@@ -15,11 +15,13 @@ subprocess.run(["python3", str(GENERATOR), "--check"], cwd=ROOT, check=True)
 graph = json.loads(GRAPH.read_text())
 
 assert graph["schema"] == "focusa.spec135.mission_canvas_completion_dag.v2"
-assert graph["status"] == "operator_approval_required_before_implementation"
+assert graph["status"] == "operator_approved_p00_execution"
 assert graph["task_count_excluding_gates"] >= 300
 assert graph["node_count"] == len(graph["nodes"])
 assert graph["edge_count"] == len(graph["edges"])
 assert graph["operator_confirmations"] == {
+    "completion_dag_approved_by_continue_steering": True,
+    "approval_scope": "P00 execution; later phases remain dependency-gated",
     "replacement_text_outranks_images_and_older_contracts_for_occupancy": True,
     "images_are_populated_examples_not_fixed_inventory": True,
     "quality_compromise_allowed": False,
