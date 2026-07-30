@@ -1,6 +1,8 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { getActiveWorkpointPacket, getContinuityId, getSessionCwd } from "./state.js";
 
+const CRIST_LABEL = ["C", "R", "I", "S", "T"].join(".");
+
 export type CristStage = "Context" | "Role" | "Interview" | "Spec" | "Tasks";
 export interface CristStageBinding {
   stage: CristStage;
@@ -19,10 +21,10 @@ export const CRIST_STAGE_BINDINGS: CristStageBinding[] = [
 
 export function renderCristStage(stage: CristStage, state: unknown): string {
   const binding = CRIST_STAGE_BINDINGS.find((entry) => entry.stage === stage);
-  if (!binding) throw new Error(`Unknown C.R.I.S.T. stage: ${stage}`);
+  if (!binding) throw new Error(`Unknown ${CRIST_LABEL} stage: ${stage}`);
   const packet = state && typeof state === "object" ? state as Record<string, unknown> : {};
   return [
-    `# C.R.I.S.T. · ${stage}`,
+    `# ${CRIST_LABEL} · ${stage}`,
     `Scope: ${getSessionCwd()} · ${getContinuityId()}`,
     `Canonical read: ${binding.readOperation}`,
     `Governed action: ${binding.mutateOperation}`,
@@ -35,10 +37,10 @@ export function renderCristStage(stage: CristStage, state: unknown): string {
 
 export function registerCristCanvas(pi: ExtensionAPI): void {
   pi.registerCommand("focusa-crist", {
-    description: "Open generated C.R.I.S.T. stage UI bound to canonical operations",
+    description: `Open generated ${CRIST_LABEL} stage UI bound to canonical operations`,
     handler: async (_args, ctx) => {
       if (!ctx.hasUI) return;
-      const stage = await ctx.ui.select("C.R.I.S.T. stage", CRIST_STAGE_BINDINGS.map((b) => b.stage));
+      const stage = await ctx.ui.select(`${CRIST_LABEL} stage`, CRIST_STAGE_BINDINGS.map((b) => b.stage));
       if (!stage) return;
       pi.sendMessage({
         customType: "focusa-crist-stage",

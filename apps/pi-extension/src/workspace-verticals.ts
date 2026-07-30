@@ -32,7 +32,7 @@ export const VERTICAL_PROFILES: Record<WorkspaceVertical, VerticalProfile> = {
     profile: "General",
     identity: "neutral Focusa living-field",
     variants: ["balanced", "quiet", "high-contrast"],
-    primaryView: "Mission, Workpoint, Evidence, C.R.I.S.T., sessions, next safe action",
+    primaryView: "Mission, Workpoint, Evidence, CRIST stages, sessions, next safe action",
     safetyLens: "No domain-specific assumptions",
   },
   Software: {
