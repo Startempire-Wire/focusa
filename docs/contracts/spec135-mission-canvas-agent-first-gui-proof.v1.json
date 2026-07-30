@@ -1,58 +1,47 @@
 {
   "schema": "focusa.spec135.mission_canvas_agent_first_gui_proof.v1",
   "captured_at": "2026-07-29T19:22:00-07:00",
-  "acceptance_criteria": "Mission Canvas replaces the complete visible Pi TUI when enabled and restores stock Pi when disabled without changing the live agent session.",
+  "reviewed_at": "2026-07-29T20:37:00-07:00",
+  "status": "invalidated_as_rich_gui_proof",
+  "acceptance_criteria": "The Focusa-enhanced Pi light switch opens or focuses a Focusa-owned rich Mission Canvas webview/window over the same live Pi session and returns to stock Pi without state loss.",
+  "previous_claim": "Mission Canvas replaces the complete visible Pi TUI when enabled and restores stock Pi when disabled without changing the live agent session.",
+  "invalidation_reason": [
+    "The tested implementation is a Pi terminal TUI component rather than a Focusa-owned graphical webview/window.",
+    "The proof relied on handwritten assertions and source structure rather than a runtime rich-host traversal.",
+    "Workspace verticals, split panes, and C.R.I.S.T. stages were represented through terminal cards or transcript/Markdown output rather than the required rich renderers.",
+    "The implementation used reserved Cockpit naming for a Focusa/Pi surface.",
+    "The proof did not demonstrate rich-host accessibility, responsive behavior, reconnect, or visual verification through UIAI Engine Eval."
+  ],
+  "authority_ref": "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml",
   "runtime": {
     "pi_version": "0.82.1",
     "extension": "focusa-pi-bridge@0.9.141",
-    "project_root": "/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas",
-    "entrypoint": "focusa_mission_canvas",
     "interaction_mode": "canvas-guided",
-    "workspace_profile": "software",
+    "observed_host_renderer": "pi_terminal_projection",
+    "required_host_renderer": "focusa_pi_rich_window",
     "trajectory_present": false,
     "workpoint_present": false
   },
-  "full_shell": {
-    "stock_tui_replaced_when_on": true,
-    "canvas_owns_agent_stream": true,
-    "canvas_owns_user_input": true,
-    "canvas_owns_workspace_navigation": true,
-    "same_session_manager": true,
-    "same_model_stream": true,
-    "same_tool_runtime": true,
-    "same_history": true,
-    "stock_tui_restored_when_off": true,
-    "on_again_replaces_stock_tui": true
+  "reclassified_partial_evidence": {
+    "terminal_projection_exists": true,
+    "same_session_manager_intent": true,
+    "same_model_stream_intent": true,
+    "same_tool_runtime_intent": true,
+    "stock_pi_restore_path_exists": true,
+    "rich_graphical_host_exists": false,
+    "real_rich_split_panes_proven": false,
+    "real_vertical_recomposition_proven": false,
+    "generated_crist_gui_proven": false,
+    "uiai_engine_eval_proven": false
   },
   "programmatic_control": {
     "agent_tool_registered": true,
     "actions": ["open", "on", "off", "toggle", "status", "set_profile"],
-    "canvas_side_off_control": "/mission-canvas off",
-    "stock_pi_on_control": "/mission-canvas on",
-    "external_terminal_window_required": false,
     "shared_controller": "executeMissionCanvasAction",
-    "canonical_runtime_forked": false
+    "canonical_runtime_forked": false,
+    "classification": "useful_lifecycle_scaffolding_not_rich_gui_completion"
   },
-  "visual_reference_features": [
-    "workspace radio selector",
-    "current workspace cockpit",
-    "current work and next up cards",
-    "what changes and what stays the same cards",
-    "attachment-scoped work surfaces",
-    "same-session agent stream",
-    "Canvas-owned input editor",
-    "keyboard-first workspace switching"
-  ],
-  "empty_state_behavior": {
-    "canvas_opened": true,
-    "project_verify_modal_gate": false,
-    "trajectory_gate": false,
-    "workpoint_gate": false,
-    "rendered_trajectory_state": "No trajectory loaded",
-    "rendered_workpoint_state": "No active Mission Canvas Workpoint",
-    "next_action": "Create or resume a canonical Workpoint"
-  },
-  "evidence_refs": [
+  "evidence_refs_retained_as_partial": [
     "docs/contracts/evidence/spec135-mission-canvas-full-shell-local.png",
     "docs/contracts/evidence/spec135-mission-canvas-full-shell-on.txt",
     "docs/contracts/evidence/spec135-mission-canvas-full-shell-off.txt",
@@ -60,5 +49,15 @@
     "apps/pi-extension/src/mission-canvas-tool.ts",
     "apps/pi-extension/src/commands.ts",
     "apps/pi-extension/src/session.ts"
-  ]
+  ],
+  "required_reproof": [
+    "Pi invokes Canvas ON and launches or focuses focusa_pi_rich_window.",
+    "The same project, workstream, Session, Attachment, transcript, model stream, tools, Workpoint, Evidence, queues, and drafts survive ON/OFF.",
+    "The active Pi transcript renders as a live pi_session Work Surface inside the canonical Mission Canvas shell.",
+    "Actual Work Surface focus, grouping, rich splits, suspend, close, and rehydration execute against durable state.",
+    "Software, Legal, Markets, Research, General, and Custom profiles recompose complete professional layouts over identical canonical state.",
+    "C.R.I.S.T. stages render as interactive A2UI/Lit Work Surfaces rather than transcript messages.",
+    "UIAI Engine Eval produces responsive, accessibility, visual, reconnect, Evidence, and Receipt proof."
+  ],
+  "accepted": false
 }
