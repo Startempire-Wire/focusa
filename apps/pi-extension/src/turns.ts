@@ -2025,6 +2025,24 @@ export function registerTurns(pi: ExtensionAPI) {
   pi.on("input", (event, _ctx) => {
     const text = (event as any).text || (event as any).message || "";
     const cleanedText = stripQuotedFocusaContext(String(text));
+    const runtime = getAttachmentRuntime();
+    if (
+      cleanedText.trim() &&
+      (runtime.compactionVerifyPendingKey ||
+        ["pending", "unknown_completion", "deferred_to_next_turn"].includes(
+          runtime.compactResumeDeliveryState
+        ))
+    ) {
+      runtime.compactResumePending = false;
+      runtime.compactResumeDeliveryState = "superseded_by_operator";
+      runtime.pi?.appendEntry("focusa-compaction-delivery-outcome", {
+        schema: "focusa.compaction_delivery_outcome.v1",
+        delivery_key: runtime.compactResumeDeliveryKey || runtime.compactionVerifyPendingKey,
+        outcome: "superseded_by_operator",
+        recorded_at: new Date().toISOString(),
+      });
+      persistState();
+    }
 
     // §5.12.10: recall-intent trigger — detect and force re-emit.
     const intent = detectRecallIntent(cleanedText);

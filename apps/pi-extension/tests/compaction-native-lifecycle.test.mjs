@@ -8,6 +8,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../../..");
 const extensionSource = fs.readFileSync(path.join(root, "apps/pi-extension/src/compaction.ts"), "utf8");
 const stateSource = fs.readFileSync(path.join(root, "apps/pi-extension/src/state.ts"), "utf8");
+const turnsSource = fs.readFileSync(path.join(root, "apps/pi-extension/src/turns.ts"), "utf8");
 const apiSource = fs.readFileSync(path.join(root, "crates/focusa-api/src/routes/compaction.rs"), "utf8");
 const fallbackDoc = fs.readFileSync(path.join(root, "docs/current/COMPACTION_FALLBACKS.md"), "utf8");
 const spec142 = fs.readFileSync(
@@ -79,7 +80,7 @@ test("resume projection is explicit nextTurn with unknown completion and no retr
   assert.equal(extensionSource.includes("compactResumeRetryTimer"), false);
 });
 
-test("delivery outcome and pending epoch state are typed and persisted", () => {
+test("delivery outcome and pending epoch state are typed and operator-supersedable", () => {
   assert.match(stateSource, /compactionVerifyPendingKey: ""/);
   assert.match(stateSource, /compactResumeDeliveryKey: ""/);
   assert.match(stateSource, /\| "unknown_completion"/);
@@ -87,6 +88,9 @@ test("delivery outcome and pending epoch state are typed and persisted", () => {
     stateSource,
     /compactResumeDeliveryState: getAttachmentRuntime\(\)\.compactResumeDeliveryState/
   );
+  assert.match(turnsSource, /compactResumeDeliveryState = "superseded_by_operator"/);
+  assert.match(turnsSource, /focusa-compaction-delivery-outcome/);
+  assert.match(extensionSource, /compactResumeDeliveryState === "superseded_by_operator"/);
 });
 
 test("daemon exposes bounded prepare and verify routes off the async core writer", () => {

@@ -1050,6 +1050,7 @@ async function runPostCompactionVerification(event: any, ctx: any): Promise<void
     }
     runtime.lastCompactResumeKey = compactionEpochKey(event);
     runtime.lastCompactResumeAt = Date.now();
+    if (runtime.compactResumeDeliveryState === "superseded_by_operator") return;
     runtime.compactResumePending = true;
     const projection = epoch.prepare.resume_projection;
     const resumeText = projection

@@ -57,12 +57,45 @@
       "user_entry_count": 0,
       "finding": "Pi RPC does not model TUI queued operator input during compact; this behavior reproduced with all extensions disabled and is not attributed to Focusa."
     },
-    "rpc_abort_observation": {
-      "abort_command_accepted": true,
-      "compaction_settled": true,
-      "final_idle": true,
-      "second_abort_required": false,
-      "finding": "RPC abort did not cancel the native compact operation and is not accepted as TUI Esc cancellation proof."
+    "pi_tui_queued_input_race": {
+      "status": "verified",
+      "queued_user_entries": 1,
+      "assistant_deliveries": 1,
+      "native_compactions": 1,
+      "pending_markers": 1,
+      "superseded_by_operator_outcomes": 1,
+      "competing_resume_projection_entries": 0,
+      "reload_required": false
+    },
+    "daemon_failure_matrix": {
+      "offline": {
+        "status": "verified",
+        "native_compactions": 1,
+        "recovery_user_entries": 1,
+        "recovery_assistant_deliveries": 1,
+        "reload_required": false
+      },
+      "slow_prepare": {
+        "status": "native_compaction_and_recovery_verified",
+        "daemon_delay_seconds": 10,
+        "client_epoch_deadline_seconds": 2.5,
+        "recovery_user_entries": 1,
+        "recovery_assistant_deliveries": 1,
+        "reload_required": false,
+        "finding": "Total wall time was provider-summary dominated and is not used as prepare-deadline evidence; source and regression tests verify signal-bound 2.5-second cancellation."
+      },
+      "scope_mismatch": "verified_degraded_without_blocking_in_isolated_tui_runs",
+      "saturated": "pending_live_matrix"
+    },
+    "cancellation_observation": {
+      "rpc_abort_command_accepted": true,
+      "tui_escape_presses": 1,
+      "post_escape_recovery_user_entries": 1,
+      "post_escape_recovery_assistant_deliveries": 1,
+      "second_escape_required": false,
+      "reload_required": false,
+      "native_compaction_cancelled": false,
+      "finding": "One Esc never froze continuation and required no second Esc or reload, but Pi completed native compaction before/without cancellation in repeated cached and uncached TUI runs; this is not accepted as native cancellation proof."
     }
   },
   "acceptance_matrix": {
@@ -75,17 +108,17 @@
     "daemon_prepare_verify_isolated_runtime": "verified",
     "duplicate_extension_suppression": "verified_by_existing_runtime_test",
     "threshold_overflow_paths": "verified_by_existing_runtime_test",
-    "operator_prompt_submitted_during_tui_compaction": "pending_live_tui_proof",
-    "single_esc_cancellation": "pending_live_tui_proof",
-    "daemon_offline_slow_saturated_scope_mismatch": "implemented_and_static_verified_live_matrix_pending",
+    "operator_prompt_submitted_during_tui_compaction": "verified_one_user_one_assistant_no_competing_resume",
+    "single_esc_cancellation": "post_escape_recovery_verified_native_cancellation_not_observed",
+    "daemon_offline_slow_scope_mismatch": "verified_live_tui",
+    "daemon_saturated": "pending_live_matrix",
     "reload_and_model_switch": "implemented_and_existing_static_verified_live_matrix_pending"
   },
   "completion_gate": {
     "ready_to_close_issue": false,
     "remaining": [
-      "Run real Pi 0.82.1 TUI queued-input race during manual compaction.",
-      "Run real Pi 0.82.1 TUI single-Esc cancellation proof.",
-      "Run bounded live failure matrix for daemon offline, slow, saturated, scope mismatch, reload, and model switch."
+      "Resolve or prove Pi 0.82.1 native-compaction cancellation semantics: one Esc recovery passes, but native compaction still settles rather than cancelling.",
+      "Complete bounded live matrix for daemon saturation, reload, and model switch; offline, slow, and scope-mismatch TUI recovery pass."
     ]
   },
   "evidence_refs": [
