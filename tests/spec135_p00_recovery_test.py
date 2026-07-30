@@ -76,11 +76,11 @@ for completed in (
     "focusa-mc2.1.017",
 ):
     assert by_id[completed]["status"] == "closed"
-for ready in ("focusa-mc2.2.018", "focusa-mc2.2.019", "focusa-mc2.2.020", "focusa-mc2.2.021"):
-    assert by_id[ready]["status"] == "open"
+for successor in ("focusa-mc2.2.018", "focusa-mc2.2.019", "focusa-mc2.2.020", "focusa-mc2.2.021"):
+    assert successor in by_id
     assert all(
         by_id[dependency["depends_on_id"]]["status"] == "closed"
-        for dependency in by_id[ready].get("dependencies") or []
+        for dependency in by_id[successor].get("dependencies") or []
         if dependency["type"] == "blocks"
     )
 

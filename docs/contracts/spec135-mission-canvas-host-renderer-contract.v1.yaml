@@ -8,6 +8,13 @@ updated_at: 2026-07-29
 authority:
   delivery_contract: docs/135-series-current-manifest.md
   parent_spec: docs/135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md
+  adaptive_composition_authority:
+    replacement_text: docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md
+    populated_examples:
+      - docs/contracts/spec135/authoritative-handoff/focusa_activity_mode_recomposition.png
+      - docs/contracts/spec135/authoritative-handoff/focusa_dynamic_vertical_recomposition.png
+    precedence: replacement_text_over_images_over_older_contracts_for_occupancy
+    images_are_fixed_inventory: false
   affected_existing_specs:
     - docs/135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md
     - docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md
@@ -15,7 +22,11 @@ authority:
     - docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md
     - docs/135k-uxp-ufi-adaptive-generated-ui-friction-learning-and-nontechnical-usability-spec.md
   no_new_lettered_companion: true
-  conflict_rule: this contract and the delivery contract govern conflicting host, renderer, toggle, and proof wording until the affected existing specs are harmonized in place
+  conflict_rule: operator steering and the replacement adaptive-composition handoff govern occupancy conflicts; the images are populated examples, then this contract and the delivery contract govern host, renderer, toggle, and proof wording until affected existing specs are harmonized in place
+  superseded_history:
+    - docs/contracts/spec135/authoritative-handoff/superseded/spec135_agent_handoff_apple_principles.md
+    - docs/contracts/spec135/authoritative-handoff/superseded/focusa_mission_canvas_apple_principles_authoritative.png
+  superseded_history_must_not_close_gates: true
 
 product_intent:
   statement: >-
@@ -55,6 +66,13 @@ required_enhanced_pi_host:
   id: focusa_pi_rich_window
   classification: primary_canvas_guided_renderer_for_focusa_enhanced_pi
   ownership: Focusa
+  implementation_owner: Pi_extension
+  required_platforms:
+    - macOS
+    - Windows
+    - Linux
+  release_path: canonical_Git_and_GitHub_release_pipeline
+  platform_specific_code_boundary: bounded_host_adapter_below_shared_projection_lifecycle_interaction_and_quality_contracts
   launch_control: Pi command, shortcut, or tool
   implementation_shape:
     shell: Focusa-owned SvelteKit 2 / Svelte 5 application in a Tauri webview or equivalent local webview window
@@ -113,13 +131,20 @@ truthful_fallbacks:
     classification: bounded_status_and_launch_surface_only
 
 canonical_shell_invariant:
-  ordered_regions:
+  semantic_contribution_capabilities:
     - work_surface_strip
     - focused_work_surface_with_focusa_right_inspector
     - work_rail
     - steering_queue
     - follow_up_queue
     - prompt_editor
+  capability_order_is_not_permanent_geometry: true
+  visibility_rule: contribution_must_be_meaningful_relevant_authorized_capable_related_to_focused_surface_and_viewport_suitable
+  omission_before_geometry: true
+  omitted_contribution_leaves_no_heading_border_control_or_reserved_space: true
+  remaining_contributions_reflow_deterministically: true
+  semantic_substitution_to_fill_space_forbidden: true
+  populated_reference_images_are_examples_not_inventory: true
   focused_pi_transcript:
     kind: pi_session
     relationship: one_work_surface_inside_mission_canvas

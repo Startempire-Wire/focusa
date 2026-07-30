@@ -12,6 +12,24 @@ Spec 135 and every companion below form one required implementation and closure 
 
 This section is the first authority an agent must apply before changing Mission Canvas, Pi UI, generated UI, workspace profiles, Work Surfaces, or Spec 135 closure state.
 
+### 0.0 Adaptive-composition authority precedence
+
+For Mission Canvas occupancy, contribution eligibility, and layout recomposition, authority applies in this order:
+
+1. operator steering in the current Pi session;
+2. `docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md`;
+3. the two current populated visual examples:
+   - `focusa_activity_mode_recomposition.png`;
+   - `focusa_dynamic_vertical_recomposition.png`;
+4. `docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml`;
+5. this Delivery Contract and the affected existing 135A–135K documents.
+
+The replacement text governs every occupancy conflict. The images are populated examples of valid resolved projections; they are not fixed panel inventories, permanent slots, or pixel instructions to render unavailable content. Previous handoff text and the fixed-layout image remain superseded history only.
+
+The six numbered Mission Canvas concepts are required **semantic contribution capabilities**. They are not six permanently visible rectangles. A contribution that lacks meaningful, relevant, authorized, capable, focused-surface-related, and viewport-suitable content is omitted before geometry. Its heading, border, controls, and reserved space are also absent. Remaining valid contributions expand, promote, merge, tab, stack, split, or rearrange through deterministic resolution without semantic substitution.
+
+Mission Canvas is implemented and shipped by the Pi extension on macOS, Windows, and Linux through the canonical Git release pipeline. Platform adapters may vary only below the shared lifecycle, projection, interaction, and quality contracts.
+
 ### 0.1 Initial product vision
 
 ```text

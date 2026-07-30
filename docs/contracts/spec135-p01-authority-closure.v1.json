@@ -1,0 +1,89 @@
+{
+  "schema": "focusa.spec135.p01_authority_closure.v1",
+  "status": "closed",
+  "closed_at": "2026-07-30T16:30:00Z",
+  "workpoint_id": "019fb443-867f-7320-b64b-135ebb915853",
+  "work_items": {
+    "first": "focusa-mc2.2.018",
+    "phase_gate": "focusa-mc2.2.041",
+    "closed_count": 24
+  },
+  "authority_precedence": [
+    "current operator steering",
+    "docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md",
+    "current populated recomposition examples",
+    "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml",
+    "docs/135-series-current-manifest.md and affected Spec 135A–135K sources"
+  ],
+  "operator_confirmations": {
+    "replacement_text_outranks_images_and_older_contracts_for_occupancy": true,
+    "images_are_populated_examples_not_fixed_inventory": true,
+    "quality_compromise_allowed": false,
+    "implementation_owner": "Pi extension",
+    "required_platforms": [
+      "macOS",
+      "Windows",
+      "Linux"
+    ]
+  },
+  "contracts": [
+    "docs/contracts/spec135-adaptive-composition.v1.yaml",
+    "docs/contracts/spec135-ux-quality-bar.v1.yaml",
+    "docs/contracts/spec135-responsive-matrix.v1.yaml",
+    "docs/contracts/spec135-adaptive-composition-proof-matrix.v1.yaml",
+    "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml",
+    "docs/contracts/spec135-proof-matrix.v1.yaml"
+  ],
+  "resolved_conflicts": [
+    {
+      "conflict": "Six ordered regions could be read as permanent geometry.",
+      "resolution": "They are six semantic contribution capabilities. Visibility is conditional and omission occurs before geometry."
+    },
+    {
+      "conflict": "Reference images show many populated tabs, queues, rails, and inspector sections.",
+      "resolution": "Images are populated examples only and cannot create inventory requirements."
+    },
+    {
+      "conflict": "A separate or macOS-first rich-host implementation could be inferred from local webview wording.",
+      "resolution": "Pi extension is the implementation owner and ships one shared semantic product on macOS, Windows, and Linux through the canonical Git pipeline."
+    },
+    {
+      "conflict": "Missing capability or data could be represented by persistent unavailable/degraded cards.",
+      "resolution": "Dependent contributions and dead actions are omitted; diagnostics remain internal or contextual."
+    }
+  ],
+  "canonical_rules": {
+    "resolver_type": "ResolvedWorkspaceProjection",
+    "canonical_owner": "Focusa Core",
+    "eligibility_before_geometry": true,
+    "omission_reason_count": 8,
+    "proof_requirement_count": 13,
+    "semantic_counterfeiting_forbidden": true,
+    "client_local_ad_hoc_reflow_forbidden": true,
+    "severe_unresolved_friction_blocks_release": true,
+    "minimum_window_css": {
+      "width": 1024,
+      "height": 720
+    },
+    "viewport_class_count": 6
+  },
+  "proof": {
+    "test": "tests/spec135_adaptive_composition_authority_test.py",
+    "result": "passed",
+    "proof_matrix": "docs/contracts/spec135-adaptive-composition-proof-matrix.v1.yaml",
+    "runtime_proofs_status": "all 13 remain pending until P10",
+    "false_closure_blocked": true
+  },
+  "next_phase": {
+    "phase": "P02",
+    "title": "Canonical composition schemas and generated contracts",
+    "ready_work_items": [
+      "focusa-mc2.3.042",
+      "focusa-mc2.3.043",
+      "focusa-mc2.3.044",
+      "focusa-mc2.3.045",
+      "focusa-mc2.3.046"
+    ],
+    "boundary": "P02 defines portable data contracts only; core resolver implementation begins in P03 and rich-host UI begins in P04/P05."
+  }
+}
