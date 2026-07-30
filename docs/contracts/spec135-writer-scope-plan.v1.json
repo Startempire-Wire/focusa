@@ -1,0 +1,198 @@
+{
+  "schema": "focusa.spec135.writer_scope_plan.v1",
+  "status": "active",
+  "authority_ref": "docs/contracts/spec135-mission-canvas-completion-dag.v2.json",
+  "parent_project_root": "/Volumes/Macintosh HD/Users/vsmith/focusa",
+  "primary_working_subpath": {
+    "root": "/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas",
+    "working_subpath_id": "working-subpath:05a5992a432947ea77bde268f7cc8971231fb4bde36a91fbf5dc4e90d2a07b7c",
+    "branch": "feature/spec-135-context-connectors-b2",
+    "attachment_id": "attachment:spec135:mission-canvas:primary"
+  },
+  "current_workpoint": {
+    "workpoint_id": "019fb3a9-5b29-7db3-84e4-bbb507cbe411",
+    "work_item_id": "focusa-mc2.1.003",
+    "continuity_id": "extension-bootstrap"
+  },
+  "writer_protocol": {
+    "single_writer_per_file": true,
+    "single_writer_per_canonical_object": true,
+    "writer_lease_required_for_mutations": true,
+    "bounded_lease_ttl_ms": 30000,
+    "explicit_attachment_required": true,
+    "phase_gate_required_before_next_phase": true,
+    "parallelism": "Tasks may run concurrently only inside an approved graph wave and only when their exclusive path and canonical-object scopes do not overlap.",
+    "contention": "Overlapping paths or canonical objects block the later claimant; no automatic last-write-wins or silent merge authority.",
+    "shared_generated_surfaces": "Generated contracts, lock files, ledgers, proof matrices, package locks, and release workflows always use a designated integration writer."
+  },
+  "lanes": [
+    {
+      "lane_id": "authority-contracts",
+      "graph_phases": ["P00", "P01", "P11"],
+      "worktree_slug": "spec135-authority",
+      "attachment_id": "attachment:spec135:authority",
+      "exclusive_paths": [
+        "AGENTS.md",
+        "docs/135-series-current-manifest.md",
+        "docs/agent/spec135-*.md",
+        "docs/contracts/spec135-*.json",
+        "docs/contracts/spec135-*.yaml"
+      ],
+      "shared_paths_requiring_integration_writer": [
+        "docs/contracts/spec135-complete-feature-ledger.v1.yaml",
+        "docs/contracts/spec135-delivery-dag.v1.yaml",
+        "docs/contracts/spec135-proof-matrix.v1.yaml",
+        "docs/contracts/spec135-master-final-acceptance.v1.json"
+      ]
+    },
+    {
+      "lane_id": "schemas-generated-contracts",
+      "graph_phases": ["P02", "P11"],
+      "worktree_slug": "spec135-contracts",
+      "attachment_id": "attachment:spec135:contracts",
+      "exclusive_paths": [
+        "schemas/spec135/mission-canvas/**",
+        "scripts/generate-spec135-*.py",
+        "packages/generated/spec135/typescript/**"
+      ],
+      "shared_paths_requiring_integration_writer": [
+        "docs/contracts/spec135/generated-contract-v1/**"
+      ]
+    },
+    {
+      "lane_id": "core-resolver",
+      "graph_phases": ["P03", "P07", "P09"],
+      "worktree_slug": "spec135-core-resolver",
+      "attachment_id": "attachment:spec135:core-resolver",
+      "exclusive_paths": [
+        "crates/focusa-core/src/mission_canvas/**",
+        "crates/focusa-core/migrations/**",
+        "crates/focusa-core/tests/mission_canvas_*.rs",
+        "crates/focusa-bench/benches/mission_canvas_*.rs"
+      ],
+      "shared_paths_requiring_integration_writer": [
+        "crates/focusa-core/src/types.rs",
+        "crates/focusa-core/src/reducer.rs"
+      ]
+    },
+    {
+      "lane_id": "api-events",
+      "graph_phases": ["P03", "P09"],
+      "worktree_slug": "spec135-api-events",
+      "attachment_id": "attachment:spec135:api-events",
+      "exclusive_paths": [
+        "crates/focusa-api/src/routes/mission_canvas_projection.rs",
+        "crates/focusa-api/src/routes/mission_canvas_host.rs",
+        "crates/focusa-api/tests/mission_canvas_*.rs"
+      ],
+      "shared_paths_requiring_integration_writer": [
+        "crates/focusa-api/src/server.rs",
+        "crates/focusa-api/src/routes/events.rs",
+        "crates/focusa-api/src/routes/mod.rs"
+      ]
+    },
+    {
+      "lane_id": "pi-rich-host",
+      "graph_phases": ["P04", "P06", "P09"],
+      "worktree_slug": "spec135-pi-rich-host",
+      "attachment_id": "attachment:spec135:pi-rich-host",
+      "exclusive_paths": [
+        "apps/pi-extension/src/rich-host/**",
+        "apps/pi-extension/rich-host/**",
+        "apps/pi-extension/tests/rich-host-*.test.mjs"
+      ],
+      "shared_paths_requiring_integration_writer": [
+        "apps/pi-extension/package.json",
+        "apps/pi-extension/package-lock.json",
+        "apps/pi-extension/src/index.ts",
+        "apps/pi-extension/src/commands.ts"
+      ]
+    },
+    {
+      "lane_id": "adaptive-shell",
+      "graph_phases": ["P05", "P07", "P09"],
+      "worktree_slug": "spec135-adaptive-shell",
+      "attachment_id": "attachment:spec135:adaptive-shell",
+      "exclusive_paths": [
+        "apps/pi-extension/ui/src/lib/layout/**",
+        "apps/pi-extension/ui/src/lib/shell/**",
+        "apps/pi-extension/ui/src/lib/interaction/**",
+        "apps/pi-extension/ui/src/lib/tokens/**",
+        "apps/pi-extension/ui/tests/**"
+      ],
+      "shared_paths_requiring_integration_writer": [
+        "apps/pi-extension/ui/package.json",
+        "apps/pi-extension/ui/package-lock.json",
+        "apps/pi-extension/ui/src/routes/+layout.svelte"
+      ]
+    },
+    {
+      "lane_id": "work-surface-renderers",
+      "graph_phases": ["P06", "P08"],
+      "worktree_slug": "spec135-work-surfaces",
+      "attachment_id": "attachment:spec135:work-surfaces",
+      "exclusive_paths": [
+        "apps/pi-extension/ui/src/lib/surfaces/**",
+        "apps/pi-extension/ui/src/lib/queues/**",
+        "tests/spec135_*surface*_e2e_test.py",
+        "tests/spec135_*split*_e2e_test.py"
+      ],
+      "shared_paths_requiring_integration_writer": [
+        "apps/pi-extension/ui/src/lib/surfaces/index.ts"
+      ]
+    },
+    {
+      "lane_id": "generated-crist",
+      "graph_phases": ["P08", "P10"],
+      "worktree_slug": "spec135-generated-crist",
+      "attachment_id": "attachment:spec135:generated-crist",
+      "exclusive_paths": [
+        "packages/a2ui-renderer/**",
+        "packages/focusa-elements/**",
+        "apps/pi-extension/ui/src/lib/surfaces/generated/**"
+      ],
+      "shared_paths_requiring_integration_writer": [
+        "packages/focusa-elements/src/generated/index.ts",
+        "packages/focusa-elements/src/component-manifest.json"
+      ]
+    },
+    {
+      "lane_id": "uiai-eval",
+      "graph_phases": ["P08", "P10"],
+      "worktree_slug": "spec135-uiai-eval",
+      "attachment_id": "attachment:spec135:uiai-eval",
+      "exclusive_paths": [
+        "tests/uiai/spec135/**",
+        "docs/contracts/evidence/spec135-rich-host/uiai/**"
+      ],
+      "shared_paths_requiring_integration_writer": [
+        "docs/contracts/spec135-proof-matrix.v1.yaml"
+      ]
+    },
+    {
+      "lane_id": "quality-release",
+      "graph_phases": ["P09", "P10", "P11"],
+      "worktree_slug": "spec135-quality-release",
+      "attachment_id": "attachment:spec135:quality-release",
+      "exclusive_paths": [
+        "tests/spec135_*security*_test.py",
+        "tests/spec135_*performance*_test.py",
+        "tests/spec135_*recovery*_test.py",
+        "docs/contracts/evidence/spec135-rich-host/**"
+      ],
+      "shared_paths_requiring_integration_writer": [
+        ".github/workflows/**",
+        "scripts/ci/run-spec-gates.sh",
+        "scripts/release/**",
+        "docs/canonical-live-release-pipeline.md"
+      ]
+    }
+  ],
+  "promotion_rules": [
+    "A lane may start only when its incoming DAG gate is closed.",
+    "A lane must checkpoint its exact work item, attachment, target refs, and writer before mutation.",
+    "A lane may not edit a shared path until designated as integration writer for that wave.",
+    "Evidence is linked before the lane task closes.",
+    "Integration merges follow DAG order; later phases cannot bypass failed earlier gates."
+  ]
+}

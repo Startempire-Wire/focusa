@@ -218,6 +218,7 @@ run_gate bash ./tests/spec135_mission_canvas_naming_and_multiplexing_static_test
 run_gate bash ./tests/spec135h_implementation_acceleration_static_test.sh
 run_gate python3 ./tests/spec135_mission_canvas_completion_dag_test.py
 run_gate python3 ./tests/spec135_p00_recovery_test.py
+run_gate python3 ./tests/spec135_p00_governance_test.py
 run_gate bash ./tests/spec135i_real_time_generated_ui_static_test.sh
 run_gate bash ./tests/spec135j_core_api_runtime_reuse_static_test.sh
 run_gate bash ./tests/spec135k_uxp_ufi_generated_ui_static_test.sh

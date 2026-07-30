@@ -19,7 +19,7 @@ assert "project_root" not in MARKER, "tracked project marker must not embed a ho
 
 assert GRAPH["status"] == "operator_approved_p00_execution"
 assert BASELINE["schema"] == "focusa.spec135.p00_recovery_baseline.v1"
-assert BASELINE["status"] == "identity_wave_complete_baseline_wave_ready"
+assert BASELINE["status"] == "p00_complete_p01_authority_ready"
 assert BASELINE["focusa_authority"]["workpoint_status"] == "canonical_active"
 assert BASELINE["focusa_authority"]["workpoint_id"] == "019fb3a9-5b29-7db3-84e4-bbb507cbe411"
 assert BASELINE["focusa_authority"]["writer_lease"]["acquired"] is True
@@ -67,19 +67,26 @@ for completed in (
     "focusa-mc2.1.008",
     "focusa-mc2.1.009",
     "focusa-mc2.1.010",
+    "focusa-mc2.1.011",
+    "focusa-mc2.1.012",
+    "focusa-mc2.1.013",
+    "focusa-mc2.1.014",
+    "focusa-mc2.1.015",
+    "focusa-mc2.1.016",
+    "focusa-mc2.1.017",
 ):
     assert by_id[completed]["status"] == "closed"
-ready = "focusa-mc2.1.007"
-assert by_id[ready]["status"] == "open"
-assert all(
-    by_id[dependency["depends_on_id"]]["status"] == "closed"
-    for dependency in by_id[ready].get("dependencies") or []
-    if dependency["type"] == "blocks"
-)
+for ready in ("focusa-mc2.2.018", "focusa-mc2.2.019", "focusa-mc2.2.020", "focusa-mc2.2.021"):
+    assert by_id[ready]["status"] == "open"
+    assert all(
+        by_id[dependency["depends_on_id"]]["status"] == "closed"
+        for dependency in by_id[ready].get("dependencies") or []
+        if dependency["type"] == "blocks"
+    )
 
 subprocess.run(
     ["python3", "scripts/materialize-spec135-mission-canvas-completion-beads.py", "--check"],
     cwd=ROOT,
     check=True,
 )
-print("Spec 135 P00 recovery: PASS (identity wave complete; baseline wave ready)")
+print("Spec 135 P00 recovery: PASS (P00 complete; P01 authority wave ready)")

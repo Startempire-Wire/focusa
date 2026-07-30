@@ -1,6 +1,6 @@
 {
   "schema": "focusa.spec135.p00_recovery_baseline.v1",
-  "status": "identity_wave_complete_baseline_wave_ready",
+  "status": "p00_complete_p01_authority_ready",
   "captured_at": "2026-07-30T07:00:00Z",
   "authority": {
     "operator_steering": "continue",
@@ -174,7 +174,14 @@
       "repair": "The gate now asserts the richer same-live-session rich Canvas plus real Work Surface switch/split/rehydration traversal and uses portable find -exec basename syntax.",
       "local_reproof": "Spec 135 Delivery Contract regression static test PASS; all subsequent static release gates pass locally"
     },
-    "next_baseline_action": "Push the Delivery Contract gate portability/semantic correction and use the next GitHub Spec Gates run as the complete clean baseline."
+    "github_ci_run_30568434414": {
+      "result": "passed",
+      "job": "90958772613",
+      "gate": "Spec Gates (strict)",
+      "head": "9e014aee",
+      "classification": "P00 clean code/test/proof/release baseline accepted"
+    },
+    "next_baseline_action": "P00 is complete. Begin P01 authority reconciliation only through the closed P00 phase gate and the canonical focusa-mc2 dependency graph."
   },
   "p00_progress": {
     "completed": [
@@ -186,11 +193,23 @@
       "focusa-mc2.1.006 identity wave gate",
       "focusa-mc2.1.008 M4 transient diagnosed with 5/5 direct passes and subsequent full-gate pass",
       "focusa-mc2.1.009 35-file implementation/proof classification",
-      "focusa-mc2.1.010 stale closure claims reclassified to truthful reopened state"
+      "focusa-mc2.1.010 stale closure claims reclassified to truthful reopened state",
+      "focusa-mc2.1.007 clean GitHub Spec Gates baseline",
+      "focusa-mc2.1.011 baseline wave gate",
+      "focusa-mc2.1.012 work items declared for every implementation lane",
+      "focusa-mc2.1.013 isolated writer scopes and attachment identities recorded in spec135-writer-scope-plan.v1.json",
+      "focusa-mc2.1.014 PR 110 remains draft with generated reopened acceptance and strict false-closure gates",
+      "focusa-mc2.1.015 operator continue steering recorded as DAG approval",
+      "focusa-mc2.1.016 governance wave gate",
+      "focusa-mc2.1.017 P00 phase gate"
     ],
     "blocked": [],
     "ready": [
-      "focusa-mc2.1.007 clean code/test/proof/release baseline pending corrected GitHub Spec Gates"
-    ]
+      "focusa-mc2.2.018 encode authority precedence and supersession",
+      "focusa-mc2.2.019 reclassify six canonical regions as semantic contribution capabilities",
+      "focusa-mc2.2.020 encode portable Pi-extension ownership invariant",
+      "focusa-mc2.2.021 encode populated-image-example semantics"
+    ],
+    "writer_scope_plan": "docs/contracts/spec135-writer-scope-plan.v1.json"
   }
 }
