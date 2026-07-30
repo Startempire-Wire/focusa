@@ -30,7 +30,7 @@ for marker in [
     "pi_terminal_projection",
     "must_not_be_inferred_from_interaction_mode_alone",
     "same_runtime_not_a_handoff: true",
-    "current Pi session",
+    "bind_current_pi_session_as_a_pi_session_work_surface",
     "work_surface_strip",
     "focused_work_surface_with_focusa_right_inspector",
     "work_rail",
