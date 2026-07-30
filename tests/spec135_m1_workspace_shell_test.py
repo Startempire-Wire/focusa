@@ -1,10 +1,21 @@
 #!/usr/bin/env python3
+"""Validate the bounded menubar Mission Canvas projection without calling it the rich Pi GUI."""
+import json
 from pathlib import Path
 
 R = Path(__file__).resolve().parents[1]
 
 
 def main():
+    proof = json.loads(
+        (
+            R
+            / "docs/contracts/spec135/generated-contract-v1/spec135-m1-mission-canvas-shell-proof.json"
+        ).read_text()
+    )
+    authority = (
+        R / "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml"
+    ).read_text()
     page = (R / "apps/menubar/src/routes/+page.svelte").read_text()
     canvas = (
         R / "apps/menubar/src/lib/components/MissionCanvasView.svelte"
@@ -13,6 +24,14 @@ def main():
     store = (R / "apps/menubar/src/lib/stores/runtime.svelte.ts").read_text()
     scope = (R / "apps/menubar/src/lib/workLoopScope.js").read_text()
     api = (R / "apps/menubar/src/lib/api.ts").read_text()
+
+    assert proof["status"] == "partial_projection_foundation"
+    assert proof["accepted"] is False
+    assert proof["implementation"]["host_renderer"] == "menubar_peek"
+    assert "focusa_pi_rich_window" in authority
+    assert "menubar_peek" in authority
+    assert "bounded_status_and_launch_surface_only" in authority
+
     assert (
         "MissionCanvasView" in page
         and "activeTab === 'mission-canvas'" in page
@@ -47,7 +66,11 @@ def main():
         "canonicalState =",
     ]:
         assert forbidden not in page + canvas + runtime
-    print("Spec 135 M1 canonical Mission Canvas workspace shell: PASS")
+
+    print(
+        "Spec 135 M1 menubar Mission Canvas projection: PASS "
+        "(partial; rich Pi host remains open)"
+    )
 
 
 if __name__ == "__main__":
