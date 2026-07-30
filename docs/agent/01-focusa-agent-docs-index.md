@@ -2,9 +2,31 @@
 
 This is the bounded, public-safe starting point for AI agents working in the Focusa repo. Use it before broad code changes or after context loss.
 
+## 0. Spec 135 and Mission Canvas authority
+
+Before changing Mission Canvas, Pi UI, Work Surfaces, workspace verticals, generated C.R.I.S.T. UI, renderer code, proof artifacts, or Spec 135 closure state, read:
+
+1. `docs/135-series-current-manifest.md`
+2. `docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml`
+3. `docs/agent/spec135-implementation-acceleration-directive.md`
+4. the affected existing 135A–135K documents
+5. current machine-readable ledger and runtime proof
+
+Do not create another lettered companion for clarification. The series is frozen at 135K. The manifest and machine-readable contract resolve host, renderer, toggle, proof, and closure conflicts.
+
+The fixed operator intent is:
+
+```text
+Pi terminal interaction
+        ⇅ light switch controlled directly from Pi
+Focusa-owned rich Mission Canvas professional GUI over the same live Pi session
+```
+
+Record `interaction_mode` and `host_renderer` separately. A terminal TUI projection is not a rich graphical GUI.
+
 ## 1. What Focusa is
 
-Focusa is the local-first proof and continuity layer for AI coding agents. It keeps long-running work attached to a typed Workpoint, linked Evidence, and a next safe action so agents do not rely on chat tail memory.
+Focusa is the local-first proof and continuity layer for AI coding agents. It keeps long-running work attached to a typed Workpoint, linked Evidence, and a next safe action so agents do not rely on chat-tail memory.
 
 ## 2. Architecture map
 
@@ -14,13 +36,15 @@ Focusa is the local-first proof and continuity layer for AI coding agents. It ke
 | API daemon | Local typed HTTP API | `crates/focusa-api/src/routes/` |
 | Core | reducers, Workpoints, Evidence, runtime state, persistence | `crates/focusa-core/src/` |
 | Work loop + Silent Sessions | governed execution, durable runs, steering, receipts | `crates/focusa-core/src/silent_sessions/`, `docs/133-silent-sessions-final-release-proof.md` |
-| Mission Canvas + Work Rail | scoped work surfaces, interviews, artifacts, generated UI | `docs/135-series-current-manifest.md`, `apps/menubar/` |
+| Mission Canvas + Work Rail | scoped professional workspace projection, Work Surfaces, queues, generated UI | `docs/135-series-current-manifest.md`, `docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml` |
+| Rich Focusa Pi host | Pi-controlled Focusa Mission Canvas webview/window over the same live session | Spec 135 implementation target; must not be replaced by a terminal shell claim |
 | Connectors + domains | provider-neutral context, auth lifecycle, software/domain projections | `crates/focusa-core/src/connectors.rs`, `docs/contracts/spec135/` |
-| TUI / Mission Deck | terminal cockpit | `crates/focusa-tui/` |
-| Pi extension | all Focusa Pi tools, authority hooks, compaction/OTA/runtime bridge | `apps/pi-extension/` |
+| Native TUI / terminal projections | truthful terminal client and compatibility fallbacks | `crates/focusa-tui/`, `apps/pi-extension/` |
+| Pi extension | Focusa Pi tools, authority hooks, compaction/OTA/runtime bridge, rich-host lifecycle control | `apps/pi-extension/` |
 | Agent machine contracts | Pi/MCP/OpenAI/CLI/REST schemas and Agent Card | `docs/contracts/spec141/generated-capability-v2/` |
 | Skills + runbooks | progressive agent onboarding and recovery playbooks | `.pi/skills/`, `apps/pi-extension/skills/` |
-| Menubar preview | macOS/Tauri Mission Canvas and lifecycle cockpit | `apps/menubar/` |
+| Menubar preview | bounded status, urgent peeks, lifecycle controls, and rich Mission Canvas launch/focus | `apps/menubar/` |
+| UIAI Engine Cockpit | distinct UIAI-owned browser execution, FPV, Test Lab, diagnostics, and browser proof product | UIAI Engine repository/contracts |
 | Public docs | current reference, onboarding, lifecycle, and specs | `README.md`, `docs/`, `docs/current/` |
 
 ### 2.1 Current authority and recovery model
@@ -32,9 +56,32 @@ Focusa is the local-first proof and continuity layer for AI coding agents. It ke
 - Proactive compaction preserves canonical Workpoint/Trajectory packets and queues governed automatic rollover after bounded transport exhaustion.
 - Cache-safe context keeps stable prefixes and current user-tail authority while classifying degraded fallbacks explicitly.
 - Mission Canvas binds Work Surfaces to canonical operations and project scope; browser/UIAI capabilities remain session-and-origin bound.
+- Mission Canvas visual focus is presentation state, not daemon-global project, session, or Workpoint authority.
 - Customer lifecycle requires verified install/repair, trusted update or OTA rollback, and uninstall that preserves user data unless purge is explicit.
 
-### 2.2 All-Pi-tool and skill discovery
+### 2.2 Mission Canvas renderer classifications
+
+```text
+focusa_pi_rich_window
+  Required primary rich Canvas host for Focusa-enhanced Pi.
+
+pi_terminal_projection
+  Compatibility/terminal fallback. Never label it the rich GUI.
+
+uiai_engine_cockpit
+  Distinct rich UIAI host that may embed Focusa projections.
+
+mission_deck_web
+  Focusa guided PWA/web host.
+
+native_tui
+  Separate terminal client projection.
+
+menubar_peek
+  Bounded status/launcher projection, not the full Canvas.
+```
+
+### 2.3 All-Pi-tool and skill discovery
 
 1. `focusa_agent_card` reports the runtime tool count, complete installed skill/runbook inventory, interfaces, auth, and registry digest.
 2. `focusa_tool_search` finds the narrowest capability without hot-loading every schema.
@@ -94,6 +141,7 @@ bash tests/spec_cli_cross_phase_smoke_test.sh
 - Telemetry snapshot route: `GET /v1/telemetry/snapshot`.
 - Project-scoped mutations must use a verified safe project root.
 - Daemon-global advisory surfaces must say they are advisory and non-canonical.
+- Rich-host lifecycle and Canvas layout operations must use typed exact scope and generated contracts.
 
 ## 5. Workpoints, Evidence, and Trajectory
 
@@ -102,7 +150,7 @@ bash tests/spec_cli_cross_phase_smoke_test.sh
 - **Trajectory** is advisory north-star context: long-term direction and current gap. It orients work but does not override a canonical Workpoint.
 - **Context Authority** decides whether a proposed action matches the task, project, environment, and install role.
 
-Never treat transcript tail as canonical authority when a Workpoint or scope gate is available.
+Never treat transcript tail or Canvas visual focus as canonical authority when a Workpoint or scope gate is available.
 
 ## 6. Update and release policy
 
@@ -140,14 +188,18 @@ Before code changes:
 
 1. `git fetch origin`
 2. `git status --short --branch`
-3. Read this doc and the linked spec/current reference for the touched surface.
-4. Identify the active bead/work item.
-5. Make the smallest scoped change.
-6. Run focused proof.
-7. Update bead notes, commit, and push for normal public code repos.
+3. Read this doc and the linked authority for the touched surface.
+4. Identify the active bead/work item and exact Workpoint.
+5. Record interaction mode and host renderer for UI work.
+6. Make the smallest scoped change.
+7. Run the required proof class.
+8. Update bead notes, commit, and push for normal public code repos.
 
 ## 9. Helpful references
 
+- Spec 135 delivery authority: `docs/135-series-current-manifest.md`
+- Mission Canvas host/renderer machine contract: `docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml`
+- Spec 135 agent directive: `docs/agent/spec135-implementation-acceleration-directive.md`
 - README product overview: `README.md`
 - Current CLI reference: `docs/current/CLI_REFERENCE_CURRENT.md`
 - Public-surface guard: `scripts/guard-public-surface.sh`
