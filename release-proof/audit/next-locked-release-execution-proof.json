@@ -1,13 +1,13 @@
 {
   "schema": "focusa.locked_release_execution_proof.v1",
   "status": "verified",
-  "lock_revision": 5,
-  "workset_id": "workset:focusa-next-locked-release:r5",
-  "scope_member_count": 251,
-  "execution_edge_count": 589,
+  "lock_revision": 6,
+  "workset_id": "workset:focusa-next-locked-release:r6",
+  "scope_member_count": 252,
+  "execution_edge_count": 590,
   "phase_count": 9,
   "phase_counts": {
-    "0": 6,
+    "0": 7,
     "1": 42,
     "2": 14,
     "3": 5,
@@ -18,7 +18,7 @@
     "8": 3
   },
   "phase_gates": {
-    "0": "focusa-627th.4.3",
+    "0": "focusa-o4gkd",
     "1": "focusa-vbcqu.2",
     "2": "focusa-vbcqu.3",
     "3": "focusa-vbcqu.4",
@@ -32,7 +32,7 @@
     "focusa-627th.4.3"
   ],
   "terminal_member_ref": "focusa-vbcqu",
-  "terminal_coverage_count": 251,
+  "terminal_coverage_count": 252,
   "dependency_cycles": 0,
   "unresolved_external_blockers": 0,
   "external_closed_blockers": [
@@ -173,7 +173,20 @@
     }
   ],
   "provider_missing_members": 0,
-  "membership_digest": "sha256:76cc958429ff2f02c4dbfe7ae31af4ccda5fd1184bf6484ff9a0eb486208edcb",
-  "graph_digest": "sha256:4902e8ed6bd1a7e68d4d8f8f08bb610f53a36f22bfc51683e0352ba9e04131a6",
-  "sealed_at": "2026-07-29T23:35:32Z"
+  "membership_digest": "sha256:13ffba01702bad3a78875aff4dfd3e39addecc0c22f129f9dca4cd376baa1012",
+  "graph_digest": "sha256:86debebcd5a55e4449b88af669b591a2021acd51c88b90debace7fa31055efb4",
+  "sealed_at": "2026-07-29T23:35:32Z",
+  "out_of_order_in_progress": [],
+  "scope_expansion": true,
+  "authorized_scope_expansion_count": 1,
+  "final_scope_addition": "focusa-o4gkd",
+  "further_scope_additions_allowed": false,
+  "phase0_sequence": [
+    "focusa-627th.4.3",
+    "focusa-o4gkd"
+  ],
+  "evidence_refs": [
+    "https://github.com/Startempire-Wire/focusa/issues/111#issuecomment-5124731380",
+    "bead:focusa-o4gkd"
+  ]
 }

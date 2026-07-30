@@ -1,43 +1,44 @@
 {
   "schema_version": "focusa.workset.v1",
-  "workset_id": "workset:focusa-next-locked-release:r5",
+  "workset_id": "workset:focusa-next-locked-release:r6",
   "scope": {
     "project_root": "/home/wirebot/focusa",
     "continuity_id": "focusa-v0.9.135-locked-14",
     "working_subpath_id": "working-subpath:06c27313b3e2a1c81f30775357d00150dcc1e4fbcb22fcbdec90749404ff6d8a"
   },
-  "title": "Focusa next locked release revision 5 execution lock",
-  "mission": "Close every locked member in dependency order, beginning with Pi compaction compatibility and ending with zero-deferral publication proof.",
+  "title": "Focusa next locked release revision 6 final execution lock",
+  "mission": "Close every locked member in dependency order: GitHub #14 first, final workflow-staleness bug #111 second, then phases 1-8 and zero-deferral publication proof.",
   "cardinality_mode": "fixed",
   "admission_state": "sealed",
   "lifecycle_state": "running",
-  "revision": 5,
+  "revision": 6,
   "relationship": "root",
   "membership_policy": "exclusive",
-  "membership_digest": "sha256:76cc958429ff2f02c4dbfe7ae31af4ccda5fd1184bf6484ff9a0eb486208edcb",
-  "graph_digest": "sha256:4902e8ed6bd1a7e68d4d8f8f08bb610f53a36f22bfc51683e0352ba9e04131a6",
+  "membership_digest": "sha256:13ffba01702bad3a78875aff4dfd3e39addecc0c22f129f9dca4cd376baa1012",
+  "graph_digest": "sha256:86debebcd5a55e4449b88af669b591a2021acd51c88b90debace7fa31055efb4",
   "digest_algorithm": "sha256-jcs-v1",
   "created_at": "2026-07-29T23:35:32Z",
   "created_by": "operator:verious",
-  "updated_at": "2026-07-29T23:35:32Z",
+  "updated_at": "2026-07-30T00:19:52Z",
   "event_ledger_ref": "release-proof/audit/next-locked-release-workset-events.jsonl",
   "member_ledger_ref": "release-proof/audit/next-locked-release-workset-members.jsonl",
   "edge_ledger_ref": "release-proof/audit/next-locked-release-workset-edges.jsonl",
   "provider_binding_refs": [
-    "provider:bd:focusa-next-locked-release:r5"
+    "provider:bd:focusa-next-locked-release:r6"
   ],
   "specification_refs": [
     "docs/149-focusa-workset-flow-ledger-and-release-completion-spec.md"
   ],
   "constitution_ref": "release-proof/audit/next-locked-release-scope.json",
-  "admission_policy_ref": "operator:repair_and_prove",
+  "admission_policy_ref": "operator:final_bug_and_no_more",
   "completion_contract_ref": "release-proof/audit/next-locked-release-workset-completion-contract.json",
   "checkpoint_flow_refs": [],
   "completion_transition_refs": [],
   "trajectory_ref": null,
   "parent_workset_ref": null,
   "evidence_refs": [
-    "release-proof/audit/next-locked-release-decomposition-proof.json"
+    "release-proof/audit/next-locked-release-decomposition-proof.json",
+    "https://github.com/Startempire-Wire/focusa/issues/111#issuecomment-5124731380"
   ],
   "receipt_refs": []
 }

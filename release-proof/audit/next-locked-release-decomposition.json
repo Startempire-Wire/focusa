@@ -1,6 +1,6 @@
 {
   "schema": "focusa.locked_release_decomposition.v2",
-  "generated_at": "2026-07-29T21:54:59+00:00",
+  "generated_at": "2026-07-30T00:19:52Z",
   "scope_manifest_ref": "release-proof/audit/next-locked-release-scope.json",
   "decomposition_epic": "focusa-vbcqu.9",
   "operator_authorized_post_lock_additions": [
@@ -37,6 +37,18 @@
       "parent": "focusa-vbcqu.5",
       "terminal_gate": "focusa-vbcqu.9.7",
       "acceptance_ref": "https://github.com/Startempire-Wire/focusa/issues/14#issuecomment-5123704895"
+    },
+    {
+      "issue_id": "focusa-o4gkd",
+      "kind": "bug",
+      "lane": "locked-wave-0",
+      "execution_order": 1,
+      "final_scope_addition": true,
+      "after_issue_id": "focusa-627th.4.3",
+      "before_phase": 1,
+      "terminal_gate": "focusa-vbcqu.9.7",
+      "acceptance_ref": "https://github.com/Startempire-Wire/focusa/issues/111#issuecomment-5124731380",
+      "parent": "focusa-vbcqu.5"
     }
   ],
   "original_locked_issues": [

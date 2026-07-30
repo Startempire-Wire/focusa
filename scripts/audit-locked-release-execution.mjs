@@ -78,28 +78,36 @@ while (stack.length) {
 }
 for (const descendant of descendants) expected.add(descendant);
 
-if (manifest.lock_revision !== 5 || manifest.scope_state !== "locked") fail("scope manifest is not sealed at revision 5");
-if (manifest.current_explicit_issue_count !== 42) fail("explicit issue count is not 42");
-if (manifest.current_locked_bead_member_count !== 251) fail("locked member count is not 251");
-if (expected.size !== 251) fail(`derived member count is ${expected.size}, expected 251`);
+if (manifest.lock_revision !== 6 || manifest.scope_state !== "locked") fail("scope manifest is not sealed at final revision 6");
+if (manifest.current_explicit_issue_count !== 43) fail("explicit issue count is not 43");
+if (manifest.current_locked_bead_member_count !== 252) fail("locked member count is not 252");
+if (expected.size !== 252) fail(`derived member count is ${expected.size}, expected 252`);
 if (manifest.membership_reconciliation?.scope_expansion !== false) fail("membership repair is not declared non-expanding");
 if (manifest.membership_reconciliation?.restored_descendant_count !== 13) fail("13 omitted descendants were not reconciled");
+if (manifest.scope_additions_closed !== true || manifest.scope_addition_policy !== "closed_no_further_admissions") {
+  fail("final scope additions are not durably closed");
+}
+if (manifest.final_scope_addition_id !== "focusa-o4gkd") fail("final scope addition mismatch");
+if (manifest.final_scope_admission?.further_additions_allowed !== false) fail("further scope additions remain allowed");
 if (manifest.execution_lock?.status !== "sealed") fail("execution lock is not sealed");
 if (manifest.execution_lock?.workset_id !== definition.workset_id) fail("manifest/workset id mismatch");
-if (manifest.execution_lock?.member_count !== 251) fail("manifest execution member count is not 251");
+if (manifest.execution_lock?.member_count !== 252) fail("manifest execution member count is not 252");
+if (manifest.execution_lock?.phase0_sequence?.join(",") !== "focusa-627th.4.3,focusa-o4gkd") {
+  fail("phase-0 final bug sequence mismatch");
+}
 if (manifest.execution_lock?.first_touch_issue_id !== "focusa-627th.4.3") fail("first-touch issue mismatch");
 
 if (definition.schema_version !== "focusa.workset.v1") fail("workset schema mismatch");
-if (definition.workset_id !== "workset:focusa-next-locked-release:r5") fail("workset id mismatch");
-if (definition.revision !== 5 || definition.admission_state !== "sealed") fail("workset is not sealed at revision 5");
+if (definition.workset_id !== "workset:focusa-next-locked-release:r6") fail("workset id mismatch");
+if (definition.revision !== 6 || definition.admission_state !== "sealed") fail("workset is not sealed at final revision 6");
 if (definition.cardinality_mode !== "fixed" || definition.membership_policy !== "exclusive") fail("workset is not fixed/exclusive");
 if (definition.scope?.project_root !== "/home/wirebot/focusa") fail("workset project root mismatch");
 if (definition.scope?.continuity_id !== "focusa-v0.9.135-locked-14") fail("workset continuity mismatch");
-if (binding.binding_id !== "provider:bd:focusa-next-locked-release:r5") fail("provider binding id mismatch");
+if (binding.binding_id !== "provider:bd:focusa-next-locked-release:r6") fail("provider binding id mismatch");
 if (binding.provider !== "bd" || binding.query_semantics !== "explicit_ids" || binding.freshness !== "current") {
   fail("provider binding is not a current explicit-id Beads binding");
 }
-if (binding.query?.member_count !== 251) fail("provider binding member count mismatch");
+if (binding.query?.member_count !== 252) fail("provider binding member count mismatch");
 
 const memberIds = members.map((member) => member.member_id);
 if (memberIds.length !== new Set(memberIds).size) fail("duplicate workset member ids");
@@ -107,11 +115,15 @@ sameSet("sealed workset membership", expected, memberIds);
 for (const id of expected) if (!issues.has(id)) fail(`provider missing locked member: ${id}`);
 for (const member of members) {
   if (!member.mandatory) fail(`non-mandatory locked member: ${member.member_id}`);
-  if (member.provider_binding_ref !== binding.binding_id) fail(`provider binding mismatch: ${member.member_id}`);
+  const expectedBindingRef =
+    member.member_id === "focusa-o4gkd"
+      ? "provider:bd:focusa-next-locked-release:r6"
+      : "provider:bd:focusa-next-locked-release:r5";
+  if (member.provider_binding_ref !== expectedBindingRef) fail(`provider binding mismatch: ${member.member_id}`);
   if (!/^execution-phase:[0-8]$/.test(member.task_plan_ref ?? "")) fail(`invalid execution phase: ${member.member_id}`);
   const providerStatus = issues.get(member.member_id)?.status;
-  if (member.status_at_admission !== providerStatus || member.current_status_projection !== providerStatus) {
-    fail(`admission status mismatch: ${member.member_id}`);
+  if (member.current_status_projection !== providerStatus) {
+    fail(`current provider status projection mismatch: ${member.member_id}`);
   }
   const expectedDisposition = providerStatus === "closed" ? "completed" : "pending";
   if (member.disposition !== expectedDisposition) fail(`admission disposition mismatch: ${member.member_id}`);
@@ -198,7 +210,7 @@ for (const member of members) {
   phaseCounts[phase] = (phaseCounts[phase] ?? 0) + 1;
 }
 const expectedGates = [
-  "focusa-627th.4.3",
+  "focusa-o4gkd",
   "focusa-vbcqu.2",
   "focusa-vbcqu.3",
   "focusa-vbcqu.4",
@@ -220,8 +232,12 @@ for (const member of members) {
   const phase = phaseByMember.get(member.member_id);
   const gate = expectedGates[phase];
   if (phase === 0 && member.member_id !== gate) {
-    if (!edgeKeys.has(edgeKey(member.member_id, gate, "release_requires"))) {
-      fail(`phase 0 member does not gate first touch: ${member.member_id}`);
+    if (member.member_id === "focusa-627th.4.3") {
+      if (!edgeKeys.has(edgeKey(member.member_id, gate, "blocks"))) {
+        fail("first-touch #14 does not gate final workflow-staleness bug #111");
+      }
+    } else if (!edgeKeys.has(edgeKey(member.member_id, "focusa-627th.4.3", "release_requires"))) {
+      fail(`phase 0 member does not close through first touch: ${member.member_id}`);
     }
   } else if (phase > 0 && phase < 8) {
     const previousGate = expectedGates[phase - 1];
@@ -245,6 +261,14 @@ for (const member of members) {
     }
   }
 }
+if (!edgeKeys.has(edgeKey("focusa-627th.4.3", "focusa-o4gkd", "blocks"))) {
+  fail("GitHub #14 does not gate final workflow-staleness bug #111");
+}
+for (const member of members.filter((item) => item.task_plan_ref === "execution-phase:1")) {
+  if (!edgeKeys.has(edgeKey("focusa-o4gkd", member.member_id, "blocks"))) {
+    fail(`final workflow-staleness bug does not gate phase-1 member: ${member.member_id}`);
+  }
+}
 for (const [from, to, type] of [
   ["focusa-vbcqu.8", "focusa-vbcqu.9.7", "blocks"],
   ["focusa-vbcqu.9.7", "focusa-vbcqu.9", "release_requires"],
@@ -253,17 +277,34 @@ for (const [from, to, type] of [
   if (!edgeKeys.has(edgeKey(from, to, type))) fail(`terminal chain edge missing: ${from}->${to}`);
 }
 if (JSON.stringify(phaseCounts) !== JSON.stringify(proof.phase_counts)) fail("phase count proof mismatch");
-if (proof.scope_member_count !== 251 || proof.execution_edge_count !== edges.length) fail("execution proof count mismatch");
-if (proof.dependency_cycles !== 0 || proof.terminal_coverage_count !== 251) fail("execution proof graph result mismatch");
+if (proof.scope_member_count !== 252 || proof.execution_edge_count !== edges.length) fail("execution proof count mismatch");
+if (proof.dependency_cycles !== 0 || proof.terminal_coverage_count !== 252) fail("execution proof graph result mismatch");
+if (
+  proof.scope_expansion !== true ||
+  proof.authorized_scope_expansion_count !== 1 ||
+  proof.final_scope_addition !== "focusa-o4gkd" ||
+  proof.further_scope_additions_allowed !== false
+) {
+  fail("final authorized scope-addition proof mismatch");
+}
 sameSet("proof frontier", ready, proof.unique_ready_frontier ?? []);
 if (proof.membership_digest !== definition.membership_digest || proof.graph_digest !== definition.graph_digest) {
   fail("execution proof digest mismatch");
 }
 
-if (events.length !== 1 || events[0].event_type !== "workset.sealed") fail("workset seal event missing or duplicated");
-if (events.length === 1) {
-  const { event_hash: eventHash, ...eventWithoutHash } = events[0];
-  if (eventHash !== digest(eventWithoutHash)) fail("workset seal event hash mismatch");
+if (events.length !== 2 || events.some((event) => event.event_type !== "workset.sealed")) {
+  fail("revision-5/revision-6 Workset seal event chain is incomplete");
+}
+for (const event of events) {
+  const { event_hash: eventHash, ...eventWithoutHash } = event;
+  if (eventHash !== digest(eventWithoutHash)) fail(`workset seal event hash mismatch: ${event.event_id}`);
+}
+if (
+  events[1]?.workset_revision !== 6 ||
+  events[1]?.workset_id !== "workset:focusa-next-locked-release:r6" ||
+  events[1]?.previous_event_hash !== events[0]?.event_hash
+) {
+  fail("revision-6 seal event does not append to revision 5");
 }
 if (
   completion.require_sealed_revision !== true ||
@@ -284,8 +325,8 @@ console.log(
     {
       schema: "focusa.locked_release_execution_audit.v1",
       status: "verified",
-      lock_revision: 5,
-      explicit_issues: 42,
+      lock_revision: 6,
+      explicit_issues: 43,
       sealed_members: members.length,
       execution_edges: edges.length,
       phases: Object.fromEntries(Object.entries(phaseCounts).sort(([a], [b]) => Number(a) - Number(b))),
@@ -294,7 +335,9 @@ console.log(
       terminal_coverage: `${members.length}/${members.length}`,
       unique_ready_frontier: ready,
       out_of_order_in_progress: 0,
-      scope_expansion: false,
+      scope_expansion: true,
+      final_scope_addition: "focusa-o4gkd",
+      further_scope_additions_allowed: false,
     },
     null,
     2,

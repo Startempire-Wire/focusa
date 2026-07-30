@@ -29,19 +29,28 @@ function sameSet(label, expected, actual) {
 if (manifest.schema !== "focusa.locked_release_scope.v2") failures.push("locked manifest schema is not v2");
 if (audit.schema !== "focusa.locked_release_decomposition.v2") failures.push("decomposition schema is not v2");
 if (manifest.pre_decomposition_open_issue_count !== 38) failures.push("original locked manifest count is not 38");
-if (manifest.lock_revision !== 5 || manifest.scope_state !== "locked" || !manifest.relocked_at) {
-  failures.push("release was not durably relocked at revision 5");
+if (manifest.lock_revision !== 6 || manifest.scope_state !== "locked" || !manifest.relocked_at) {
+  failures.push("release was not durably relocked at final revision 6");
 }
-if (manifest.current_explicit_issue_count !== 42) failures.push("current explicit issue count is not 42");
-if (manifest.current_locked_bead_member_count !== 251) failures.push("current locked Bead member count is not 251");
+if (manifest.current_explicit_issue_count !== 43) failures.push("current explicit issue count is not 43");
+if (manifest.current_locked_bead_member_count !== 252) failures.push("current locked Bead member count is not 252");
 if (
   manifest.execution_lock?.status !== "sealed" ||
-  manifest.execution_lock?.member_count !== 251 ||
+  manifest.execution_lock?.member_count !== 252 ||
   manifest.execution_lock?.first_touch_issue_id !== "focusa-627th.4.3" ||
   manifest.execution_lock?.audit_ref !== "scripts/audit-locked-release-execution.mjs" ||
   manifest.execution_lock?.schema_audit_ref !== "scripts/audit-locked-release-workset-schema.py"
 ) {
-  failures.push("revision 5 execution lock contract is incomplete");
+  failures.push("final revision 6 execution lock contract is incomplete");
+}
+if (
+  manifest.scope_additions_closed !== true ||
+  manifest.scope_addition_policy !== "closed_no_further_admissions" ||
+  manifest.final_scope_addition_id !== "focusa-o4gkd" ||
+  manifest.final_scope_admission?.further_additions_allowed !== false ||
+  manifest.execution_lock?.phase0_sequence?.join(",") !== "focusa-627th.4.3,focusa-o4gkd"
+) {
+  failures.push("final no-more-scope admission contract is incomplete");
 }
 if (
   manifest.membership_reconciliation?.scope_expansion !== false ||
@@ -61,8 +70,18 @@ for (const entry of audit.original_locked_issues) {
 }
 const manifestAdditions = manifest.operator_authorized_post_lock_additions ?? [];
 const decompositionAdditions = audit.operator_authorized_post_lock_additions ?? [];
-if (manifestAdditions.length !== 4 || decompositionAdditions.length !== 4) {
-  failures.push("operator-authorized post-lock addition count is not 4");
+if (manifestAdditions.length !== 5 || decompositionAdditions.length !== 5) {
+  failures.push("operator-authorized post-lock addition count is not 5");
+}
+const finalAddition = manifestAdditions.find((entry) => entry.issue_id === "focusa-o4gkd");
+const finalDecompositionAddition = decompositionAdditions.find((entry) => entry.issue_id === "focusa-o4gkd");
+if (
+  finalAddition?.final_scope_addition !== true ||
+  finalAddition?.after_issue_id !== "focusa-627th.4.3" ||
+  finalAddition?.before_phase !== 1 ||
+  finalDecompositionAddition?.final_scope_addition !== true
+) {
+  failures.push("final workflow-staleness bug admission is incomplete");
 }
 const manifestFirstTouch = manifestAdditions.filter((entry) => entry.first_touch === true);
 const decompositionFirstTouch = decompositionAdditions.filter((entry) => entry.first_touch === true);

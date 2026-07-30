@@ -10,23 +10,23 @@
     "focusa-vbcqu.9.7"
   ],
   "locked_at": "2026-07-28T18:45:00-07:00",
-  "lock_revision": 5,
-  "relocked_at": "2026-07-29T16:35:32-07:00",
+  "lock_revision": 6,
+  "relocked_at": "2026-07-30T00:19:52Z",
   "scope_state": "locked",
-  "current_explicit_issue_count": 42,
-  "current_locked_bead_member_count": 251,
+  "current_explicit_issue_count": 43,
+  "current_locked_bead_member_count": 252,
   "execution_lock": {
     "schema": "focusa.locked_release_execution_lock.v1",
     "status": "sealed",
-    "workset_id": "workset:focusa-next-locked-release:r5",
-    "workset_revision": 5,
+    "workset_id": "workset:focusa-next-locked-release:r6",
+    "workset_revision": 6,
     "first_touch_issue_id": "focusa-627th.4.3",
     "terminal_member_ref": "focusa-vbcqu",
     "publication_gate": "focusa-vbcqu.9.7",
-    "member_count": 251,
+    "member_count": 252,
     "phase_count": 9,
     "phase_gates": [
-      "focusa-627th.4.3",
+      "focusa-o4gkd",
       "focusa-vbcqu.2",
       "focusa-vbcqu.3",
       "focusa-vbcqu.4",
@@ -43,7 +43,13 @@
     "completion_contract_ref": "release-proof/audit/next-locked-release-workset-completion-contract.json",
     "proof_ref": "release-proof/audit/next-locked-release-execution-proof.json",
     "audit_ref": "scripts/audit-locked-release-execution.mjs",
-    "schema_audit_ref": "scripts/audit-locked-release-workset-schema.py"
+    "schema_audit_ref": "scripts/audit-locked-release-workset-schema.py",
+    "final_scope_addition_id": "focusa-o4gkd",
+    "scope_additions_closed": true,
+    "phase0_sequence": [
+      "focusa-627th.4.3",
+      "focusa-o4gkd"
+    ]
   },
   "membership_reconciliation": {
     "kind": "locked_root_descendant_enumeration_repair",
@@ -110,6 +116,20 @@
       "terminal_gate": "focusa-vbcqu.9.7",
       "summary": "Pi compaction lifecycle must preserve native queue, cancellation, retry, and reconnect authority",
       "authorization_source": "operator_message:compaction_first_touch_p0"
+    },
+    {
+      "issue_id": "focusa-o4gkd",
+      "kind": "bug",
+      "priority": "P0",
+      "lane": "locked-wave-0",
+      "execution_order": 1,
+      "final_scope_addition": true,
+      "after_issue_id": "focusa-627th.4.3",
+      "before_phase": 1,
+      "terminal_gate": "focusa-vbcqu.9.7",
+      "summary": "Mandatory north-star binding, continuous stale-state validation, and recoverable writer/checkpoint acquisition",
+      "authorization_source": "operator_message:final_bug_and_no_more",
+      "parent": "focusa-vbcqu.5"
     }
   ],
   "operator_scope": "original 38-item snapshot plus Specs 137, 137a, 138, 138a, and 140 plus four operator-authorized P0 bugs; all 251 existing descendants and mapped members are execution-sealed without scope expansion",
@@ -192,5 +212,17 @@
       "sha256": "383e7c0a55d02a0da1ace31b3625a0bd0f33b3b8eb0422892613b01d635f4ec2",
       "status": "present"
     }
+  },
+  "scope_additions_closed": true,
+  "scope_addition_policy": "closed_no_further_admissions",
+  "final_scope_addition_id": "focusa-o4gkd",
+  "final_scope_admission": {
+    "issue_id": "focusa-o4gkd",
+    "authorized_at": "2026-07-30T00:19:52Z",
+    "authorization_source": "operator_message:final_bug_and_no_more",
+    "reason": "Writer/checkpoint staleness blocks governed locked-release execution",
+    "execution_predecessor": "focusa-627th.4.3",
+    "execution_successor_phase": 1,
+    "further_additions_allowed": false
   }
 }
