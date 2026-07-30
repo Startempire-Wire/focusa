@@ -45,9 +45,10 @@ function recentConversation(ctx: ExtensionContext): string[] {
 }
 
 /**
- * Complete alternate Pi shell. While mounted through ctx.ui.custom(), the
- * stock conversation TUI is replaced, but the same ExtensionContext,
- * SessionManager, model stream, tools, and history remain active.
+ * Terminal compatibility projection for Mission Canvas state. While mounted
+ * through ctx.ui.custom(), it temporarily replaces the visible stock Pi TUI,
+ * but it remains a pi_terminal_projection—not the Focusa rich GUI. The same
+ * ExtensionContext, SessionManager, model stream, tools, and history remain active.
  */
 export class MissionCanvasShell implements Component {
   private readonly input = new Input();
@@ -78,13 +79,13 @@ export class MissionCanvasShell implements Component {
       copyReference,
       changeWorkspaceProfile
     );
-    this.ctx.ui.setTitle("Focusa Mission Canvas");
+    this.ctx.ui.setTitle("Focusa Mission Canvas · Terminal Projection");
     this.ctx.ui.setFooter((_tui, footerTheme) => ({
       render: (width: number) => [
         truncateToWidth(
           footerTheme.fg(
             "accent",
-            `FOCUSA CANVAS SHELL · SAME SESSION · ${this.ctx.model?.id ?? "model unavailable"} · /mission-canvas off`
+            `FOCUSA TERMINAL CANVAS PROJECTION · SAME SESSION · ${this.ctx.model?.id ?? "model unavailable"} · /mission-canvas off`
           ),
           Math.max(1, width)
         ),
@@ -155,7 +156,7 @@ export class MissionCanvasShell implements Component {
 
   render(width: number): string[] {
     const safeWidth = Math.max(20, width);
-    const cockpit = this.canvas
+    const canvasRows = this.canvas
       .render(safeWidth)
       .map((line) => line.replace("Esc close", "Esc clear input"));
     const stream = recentConversation(this.ctx).flatMap((line) =>
@@ -164,7 +165,7 @@ export class MissionCanvasShell implements Component {
     const streamRows = stream.length ? stream : ["│ No conversation messages yet"];
     const inputRows = this.input.render(Math.max(1, safeWidth - 7));
     return [
-      ...cockpit,
+      ...canvasRows,
       "",
       this.theme.fg("accent", "AGENT STREAM · SAME SESSION"),
       ...streamRows,
