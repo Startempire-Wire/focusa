@@ -6,6 +6,7 @@ import { dirname, join, relative, resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { registerTools } from "../apps/pi-extension/src/tools.ts";
+import { registerAgentRuntimeTools } from "../apps/pi-extension/src/agent-runtime-tools.ts";
 import {
   FOCUSA_TOOL_CONTRACTS,
   buildFocusaToolAffordanceCatalog,
@@ -138,6 +139,7 @@ function skillRefs(contract: FocusaToolContract): string[] {
     session_transfer: "skill:focusa-session-recovery",
     awareness: "skill:focusa-agent-bootstrap",
     preload: "skill:focusa-agent-bootstrap",
+    agent_runtime: "skill:focusa-spec-implementation",
   };
   if (byFamily[contract.family]) refs.add(byFamily[contract.family]);
   if (contract.name.includes("silent_sessions")) refs.add("skill:focusa-silent-sessions");
@@ -148,6 +150,9 @@ function skillRefs(contract: FocusaToolContract): string[] {
   if (contract.name.includes("context_cognition")) refs.add("skill:focusa-agent-bootstrap");
   if (contract.name.includes("device_pair")) refs.add("skill:focusa-security-auth-licensing");
   if (contract.name.includes("call_stack")) refs.add("skill:focusa-spec-implementation");
+  if (contract.name.includes("instruction_integrity") || contract.name.includes("amendment")) {
+    refs.add("skill:focusa-security-auth-licensing");
+  }
   return [...refs];
 }
 
@@ -157,12 +162,19 @@ const pi = {
   on() {},
 } as any;
 registerTools(pi);
+registerAgentRuntimeTools(pi);
 
 const tools = new Map(captured.filter((tool) => tool.name.startsWith("focusa_")).map((tool) => [tool.name, tool]));
 const affordances = new Map<string, FocusaToolAffordance>(buildFocusaToolAffordanceCatalog().map((item) => [item.name, item]));
 const contracts = new Map(FOCUSA_TOOL_CONTRACTS.map((item) => [item.name, item]));
 
-if (tools.size !== contracts.size) throw new Error(`tool/contract count mismatch: ${tools.size}/${contracts.size}`);
+if (tools.size !== contracts.size) {
+  const missingContracts = [...tools.keys()].filter((name) => !contracts.has(name));
+  const staleContracts = [...contracts.keys()].filter((name) => !tools.has(name));
+  throw new Error(
+    `tool/contract count mismatch: ${tools.size}/${contracts.size}; missing=${missingContracts.join(",") || "none"}; stale=${staleContracts.join(",") || "none"}`
+  );
+}
 for (const name of tools.keys()) if (!contracts.has(name)) throw new Error(`registered tool lacks contract: ${name}`);
 
 const errorSchema = {

@@ -1,0 +1,105 @@
+{
+  "schema": "focusa.spec137a_surface_parity.v1",
+  "status": "verified_complete",
+  "full_conformance_status": "verified_complete",
+  "required_surfaces": [
+    "api",
+    "operation_registry",
+    "cli",
+    "pi",
+    "menubar_ui",
+    "tui",
+    "notification",
+    "platform_domain",
+    "degraded_unsupported_unknown"
+  ],
+  "records": [
+    {
+      "surface": "api",
+      "state": "implemented",
+      "behavior_ref": "GET /v1/temporal/status#conformance",
+      "evidence_refs": [
+        "tests/spec137a_surface_parity_gate.py"
+      ],
+      "recovery_ref": null
+    },
+    {
+      "surface": "operation_registry",
+      "state": "implemented",
+      "behavior_ref": "focusa.temporal.status",
+      "evidence_refs": [
+        "docs/contracts/spec135/generated-contract-v1/operation-registry.json"
+      ],
+      "recovery_ref": null
+    },
+    {
+      "surface": "cli",
+      "state": "implemented",
+      "behavior_ref": "focusa temporal status",
+      "evidence_refs": [
+        "crates/focusa-cli/src/commands/temporal.rs"
+      ],
+      "recovery_ref": null
+    },
+    {
+      "surface": "pi",
+      "state": "implemented",
+      "behavior_ref": "focusa_temporal_authority action=status",
+      "evidence_refs": [
+        "apps/pi-extension/src/tools.ts"
+      ],
+      "recovery_ref": null
+    },
+    {
+      "surface": "menubar_ui",
+      "state": "implemented",
+      "behavior_ref": "TemporalAuthorityPeek conformance",
+      "evidence_refs": [
+        "apps/menubar/src/lib/components/TemporalAuthorityPeek.svelte"
+      ],
+      "recovery_ref": null
+    },
+    {
+      "surface": "tui",
+      "state": "degraded",
+      "behavior_ref": "mission control renders conformance or truthful unknown",
+      "evidence_refs": [
+        "crates/focusa-tui/src/mission_control.rs"
+      ],
+      "recovery_ref": "focusa temporal status --project-root <root> --continuity-id <id>"
+    },
+    {
+      "surface": "notification",
+      "state": "implemented",
+      "behavior_ref": "pending conformance warning",
+      "evidence_refs": [
+        "apps/menubar/src/lib/components/TemporalAuthorityPeek.svelte"
+      ],
+      "recovery_ref": null
+    },
+    {
+      "surface": "platform_domain",
+      "state": "implemented",
+      "behavior_ref": "declared platforms/domains explicit",
+      "evidence_refs": [
+        "docs/evidence/spec137a/S137A-applicability-decisions.txt"
+      ],
+      "recovery_ref": null
+    },
+    {
+      "surface": "degraded_unsupported_unknown",
+      "state": "degraded",
+      "behavior_ref": "unknown or unsupported remains open and blocks closure",
+      "evidence_refs": [
+        "crates/focusa-core/src/temporal_conformance.rs"
+      ],
+      "recovery_ref": "focusa_temporal_authority action=status"
+    }
+  ],
+  "warnings": [],
+  "recovery_tools": [
+    "focusa_temporal_authority",
+    "focusa_project_verify",
+    "focusa_tool_doctor"
+  ]
+}

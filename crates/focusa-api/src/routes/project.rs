@@ -4078,6 +4078,25 @@ async fn card(
         "prediction_feed": {"elapsed_tokens_waypoints_feed_future_predictions": true, "algorithm_run_records_efficiency": true, "outcome_records_efficiency": true},
         "known_external_gap": "A running Pi session may need reload to pick up newly registered tools; API/static/live contracts are authoritative."
     });
+    let temporal_context = project
+        .get("project_root")
+        .and_then(Value::as_str)
+        .zip(request_scope.continuity_id.as_deref())
+        .and_then(|(project_root, continuity_id)| {
+            let scope = focusa_core::temporal::TemporalScope::project(project_root, continuity_id);
+            focusa_core::temporal::TemporalLedger::for_project(scope.clone())
+                .and_then(|ledger| ledger.read_all())
+                .ok()
+                .and_then(|events| {
+                    serde_json::to_value(focusa_core::temporal::project_temporal(
+                        scope,
+                        &events,
+                        Utc::now(),
+                    ))
+                    .ok()
+                })
+        })
+        .unwrap_or_else(|| json!({"status":"degraded","authority":"advisory_only"}));
     let prior_session_context = json!({
         "schema": "focusa.project_prior_context.v1",
         "advisory_only": true,
@@ -4111,6 +4130,7 @@ async fn card(
         "ask_to_workpoint_bridge": ask_to_workpoint_bridge,
         "efficiency_summary": efficiency_summary,
         "trajectory_report_card": trajectory_report_card,
+        "temporal_context": temporal_context,
         "crosswire_health": crosswire_health,
         "prior_session_context": prior_session_context,
         "metacognition": {

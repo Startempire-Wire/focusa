@@ -1,0 +1,18 @@
+Spec138 Foundation Acceptance Evidence
+Generated: 2026-07-30
+Status: PASS (verified slice; not full Spec138/138A conformance)
+
+Coverage:
+- 542 unique combined Spec138/138A source requirement rows integrity-checked
+- 629 canonical primitive entries across 30 family catalogs, family-qualified and source-generated
+- canonical epistemic record, provenance, scope, version, evidence, receipt, and supersession validation
+- append-only typed authority events with scoped projection
+- durable causal JSONL envelopes with checksums, sequence, exact scope, evidence, receipts, atomic write, fsync, restart recovery, corruption detection, backup/restore, and legacy envelope migration
+
+Proof:
+- tests/spec138_foundation_gate.py: PASS
+- cargo test -p focusa-core epistemic_primitives: PASS
+- cargo test -p focusa-core prediction_authority_storage: PASS
+- git diff --check: PASS
+
+Boundary: scoring, calibration, learning, transfer, lifecycle, surfaces, profiles, and full Spec138/138A conformance remain open.

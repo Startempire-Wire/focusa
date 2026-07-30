@@ -196,6 +196,81 @@ export function registerAgentRuntimeTools(pi: ExtensionAPI) {
   });
 
   pi.registerTool({
+    name: "focusa_instruction_integrity_evaluate",
+    label: "Focusa Instruction Integrity Evaluate",
+    description:
+      "Evaluate the foundational headless InstructionIntegrityGuard and durably record its fail-closed decision.",
+    parameters: Type.Object({ request: Type.Any({ description: "Typed integrity event envelope." }) }),
+    async execute(_id, params) {
+      return post(
+        "/agent-runtime/instruction-integrity/evaluate",
+        (params as { request: Payload }).request
+      );
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_canonical_instruction_amendment_propose",
+    label: "Focusa Canonical Instruction Amendment Propose",
+    description:
+      "Record an operator-originated canonical instruction amendment proposal without activating it.",
+    parameters: Type.Object({ request: Type.Any({ description: "Typed amendment proposal envelope." }) }),
+    async execute(_id, params) {
+      return post(
+        "/agent-runtime/amendments/propose",
+        (params as { request: Payload }).request
+      );
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_canonical_instruction_amendment_activate",
+    label: "Focusa Canonical Instruction Amendment Activate",
+    description:
+      "Activate a separately operator-approved amendment only after its official documentation sweep is complete.",
+    parameters: Type.Object({
+      request: Type.Any({ description: "Typed approved amendment activation envelope." }),
+      confirmed: Type.Boolean({ description: "Explicit operator confirmation for activation." }),
+    }),
+    async execute(_id, params) {
+      const input = params as { request: Payload; confirmed: boolean };
+      if (!input.confirmed) {
+        const details = {
+          status: "blocked",
+          failure_class: "operator_confirmation_required",
+          recovery: ["obtain explicit operator confirmation and preserve the documentation sweep receipt"],
+        };
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify(details) }],
+          details,
+        };
+      }
+      return post("/agent-runtime/amendments/activate", input.request);
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_agent_runtime_headless_verify",
+    label: "Focusa Agent Runtime Headless Verify",
+    description:
+      "Verify foundational runtime capability parity without Mission Canvas or generated UI availability.",
+    parameters: Type.Object({ request: Type.Any({ description: "Typed headless parity envelope." }) }),
+    async execute(_id, params) {
+      return post("/agent-runtime/headless/verify", (params as { request: Payload }).request);
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_instruction_integrity_status",
+    label: "Focusa Instruction Integrity Status",
+    description: "Read foundational guard availability, amendment authority, and outage posture.",
+    parameters: Type.Object({}),
+    async execute() {
+      return get("/agent-runtime/instruction-integrity/status");
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_agent_runtime_doctor",
     label: "Focusa Agent Runtime Doctor",
     description: "Diagnose Runtime Constitution compiler defaults, replacement gates, and delivery readiness.",

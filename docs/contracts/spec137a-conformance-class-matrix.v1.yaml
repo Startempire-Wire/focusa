@@ -1,8 +1,8 @@
 {
   "serialization": "JSON-compatible YAML 1.2",
   "generated_at": "2026-07-27T00:47:15+00:00",
-  "runtime_claim": "none",
-  "runtime_status": "implementation_open",
+  "runtime_claim": "spec137a_governance_runtime",
+  "runtime_status": "verified_complete",
   "schema": "focusa.spec137a_conformance_class_matrix.v1",
   "classes": [
     {
@@ -27,5 +27,9 @@
         "zero_omission_receipt"
       ]
     }
+  ],
+  "runtime_evidence_refs": [
+    "docs/evidence/spec137a/S137A-combined-acceptance.txt",
+    "docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml"
   ]
 }

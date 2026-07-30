@@ -1481,8 +1481,9 @@ pub(crate) async fn materialize_workpoint_events(
     events: Vec<FocusaEvent>,
     correlation_id: &'static str,
 ) -> Result<focusa_core::types::FocusaState, (StatusCode, Json<Value>)> {
-    let _guard = state.write_serial_lock.lock().await;
+    let guard = state.write_serial_lock.lock().await;
     let mut current = { state.focusa.read().await.clone() };
+    let mut entries = Vec::new();
 
     for event in events {
         let result = reducer::reduce_with_meta(current, event, None, None, false).map_err(|error| {
@@ -1492,7 +1493,7 @@ pub(crate) async fn materialize_workpoint_events(
         current = result.new_state;
 
         for emitted in result.emitted_events {
-            let entry = EventLogEntry {
+            entries.push(EventLogEntry {
                 id: Uuid::now_v7(),
                 timestamp: Utc::now(),
                 event: emitted,
@@ -1503,26 +1504,28 @@ pub(crate) async fn materialize_workpoint_events(
                 session_id: current.session.as_ref().map(|session| session.session_id),
                 thread_id: None,
                 is_observation: false,
-            };
-            if let Err(error) = state.append_events_checkpoint(vec![entry.clone()]).await {
-                tracing::error!(error = %error, correlation_id, "failed to persist workpoint event");
-                return Err(workpoint_persistence_failed(error));
-            } else if let Ok(serialized) = serde_json::to_string(&entry) {
-                let _ = state.events_tx.send(serialized);
-            }
+            });
         }
     }
 
-    // This route reduces Workpoint events directly instead of sending them
-    // through the daemon action loop. Persist the resulting canonical state
-    // before publishing it in memory, otherwise checkpoints disappear after
-    // a daemon restart even though the request returned canonical=true.
-    state.persist_checkpoint(current.clone()).await.map_err(|error| {
-        tracing::error!(error = %error, correlation_id, "failed to persist canonical workpoint state");
-        workpoint_persistence_failed(error)
-    })?;
+    // Commit the complete event batch and resulting state through one actor
+    // round-trip. Per-event fsync while holding the serial writer lock made
+    // immediate Work Loop continuation race the 1.5s lock timeout.
+    state
+        .persist_events_checkpoint(entries.clone(), current.clone())
+        .await
+        .map_err(|error| {
+            tracing::error!(error = %error, correlation_id, "failed to persist canonical workpoint transaction");
+            workpoint_persistence_failed(error)
+        })?;
     *state.focusa.write().await = current.clone();
     state.mark_external_mutation();
+    drop(guard);
+    for entry in entries {
+        if let Ok(serialized) = serde_json::to_string(&entry) {
+            let _ = state.events_tx.send(serialized);
+        }
+    }
     Ok(current)
 }
 
@@ -2023,7 +2026,7 @@ fn validate_workpoint_checkpoint_request(
 }
 
 async fn checkpoint(
-    _scope: ScopeContext,
+    scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(mut req): Json<WorkpointCheckpointRequest>,
@@ -2031,6 +2034,54 @@ async fn checkpoint(
     let permissions = permission_context(&headers, state.config.auth_token.is_some());
     if !permissions.allows("work-loop:write") {
         return Err(forbid("work-loop:write"));
+    }
+    if let Some(canonical_root) = scope.project_root.as_deref() {
+        let requested_root = req
+            .project_root
+            .as_deref()
+            .map(str::trim)
+            .unwrap_or_default();
+        let active_root = scope
+            .active_worktree_root
+            .as_deref()
+            .unwrap_or(canonical_root);
+        if !requested_root.is_empty()
+            && requested_root.trim_end_matches('/') != canonical_root.trim_end_matches('/')
+            && requested_root.trim_end_matches('/') != active_root.trim_end_matches('/')
+        {
+            return Err((
+                StatusCode::CONFLICT,
+                Json(json!({
+                    "status":"scope_mismatch","canonical":false,
+                    "failure_class":"scope_mismatch",
+                    "requested_project_root":requested_root,
+                    "canonical_project_root":canonical_root,
+                    "active_worktree_root":active_root
+                })),
+            ));
+        }
+        req.project_root = Some(canonical_root.to_string());
+        if req.working_subpath_id.is_none() {
+            req.working_subpath_id = scope.working_subpath_id.clone();
+        }
+    }
+    if let Some(scope_continuity) = scope.continuity_id.as_deref() {
+        if req
+            .continuity_id
+            .as_deref()
+            .is_some_and(|value| value.trim() != scope_continuity)
+        {
+            return Err((
+                StatusCode::CONFLICT,
+                Json(json!({
+                    "status":"scope_mismatch","canonical":false,
+                    "failure_class":"scope_mismatch",
+                    "requested_continuity_id":req.continuity_id,
+                    "canonical_continuity_id":scope_continuity
+                })),
+            ));
+        }
+        req.continuity_id = Some(scope_continuity.to_string());
     }
     // BAD-005 fix: Run field-level validation before legacy checks
     validate_workpoint_checkpoint_request(&req)?;
@@ -2156,8 +2207,7 @@ async fn checkpoint(
     }
 
     let materialized_state =
-        materialize_workpoint_events(_scope.clone(), &state, events, "workpoint_checkpoint")
-            .await?;
+        materialize_workpoint_events(scope.clone(), &state, events, "workpoint_checkpoint").await?;
     let promoted_record = if promote && canonical {
         materialized_state
             .workpoint
@@ -2851,6 +2901,34 @@ fn workpoint_migration_posture(record: &WorkpointRecord, canonical: bool) -> Val
     })
 }
 
+fn temporal_resume_context(record: &WorkpointRecord) -> Value {
+    let (Some(project_root), Some(continuity_id)) = (
+        record.project_root.as_deref(),
+        record.continuity_id.as_deref(),
+    ) else {
+        return json!({"status":"degraded","reason":"temporal_scope_missing","authority":"advisory_only"});
+    };
+    let mut scope = focusa_core::temporal::TemporalScope::project(project_root, continuity_id);
+    scope.workpoint_id = Some(record.workpoint_id.to_string());
+    scope.item_id = record.work_item_id.clone();
+    match focusa_core::temporal::TemporalLedger::for_project(scope.clone())
+        .and_then(|ledger| ledger.read_all())
+    {
+        Ok(events) => serde_json::to_value(focusa_core::temporal::project_temporal(
+            scope,
+            &events,
+            Utc::now(),
+        ))
+        .unwrap_or_else(|_| json!({"status":"degraded","reason":"serialization_failed"})),
+        Err(error) => json!({
+            "status":"degraded",
+            "reason":"temporal_ledger_unavailable",
+            "error":format!("{error:?}"),
+            "authority":"advisory_only"
+        }),
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 fn workpoint_resume_packet_v2(
     record: &WorkpointRecord,
@@ -3059,7 +3137,7 @@ async fn resume(
     let mismatch_warnings = scope.warnings.clone();
     let packet = workpoint_packet(record);
     let summary = resume_summary(record);
-    let packet_v2 = workpoint_resume_packet_v2(
+    let mut packet_v2 = workpoint_resume_packet_v2(
         record,
         packet.clone(),
         &summary,
@@ -3069,6 +3147,9 @@ async fn resume(
         &scope,
         &req,
     );
+    if let Some(packet) = packet_v2.as_object_mut() {
+        packet.insert("temporal_context".into(), temporal_resume_context(record));
+    }
     drop(focusa);
 
     let resume_render_dispatch_warning = match dispatch_event(
@@ -3185,6 +3266,13 @@ async fn resume(
     response.insert("failure_class".to_string(), failure_class);
     response.insert("resume_packet".to_string(), packet);
     response.insert("resume_packet_v2".to_string(), packet_v2.clone());
+    response.insert(
+        "temporal_context".to_string(),
+        packet_v2
+            .get("temporal_context")
+            .cloned()
+            .unwrap_or(Value::Null),
+    );
     response.insert("rendered_summary".to_string(), json!(summary));
     response.insert(
         "handoff_quality".to_string(),

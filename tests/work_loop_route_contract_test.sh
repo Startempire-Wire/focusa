@@ -18,7 +18,7 @@ curl() {
 }
 
 CHECKPOINT=$(curl -sS -X POST "${BASE_URL}/v1/workpoint/checkpoint" -H 'Content-Type: application/json' \
-  -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-continuation-test\",\"mission\":\"verify work-loop route contracts\",\"current_action\":\"route_contract\",\"next_slice\":\"verify typed route envelopes\",\"canonical\":true}")
+  -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-continuation-test\",\"work_item_id\":\"spec79-route-contract\",\"mission\":\"verify work-loop route contracts\",\"current_action\":\"route_contract\",\"next_slice\":\"verify typed route envelopes\",\"canonical\":true}")
 WORKPOINT_ID=$(echo "$CHECKPOINT" | jq -r '.workpoint_id // empty')
 for _ in $(seq 1 40); do
   RESUME=$(curl -sS -X POST "${BASE_URL}/v1/workpoint/resume" -H 'Content-Type: application/json' \

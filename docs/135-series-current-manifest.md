@@ -6,6 +6,10 @@
 
 Spec 135 and every companion below form one required implementation and closure set. The series is frozen at **135K**. No additional lettered companion is created for implementation clarification; corrections are consolidated into this delivery contract and the affected existing documents.
 
+## Locked release compatibility
+
+The `v0.9.141-locked-release` delta is classified with zero unknown impacts in [`docs/contracts/135-locked-release-compatibility-delta.v1.yaml`](contracts/135-locked-release-compatibility-delta.v1.yaml). Additive temporal, epistemic, instruction-integrity, working-subpath, and agent-capability changes reuse existing Spec135D/E/J/K governance and Mission Canvas substrates; no Spec135L exists.
+
 | Order | Spec | Required subject |
 |---:|---|---|
 | 1 | [135](135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md) | Master product, authority, workspace, C.R.I.S.T., and closure contract |

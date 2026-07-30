@@ -18,8 +18,8 @@ use crate::{middleware::principal::ApiRequestPrincipal, server::AppState};
 
 use super::{
     silent_sessions::{
-        ApiResponse, disclose_principal_side_effect, durable_request_principal, failure,
-        persistence_failure,
+        ApiResponse, disclose_principal_side_effect, durable_request_principal,
+        ensure_silent_session_temporal_guard, failure, persistence_failure,
     },
     silent_sessions_contract::{
         ApiSideEffect, ExactSessionRunTarget, SilentSessionApiEnvelope, guard_exact_target,
@@ -140,6 +140,9 @@ pub(super) async fn start(
         Err(error) => return after_principal(persistence_failure(error), &principal),
     };
     if let Err(response) = authorize_start(&principal, &session, &run, &config, approval) {
+        return after_principal(*response, &principal);
+    }
+    if let Err(response) = ensure_silent_session_temporal_guard(&session, "silent-session:start") {
         return after_principal(*response, &principal);
     }
     let transition = match reduce_lifecycle(

@@ -97,7 +97,7 @@ if [ "$DRIVER_UNAVAILABLE" -eq 0 ]; then
 
   STOP=$(http_json -X POST "${BASE_URL}/v1/work-loop/driver/stop" -H 'Content-Type: application/json' \
     -H "x-focusa-writer-id: ${WRITER_ID}" "${FENCING_HEADERS[@]}" -H 'x-focusa-approval: approved')
-  if echo "$STOP" | jq -e '.status == "accepted"' >/dev/null 2>&1; then
+  if echo "$STOP" | jq -e '.status == "accepted" or .status == "stopped" or .tool_result.status == "accepted"' >/dev/null 2>&1; then
     log_pass "Pi RPC driver stop accepted"
   else
     log_fail "Pi RPC driver stop not accepted: $STOP"

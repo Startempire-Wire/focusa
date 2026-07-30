@@ -1,0 +1,38 @@
+{
+  "serialization": "JSON-compatible YAML 1.2",
+  "generated_at": "2026-07-31T00:30:00Z",
+  "schema": "focusa.spec140a_instruction_adaptability_matrix.v1",
+  "runtime_claim": "four_class_instruction_adaptability",
+  "runtime_status": "verified_complete",
+  "classes": [
+    {
+      "class": "invariant",
+      "runtime_change": "forbidden_without_canonical_amendment"
+    },
+    {
+      "class": "temporally_adaptive",
+      "runtime_change": "bounded_by_typed_temporal_claim_and_expiry"
+    },
+    {
+      "class": "operator_selectable",
+      "runtime_change": "approved_target_profile_only"
+    },
+    {
+      "class": "implementation_discretion",
+      "runtime_change": "nonsemantic_mechanism_only"
+    }
+  ],
+  "allowed_temporal_fields": [
+    "scheduling",
+    "checkpoint_frequency",
+    "retry_backoff",
+    "polling_cadence",
+    "notification_cadence",
+    "maintenance_window",
+    "evidence_refresh_cadence"
+  ],
+  "runtime_ref": "crates/focusa-core/src/agent_runtime_instruction_integrity.rs",
+  "test_ref": "tests/spec140a_full_conformance_gate.py",
+  "evidence_ref": "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt",
+  "receipt_ref": "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+}

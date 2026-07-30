@@ -435,7 +435,19 @@ impl Daemon {
     /// Translate an Action to event(s), reduce, persist, observe.
     async fn process_action(&mut self, action: Action) -> anyhow::Result<()> {
         let write_serial_lock = Arc::clone(&self.write_serial_lock);
+        {
+            let _reconcile_guard = write_serial_lock.lock().await;
+            self.reconcile_external_state().await;
+        }
+
+        // Translation can perform bounded provider/tool I/O. Never hold the
+        // canonical write lock across that I/O: direct API writers such as
+        // Workpoint checkpoint and Work Loop context must remain responsive.
+        let events = self.translate_action(action.clone()).await?;
+
         let _write_guard = write_serial_lock.lock().await;
+        // Direct API writes may have landed while translation was in flight.
+        // Reconcile again so reducer application uses the latest canonical state.
         self.reconcile_external_state().await;
 
         // Recovery/checkpoint boundaries acknowledge durable persistence; ordinary
@@ -456,8 +468,6 @@ impl Daemon {
             action,
             Action::PushFrame { .. } | Action::PopFrame { .. } | Action::SetActiveFrame { .. }
         );
-
-        let events = self.translate_action(action).await?;
 
         for event in events {
             // Determine thread_id for ownership enforcement.
@@ -3728,9 +3738,16 @@ Return:
                     ));
                 }
 
-                let packet = self
-                    .next_ready_packet_for_parent(&parent_work_item_id)
-                    .await?
+                let packet = tokio::time::timeout(
+                    std::time::Duration::from_millis(750),
+                    self.next_ready_packet_for_parent(&parent_work_item_id),
+                )
+                .await
+                .map_err(|_| {
+                    anyhow::anyhow!(
+                        "work-item provider selection exceeded 750ms; defer selection and keep the daemon command loop responsive"
+                    )
+                })??
                     .ok_or_else(|| {
                         anyhow::anyhow!(
                             "no safe open or in_progress dependents under {}",

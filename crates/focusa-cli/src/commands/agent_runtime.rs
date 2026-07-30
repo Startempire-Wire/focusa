@@ -17,6 +17,16 @@ pub enum AgentRuntimeCmd {
     Drift(ProjectArgs),
     /// Preview zero-hidden-change instruction migration and quarantine.
     Migration(ProjectArgs),
+    /// Evaluate the foundational instruction-integrity guard from typed JSON.
+    IntegrityEvaluate(InputArgs),
+    /// Read foundational instruction-integrity availability and outage posture.
+    IntegrityStatus,
+    /// Propose a canonical instruction amendment from typed JSON.
+    AmendmentPropose(InputArgs),
+    /// Activate a separately approved amendment and documentation sweep.
+    AmendmentActivate(InputArgs),
+    /// Verify Mission Canvas-independent headless capability parity.
+    HeadlessVerify(InputArgs),
     #[command(subcommand)]
     Constitution(ConstitutionCmd),
     #[command(subcommand)]
@@ -133,6 +143,38 @@ pub async fn run(command: AgentRuntimeCmd, output_json: bool) -> anyhow::Result<
         AgentRuntimeCmd::Migration(args) => {
             api.post("/v1/agent-runtime/migration/preview", &project_body(&args)?)
                 .await?
+        }
+        AgentRuntimeCmd::IntegrityEvaluate(args) => {
+            api.post(
+                "/v1/agent-runtime/instruction-integrity/evaluate",
+                &read_input(&args.input)?,
+            )
+            .await?
+        }
+        AgentRuntimeCmd::IntegrityStatus => {
+            api.get("/v1/agent-runtime/instruction-integrity/status")
+                .await?
+        }
+        AgentRuntimeCmd::AmendmentPropose(args) => {
+            api.post(
+                "/v1/agent-runtime/amendments/propose",
+                &read_input(&args.input)?,
+            )
+            .await?
+        }
+        AgentRuntimeCmd::AmendmentActivate(args) => {
+            api.post(
+                "/v1/agent-runtime/amendments/activate",
+                &read_input(&args.input)?,
+            )
+            .await?
+        }
+        AgentRuntimeCmd::HeadlessVerify(args) => {
+            api.post(
+                "/v1/agent-runtime/headless/verify",
+                &read_input(&args.input)?,
+            )
+            .await?
         }
         AgentRuntimeCmd::Constitution(command) => run_constitution(&api, command).await?,
         AgentRuntimeCmd::Prompt(command) => run_prompt(&api, command).await?,

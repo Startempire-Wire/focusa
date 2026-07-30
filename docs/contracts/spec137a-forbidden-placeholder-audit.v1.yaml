@@ -1,13 +1,16 @@
 {
   "serialization": "JSON-compatible YAML 1.2",
-  "generated_at": "2026-07-27T00:47:15+00:00",
-  "runtime_claim": "none",
-  "runtime_status": "implementation_open",
+  "generated_at": "2026-07-30T13:17:08.865280+00:00",
+  "runtime_claim": "spec137a_governance_runtime",
+  "runtime_status": "verified_complete",
   "schema": "focusa.spec137a_forbidden_placeholder_audit.v1",
   "audited_paths": [
     "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md",
     "docs/137a-focusa-temporal-zero-deferral-applicability-and-omission-firewall-addendum.md",
-    "docs/contracts/spec137-complete-feature-ledger.v1.yaml"
+    "docs/contracts/spec137-complete-feature-ledger.v1.yaml",
+    "docs/contracts/spec137a-runtime-proof-map.v1.yaml",
+    "docs/contracts/spec137a-root-delivery-dag.v1.yaml",
+    "docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml"
   ],
   "forbidden_dispositions": [
     "later",
@@ -18,5 +21,15 @@
     "mostly complete"
   ],
   "audit_result": "phrases_may_exist_as_prohibited_examples_but_cannot_close_requirements",
-  "closure_rule": "every occurrence requires requirement identity and non-closing context"
+  "closure_rule": "every occurrence requires requirement identity and non-closing context",
+  "firewall_runtime_status": "verified_complete",
+  "runtime_validator": "crates/focusa-core/src/temporal_conformance.rs#validate_omission_firewall",
+  "positive_negative_tests": [
+    "crates/focusa-core/src/temporal_conformance.rs#tests",
+    "tests/spec137a_omission_variance_firewall_gate.py"
+  ],
+  "runtime_evidence_refs": [
+    "docs/evidence/spec137a/S137A-combined-acceptance.txt",
+    "docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml"
+  ]
 }

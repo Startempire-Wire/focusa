@@ -1,6 +1,7 @@
 pub mod agent_capabilities;
 pub mod agent_runtime;
 pub mod agent_runtime_delivery;
+pub mod agent_runtime_integrity;
 pub mod agent_runtime_migration;
 pub mod agent_runtime_studio;
 #[cfg(test)]
@@ -93,6 +94,7 @@ pub mod subagent;
 pub mod task_plans;
 pub mod telemetry;
 pub mod temporal;
+mod temporal_advanced;
 pub mod threads;
 pub mod tokens;
 pub mod training;

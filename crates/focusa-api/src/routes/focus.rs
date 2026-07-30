@@ -198,9 +198,16 @@ fn exact_request_scope_matches(
             "missing": "x-scope-continuity-id",
         }));
     };
+    let body_root = normalize_project_root_authority(project_root);
+    let canonical_root = normalize_project_root_authority(&request_root);
+    let active_worktree_matches = scope
+        .active_worktree_root
+        .as_deref()
+        .map(normalize_project_root_authority)
+        .is_some_and(|active_root| active_root == body_root);
     if unsafe_project_root_reason(Some(request_root.as_str())).is_some()
-        || normalize_project_root_authority(&request_root)
-            != normalize_project_root_authority(project_root)
+        || unsafe_project_root_reason(Some(body_root.as_str())).is_some()
+        || (canonical_root != body_root && !active_worktree_matches)
         || request_continuity != continuity_id.trim()
     {
         return Err(json!({
@@ -1366,6 +1373,12 @@ mod tests {
             continuity_id: Some("cont-focusa".to_string()),
             ..Default::default()
         };
+        let worktree = ScopeContext {
+            project_root: Some("/home/wirebot/focusa".to_string()),
+            active_worktree_root: Some("/tmp/focusa-next-locked-release".to_string()),
+            continuity_id: Some("cont-focusa".to_string()),
+            ..Default::default()
+        };
         let host = ScopeContext {
             project_root: Some("/root".to_string()),
             continuity_id: Some("cont-focusa".to_string()),
@@ -1378,6 +1391,14 @@ mod tests {
         };
 
         assert!(exact_request_scope_matches(&exact, "/home/wirebot/focusa", "cont-focusa").is_ok());
+        assert!(
+            exact_request_scope_matches(
+                &worktree,
+                "/tmp/focusa-next-locked-release",
+                "cont-focusa"
+            )
+            .is_ok()
+        );
         assert!(exact_request_scope_matches(&host, "/home/wirebot/focusa", "cont-focusa").is_err());
         assert!(
             exact_request_scope_matches(&other, "/home/wirebot/focusa", "cont-focusa").is_err()

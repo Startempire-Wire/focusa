@@ -1,0 +1,34 @@
+Spec138 parent full-conformance proof
+Work item: focusa-vbcqu.2.2.6
+Scope: /tmp/focusa-next-locked-release (working subpath of canonical /home/wirebot/focusa)
+Continuity: focusa-v0.9.135-locked-14
+Recorded: 2026-07-30T22:15:00Z
+
+Verified implementation:
+- Profiles A-H typed fail-closed conformance: crates/focusa-core/src/prediction_profiles.rs
+- Seven-source legacy migration with advisory/quarantine authority, hashes, lineage, rollback, evidence, and receipts: crates/focusa-core/src/prediction_migration.rs
+- Durable migration validation/projection: prediction_authority_storage.rs and prediction_authority_ledger.rs
+- API append plus POST/GET projection and profile status: crates/focusa-api/src/routes/prediction_authority.rs
+- CLI append/projection: crates/focusa-cli/src/commands/predict.rs
+- Pi capability plus EPISTEMIC_AUTHORITY Focus Slice: apps/pi-extension/src/tools.ts and turns.ts
+- Mission Canvas/menubar projection: EpistemicAuthorityPeek.svelte
+- TUI projection: crates/focusa-tui/src/app.rs and mission_control.rs
+- Operation Registry/OpenAPI: 102 generated Spec135 operations, including append/projection
+- Generated Spec141 capability catalog: 129 capabilities
+- Parent Spec138 ledger: 273/273 verified_complete; Spec138a remains explicitly open.
+
+Proof results:
+- tests/spec138_full_conformance_gate.py direct dependency-free runner: 7/7 passed
+- cargo test -p focusa-core prediction_profiles: 2/2 passed
+- cargo test -p focusa-core prediction_migration: 2/2 passed
+- cargo check -p focusa-api -p focusa-cli -p focusa-tui: passed
+- scripts/generate-spec135-operation-contracts.py --check: passed, 102 operations
+- generate-agent-capability-descriptors.ts --check: passed, 129 capabilities
+- apps/menubar npm run check: 0 errors, 0 warnings
+- apps/pi-extension npm run typecheck: passed
+- apps/pi-extension npm run lint: passed
+
+Authority boundary:
+- Parent Spec138 full conformance is verified.
+- This receipt does not claim Spec138a addendum closure.
+- Migrated legacy records remain readable advisory or quarantined ambiguous; migration never manufactures canonical authority.

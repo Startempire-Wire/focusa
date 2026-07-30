@@ -29,24 +29,8 @@
     "8": "focusa-vbcqu"
   },
   "unique_ready_frontier": [
-    "focusa-vbcqu.2.2",
-    "focusa-vbcqu.2.2.4",
-    "focusa-vbcqu.2.3",
-    "focusa-vbcqu.9.2",
-    "focusa-vbcqu.9.2.1",
-    "focusa-vbcqu.9.2.2",
-    "focusa-vbcqu.9.2.3",
-    "focusa-vbcqu.9.2.4",
-    "focusa-vbcqu.9.2.5",
-    "focusa-vbcqu.9.3.1",
-    "focusa-vbcqu.9.4",
-    "focusa-vbcqu.9.4.1",
-    "focusa-vbcqu.9.4.2",
-    "focusa-vbcqu.9.4.3",
-    "focusa-vbcqu.9.4.4",
-    "focusa-vbcqu.9.4.5",
-    "focusa-vbcqu.9.4.6",
-    "focusa-vbcqu.9.5.1"
+    "focusa-a6yq6.10.8",
+    "focusa-vbcqu.7.2"
   ],
   "terminal_member_ref": "focusa-vbcqu",
   "terminal_coverage_count": 252,
@@ -190,7 +174,7 @@
     }
   ],
   "provider_missing_members": 0,
-  "membership_digest": "sha256:5ac9cd6d6099ac386e40e25cb1502fe4a624b700c0eee1dc7103da7e4483593c",
+  "membership_digest": "sha256:be538f3c67a79755e6d5b01e5e47963be17f0706158eb05fcd9ec59973dd40ab",
   "graph_digest": "sha256:86debebcd5a55e4449b88af669b591a2021acd51c88b90debace7fa31055efb4",
   "sealed_at": "2026-07-29T23:35:32Z",
   "out_of_order_in_progress": [],
@@ -212,5 +196,6 @@
     "focusa-o4gkd"
   ],
   "phase0_next_member": null,
-  "active_phase": 1
+  "active_phase": 6,
+  "generated_at": "2026-07-31T02:30:00Z"
 }

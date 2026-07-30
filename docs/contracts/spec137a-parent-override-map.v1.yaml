@@ -1,8 +1,8 @@
 {
   "serialization": "JSON-compatible YAML 1.2",
   "generated_at": "2026-07-27T00:47:15+00:00",
-  "runtime_claim": "none",
-  "runtime_status": "implementation_open",
+  "runtime_claim": "spec137a_governance_runtime",
+  "runtime_status": "verified_complete",
   "schema": "focusa.spec137a_parent_override_map.v1",
   "parent": "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md",
   "addendum": "docs/137a-focusa-temporal-zero-deferral-applicability-and-omission-firewall-addendum.md",
@@ -27,5 +27,9 @@
       "parent_concept": "closure",
       "governing_rule": "combined_source_all_active_rows_verified"
     }
+  ],
+  "runtime_evidence_refs": [
+    "docs/evidence/spec137a/S137A-combined-acceptance.txt",
+    "docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml"
   ]
 }

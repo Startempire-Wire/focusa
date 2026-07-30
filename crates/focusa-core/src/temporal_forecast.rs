@@ -38,6 +38,7 @@ pub struct ObservedDuration {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ForecastRange {
     pub phase: ReleasePhase,
+    pub authority: Option<ForecastAuthorityContext>,
     pub sample_count: usize,
     pub minimum_ms: u64,
     pub p50_ms: u64,
@@ -48,6 +49,25 @@ pub struct ForecastRange {
     pub confidence: TemporalConfidence,
     pub method: String,
     pub evidence_refs: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ForecastAuthorityContext {
+    pub claim_kind: String,
+    pub target_state: String,
+    pub scope_revision: String,
+    pub expires_at: DateTime<Utc>,
+    pub estimator_version: String,
+    pub cohort: String,
+    pub evidence_basis: Vec<String>,
+    pub comparable_sample_count: usize,
+    pub all_attempt_sample_count: usize,
+    pub censoring_method: String,
+    pub correlation_method: String,
+    pub calibration_profile: String,
+    pub grounding_status: String,
+    pub baseline_ref: String,
+    pub drift_policy_ref: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -84,6 +104,10 @@ pub struct ForecastCalibration {
     pub within_p95: bool,
     pub score: f64,
 }
+
+pub use crate::temporal_forecast_evaluation::{
+    ForecastEvaluation, ForecastValidityFingerprint, evaluate_forecast, forecast_remains_valid,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MissedTargetReceipt {
@@ -146,6 +170,7 @@ pub fn forecast_phase(
     };
     Ok(ForecastRange {
         phase,
+        authority: None,
         sample_count: durations.len(),
         minimum_ms: durations[0],
         p50_ms: quantile(&durations, 0.50),
@@ -160,6 +185,39 @@ pub fn forecast_phase(
             .flat_map(|observation| observation.evidence_refs.clone())
             .collect(),
     })
+}
+
+pub fn forecast_phase_authorized(
+    scope: &TemporalScope,
+    phase: ReleasePhase,
+    observations: &[ObservedDuration],
+    authority: ForecastAuthorityContext,
+    now: DateTime<Utc>,
+) -> Result<ForecastRange, ForecastError> {
+    if authority.claim_kind != "forecast"
+        || authority.target_state.trim().is_empty()
+        || authority.scope_revision.trim().is_empty()
+        || authority.expires_at <= now
+        || authority.estimator_version.trim().is_empty()
+        || authority.cohort.trim().is_empty()
+        || authority.evidence_basis.is_empty()
+        || authority.comparable_sample_count == 0
+        || authority.all_attempt_sample_count < authority.comparable_sample_count
+        || authority.censoring_method.trim().is_empty()
+        || authority.correlation_method.trim().is_empty()
+        || authority.calibration_profile.trim().is_empty()
+        || authority.grounding_status != "grounded"
+        || authority.baseline_ref.trim().is_empty()
+        || authority.drift_policy_ref.trim().is_empty()
+    {
+        return Err(ForecastError::NoObservedHistory);
+    }
+    let mut range = forecast_phase(scope, phase, observations)?;
+    if range.sample_count != authority.comparable_sample_count {
+        return Err(ForecastError::ScopeMismatch);
+    }
+    range.authority = Some(authority);
+    Ok(range)
 }
 
 pub fn build_release_timing_plan(
@@ -325,10 +383,7 @@ mod tests {
     use super::*;
 
     fn scope() -> TemporalScope {
-        TemporalScope {
-            project_root: "/workspace/project".into(),
-            continuity_id: "main".into(),
-        }
+        TemporalScope::project("/workspace/project", "main")
     }
 
     #[test]

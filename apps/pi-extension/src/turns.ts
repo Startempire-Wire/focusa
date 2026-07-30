@@ -1403,6 +1403,62 @@ export function registerTurns(pi: ExtensionAPI) {
         relevanceScore: 100,
       },
       {
+        key: "temporal_priority",
+        text: (() => {
+          const temporal = (getAttachmentRuntime() as any).temporalPriorityContext;
+          if (!temporal)
+            return "TEMPORAL_PRIORITY: status=missing; durable_or_consequential_action=blocked; recovery=focusa_temporal_authority";
+          const calendar = temporal.human_calendar_context;
+          const frame = temporal.temporal_priority_frame;
+          const guard = temporal.temporal_execution_guard;
+          const now = Date.now();
+          const stale =
+            !calendar ||
+            !frame ||
+            !guard ||
+            Date.parse(calendar.expires_at || "") <= now ||
+            Date.parse(frame.expires_at || "") <= now ||
+            Date.parse(guard.expires_at || "") <= now;
+          return `TEMPORAL_PRIORITY: status=${stale ? "missing_or_stale" : "verified"}; durable_or_consequential_action=${stale ? "blocked" : "authorized_by_guard_only"}; calendar=${calendar?.context_id || "missing"}; frame=${frame?.frame_id || "missing"}; guard=${guard?.guard_id || "missing"}; deadline=${temporal.deadline_status || "none"}; slack_ms=${temporal.slack_ms ?? "unknown"}; urgency=${temporal.urgency?.subject_ref || "none"}; warnings=${Array.isArray(temporal.warnings) ? temporal.warnings.join("|") : "none"}`;
+        })(),
+        include: true,
+        selectedCount: 1,
+        excludedCount: 0,
+        priority: 3,
+        relevanceScore: 100,
+      },
+      {
+        key: "epistemic_authority",
+        text: (() => {
+          const authority = (getAttachmentRuntime() as any).predictionAuthorityContext;
+          if (!authority)
+            return "EPISTEMIC_AUTHORITY: status=missing; claims=unverified; recovery=focusa_prediction_authority projection";
+          const projection = authority.projection || {};
+          const conformance = authority.profile_conformance?.full_conformance_status || "unknown";
+          const count = (key: string) => Object.keys(projection[key] || {}).length;
+          return `EPISTEMIC_AUTHORITY: status=${authority.status || "unknown"}; canonical=${authority.canonical === true}; conformance=${conformance}; events=${authority.event_count ?? 0}; questions=${count("questions")}; commitments=${count("commitments")}; outcomes=${count("outcome_authority_events")}; evaluations=${count("evaluations")}; learning=${count("learning")}; legacy=${authority.legacy_event_count ?? 0}`;
+        })(),
+        include: true,
+        selectedCount: 1,
+        excludedCount: 0,
+        priority: 3,
+        relevanceScore: 100,
+      },
+      {
+        key: "instruction_integrity",
+        text: (() => {
+          const integrity = (getAttachmentRuntime() as any).instructionIntegrityContext;
+          if (!integrity)
+            return "INSTRUCTION_INTEGRITY: status=missing; durable_or_consequential_action=blocked; recovery=focusa_instruction_integrity_status";
+          return `INSTRUCTION_INTEGRITY: status=${integrity.status || "unknown"}; canonical=${integrity.canonical === true}; mission_canvas_authority=${integrity.mission_canvas_required === false ? "false" : "unknown"}; outage=${integrity.dynamic_authority_outage_posture || "unknown"}; amendment=${integrity.amendment_activation_requires || "unknown"}`;
+        })(),
+        include: true,
+        selectedCount: 1,
+        excludedCount: 0,
+        priority: 3,
+        relevanceScore: 100,
+      },
+      {
         key: "query_scope",
         text: `QUERY_SCOPE: ${scopeKind} · ${getAttachmentRuntime().queryScope?.carryoverPolicy || "allow_if_relevant"}`,
         include: true,
@@ -2023,10 +2079,45 @@ export function registerTurns(pi: ExtensionAPI) {
   });
 
   // ── input (§36.3 signal + §35.7 correction — single handler) ──────────────
-  pi.on("input", (event, _ctx) => {
+  pi.on("input", async (event, _ctx) => {
     const text = (event as any).text || (event as any).message || "";
     const cleanedText = stripQuotedFocusaContext(String(text));
     const runtime = getAttachmentRuntime();
+    if (runtime.focusaAvailable) {
+      const verified = getLastProjectVerify() as any;
+      const projectRoot = verified?.project_root || verified?.root || getSessionCwd();
+      const continuityId = getContinuityId();
+      if (projectRoot && continuityId) {
+        void focusaFetch(
+          `/temporal/status?project_root=${encodeURIComponent(projectRoot)}&continuity_id=${encodeURIComponent(continuityId)}`
+        ).then(
+          (temporal) => {
+            (runtime as any).temporalPriorityContext = (temporal as any)?.projection || temporal;
+          },
+          () => {
+            (runtime as any).temporalPriorityContext = undefined;
+          }
+        );
+        void focusaFetch(
+          `/prediction-authority/projection?project_root=${encodeURIComponent(projectRoot)}&continuity_id=${encodeURIComponent(continuityId)}`
+        ).then(
+          (authority) => {
+            (runtime as any).predictionAuthorityContext = authority;
+          },
+          () => {
+            (runtime as any).predictionAuthorityContext = undefined;
+          }
+        );
+      }
+      void focusaFetch("/agent-runtime/instruction-integrity/status").then(
+        (integrity) => {
+          (runtime as any).instructionIntegrityContext = integrity;
+        },
+        () => {
+          (runtime as any).instructionIntegrityContext = undefined;
+        }
+      );
+    }
     if (
       cleanedText.trim() &&
       (runtime.compactionVerifyPendingKey ||
@@ -2549,6 +2640,37 @@ export function registerTurns(pi: ExtensionAPI) {
     const model = (event as any).model;
     getAttachmentRuntime().activeContextWindow =
       model?.contextWindow || getAttachmentRuntime().activeContextWindow;
+    const verified = getLastProjectVerify() as any;
+    const projectRoot = verified?.project_root || verified?.root || getSessionCwd();
+    const continuityId = getContinuityId();
+    try {
+      const temporal =
+        projectRoot && continuityId
+          ? await focusaFetch(
+              `/temporal/status?project_root=${encodeURIComponent(projectRoot)}&continuity_id=${encodeURIComponent(continuityId)}`
+            )
+          : undefined;
+      (getAttachmentRuntime() as any).temporalPriorityContext = (temporal as any)?.projection || temporal;
+    } catch {
+      (getAttachmentRuntime() as any).temporalPriorityContext = undefined;
+    }
+    try {
+      (getAttachmentRuntime() as any).predictionAuthorityContext =
+        projectRoot && continuityId
+          ? await focusaFetch(
+              `/prediction-authority/projection?project_root=${encodeURIComponent(projectRoot)}&continuity_id=${encodeURIComponent(continuityId)}`
+            )
+          : undefined;
+    } catch {
+      (getAttachmentRuntime() as any).predictionAuthorityContext = undefined;
+    }
+    try {
+      (getAttachmentRuntime() as any).instructionIntegrityContext = await focusaFetch(
+        "/agent-runtime/instruction-integrity/status"
+      );
+    } catch {
+      (getAttachmentRuntime() as any).instructionIntegrityContext = undefined;
+    }
     // §37.8: Wire model change to Focusa with frame context
     await checkpointDiscontinuity("model_switch", { active_object_refs: [model?.id || "unknown-model"] });
     focusaPost("/focus-gate/ingest-signal", {

@@ -1,8 +1,8 @@
 {
   "serialization": "JSON-compatible YAML 1.2",
   "generated_at": "2026-07-27T00:47:15+00:00",
-  "runtime_claim": "none",
-  "runtime_status": "implementation_open",
+  "runtime_claim": "spec138_scoring_calibration",
+  "runtime_status": "verified_complete",
   "schema": "focusa.spec138_scorer_and_calibration_matrix.v1",
   "scorers": [
     {
@@ -11,7 +11,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "multiclass_accuracy",
@@ -19,7 +21,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "brier_score",
@@ -27,7 +31,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "multiclass_brier_score",
@@ -35,7 +41,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "log_loss",
@@ -43,7 +51,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "multiclass_log_loss",
@@ -51,7 +61,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "spherical_score",
@@ -59,7 +71,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "continuous_ranked_probability_score",
@@ -67,7 +81,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "mean_absolute_error",
@@ -75,7 +91,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "mean_squared_error",
@@ -83,7 +101,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "root_mean_squared_error",
@@ -91,7 +111,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "mean_absolute_percentage_error",
@@ -99,7 +121,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "symmetric_mape",
@@ -107,7 +131,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "quantile_pinball_loss",
@@ -115,7 +141,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "interval_coverage",
@@ -123,7 +151,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "interval_width",
@@ -131,7 +161,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "winkler_interval_score",
@@ -139,7 +171,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "rank_correlation",
@@ -147,7 +181,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "information_coefficient",
@@ -155,7 +191,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "top_k_precision",
@@ -163,7 +201,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "top_k_recall",
@@ -171,7 +211,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "ndcg",
@@ -179,7 +221,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "concordance_index",
@@ -187,7 +231,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "survival_brier_score",
@@ -195,7 +241,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "expected_calibration_error",
@@ -203,7 +251,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "maximum_calibration_error",
@@ -211,7 +261,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "adaptive_calibration_error",
@@ -219,7 +271,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "skill_score",
@@ -227,7 +281,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "expected_utility",
@@ -235,7 +291,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "realized_regret",
@@ -243,7 +301,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     },
     {
       "id": "custom_registered",
@@ -251,7 +311,9 @@
       "shape_applicability": "explicit",
       "versioned": true,
       "fixtures_required": true,
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/prediction_scoring.rs",
+      "fixture_ref": "crates/focusa-core/src/prediction_scoring.rs#tests"
     }
   ],
   "calibration_dimensions": [
@@ -274,5 +336,16 @@
     "time_period",
     "transfer_context",
     "verifier_capability"
-  ]
+  ],
+  "runtime_refs": [
+    "crates/focusa-core/src/prediction_scoring.rs",
+    "crates/focusa-core/src/prediction_scoring_algorithms.rs",
+    "crates/focusa-core/src/prediction_calibration.rs"
+  ],
+  "evidence_refs": [
+    "docs/evidence/spec138/S138-scoring-calibration-acceptance.txt"
+  ],
+  "receipt_ref": "docs/contracts/138-focusa-scoring-calibration-receipt.v1.yaml",
+  "calibration_status": "verified_complete",
+  "calibration_runtime_ref": "crates/focusa-core/src/prediction_calibration.rs"
 }

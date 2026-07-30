@@ -22,7 +22,6 @@ import { PiExtensionSessionBinding, attachmentRoutingHints } from "./scoped-stat
 const require = createRequire(import.meta.url);
 import { loadConfig } from "./config.js";
 import { registerTools } from "./tools.js";
-import { registerAgentRuntimeTools } from "./agent-runtime-tools.js";
 import { registerCommands } from "./commands.js";
 import { registerAutomaticOtaActivation } from "./ota-activation.js";
 import { registerWbm } from "./wbm.js";
@@ -150,7 +149,6 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     );
     if (!ownsCompactionCoordinator) return;
     registerTools(pi);
-    registerAgentRuntimeTools(pi);
     registerCommands(pi);
     registerMissionCanvasWidget(pi);
     registerAutomaticOtaActivation(pi);

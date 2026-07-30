@@ -1,0 +1,18 @@
+Spec138 Learning, Promotion, Outcome, and Rollback Acceptance Evidence
+Generated: 2026-07-30
+Status: PASS (verified learning slice; full Spec138/138A remains open)
+
+Coverage:
+- reflection outputs remain versioned claims with applicability, review, expiry, alternatives, disconfirming evidence, and causal-status discipline
+- promotion policy binds sample count, independent sources, holdout improvement, non-regression, confidence, high-consequence authority, evidence, and receipts
+- single-event and agent self-promotion fail closed without explicit operator/policy exception
+- post-application outcomes trigger keep, supersede, or rollback from observed metrics and negative transfer
+- append-only outcome claim/dispute/escalation/resolution/correction/void/censor reducer with frozen policy, registered authority, evidence, receipts, and canonical correction supersession
+- caller-provided scores remain advisory; scoring requires canonical resolved/corrected outcome authority
+
+Proof:
+- cargo test -p focusa-core metacognitive_learning
+- cargo test -p focusa-core outcome_resolution
+- tests/spec138_learning_outcome_gate.py
+
+Boundary: transfer/self-model, lifecycle/security, surfaces/migration/profile closure, and full conformance remain open.

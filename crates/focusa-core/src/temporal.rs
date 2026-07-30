@@ -4,12 +4,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{
-    collections::HashMap,
-    fs::{self, File, OpenOptions},
-    io::{BufRead, BufReader, Write},
-    path::{Path, PathBuf},
-};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -69,6 +64,47 @@ pub struct TemporalUncertainty {
 pub struct TemporalScope {
     pub project_root: String,
     pub continuity_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub host_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub operator_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workpoint_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub item_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub task_id: Option<String>,
+}
+
+impl TemporalScope {
+    pub fn project(project_root: impl Into<String>, continuity_id: impl Into<String>) -> Self {
+        Self {
+            project_root: project_root.into(),
+            continuity_id: continuity_id.into(),
+            host_id: None,
+            operator_id: None,
+            workpoint_id: None,
+            item_id: None,
+            task_id: None,
+        }
+    }
+
+    pub fn same_workstream(&self, other: &Self) -> bool {
+        self.project_root == other.project_root && self.continuity_id == other.continuity_id
+    }
+
+    pub fn matches_filter(&self, filter: &Self) -> bool {
+        self.same_workstream(filter)
+            && [
+                (&self.host_id, &filter.host_id),
+                (&self.operator_id, &filter.operator_id),
+                (&self.workpoint_id, &filter.workpoint_id),
+                (&self.item_id, &filter.item_id),
+                (&self.task_id, &filter.task_id),
+            ]
+            .into_iter()
+            .all(|(actual, expected)| expected.is_none() || actual.is_none() || actual == expected)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -123,6 +159,22 @@ pub enum TemporalEventKind {
     TargetSatisfied,
     TargetBreached,
     MissedTargetRecorded,
+    ClockCorrectionRecorded,
+    SourceQuarantined,
+    SourceRecovered,
+    CivilTimeResolved,
+    DeadlineCompared,
+    GuardIssued,
+    CancellationRequested,
+    CancellationAcknowledged,
+    ClosurePostureRecorded,
+    ReceiptLinked,
+    ProgressObserved,
+    TemporalPulseEvaluated,
+    LostTimeIncidentRecorded,
+    ForecastIssued,
+    ForecastEvaluated,
+    LegacySignatureAttestation,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -133,6 +185,10 @@ pub struct TemporalEvent {
     pub scope: TemporalScope,
     pub claim: Option<TemporalClaim>,
     pub clock_sample: Option<TemporalClockSample>,
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub metadata: std::collections::BTreeMap<String, serde_json::Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signature: Option<crate::temporal_integrity::TemporalEventSignature>,
     pub predecessor_digest: Option<String>,
     pub recorded_at: DateTime<Utc>,
     pub idempotency_key: String,
@@ -155,6 +211,13 @@ pub struct TemporalProjection {
     pub scope: TemporalScope,
     pub as_of: DateTime<Utc>,
     pub deadline_status: DeadlineStatus,
+    pub approaching_deadlines: Vec<TemporalClaim>,
+    pub deadline_conflict_state: String,
+    pub human_calendar_context: Option<crate::temporal_operations::HumanCalendarContext>,
+    pub temporal_priority_frame: Option<crate::temporal_operations::TemporalPriorityFrame>,
+    pub temporal_execution_guard: Option<crate::temporal_operations::TemporalExecutionGuard>,
+    pub authorized_forecast_range: Option<crate::temporal_forecast::ForecastRange>,
+    pub latest_forecast_evaluation: Option<crate::temporal_forecast::ForecastEvaluation>,
     pub active_commitment: Option<TemporalClaim>,
     pub active_forecast: Option<TemporalClaim>,
     pub observed_duration_count: usize,
@@ -245,6 +308,7 @@ pub fn validate_claim(
 pub fn temporal_event_digest(event: &TemporalEvent) -> String {
     let mut canonical = event.clone();
     canonical.digest.clear();
+    canonical.signature = None;
     let bytes = serde_json::to_vec(&canonical).expect("TemporalEvent serializes");
     format!("sha256:{}", hex::encode(Sha256::digest(bytes)))
 }
@@ -265,118 +329,7 @@ pub fn verify_event_chain(events: &[TemporalEvent]) -> bool {
     })
 }
 
-#[derive(Debug)]
-pub enum TemporalLedgerError {
-    Io(String),
-    CorruptLine(usize),
-    InvalidChain,
-    ScopeMismatch,
-    EmptyBatch,
-}
-
-pub struct TemporalLedger {
-    path: PathBuf,
-    scope: TemporalScope,
-}
-
-impl TemporalLedger {
-    pub fn for_project(scope: TemporalScope) -> Result<Self, TemporalLedgerError> {
-        if !Path::new(&scope.project_root).is_absolute()
-            || matches!(
-                scope.project_root.as_str(),
-                "/" | "/root" | "/home" | "/tmp"
-            )
-        {
-            return Err(TemporalLedgerError::ScopeMismatch);
-        }
-        Ok(Self {
-            path: Path::new(&scope.project_root)
-                .join(".focusa")
-                .join("temporal")
-                .join("events.jsonl"),
-            scope,
-        })
-    }
-
-    pub fn read_all(&self) -> Result<Vec<TemporalEvent>, TemporalLedgerError> {
-        if !self.path.exists() {
-            return Ok(Vec::new());
-        }
-        let file =
-            File::open(&self.path).map_err(|error| TemporalLedgerError::Io(error.to_string()))?;
-        let mut events = Vec::new();
-        for (index, line) in BufReader::new(file).lines().enumerate() {
-            let line = line.map_err(|error| TemporalLedgerError::Io(error.to_string()))?;
-            let event = serde_json::from_str(&line)
-                .map_err(|_| TemporalLedgerError::CorruptLine(index + 1))?;
-            events.push(event);
-        }
-        if !verify_event_chain(&events) {
-            return Err(TemporalLedgerError::InvalidChain);
-        }
-        Ok(events)
-    }
-
-    pub fn append_batch(
-        &self,
-        idempotency_key: &str,
-        drafts: Vec<TemporalEvent>,
-    ) -> Result<Vec<TemporalEvent>, TemporalLedgerError> {
-        if drafts.is_empty() {
-            return Err(TemporalLedgerError::EmptyBatch);
-        }
-        let existing = self.read_all()?;
-        let replay = existing
-            .iter()
-            .filter(|event| event.idempotency_key == idempotency_key)
-            .cloned()
-            .collect::<Vec<_>>();
-        if !replay.is_empty() {
-            return Ok(replay);
-        }
-        let mut predecessor = existing.last().map(|event| event.digest.clone());
-        let first_sequence = existing.len() as u64 + 1;
-        let mut sealed = Vec::with_capacity(drafts.len());
-        for (sequence, mut event) in (first_sequence..).zip(drafts) {
-            if event.scope != self.scope {
-                return Err(TemporalLedgerError::ScopeMismatch);
-            }
-            event.sequence = sequence;
-            event.predecessor_digest = predecessor.clone();
-            event.idempotency_key = idempotency_key.to_string();
-            event = seal_event(event);
-            predecessor = Some(event.digest.clone());
-            sealed.push(event);
-        }
-        let parent = self.path.parent().expect("temporal ledger parent");
-        fs::create_dir_all(parent).map_err(|error| TemporalLedgerError::Io(error.to_string()))?;
-        let mut file = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&self.path)
-            .map_err(|error| TemporalLedgerError::Io(error.to_string()))?;
-        for event in &sealed {
-            serde_json::to_writer(&mut file, event)
-                .map_err(|error| TemporalLedgerError::Io(error.to_string()))?;
-            file.write_all(b"\n")
-                .map_err(|error| TemporalLedgerError::Io(error.to_string()))?;
-        }
-        file.sync_data()
-            .map_err(|error| TemporalLedgerError::Io(error.to_string()))?;
-        File::open(parent)
-            .and_then(|directory| directory.sync_all())
-            .map_err(|error| TemporalLedgerError::Io(error.to_string()))?;
-        Ok(sealed)
-    }
-
-    pub fn as_of(&self, at: DateTime<Utc>) -> Result<Vec<TemporalEvent>, TemporalLedgerError> {
-        Ok(self
-            .read_all()?
-            .into_iter()
-            .filter(|event| event.recorded_at <= at)
-            .collect())
-    }
-}
+pub use crate::temporal_ledger::{TemporalLedger, TemporalLedgerError};
 
 pub fn project_temporal(
     scope: TemporalScope,
@@ -385,7 +338,7 @@ pub fn project_temporal(
 ) -> TemporalProjection {
     let mut latest_by_claim = HashMap::<&str, (usize, &TemporalClaim)>::new();
     for (index, event) in events.iter().enumerate() {
-        if event.scope == scope
+        if event.scope.matches_filter(&scope)
             && event.recorded_at <= as_of
             && let Some(claim) = event.claim.as_ref()
         {
@@ -428,10 +381,67 @@ pub fn project_temporal(
         None if forecast.is_some() => DeadlineStatus::ForecastOnly,
         None => DeadlineStatus::None,
     };
+    let mut approaching_deadlines = active
+        .iter()
+        .filter(|claim| {
+            matches!(
+                claim.kind,
+                TemporalClaimKind::ExternalCommitment | TemporalClaimKind::InternalReadinessTarget
+            ) && claim.target_at.is_some()
+        })
+        .cloned()
+        .cloned()
+        .collect::<Vec<_>>();
+    approaching_deadlines.sort_by_key(|claim| claim.target_at);
+    approaching_deadlines.truncate(5);
+    let deadline_conflict_state = if approaching_deadlines.len() > 1 {
+        "unknown"
+    } else {
+        "feasible"
+    };
+    let priority_event = events.iter().rev().find(|event| {
+        event.scope.matches_filter(&scope)
+            && event.recorded_at <= as_of
+            && event.event_kind == TemporalEventKind::GuardIssued
+    });
+    let human_calendar_context = priority_event
+        .and_then(|event| event.metadata.get("human_calendar_context"))
+        .and_then(|value| serde_json::from_value(value.clone()).ok());
+    let temporal_priority_frame = priority_event
+        .and_then(|event| event.metadata.get("temporal_priority_frame"))
+        .and_then(|value| serde_json::from_value(value.clone()).ok());
+    let temporal_execution_guard = priority_event
+        .and_then(|event| event.metadata.get("temporal_execution_guard"))
+        .and_then(|value| serde_json::from_value(value.clone()).ok());
+    let authorized_forecast_range = events
+        .iter()
+        .rev()
+        .find(|event| {
+            event.scope.matches_filter(&scope)
+                && event.event_kind == TemporalEventKind::ForecastIssued
+        })
+        .and_then(|event| event.metadata.get("forecast"))
+        .and_then(|value| serde_json::from_value(value.clone()).ok());
+    let latest_forecast_evaluation = events
+        .iter()
+        .rev()
+        .find(|event| {
+            event.scope.matches_filter(&scope)
+                && event.event_kind == TemporalEventKind::ForecastEvaluated
+        })
+        .and_then(|event| event.metadata.get("evaluation"))
+        .and_then(|value| serde_json::from_value(value.clone()).ok());
     TemporalProjection {
         scope,
         as_of,
         deadline_status,
+        approaching_deadlines,
+        deadline_conflict_state: deadline_conflict_state.into(),
+        human_calendar_context,
+        temporal_priority_frame,
+        temporal_execution_guard,
+        authorized_forecast_range,
+        latest_forecast_evaluation,
         active_commitment: commitment,
         active_forecast: forecast,
         observed_duration_count: events

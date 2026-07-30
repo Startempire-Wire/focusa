@@ -153,6 +153,12 @@ function queueUnboundProjectNag(pi: ExtensionAPI, ctx: any, reason: string): voi
   if (pi.getFlag("--nag-suppress")) return;
   const cwd = normalizeProjectRoot(ctx?.cwd || process.cwd());
   if (markerExistsAtCwd(cwd)) return;
+  const inferred = resolvePiProjectRootCandidate(cwd);
+  if (inferred.safe === true && inferred.requiresOperatorConfirmation !== true) {
+    // A verified parent marker/project root is sufficient. Preserve the Pi cwd
+    // as the active working subpath and avoid injecting a false degraded nag.
+    return;
+  }
   const key = `pi_unbound_project_nag:${getAttachmentRuntime().sessionFrameKey || "no-session"}:${cwd}`;
   if (getAttachmentRuntime().vitalInfoPrompted[key]) return;
   const prompt = [

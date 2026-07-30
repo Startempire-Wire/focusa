@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:90f1f14e40eb2ddeb24781ebeeb1d22da9b23aa2fefd5c11e0f35ddb4782fc9e`
+Registry digest: `sha256:2f72bb14976765ed62aabfad5d553dd2a7df6eac0c71e8342d7d822dbbbc7bce`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -14,6 +14,39 @@ Resolve likely active object references from the current Workpoint and optional 
 - Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Dependencies/next: `focusa_workpoint_checkpoint`, `focusa_evidence_capture`, `focusa_traverse`
 - Documentation: `docs/focusa-tools/tools/focusa_active_object_resolve.md`
+
+## focusa_agent_artifact_delivery
+
+Commit verified agent artifacts with explicit operator confirmation and a durable Receipt reference. Use it when Operate the Spec 140 agent artifact delivery surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.agent.artifact.delivery`
+- Family: `agent_runtime`
+- Side effects: `confirmed_receipted_artifact_delivery`, `confirmed_receipted_artifact_delivery`
+- Skills: `skill:focusa`, `skill:focusa-spec-implementation`
+- Dependencies/next: `focusa_agent_artifact_verify`, `focusa_instruction_integrity_status`
+- Documentation: `docs/focusa-tools/tools/focusa_agent_artifact_delivery.md`
+
+## focusa_agent_artifact_preview
+
+Preview a Spec 140 artifact delivery manifest; never writes files. Use it when Operate the Spec 140 agent artifact preview surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.agent.artifact.preview`
+- Family: `agent_runtime`
+- Side effects: `read_or_preview_only`, `read_or_preview_only`
+- Skills: `skill:focusa`, `skill:focusa-spec-implementation`
+- Dependencies/next: `focusa_agent_artifact_delivery`, `focusa_agent_artifact_verify`
+- Documentation: `docs/focusa-tools/tools/focusa_agent_artifact_preview.md`
+
+## focusa_agent_artifact_verify
+
+Verify content hashes and evidence for a Runtime Constitution delivery manifest. Use it when Operate the Spec 140 agent artifact verify surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.agent.artifact.verify`
+- Family: `agent_runtime`
+- Side effects: `read_or_preview_only`, `read_or_preview_only`
+- Skills: `skill:focusa`, `skill:focusa-spec-implementation`
+- Dependencies/next: `focusa_agent_runtime_effective`, `focusa_agent_runtime_doctor`
+- Documentation: `docs/focusa-tools/tools/focusa_agent_artifact_verify.md`
 
 ## focusa_agent_card
 
@@ -36,6 +69,39 @@ Read canonical Pi guidance; prefer focusa_* tools over raw daemon calls. Use it 
 - Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Dependencies/next: `focusa_tool_doctor`, `focusa_trajectory_view`, `focusa_project_identity`
 - Documentation: `docs/focusa-tools/tools/focusa_agent_prompt.md`
+
+## focusa_agent_runtime_doctor
+
+Diagnose Runtime Constitution compiler defaults, replacement gates, and delivery readiness. Use it when Operate the Spec 140 agent runtime doctor surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.agent.runtime.doctor`
+- Family: `agent_runtime`
+- Side effects: `read_or_preview_only`, `read_or_preview_only`
+- Skills: `skill:focusa`, `skill:focusa-spec-implementation`
+- Dependencies/next: `focusa_agent_runtime_effective`, `focusa_instruction_integrity_status`
+- Documentation: `docs/focusa-tools/tools/focusa_agent_runtime_doctor.md`
+
+## focusa_agent_runtime_effective
+
+Read effective project instruction claims and unresolved conflicts under Spec 140. Use it when Operate the Spec 140 agent runtime effective surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.agent.runtime.effective`
+- Family: `agent_runtime`
+- Side effects: `read_or_preview_only`, `read_or_preview_only`
+- Skills: `skill:focusa`, `skill:focusa-spec-implementation`
+- Dependencies/next: `focusa_instruction_sources`, `focusa_instruction_conflicts`, `focusa_instruction_integrity_status`
+- Documentation: `docs/focusa-tools/tools/focusa_agent_runtime_effective.md`
+
+## focusa_agent_runtime_headless_verify
+
+Verify foundational runtime capability parity without Mission Canvas or generated UI availability. Use it when Operate the Spec 140 agent runtime headless verify surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.agent.runtime.headless.verify`
+- Family: `agent_runtime`
+- Side effects: `confirmed_receipted_artifact_delivery`, `confirmed_receipted_artifact_delivery`
+- Skills: `skill:focusa`, `skill:focusa-spec-implementation`
+- Dependencies/next: `focusa_instruction_integrity_status`, `focusa_agent_runtime_doctor`
+- Documentation: `docs/focusa-tools/tools/focusa_agent_runtime_headless_verify.md`
 
 ## focusa_awareness_packet
 
@@ -223,6 +289,28 @@ Verify a Call Stack Design against bounded implementation surfaces and report dr
 - Skills: `skill:focusa`, `skill:focusa-workpoint`, `skill:focusa-spec-implementation`
 - Dependencies/next: `focusa_call_stack_design`, `focusa_workpoint_link_evidence`, `focusa_trajectory_assess`
 - Documentation: `docs/focusa-tools/tools/focusa_call_stack_verify.md`
+
+## focusa_canonical_instruction_amendment_activate
+
+Activate a separately operator-approved amendment only after its official documentation sweep is complete. Use it when Operate the Spec 140 canonical instruction amendment activate surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.canonical.instruction.amendment.activate`
+- Family: `agent_runtime`
+- Side effects: `confirmed_receipted_artifact_delivery`, `confirmed_receipted_artifact_delivery`
+- Skills: `skill:focusa`, `skill:focusa-spec-implementation`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_instruction_integrity_evaluate`, `focusa_agent_runtime_effective`
+- Documentation: `docs/focusa-tools/tools/focusa_canonical_instruction_amendment_activate.md`
+
+## focusa_canonical_instruction_amendment_propose
+
+Record an operator-originated canonical instruction amendment proposal without activating it. Use it when Operate the Spec 140 canonical instruction amendment propose surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.canonical.instruction.amendment.propose`
+- Family: `agent_runtime`
+- Side effects: `confirmed_receipted_artifact_delivery`, `confirmed_receipted_artifact_delivery`
+- Skills: `skill:focusa`, `skill:focusa-spec-implementation`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_canonical_instruction_amendment_activate`, `focusa_instruction_integrity_evaluate`
+- Documentation: `docs/focusa-tools/tools/focusa_canonical_instruction_amendment_propose.md`
 
 ## focusa_constraint
 
@@ -477,6 +565,72 @@ Read append-only HLT ledger entries with session filters, fallback candidates, a
 - Dependencies/next: `focusa_trajectory_view`, `focusa_trajectory_define_goal`, `focusa_project_verify`
 - Documentation: `docs/focusa-tools/tools/focusa_hlt_history.md`
 
+## focusa_instruction_conflicts
+
+Read deterministic instruction conflicts; unresolved equal-authority claims remain blocked. Use it when Operate the Spec 140 instruction conflicts surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.instruction.conflicts`
+- Family: `agent_runtime`
+- Side effects: `read_or_preview_only`, `read_or_preview_only`
+- Skills: `skill:focusa`, `skill:focusa-spec-implementation`
+- Dependencies/next: `focusa_instruction_explain`, `focusa_instruction_simulate`, `focusa_instruction_integrity_evaluate`
+- Documentation: `docs/focusa-tools/tools/focusa_instruction_conflicts.md`
+
+## focusa_instruction_explain
+
+Explain one instruction claim from the current bounded source inventory. Use it when Operate the Spec 140 instruction explain surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.instruction.explain`
+- Family: `agent_runtime`
+- Side effects: `read_or_preview_only`, `read_or_preview_only`
+- Skills: `skill:focusa`, `skill:focusa-spec-implementation`
+- Dependencies/next: `focusa_instruction_simulate`, `focusa_agent_runtime_effective`
+- Documentation: `docs/focusa-tools/tools/focusa_instruction_explain.md`
+
+## focusa_instruction_integrity_evaluate
+
+Evaluate the foundational headless InstructionIntegrityGuard and durably record its fail-closed decision. Use it when Operate the Spec 140 instruction integrity evaluate surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.instruction.integrity.evaluate`
+- Family: `agent_runtime`
+- Side effects: `confirmed_receipted_artifact_delivery`, `confirmed_receipted_artifact_delivery`
+- Skills: `skill:focusa`, `skill:focusa-spec-implementation`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_instruction_integrity_status`, `focusa_agent_runtime_headless_verify`
+- Documentation: `docs/focusa-tools/tools/focusa_instruction_integrity_evaluate.md`
+
+## focusa_instruction_integrity_status
+
+Read foundational guard availability, amendment authority, and outage posture. Use it when Operate the Spec 140 instruction integrity status surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.instruction.integrity.status`
+- Family: `agent_runtime`
+- Side effects: `read_or_preview_only`, `read_or_preview_only`
+- Skills: `skill:focusa`, `skill:focusa-spec-implementation`, `skill:focusa-security-auth-licensing`
+- Dependencies/next: `focusa_instruction_integrity_evaluate`, `focusa_agent_runtime_doctor`
+- Documentation: `docs/focusa-tools/tools/focusa_instruction_integrity_status.md`
+
+## focusa_instruction_simulate
+
+Preview path/profile/target-specific instruction behavior without committing changes. Use it when Operate the Spec 140 instruction simulate surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.instruction.simulate`
+- Family: `agent_runtime`
+- Side effects: `read_or_preview_only`, `read_or_preview_only`
+- Skills: `skill:focusa`, `skill:focusa-spec-implementation`
+- Dependencies/next: `focusa_runtime_constitution_preview`, `focusa_instruction_integrity_evaluate`
+- Documentation: `docs/focusa-tools/tools/focusa_instruction_simulate.md`
+
+## focusa_instruction_sources
+
+Discover bounded, registered project instruction sources with trust and authority metadata. Use it when Operate the Spec 140 instruction sources surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.instruction.sources`
+- Family: `agent_runtime`
+- Side effects: `read_or_preview_only`, `read_or_preview_only`
+- Skills: `skill:focusa`, `skill:focusa-spec-implementation`
+- Dependencies/next: `focusa_instruction_conflicts`, `focusa_instruction_explain`, `focusa_agent_runtime_effective`
+- Documentation: `docs/focusa-tools/tools/focusa_instruction_sources.md`
+
 ## focusa_intent
 
 Set the frame intent — what this session is trying to achieve (1-3 sentences, max 500 chars). Use it when Set the frame intent — what this session is trying to achieve (1-3 sentences, max 500 chars). It returns a typed Focusa result with bounded recovery and likely next capabilities.
@@ -619,6 +773,17 @@ Record what you plan to do next (max 160 chars). Use it when Record what you pla
 - Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Dependencies/next: `focusa_workpoint_checkpoint`, `focusa_active_object_resolve`, `focusa_evidence_capture`
 - Documentation: `docs/focusa-tools/tools/focusa_next_step.md`
+
+## focusa_north_star_gate
+
+Inspect the current verified Project → HLT → MLG → STG → waypoint → gap → Workpoint → frontier chain before meaningful action. Read-only and fail-closed. Use it when Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier authority chain. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.north.star.gate`
+- Family: `trajectory`
+- Side effects: `read_state`, `read_state`
+- Skills: `skill:focusa`, `skill:focusa-workpoint`
+- Dependencies/next: `focusa_project_identity`, `focusa_trajectory_view`, `focusa_workpoint_resume`
+- Documentation: `docs/focusa-tools/tools/focusa_north_star_gate.md`
 
 ## focusa_note
 
@@ -851,6 +1016,28 @@ Verify active project folder against expected ProjectIdentity fields and report 
 - Dependencies/next: `focusa_project_bootstrap`, `focusa_project_genesis`, `focusa_trajectory_view`, `focusa_workpoint_resume`, `focusa_tool_doctor`
 - Documentation: `docs/focusa-tools/tools/focusa_project_verify.md`
 
+## focusa_prompt_variant_diff
+
+Compare two caller-supplied prompt variant projections without mutating Focusa state. Use it when Operate the Spec 140 prompt variant diff surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.prompt.variant.diff`
+- Family: `agent_runtime`
+- Side effects: `read_or_preview_only`, `read_or_preview_only`
+- Skills: `skill:focusa`, `skill:focusa-spec-implementation`
+- Dependencies/next: `focusa_prompt_variant_preview`, `focusa_agent_runtime_doctor`
+- Documentation: `docs/focusa-tools/tools/focusa_prompt_variant_diff.md`
+
+## focusa_prompt_variant_preview
+
+Compile and preview a target prompt variant without activation. Use it when Operate the Spec 140 prompt variant preview surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.prompt.variant.preview`
+- Family: `agent_runtime`
+- Side effects: `read_or_preview_only`, `read_or_preview_only`
+- Skills: `skill:focusa`, `skill:focusa-spec-implementation`
+- Dependencies/next: `focusa_prompt_variant_diff`, `focusa_agent_artifact_preview`
+- Documentation: `docs/focusa-tools/tools/focusa_prompt_variant_preview.md`
+
 ## focusa_recent_result
 
 Record a completed result, output, or reference (max 180 chars). Use it when Record a completed result, output, or reference (max 180 chars). It returns a typed Focusa result with bounded recovery and likely next capabilities.
@@ -883,6 +1070,17 @@ Read or control Focusa resource mode, including activating/deactivating LowMem m
 - Skills: `skill:focusa`, `skill:focusa-troubleshooting`, `skill:focusa-resource-performance`
 - Dependencies/next: `focusa_traverse`, `focusa_trajectory_view`, `focusa_workpoint_resume`
 - Documentation: `docs/focusa-tools/tools/focusa_resource_mode.md`
+
+## focusa_runtime_constitution_preview
+
+Preview a compiled Runtime Constitution without activation or artifact delivery. Use it when Operate the Spec 140 runtime constitution preview surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.runtime.constitution.preview`
+- Family: `agent_runtime`
+- Side effects: `read_or_preview_only`, `read_or_preview_only`
+- Skills: `skill:focusa`, `skill:focusa-spec-implementation`
+- Dependencies/next: `focusa_prompt_variant_preview`, `focusa_agent_artifact_preview`
+- Documentation: `docs/focusa-tools/tools/focusa_runtime_constitution_preview.md`
 
 ## focusa_scratch
 

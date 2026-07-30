@@ -67,6 +67,6 @@ Likely next: `focusa_predict_recent`, `focusa_evidence_capture`, `focusa_metacog
 - Runbooks: `runbook:metacognition`
 - Pi: `focusa_prediction_authority`; MCP: `focusa.prediction.authority`; OpenAI: `focusa_prediction_authority`.
 - CLI: `focusa predict authority-append`, `focusa predict authority-projection`.
-- REST: `POST /v1/prediction-authority/events`, `POST /v1/prediction-authority/projection`.
+- REST: `POST /v1/prediction-authority/events`, `POST /v1/prediction-authority/projection`, `GET /v1/prediction-authority/projection`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:289646f6224c0526d7f3ef3d3ab09fdd0a463f1a01823a67407a34906b2dfbff`.
+- Descriptor digest: `sha256:829d6b6b5c03e33c851c6f1bab99dbeb58933a99d5f5c6fee86fb8871051a9bc`.

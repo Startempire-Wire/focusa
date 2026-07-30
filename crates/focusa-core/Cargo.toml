@@ -26,6 +26,9 @@ hex = { workspace = true }
 reqwest = { workspace = true }
 oauth2 = { workspace = true }
 keyring = { workspace = true }
+rand_core = { version = "0.6", features = ["getrandom"] }
+libc = "0.2"
+chrono-tz = "0.10"
 petgraph = { workspace = true }
 tree-sitter = { workspace = true }
 rusqlite = { version = "0.32", features = ["bundled"] }

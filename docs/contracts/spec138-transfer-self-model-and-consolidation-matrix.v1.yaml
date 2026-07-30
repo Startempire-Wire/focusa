@@ -1,8 +1,8 @@
 {
   "serialization": "JSON-compatible YAML 1.2",
   "generated_at": "2026-07-27T00:47:15+00:00",
-  "runtime_claim": "none",
-  "runtime_status": "implementation_open",
+  "runtime_claim": "spec138_transfer_self_model_consolidation",
+  "runtime_status": "verified_complete",
   "schema": "focusa.spec138_transfer_self_model_and_consolidation_matrix.v1",
   "transfer": [
     "expectation",
@@ -37,5 +37,17 @@
     "archive",
     "reactivation",
     "legal_hold"
-  ]
+  ],
+  "transfer_status": "verified_complete",
+  "self_model_status": "verified_complete",
+  "consolidation_status": "verified_complete",
+  "runtime_refs": [
+    "crates/focusa-core/src/prediction_advanced.rs",
+    "crates/focusa-core/src/epistemic_memory_lifecycle.rs"
+  ],
+  "evidence_refs": [
+    "docs/evidence/spec138/S138-advanced-transfer-fusion-acceptance.txt",
+    "docs/evidence/spec138/S138-lifecycle-security-acceptance.txt"
+  ],
+  "receipt_ref": "docs/contracts/138-focusa-advanced-transfer-fusion-receipt.v1.yaml"
 }

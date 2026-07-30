@@ -2358,3 +2358,18 @@ The following are mandatory before a full-conformance claim:
 - a zero-unapproved-deferral and zero-omission Receipt.
 
 The existing temporal implementation and release gate are classified as verified implementation slices until the combined closure system proves otherwise.
+
+## Current implementation snapshot
+
+The Spec 137 implementation slice now includes:
+
+- signed append-only temporal ledgers with predecessor digests, fsync, idempotent replay, restart recovery, signature verification, and legacy-signature migration;
+- explicit `HumanCalendarContext`, `TemporalPriorityFrame`, and `TemporalExecutionGuard` packets bound to project scope, operator-ask digest, expiry, evidence, and authorized action refs;
+- IANA civil-time resolution with explicit DST fold/gap policy and versioned resolution evidence;
+- wall, monotonic, suspend-inclusive, uncertainty, and unsupported/degraded platform-clock reporting without synthesized capabilities;
+- external commitment, internal target, estimate, forecast, urgency, and presentation separation plus reconciliation, slack, due-soon, overdue, conflict, breach, revision, and receipt state;
+- empirical p50/p80/p95 forecasting with authority metadata, censoring/correlation fields, reliability, bias, coverage, sharpness, proper score, skill, decision value, error bounds, cohort drift, exact-target evaluation, and invalidation fingerprints;
+- `/v1/temporal/*`, CLI, Pi tool, Work Loop, Silent Session, Project Card, Mission Canvas, resume/compaction, and reconnect projections;
+- fail-closed high-consequence activation/dispatch preflight, signed event evidence, and explicit recovery paths.
+
+This snapshot is not a combined-source closure claim; Spec 137A applicability, proof, parity, migration, and zero-omission receipts remain independently mandatory.

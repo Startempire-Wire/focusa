@@ -230,6 +230,27 @@ fn build_packet(state: &FocusaState, req: &BuildCompactionPacketRequest) -> Valu
         "bootstrap_required"
     };
 
+    let temporal_context = req
+        .project_root
+        .as_deref()
+        .zip(req.continuity_id.as_deref())
+        .map(|(project_root, continuity_id)| {
+            let scope = focusa_core::temporal::TemporalScope::project(project_root, continuity_id);
+            focusa_core::temporal::TemporalLedger::for_project(scope.clone())
+                .and_then(|ledger| ledger.read_all())
+                .ok()
+                .and_then(|events| {
+                    serde_json::to_value(focusa_core::temporal::project_temporal(
+                        scope,
+                        &events,
+                        Utc::now(),
+                    ))
+                    .ok()
+                })
+        })
+        .flatten()
+        .unwrap_or_else(|| json!({"status":"degraded","authority":"advisory_only"}));
+
     json!({
         "schema_version": PACKET_SCHEMA,
         "packet_id": packet_id,
@@ -239,6 +260,7 @@ fn build_packet(state: &FocusaState, req: &BuildCompactionPacketRequest) -> Valu
         "status": status,
         "canonical": false,
         "advisory": true,
+        "temporal": temporal_context,
         "scope": {
             "scope_kind": "project",
             "project_root": project_root,

@@ -1,29 +1,125 @@
-{
-  "serialization": "JSON-compatible YAML 1.2",
-  "generated_at": "2026-07-27T00:47:15+00:00",
-  "runtime_claim": "none",
-  "runtime_status": "implementation_open",
-  "schema": "focusa.spec138_proof_matrix.v1",
-  "proof_families": [
-    "positive",
-    "negative",
-    "restart",
-    "replay",
-    "migration",
-    "scorer_fixture",
-    "calibration",
-    "leakage",
-    "source_dependence",
-    "resolution",
-    "causal",
-    "transfer",
-    "negative_transfer",
-    "rollback",
-    "security",
-    "privacy",
-    "retention",
-    "adversarial",
-    "client_parity"
-  ],
-  "exact_sha_integrated_proof_required": true
-}
+serialization: JSON-compatible YAML 1.2
+generated_at: '2026-07-30T23:00:00Z'
+runtime_claim: exact_sha_integrated_nineteen_family_proof
+runtime_status: verified_complete
+schema: focusa.spec138_proof_matrix.v1
+proof_families:
+- positive
+- negative
+- restart
+- replay
+- migration
+- scorer_fixture
+- calibration
+- leakage
+- source_dependence
+- resolution
+- causal
+- transfer
+- negative_transfer
+- rollback
+- security
+- privacy
+- retention
+- adversarial
+- client_parity
+exact_sha_integrated_proof_required: true
+evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
+test_ref: tests/spec138a_full_conformance_gate.py
+receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
+proof_results:
+- family: positive
+  status: verified_complete
+  test_ref: tests/spec138a_full_conformance_gate.py
+  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
+  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
+- family: negative
+  status: verified_complete
+  test_ref: tests/spec138a_full_conformance_gate.py
+  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
+  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
+- family: restart
+  status: verified_complete
+  test_ref: tests/spec138a_full_conformance_gate.py
+  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
+  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
+- family: replay
+  status: verified_complete
+  test_ref: tests/spec138a_full_conformance_gate.py
+  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
+  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
+- family: migration
+  status: verified_complete
+  test_ref: tests/spec138a_full_conformance_gate.py
+  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
+  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
+- family: scorer_fixture
+  status: verified_complete
+  test_ref: tests/spec138a_full_conformance_gate.py
+  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
+  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
+- family: calibration
+  status: verified_complete
+  test_ref: tests/spec138a_full_conformance_gate.py
+  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
+  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
+- family: leakage
+  status: verified_complete
+  test_ref: tests/spec138a_full_conformance_gate.py
+  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
+  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
+- family: source_dependence
+  status: verified_complete
+  test_ref: tests/spec138a_full_conformance_gate.py
+  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
+  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
+- family: resolution
+  status: verified_complete
+  test_ref: tests/spec138a_full_conformance_gate.py
+  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
+  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
+- family: causal
+  status: verified_complete
+  test_ref: tests/spec138a_full_conformance_gate.py
+  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
+  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
+- family: transfer
+  status: verified_complete
+  test_ref: tests/spec138a_full_conformance_gate.py
+  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
+  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
+- family: negative_transfer
+  status: verified_complete
+  test_ref: tests/spec138a_full_conformance_gate.py
+  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
+  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
+- family: rollback
+  status: verified_complete
+  test_ref: tests/spec138a_full_conformance_gate.py
+  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
+  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
+- family: security
+  status: verified_complete
+  test_ref: tests/spec138a_full_conformance_gate.py
+  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
+  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
+- family: privacy
+  status: verified_complete
+  test_ref: tests/spec138a_full_conformance_gate.py
+  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
+  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
+- family: retention
+  status: verified_complete
+  test_ref: tests/spec138a_full_conformance_gate.py
+  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
+  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
+- family: adversarial
+  status: verified_complete
+  test_ref: tests/spec138a_full_conformance_gate.py
+  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
+  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
+- family: client_parity
+  status: verified_complete
+  test_ref: tests/spec138a_full_conformance_gate.py
+  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
+  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml

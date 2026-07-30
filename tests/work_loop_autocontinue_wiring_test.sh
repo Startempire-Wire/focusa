@@ -78,12 +78,14 @@ else
   log_pass "Pi RPC empty-output retry path no longer has a hard cap marker"
 fi
 
-if rg -n 'scheduleCompactionResumeRetry\(ctx, steerMessage, (nextAttempt|retryAttempt \+ 1)\)' "$COMPACTION_FILE" >/dev/null 2>&1 \
-  && rg -n 'if \(!getAttachmentRuntime\(\)\.compactResumePending\) return;' "$COMPACTION_FILE" >/dev/null 2>&1 \
-  && ! rg -n 'maxAttempts' "$COMPACTION_FILE" >/dev/null 2>&1; then
-  log_pass "compaction auto-resume retries are pending-gated and no longer hard-capped"
+if rg -n 'queueCompactionResumeContext\(ctx, resumeText\)' "$COMPACTION_FILE" >/dev/null 2>&1 \
+  && rg -n 'deliverAs: "nextTurn"' "$COMPACTION_FILE" >/dev/null 2>&1 \
+  && rg -n 'triggerTurn: false' "$COMPACTION_FILE" >/dev/null 2>&1 \
+  && rg -n 'unknown_completion' "$COMPACTION_FILE" >/dev/null 2>&1 \
+  && ! rg -n 'maxAttempts|scheduleCompactionResumeRetry' "$COMPACTION_FILE" >/dev/null 2>&1; then
+  log_pass "compaction resume is deduplicated and delegated to Pi next-turn delivery without retry caps"
 else
-  log_fail "compaction auto-resume still appears hard-capped or ungated"
+  log_fail "compaction resume is not safely delegated to Pi next-turn delivery"
 fi
 
 if rg -n 'Compaction resume exhausted retries' "$COMPACTION_FILE" >/dev/null 2>&1; then

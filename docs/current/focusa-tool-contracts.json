@@ -1,8 +1,574 @@
 {
   "schema": "focusa.tool_contracts.v1",
   "version": "spec90.tool_contracts.v1",
-  "tool_count": 116,
+  "tool_count": 134,
   "contracts": [
+    {
+      "name": "focusa_agent_runtime_effective",
+      "family": "agent_runtime",
+      "label": "Agent Runtime Effective",
+      "purpose": "Operate the Spec 140 agent runtime effective surface with typed scope and evidence.",
+      "ontology_action": "instruction.effective",
+      "ontology_objects": [
+        "ProjectAgentRuntimeConstitution",
+        "InstructionClaim",
+        "RuntimeArtifactProjection"
+      ],
+      "api_routes": [
+        "GET /v1/agent-runtime/instructions/effective"
+      ],
+      "cli_commands": [
+        "focusa agent-runtime effective"
+      ],
+      "core_surface": "Spec140 project-agent Runtime Constitution compiler and delivery",
+      "doc_path": "docs/focusa-tools/tools/focusa_agent_runtime_effective.md",
+      "spec_path": "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_or_preview_only",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus typed /v1/agent-runtime route verification",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "agent-runtime"
+      },
+      "authority_requirement": {
+        "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_instruction_sources",
+      "family": "agent_runtime",
+      "label": "Instruction Sources",
+      "purpose": "Operate the Spec 140 instruction sources surface with typed scope and evidence.",
+      "ontology_action": "instruction.sources",
+      "ontology_objects": [
+        "ProjectAgentRuntimeConstitution",
+        "InstructionClaim",
+        "RuntimeArtifactProjection"
+      ],
+      "api_routes": [
+        "GET /v1/agent-runtime/instructions/sources"
+      ],
+      "cli_commands": [
+        "focusa agent-runtime sources"
+      ],
+      "core_surface": "Spec140 project-agent Runtime Constitution compiler and delivery",
+      "doc_path": "docs/focusa-tools/tools/focusa_instruction_sources.md",
+      "spec_path": "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_or_preview_only",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus typed /v1/agent-runtime route verification",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "agent-runtime"
+      },
+      "authority_requirement": {
+        "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_instruction_conflicts",
+      "family": "agent_runtime",
+      "label": "Instruction Conflicts",
+      "purpose": "Operate the Spec 140 instruction conflicts surface with typed scope and evidence.",
+      "ontology_action": "instruction.conflicts",
+      "ontology_objects": [
+        "ProjectAgentRuntimeConstitution",
+        "InstructionClaim",
+        "RuntimeArtifactProjection"
+      ],
+      "api_routes": [
+        "GET /v1/agent-runtime/instructions/conflicts"
+      ],
+      "cli_commands": [
+        "focusa agent-runtime conflicts"
+      ],
+      "core_surface": "Spec140 project-agent Runtime Constitution compiler and delivery",
+      "doc_path": "docs/focusa-tools/tools/focusa_instruction_conflicts.md",
+      "spec_path": "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_or_preview_only",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus typed /v1/agent-runtime route verification",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "agent-runtime"
+      },
+      "authority_requirement": {
+        "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_instruction_explain",
+      "family": "agent_runtime",
+      "label": "Instruction Explain",
+      "purpose": "Operate the Spec 140 instruction explain surface with typed scope and evidence.",
+      "ontology_action": "instruction.explain",
+      "ontology_objects": [
+        "ProjectAgentRuntimeConstitution",
+        "InstructionClaim",
+        "RuntimeArtifactProjection"
+      ],
+      "api_routes": [
+        "GET /v1/agent-runtime/instructions/claims"
+      ],
+      "cli_commands": [
+        "focusa agent-runtime claims"
+      ],
+      "core_surface": "Spec140 project-agent Runtime Constitution compiler and delivery",
+      "doc_path": "docs/focusa-tools/tools/focusa_instruction_explain.md",
+      "spec_path": "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_or_preview_only",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus typed /v1/agent-runtime route verification",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "agent-runtime"
+      },
+      "authority_requirement": {
+        "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_instruction_simulate",
+      "family": "agent_runtime",
+      "label": "Instruction Simulate",
+      "purpose": "Operate the Spec 140 instruction simulate surface with typed scope and evidence.",
+      "ontology_action": "instruction.simulate",
+      "ontology_objects": [
+        "ProjectAgentRuntimeConstitution",
+        "InstructionClaim",
+        "RuntimeArtifactProjection"
+      ],
+      "api_routes": [
+        "POST /v1/agent-runtime/instructions/simulate"
+      ],
+      "cli_commands": [
+        "focusa agent-runtime simulate"
+      ],
+      "core_surface": "Spec140 project-agent Runtime Constitution compiler and delivery",
+      "doc_path": "docs/focusa-tools/tools/focusa_instruction_simulate.md",
+      "spec_path": "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_or_preview_only",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus typed /v1/agent-runtime route verification",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "agent-runtime"
+      },
+      "authority_requirement": {
+        "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_runtime_constitution_preview",
+      "family": "agent_runtime",
+      "label": "Runtime Constitution Preview",
+      "purpose": "Operate the Spec 140 runtime constitution preview surface with typed scope and evidence.",
+      "ontology_action": "runtime_constitution.preview",
+      "ontology_objects": [
+        "ProjectAgentRuntimeConstitution",
+        "InstructionClaim",
+        "RuntimeArtifactProjection"
+      ],
+      "api_routes": [
+        "POST /v1/agent-runtime/constitutions/{id}/preview"
+      ],
+      "cli_commands": [
+        "focusa agent-runtime constitution preview"
+      ],
+      "core_surface": "Spec140 project-agent Runtime Constitution compiler and delivery",
+      "doc_path": "docs/focusa-tools/tools/focusa_runtime_constitution_preview.md",
+      "spec_path": "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_or_preview_only",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus typed /v1/agent-runtime route verification",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "agent-runtime"
+      },
+      "authority_requirement": {
+        "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_prompt_variant_preview",
+      "family": "agent_runtime",
+      "label": "Prompt Variant Preview",
+      "purpose": "Operate the Spec 140 prompt variant preview surface with typed scope and evidence.",
+      "ontology_action": "prompt_variant.preview",
+      "ontology_objects": [
+        "ProjectAgentRuntimeConstitution",
+        "InstructionClaim",
+        "RuntimeArtifactProjection"
+      ],
+      "api_routes": [
+        "POST /v1/agent-runtime/compile/system-prompt"
+      ],
+      "cli_commands": [
+        "focusa agent-runtime prompt preview"
+      ],
+      "core_surface": "Spec140 project-agent Runtime Constitution compiler and delivery",
+      "doc_path": "docs/focusa-tools/tools/focusa_prompt_variant_preview.md",
+      "spec_path": "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_or_preview_only",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus typed /v1/agent-runtime route verification",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "agent-runtime"
+      },
+      "authority_requirement": {
+        "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_prompt_variant_diff",
+      "family": "agent_runtime",
+      "label": "Prompt Variant Diff",
+      "purpose": "Operate the Spec 140 prompt variant diff surface with typed scope and evidence.",
+      "ontology_action": "prompt_variant.diff",
+      "ontology_objects": [
+        "ProjectAgentRuntimeConstitution",
+        "InstructionClaim",
+        "RuntimeArtifactProjection"
+      ],
+      "api_routes": [],
+      "cli_commands": [
+        "focusa agent-runtime prompt diff"
+      ],
+      "core_surface": "Spec140 project-agent Runtime Constitution compiler and delivery",
+      "doc_path": "docs/focusa-tools/tools/focusa_prompt_variant_diff.md",
+      "spec_path": "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_or_preview_only",
+      "parity_status": "pi_only",
+      "exemptions": [
+        "pi_only"
+      ],
+      "live_check": "contract_static plus typed /v1/agent-runtime route verification",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "agent-runtime"
+      },
+      "authority_requirement": {
+        "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_agent_artifact_preview",
+      "family": "agent_runtime",
+      "label": "Agent Artifact Preview",
+      "purpose": "Operate the Spec 140 agent artifact preview surface with typed scope and evidence.",
+      "ontology_action": "artifact.preview",
+      "ontology_objects": [
+        "ProjectAgentRuntimeConstitution",
+        "InstructionClaim",
+        "RuntimeArtifactProjection"
+      ],
+      "api_routes": [
+        "POST /v1/agent-runtime/delivery/preview"
+      ],
+      "cli_commands": [
+        "focusa agent-runtime artifacts preview"
+      ],
+      "core_surface": "Spec140 project-agent Runtime Constitution compiler and delivery",
+      "doc_path": "docs/focusa-tools/tools/focusa_agent_artifact_preview.md",
+      "spec_path": "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_or_preview_only",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus typed /v1/agent-runtime route verification",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "agent-runtime"
+      },
+      "authority_requirement": {
+        "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_agent_artifact_delivery",
+      "family": "agent_runtime",
+      "label": "Agent Artifact Delivery",
+      "purpose": "Operate the Spec 140 agent artifact delivery surface with typed scope and evidence.",
+      "ontology_action": "artifact.delivery",
+      "ontology_objects": [
+        "ProjectAgentRuntimeConstitution",
+        "InstructionClaim",
+        "RuntimeArtifactProjection"
+      ],
+      "api_routes": [
+        "POST /v1/agent-runtime/delivery/commit"
+      ],
+      "cli_commands": [
+        "focusa agent-runtime artifacts apply"
+      ],
+      "core_surface": "Spec140 project-agent Runtime Constitution compiler and delivery",
+      "doc_path": "docs/focusa-tools/tools/focusa_agent_artifact_delivery.md",
+      "spec_path": "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "confirmed_receipted_artifact_delivery",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus typed /v1/agent-runtime route verification",
+      "scope_requirement": {
+        "kind": "write",
+        "route_family": "agent-runtime"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/agent-runtime/delivery/commit"
+      }
+    },
+    {
+      "name": "focusa_agent_artifact_verify",
+      "family": "agent_runtime",
+      "label": "Agent Artifact Verify",
+      "purpose": "Operate the Spec 140 agent artifact verify surface with typed scope and evidence.",
+      "ontology_action": "artifact.verify",
+      "ontology_objects": [
+        "ProjectAgentRuntimeConstitution",
+        "InstructionClaim",
+        "RuntimeArtifactProjection"
+      ],
+      "api_routes": [
+        "POST /v1/agent-runtime/delivery/verify"
+      ],
+      "cli_commands": [
+        "focusa agent-runtime artifacts verify"
+      ],
+      "core_surface": "Spec140 project-agent Runtime Constitution compiler and delivery",
+      "doc_path": "docs/focusa-tools/tools/focusa_agent_artifact_verify.md",
+      "spec_path": "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_or_preview_only",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus typed /v1/agent-runtime route verification",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "agent-runtime"
+      },
+      "authority_requirement": {
+        "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_instruction_integrity_evaluate",
+      "family": "agent_runtime",
+      "label": "Instruction Integrity Evaluate",
+      "purpose": "Operate the Spec 140 instruction integrity evaluate surface with typed scope and evidence.",
+      "ontology_action": "instruction.integrity_evaluate",
+      "ontology_objects": [
+        "ProjectAgentRuntimeConstitution",
+        "InstructionClaim",
+        "RuntimeArtifactProjection"
+      ],
+      "api_routes": [
+        "POST /v1/agent-runtime/instruction-integrity/evaluate"
+      ],
+      "cli_commands": [
+        "focusa agent-runtime integrity-evaluate"
+      ],
+      "core_surface": "Spec140 project-agent Runtime Constitution compiler and delivery",
+      "doc_path": "docs/focusa-tools/tools/focusa_instruction_integrity_evaluate.md",
+      "spec_path": "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "confirmed_receipted_artifact_delivery",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus typed /v1/agent-runtime route verification",
+      "scope_requirement": {
+        "kind": "write",
+        "route_family": "agent-runtime"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/agent-runtime/delivery/commit"
+      }
+    },
+    {
+      "name": "focusa_instruction_integrity_status",
+      "family": "agent_runtime",
+      "label": "Instruction Integrity Status",
+      "purpose": "Operate the Spec 140 instruction integrity status surface with typed scope and evidence.",
+      "ontology_action": "instruction.integrity_status",
+      "ontology_objects": [
+        "ProjectAgentRuntimeConstitution",
+        "InstructionClaim",
+        "RuntimeArtifactProjection"
+      ],
+      "api_routes": [
+        "GET /v1/agent-runtime/instruction-integrity/status"
+      ],
+      "cli_commands": [
+        "focusa agent-runtime integrity-status"
+      ],
+      "core_surface": "Spec140 project-agent Runtime Constitution compiler and delivery",
+      "doc_path": "docs/focusa-tools/tools/focusa_instruction_integrity_status.md",
+      "spec_path": "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_or_preview_only",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus typed /v1/agent-runtime route verification",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "agent-runtime"
+      },
+      "authority_requirement": {
+        "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_canonical_instruction_amendment_propose",
+      "family": "agent_runtime",
+      "label": "Canonical Instruction Amendment Propose",
+      "purpose": "Operate the Spec 140 canonical instruction amendment propose surface with typed scope and evidence.",
+      "ontology_action": "instruction.amendment_propose",
+      "ontology_objects": [
+        "ProjectAgentRuntimeConstitution",
+        "InstructionClaim",
+        "RuntimeArtifactProjection"
+      ],
+      "api_routes": [
+        "POST /v1/agent-runtime/amendments/propose"
+      ],
+      "cli_commands": [
+        "focusa agent-runtime amendment-propose"
+      ],
+      "core_surface": "Spec140 project-agent Runtime Constitution compiler and delivery",
+      "doc_path": "docs/focusa-tools/tools/focusa_canonical_instruction_amendment_propose.md",
+      "spec_path": "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "confirmed_receipted_artifact_delivery",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus typed /v1/agent-runtime route verification",
+      "scope_requirement": {
+        "kind": "write",
+        "route_family": "agent-runtime"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/agent-runtime/delivery/commit"
+      }
+    },
+    {
+      "name": "focusa_canonical_instruction_amendment_activate",
+      "family": "agent_runtime",
+      "label": "Canonical Instruction Amendment Activate",
+      "purpose": "Operate the Spec 140 canonical instruction amendment activate surface with typed scope and evidence.",
+      "ontology_action": "instruction.amendment_activate",
+      "ontology_objects": [
+        "ProjectAgentRuntimeConstitution",
+        "InstructionClaim",
+        "RuntimeArtifactProjection"
+      ],
+      "api_routes": [
+        "POST /v1/agent-runtime/amendments/activate"
+      ],
+      "cli_commands": [
+        "focusa agent-runtime amendment-activate"
+      ],
+      "core_surface": "Spec140 project-agent Runtime Constitution compiler and delivery",
+      "doc_path": "docs/focusa-tools/tools/focusa_canonical_instruction_amendment_activate.md",
+      "spec_path": "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "confirmed_receipted_artifact_delivery",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus typed /v1/agent-runtime route verification",
+      "scope_requirement": {
+        "kind": "write",
+        "route_family": "agent-runtime"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/agent-runtime/delivery/commit"
+      }
+    },
+    {
+      "name": "focusa_agent_runtime_headless_verify",
+      "family": "agent_runtime",
+      "label": "Agent Runtime Headless Verify",
+      "purpose": "Operate the Spec 140 agent runtime headless verify surface with typed scope and evidence.",
+      "ontology_action": "instruction.headless_verify",
+      "ontology_objects": [
+        "ProjectAgentRuntimeConstitution",
+        "InstructionClaim",
+        "RuntimeArtifactProjection"
+      ],
+      "api_routes": [
+        "POST /v1/agent-runtime/headless/verify"
+      ],
+      "cli_commands": [
+        "focusa agent-runtime headless-verify"
+      ],
+      "core_surface": "Spec140 project-agent Runtime Constitution compiler and delivery",
+      "doc_path": "docs/focusa-tools/tools/focusa_agent_runtime_headless_verify.md",
+      "spec_path": "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "confirmed_receipted_artifact_delivery",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus typed /v1/agent-runtime route verification",
+      "scope_requirement": {
+        "kind": "write",
+        "route_family": "agent-runtime"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "/v1/agent-runtime/delivery/commit"
+      }
+    },
+    {
+      "name": "focusa_agent_runtime_doctor",
+      "family": "agent_runtime",
+      "label": "Agent Runtime Doctor",
+      "purpose": "Operate the Spec 140 agent runtime doctor surface with typed scope and evidence.",
+      "ontology_action": "runtime_constitution.doctor",
+      "ontology_objects": [
+        "ProjectAgentRuntimeConstitution",
+        "InstructionClaim",
+        "RuntimeArtifactProjection"
+      ],
+      "api_routes": [
+        "GET /v1/agent-runtime/doctor"
+      ],
+      "cli_commands": [
+        "focusa agent-runtime doctor"
+      ],
+      "core_surface": "Spec140 project-agent Runtime Constitution compiler and delivery",
+      "doc_path": "docs/focusa-tools/tools/focusa_agent_runtime_doctor.md",
+      "spec_path": "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_or_preview_only",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "contract_static plus typed /v1/agent-runtime route verification",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "agent-runtime"
+      },
+      "authority_requirement": {
+        "kind": "advisory_only"
+      }
+    },
     {
       "name": "focusa_preload_profiles",
       "family": "preload",
@@ -251,6 +817,37 @@
       "authority_requirement": {
         "kind": "canonical",
         "path": "/v1/preload/receipt-commit"
+      }
+    },
+    {
+      "name": "focusa_north_star_gate",
+      "label": "North Star Gate",
+      "purpose": "Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier authority chain.",
+      "family": "trajectory",
+      "ontology_action": "north_star.inspect",
+      "ontology_objects": [
+        "ProjectIdentity",
+        "Trajectory",
+        "Workpoint"
+      ],
+      "api_routes": [],
+      "cli_commands": [],
+      "core_surface": "Continuous north-star authority gate",
+      "doc_path": "docs/focusa-tools/tools/focusa_north_star_gate.md",
+      "spec_path": "docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "read_state",
+      "parity_status": "pi_only",
+      "exemptions": [
+        "pi_only"
+      ],
+      "live_check": "north-star gate tests plus lifecycle transition projection",
+      "scope_requirement": {
+        "kind": "read",
+        "route_family": "trajectory"
+      },
+      "authority_requirement": {
+        "kind": "advisory_only"
       }
     },
     {
@@ -1771,7 +2368,7 @@
     {
       "name": "focusa_silent_sessions",
       "label": "Focusa Silent Sessions (daemon facade)",
-      "purpose": "Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility.",
+      "purpose": "Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery.",
       "family": "work_loop",
       "ontology_action": "work_loop.silent_session.control",
       "ontology_objects": [
@@ -3698,7 +4295,8 @@
       ],
       "api_routes": [
         "POST /v1/prediction-authority/events",
-        "POST /v1/prediction-authority/projection"
+        "POST /v1/prediction-authority/projection",
+        "GET /v1/prediction-authority/projection"
       ],
       "cli_commands": [
         "focusa predict authority-append",

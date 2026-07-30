@@ -1,6 +1,6 @@
 {
   "schema": "focusa.rest_agent_operation_projection.v2",
-  "registry_digest": "sha256:90f1f14e40eb2ddeb24781ebeeb1d22da9b23aa2fefd5c11e0f35ddb4782fc9e",
+  "registry_digest": "sha256:2f72bb14976765ed62aabfad5d553dd2a7df6eac0c71e8342d7d822dbbbc7bce",
   "operations": [
     {
       "method": "POST",
@@ -236,6 +236,723 @@
         }
       ],
       "docs_ref": "docs/focusa-tools/tools/focusa_active_object_resolve.md"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/agent-runtime/delivery/commit",
+      "capability_id": "focusa.agent.artifact.delivery",
+      "operation_id": "focusa_agent_artifact_delivery",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "request",
+          "confirmed"
+        ],
+        "properties": {
+          "request": {
+            "description": "Typed delivery request."
+          },
+          "confirmed": {
+            "description": "Explicit operator confirmation.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "canonical",
+        "path": "/v1/agent-runtime/delivery/commit"
+      },
+      "permissions": [
+        {
+          "route": "POST /v1/agent-runtime/delivery/commit",
+          "scope": {
+            "kind": "write",
+            "route_family": "agent-runtime"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_agent_artifact_delivery.md"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/agent-runtime/delivery/preview",
+      "capability_id": "focusa.agent.artifact.preview",
+      "operation_id": "focusa_agent_artifact_preview",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "request"
+        ],
+        "properties": {
+          "request": {
+            "description": "Typed delivery preview request."
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "advisory_only"
+      },
+      "permissions": [
+        {
+          "route": "POST /v1/agent-runtime/delivery/preview",
+          "scope": {
+            "kind": "read",
+            "route_family": "agent-runtime"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_agent_artifact_preview.md"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/agent-runtime/delivery/verify",
+      "capability_id": "focusa.agent.artifact.verify",
+      "operation_id": "focusa_agent_artifact_verify",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "request"
+        ],
+        "properties": {
+          "request": {
+            "description": "Typed delivery verification request."
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "advisory_only"
+      },
+      "permissions": [
+        {
+          "route": "POST /v1/agent-runtime/delivery/verify",
+          "scope": {
+            "kind": "read",
+            "route_family": "agent-runtime"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_agent_artifact_verify.md"
     },
     {
       "method": "GET",
@@ -701,6 +1418,716 @@
         }
       ],
       "docs_ref": "docs/focusa-tools/tools/focusa_agent_prompt.md"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/agent-runtime/doctor",
+      "capability_id": "focusa.agent.runtime.doctor",
+      "operation_id": "focusa_agent_runtime_doctor",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "advisory_only"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/agent-runtime/doctor",
+          "scope": {
+            "kind": "read",
+            "route_family": "agent-runtime"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_agent_runtime_doctor.md"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/agent-runtime/instructions/effective",
+      "capability_id": "focusa.agent.runtime.effective",
+      "operation_id": "focusa_agent_runtime_effective",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "project_root"
+        ],
+        "properties": {
+          "project_root": {
+            "description": "Verified absolute project root.",
+            "type": "string"
+          },
+          "max_source_bytes": {
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "advisory_only"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/agent-runtime/instructions/effective",
+          "scope": {
+            "kind": "read",
+            "route_family": "agent-runtime"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_agent_runtime_effective.md"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/agent-runtime/headless/verify",
+      "capability_id": "focusa.agent.runtime.headless.verify",
+      "operation_id": "focusa_agent_runtime_headless_verify",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "request"
+        ],
+        "properties": {
+          "request": {
+            "description": "Typed headless parity envelope."
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "canonical",
+        "path": "/v1/agent-runtime/delivery/commit"
+      },
+      "permissions": [
+        {
+          "route": "POST /v1/agent-runtime/headless/verify",
+          "scope": {
+            "kind": "write",
+            "route_family": "agent-runtime"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_agent_runtime_headless_verify.md"
     },
     {
       "method": "GET",
@@ -6393,6 +7820,487 @@
         }
       ],
       "docs_ref": "docs/focusa-tools/tools/focusa_call_stack_verify.md"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/agent-runtime/amendments/activate",
+      "capability_id": "focusa.canonical.instruction.amendment.activate",
+      "operation_id": "focusa_canonical_instruction_amendment_activate",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "request",
+          "confirmed"
+        ],
+        "properties": {
+          "request": {
+            "description": "Typed approved amendment activation envelope."
+          },
+          "confirmed": {
+            "description": "Explicit operator confirmation for activation.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "canonical",
+        "path": "/v1/agent-runtime/delivery/commit"
+      },
+      "permissions": [
+        {
+          "route": "POST /v1/agent-runtime/amendments/activate",
+          "scope": {
+            "kind": "write",
+            "route_family": "agent-runtime"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_canonical_instruction_amendment_activate.md"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/agent-runtime/amendments/propose",
+      "capability_id": "focusa.canonical.instruction.amendment.propose",
+      "operation_id": "focusa_canonical_instruction_amendment_propose",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "request"
+        ],
+        "properties": {
+          "request": {
+            "description": "Typed amendment proposal envelope."
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "canonical",
+        "path": "/v1/agent-runtime/delivery/commit"
+      },
+      "permissions": [
+        {
+          "route": "POST /v1/agent-runtime/amendments/propose",
+          "scope": {
+            "kind": "write",
+            "route_family": "agent-runtime"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_canonical_instruction_amendment_propose.md"
     },
     {
       "method": "POST",
@@ -12482,6 +14390,1451 @@
         }
       ],
       "docs_ref": "docs/focusa-tools/tools/focusa_hlt_history.md"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/agent-runtime/instructions/conflicts",
+      "capability_id": "focusa.instruction.conflicts",
+      "operation_id": "focusa_instruction_conflicts",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "project_root"
+        ],
+        "properties": {
+          "project_root": {
+            "type": "string"
+          },
+          "max_source_bytes": {
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "advisory_only"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/agent-runtime/instructions/conflicts",
+          "scope": {
+            "kind": "read",
+            "route_family": "agent-runtime"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_instruction_conflicts.md"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/agent-runtime/instructions/claims",
+      "capability_id": "focusa.instruction.explain",
+      "operation_id": "focusa_instruction_explain",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "project_root",
+          "claim_id"
+        ],
+        "properties": {
+          "project_root": {
+            "type": "string"
+          },
+          "claim_id": {
+            "type": "string"
+          },
+          "max_source_bytes": {
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "advisory_only"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/agent-runtime/instructions/claims",
+          "scope": {
+            "kind": "read",
+            "route_family": "agent-runtime"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_instruction_explain.md"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/agent-runtime/instruction-integrity/evaluate",
+      "capability_id": "focusa.instruction.integrity.evaluate",
+      "operation_id": "focusa_instruction_integrity_evaluate",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "request"
+        ],
+        "properties": {
+          "request": {
+            "description": "Typed integrity event envelope."
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "canonical",
+        "path": "/v1/agent-runtime/delivery/commit"
+      },
+      "permissions": [
+        {
+          "route": "POST /v1/agent-runtime/instruction-integrity/evaluate",
+          "scope": {
+            "kind": "write",
+            "route_family": "agent-runtime"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_instruction_integrity_evaluate.md"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/agent-runtime/instruction-integrity/status",
+      "capability_id": "focusa.instruction.integrity.status",
+      "operation_id": "focusa_instruction_integrity_status",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "advisory_only"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/agent-runtime/instruction-integrity/status",
+          "scope": {
+            "kind": "read",
+            "route_family": "agent-runtime"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_instruction_integrity_status.md"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/agent-runtime/instructions/simulate",
+      "capability_id": "focusa.instruction.simulate",
+      "operation_id": "focusa_instruction_simulate",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "project_root"
+        ],
+        "properties": {
+          "project_root": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "profile": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "max_source_bytes": {
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "advisory_only"
+      },
+      "permissions": [
+        {
+          "route": "POST /v1/agent-runtime/instructions/simulate",
+          "scope": {
+            "kind": "read",
+            "route_family": "agent-runtime"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_instruction_simulate.md"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/agent-runtime/instructions/sources",
+      "capability_id": "focusa.instruction.sources",
+      "operation_id": "focusa_instruction_sources",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "project_root"
+        ],
+        "properties": {
+          "project_root": {
+            "type": "string"
+          },
+          "max_source_bytes": {
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "advisory_only"
+      },
+      "permissions": [
+        {
+          "route": "GET /v1/agent-runtime/instructions/sources",
+          "scope": {
+            "kind": "read",
+            "route_family": "agent-runtime"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_instruction_sources.md"
     },
     {
       "method": "POST",
@@ -19434,6 +22787,13 @@
             "kind": "read",
             "route_family": "auto"
           }
+        },
+        {
+          "route": "GET /v1/prediction-authority/projection",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
         }
       ],
       "docs_ref": "docs/focusa-tools/tools/focusa_prediction_authority.md"
@@ -19694,6 +23054,284 @@
         },
         {
           "route": "POST /v1/prediction-authority/projection",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/prediction-authority/projection",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_prediction_authority.md"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/prediction-authority/projection",
+      "capability_id": "focusa.prediction.authority",
+      "operation_id": "focusa_prediction_authority",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "const": "append",
+                "type": "string"
+              },
+              {
+                "const": "projection",
+                "type": "string"
+              }
+            ]
+          },
+          "event": {
+            "description": "ScopedAuthorityEvent when action=append."
+          },
+          "project_root": {
+            "description": "Explicit or current verified project root.",
+            "type": "string"
+          },
+          "continuity_id": {
+            "description": "Explicit or current continuity id.",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "advisory_only"
+      },
+      "permissions": [
+        {
+          "route": "POST /v1/prediction-authority/events",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "POST /v1/prediction-authority/projection",
+          "scope": {
+            "kind": "read",
+            "route_family": "auto"
+          }
+        },
+        {
+          "route": "GET /v1/prediction-authority/projection",
           "scope": {
             "kind": "read",
             "route_family": "auto"
@@ -25524,6 +29162,243 @@
     },
     {
       "method": "POST",
+      "path": "/v1/agent-runtime/compile/system-prompt",
+      "capability_id": "focusa.prompt.variant.preview",
+      "operation_id": "focusa_prompt_variant_preview",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "request"
+        ],
+        "properties": {
+          "request": {
+            "description": "Typed PromptCompileInput request."
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "advisory_only"
+      },
+      "permissions": [
+        {
+          "route": "POST /v1/agent-runtime/compile/system-prompt",
+          "scope": {
+            "kind": "read",
+            "route_family": "agent-runtime"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_prompt_variant_preview.md"
+    },
+    {
+      "method": "POST",
       "path": "/v1/focus/update",
       "capability_id": "focusa.recent.result",
       "operation_id": "focusa_recent_result",
@@ -26616,6 +30491,247 @@
         }
       ],
       "docs_ref": "docs/focusa-tools/tools/focusa_resource_mode.md"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/agent-runtime/constitutions/{id}/preview",
+      "capability_id": "focusa.runtime.constitution.preview",
+      "operation_id": "focusa_runtime_constitution_preview",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "constitution_id",
+          "request"
+        ],
+        "properties": {
+          "constitution_id": {
+            "type": "string"
+          },
+          "request": {
+            "description": "Typed PromptCompileInput request."
+          }
+        },
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text",
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "properties": {
+              "tool_result_v1": {
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema",
+                  "ok",
+                  "status",
+                  "failure_class",
+                  "canonical",
+                  "degraded",
+                  "summary",
+                  "retry",
+                  "side_effects",
+                  "evidence_refs",
+                  "next_tools"
+                ],
+                "properties": {
+                  "schema": {
+                    "const": "focusa.tool_result.v1",
+                    "type": "string"
+                  },
+                  "ok": {
+                    "type": "boolean"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "const": "accepted",
+                        "type": "string"
+                      },
+                      {
+                        "const": "completed",
+                        "type": "string"
+                      },
+                      {
+                        "const": "no_op",
+                        "type": "string"
+                      },
+                      {
+                        "const": "blocked",
+                        "type": "string"
+                      },
+                      {
+                        "const": "validation_rejected",
+                        "type": "string"
+                      },
+                      {
+                        "const": "degraded",
+                        "type": "string"
+                      },
+                      {
+                        "const": "offline",
+                        "type": "string"
+                      },
+                      {
+                        "const": "error",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "failure_class": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "canonical": {
+                    "type": "boolean"
+                  },
+                  "degraded": {
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "retry": {
+                    "additionalProperties": false,
+                    "type": "object",
+                    "required": [
+                      "safe",
+                      "posture"
+                    ],
+                    "properties": {
+                      "safe": {
+                        "type": "boolean"
+                      },
+                      "posture": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "side_effects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "evidence_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "next_tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "recovery_hint": {
+                    "type": "string"
+                  },
+                  "misuse_hint": {
+                    "type": "string"
+                  },
+                  "details": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "error_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "failure_class",
+          "retryable",
+          "posture",
+          "recovery"
+        ],
+        "properties": {
+          "failure_class": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "posture": {
+            "type": "string",
+            "enum": [
+              "safe_retry",
+              "retry_with_idempotency_key",
+              "check_side_effects_first",
+              "do_not_retry_unchanged",
+              "operator_required"
+            ]
+          },
+          "field": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "recovery": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "authority": {
+        "kind": "advisory_only"
+      },
+      "permissions": [
+        {
+          "route": "POST /v1/agent-runtime/constitutions/{id}/preview",
+          "scope": {
+            "kind": "read",
+            "route_family": "agent-runtime"
+          }
+        }
+      ],
+      "docs_ref": "docs/focusa-tools/tools/focusa_runtime_constitution_preview.md"
     },
     {
       "method": "POST",
@@ -35599,6 +39715,26 @@
               {
                 "const": "preflight",
                 "type": "string"
+              },
+              {
+                "const": "migrate-signatures",
+                "type": "string"
+              },
+              {
+                "const": "high-consequence-preflight",
+                "type": "string"
+              },
+              {
+                "const": "capture-clock",
+                "type": "string"
+              },
+              {
+                "const": "resolve-civil-time",
+                "type": "string"
+              },
+              {
+                "const": "commit-priority",
+                "type": "string"
               }
             ]
           },
@@ -35606,6 +39742,21 @@
             "type": "string"
           },
           "continuity_id": {
+            "type": "string"
+          },
+          "host_id": {
+            "type": "string"
+          },
+          "operator_id": {
+            "type": "string"
+          },
+          "workpoint_id": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "task_id": {
             "type": "string"
           },
           "idempotency_key": {
@@ -35620,6 +39771,89 @@
           "phase": {
             "type": "string"
           },
+          "timezone": {
+            "type": "string"
+          },
+          "tzdb_version": {
+            "type": "string"
+          },
+          "forecast_authority": {
+            "type": "object",
+            "required": [
+              "claim_kind",
+              "target_state",
+              "scope_revision",
+              "expires_at",
+              "estimator_version",
+              "cohort",
+              "evidence_basis",
+              "comparable_sample_count",
+              "all_attempt_sample_count",
+              "censoring_method",
+              "correlation_method",
+              "calibration_profile",
+              "grounding_status",
+              "baseline_ref",
+              "drift_policy_ref"
+            ],
+            "properties": {
+              "claim_kind": {
+                "const": "forecast",
+                "type": "string"
+              },
+              "target_state": {
+                "type": "string"
+              },
+              "scope_revision": {
+                "type": "string"
+              },
+              "expires_at": {
+                "type": "string"
+              },
+              "estimator_version": {
+                "type": "string"
+              },
+              "cohort": {
+                "type": "string"
+              },
+              "evidence_basis": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "comparable_sample_count": {
+                "type": "number"
+              },
+              "all_attempt_sample_count": {
+                "type": "number"
+              },
+              "censoring_method": {
+                "type": "string"
+              },
+              "correlation_method": {
+                "type": "string"
+              },
+              "calibration_profile": {
+                "type": "string"
+              },
+              "grounding_status": {
+                "const": "grounded",
+                "type": "string"
+              },
+              "baseline_ref": {
+                "type": "string"
+              },
+              "drift_policy_ref": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "forecast_evaluation": {},
+          "high_consequence_packet": {},
+          "civil_time_packet": {},
+          "temporal_priority_packet": {},
           "duration_ms": {
             "type": "number"
           },
@@ -35670,6 +39904,21 @@
                     "type": "string"
                   },
                   "continuity_id": {
+                    "type": "string"
+                  },
+                  "host_id": {
+                    "type": "string"
+                  },
+                  "operator_id": {
+                    "type": "string"
+                  },
+                  "workpoint_id": {
+                    "type": "string"
+                  },
+                  "item_id": {
+                    "type": "string"
+                  },
+                  "task_id": {
                     "type": "string"
                   }
                 },
@@ -36040,6 +40289,26 @@
               {
                 "const": "preflight",
                 "type": "string"
+              },
+              {
+                "const": "migrate-signatures",
+                "type": "string"
+              },
+              {
+                "const": "high-consequence-preflight",
+                "type": "string"
+              },
+              {
+                "const": "capture-clock",
+                "type": "string"
+              },
+              {
+                "const": "resolve-civil-time",
+                "type": "string"
+              },
+              {
+                "const": "commit-priority",
+                "type": "string"
               }
             ]
           },
@@ -36047,6 +40316,21 @@
             "type": "string"
           },
           "continuity_id": {
+            "type": "string"
+          },
+          "host_id": {
+            "type": "string"
+          },
+          "operator_id": {
+            "type": "string"
+          },
+          "workpoint_id": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "task_id": {
             "type": "string"
           },
           "idempotency_key": {
@@ -36061,6 +40345,89 @@
           "phase": {
             "type": "string"
           },
+          "timezone": {
+            "type": "string"
+          },
+          "tzdb_version": {
+            "type": "string"
+          },
+          "forecast_authority": {
+            "type": "object",
+            "required": [
+              "claim_kind",
+              "target_state",
+              "scope_revision",
+              "expires_at",
+              "estimator_version",
+              "cohort",
+              "evidence_basis",
+              "comparable_sample_count",
+              "all_attempt_sample_count",
+              "censoring_method",
+              "correlation_method",
+              "calibration_profile",
+              "grounding_status",
+              "baseline_ref",
+              "drift_policy_ref"
+            ],
+            "properties": {
+              "claim_kind": {
+                "const": "forecast",
+                "type": "string"
+              },
+              "target_state": {
+                "type": "string"
+              },
+              "scope_revision": {
+                "type": "string"
+              },
+              "expires_at": {
+                "type": "string"
+              },
+              "estimator_version": {
+                "type": "string"
+              },
+              "cohort": {
+                "type": "string"
+              },
+              "evidence_basis": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "comparable_sample_count": {
+                "type": "number"
+              },
+              "all_attempt_sample_count": {
+                "type": "number"
+              },
+              "censoring_method": {
+                "type": "string"
+              },
+              "correlation_method": {
+                "type": "string"
+              },
+              "calibration_profile": {
+                "type": "string"
+              },
+              "grounding_status": {
+                "const": "grounded",
+                "type": "string"
+              },
+              "baseline_ref": {
+                "type": "string"
+              },
+              "drift_policy_ref": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "forecast_evaluation": {},
+          "high_consequence_packet": {},
+          "civil_time_packet": {},
+          "temporal_priority_packet": {},
           "duration_ms": {
             "type": "number"
           },
@@ -36111,6 +40478,21 @@
                     "type": "string"
                   },
                   "continuity_id": {
+                    "type": "string"
+                  },
+                  "host_id": {
+                    "type": "string"
+                  },
+                  "operator_id": {
+                    "type": "string"
+                  },
+                  "workpoint_id": {
+                    "type": "string"
+                  },
+                  "item_id": {
+                    "type": "string"
+                  },
+                  "task_id": {
                     "type": "string"
                   }
                 },
@@ -36481,6 +40863,26 @@
               {
                 "const": "preflight",
                 "type": "string"
+              },
+              {
+                "const": "migrate-signatures",
+                "type": "string"
+              },
+              {
+                "const": "high-consequence-preflight",
+                "type": "string"
+              },
+              {
+                "const": "capture-clock",
+                "type": "string"
+              },
+              {
+                "const": "resolve-civil-time",
+                "type": "string"
+              },
+              {
+                "const": "commit-priority",
+                "type": "string"
               }
             ]
           },
@@ -36488,6 +40890,21 @@
             "type": "string"
           },
           "continuity_id": {
+            "type": "string"
+          },
+          "host_id": {
+            "type": "string"
+          },
+          "operator_id": {
+            "type": "string"
+          },
+          "workpoint_id": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "task_id": {
             "type": "string"
           },
           "idempotency_key": {
@@ -36502,6 +40919,89 @@
           "phase": {
             "type": "string"
           },
+          "timezone": {
+            "type": "string"
+          },
+          "tzdb_version": {
+            "type": "string"
+          },
+          "forecast_authority": {
+            "type": "object",
+            "required": [
+              "claim_kind",
+              "target_state",
+              "scope_revision",
+              "expires_at",
+              "estimator_version",
+              "cohort",
+              "evidence_basis",
+              "comparable_sample_count",
+              "all_attempt_sample_count",
+              "censoring_method",
+              "correlation_method",
+              "calibration_profile",
+              "grounding_status",
+              "baseline_ref",
+              "drift_policy_ref"
+            ],
+            "properties": {
+              "claim_kind": {
+                "const": "forecast",
+                "type": "string"
+              },
+              "target_state": {
+                "type": "string"
+              },
+              "scope_revision": {
+                "type": "string"
+              },
+              "expires_at": {
+                "type": "string"
+              },
+              "estimator_version": {
+                "type": "string"
+              },
+              "cohort": {
+                "type": "string"
+              },
+              "evidence_basis": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "comparable_sample_count": {
+                "type": "number"
+              },
+              "all_attempt_sample_count": {
+                "type": "number"
+              },
+              "censoring_method": {
+                "type": "string"
+              },
+              "correlation_method": {
+                "type": "string"
+              },
+              "calibration_profile": {
+                "type": "string"
+              },
+              "grounding_status": {
+                "const": "grounded",
+                "type": "string"
+              },
+              "baseline_ref": {
+                "type": "string"
+              },
+              "drift_policy_ref": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "forecast_evaluation": {},
+          "high_consequence_packet": {},
+          "civil_time_packet": {},
+          "temporal_priority_packet": {},
           "duration_ms": {
             "type": "number"
           },
@@ -36552,6 +41052,21 @@
                     "type": "string"
                   },
                   "continuity_id": {
+                    "type": "string"
+                  },
+                  "host_id": {
+                    "type": "string"
+                  },
+                  "operator_id": {
+                    "type": "string"
+                  },
+                  "workpoint_id": {
+                    "type": "string"
+                  },
+                  "item_id": {
+                    "type": "string"
+                  },
+                  "task_id": {
                     "type": "string"
                   }
                 },
@@ -36922,6 +41437,26 @@
               {
                 "const": "preflight",
                 "type": "string"
+              },
+              {
+                "const": "migrate-signatures",
+                "type": "string"
+              },
+              {
+                "const": "high-consequence-preflight",
+                "type": "string"
+              },
+              {
+                "const": "capture-clock",
+                "type": "string"
+              },
+              {
+                "const": "resolve-civil-time",
+                "type": "string"
+              },
+              {
+                "const": "commit-priority",
+                "type": "string"
               }
             ]
           },
@@ -36929,6 +41464,21 @@
             "type": "string"
           },
           "continuity_id": {
+            "type": "string"
+          },
+          "host_id": {
+            "type": "string"
+          },
+          "operator_id": {
+            "type": "string"
+          },
+          "workpoint_id": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "task_id": {
             "type": "string"
           },
           "idempotency_key": {
@@ -36943,6 +41493,89 @@
           "phase": {
             "type": "string"
           },
+          "timezone": {
+            "type": "string"
+          },
+          "tzdb_version": {
+            "type": "string"
+          },
+          "forecast_authority": {
+            "type": "object",
+            "required": [
+              "claim_kind",
+              "target_state",
+              "scope_revision",
+              "expires_at",
+              "estimator_version",
+              "cohort",
+              "evidence_basis",
+              "comparable_sample_count",
+              "all_attempt_sample_count",
+              "censoring_method",
+              "correlation_method",
+              "calibration_profile",
+              "grounding_status",
+              "baseline_ref",
+              "drift_policy_ref"
+            ],
+            "properties": {
+              "claim_kind": {
+                "const": "forecast",
+                "type": "string"
+              },
+              "target_state": {
+                "type": "string"
+              },
+              "scope_revision": {
+                "type": "string"
+              },
+              "expires_at": {
+                "type": "string"
+              },
+              "estimator_version": {
+                "type": "string"
+              },
+              "cohort": {
+                "type": "string"
+              },
+              "evidence_basis": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "comparable_sample_count": {
+                "type": "number"
+              },
+              "all_attempt_sample_count": {
+                "type": "number"
+              },
+              "censoring_method": {
+                "type": "string"
+              },
+              "correlation_method": {
+                "type": "string"
+              },
+              "calibration_profile": {
+                "type": "string"
+              },
+              "grounding_status": {
+                "const": "grounded",
+                "type": "string"
+              },
+              "baseline_ref": {
+                "type": "string"
+              },
+              "drift_policy_ref": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "forecast_evaluation": {},
+          "high_consequence_packet": {},
+          "civil_time_packet": {},
+          "temporal_priority_packet": {},
           "duration_ms": {
             "type": "number"
           },
@@ -36993,6 +41626,21 @@
                     "type": "string"
                   },
                   "continuity_id": {
+                    "type": "string"
+                  },
+                  "host_id": {
+                    "type": "string"
+                  },
+                  "operator_id": {
+                    "type": "string"
+                  },
+                  "workpoint_id": {
+                    "type": "string"
+                  },
+                  "item_id": {
+                    "type": "string"
+                  },
+                  "task_id": {
                     "type": "string"
                   }
                 },
@@ -37363,6 +42011,26 @@
               {
                 "const": "preflight",
                 "type": "string"
+              },
+              {
+                "const": "migrate-signatures",
+                "type": "string"
+              },
+              {
+                "const": "high-consequence-preflight",
+                "type": "string"
+              },
+              {
+                "const": "capture-clock",
+                "type": "string"
+              },
+              {
+                "const": "resolve-civil-time",
+                "type": "string"
+              },
+              {
+                "const": "commit-priority",
+                "type": "string"
               }
             ]
           },
@@ -37370,6 +42038,21 @@
             "type": "string"
           },
           "continuity_id": {
+            "type": "string"
+          },
+          "host_id": {
+            "type": "string"
+          },
+          "operator_id": {
+            "type": "string"
+          },
+          "workpoint_id": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "task_id": {
             "type": "string"
           },
           "idempotency_key": {
@@ -37384,6 +42067,89 @@
           "phase": {
             "type": "string"
           },
+          "timezone": {
+            "type": "string"
+          },
+          "tzdb_version": {
+            "type": "string"
+          },
+          "forecast_authority": {
+            "type": "object",
+            "required": [
+              "claim_kind",
+              "target_state",
+              "scope_revision",
+              "expires_at",
+              "estimator_version",
+              "cohort",
+              "evidence_basis",
+              "comparable_sample_count",
+              "all_attempt_sample_count",
+              "censoring_method",
+              "correlation_method",
+              "calibration_profile",
+              "grounding_status",
+              "baseline_ref",
+              "drift_policy_ref"
+            ],
+            "properties": {
+              "claim_kind": {
+                "const": "forecast",
+                "type": "string"
+              },
+              "target_state": {
+                "type": "string"
+              },
+              "scope_revision": {
+                "type": "string"
+              },
+              "expires_at": {
+                "type": "string"
+              },
+              "estimator_version": {
+                "type": "string"
+              },
+              "cohort": {
+                "type": "string"
+              },
+              "evidence_basis": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "comparable_sample_count": {
+                "type": "number"
+              },
+              "all_attempt_sample_count": {
+                "type": "number"
+              },
+              "censoring_method": {
+                "type": "string"
+              },
+              "correlation_method": {
+                "type": "string"
+              },
+              "calibration_profile": {
+                "type": "string"
+              },
+              "grounding_status": {
+                "const": "grounded",
+                "type": "string"
+              },
+              "baseline_ref": {
+                "type": "string"
+              },
+              "drift_policy_ref": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "forecast_evaluation": {},
+          "high_consequence_packet": {},
+          "civil_time_packet": {},
+          "temporal_priority_packet": {},
           "duration_ms": {
             "type": "number"
           },
@@ -37434,6 +42200,21 @@
                     "type": "string"
                   },
                   "continuity_id": {
+                    "type": "string"
+                  },
+                  "host_id": {
+                    "type": "string"
+                  },
+                  "operator_id": {
+                    "type": "string"
+                  },
+                  "workpoint_id": {
+                    "type": "string"
+                  },
+                  "item_id": {
+                    "type": "string"
+                  },
+                  "task_id": {
                     "type": "string"
                   }
                 },
@@ -37804,6 +42585,26 @@
               {
                 "const": "preflight",
                 "type": "string"
+              },
+              {
+                "const": "migrate-signatures",
+                "type": "string"
+              },
+              {
+                "const": "high-consequence-preflight",
+                "type": "string"
+              },
+              {
+                "const": "capture-clock",
+                "type": "string"
+              },
+              {
+                "const": "resolve-civil-time",
+                "type": "string"
+              },
+              {
+                "const": "commit-priority",
+                "type": "string"
               }
             ]
           },
@@ -37811,6 +42612,21 @@
             "type": "string"
           },
           "continuity_id": {
+            "type": "string"
+          },
+          "host_id": {
+            "type": "string"
+          },
+          "operator_id": {
+            "type": "string"
+          },
+          "workpoint_id": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "task_id": {
             "type": "string"
           },
           "idempotency_key": {
@@ -37825,6 +42641,89 @@
           "phase": {
             "type": "string"
           },
+          "timezone": {
+            "type": "string"
+          },
+          "tzdb_version": {
+            "type": "string"
+          },
+          "forecast_authority": {
+            "type": "object",
+            "required": [
+              "claim_kind",
+              "target_state",
+              "scope_revision",
+              "expires_at",
+              "estimator_version",
+              "cohort",
+              "evidence_basis",
+              "comparable_sample_count",
+              "all_attempt_sample_count",
+              "censoring_method",
+              "correlation_method",
+              "calibration_profile",
+              "grounding_status",
+              "baseline_ref",
+              "drift_policy_ref"
+            ],
+            "properties": {
+              "claim_kind": {
+                "const": "forecast",
+                "type": "string"
+              },
+              "target_state": {
+                "type": "string"
+              },
+              "scope_revision": {
+                "type": "string"
+              },
+              "expires_at": {
+                "type": "string"
+              },
+              "estimator_version": {
+                "type": "string"
+              },
+              "cohort": {
+                "type": "string"
+              },
+              "evidence_basis": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "comparable_sample_count": {
+                "type": "number"
+              },
+              "all_attempt_sample_count": {
+                "type": "number"
+              },
+              "censoring_method": {
+                "type": "string"
+              },
+              "correlation_method": {
+                "type": "string"
+              },
+              "calibration_profile": {
+                "type": "string"
+              },
+              "grounding_status": {
+                "const": "grounded",
+                "type": "string"
+              },
+              "baseline_ref": {
+                "type": "string"
+              },
+              "drift_policy_ref": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "forecast_evaluation": {},
+          "high_consequence_packet": {},
+          "civil_time_packet": {},
+          "temporal_priority_packet": {},
           "duration_ms": {
             "type": "number"
           },
@@ -37875,6 +42774,21 @@
                     "type": "string"
                   },
                   "continuity_id": {
+                    "type": "string"
+                  },
+                  "host_id": {
+                    "type": "string"
+                  },
+                  "operator_id": {
+                    "type": "string"
+                  },
+                  "workpoint_id": {
+                    "type": "string"
+                  },
+                  "item_id": {
+                    "type": "string"
+                  },
+                  "task_id": {
                     "type": "string"
                   }
                 },

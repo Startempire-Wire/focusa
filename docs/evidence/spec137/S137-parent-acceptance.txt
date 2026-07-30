@@ -1,0 +1,27 @@
+Spec137 Parent Zero-Omission Acceptance Evidence
+Generated: 2026-07-30T09:12:55Z
+Project: Focusa
+Scope: 86 parent requirement rows
+Status: PASS
+
+Verified gates:
+- rustup run nightly cargo check -p focusa-core -p focusa-api -p focusa-cli -p focusa-tui
+- rustup run nightly cargo test -p focusa-core temporal
+- rustup run nightly cargo test -p focusa-api temporal
+- rustup run nightly cargo test -p focusa-cli temporal
+- rustup run nightly cargo test -p focusa-tui
+- python3 tests/spec137_temporal_authority_release_gate_test.py
+- apps/menubar: npm run check
+- apps/pi-extension: npm run typecheck
+- apps/pi-extension: npm run lint
+- apps/pi-extension: npm run test:north-star-gate
+- npx --no-install tsx scripts/generate-agent-capability-descriptors.ts --check
+- git diff --check
+
+Source SHA-256:
+35f78d1d2d25786dc230bfac10f54eab353ba287d12b6cc8a8525898fb864ae6  docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md
+9a774bcd47dfda0d4e6cf6a66920e58803a641110c280337c7d572e47792b2d2  docs/contracts/spec137-complete-feature-ledger.v1.yaml
+c591a449db0c6d724c831641661f565b9212c1ce2499d48df669d46c58efa01f  docs/contracts/137-focusa-parent-zero-omission-receipt.v1.yaml
+
+Boundary:
+This evidence closes the Spec137 parent implementation slice only. Combined Spec137A source closure remains independently required and is not claimed here.

@@ -1,5 +1,8 @@
 <script lang="ts">
   import RuntimeView from './RuntimeView.svelte';
+  import EpistemicAuthorityPeek from './EpistemicAuthorityPeek.svelte';
+  import InstructionIntegrityPeek from './InstructionIntegrityPeek.svelte';
+  import TemporalAuthorityPeek from './TemporalAuthorityPeek.svelte';
 
   // Static contract markers retained for Spec96/106 Mission Canvas gates:
   // Mission-centered Focusa status | mission-brief | MISSION | ProjectIdentity | Continuity ID
@@ -22,6 +25,9 @@
     Mission Canvas is ready. Recovery actions appear without replacing the selected project or session.
   </div>
   <RuntimeView />
+  <TemporalAuthorityPeek />
+  <EpistemicAuthorityPeek />
+  <InstructionIntegrityPeek />
 </section>
 
 <style>

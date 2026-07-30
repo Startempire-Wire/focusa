@@ -1,0 +1,629 @@
+1|Identity and scope|PredictionProgram
+1|Identity and scope|PredictionQuestion
+1|Identity and scope|PredictionTarget
+1|Identity and scope|TargetDefinition
+1|Identity and scope|TargetEntityScope
+1|Identity and scope|TargetPopulationScope
+1|Identity and scope|TargetCohort
+1|Identity and scope|TargetMetric
+1|Identity and scope|TargetEventDefinition
+1|Identity and scope|TargetStateDefinition
+1|Identity and scope|TargetResolutionContract
+1|Identity and scope|ForecastHorizon
+1|Identity and scope|ForecastSeries
+1|Identity and scope|ForecastBatch
+1|Identity and scope|ForecastPortfolio
+1|Identity and scope|ForecastDependencyGraph
+1|Identity and scope|ForecastConsistencyConstraint
+1|Identity and scope|PredictionLineage
+1|Identity and scope|PredictionFork
+1|Identity and scope|PredictionSupersession
+2|Source, acquisition, and evidence|SourceIdentity
+2|Source, acquisition, and evidence|SourceVersion
+2|Source, acquisition, and evidence|SourceClass
+2|Source, acquisition, and evidence|SourceAccessClass
+2|Source, acquisition, and evidence|AcquisitionAuthority
+2|Source, acquisition, and evidence|AcquisitionMethod
+2|Source, acquisition, and evidence|SourceLicenseReference
+2|Source, acquisition, and evidence|SourceTermsReference
+2|Source, acquisition, and evidence|SourceRetentionPolicy
+2|Source, acquisition, and evidence|SourceRedistributionPolicy
+2|Source, acquisition, and evidence|SourceTrustProfile
+2|Source, acquisition, and evidence|SourceReliabilityProfile
+2|Source, acquisition, and evidence|SourceIndependenceProfile
+2|Source, acquisition, and evidence|SourceLatencyProfile
+2|Source, acquisition, and evidence|SourceFreshnessProfile
+2|Source, acquisition, and evidence|SourceRevisionPolicy
+2|Source, acquisition, and evidence|SourceManipulationRisk
+2|Source, acquisition, and evidence|SourceDeceptionRisk
+2|Source, acquisition, and evidence|SourcePromptInjectionRisk
+2|Source, acquisition, and evidence|SourcePoisoningRisk
+2|Source, acquisition, and evidence|SourceAttributionConfidence
+2|Source, acquisition, and evidence|SourceSanitizationReceipt
+2|Source, acquisition, and evidence|SourceQuarantineDisposition
+2|Source, acquisition, and evidence|EvidenceBundle
+2|Source, acquisition, and evidence|EvidenceClaim
+2|Source, acquisition, and evidence|EvidenceConflict
+2|Source, acquisition, and evidence|EvidenceRevision
+2|Source, acquisition, and evidence|EvidenceQualityProfile
+3|Observation and indicator|ObservationDefinition
+3|Observation and indicator|ObservationValue
+3|Observation and indicator|ObservationSeries
+3|Observation and indicator|ObservationRevision
+3|Observation and indicator|ObservationAvailability
+3|Observation and indicator|ObservationUncertainty
+3|Observation and indicator|IndicatorDefinition
+3|Observation and indicator|IndicatorObservation
+3|Observation and indicator|IndicatorRole
+3|Observation and indicator|IndicatorDirection
+3|Observation and indicator|IndicatorPolarity
+3|Observation and indicator|IndicatorStrengthScale
+3|Observation and indicator|IndicatorNormalizationPolicy
+3|Observation and indicator|IndicatorThresholdPolicy
+3|Observation and indicator|IndicatorLatencyProfile
+3|Observation and indicator|IndicatorLeadLagProfile
+3|Observation and indicator|IndicatorFreshnessPolicy
+3|Observation and indicator|IndicatorDecayPolicy
+3|Observation and indicator|IndicatorReliabilityProfile
+3|Observation and indicator|IndicatorRegimeProfile
+3|Observation and indicator|IndicatorCausalStatus
+3|Observation and indicator|IndicatorTargetRelationship
+3|Observation and indicator|IndicatorValidationRelationship
+3|Observation and indicator|IndicatorMissingnessPolicy
+3|Observation and indicator|IndicatorOutlierPolicy
+3|Observation and indicator|IndicatorQualityProfile
+3|Observation and indicator|IndicatorContribution
+4|Indicator roles|leading
+4|Indicator roles|coincident
+4|Indicator roles|lagging
+4|Indicator roles|confirmatory
+4|Indicator roles|contextual
+4|Indicator roles|structural
+4|Indicator roles|trigger
+4|Indicator roles|inhibitor
+4|Indicator roles|moderator
+4|Indicator roles|mediator
+4|Indicator roles|proxy
+4|Indicator roles|control
+4|Indicator roles|sentinel
+4|Indicator roles|anomaly
+5|Feature and derived-state primitives|FeatureDefinition
+5|Feature and derived-state primitives|FeatureValue
+5|Feature and derived-state primitives|FeatureSeries
+5|Feature and derived-state primitives|FeatureWindow
+5|Feature and derived-state primitives|FeatureTransformation
+5|Feature and derived-state primitives|FeatureNormalization
+5|Feature and derived-state primitives|FeatureImputation
+5|Feature and derived-state primitives|FeatureMissingness
+5|Feature and derived-state primitives|FeatureRevision
+5|Feature and derived-state primitives|FeatureDependencyGraph
+5|Feature and derived-state primitives|FeatureLeakageAssessment
+5|Feature and derived-state primitives|FeatureStabilityProfile
+5|Feature and derived-state primitives|FeatureDriftProfile
+5|Feature and derived-state primitives|FeatureContribution
+5|Feature and derived-state primitives|FeatureInteraction
+5|Feature and derived-state primitives|FeatureSelectionRecord
+5|Feature and derived-state primitives|FeatureAblationResult
+6|Fusion, triangulation, and weighting|FusionPolicy
+6|Fusion, triangulation, and weighting|CompositeSignal
+6|Fusion, triangulation, and weighting|CompositeScore
+6|Fusion, triangulation, and weighting|CompositeContribution
+6|Fusion, triangulation, and weighting|SignalWeight
+6|Fusion, triangulation, and weighting|WeightPolicy
+6|Fusion, triangulation, and weighting|WeightOrigin
+6|Fusion, triangulation, and weighting|WeightPrior
+6|Fusion, triangulation, and weighting|WeightPosterior
+6|Fusion, triangulation, and weighting|WeightContext
+6|Fusion, triangulation, and weighting|WeightRegimeOverride
+6|Fusion, triangulation, and weighting|WeightDecay
+6|Fusion, triangulation, and weighting|WeightUncertainty
+6|Fusion, triangulation, and weighting|WeightLearningRecord
+6|Fusion, triangulation, and weighting|WeightVersion
+6|Fusion, triangulation, and weighting|NormalizationPolicy
+6|Fusion, triangulation, and weighting|MissingnessPolicy
+6|Fusion, triangulation, and weighting|ImputationPolicy
+6|Fusion, triangulation, and weighting|CorrelationGraph
+6|Fusion, triangulation, and weighting|CorrelationPenalty
+6|Fusion, triangulation, and weighting|RedundancyGraph
+6|Fusion, triangulation, and weighting|RedundancyPenalty
+6|Fusion, triangulation, and weighting|IndependenceGraph
+6|Fusion, triangulation, and weighting|TriangulationPolicy
+6|Fusion, triangulation, and weighting|TriangulationResult
+6|Fusion, triangulation, and weighting|AgreementMeasure
+6|Fusion, triangulation, and weighting|ContradictionMeasure
+6|Fusion, triangulation, and weighting|DiversityRequirement
+6|Fusion, triangulation, and weighting|MinimumIndependentSupport
+6|Fusion, triangulation, and weighting|SourceAgreementProfile
+6|Fusion, triangulation, and weighting|SourceConflictProfile
+6|Fusion, triangulation, and weighting|SensitivityAnalysis
+6|Fusion, triangulation, and weighting|ThresholdPolicy
+6|Fusion, triangulation, and weighting|HysteresisPolicy
+6|Fusion, triangulation, and weighting|AlertBand
+7|Information-set primitives|InformationSetSnapshot
+7|Information-set primitives|InformationSetItem
+7|Information-set primitives|AvailabilityTimestamp
+7|Information-set primitives|FirstAvailableTimestamp
+7|Information-set primitives|AsOfTimestamp
+7|Information-set primitives|SourceSnapshotReference
+7|Information-set primitives|DatasetSnapshotReference
+7|Information-set primitives|FeatureSnapshotReference
+7|Information-set primitives|ObservationSnapshotReference
+7|Information-set primitives|SignalSnapshotReference
+7|Information-set primitives|ExcludedInformationReference
+7|Information-set primitives|UnavailableInformationReference
+7|Information-set primitives|StaleInformationReference
+7|Information-set primitives|LateInformationReference
+7|Information-set primitives|LeakageCertificate
+7|Information-set primitives|ContaminationRecord
+7|Information-set primitives|InformationSetHash
+7|Information-set primitives|InformationSetRevision
+8|Forecaster and model provenance|ForecasterIdentity
+8|Forecaster and model provenance|ForecasterClass
+8|Forecaster and model provenance|ModelIdentity
+8|Forecaster and model provenance|ModelVersion
+8|Forecaster and model provenance|ModelArtifactReference
+8|Forecaster and model provenance|PromptIdentity
+8|Forecaster and model provenance|PromptVersion
+8|Forecaster and model provenance|PolicyIdentity
+8|Forecaster and model provenance|PolicyVersion
+8|Forecaster and model provenance|CodeCommitReference
+8|Forecaster and model provenance|ContainerDigestReference
+8|Forecaster and model provenance|DependencyManifestReference
+8|Forecaster and model provenance|TrainingDatasetReference
+8|Forecaster and model provenance|TrainingWindow
+8|Forecaster and model provenance|ValidationWindow
+8|Forecaster and model provenance|HyperparameterSet
+8|Forecaster and model provenance|RandomSeedReference
+8|Forecaster and model provenance|FeatureSetReference
+8|Forecaster and model provenance|CalibrationVersion
+8|Forecaster and model provenance|ScorerVersion
+8|Forecaster and model provenance|BaselineManifestReference
+8|Forecaster and model provenance|ReproducibilityManifest
+9|Forecast commitment primitives|PredictionCommitment
+9|Forecast commitment primitives|ForecastValue
+9|Forecast commitment primitives|ForecastDistribution
+9|Forecast commitment primitives|ForecastCondition
+9|Forecast commitment primitives|ForecastAssumption
+9|Forecast commitment primitives|ForecastConstraint
+9|Forecast commitment primitives|ForecastRationale
+9|Forecast commitment primitives|ForecastEvidenceMap
+9|Forecast commitment primitives|ForecastActionRecommendation
+9|Forecast commitment primitives|ForecastDecisionRelevance
+9|Forecast commitment primitives|ForecastAbstention
+9|Forecast commitment primitives|ForecastInvalidationCondition
+9|Forecast commitment primitives|ForecastExpiry
+9|Forecast commitment primitives|ForecastRevisionProposal
+9|Forecast commitment primitives|ForecastStatus
+10|Forecast shapes|ranking
+10|Forecast shapes|abstain
+11|Uncertainty primitives|UncertaintyEnvelope
+11|Uncertainty primitives|UncertaintyDecomposition
+11|Uncertainty primitives|AleatoricUncertainty
+11|Uncertainty primitives|EpistemicUncertainty
+11|Uncertainty primitives|DataUncertainty
+11|Uncertainty primitives|MeasurementUncertainty
+11|Uncertainty primitives|SourceUncertainty
+11|Uncertainty primitives|ModelUncertainty
+11|Uncertainty primitives|ParameterUncertainty
+11|Uncertainty primitives|StructuralUncertainty
+11|Uncertainty primitives|RegimeUncertainty
+11|Uncertainty primitives|TemporalUncertaintyReference
+11|Uncertainty primitives|ResolutionUncertainty
+11|Uncertainty primitives|ScenarioUncertainty
+11|Uncertainty primitives|ExecutionUncertainty
+11|Uncertainty primitives|MissingnessUncertainty
+11|Uncertainty primitives|AttributionUncertainty
+11|Uncertainty primitives|UnknownUncertainty
+11|Uncertainty primitives|UncertaintyCorrelation
+11|Uncertainty primitives|UncertaintyBudget
+11|Uncertainty primitives|UncertaintyPropagationPolicy
+11|Uncertainty primitives|ConfidenceInterval
+11|Uncertainty primitives|CredibleInterval
+11|Uncertainty primitives|PredictionInterval
+12|Scenario and counterfactual primitives|ScenarioDefinition
+12|Scenario and counterfactual primitives|ScenarioAssumptionSet
+12|Scenario and counterfactual primitives|ScenarioBranch
+12|Scenario and counterfactual primitives|ScenarioBranchProbability
+12|Scenario and counterfactual primitives|ScenarioTrigger
+12|Scenario and counterfactual primitives|ScenarioPath
+12|Scenario and counterfactual primitives|ScenarioState
+12|Scenario and counterfactual primitives|ScenarioOutcome
+12|Scenario and counterfactual primitives|ScenarioResidualBranch
+12|Scenario and counterfactual primitives|ScenarioStressTest
+12|Scenario and counterfactual primitives|ScenarioSensitivity
+12|Scenario and counterfactual primitives|ScenarioComparison
+12|Scenario and counterfactual primitives|ScenarioRevision
+12|Scenario and counterfactual primitives|ScenarioInvalidation
+12|Scenario and counterfactual primitives|CounterfactualQuestion
+12|Scenario and counterfactual primitives|CounterfactualAssumption
+12|Scenario and counterfactual primitives|CounterfactualWorld
+12|Scenario and counterfactual primitives|CounterfactualOutcome
+12|Scenario and counterfactual primitives|CounterfactualComparison
+12|Scenario and counterfactual primitives|CausalGraphReference
+12|Scenario and counterfactual primitives|CausalEffectClaim
+12|Scenario and counterfactual primitives|InterventionVariable
+12|Scenario and counterfactual primitives|ConfounderReference
+13|Meta-prediction primitives|ForecastCorrectnessPrediction
+13|Meta-prediction primitives|ForecasterCompetencePrediction
+13|Meta-prediction primitives|SourceFailurePrediction
+13|Meta-prediction primitives|SourceRevisionPrediction
+13|Meta-prediction primitives|CalibrationDriftPrediction
+13|Meta-prediction primitives|RegimeShiftPrediction
+13|Meta-prediction primitives|LearningTransferPrediction
+13|Meta-prediction primitives|InterventionEffectPrediction
+13|Meta-prediction primitives|ResolutionRiskPrediction
+13|Meta-prediction primitives|DataAvailabilityPrediction
+13|Meta-prediction primitives|ValueOfInformationPrediction
+13|Meta-prediction primitives|ExpectedRegretPrediction
+13|Meta-prediction primitives|ModelSelectionPrediction
+13|Meta-prediction primitives|ToolRoutePrediction
+13|Meta-prediction primitives|ActionSuccessPrediction
+14|Outcome and resolution primitives|OutcomeClaim
+14|Outcome and resolution primitives|OutcomeClaimant
+14|Outcome and resolution primitives|OutcomeEvidence
+14|Outcome and resolution primitives|OutcomeResolver
+14|Outcome and resolution primitives|OutcomeResolverVersion
+14|Outcome and resolution primitives|ResolutionRule
+14|Outcome and resolution primitives|ResolutionPolicy
+14|Outcome and resolution primitives|ResolutionAuthority
+14|Outcome and resolution primitives|ResolutionWindow
+14|Outcome and resolution primitives|ResolutionAttempt
+14|Outcome and resolution primitives|OutcomeResolution
+14|Outcome and resolution primitives|OutcomeComponent
+14|Outcome and resolution primitives|PartialOutcome
+14|Outcome and resolution primitives|CompositeOutcome
+14|Outcome and resolution primitives|OutcomeUncertainty
+14|Outcome and resolution primitives|OutcomeDispute
+14|Outcome and resolution primitives|OutcomeConflict
+14|Outcome and resolution primitives|OutcomeRevision
+14|Outcome and resolution primitives|OutcomeCorrection
+14|Outcome and resolution primitives|OutcomeVoid
+14|Outcome and resolution primitives|OutcomeCensoring
+14|Outcome and resolution primitives|CensoringReason
+14|Outcome and resolution primitives|OutcomeFinality
+14|Outcome and resolution primitives|ResolutionReceipt
+15|Scoring and calibration primitives|ScoringPolicy
+15|Scoring and calibration primitives|ScoringRule
+15|Scoring and calibration primitives|ScorerIdentity
+15|Scoring and calibration primitives|ScorerVersion
+15|Scoring and calibration primitives|ScoreComponent
+15|Scoring and calibration primitives|PredictionEvaluation
+15|Scoring and calibration primitives|EvaluationCohort
+15|Scoring and calibration primitives|EvaluationWindow
+15|Scoring and calibration primitives|EvaluationBaseline
+15|Scoring and calibration primitives|BaselineForecast
+15|Scoring and calibration primitives|SkillScore
+15|Scoring and calibration primitives|CalibrationCohort
+15|Scoring and calibration primitives|CalibrationBucket
+15|Scoring and calibration primitives|CalibrationReport
+15|Scoring and calibration primitives|ReliabilityCurve
+15|Scoring and calibration primitives|CalibrationError
+15|Scoring and calibration primitives|SharpnessMeasure
+15|Scoring and calibration primitives|CoverageMeasure
+15|Scoring and calibration primitives|BiasMeasure
+15|Scoring and calibration primitives|DiscriminationMeasure
+15|Scoring and calibration primitives|RankingMeasure
+15|Scoring and calibration primitives|DecisionValueMeasure
+15|Scoring and calibration primitives|AsymmetricLossPolicy
+15|Scoring and calibration primitives|CostMatrix
+15|Scoring and calibration primitives|RegretMeasure
+15|Scoring and calibration primitives|ValueOfInformationMeasure
+15|Scoring and calibration primitives|EvaluationUncertainty
+15|Scoring and calibration primitives|EvaluationCorrection
+15|Scoring and calibration primitives|EvaluationReceipt
+16|Required scoring registry|ndcg
+17|Decision and action primitives|DecisionCandidate
+17|Decision and action primitives|DecisionContext
+17|Decision and action primitives|DecisionPolicy
+17|Decision and action primitives|DecisionThreshold
+17|Decision and action primitives|DecisionBand
+17|Decision and action primitives|DecisionHysteresis
+17|Decision and action primitives|ActionCandidate
+17|Decision and action primitives|ActionRecommendation
+17|Decision and action primitives|ActionAbstention
+17|Decision and action primitives|ActionCost
+17|Decision and action primitives|ActionBenefit
+17|Decision and action primitives|ActionRisk
+17|Decision and action primitives|ActionConstraint
+17|Decision and action primitives|ExpectedUtilityModel
+17|Decision and action primitives|ExpectedRegretModel
+17|Decision and action primitives|ValueOfInformationPolicy
+17|Decision and action primitives|InformationAcquisitionAction
+17|Decision and action primitives|DecisionOutcomeLink
+17|Decision and action primitives|DecisionReceipt
+18|Experiment and validation primitives|PredictionExperiment
+18|Experiment and validation primitives|PredictionHypothesis
+18|Experiment and validation primitives|ExperimentProtocol
+18|Experiment and validation primitives|ControlDefinition
+18|Experiment and validation primitives|TreatmentDefinition
+18|Experiment and validation primitives|RandomizationPolicy
+18|Experiment and validation primitives|HoldoutPolicy
+18|Experiment and validation primitives|WalkForwardPolicy
+18|Experiment and validation primitives|CrossValidationPolicy
+18|Experiment and validation primitives|NegativeControl
+18|Experiment and validation primitives|PositiveControl
+18|Experiment and validation primitives|AblationDefinition
+18|Experiment and validation primitives|AblationResult
+18|Experiment and validation primitives|SensitivityResult
+18|Experiment and validation primitives|RobustnessResult
+18|Experiment and validation primitives|MultipleTestingFamily
+18|Experiment and validation primitives|MultipleTestingCorrection
+18|Experiment and validation primitives|FalseDiscoveryAssessment
+18|Experiment and validation primitives|BacktestOverfittingAssessment
+18|Experiment and validation primitives|LeakageAssessment
+18|Experiment and validation primitives|ContaminationAssessment
+18|Experiment and validation primitives|SurvivorshipAssessment
+18|Experiment and validation primitives|SelectionBiasAssessment
+18|Experiment and validation primitives|PublicationBiasAssessment
+18|Experiment and validation primitives|ExperimentOutcome
+18|Experiment and validation primitives|ExperimentConclusion
+18|Experiment and validation primitives|ExperimentPromotionGate
+19|Metacognitive signal primitives|MetacognitiveSignal
+19|Metacognitive signal primitives|LearningSignal
+19|Metacognitive signal primitives|SurpriseSignal
+19|Metacognitive signal primitives|PredictionMissSignal
+19|Metacognitive signal primitives|HighConfidenceMiss
+19|Metacognitive signal primitives|LowConfidenceMiss
+19|Metacognitive signal primitives|UnexpectedSuccess
+19|Metacognitive signal primitives|UnexpectedFailure
+19|Metacognitive signal primitives|CalibrationFailure
+19|Metacognitive signal primitives|SourceFailure
+19|Metacognitive signal primitives|DataQualityFailure
+19|Metacognitive signal primitives|ToolFailure
+19|Metacognitive signal primitives|ExecutionFailure
+19|Metacognitive signal primitives|AuthorityFailure
+19|Metacognitive signal primitives|ScopeFailure
+19|Metacognitive signal primitives|TemporalFailure
+19|Metacognitive signal primitives|ResolutionFailure
+19|Metacognitive signal primitives|ReasoningFailure
+19|Metacognitive signal primitives|CausalFailure
+19|Metacognitive signal primitives|RegimeFailure
+19|Metacognitive signal primitives|TransferFailure
+19|Metacognitive signal primitives|NegativeTransferSignal
+19|Metacognitive signal primitives|ContradictionSignal
+19|Metacognitive signal primitives|AnomalySignal
+19|Metacognitive signal primitives|BiasSignal
+19|Metacognitive signal primitives|DriftSignal
+19|Metacognitive signal primitives|OperatorOverrideSignal
+20|Reflection primitives|ReflectionRequest
+20|Reflection primitives|ReflectionWindow
+20|Reflection primitives|ReflectionInputSet
+20|Reflection primitives|ReflectionClaim
+20|Reflection primitives|ReflectionObservation
+20|Reflection primitives|ReflectionHypothesis
+20|Reflection primitives|AlternativeHypothesis
+20|Reflection primitives|NullHypothesis
+20|Reflection primitives|RootCauseHypothesis
+20|Reflection primitives|CausalAttribution
+20|Reflection primitives|ContributingFactor
+20|Reflection primitives|Confounder
+20|Reflection primitives|Counterevidence
+20|Reflection primitives|DisconfirmingEvidence
+20|Reflection primitives|UnknownCause
+20|Reflection primitives|ErrorClassification
+20|Reflection primitives|BiasClassification
+20|Reflection primitives|CapabilityGap
+20|Reflection primitives|CompetenceAssessment
+20|Reflection primitives|ReflectionConfidence
+20|Reflection primitives|ReflectionUncertainty
+20|Reflection primitives|ReflectionRecommendation
+20|Reflection primitives|ReflectionReceipt
+21|Adjustment and intervention primitives|AdjustmentProposal
+21|Adjustment and intervention primitives|AdjustmentTarget
+21|Adjustment and intervention primitives|PolicyAdjustment
+21|Adjustment and intervention primitives|StrategyAdjustment
+21|Adjustment and intervention primitives|WeightAdjustment
+21|Adjustment and intervention primitives|ThresholdAdjustment
+21|Adjustment and intervention primitives|DataAdjustment
+21|Adjustment and intervention primitives|ToolRouteAdjustment
+21|Adjustment and intervention primitives|PromptAdjustment
+21|Adjustment and intervention primitives|ModelAdjustment
+21|Adjustment and intervention primitives|ProcessAdjustment
+21|Adjustment and intervention primitives|SafetyAdjustment
+21|Adjustment and intervention primitives|InterventionDefinition
+21|Adjustment and intervention primitives|InterventionMechanism
+21|Adjustment and intervention primitives|ExpectedEffect
+21|Adjustment and intervention primitives|ExpectedEffectDistribution
+21|Adjustment and intervention primitives|AffectedMetric
+21|Adjustment and intervention primitives|AffectedContext
+21|Adjustment and intervention primitives|AdjustmentConstraint
+21|Adjustment and intervention primitives|AdjustmentRisk
+21|Adjustment and intervention primitives|AdjustmentRollback
+21|Adjustment and intervention primitives|AdjustmentEvaluationPlan
+21|Adjustment and intervention primitives|AdjustmentStatus
+21|Adjustment and intervention primitives|AdjustmentReceipt
+22|Learning evaluation primitives|MetricDefinition
+22|Learning evaluation primitives|MetricObservation
+22|Learning evaluation primitives|MetricBaseline
+22|Learning evaluation primitives|MetricExpectation
+22|Learning evaluation primitives|MetricDelta
+22|Learning evaluation primitives|MetricDirection
+22|Learning evaluation primitives|MetricUnit
+22|Learning evaluation primitives|MetricSampleSize
+22|Learning evaluation primitives|MetricUncertainty
+22|Learning evaluation primitives|MetricEvidence
+22|Learning evaluation primitives|EffectSize
+22|Learning evaluation primitives|StatisticalSignificance
+22|Learning evaluation primitives|PracticalSignificance
+22|Learning evaluation primitives|RobustnessAssessment
+22|Learning evaluation primitives|RegressionAssessment
+22|Learning evaluation primitives|ConfounderAssessment
+22|Learning evaluation primitives|NegativeControlResult
+22|Learning evaluation primitives|PositiveControlResult
+22|Learning evaluation primitives|InterventionAdherence
+22|Learning evaluation primitives|EvaluationCompleteness
+22|Learning evaluation primitives|LearningEvaluation
+22|Learning evaluation primitives|LearningEvaluationConclusion
+23|Learning candidate and promotion primitives|LearningCandidate
+23|Learning candidate and promotion primitives|LearningStatement
+23|Learning candidate and promotion primitives|LearningType
+23|Learning candidate and promotion primitives|LearningEvidenceMap
+23|Learning candidate and promotion primitives|LearningRationale
+23|Learning candidate and promotion primitives|LearningConfidence
+23|Learning candidate and promotion primitives|LearningUncertainty
+23|Learning candidate and promotion primitives|ApplicabilityEnvelope
+23|Learning candidate and promotion primitives|ApplicabilityCondition
+23|Learning candidate and promotion primitives|ApplicabilityExclusion
+23|Learning candidate and promotion primitives|ApplicabilityCohort
+23|Learning candidate and promotion primitives|ApplicabilityRegime
+23|Learning candidate and promotion primitives|ApplicabilityHorizon
+23|Learning candidate and promotion primitives|LearningRisk
+23|Learning candidate and promotion primitives|LearningExpiryPolicy
+23|Learning candidate and promotion primitives|LearningReviewPolicy
+23|Learning candidate and promotion primitives|LearningRollbackPolicy
+23|Learning candidate and promotion primitives|PromotionPolicy
+23|Learning candidate and promotion primitives|PromotionGate
+23|Learning candidate and promotion primitives|PromotionDecision
+23|Learning candidate and promotion primitives|PromotionInhibition
+23|Learning candidate and promotion primitives|PromotionOverride
+23|Learning candidate and promotion primitives|PromotionReceipt
+23|Learning candidate and promotion primitives|LearningRecord
+23|Learning candidate and promotion primitives|LearningVersion
+23|Learning candidate and promotion primitives|LearningStatus
+23|Learning candidate and promotion primitives|promote
+23|Learning candidate and promotion primitives|inhibit
+23|Learning candidate and promotion primitives|reject
+23|Learning candidate and promotion primitives|expire
+23|Learning candidate and promotion primitives|supersede
+23|Learning candidate and promotion primitives|revoke
+23|Learning candidate and promotion primitives|rollback
+23|Learning candidate and promotion primitives|quarantine
+24|Transfer primitives|LearningApplication
+24|Transfer primitives|ApplicationContext
+24|Transfer primitives|ContextSimilarity
+24|Transfer primitives|ContextDifference
+24|Transfer primitives|TransferPrediction
+24|Transfer primitives|TransferExpectation
+24|Transfer primitives|TransferOutcome
+24|Transfer primitives|TransferScore
+24|Transfer primitives|TransferSuccess
+24|Transfer primitives|TransferFailure
+24|Transfer primitives|PartialTransfer
+24|Transfer primitives|NegativeTransfer
+24|Transfer primitives|TransferUncertainty
+24|Transfer primitives|TransferDecay
+24|Transfer primitives|TransferCohort
+24|Transfer primitives|TransferHistory
+24|Transfer primitives|TransferCalibration
+24|Transfer primitives|TransferReview
+24|Transfer primitives|TransferReceipt
+25|Learning conflict and change primitives|LearningConflict
+25|Learning conflict and change primitives|ConflictType
+25|Learning conflict and change primitives|ConflictEvidence
+25|Learning conflict and change primitives|ConflictScope
+25|Learning conflict and change primitives|ConflictResolution
+25|Learning conflict and change primitives|LearningSupersession
+25|Learning conflict and change primitives|LearningRevocation
+25|Learning conflict and change primitives|LearningRollback
+25|Learning conflict and change primitives|LearningCorrection
+25|Learning conflict and change primitives|LearningDeprecation
+25|Learning conflict and change primitives|LearningReinstatement
+25|Learning conflict and change primitives|LearningLineage
+25|Learning conflict and change primitives|LearningFork
+26|Memory lifecycle primitives|LearningMemory
+26|Memory lifecycle primitives|MemoryCluster
+26|Memory lifecycle primitives|MemoryDuplicate
+26|Memory lifecycle primitives|MemoryAbstraction
+26|Memory lifecycle primitives|MemoryGeneralization
+26|Memory lifecycle primitives|MemorySpecialization
+26|Memory lifecycle primitives|MemoryConsolidation
+26|Memory lifecycle primitives|MemoryCompression
+26|Memory lifecycle primitives|MemoryCanonicalization
+26|Memory lifecycle primitives|MemoryConflictSet
+26|Memory lifecycle primitives|MemoryRetentionPolicy
+26|Memory lifecycle primitives|MemoryDecayProfile
+26|Memory lifecycle primitives|MemoryForgettingDecision
+26|Memory lifecycle primitives|MemoryArchive
+26|Memory lifecycle primitives|MemoryReactivation
+26|Memory lifecycle primitives|MemoryLegalHold
+26|Memory lifecycle primitives|MemoryDeletionAuthority
+26|Memory lifecycle primitives|MemoryMigration
+26|Memory lifecycle primitives|MemoryIntegrityReceipt
+27|Self-model and competence primitives|SelfModel
+27|Self-model and competence primitives|CapabilityProfile
+27|Self-model and competence primitives|CompetenceDomain
+27|Self-model and competence primitives|CompetenceEstimate
+27|Self-model and competence primitives|CompetenceUncertainty
+27|Self-model and competence primitives|CompetenceBoundary
+27|Self-model and competence primitives|KnownKnown
+27|Self-model and competence primitives|KnownUnknown
+27|Self-model and competence primitives|UnknownKnown
+27|Self-model and competence primitives|UnknownUnknown
+27|Self-model and competence primitives|CalibrationProfile
+27|Self-model and competence primitives|OverconfidenceProfile
+27|Self-model and competence primitives|UnderconfidenceProfile
+27|Self-model and competence primitives|AbstentionProfile
+27|Self-model and competence primitives|ErrorModeProfile
+27|Self-model and competence primitives|RecoveryProfile
+27|Self-model and competence primitives|LearningRateProfile
+27|Self-model and competence primitives|TransferProfile
+27|Self-model and competence primitives|SelfModelRevision
+28|Bias and reasoning-risk primitives|AnchoringBias
+28|Bias and reasoning-risk primitives|ConfirmationBias
+28|Bias and reasoning-risk primitives|RecencyBias
+28|Bias and reasoning-risk primitives|AvailabilityBias
+28|Bias and reasoning-risk primitives|SurvivorshipBias
+28|Bias and reasoning-risk primitives|HindsightBias
+28|Bias and reasoning-risk primitives|NarrativeBias
+28|Bias and reasoning-risk primitives|BaseRateNeglect
+28|Bias and reasoning-risk primitives|CorrelationCausationError
+28|Bias and reasoning-risk primitives|SelectionBias
+28|Bias and reasoning-risk primitives|PublicationBias
+28|Bias and reasoning-risk primitives|ActionBias
+28|Bias and reasoning-risk primitives|OmissionBias
+28|Bias and reasoning-risk primitives|OverfittingRisk
+28|Bias and reasoning-risk primitives|UnderfittingRisk
+28|Bias and reasoning-risk primitives|LeakageRisk
+28|Bias and reasoning-risk primitives|DoubleCountingRisk
+28|Bias and reasoning-risk primitives|SourceDependencyBlindness
+28|Bias and reasoning-risk primitives|MotivatedReasoningRisk
+28|Bias and reasoning-risk primitives|PrematureClosureRisk
+28|Bias and reasoning-risk primitives|ScopeDriftRisk
+28|Bias and reasoning-risk primitives|AuthorityConfusionRisk
+28|Bias and reasoning-risk primitives|BiasMitigation
+28|Bias and reasoning-risk primitives|BiasOutcome
+29|Drift and regime primitives|RegimeDefinition
+29|Drift and regime primitives|RegimeObservation
+29|Drift and regime primitives|RegimeAssignment
+29|Drift and regime primitives|RegimeProbability
+29|Drift and regime primitives|RegimeTransition
+29|Drift and regime primitives|RegimeDuration
+29|Drift and regime primitives|RegimeSimilarity
+29|Drift and regime primitives|RegimeUncertainty
+29|Drift and regime primitives|RegimeForecast
+29|Drift and regime primitives|RegimeInvalidation
+29|Drift and regime primitives|ConceptDrift
+29|Drift and regime primitives|DataDrift
+29|Drift and regime primitives|FeatureDrift
+29|Drift and regime primitives|SourceDrift
+29|Drift and regime primitives|CalibrationDrift
+29|Drift and regime primitives|OutcomeDrift
+29|Drift and regime primitives|PolicyDrift
+29|Drift and regime primitives|TransferDrift
+29|Drift and regime primitives|DriftDetectionPolicy
+29|Drift and regime primitives|DriftAlert
+29|Drift and regime primitives|DriftDisposition
+29|Drift and regime primitives|DriftRecoveryPlan
+30|Governance and safety primitives|EpistemicAuthority
+30|Governance and safety primitives|PredictionAuthority
+30|Governance and safety primitives|ResolutionAuthority
+30|Governance and safety primitives|ScoringAuthority
+30|Governance and safety primitives|PromotionAuthority
+30|Governance and safety primitives|RevocationAuthority
+30|Governance and safety primitives|OverrideAuthority
+30|Governance and safety primitives|HumanReviewRequirement
+30|Governance and safety primitives|IndependentReviewRequirement
+30|Governance and safety primitives|HighConsequenceProfile
+30|Governance and safety primitives|SensitiveSourcePolicy
+30|Governance and safety primitives|AcquisitionComplianceRecord
+30|Governance and safety primitives|PrivacyClass
+30|Governance and safety primitives|RetentionRestriction
+30|Governance and safety primitives|RedistributionRestriction
+30|Governance and safety primitives|AdversarialInputPolicy
+30|Governance and safety primitives|PromptInjectionDisposition
+30|Governance and safety primitives|PoisoningDisposition
+30|Governance and safety primitives|ManipulationDisposition
+30|Governance and safety primitives|QuarantineRecord
+30|Governance and safety primitives|SafetyInvariant
+30|Governance and safety primitives|PolicyViolation
+30|Governance and safety primitives|GovernanceReceipt

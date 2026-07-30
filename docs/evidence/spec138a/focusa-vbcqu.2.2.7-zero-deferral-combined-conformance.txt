@@ -1,0 +1,40 @@
+Spec138A zero-deferral combined-conformance proof
+Work item: focusa-vbcqu.2.2.7
+Canonical scope: /home/wirebot/focusa
+Working subpath: /tmp/focusa-next-locked-release
+Continuity: focusa-v0.9.135-locked-14
+Recorded: 2026-07-30T23:00:00Z
+
+Combined-source result:
+- Parent Spec138 requirements: 273/273 verified_complete
+- Spec138A addendum requirements: 269/269 verified_complete
+- Combined feature ledger: 542/542 verified_complete
+- Runtime proof map: exact one-to-one 542/542 verified_complete
+- Combined source atoms: 2738/2738 mapped
+- Unmapped, weakened, or ambiguous applicability refs: zero
+- Profiles A-H: verified_complete
+- Required scorer registry: 31/31
+- Canonical client operations: 27/27 parity verified
+- Legacy migration sources: 7/7 verified
+- Integrated proof families: 19/19 verified
+- Forbidden closure dispositions: zero hits
+- Ordered delivery DAG: 9/9 nodes verified
+
+Runtime enforcement:
+- crates/focusa-core/src/epistemic_conformance.rs validates exact source counts/hashes, unique requirements and atoms, explicit applicability, complete proof refs, Profiles A-H, scorer registry, append-only history, migration, operation parity, source independence, security, integrated SHA proof, forbidden dispositions, DAG ordering, and governed requirement removal.
+
+Proof results:
+- tests/spec138a_full_conformance_gate.py dependency-free runner: 7/7 passed
+- cargo test -p focusa-core epistemic_conformance: 3/3 passed
+- cargo test -p focusa-core prediction_: 84/84 passed
+- cargo check -p focusa-api -p focusa-cli -p focusa-tui: passed
+- apps/menubar npm run check: 0 errors, 0 warnings
+- apps/pi-extension npm run typecheck: passed
+- apps/pi-extension npm run lint: passed
+- tests/spec137a_138a_144_documentation_closure_gate.py: passed
+
+Authority boundary:
+- Runtime activation may be selective by verified scope.
+- Implementation completeness is not selective.
+- Deferred, unknown, placeholder, schema-only, mock-only, or unproven rows block maximal conformance.
+- This proof closes Spec138 + Spec138A only; it does not claim Spec144 closure.

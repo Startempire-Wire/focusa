@@ -26,5 +26,10 @@ assert.match(
   /marker and one next action before HLT\/Workpoint guidance/,
   "binding and marker verification must precede trajectory guidance"
 );
+assert.match(
+  session,
+  /resolvePiProjectRootCandidate\(cwd\)[\s\S]*inferred\.safe === true[\s\S]*requiresOperatorConfirmation !== true/,
+  "verified parent project inference must suppress the false unbound/degraded prompt"
+);
 
 console.log("PASS: unbound project guidance is canonical, exact, and binding-first");

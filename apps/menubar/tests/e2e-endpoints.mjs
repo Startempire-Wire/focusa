@@ -56,6 +56,8 @@ const SCOPED_ENDPOINTS = new Set([
   '/v1/metacognition/status',
   '/v1/predictions/recent',
   '/v1/predictions/stats',
+  '/v1/prediction-authority/projection',
+  '/v1/temporal/status',
   '/v1/work-loop/status',
   '/v1/work-loop/health',
   '/v1/work-loop/checkpoints',

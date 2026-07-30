@@ -402,6 +402,18 @@ pub struct TransferOutcome {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "record", rename_all = "snake_case")]
 pub enum PredictionAuthorityEvent {
+    EpistemicPrimitive(crate::epistemic_primitives::EpistemicPrimitiveRecord),
+    ReflectionClaim(crate::metacognitive_learning::ReflectionClaim),
+    PromotionAssessment(crate::metacognitive_learning::PromotionAssessment),
+    LearningSettlement(crate::metacognitive_learning::LearningSettlement),
+    OutcomeAuthority(crate::outcome_resolution::OutcomeAuthorityEvent),
+    FusionResult(crate::epistemic_fusion::FusionResult),
+    ScenarioProjection(crate::prediction_advanced::ScenarioProjection),
+    TransferEvaluation(crate::prediction_advanced::TransferEvaluation),
+    SelfModelEstimate(crate::prediction_advanced::SelfModelEstimate),
+    MemoryLifecycle(crate::epistemic_memory_lifecycle::MemoryLifecycleEvent),
+    SourceSecurityDecision(crate::epistemic_security::SourceSecurityDecision),
+    LegacyMigration(crate::prediction_migration::LegacyMigrationRecord),
     Question(PredictionQuestion),
     Commitment(PredictionCommitment),
     OutcomeClaim(OutcomeClaim),

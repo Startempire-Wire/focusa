@@ -1,0 +1,155 @@
+{
+  "serialization": "JSON-compatible YAML 1.2",
+  "generated_at": "2026-07-31T00:30:00Z",
+  "schema": "focusa.spec140a_scenario_matrix.v1",
+  "runtime_claim": "mandatory_twenty_four_scenario_conformance",
+  "runtime_status": "verified_complete",
+  "scenarios": [
+    {
+      "ordinal": 1,
+      "scenario": "mission_canvas_enabled",
+      "status": "verified_complete",
+      "test_ref": "agent_runtime_instruction_integrity_scenario_test::scenario_01"
+    },
+    {
+      "ordinal": 2,
+      "scenario": "mission_canvas_disabled",
+      "status": "verified_complete",
+      "test_ref": "agent_runtime_instruction_integrity_scenario_test::scenario_02"
+    },
+    {
+      "ordinal": 3,
+      "scenario": "mission_canvas_unavailable_after_start",
+      "status": "verified_complete",
+      "test_ref": "agent_runtime_instruction_integrity_scenario_test::scenario_03"
+    },
+    {
+      "ordinal": 4,
+      "scenario": "mission_canvas_never_installed",
+      "status": "verified_complete",
+      "test_ref": "agent_runtime_instruction_integrity_scenario_test::scenario_04"
+    },
+    {
+      "ordinal": 5,
+      "scenario": "cli_only",
+      "status": "verified_complete",
+      "test_ref": "agent_runtime_instruction_integrity_scenario_test::scenario_05"
+    },
+    {
+      "ordinal": 6,
+      "scenario": "pi_only_no_canvas",
+      "status": "verified_complete",
+      "test_ref": "agent_runtime_instruction_integrity_scenario_test::scenario_06"
+    },
+    {
+      "ordinal": 7,
+      "scenario": "api_headless",
+      "status": "verified_complete",
+      "test_ref": "agent_runtime_instruction_integrity_scenario_test::scenario_07"
+    },
+    {
+      "ordinal": 8,
+      "scenario": "urgency_change_no_restart",
+      "status": "verified_complete",
+      "test_ref": "agent_runtime_instruction_integrity_scenario_test::scenario_08"
+    },
+    {
+      "ordinal": 9,
+      "scenario": "deadline_revision_reassessment",
+      "status": "verified_complete",
+      "test_ref": "agent_runtime_instruction_integrity_scenario_test::scenario_09"
+    },
+    {
+      "ordinal": 10,
+      "scenario": "critical_posture_preserves_target",
+      "status": "verified_complete",
+      "test_ref": "agent_runtime_instruction_integrity_scenario_test::scenario_10"
+    },
+    {
+      "ordinal": 11,
+      "scenario": "breached_recovery_approved_route",
+      "status": "verified_complete",
+      "test_ref": "agent_runtime_instruction_integrity_scenario_test::scenario_11"
+    },
+    {
+      "ordinal": 12,
+      "scenario": "runtime_target_invention_blocked",
+      "status": "verified_complete",
+      "test_ref": "agent_runtime_instruction_integrity_scenario_test::scenario_12"
+    },
+    {
+      "ordinal": 13,
+      "scenario": "steering_not_amendment",
+      "status": "verified_complete",
+      "test_ref": "agent_runtime_instruction_integrity_scenario_test::scenario_13"
+    },
+    {
+      "ordinal": 14,
+      "scenario": "authorization_without_sweep_blocked",
+      "status": "verified_complete",
+      "test_ref": "agent_runtime_instruction_integrity_scenario_test::scenario_14"
+    },
+    {
+      "ordinal": 15,
+      "scenario": "sweep_without_post_confirmation_blocked",
+      "status": "verified_complete",
+      "test_ref": "agent_runtime_instruction_integrity_scenario_test::scenario_15"
+    },
+    {
+      "ordinal": 16,
+      "scenario": "two_operator_acts_activate",
+      "status": "verified_complete",
+      "test_ref": "agent_runtime_instruction_integrity_scenario_test::scenario_16"
+    },
+    {
+      "ordinal": 17,
+      "scenario": "amendment_invalidates_stale_plans",
+      "status": "verified_complete",
+      "test_ref": "agent_runtime_instruction_integrity_scenario_test::scenario_17"
+    },
+    {
+      "ordinal": 18,
+      "scenario": "session_rebind_after_amendment",
+      "status": "verified_complete",
+      "test_ref": "agent_runtime_instruction_integrity_scenario_test::scenario_18"
+    },
+    {
+      "ordinal": 19,
+      "scenario": "multi_agent_stale_revision_rejected",
+      "status": "verified_complete",
+      "test_ref": "agent_runtime_instruction_integrity_scenario_test::scenario_19"
+    },
+    {
+      "ordinal": 20,
+      "scenario": "daemon_backstops_harness",
+      "status": "verified_complete",
+      "test_ref": "agent_runtime_instruction_integrity_scenario_test::scenario_20"
+    },
+    {
+      "ordinal": 21,
+      "scenario": "dynamic_authority_outage_safe_fallback",
+      "status": "verified_complete",
+      "test_ref": "agent_runtime_instruction_integrity_scenario_test::scenario_21"
+    },
+    {
+      "ordinal": 22,
+      "scenario": "compaction_refreshes_dynamic_guards",
+      "status": "verified_complete",
+      "test_ref": "agent_runtime_instruction_integrity_scenario_test::scenario_22"
+    },
+    {
+      "ordinal": 23,
+      "scenario": "ambiguity_blocks_affected_slice",
+      "status": "verified_complete",
+      "test_ref": "agent_runtime_instruction_integrity_scenario_test::scenario_23"
+    },
+    {
+      "ordinal": 24,
+      "scenario": "fidelity_failure_blocks_completion",
+      "status": "verified_complete",
+      "test_ref": "agent_runtime_instruction_integrity_scenario_test::scenario_24"
+    }
+  ],
+  "evidence_ref": "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt",
+  "receipt_ref": "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+}

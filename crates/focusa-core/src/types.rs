@@ -557,6 +557,10 @@ pub struct WorkLoopState {
     pub current_autonomy_level: Option<AutonomyLevel>,
     pub delegated_authorship: Option<DelegatedAuthorshipState>,
     pub active_worker: Option<WorkerCapabilityProfile>,
+    #[serde(default)]
+    pub temporal_priority_frame_ref: Option<String>,
+    #[serde(default)]
+    pub temporal_pulse_state: Option<crate::temporal_progress::TemporalPulseState>,
 }
 
 // ─── Canonical State (from core-reducer.md) ─────────────────────────────────

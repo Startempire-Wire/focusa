@@ -2,9 +2,9 @@
 
 Generated from current Axum route registration plus the Spec135/Spec141 operation registry. This public inventory is release-gated; do not edit route rows manually.
 
-- Classified paths: `477`
-- Agent eligible: `100`
-- Operator only: `365`
+- Classified paths: `518`
+- Agent eligible: `102`
+- Operator only: `404`
 - Public health/pairing: `6`
 - Internal: `6`
 
@@ -118,6 +118,278 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/health.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/amendments/activate`
+
+- Methods: `POST /v1/agent-runtime/amendments/activate`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime_integrity.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/amendments/propose`
+
+- Methods: `POST /v1/agent-runtime/amendments/propose`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime_integrity.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/compile/agents-md`
+
+- Methods: `POST /v1/agent-runtime/compile/agents-md`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime_delivery.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/compile/skills`
+
+- Methods: `POST /v1/agent-runtime/compile/skills`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime_delivery.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/compile/system-prompt`
+
+- Methods: `POST /v1/agent-runtime/compile/system-prompt`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/compile/target`
+
+- Methods: `POST /v1/agent-runtime/compile/target`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime_delivery.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/constitutions/draft`
+
+- Methods: `POST /v1/agent-runtime/constitutions/draft`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/constitutions/{id}`
+
+- Methods: `GET /v1/agent-runtime/constitutions/{id}`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/constitutions/{id}/activate`
+
+- Methods: `POST /v1/agent-runtime/constitutions/{id}/activate`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime_delivery.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/constitutions/{id}/approve`
+
+- Methods: `POST /v1/agent-runtime/constitutions/{id}/approve`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime_delivery.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/constitutions/{id}/preview`
+
+- Methods: `POST /v1/agent-runtime/constitutions/{id}/preview`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/constitutions/{id}/revoke`
+
+- Methods: `POST /v1/agent-runtime/constitutions/{id}/revoke`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime_delivery.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/constitutions/{id}/rollback`
+
+- Methods: `POST /v1/agent-runtime/constitutions/{id}/rollback`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime_delivery.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/delivery/commit`
+
+- Methods: `POST /v1/agent-runtime/delivery/commit`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime_delivery.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/delivery/preview`
+
+- Methods: `POST /v1/agent-runtime/delivery/preview`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime_delivery.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/delivery/status`
+
+- Methods: `GET /v1/agent-runtime/delivery/status`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/delivery/verify`
+
+- Methods: `POST /v1/agent-runtime/delivery/verify`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime_delivery.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/doctor`
+
+- Methods: `GET /v1/agent-runtime/doctor`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime_delivery.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/evaluations`
+
+- Methods: `POST /v1/agent-runtime/evaluations`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/evaluations/{id}`
+
+- Methods: `GET /v1/agent-runtime/evaluations/{id}`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/headless/verify`
+
+- Methods: `POST /v1/agent-runtime/headless/verify`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime_integrity.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/instruction-integrity/evaluate`
+
+- Methods: `POST /v1/agent-runtime/instruction-integrity/evaluate`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime_integrity.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/instruction-integrity/status`
+
+- Methods: `GET /v1/agent-runtime/instruction-integrity/status`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime_integrity.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/instructions/claims`
+
+- Methods: `GET /v1/agent-runtime/instructions/claims`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/instructions/conflicts`
+
+- Methods: `GET /v1/agent-runtime/instructions/conflicts`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/instructions/drift`
+
+- Methods: `GET /v1/agent-runtime/instructions/drift`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/instructions/effective`
+
+- Methods: `GET /v1/agent-runtime/instructions/effective`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/instructions/reconcile`
+
+- Methods: `POST /v1/agent-runtime/instructions/reconcile`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/instructions/scan`
+
+- Methods: `POST /v1/agent-runtime/instructions/scan`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/instructions/simulate`
+
+- Methods: `POST /v1/agent-runtime/instructions/simulate`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/instructions/sources`
+
+- Methods: `GET /v1/agent-runtime/instructions/sources`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/migration/preview`
+
+- Methods: `POST /v1/agent-runtime/migration/preview`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime_migration.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/studio`
+
+- Methods: `GET /v1/agent-runtime/studio`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime_studio.rs`
+- Agent operations: none
+
+### `/v1/agent-runtime/variants/{id}`
+
+- Methods: `GET /v1/agent-runtime/variants/{id}`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/agent_runtime.rs`
 - Agent operations: none
 
 ### `/v1/agent/adapter-capabilities`
@@ -696,9 +968,25 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Sources: `crates/focusa-api/src/routes/compaction.rs`
 - Agent operations: none
 
+### `/v1/compaction/prepare`
+
+- Methods: `POST /v1/compaction/prepare`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/compaction.rs`
+- Agent operations: none
+
 ### `/v1/compaction/replay`
 
 - Methods: `POST /v1/compaction/replay`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/compaction.rs`
+- Agent operations: none
+
+### `/v1/compaction/verify`
+
+- Methods: `POST /v1/compaction/verify`
 - Classification: `operator_only`
 - Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/compaction.rs`
@@ -1971,18 +2259,18 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 ### `/v1/prediction-authority/events`
 
 - Methods: `POST /v1/prediction-authority/events`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority.rs`
-- Agent operations: none
+- Agent operations: `focusa.prediction_authority.append`
 
 ### `/v1/prediction-authority/projection`
 
-- Methods: `POST /v1/prediction-authority/projection`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Methods: `GET /v1/prediction-authority/projection`
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/prediction_authority.rs`
-- Agent operations: none
+- Agent operations: `focusa.prediction_authority.projection`
 
 ### `/v1/predictions`
 
@@ -3136,6 +3424,22 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Sources: `crates/focusa-api/src/routes/capabilities_extra.rs`
 - Agent operations: none
 
+### `/v1/temporal/civil/resolve`
+
+- Methods: `POST /v1/temporal/civil/resolve`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/temporal.rs`
+- Agent operations: none
+
+### `/v1/temporal/clock/capture`
+
+- Methods: `POST /v1/temporal/clock/capture`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/temporal.rs`
+- Agent operations: none
+
 ### `/v1/temporal/commit`
 
 - Methods: `POST /v1/temporal/commit`
@@ -3152,6 +3456,22 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Sources: `crates/focusa-api/src/routes/temporal.rs`
 - Agent operations: `focusa.temporal.forecast`
 
+### `/v1/temporal/high-consequence/preflight`
+
+- Methods: `POST /v1/temporal/high-consequence/preflight`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/temporal.rs`
+- Agent operations: none
+
+### `/v1/temporal/migrate-signatures`
+
+- Methods: `POST /v1/temporal/migrate-signatures`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/temporal.rs`
+- Agent operations: none
+
 ### `/v1/temporal/observe`
 
 - Methods: `POST /v1/temporal/observe`
@@ -3167,6 +3487,14 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/temporal.rs`
 - Agent operations: `focusa.temporal.preflight`
+
+### `/v1/temporal/priority/commit`
+
+- Methods: `POST /v1/temporal/priority/commit`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/temporal.rs`
+- Agent operations: none
 
 ### `/v1/temporal/revise`
 

@@ -1,8 +1,8 @@
 {
   "serialization": "JSON-compatible YAML 1.2",
   "generated_at": "2026-07-27T00:47:15+00:00",
-  "runtime_claim": "none",
-  "runtime_status": "implementation_open",
+  "runtime_claim": "spec138_learning_authority",
+  "runtime_status": "verified_complete",
   "schema": "focusa.spec138_learning_promotion_and_rollback_matrix.v1",
   "stages": [
     "signal",
@@ -27,5 +27,27 @@
     "negative_effect_check",
     "receipt"
   ],
-  "self_promotion_prohibited": true
+  "self_promotion_prohibited": true,
+  "runtime_refs": [
+    "crates/focusa-core/src/metacognitive_learning.rs",
+    "crates/focusa-core/src/outcome_resolution.rs",
+    "crates/focusa-core/src/prediction_authority_storage.rs"
+  ],
+  "evidence_refs": [
+    "docs/evidence/spec138/S138-learning-outcome-acceptance.txt"
+  ],
+  "receipt_ref": "docs/contracts/138-focusa-learning-outcome-receipt.v1.yaml",
+  "stage_statuses": {
+    "signal": "verified_complete",
+    "reflection_claim": "verified_complete",
+    "adjustment_proposal": "verified_complete",
+    "evaluation": "verified_complete",
+    "candidate": "verified_complete",
+    "promotion_decision": "verified_complete",
+    "applied": "verified_complete",
+    "transfer_evaluation": "verified_complete",
+    "superseded": "verified_complete",
+    "revoked": "verified_complete",
+    "rolled_back": "verified_complete"
+  }
 }

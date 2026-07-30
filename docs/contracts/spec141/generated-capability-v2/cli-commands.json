@@ -1,6 +1,6 @@
 {
   "schema": "focusa.cli_command_projection.v2",
-  "registry_digest": "sha256:90f1f14e40eb2ddeb24781ebeeb1d22da9b23aa2fefd5c11e0f35ddb4782fc9e",
+  "registry_digest": "sha256:2f72bb14976765ed62aabfad5d553dd2a7df6eac0c71e8342d7d822dbbbc7bce",
   "commands": [
     {
       "command": "focusa workpoint resolve-object",
@@ -31,6 +31,108 @@
       "deprecation": null
     },
     {
+      "command": "focusa agent-runtime artifacts apply",
+      "capability_id": "focusa.agent.artifact.delivery",
+      "summary": "Operate the Spec 140 agent artifact delivery surface with typed scope and evidence.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "request",
+          "confirmed"
+        ],
+        "properties": {
+          "request": {
+            "description": "Typed delivery request."
+          },
+          "confirmed": {
+            "description": "Explicit operator confirmation.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "confirmed_receipted_artifact_delivery",
+        "confirmed_receipted_artifact_delivery"
+      ],
+      "examples": [
+        {
+          "description": "Operate the Spec 140 agent artifact delivery surface with typed scope and evidence.",
+          "arguments": {
+            "request": {},
+            "confirmed": false
+          },
+          "human_invocation": "focusa agent-runtime artifacts apply",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_artifact_delivery.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa agent-runtime artifacts preview",
+      "capability_id": "focusa.agent.artifact.preview",
+      "summary": "Operate the Spec 140 agent artifact preview surface with typed scope and evidence.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "request"
+        ],
+        "properties": {
+          "request": {
+            "description": "Typed delivery preview request."
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_or_preview_only",
+        "read_or_preview_only"
+      ],
+      "examples": [
+        {
+          "description": "Operate the Spec 140 agent artifact preview surface with typed scope and evidence.",
+          "arguments": {
+            "request": {}
+          },
+          "human_invocation": "focusa agent-runtime artifacts preview",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_artifact_preview.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa agent-runtime artifacts verify",
+      "capability_id": "focusa.agent.artifact.verify",
+      "summary": "Operate the Spec 140 agent artifact verify surface with typed scope and evidence.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "request"
+        ],
+        "properties": {
+          "request": {
+            "description": "Typed delivery verification request."
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_or_preview_only",
+        "read_or_preview_only"
+      ],
+      "examples": [
+        {
+          "description": "Operate the Spec 140 agent artifact verify surface with typed scope and evidence.",
+          "arguments": {
+            "request": {}
+          },
+          "human_invocation": "focusa agent-runtime artifacts verify",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_artifact_verify.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
       "command": "focusa help all --json",
       "capability_id": "focusa.agent.card",
       "summary": "Read compact cross-harness interfaces, auth, capabilities, families, and discovery entry points.",
@@ -54,6 +156,98 @@
           "arguments": {},
           "human_invocation": "focusa help all --json",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_card.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa agent-runtime doctor",
+      "capability_id": "focusa.agent.runtime.doctor",
+      "summary": "Operate the Spec 140 agent runtime doctor surface with typed scope and evidence.",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_or_preview_only",
+        "read_or_preview_only"
+      ],
+      "examples": [
+        {
+          "description": "Operate the Spec 140 agent runtime doctor surface with typed scope and evidence.",
+          "arguments": {},
+          "human_invocation": "focusa agent-runtime doctor",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_runtime_doctor.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa agent-runtime effective",
+      "capability_id": "focusa.agent.runtime.effective",
+      "summary": "Operate the Spec 140 agent runtime effective surface with typed scope and evidence.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "project_root"
+        ],
+        "properties": {
+          "project_root": {
+            "description": "Verified absolute project root.",
+            "type": "string"
+          },
+          "max_source_bytes": {
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_or_preview_only",
+        "read_or_preview_only"
+      ],
+      "examples": [
+        {
+          "description": "Operate the Spec 140 agent runtime effective surface with typed scope and evidence.",
+          "arguments": {
+            "project_root": "/tmp/focusa-project"
+          },
+          "human_invocation": "focusa agent-runtime effective",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_runtime_effective.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa agent-runtime headless-verify",
+      "capability_id": "focusa.agent.runtime.headless.verify",
+      "summary": "Operate the Spec 140 agent runtime headless verify surface with typed scope and evidence.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "request"
+        ],
+        "properties": {
+          "request": {
+            "description": "Typed headless parity envelope."
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "confirmed_receipted_artifact_delivery",
+        "confirmed_receipted_artifact_delivery"
+      ],
+      "examples": [
+        {
+          "description": "Operate the Spec 140 agent runtime headless verify surface with typed scope and evidence.",
+          "arguments": {
+            "request": {}
+          },
+          "human_invocation": "focusa agent-runtime headless-verify",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_agent_runtime_headless_verify.md"
         }
       ],
       "deprecation": null
@@ -941,6 +1135,76 @@
           "arguments": {},
           "human_invocation": "focusa call-stack verify",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_call_stack_verify.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa agent-runtime amendment-activate",
+      "capability_id": "focusa.canonical.instruction.amendment.activate",
+      "summary": "Operate the Spec 140 canonical instruction amendment activate surface with typed scope and evidence.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "request",
+          "confirmed"
+        ],
+        "properties": {
+          "request": {
+            "description": "Typed approved amendment activation envelope."
+          },
+          "confirmed": {
+            "description": "Explicit operator confirmation for activation.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "confirmed_receipted_artifact_delivery",
+        "confirmed_receipted_artifact_delivery"
+      ],
+      "examples": [
+        {
+          "description": "Operate the Spec 140 canonical instruction amendment activate surface with typed scope and evidence.",
+          "arguments": {
+            "request": {},
+            "confirmed": false
+          },
+          "human_invocation": "focusa agent-runtime amendment-activate",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_canonical_instruction_amendment_activate.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa agent-runtime amendment-propose",
+      "capability_id": "focusa.canonical.instruction.amendment.propose",
+      "summary": "Operate the Spec 140 canonical instruction amendment propose surface with typed scope and evidence.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "request"
+        ],
+        "properties": {
+          "request": {
+            "description": "Typed amendment proposal envelope."
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "confirmed_receipted_artifact_delivery",
+        "confirmed_receipted_artifact_delivery"
+      ],
+      "examples": [
+        {
+          "description": "Operate the Spec 140 canonical instruction amendment propose surface with typed scope and evidence.",
+          "arguments": {
+            "request": {}
+          },
+          "human_invocation": "focusa agent-runtime amendment-propose",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_canonical_instruction_amendment_propose.md"
         }
       ],
       "deprecation": null
@@ -2215,6 +2479,219 @@
           "arguments": {},
           "human_invocation": "focusa hlt history",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_hlt_history.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa agent-runtime conflicts",
+      "capability_id": "focusa.instruction.conflicts",
+      "summary": "Operate the Spec 140 instruction conflicts surface with typed scope and evidence.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "project_root"
+        ],
+        "properties": {
+          "project_root": {
+            "type": "string"
+          },
+          "max_source_bytes": {
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_or_preview_only",
+        "read_or_preview_only"
+      ],
+      "examples": [
+        {
+          "description": "Operate the Spec 140 instruction conflicts surface with typed scope and evidence.",
+          "arguments": {
+            "project_root": "/tmp/focusa-project"
+          },
+          "human_invocation": "focusa agent-runtime conflicts",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_instruction_conflicts.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa agent-runtime claims",
+      "capability_id": "focusa.instruction.explain",
+      "summary": "Operate the Spec 140 instruction explain surface with typed scope and evidence.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "project_root",
+          "claim_id"
+        ],
+        "properties": {
+          "project_root": {
+            "type": "string"
+          },
+          "claim_id": {
+            "type": "string"
+          },
+          "max_source_bytes": {
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_or_preview_only",
+        "read_or_preview_only"
+      ],
+      "examples": [
+        {
+          "description": "Operate the Spec 140 instruction explain surface with typed scope and evidence.",
+          "arguments": {
+            "project_root": "/tmp/focusa-project",
+            "claim_id": "example"
+          },
+          "human_invocation": "focusa agent-runtime claims",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_instruction_explain.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa agent-runtime integrity-evaluate",
+      "capability_id": "focusa.instruction.integrity.evaluate",
+      "summary": "Operate the Spec 140 instruction integrity evaluate surface with typed scope and evidence.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "request"
+        ],
+        "properties": {
+          "request": {
+            "description": "Typed integrity event envelope."
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "confirmed_receipted_artifact_delivery",
+        "confirmed_receipted_artifact_delivery"
+      ],
+      "examples": [
+        {
+          "description": "Operate the Spec 140 instruction integrity evaluate surface with typed scope and evidence.",
+          "arguments": {
+            "request": {}
+          },
+          "human_invocation": "focusa agent-runtime integrity-evaluate",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_instruction_integrity_evaluate.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa agent-runtime integrity-status",
+      "capability_id": "focusa.instruction.integrity.status",
+      "summary": "Operate the Spec 140 instruction integrity status surface with typed scope and evidence.",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_or_preview_only",
+        "read_or_preview_only"
+      ],
+      "examples": [
+        {
+          "description": "Operate the Spec 140 instruction integrity status surface with typed scope and evidence.",
+          "arguments": {},
+          "human_invocation": "focusa agent-runtime integrity-status",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_instruction_integrity_status.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa agent-runtime simulate",
+      "capability_id": "focusa.instruction.simulate",
+      "summary": "Operate the Spec 140 instruction simulate surface with typed scope and evidence.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "project_root"
+        ],
+        "properties": {
+          "project_root": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "profile": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "max_source_bytes": {
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_or_preview_only",
+        "read_or_preview_only"
+      ],
+      "examples": [
+        {
+          "description": "Operate the Spec 140 instruction simulate surface with typed scope and evidence.",
+          "arguments": {
+            "project_root": "/tmp/focusa-project"
+          },
+          "human_invocation": "focusa agent-runtime simulate",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_instruction_simulate.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa agent-runtime sources",
+      "capability_id": "focusa.instruction.sources",
+      "summary": "Operate the Spec 140 instruction sources surface with typed scope and evidence.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "project_root"
+        ],
+        "properties": {
+          "project_root": {
+            "type": "string"
+          },
+          "max_source_bytes": {
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_or_preview_only",
+        "read_or_preview_only"
+      ],
+      "examples": [
+        {
+          "description": "Operate the Spec 140 instruction sources surface with typed scope and evidence.",
+          "arguments": {
+            "project_root": "/tmp/focusa-project"
+          },
+          "human_invocation": "focusa agent-runtime sources",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_instruction_sources.md"
         }
       ],
       "deprecation": null
@@ -4076,6 +4553,71 @@
       "deprecation": null
     },
     {
+      "command": "focusa agent-runtime prompt diff",
+      "capability_id": "focusa.prompt.variant.diff",
+      "summary": "Operate the Spec 140 prompt variant diff surface with typed scope and evidence.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "baseline",
+          "candidate"
+        ],
+        "properties": {
+          "baseline": {},
+          "candidate": {}
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_or_preview_only",
+        "read_or_preview_only"
+      ],
+      "examples": [
+        {
+          "description": "Operate the Spec 140 prompt variant diff surface with typed scope and evidence.",
+          "arguments": {
+            "baseline": {},
+            "candidate": {}
+          },
+          "human_invocation": "focusa agent-runtime prompt diff",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_prompt_variant_diff.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa agent-runtime prompt preview",
+      "capability_id": "focusa.prompt.variant.preview",
+      "summary": "Operate the Spec 140 prompt variant preview surface with typed scope and evidence.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "request"
+        ],
+        "properties": {
+          "request": {
+            "description": "Typed PromptCompileInput request."
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_or_preview_only",
+        "read_or_preview_only"
+      ],
+      "examples": [
+        {
+          "description": "Operate the Spec 140 prompt variant preview surface with typed scope and evidence.",
+          "arguments": {
+            "request": {}
+          },
+          "human_invocation": "focusa agent-runtime prompt preview",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_prompt_variant_preview.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
       "command": "focusa focus update --recent-result",
       "capability_id": "focusa.recent.result",
       "summary": "Record a completed result, output, or reference (max 180 chars).",
@@ -4194,6 +4736,43 @@
           "arguments": {},
           "human_invocation": "focusa resource mode",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_resource_mode.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa agent-runtime constitution preview",
+      "capability_id": "focusa.runtime.constitution.preview",
+      "summary": "Operate the Spec 140 runtime constitution preview surface with typed scope and evidence.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "constitution_id",
+          "request"
+        ],
+        "properties": {
+          "constitution_id": {
+            "type": "string"
+          },
+          "request": {
+            "description": "Typed PromptCompileInput request."
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "read_or_preview_only",
+        "read_or_preview_only"
+      ],
+      "examples": [
+        {
+          "description": "Operate the Spec 140 runtime constitution preview surface with typed scope and evidence.",
+          "arguments": {
+            "constitution_id": "example",
+            "request": {}
+          },
+          "human_invocation": "focusa agent-runtime constitution preview",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_runtime_constitution_preview.md"
         }
       ],
       "deprecation": null
@@ -4643,6 +5222,26 @@
               {
                 "const": "preflight",
                 "type": "string"
+              },
+              {
+                "const": "migrate-signatures",
+                "type": "string"
+              },
+              {
+                "const": "high-consequence-preflight",
+                "type": "string"
+              },
+              {
+                "const": "capture-clock",
+                "type": "string"
+              },
+              {
+                "const": "resolve-civil-time",
+                "type": "string"
+              },
+              {
+                "const": "commit-priority",
+                "type": "string"
               }
             ]
           },
@@ -4650,6 +5249,21 @@
             "type": "string"
           },
           "continuity_id": {
+            "type": "string"
+          },
+          "host_id": {
+            "type": "string"
+          },
+          "operator_id": {
+            "type": "string"
+          },
+          "workpoint_id": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "task_id": {
             "type": "string"
           },
           "idempotency_key": {
@@ -4664,6 +5278,89 @@
           "phase": {
             "type": "string"
           },
+          "timezone": {
+            "type": "string"
+          },
+          "tzdb_version": {
+            "type": "string"
+          },
+          "forecast_authority": {
+            "type": "object",
+            "required": [
+              "claim_kind",
+              "target_state",
+              "scope_revision",
+              "expires_at",
+              "estimator_version",
+              "cohort",
+              "evidence_basis",
+              "comparable_sample_count",
+              "all_attempt_sample_count",
+              "censoring_method",
+              "correlation_method",
+              "calibration_profile",
+              "grounding_status",
+              "baseline_ref",
+              "drift_policy_ref"
+            ],
+            "properties": {
+              "claim_kind": {
+                "const": "forecast",
+                "type": "string"
+              },
+              "target_state": {
+                "type": "string"
+              },
+              "scope_revision": {
+                "type": "string"
+              },
+              "expires_at": {
+                "type": "string"
+              },
+              "estimator_version": {
+                "type": "string"
+              },
+              "cohort": {
+                "type": "string"
+              },
+              "evidence_basis": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "comparable_sample_count": {
+                "type": "number"
+              },
+              "all_attempt_sample_count": {
+                "type": "number"
+              },
+              "censoring_method": {
+                "type": "string"
+              },
+              "correlation_method": {
+                "type": "string"
+              },
+              "calibration_profile": {
+                "type": "string"
+              },
+              "grounding_status": {
+                "const": "grounded",
+                "type": "string"
+              },
+              "baseline_ref": {
+                "type": "string"
+              },
+              "drift_policy_ref": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "forecast_evaluation": {},
+          "high_consequence_packet": {},
+          "civil_time_packet": {},
+          "temporal_priority_packet": {},
           "duration_ms": {
             "type": "number"
           },
@@ -4714,6 +5411,21 @@
                     "type": "string"
                   },
                   "continuity_id": {
+                    "type": "string"
+                  },
+                  "host_id": {
+                    "type": "string"
+                  },
+                  "operator_id": {
+                    "type": "string"
+                  },
+                  "workpoint_id": {
+                    "type": "string"
+                  },
+                  "item_id": {
+                    "type": "string"
+                  },
+                  "task_id": {
                     "type": "string"
                   }
                 },

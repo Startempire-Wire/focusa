@@ -49,9 +49,15 @@ for rel in required:
     assert path.is_file(), rel
     text = path.read_text()
     assert len(text) > 200, f"empty/shell artifact: {rel}"
-    data = json.loads(text)
-    assert data.get("runtime_claim") == "none", rel
-    assert data.get("runtime_status") in {"implementation_open", "not_activated"}, rel
+    data = yaml.safe_load(text)
+    assert isinstance(data, dict), rel
+    assert data.get("runtime_claim") not in {None, ""}, rel
+    assert data.get("runtime_status") in {
+        "implementation_open", "not_activated", "verified_complete",
+        "parent_verified_spec138a_open",
+    }, rel
+    if data.get("runtime_status") == "verified_complete":
+        assert data.get("runtime_claim") != "none", rel
 
 s137 = (ROOT / "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md").read_text()
 s138 = (ROOT / "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md").read_text()
@@ -71,7 +77,7 @@ for spec in (137, 138, 140):
     assert isinstance(parsed, dict), ledger
 
 alignment = (ROOT / "docs/evidence/141-focusa-latest-spec-public-doc-alignment.md").read_text()
-assert "combined full conformance open" in alignment
+assert alignment.count("combined full conformance verified") >= 2
 assert "normative documentation only; implementation not activated" in alignment
 
 ci = (ROOT / "scripts/ci/run-spec-gates.sh").read_text()
@@ -85,7 +91,7 @@ for rel in (
     "docs/contracts/spec138a-normative-source-coverage.v1.yaml",
     "docs/contracts/spec144-normative-source-coverage.v1.yaml",
 ):
-    data = json.loads((ROOT / rel).read_text())
+    data = yaml.safe_load((ROOT / rel).read_text())
     assert data["source_atom_count"] == len(data["source_atoms"]), rel
     assert not data["unmapped_source_atom_refs"], rel
     for src in data["sources"]:

@@ -10,19 +10,20 @@ for needle in \
   'markerExistsAtCwd' \
   '--nag-suppress' \
   '.focusa-project.json' \
-  'focusa about' \
-  'focusa init' \
+  'focusa init --quickstart --project-root' \
+  'resolvePiProjectRootCandidate' \
   'focusa onboard --remote <git-url> --project-root <path>' \
   'pi_unbound_project_nag' \
   'session_start'; do
   grep -nF -- "$needle" "$SESSION" >/dev/null || fail "Pi unbound nag missing marker: $needle"
 done
-pass "Pi startup nag has marker check, suppress flag, commands, and telemetry"
+pass "Pi startup nag has marker/inference checks, suppress flag, binding commands, and telemetry"
 python3 - <<'PY'
 from pathlib import Path
 text = Path('apps/pi-extension/src/session.ts').read_text()
 assert 'if (pi.getFlag("--nag-suppress")) return;' in text
 assert 'if (markerExistsAtCwd(cwd)) return;' in text
+assert 'inferred.safe === true && inferred.requiresOperatorConfirmation !== true' in text
 assert 'getAttachmentRuntime().vitalInfoPrompted[key]' in text
 assert 'queueUnboundProjectNag(pi, ctx, "new_session_new_project")' in text
 assert text.index('sessionProjectClassification === "new_session_new_project"') < text.index('queueUnboundProjectNag(pi, ctx, "new_session_new_project")')

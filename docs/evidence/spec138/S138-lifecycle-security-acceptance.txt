@@ -1,0 +1,17 @@
+Spec138 Lifecycle, Retention, and Security Acceptance Evidence
+Generated: 2026-07-30
+Status: PASS (verified lifecycle/security slice; full Spec138/138A remains open)
+
+Coverage:
+- consolidation clusters and deduplicates while preserving scope, applicability, provenance, exceptions, conflicts, effectiveness, evidence, and receipts
+- governed decay, expiry, archive, deletion tombstone, revocation, legal hold/release, review, and evidence-backed reactivation
+- encryption and retention-policy requirements, version/supersession, stable audit events
+- source access authority, licensing, sanitization, prompt-injection/poisoning/manipulation risk, quarantine/reject, privacy, least privilege, encryption, retention, deletion, legal hold, and encrypted audit export
+- public-summary-only source boundary blocks raw operational content; high-consequence adversarial sources fail closed
+
+Proof:
+- cargo test -p focusa-core epistemic_memory_lifecycle
+- cargo test -p focusa-core epistemic_security
+- tests/spec138_lifecycle_security_gate.py
+
+Boundary: surfaces/migration/profile closure and full Spec138/138A conformance remain open.

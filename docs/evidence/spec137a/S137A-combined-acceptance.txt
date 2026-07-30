@@ -1,0 +1,34 @@
+Spec137A Combined Acceptance Evidence
+Generated: 2026-07-30
+Status: PASS
+
+Scope:
+- 86 Spec137 parent requirements
+- 172 Spec137A addendum requirements
+- 2390 source atoms
+- 1191 applicability decisions
+- 258 root delivery DAG nodes across 9 tranches
+- 9 explicit runtime surfaces
+
+Required gates:
+- source ledger integrity
+- applicability decisions
+- root delivery DAG
+- omission and variance firewall
+- surface/platform/degraded parity
+- tranche settlement and publication truth
+- zero-omission runtime closure
+- combined documentation architecture
+- full Spec137/137A conformance
+- Rust compile/tests, menubar, Pi, and diff checks
+
+All listed gates passed, including full Spec137/137A conformance, Rust compile/tests, API/CLI/TUI, menubar, Pi typecheck/lint, and diff checks.
+
+SHA-256:
+2747f7f1ff7417c4541d7223199b3a480128ca049c9fe4a45859028af99a8419  docs/137a-focusa-temporal-zero-deferral-applicability-and-omission-firewall-addendum.md
+e304934c31d2b4f0738e1d47966191fef9eaaf2e45de243c982f89baeb0138d9  docs/contracts/spec137-complete-feature-ledger.v1.yaml
+30e67ceb8eb4fac74443cd3299b5024257b324bd6efcdd8c1aac2ae5caeeaa76  docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml
+77046576caa7d0cedf2c3bd57ee5bb14d76ed121be2a73f14f2b9c0833be5f94  docs/contracts/spec137a-runtime-proof-map.v1.yaml
+dc5c0a7a51850cd541fa01e2d597d19c5832f0bcfbae21f4c1aacef3498cd277  docs/contracts/spec137a-root-delivery-dag.v1.yaml
+
+Publication remains not requested. Eligibility and publication execution are separate.

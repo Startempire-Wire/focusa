@@ -479,6 +479,18 @@ pub enum RuntimeConstitutionEvent {
     ArtifactDeliveryVerified(RuntimeArtifactProjection),
     ContractDriftDetected(AgentContractImpactAssessment),
     ContractRollbackActivated(RuntimeConstitutionVersion),
+    InstructionIntegrityEvaluated(
+        crate::agent_runtime_instruction_integrity::InstructionIntegrityResult,
+    ),
+    CanonicalInstructionAmendmentProposed(
+        crate::agent_runtime_instruction_integrity::CanonicalInstructionAmendment,
+    ),
+    CanonicalInstructionAmendmentActivated(
+        crate::agent_runtime_instruction_integrity::CanonicalInstructionAmendment,
+    ),
+    HeadlessCapabilityParityVerified(
+        crate::agent_runtime_instruction_integrity::HeadlessCapabilityParity,
+    ),
 }
 
 impl RuntimeConstitutionEvent {
@@ -500,6 +512,10 @@ impl RuntimeConstitutionEvent {
             Self::ArtifactDeliveryVerified(_) => "artifact.delivery_verified",
             Self::ContractDriftDetected(_) => "contract.drift_detected",
             Self::ContractRollbackActivated(_) => "contract.rollback_activated",
+            Self::InstructionIntegrityEvaluated(_) => "instruction.integrity_evaluated",
+            Self::CanonicalInstructionAmendmentProposed(_) => "instruction.amendment_proposed",
+            Self::CanonicalInstructionAmendmentActivated(_) => "instruction.amendment_activated",
+            Self::HeadlessCapabilityParityVerified(_) => "instruction.headless_parity_verified",
         }
     }
 }

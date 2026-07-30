@@ -10,6 +10,7 @@
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
+import { registerAgentRuntimeTools } from "./agent-runtime-tools.js";
 import {
   getAttachmentRuntime,
   checkFocusa,
@@ -2177,6 +2178,7 @@ export function registerTools(pi: ExtensionAPI) {
     }
     return registerTool(normalized);
   }) as typeof pi.registerTool;
+  registerAgentRuntimeTools(pi);
 
   pi.registerTool({
     name: "focusa_north_star_gate",
@@ -5015,6 +5017,19 @@ export function registerTools(pi: ExtensionAPI) {
       const result = await focusaFetchDetailed(`/project/card?${query.toString()}`, { method: "GET" });
       const body = result.body || {};
       const project = body.project_identity || {};
+      const temporalProjectRoot = project.project_root || project.canonical_parent_root || p.project_root;
+      const temporalContinuityId = getContinuityId();
+      if (temporalProjectRoot && temporalContinuityId) {
+        const temporalQuery = new URLSearchParams({
+          project_root: String(temporalProjectRoot),
+          continuity_id: String(temporalContinuityId),
+        });
+        const temporalResult = await focusaFetchDetailed(`/temporal/status?${temporalQuery.toString()}`);
+        body.temporal_context = temporalResult.body || {
+          status: "degraded",
+          failure_class: "temporal_projection_unavailable",
+        };
+      }
       const bootstrap = body.bootstrap || {};
       const prediction = body.prediction || {};
       const ontology = body.ontology || {};
@@ -5072,6 +5087,7 @@ export function registerTools(pi: ExtensionAPI) {
           safe_after_identity_verification: askToWorkpointBridge.safe_after_identity_verification,
         },
         trajectory_report_card: trajectoryReport,
+        temporal_context: body.temporal_context || { status: "unavailable" },
         efficiency_summary: efficiency,
         crosswire_health: crosswire,
         recommended_first_event: sequence.recommended_first_event,
@@ -5095,6 +5111,7 @@ export function registerTools(pi: ExtensionAPI) {
           inferred_workpoint_candidate: inferredWorkpoint,
           ask_to_workpoint_bridge: askToWorkpointBridge,
           trajectory_report_card: trajectoryReport,
+          temporal_context: body.temporal_context || { status: "unavailable" },
           efficiency_summary: efficiency,
           crosswire_health: crosswire,
           prior_session_context: prior,
@@ -6160,16 +6177,51 @@ export function registerTools(pi: ExtensionAPI) {
             Type.Literal("observe"),
             Type.Literal("forecast"),
             Type.Literal("preflight"),
+            Type.Literal("migrate-signatures"),
+            Type.Literal("high-consequence-preflight"),
+            Type.Literal("capture-clock"),
+            Type.Literal("resolve-civil-time"),
+            Type.Literal("commit-priority"),
           ],
           { description: "Temporal operation; defaults to status." }
         )
       ),
       project_root: Type.Optional(Type.String()),
       continuity_id: Type.Optional(Type.String()),
+      host_id: Type.Optional(Type.String()),
+      operator_id: Type.Optional(Type.String()),
+      workpoint_id: Type.Optional(Type.String()),
+      item_id: Type.Optional(Type.String()),
+      task_id: Type.Optional(Type.String()),
       idempotency_key: Type.Optional(Type.String()),
       confirm: Type.Optional(Type.Boolean()),
       as_of: Type.Optional(Type.String()),
       phase: Type.Optional(Type.String()),
+      timezone: Type.Optional(Type.String()),
+      tzdb_version: Type.Optional(Type.String()),
+      forecast_authority: Type.Optional(
+        Type.Object({
+          claim_kind: Type.Literal("forecast"),
+          target_state: Type.String(),
+          scope_revision: Type.String(),
+          expires_at: Type.String(),
+          estimator_version: Type.String(),
+          cohort: Type.String(),
+          evidence_basis: Type.Array(Type.String()),
+          comparable_sample_count: Type.Number(),
+          all_attempt_sample_count: Type.Number(),
+          censoring_method: Type.String(),
+          correlation_method: Type.String(),
+          calibration_profile: Type.String(),
+          grounding_status: Type.Literal("grounded"),
+          baseline_ref: Type.String(),
+          drift_policy_ref: Type.String(),
+        })
+      ),
+      forecast_evaluation: Type.Optional(Type.Any()),
+      high_consequence_packet: Type.Optional(Type.Any()),
+      civil_time_packet: Type.Optional(Type.Any()),
+      temporal_priority_packet: Type.Optional(Type.Any()),
       duration_ms: Type.Optional(Type.Number()),
       outcome: Type.Optional(Type.String()),
       actual_ms: Type.Optional(Type.Number()),
@@ -6178,7 +6230,15 @@ export function registerTools(pi: ExtensionAPI) {
         Type.Object({
           claim_id: Type.String(),
           revision: Type.Number(),
-          scope: Type.Object({ project_root: Type.String(), continuity_id: Type.String() }),
+          scope: Type.Object({
+            project_root: Type.String(),
+            continuity_id: Type.String(),
+            host_id: Type.Optional(Type.String()),
+            operator_id: Type.Optional(Type.String()),
+            workpoint_id: Type.Optional(Type.String()),
+            item_id: Type.Optional(Type.String()),
+            task_id: Type.Optional(Type.String()),
+          }),
           kind: Type.String(),
           status: Type.String(),
           subject_ref: Type.String(),
@@ -6222,17 +6282,98 @@ export function registerTools(pi: ExtensionAPI) {
         } as any;
       }
       const continuityId = params.continuity_id || getContinuityId() || ensureContinuityId(projectRoot);
+      if (action === "commit-priority" && !params.temporal_priority_packet) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "temporal priority commit → blocked: calendar, priority frame, guard, ask and action packet required",
+            },
+          ],
+          details: {
+            status: "blocked",
+            failure_class: "temporal_priority_packet_required",
+            canonical: false,
+          },
+        } as any;
+      }
+      if (action === "resolve-civil-time" && !params.civil_time_packet) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "temporal civil-time resolution → blocked: complete versioned intent packet required",
+            },
+          ],
+          details: { status: "blocked", failure_class: "civil_time_packet_required", canonical: false },
+        } as any;
+      }
+      if (action === "capture-clock" && !params.timezone) {
+        return {
+          content: [{ type: "text", text: "temporal clock capture → blocked: explicit timezone required" }],
+          details: { status: "blocked", failure_class: "timezone_required", canonical: false },
+        } as any;
+      }
+      if (action === "high-consequence-preflight" && !params.high_consequence_packet) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "temporal high-consequence preflight → blocked: complete control packet required",
+            },
+          ],
+          details: { status: "blocked", failure_class: "high_consequence_packet_required", canonical: false },
+        } as any;
+      }
+      if (action === "forecast" && !params.forecast_authority) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "temporal forecast → blocked: complete forecast authority metadata is required",
+            },
+          ],
+          details: { status: "blocked", failure_class: "forecast_authority_required", canonical: false },
+        } as any;
+      }
+      if (params.forecast_authority) {
+        params.authority = params.forecast_authority;
+        params.forecast_authority = undefined;
+      }
+      if (params.forecast_evaluation) {
+        params.evaluation = params.forecast_evaluation;
+        params.forecast_evaluation = undefined;
+      }
       let result: any;
       if (action === "status") {
-        const suffix = params.as_of ? `&as_of=${encodeURIComponent(params.as_of)}` : "";
-        result = await focusaFetchDetailed(
-          `/temporal/status?project_root=${encodeURIComponent(projectRoot)}&continuity_id=${encodeURIComponent(continuityId)}${suffix}`
-        );
+        const query = new URLSearchParams({ project_root: projectRoot, continuity_id: continuityId });
+        for (const key of ["host_id", "operator_id", "workpoint_id", "item_id", "task_id", "as_of"]) {
+          if (params[key]) query.set(key, String(params[key]));
+        }
+        result = await focusaFetchDetailed(`/temporal/status?${query.toString()}`);
       } else {
-        result = await focusaFetchDetailed(`/temporal/${encodeURIComponent(action)}`, {
+        const actionPath =
+          action === "high-consequence-preflight"
+            ? "/temporal/high-consequence/preflight"
+            : action === "capture-clock"
+              ? "/temporal/clock/capture"
+              : action === "resolve-civil-time"
+                ? "/temporal/civil/resolve"
+                : action === "commit-priority"
+                  ? "/temporal/priority/commit"
+                  : `/temporal/${encodeURIComponent(action)}`;
+        const actionBody =
+          action === "high-consequence-preflight"
+            ? params.high_consequence_packet || {}
+            : action === "resolve-civil-time"
+              ? params.civil_time_packet || {}
+              : action === "commit-priority"
+                ? params.temporal_priority_packet || {}
+                : params;
+        result = await focusaFetchDetailed(actionPath, {
           method: "POST",
           body: JSON.stringify({
-            ...params,
+            ...actionBody,
             action: undefined,
             project_root: projectRoot,
             continuity_id: continuityId,

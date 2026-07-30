@@ -22,9 +22,9 @@
     "device_pairing",
     "local_trusted"
   ],
-  "registry_digest": "sha256:90f1f14e40eb2ddeb24781ebeeb1d22da9b23aa2fefd5c11e0f35ddb4782fc9e",
-  "pi_tool_count": 116,
-  "pi_tool_docs_count": 116,
+  "registry_digest": "sha256:2f72bb14976765ed62aabfad5d553dd2a7df6eac0c71e8342d7d822dbbbc7bce",
+  "pi_tool_count": 134,
+  "pi_tool_docs_count": 134,
   "pi_tool_registry_path": "docs/contracts/spec141/generated-capability-v2/pi-tools.json",
   "pi_tool_docs_path": "docs/focusa-tools/tools/",
   "skill_count": 29,
@@ -349,6 +349,7 @@
     ".pi/skills/predictive-power/references/01-predictive-power-runbook.md"
   ],
   "capability_families": [
+    "agent_runtime",
     "awareness",
     "diagnostics_hygiene",
     "focus_state",
@@ -363,5 +364,5 @@
     "workpoint"
   ],
   "extended_card_path": "/v1/agent/card",
-  "card_digest": "sha256:657e3992dd721406f68396fffb581f0ba35decd7851b5e976b630549c1efa01a"
+  "card_digest": "sha256:573b115373e16589383cd3d28fa770363dd2c8192ae0bd298861df1a57c2c12a"
 }

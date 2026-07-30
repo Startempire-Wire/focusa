@@ -1,0 +1,65 @@
+schema: focusa.spec135_locked_release_compatibility_delta.v1
+release: v0.9.141-locked-release
+generated_at: '2026-07-31T03:00:00Z'
+status: verified_complete
+release_admitted: true
+baseline_manifest_ref: docs/135-series-current-manifest.md
+frozen_series_terminal: 135K
+spec135l_created: false
+unknown_impact_count: 0
+changes:
+  - change_id: temporal-authority-137-137a
+    spec135_impact: direct
+    affected_specs: [135D, 135E, 135J, 135K]
+    affected_primitives: [TemporalClaim, DeadlineStatus, UrgencyAssessment, TemporalExecutionGuard]
+    affected_surfaces: [Operation Registry, API, CLI, Pi Focus Slice, Mission Canvas, TUI, menubar]
+    compatibility: additive_typed_authority
+    migration: legacy temporal values remain readable and noncanonical until governed migration
+    rollback: append-only revisions preserve prior valid claims
+    tests: [tests/spec137_full_conformance_gate.py, tests/spec137a_zero_omission_runtime_gate.py]
+    evidence_refs: [docs/evidence/spec137/S137-parent-acceptance.txt, docs/evidence/spec137a/S137A-combined-acceptance.txt]
+  - change_id: epistemic-authority-138-138a
+    spec135_impact: direct
+    affected_specs: [135D, 135E, 135J, 135K]
+    affected_primitives: [PredictionCommitment, OutcomeAuthorityEvent, LearningEvaluation, PromotionDecision]
+    affected_surfaces: [Operation Registry, generated contracts, API, CLI, Pi Focus Slice, Mission Canvas, TUI, menubar]
+    compatibility: additive_typed_authority
+    migration: seven legacy sources remain readable advisory or quarantined ambiguous without manufactured authority
+    rollback: immutable migration and promotion receipts preserve source lineage
+    tests: [tests/spec138_full_conformance_gate.py, tests/spec138a_full_conformance_gate.py]
+    evidence_refs: [docs/evidence/spec138/focusa-vbcqu.2.2.6-profile-migration-client-parity.txt, docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt]
+  - change_id: instruction-integrity-140-140a
+    spec135_impact: direct
+    affected_specs: [135B, 135D, 135E, 135J, 135K]
+    affected_primitives: [InstructionIntegrityGuard, CanonicalInstructionAmendment, OfficialDocumentationSweepManifest]
+    affected_surfaces: [API, CLI, Pi, Focus Slice, Mission Canvas, TUI, menubar, headless runtime]
+    compatibility: additive_fail_closed_governance
+    migration: existing Runtime Constitutions remain readable; amendments require two-stage operator authority
+    rollback: canonical amendment events and constitution revisions are append-only and reversible
+    tests: [tests/spec140a_full_conformance_gate.py]
+    evidence_refs: [docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt]
+  - change_id: working-subpath-workloop-recovery
+    spec135_impact: indirect
+    affected_specs: [135D, 135E, 135G, 135J]
+    affected_primitives: [WorkingSubpath, Workpoint, WorkLoopWriterLease]
+    affected_surfaces: [daemon, Work Loop, Pi RPC, project-scoped API]
+    compatibility: backward_compatible_scope_normalization
+    migration: canonical parent plus verified active working subpath replaces raw-path equality
+    rollback: prior scope records remain valid under canonical parent authority
+    tests: [tests/work_loop_continuation_inputs_test.sh, tests/work_loop_policy_consumption_test.sh, tests/pi_rpc_driver_contract_test.sh]
+    evidence_refs: [apps/pi-extension/tests/work-loop-lease-client.test.mjs, tests/tool_contract_test.sh]
+  - change_id: agent-capability-and-doc-parity
+    spec135_impact: direct
+    affected_specs: [135J, 135K]
+    affected_primitives: [OperationRegistryEntry, AgentCapabilityDescriptor, UIActionBinding]
+    affected_surfaces: [Pi, MCP, OpenAI, CLI, REST, generated UI, per-tool docs]
+    compatibility: additive_generated_contracts
+    migration: registry remains versioned and progressively discoverable
+    rollback: generated artifacts are digest-bound and reproducible from source contracts
+    tests: [tests/spec141_agent_conformance_test.ts, tests/spec141_agent_first_tool_audit_test.py, tests/spec135_m4_surface_bindings_static_test.py]
+    evidence_refs: [docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json, docs/current/focusa-tool-contracts.json]
+agent_handoff:
+  current_authority: Specs 135 through 135K remain frozen and normative
+  integration_rule: new runtime authority projects through existing Operation Registry and Mission Canvas substrates
+  release_rule: any future unknown spec135_impact blocks implementation and release
+receipt_ref: docs/evidence/release/141-locked-release-integrated-proof.txt

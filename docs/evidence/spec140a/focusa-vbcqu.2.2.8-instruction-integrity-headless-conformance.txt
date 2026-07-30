@@ -1,0 +1,47 @@
+Spec140 + Spec140A combined instruction-integrity conformance proof
+Work item: focusa-vbcqu.2.2.8
+Canonical scope: /home/wirebot/focusa
+Working subpath: /tmp/focusa-next-locked-release
+Continuity: focusa-v0.9.135-locked-14
+Recorded: 2026-07-31T00:30:00Z
+
+Combined-source result:
+- Parent Spec140 feature requirements: 38/38 verified
+- Spec140A addendum requirements: 24/24 verified
+- Combined runtime proof map: 62/62 verified_complete
+- Literal source atoms: exact generated map, zero unmapped or ambiguous owners
+- Typed generated contracts: 7/7 verified
+- Instruction adaptability classes: 4/4 enforced
+- Temporally adaptable fields: 7 allowlisted
+- Headless canonical operations: 9/9 across 8 surfaces
+- Mandatory scenarios: 24/24 executable Rust tests
+- Generated agent capabilities: 134, including five instruction-integrity capabilities
+
+Runtime implementation:
+- Foundational InstructionIntegrityGuard with invariant-hash drift detection
+- Typed temporal adaptation with evidence, claim, effectivity, and expiry
+- Approved target profile binding; runtime target invention fails closed
+- Two-stage canonical amendment authority
+- Official documentation sweep manifest with changed/reviewed-no-change hash semantics
+- Mission Canvas-independent headless parity
+- Dynamic authority outage fail-closed for durable or consequential actions
+- Stale replica/session revision rejection
+- Durable API events for guard decisions, proposals, activations, and parity receipts
+- CLI, Pi, Focus Slice, Mission Canvas, menubar, and TUI bindings
+
+Proof results:
+- cargo test -p focusa-core agent_runtime_constitution: passed
+- cargo test -p focusa-core agent_runtime_instruction_integrity: 28/28 passed
+- cargo test -p focusa-api agent_runtime: passed
+- cargo check -p focusa-api -p focusa-cli -p focusa-tui: passed
+- apps/menubar npm run check: 0 errors, 0 warnings
+- apps/pi-extension npm run typecheck: passed
+- apps/pi-extension npm run lint: passed
+- Spec141 generated capability check: passed, 134 capabilities
+- Spec140A source coverage regeneration check: passed
+- tests/spec140a_full_conformance_gate.py dependency-free runner: 7/7 passed
+
+Authority boundary:
+- Mission Canvas is projection only and never foundational authority.
+- Execution steering and temporal revision never silently amend canon.
+- Amendment activation requires separate proposal and approval authority plus a completed official documentation sweep.
