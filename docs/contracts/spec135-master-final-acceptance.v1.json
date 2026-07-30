@@ -1,7 +1,9 @@
 {
   "schema": "focusa.spec135.master_final_acceptance.v1",
-  "acceptance_criteria": "All 135\u2013135K Beads close from runtime evidence, completion gate passes 12/12, CI passes, and PR is merge-ready.",
-  "gate_count": 12,
+  "acceptance_criteria": "All 135–135K requirements close from runtime evidence, including the Pi-controlled Focusa rich Mission Canvas host, and the PR is merge-ready.",
+  "status": "reopened",
+  "authority_ref": "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml",
+  "gate_count": 14,
   "checks": [
     {
       "check_id": "install_to_first_workpoint",
@@ -11,7 +13,7 @@
     {
       "check_id": "client_parity",
       "evidence_ref": "docs/contracts/spec135-client-operation-parity.v1.json",
-      "status": "passed"
+      "status": "passed_with_revalidation_required_after_host_contract_change"
     },
     {
       "check_id": "security_scope",
@@ -21,59 +23,75 @@
     {
       "check_id": "performance",
       "evidence_ref": "docs/contracts/spec135-q3-performance-budgets.v1.yaml",
-      "status": "passed"
+      "status": "revalidation_required_for_rich_host"
     },
     {
       "check_id": "recovery",
       "evidence_ref": "docs/contracts/spec135-reconnect-replay-recovery.v1.json",
-      "status": "passed"
+      "status": "revalidation_required_for_rich_host"
     },
     {
       "check_id": "dogfood",
       "evidence_ref": "docs/contracts/spec135-alpha5-8-production-proof.v1.json",
-      "status": "passed"
+      "status": "reopened_for_alpha_9_pi_light_switch_traversal"
     },
     {
-      "check_id": "issue_53",
+      "check_id": "interaction_mode_contract",
       "evidence_ref": "docs/contracts/spec135-interaction-mode-toggle.v1.json",
-      "status": "passed"
+      "status": "partial_mode_foundation_only"
     },
     {
-      "check_id": "alpha_1_4",
-      "evidence_ref": "docs/contracts/spec135-alpha1-4-production-proof.v1.json",
-      "status": "passed"
+      "check_id": "focusa_pi_rich_host",
+      "evidence_ref": "docs/contracts/spec135-mission-canvas-agent-first-gui-proof.v1.json",
+      "status": "failed_missing_focusa_pi_rich_window"
+    },
+    {
+      "check_id": "same_session_canvas_toggle",
+      "evidence_ref": "pending:runtime-evidence/pi-rich-canvas-toggle",
+      "status": "pending"
+    },
+    {
+      "check_id": "generated_crist_rich_work_surfaces",
+      "evidence_ref": "pending:uiai-eval/generated-crist-work-surfaces",
+      "status": "pending"
     },
     {
       "check_id": "multiplexing",
       "evidence_ref": "docs/contracts/spec135-multiplexing-concurrency-proof.v1.json",
-      "status": "passed"
+      "status": "partial_requires_real_rich_split_and_rehydration_reproof"
+    },
+    {
+      "check_id": "vertical_professional_workspaces",
+      "evidence_ref": "pending:uiai-eval/vertical-workspace-recomposition",
+      "status": "pending"
     },
     {
       "check_id": "generated_contracts",
       "evidence_ref": "docs/contracts/spec135/generated-contract-v1/operation-registry.json",
-      "status": "passed"
+      "status": "revalidation_required_after_host_renderer_contract"
     },
     {
-      "check_id": "cross_spec_migration",
+      "check_id": "cross_spec_migration_and_clean_lineage",
       "evidence_ref": "docs/contracts/spec135-cross-spec-closure.v1.json",
-      "status": "passed"
-    },
-    {
-      "check_id": "clean_pr_lineage",
-      "evidence_ref": "docs/contracts/spec135/generated-contract-v1/spec135-z3-worktree-lineage-proof.json",
-      "status": "passed"
+      "status": "reopened_for_in_place_135a_135g_135i_135j_135k_harmonization"
     }
   ],
-  "passed_count": 12,
-  "beads_closure_authority": "runtime evidence maps to provider items; provider JSONL remains provider-owned and is not hand-edited",
+  "passed_count": 3,
+  "partial_count": 5,
+  "pending_or_failed_count": 6,
+  "beads_closure_authority": "Runtime Evidence maps to provider items; provider JSONL remains provider-owned and is not hand-edited.",
   "branch_policy": "feature branch + PR only; never direct commit to main",
-  "go_sdk": "excluded; Pi TUI uses TypeScript",
   "merge_ready_conditions": [
-    "12/12 evidence gate",
-    "strict CI pass",
-    "generated contracts converge",
-    "worktree clean after final commit",
-    "feature branch pushed",
-    "PR checks green and mergeable"
-  ]
+    "Mission Canvas host/renderer contract implemented",
+    "focusa_pi_rich_window exists and is controlled directly from Pi",
+    "same-session ON/OFF continuity proof passes",
+    "real Work Surface split, suspend, close, and rehydration proof passes",
+    "real vertical workspace recomposition proof passes",
+    "generated C.R.I.S.T. rich Work Surface proof passes",
+    "UIAI Engine Eval responsive/accessibility/visual/reconnect proof passes",
+    "affected ledgers and generated contracts converge",
+    "strict CI passes",
+    "worktree is clean and PR checks are green"
+  ],
+  "merge_ready": false
 }
