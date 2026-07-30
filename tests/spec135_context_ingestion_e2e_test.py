@@ -18,7 +18,7 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-BINARY = ROOT / "target/debug/focusa-daemon"
+BINARY = Path(os.environ.get("FOCUSA_DAEMON_BIN", ROOT / "target/debug/focusa-daemon"))
 PROJECT = "/example/focusa-c1"
 CONTINUITY = "focusa-cont-c1-ingestion"
 ATTACHMENT = "attachment:c1-context"

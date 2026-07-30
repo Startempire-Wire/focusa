@@ -142,7 +142,16 @@
       "first_failure": "apps/pi-extension/tests/mission-canvas-pi-surface.test.mjs retained obsolete full-shell title/footer markers after terminal-projection reclassification",
       "repair": "Static assertions now require Terminal Projection title and FOCUSA TERMINAL CANVAS PROJECTION footer while explicitly rejecting rich-GUI classification."
     },
-    "next_baseline_action": "Push the corrected Pi surface gate and use the new GitHub Spec Gates run as the complete clean baseline."
+    "github_ci_run_30563528987": {
+      "result": "failed before B2 runtime execution",
+      "first_failure": "The shared Context ingestion harness hardcoded target/debug/focusa-daemon and ignored the canonical FOCUSA_DAEMON_BIN=target/release/focusa-daemon override supplied by run-spec-gates.sh.",
+      "repair": "tests/spec135_context_ingestion_e2e_test.py now resolves BINARY from FOCUSA_DAEMON_BIN with the debug path only as fallback.",
+      "local_reproof": [
+        "Spec 135 B2 Context artifacts/connectors E2E PASS",
+        "Spec 135 C1 Context ingestion E2E PASS"
+      ]
+    },
+    "next_baseline_action": "Push the daemon-binary harness correction and use the next GitHub Spec Gates run as the complete clean baseline."
   },
   "p00_progress": {
     "completed": [
