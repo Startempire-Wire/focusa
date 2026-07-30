@@ -85,7 +85,29 @@
         "finding": "Total wall time was provider-summary dominated and is not used as prepare-deadline evidence; source and regression tests verify signal-bound 2.5-second cancellation."
       },
       "scope_mismatch": "verified_degraded_without_blocking_in_isolated_tui_runs",
-      "saturated": "pending_live_matrix"
+      "saturated": {
+        "status": "verified",
+        "prepare_status": 503,
+        "native_compactions": 1,
+        "recovery_user_entries": 1,
+        "recovery_assistant_deliveries": 1,
+        "reload_required": false
+      }
+    },
+    "post_compaction_transition_matrix": {
+      "reload": {
+        "status": "verified",
+        "reload_indicator_cleared": true,
+        "recovery_user_entries": 1,
+        "recovery_assistant_deliveries": 1,
+        "duplicate_resume_entries": 0
+      },
+      "model_switch": {
+        "status": "verified",
+        "target_model": "openai-codex/gpt-5.4-mini",
+        "prompt_accepted": true,
+        "assistant_deliveries": 1
+      }
     },
     "cancellation_observation": {
       "rpc_abort_command_accepted": true,
@@ -95,7 +117,9 @@
       "second_escape_required": false,
       "reload_required": false,
       "native_compaction_cancelled": false,
-      "finding": "One Esc never froze continuation and required no second Esc or reload, but Pi completed native compaction before/without cancellation in repeated cached and uncached TUI runs; this is not accepted as native cancellation proof."
+      "pi_source_mapping": "interactive-mode.js compaction_start installs defaultEditor.onEscape = session.abortCompaction; agent-session.js abortCompaction aborts manual and automatic compaction controllers",
+      "focusa_signal_mapping": "session_before_compact event.signal is passed through withCompactionDeadline to the sole prepare fetch",
+      "finding": "One Esc never froze continuation and required no second Esc or reload, but automated tmux Esc transports did not produce an observable native abort before settlement; deterministic physical-Esc cancellation remains unproven."
     }
   },
   "acceptance_matrix": {
@@ -111,14 +135,15 @@
     "operator_prompt_submitted_during_tui_compaction": "verified_one_user_one_assistant_no_competing_resume",
     "single_esc_cancellation": "post_escape_recovery_verified_native_cancellation_not_observed",
     "daemon_offline_slow_scope_mismatch": "verified_live_tui",
-    "daemon_saturated": "pending_live_matrix",
-    "reload_and_model_switch": "implemented_and_existing_static_verified_live_matrix_pending"
+    "daemon_saturated": "verified_live_tui_503_recovery",
+    "reload": "verified_live_tui_one_user_one_assistant_no_duplicate_resume",
+    "model_switch": "verified_live_rpc_openai_codex_gpt_5_4_mini"
   },
   "completion_gate": {
     "ready_to_close_issue": false,
     "remaining": [
       "Resolve or prove Pi 0.82.1 native-compaction cancellation semantics: one Esc recovery passes, but native compaction still settles rather than cancelling.",
-      "Complete bounded live matrix for daemon saturation, reload, and model switch; offline, slow, and scope-mismatch TUI recovery pass."
+      "Obtain deterministic physical-Esc native cancellation evidence; source wiring and one-Esc recovery pass, but tmux key transport did not produce an observable abort before settlement."
     ]
   },
   "evidence_refs": [
