@@ -6,6 +6,8 @@
 
 Spec 135 and every companion below form one required implementation and closure set. The series is frozen at **135K**. No additional lettered companion is created for implementation clarification. Corrections are consolidated into this delivery contract, its machine-readable contracts, and the affected existing documents.
 
+**Required current-reality audit:** [SPEC135_REALTIME_GENERATED_UI_SPEED_AND_CORE_INTEGRATION_AUDIT_2026-07-18.md](current/SPEC135_REALTIME_GENERATED_UI_SPEED_AND_CORE_INTEGRATION_AUDIT_2026-07-18.md)
+
 ## 0. Operator intent lock — Mission Canvas inside the Pi experience
 
 This section is the first authority an agent must apply before changing Mission Canvas, Pi UI, generated UI, workspace profiles, Work Surfaces, or Spec 135 closure state.
