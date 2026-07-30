@@ -108,6 +108,14 @@ run_gate ./tests/worktree_discipline_guardrail_test.sh
 run_gate ./tests/work_loop_turn_outcome_wiring_test.sh
 run_gate ./tests/work_loop_autocontinue_wiring_test.sh
 run_gate ./tests/work_loop_route_contract_test.sh
+run_gate python3 ./tests/work_loop_runtime_scope_harness_static_test.py
+run_gate bash ./tests/work_loop_bd_transition_wiring_test.sh
+run_gate bash ./tests/work_loop_affordance_environment_surface_test.sh
+run_gate bash ./tests/work_loop_affordance_consumer_path_test.sh
+run_gate bash ./tests/work_loop_commitment_lifecycle_contract_test.sh
+run_gate bash ./tests/work_loop_governing_priors_consumer_path_test.sh
+run_gate bash ./tests/work_loop_migration_conformance_checks_test.sh
+run_gate bash ./tests/work_loop_query_scope_boundary_contract_test.sh
 run_gate ./tests/ontology_event_contract_test.sh
 run_gate ./tests/ontology_world_contract_test.sh
 run_gate ./tests/golden_tasks_eval.sh
