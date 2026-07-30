@@ -85,6 +85,14 @@ Complete machine-readable closure DAG
 
 Cross-Functional Alpha
   The earliest production-shaped traversal through every major function.
+
+Permanent integration gate
+  No phase closes from temporary wiring, terminal-only representation,
+  unmerged scaffolding, or proof that is not bound to the canonical runtime.
+
+No-deferral rule
+  Every normative requirement remains in the dependency graph until its
+  implementation, migration, runtime proof, Evidence, and Receipt are complete.
 ```
 
 The Alpha is implemented first. It does not remove requirements from the closure DAG.

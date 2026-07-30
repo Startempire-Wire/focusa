@@ -151,7 +151,13 @@
         "Spec 135 C1 Context ingestion E2E PASS"
       ]
     },
-    "next_baseline_action": "Push the daemon-binary harness correction and use the next GitHub Spec Gates run as the complete clean baseline."
+    "github_ci_run_30564450086": {
+      "result": "failed in Spec 135H static authority gate",
+      "first_failure": "The gate required explicit Permanent integration gate and No-deferral rule labels after the corrected directive retained their semantics but lost those exact headings.",
+      "repair": "The acceleration directive now restores explicit permanent-integration and no-deferral laws; the Playwright assertion follows the current normative must-not-add wording.",
+      "local_reproof": "Spec 135H implementation acceleration static test PASS"
+    },
+    "next_baseline_action": "Push the Spec 135H authority/gate correction and use the next GitHub Spec Gates run as the complete clean baseline."
   },
   "p00_progress": {
     "completed": [
