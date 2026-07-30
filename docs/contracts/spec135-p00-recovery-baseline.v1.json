@@ -1,6 +1,6 @@
 {
   "schema": "focusa.spec135.p00_recovery_baseline.v1",
-  "status": "identity_wave_partial_workpoint_blocked",
+  "status": "identity_wave_complete_baseline_wave_ready",
   "captured_at": "2026-07-30T07:00:00Z",
   "authority": {
     "operator_steering": "continue",
@@ -25,9 +25,16 @@
   "focusa_authority": {
     "project_card_hlt": "Bring the Focusa Mission Canvas Spec series 135 into full existence and alignment with the current Focusa Core Product and make it fully operational.",
     "prior_project_card_mlg": "Close all 30 remaining requirements in the machine-readable Spec 135 ledger in dependency order.",
-    "workpoint_status": "blocked",
-    "workpoint_blocker": "ProjectIdentity, Trajectory writes, ProjectCard, and Workpoint checkpoint routes exceed the 250 ms internal hot-route budget despite LowMem and emergency resource modes. Operator steering and verified git scope authorize bounded P00 recovery, but focusa-mc2.1.003 remains open until a canonical Workpoint and writer lease are restored.",
-    "active_writer": "none"
+    "workpoint_status": "canonical_active",
+    "workpoint_id": "019fb3a9-5b29-7db3-84e4-bbb507cbe411",
+    "workpoint_scope": "/Volumes/Macintosh HD/Users/vsmith/focusa + extension-bootstrap + working-subpath:05a5992a432947ea77bde268f7cc8971231fb4bde36a91fbf5dc4e90d2a07b7c",
+    "workpoint_recovery": "Pi/CLI wrappers timed out, so the same canonical typed request was replayed through POST /v1/workpoint/checkpoint with a 300 second timeout and explicit parent scope. The daemon accepted and promoted it.",
+    "writer_lease": {
+      "writer_id": "pi-75087",
+      "fencing_token": 1785423090003000,
+      "acquired": true,
+      "lease_semantics": "bounded 30 second mutation lease; the continuous loop remains enabled/idle and manual work proceeds from the canonical Workpoint"
+    }
   },
   "task_provider_before": {
     "mode": "SQLite auto-import",
@@ -123,11 +130,16 @@
       "focusa-mc2.1.001 scope identity verified with root-marker warning",
       "focusa-mc2.1.002 branch and remote reconciled before P00 mutations",
       "focusa-mc2.1.004 task-provider legacy schema repaired and canonical no-db visibility restored",
-      "focusa-mc2.1.005 ledger/provider/Project Card/master-acceptance contradiction reconciled to focusa-mc2"
+      "focusa-mc2.1.005 ledger/provider/Project Card/master-acceptance contradiction reconciled to focusa-mc2",
+      "focusa-mc2.1.003 canonical Workpoint and bounded writer lease restored",
+      "focusa-mc2.1.006 identity wave gate"
     ],
-    "blocked": [
-      "focusa-mc2.1.003 canonical Focusa Workpoint and writer lease restoration"
-    ],
-    "not_started": "P00 baseline and governance waves remain dependency-blocked until the identity wave gate passes."
+    "blocked": [],
+    "ready": [
+      "focusa-mc2.1.007 clean code/test/proof/release baseline",
+      "focusa-mc2.1.008 diagnose and repair SPEC135-M4 binding E2E",
+      "focusa-mc2.1.009 classify existing Mission Canvas artifacts",
+      "focusa-mc2.1.010 move stale closure claims to truthful reopened states"
+    ]
   }
 }

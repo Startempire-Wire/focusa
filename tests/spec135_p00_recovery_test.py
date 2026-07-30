@@ -19,8 +19,10 @@ assert "project_root" not in MARKER, "tracked project marker must not embed a ho
 
 assert GRAPH["status"] == "operator_approved_p00_execution"
 assert BASELINE["schema"] == "focusa.spec135.p00_recovery_baseline.v1"
-assert BASELINE["status"] == "identity_wave_partial_workpoint_blocked"
-assert BASELINE["focusa_authority"]["workpoint_status"] == "blocked"
+assert BASELINE["status"] == "identity_wave_complete_baseline_wave_ready"
+assert BASELINE["focusa_authority"]["workpoint_status"] == "canonical_active"
+assert BASELINE["focusa_authority"]["workpoint_id"] == "019fb3a9-5b29-7db3-84e4-bbb507cbe411"
+assert BASELINE["focusa_authority"]["writer_lease"]["acquired"] is True
 assert BASELINE["task_provider_after"]["new_materialized_records"] == 394
 assert BASELINE["task_provider_after"]["new_dependency_edges"] == 1014
 
@@ -55,14 +57,26 @@ assert len(superseded) == 63
 assert all(record["status"] == "closed" for record in superseded)
 assert all(record.get("superseded_by") == "focusa-mc2" for record in superseded)
 
-for completed in ("focusa-mc2.1.001", "focusa-mc2.1.002", "focusa-mc2.1.004", "focusa-mc2.1.005"):
+for completed in (
+    "focusa-mc2.1.001",
+    "focusa-mc2.1.002",
+    "focusa-mc2.1.003",
+    "focusa-mc2.1.004",
+    "focusa-mc2.1.005",
+    "focusa-mc2.1.006",
+):
     assert by_id[completed]["status"] == "closed"
-assert by_id["focusa-mc2.1.003"]["status"] == "open"
-assert all(by_id[dependency["depends_on_id"]]["status"] == "closed" for dependency in by_id["focusa-mc2.1.003"].get("dependencies") or [] if dependency["type"] == "blocks")
+for ready in ("focusa-mc2.1.007", "focusa-mc2.1.008", "focusa-mc2.1.009", "focusa-mc2.1.010"):
+    assert by_id[ready]["status"] == "open"
+    assert all(
+        by_id[dependency["depends_on_id"]]["status"] == "closed"
+        for dependency in by_id[ready].get("dependencies") or []
+        if dependency["type"] == "blocks"
+    )
 
 subprocess.run(
     ["python3", "scripts/materialize-spec135-mission-canvas-completion-beads.py", "--check"],
     cwd=ROOT,
     check=True,
 )
-print("Spec 135 P00 recovery: PASS (Workpoint restoration truthfully remains blocked)")
+print("Spec 135 P00 recovery: PASS (identity wave complete; baseline wave ready)")
