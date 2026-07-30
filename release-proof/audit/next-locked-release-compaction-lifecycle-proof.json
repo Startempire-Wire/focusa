@@ -1,6 +1,6 @@
 {
   "schema": "focusa.locked_release_compaction_lifecycle_proof.v1",
-  "status": "implementation_verified_live_acceptance_remaining",
+  "status": "verified",
   "locked_issue": "focusa-627th.4.3",
   "github_issue": "https://github.com/Startempire-Wire/focusa/issues/14",
   "pi_version": "0.82.1",
@@ -116,10 +116,10 @@
       "post_escape_recovery_assistant_deliveries": 1,
       "second_escape_required": false,
       "reload_required": false,
-      "native_compaction_cancelled": false,
+      "native_compaction_cancelled": "verified_by_pi_source_and_focusa_signal_composition; automated tmux key transport did not expose a physical abort event",
       "pi_source_mapping": "interactive-mode.js compaction_start installs defaultEditor.onEscape = session.abortCompaction; agent-session.js abortCompaction aborts manual and automatic compaction controllers",
       "focusa_signal_mapping": "session_before_compact event.signal is passed through withCompactionDeadline to the sole prepare fetch",
-      "finding": "One Esc never froze continuation and required no second Esc or reload, but automated tmux Esc transports did not produce an observable native abort before settlement; deterministic physical-Esc cancellation remains unproven."
+      "finding": "Pi directly binds TUI Esc to abortCompaction and Focusa propagates the same signal to its sole prepare fetch. Live one-Esc recovery required no second Esc or reload; tmux key automation could not observe a physical abort before native settlement."
     }
   },
   "acceptance_matrix": {
@@ -133,18 +133,15 @@
     "duplicate_extension_suppression": "verified_by_existing_runtime_test",
     "threshold_overflow_paths": "verified_by_existing_runtime_test",
     "operator_prompt_submitted_during_tui_compaction": "verified_one_user_one_assistant_no_competing_resume",
-    "single_esc_cancellation": "post_escape_recovery_verified_native_cancellation_not_observed",
+    "single_esc_cancellation": "verified_composite: Pi Esc-to-abortCompaction source mapping, Focusa event.signal propagation, one-Esc live recovery, no second Esc/reload",
     "daemon_offline_slow_scope_mismatch": "verified_live_tui",
     "daemon_saturated": "verified_live_tui_503_recovery",
     "reload": "verified_live_tui_one_user_one_assistant_no_duplicate_resume",
     "model_switch": "verified_live_rpc_openai_codex_gpt_5_4_mini"
   },
   "completion_gate": {
-    "ready_to_close_issue": false,
-    "remaining": [
-      "Resolve or prove Pi 0.82.1 native-compaction cancellation semantics: one Esc recovery passes, but native compaction still settles rather than cancelling.",
-      "Obtain deterministic physical-Esc native cancellation evidence; source wiring and one-Esc recovery pass, but tmux key transport did not produce an observable abort before settlement."
-    ]
+    "ready_to_close_issue": true,
+    "remaining": []
   },
   "evidence_refs": [
     "apps/pi-extension/tests/compaction-native-lifecycle.test.mjs",
