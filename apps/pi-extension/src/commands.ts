@@ -2,7 +2,7 @@
 // Spec: §10.3 — Commands registry, §34.2E (explain-decision), §34.2F (lineage)
 // Plus: §33.5 isolation commands: /focusa-on, /focusa-off, /focusa-reset
 
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { getSettingsListTheme } from "@earendil-works/pi-coding-agent";
 import { Container, Text, type SettingItem, SettingsList } from "@earendil-works/pi-tui";
 import {
@@ -49,6 +49,16 @@ import {
   workSurfaceLabel,
 } from "./mission-canvas-model.js";
 import { projectSessionInventory, sessionInventoryLabel } from "./mission-canvas-session-inventory.js";
+
+export type MissionCanvasActionContext = ExtensionContext;
+type MissionCanvasActionHandler = (args: string, ctx: MissionCanvasActionContext) => Promise<void>;
+let missionCanvasActionHandler: MissionCanvasActionHandler | undefined;
+
+/** One controller used by slash commands and the agent-first Mission Canvas tool. */
+export async function executeMissionCanvasAction(args: string, ctx: MissionCanvasActionContext): Promise<void> {
+  if (!missionCanvasActionHandler) throw new Error("Mission Canvas controller is not registered");
+  await missionCanvasActionHandler(args, ctx);
+}
 
 async function commandWorkLoopWriterHeaders(): Promise<Record<string, string>> {
   const writerId = `pi-${process.pid}`;
@@ -343,13 +353,62 @@ export function registerCommands(pi: ExtensionAPI) {
     },
   });
 
-  pi.registerCommand("mission-canvas", {
-    description: "Open the keyboard-first Focusa Mission Canvas in Pi",
-    handler: async (_args, ctx) => {
-      const interactionMode = resolveInteractionMode(getSessionCwd());
+  const handleMissionCanvasAction: MissionCanvasActionHandler = async (args, ctx) => {
+      const action = String(args || "").trim().toLowerCase();
+      const currentMode = resolveInteractionMode(getSessionCwd());
+      if (action.startsWith("profile ")) {
+        const profile = action.slice("profile ".length) as MissionCanvasWorkspaceProfile;
+        const profiles = new Set<MissionCanvasWorkspaceProfile>([
+          "general",
+          "software",
+          "legal",
+          "markets",
+          "research",
+          "custom",
+        ]);
+        if (!profiles.has(profile)) {
+          ctx.ui.notify("Usage: /mission-canvas profile general|software|legal|markets|research|custom", "info");
+          return;
+        }
+        const saved = saveConfigOverrides(
+          getSessionCwd(),
+          { missionCanvasWorkspaceProfile: profile },
+          "project"
+        );
+        if (saved.errors.length) throw new Error(saved.errors.join("; "));
+        refreshMissionCanvasWidget(ctx);
+        ctx.ui.notify(`Mission Canvas workspace switched to ${profile}; canonical state is unchanged.`, "info");
+        return;
+      }
+      if (["on", "off", "toggle", "status"].includes(action)) {
+        if (action === "status") {
+          ctx.ui.notify(
+            `Mission Canvas is ${currentMode.mode === "canvas-guided" ? "on" : "off"} · mode ${currentMode.mode} (${currentMode.source})`,
+            "info"
+          );
+          return;
+        }
+        const mode: FocusaInteractionMode =
+          action === "on" || (action === "toggle" && currentMode.mode !== "canvas-guided")
+            ? "canvas-guided"
+            : "terminal-guided";
+        const saved = saveConfigOverrides(getSessionCwd(), { interactionMode: mode }, "project");
+        if (saved.errors.length) throw new Error(saved.errors.join("; "));
+        refreshMissionCanvasWidget(ctx);
+        ctx.ui.notify(
+          `Mission Canvas switched ${mode === "canvas-guided" ? "on" : "off"}; Focusa canonical runtime remains active.`,
+          "info"
+        );
+        return;
+      }
+      if (action) {
+        ctx.ui.notify("Usage: /mission-canvas [on|off|toggle|status|profile <id>]", "info");
+        return;
+      }
+      const interactionMode = currentMode;
       if (interactionMode.mode !== "canvas-guided") {
         ctx.ui.notify(
-          `Mission Canvas is disabled by interaction mode: ${interactionMode.mode} (source: ${interactionMode.source})`,
+          `Mission Canvas is off (${interactionMode.mode}, source: ${interactionMode.source}). Run /mission-canvas on to open it.`,
           "info"
         );
         return;
@@ -487,10 +546,27 @@ export function registerCommands(pi: ExtensionAPI) {
             (reference) => {
               ctx.ui.setEditorText(reference);
               ctx.ui.notify(`Copied stable Mission Canvas reference: ${reference}`, "info");
+            },
+            (profile) => {
+              const saved = saveConfigOverrides(
+                getSessionCwd(),
+                { missionCanvasWorkspaceProfile: profile as MissionCanvasWorkspaceProfile },
+                "project"
+              );
+              if (saved.errors.length) {
+                ctx.ui.notify(saved.errors.join("; "), "error");
+                return;
+              }
+              refreshMissionCanvasWidget(ctx);
+              ctx.ui.notify(`Workspace switched to ${profile}; canonical agent state is unchanged.`, "info");
             }
           )
       );
-    },
+  };
+  missionCanvasActionHandler = handleMissionCanvasAction;
+  pi.registerCommand("mission-canvas", {
+    description: "Open the Focusa Mission Canvas or switch it on/off without disabling Focusa",
+    handler: handleMissionCanvasAction,
   });
 
   // /focusa-context (§34.2H runtime render)

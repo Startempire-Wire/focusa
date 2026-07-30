@@ -23,6 +23,7 @@ const require = createRequire(import.meta.url);
 import { loadConfig } from "./config.js";
 import { registerTools } from "./tools.js";
 import { registerCommands } from "./commands.js";
+import { registerMissionCanvasTool } from "./mission-canvas-tool.js";
 import { registerAutomaticOtaActivation } from "./ota-activation.js";
 import { registerWbm } from "./wbm.js";
 import { registerCompaction } from "./compaction.js";
@@ -159,6 +160,7 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     if (!ownsCompactionCoordinator) return;
     registerTools(pi);
     registerCommands(pi);
+    registerMissionCanvasTool(pi);
     registerMissionCanvasWidget(pi);
     registerRoleComposer(pi);
     registerInterviewComposer(pi);

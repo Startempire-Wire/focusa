@@ -694,6 +694,10 @@ async function promptForWorkpointIfNeeded(ctx: any, projectRoot: string, reason:
 }
 
 async function promptForTrajectoryIfNeeded(ctx: any, projectRoot: string, reason: string): Promise<void> {
+  // Mission Canvas is a presentation projection, not a Trajectory gate. In
+  // Canvas mode an empty Trajectory renders honestly inside the cockpit and
+  // can be defined later through an explicit operator action.
+  if (getAttachmentRuntime().cfg?.interactionMode === "canvas-guided") return;
   const mode = getAttachmentRuntime().cfg?.vitalInfoPromptMode || "prompt";
   if (
     !vitalPromptSurfaceEnabled("trajectory") ||

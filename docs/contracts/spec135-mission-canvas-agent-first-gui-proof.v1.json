@@ -1,0 +1,49 @@
+{
+  "schema": "focusa.spec135.mission_canvas_agent_first_gui_proof.v1",
+  "captured_at": "2026-07-29T17:44:00-07:00",
+  "acceptance_criteria": "The agent programmatically opens the real native Pi Mission Canvas GUI without requiring a Trajectory or Workpoint.",
+  "runtime": {
+    "pi_version": "0.82.1",
+    "extension": "focusa-pi-bridge@0.9.141",
+    "project_root": "/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas",
+    "entrypoint": "focusa_mission_canvas",
+    "action": "open",
+    "interaction_mode": "canvas-guided",
+    "workspace_profile": "software",
+    "trajectory_present": false,
+    "workpoint_present": false
+  },
+  "programmatic_control": {
+    "agent_tool_registered": true,
+    "agent_tool_invoked": true,
+    "operator_slash_commands_required": false,
+    "external_terminal_window_required": false,
+    "shared_controller": "executeMissionCanvasAction",
+    "canonical_runtime_forked": false
+  },
+  "visual_reference_features": [
+    "workspace radio selector",
+    "current workspace cockpit",
+    "current work card",
+    "next up card",
+    "what changes card",
+    "what stays the same card",
+    "attachment-scoped work surfaces",
+    "keyboard-first workspace switching"
+  ],
+  "empty_state_behavior": {
+    "canvas_opened": true,
+    "trajectory_gate": false,
+    "workpoint_gate": false,
+    "rendered_trajectory_state": "No trajectory loaded",
+    "rendered_workpoint_state": "No active Mission Canvas Workpoint",
+    "next_action": "Create or resume a canonical Workpoint"
+  },
+  "evidence_refs": [
+    "docs/contracts/evidence/spec135-mission-canvas-agent-first-local.png",
+    "docs/contracts/evidence/spec135-mission-canvas-agent-first-local.txt",
+    "apps/pi-extension/src/mission-canvas-tool.ts",
+    "apps/pi-extension/src/mission-canvas-view.ts",
+    "apps/pi-extension/src/session.ts"
+  ]
+}
