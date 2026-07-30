@@ -156,6 +156,8 @@ Color-only switching is nonconformant. Hard-coded separate client applications p
 
 A2UI, `@a2ui/web_core/v0_9`, `@a2ui/lit/v0_9`, and Focusa Svelte Custom Elements render generated onboarding and C.R.I.S.T. interaction surfaces **inside Work Surfaces** in rich hosts.
 
+A nontechnical generated UI path is required for every C.R.I.S.T. stage.
+
 They do not automatically own the complete Mission Canvas shell, canonical runtime, permissions, workflow authority, or history.
 
 A C.R.I.S.T. stage represented only as a transcript message, Markdown/JSON dump, static form, CLI selection, or decorative status panel is incomplete.

@@ -157,7 +157,13 @@
       "repair": "The acceleration directive now restores explicit permanent-integration and no-deferral laws; the Playwright assertion follows the current normative must-not-add wording.",
       "local_reproof": "Spec 135H implementation acceleration static test PASS"
     },
-    "next_baseline_action": "Push the Spec 135H authority/gate correction and use the next GitHub Spec Gates run as the complete clean baseline."
+    "github_ci_run_30565511587": {
+      "result": "failed in Spec 135J delivery discoverability gate",
+      "first_failure": "The corrected manifest defined generated C.R.I.S.T. surfaces and rejected transcript/static substitutes but no longer stated the exact nontechnical-path requirement in the current Delivery Contract.",
+      "repair": "The current manifest now explicitly requires a nontechnical generated UI path for every C.R.I.S.T. stage.",
+      "local_reproof": "Spec 135J core API/runtime reuse static test PASS"
+    },
+    "next_baseline_action": "Push the Spec 135J Delivery Contract correction and use the next GitHub Spec Gates run as the complete clean baseline."
   },
   "p00_progress": {
     "completed": [
