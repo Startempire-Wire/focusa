@@ -14,9 +14,10 @@ A customer installs Focusa once and reaches a verified, usable agent workflow wi
 1. Focusa must not return `handled` for an ordinary high-pressure Pi prompt.
 2. Pi native threshold/overflow compaction must retain text, images, and steering and retry automatically.
 3. Pi prompt-critical hooks (`input`, `before_agent_start`, `context`) must not await Focusa daemon/network work.
-4. Numeric pressure values and file/log artifacts must not become project aliases or scope conflicts.
-5. Onboarding must inventory, install with consent, and verify Node.js, npm, Pi, the bundled Focusa Pi extension, and UIAI Engine connectivity.
-6. “Full functionality ready” is false until all required checks pass or an unsupported local UIAI platform has a verified remote endpoint.
+4. Pi's awaited `session_compact` hook must be network-free; Focusa appends one bounded pending marker, verifies in the background after native completion, and delivers manual/idle projection only with `deliverAs:"nextTurn", triggerTurn:false`.
+5. Numeric pressure values and file/log artifacts must not become project aliases or scope conflicts.
+6. Onboarding must inventory, install with consent, and verify Node.js, npm, Pi, the bundled Focusa Pi extension, and UIAI Engine connectivity.
+7. “Full functionality ready” is false until all required checks pass or an unsupported local UIAI platform has a verified remote endpoint.
 
 ## 3. Prompt-flow contract
 

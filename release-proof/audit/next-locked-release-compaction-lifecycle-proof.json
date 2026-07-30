@@ -1,0 +1,98 @@
+{
+  "schema": "focusa.locked_release_compaction_lifecycle_proof.v1",
+  "status": "implementation_verified_live_acceptance_remaining",
+  "locked_issue": "focusa-627th.4.3",
+  "github_issue": "https://github.com/Startempire-Wire/focusa/issues/14",
+  "pi_version": "0.82.1",
+  "implementation": {
+    "native_compaction_owner": "pi",
+    "prepare_rpc_budget": 1,
+    "verify_rpc_budget": 1,
+    "session_compact_network_free": true,
+    "resume_delivery": {
+      "deliver_as": "nextTurn",
+      "trigger_turn": false,
+      "void_api_outcome": "unknown_completion",
+      "blind_retry": false
+    },
+    "daemon_routes": [
+      "POST /v1/compaction/prepare",
+      "POST /v1/compaction/verify"
+    ]
+  },
+  "proof": {
+    "extension_typecheck": "verified",
+    "extension_lint": "verified",
+    "extension_tests": "27/27 passed",
+    "compaction_regression_tests": "7/7 passed",
+    "rust_check": "verified with installed nightly toolchain; default stable cargo component unavailable",
+    "rust_format": "verified",
+    "fallback_guard": "verified",
+    "prepare_verify_http": {
+      "prepare_status": "prepared",
+      "persistence": "persisted",
+      "native_owner_instruction": true,
+      "verify_status": "verified",
+      "context_release_ratio": 0.6,
+      "required_fields_preserved": true,
+      "recommended_next": "defer"
+    },
+    "pi_rpc_manual_compaction": {
+      "status": "verified",
+      "model": "openai-codex/gpt-5.6-sol",
+      "tokens_before": 137949,
+      "native_compaction_entries": 1,
+      "pending_marker_entries": 1,
+      "resume_projection_entries": 1,
+      "post_compaction_prompt_accepted": true,
+      "final_idle": true,
+      "busy_or_websocket_errors": 0,
+      "reload_required": false
+    },
+    "rpc_prompt_during_compaction_baseline": {
+      "focusa_loaded": false,
+      "compact_success": true,
+      "prompt_command_accepted": true,
+      "prompt_resumed": false,
+      "user_entry_count": 0,
+      "finding": "Pi RPC does not model TUI queued operator input during compact; this behavior reproduced with all extensions disabled and is not attributed to Focusa."
+    },
+    "rpc_abort_observation": {
+      "abort_command_accepted": true,
+      "compaction_settled": true,
+      "final_idle": true,
+      "second_abort_required": false,
+      "finding": "RPC abort did not cancel the native compact operation and is not accepted as TUI Esc cancellation proof."
+    }
+  },
+  "acceptance_matrix": {
+    "manual_idle_returns_control_without_triggered_turn": "verified",
+    "post_compaction_operator_prompt_delivered_once": "verified",
+    "session_compact_returns_without_network_await": "verified",
+    "resume_projection_explicit_next_turn_once": "verified",
+    "pi_native_summary_preserved": "verified",
+    "prepare_verify_call_budget": "verified",
+    "daemon_prepare_verify_isolated_runtime": "verified",
+    "duplicate_extension_suppression": "verified_by_existing_runtime_test",
+    "threshold_overflow_paths": "verified_by_existing_runtime_test",
+    "operator_prompt_submitted_during_tui_compaction": "pending_live_tui_proof",
+    "single_esc_cancellation": "pending_live_tui_proof",
+    "daemon_offline_slow_saturated_scope_mismatch": "implemented_and_static_verified_live_matrix_pending",
+    "reload_and_model_switch": "implemented_and_existing_static_verified_live_matrix_pending"
+  },
+  "completion_gate": {
+    "ready_to_close_issue": false,
+    "remaining": [
+      "Run real Pi 0.82.1 TUI queued-input race during manual compaction.",
+      "Run real Pi 0.82.1 TUI single-Esc cancellation proof.",
+      "Run bounded live failure matrix for daemon offline, slow, saturated, scope mismatch, reload, and model switch."
+    ]
+  },
+  "evidence_refs": [
+    "apps/pi-extension/tests/compaction-native-lifecycle.test.mjs",
+    "tests/compaction_resume_retry_wiring_test.sh",
+    "tests/spec130_compaction_mission_packet_static_test.sh",
+    "docs/130a-zero-waste-compaction-performance-addendum.md",
+    "docs/142-focusa-seamless-pi-continuation-and-workflow-dependency-onboarding-spec.md"
+  ]
+}

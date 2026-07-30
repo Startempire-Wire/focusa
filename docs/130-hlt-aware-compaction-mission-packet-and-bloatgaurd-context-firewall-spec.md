@@ -576,7 +576,7 @@ RECEIPT_EXPECTATION: required_before_completion
 
 ## 9. TrajectoryResumePacketV3
 
-Spec 130 requires TrajectoryResumePacketV3 in all post-compaction auto-resume messages.
+Spec 130 requires TrajectoryResumePacketV3 in every post-compaction resume projection. Spec 130A controls delivery: manual/idle compaction defers the projection to Pi's next natural turn and never auto-triggers a model call.
 
 ### 9.1 Required schema
 
@@ -712,9 +712,9 @@ durable work remains blocked until HLT posture is resolved or degraded receipt p
 
 ---
 
-## 11. Post-compaction auto-resume contract
+## 11. Post-compaction resume projection contract
 
-The post-compaction auto-resume message must include, in this order:
+The bounded resume projection must include, in this order. Delivery follows Spec 130A's `ResumeDeliveryArbiter`: manual/idle compaction uses explicit `deliverAs:"nextTurn", triggerTurn:false`; immediate continuation is allowed only for verified active autonomous work after operator/queue checks.
 
 ```text
 1. Compaction status line
@@ -1628,7 +1628,7 @@ pre-compaction must query HLT history by session
 TrajectoryResumePacket must be V3
 formatTrajectoryPacketForPrompt must include HLT_STATUS, HLT_REQUIRED, GENERIC_BOOTSTRAP, FALLBACK_SOURCE, LOUD_WARNING
 do not backfill HLT from lastTrajectoryClarity unless provenance proves previous_valid_trajectory
-post-compaction steer message must put trajectory warning above ordinary route guidance
+post-compaction resume projection must put trajectory warning above ordinary route guidance
 build and inject CompactionMissionPacket
 mask tool output previews under pressure
 preserve active blocker exact lines
@@ -2081,7 +2081,7 @@ Spec 130 is accepted only when:
 ```text
 1. Compaction has a formal state machine.
 2. CompactionMissionPacket schema exists and validates.
-3. Post-compaction auto-resume includes TrajectoryResumePacketV3.
+3. Post-compaction resume projection includes TrajectoryResumePacketV3 without triggering a manual/idle turn.
 4. HLT warning appears before ordinary route guidance when needed.
 5. Generic HLT never becomes route authority.
 6. Missing HLT always triggers loud warning.

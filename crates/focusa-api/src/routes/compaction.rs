@@ -18,6 +18,7 @@ use focusa_core::{
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::Deserialize;
 use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -52,6 +53,40 @@ pub struct BuildCompactionPacketRequest {
     pub omitted_tokens: u64,
     #[serde(default)]
     pub rehydrate_refs: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct PrepareCompactionRequest {
+    pub schema: String,
+    #[serde(default)]
+    pub epoch: Value,
+    #[serde(default)]
+    pub scope: Value,
+    #[serde(default)]
+    pub trigger: Value,
+    #[serde(default)]
+    pub current_ask: Value,
+    #[serde(default)]
+    pub local_semantic_deltas: Value,
+    #[serde(default)]
+    pub native_pressure: Value,
+    #[serde(default)]
+    pub adapter_capabilities: Value,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct VerifyCompactionRequest {
+    pub schema: String,
+    pub epoch_id: String,
+    #[serde(default)]
+    pub native_compaction_result: Value,
+    #[serde(default)]
+    pub context_usage_before: Value,
+    #[serde(default)]
+    pub context_usage_after: Value,
+    #[serde(default)]
+    pub native_pressure_after: Value,
+    pub delivery_posture: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -372,6 +407,180 @@ fn cascade_count(data_dir: &str, packet: &Value) -> usize {
         .count()
 }
 
+fn value_text(value: &Value, pointers: &[&str], max: usize) -> Option<String> {
+    pointers.iter().find_map(|pointer| {
+        value
+            .pointer(pointer)
+            .and_then(Value::as_str)
+            .and_then(|text| bounded_text(Some(text), max))
+    })
+}
+
+fn semantic_digest(value: &Value) -> String {
+    let bytes = serde_json::to_vec(value).unwrap_or_default();
+    format!("sha256:{:x}", Sha256::digest(bytes))
+}
+
+async fn prepare(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<PrepareCompactionRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    if req.schema != "focusa.compaction_prepare_request.v1" {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "schema": "focusa.compaction_error.v1",
+                "status": "blocked",
+                "error": "invalid_prepare_schema"
+            })),
+        ));
+    }
+    let project_root = value_text(
+        &req.scope,
+        &["/root_scope/root_path", "/project_root"],
+        4096,
+    );
+    let continuity_id = value_text(&req.scope, &["/continuity_id"], 256);
+    let session_id = value_text(&req.epoch, &["/session_frame_key", "/session_id"], 512);
+    let current_ask = req
+        .current_ask
+        .as_str()
+        .and_then(|text| bounded_text(Some(text), 4096));
+    let build_req = BuildCompactionPacketRequest {
+        resume_source: Some("before_compaction".into()),
+        project_root,
+        continuity_id,
+        session_id,
+        current_ask,
+        ask_kind: Some("compaction_prepare".into()),
+        source_turn_id: value_text(&req.epoch, &["/epoch_key"], 512),
+        omitted_sections: Vec::new(),
+        omitted_bytes: 0,
+        omitted_tokens: 0,
+        rehydrate_refs: Vec::new(),
+    };
+    let focusa = state.focusa.read().await;
+    let mut packet = build_packet(&focusa, &build_req);
+    drop(focusa);
+    packet["prepare_context"] = json!({
+        "trigger": req.trigger,
+        "native_pressure": req.native_pressure,
+        "adapter_capabilities": req.adapter_capabilities,
+        "local_semantic_delta_counts": {
+            "decisions": req.local_semantic_deltas.pointer("/decisions").and_then(Value::as_array).map_or(0, Vec::len),
+            "constraints": req.local_semantic_deltas.pointer("/constraints").and_then(Value::as_array).map_or(0, Vec::len),
+            "failures": req.local_semantic_deltas.pointer("/failures").and_then(Value::as_array).map_or(0, Vec::len)
+        }
+    });
+    let epoch_id = packet
+        .get("packet_id")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_string();
+    let digest = semantic_digest(&packet);
+    let packet_for_write = packet.clone();
+    let data_dir = state.config.data_dir.clone();
+    let persistence = tokio::task::spawn_blocking(move || persist_packet(&data_dir, &packet_for_write))
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"schema":"focusa.compaction_error.v1","status":"degraded","error":"prepare_writer_join_failed"})),
+            )
+        })?;
+    let persistence_ack = match persistence {
+        Ok(()) => json!({"status":"persisted"}),
+        Err(error) => json!({"status":"degraded","error":error.to_string()}),
+    };
+    let mission = packet
+        .pointer("/workpoint/mission")
+        .and_then(Value::as_str)
+        .unwrap_or("current Focusa mission");
+    let next_slice = packet
+        .pointer("/workpoint/next_slice")
+        .and_then(Value::as_str)
+        .unwrap_or("continue from the verified Workpoint");
+    Ok(Json(json!({
+        "schema": "focusa.compaction_prepare_result.v1",
+        "status": if persistence_ack["status"] == "persisted" { "prepared" } else { "degraded" },
+        "epoch_id": epoch_id,
+        "source_revision": 0,
+        "semantic_digest": digest,
+        "workpoint_checkpoint_ref": packet.pointer("/workpoint/workpoint_id").cloned().unwrap_or(Value::Null),
+        "trajectory_checkpoint_ref": packet.pointer("/trajectory/trajectory_id").cloned().unwrap_or(Value::Null),
+        "compaction_packet_ref": format!("compaction:{}", epoch_id),
+        "resume_projection": packet,
+        "native_compactor_instructions": format!("Preserve Focusa mission: {mission}. Preserve exact next action: {next_slice}. Keep Pi's native tactical summary, queued operator input, cancellation, retry, and reconnect authority."),
+        "fidelity_manifest": {"required_fields":["scope","workpoint.mission","workpoint","trajectory","evidence"]},
+        "persistence_ack": persistence_ack,
+        "warnings": []
+    })))
+}
+
+async fn verify(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<VerifyCompactionRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    if req.schema != "focusa.compaction_verify_request.v1" || req.epoch_id.trim().is_empty() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(
+                json!({"schema":"focusa.compaction_error.v1","status":"blocked","error":"invalid_verify_request"}),
+            ),
+        ));
+    }
+    let epoch_id = req.epoch_id.trim().to_string();
+    let lookup_id = epoch_id.clone();
+    let data_dir = state.config.data_dir.clone();
+    let packet = tokio::task::spawn_blocking(move || packet_by_id_durable(&data_dir, &lookup_id))
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"schema":"focusa.compaction_error.v1","status":"degraded","error":"verify_reader_join_failed"})),
+            )
+        })?
+        .ok_or_else(|| {
+            (
+                StatusCode::NOT_FOUND,
+                Json(json!({"schema":"focusa.compaction_verify_result.v1","status":"blocked","epoch_id":epoch_id,"findings":["prepare_epoch_not_found"]})),
+            )
+        })?;
+    let before = req
+        .context_usage_before
+        .pointer("/tokens")
+        .and_then(Value::as_f64);
+    let after = req
+        .context_usage_after
+        .pointer("/tokens")
+        .and_then(Value::as_f64);
+    let ratio = match (before, after) {
+        (Some(before), Some(after)) if before > 0.0 => ((before - after) / before).clamp(0.0, 1.0),
+        _ => 0.0,
+    };
+    let required_preserved = ["/scope", "/workpoint", "/trajectory", "/evidence"]
+        .iter()
+        .all(|pointer| !packet.pointer(pointer).unwrap_or(&Value::Null).is_null());
+    let status = if required_preserved {
+        "verified"
+    } else {
+        "degraded"
+    };
+    Ok(Json(json!({
+        "schema": "focusa.compaction_verify_result.v1",
+        "status": status,
+        "epoch_id": req.epoch_id,
+        "context_release_ratio": ratio,
+        "required_fields_preserved": required_preserved,
+        "workpoint_resume_status": if packet.pointer("/workpoint/canonical").and_then(Value::as_bool).unwrap_or(false) { "canonical" } else { "degraded" },
+        "resume_projection_ref": format!("compaction-resume:{}", req.epoch_id),
+        "recommended_next": if req.delivery_posture.as_deref() == Some("deferred") { "defer" } else { "continue" },
+        "findings": if required_preserved { Vec::<String>::new() } else { vec!["required_projection_field_missing".to_string()] },
+        "native_compaction_result": req.native_compaction_result,
+        "native_pressure_after": req.native_pressure_after
+    })))
+}
+
 async fn build(
     State(state): State<Arc<AppState>>,
     Json(req): Json<BuildCompactionPacketRequest>,
@@ -635,6 +844,8 @@ async fn diff(
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
+        .route("/v1/compaction/prepare", post(prepare))
+        .route("/v1/compaction/verify", post(verify))
         .route("/v1/compaction/build", post(build))
         .route("/v1/compaction/packet/{packet_id}", get(get_packet))
         .route("/v1/compaction/inspect/{packet_id}", get(inspect))

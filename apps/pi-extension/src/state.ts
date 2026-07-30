@@ -256,9 +256,19 @@ function createAttachmentRuntime() {
     },
     lastWorkpointUpdate: 0, // timestamp ms of last Workpoint update
     // lastStreamLen migrated to scope store (PI-07, removed from singleton)
-    // Auto-resume dedup: set when compaction fires, cleared after continuation sent
+    // Compaction delivery arbiter. Pi owns the native queue and next turn;
+    // Focusa only persists a bounded next-turn projection/outcome.
     compactResumePending: false,
-    // Persisted compaction auto-resume idempotency guard; prevents repeated post-compact resume spam across extension reloads.
+    compactionVerifyPendingKey: "",
+    compactResumeDeliveryKey: "",
+    compactResumeDeliveryState: "none" as
+      | "none"
+      | "pending"
+      | "deferred_to_next_turn"
+      | "superseded_by_operator"
+      | "failed"
+      | "unknown_completion",
+    // Persisted compaction resume idempotency guard.
     lastCompactResumeKey: "",
     lastCompactResumeAt: 0,
     // Post-compaction: save last decision for steer message (cleared after localDecisions trim)
@@ -608,6 +618,9 @@ export function resetPiSessionScopedState(reason = "session_boundary"): void {
   getAttachmentRuntime().currentTier = "";
   getAttachmentRuntime().currentContextPct = null;
   getAttachmentRuntime().compactResumePending = false;
+  getAttachmentRuntime().compactionVerifyPendingKey = "";
+  getAttachmentRuntime().compactResumeDeliveryKey = "";
+  getAttachmentRuntime().compactResumeDeliveryState = "none";
   getAttachmentRuntime().lastCompactResumeKey = "";
   getAttachmentRuntime().lastCompactResumeAt = 0;
   getAttachmentRuntime().lastCompactDecision = "";
@@ -3945,6 +3958,8 @@ function buildPersistedRecoveryState(): Record<string, any> {
     ),
     lastCompactResumeKey: getAttachmentRuntime().lastCompactResumeKey,
     lastCompactResumeAt: getAttachmentRuntime().lastCompactResumeAt,
+    compactResumeDeliveryKey: getAttachmentRuntime().compactResumeDeliveryKey,
+    compactResumeDeliveryState: getAttachmentRuntime().compactResumeDeliveryState,
     turnCount: getTurnCount(),
     wbmEnabled: getAttachmentRuntime().wbmEnabled,
     wbmNoCatalogue: getAttachmentRuntime().wbmNoCatalogue,

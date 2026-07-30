@@ -35,7 +35,7 @@ Fallback order:
 
 Compaction must never look like a frozen conversation. While native compaction is active, the Pi status surface reports phase, elapsed seconds, context pressure, and attempt number; long attempts emit a bounded visible heartbeat. Retry notices include the bounded primary error and retry delay. Terminal, coordinator, and resume-context failures are shown in the UI as well as durable telemetry or console logs. Timers are cleared on completion, failure, compact reset, session start, and shutdown.
 
-Pi owns queued operator input and native continuation after manual or automatic compaction. Focusa queues its hidden resume packet with `triggerTurn:false`; it never starts a competing post-compaction turn. Operator text submitted during compaction therefore remains authoritative and flows into Pi's native queue. Agents must use bounded polling rather than long blocking `--watch` commands so steering can be observed and acted on promptly.
+Pi owns queued operator input and native continuation after manual or automatic compaction. Focusa queues its hidden resume projection with explicit `deliverAs:"nextTurn", triggerTurn:false`; it never uses the default steering mode and never starts a competing post-compaction turn. Because Pi's API returns `void`, Focusa records `unknown_completion`, performs no blind retry, and relies on the next-turn context path. Operator text submitted during compaction therefore remains authoritative and flows into Pi's native queue. Agents must use bounded polling rather than long blocking `--watch` commands so steering can be observed and acted on promptly.
 
 ## Guard
 

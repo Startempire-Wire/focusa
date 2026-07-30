@@ -408,8 +408,6 @@ async function buildCompactionFallbackSummary(fs: any, workpointPacket: any): Pr
     .trim();
 }
 
-let compactResumeRetryTimer: ReturnType<typeof setTimeout> | null = null;
-
 async function refreshWorkpointResumePacket(mode = "compact_prompt"): Promise<any | null> {
   if (!getAttachmentRuntime().focusaAvailable) return null;
   const scope = currentCompactionScope();
@@ -883,307 +881,254 @@ function formatResumePacketV2ForPrompt(packet: any): string {
     .join("\n");
 }
 
-function queueCompactionResumeContext(ctx: any, steerMessage: string): boolean {
-  const pi2 = getAttachmentRuntime().pi;
+function queueCompactionResumeContext(ctx: any, resumeProjection: string): boolean {
+  const runtime = getAttachmentRuntime();
+  const pi2 = runtime.pi;
   if (!pi2) return false;
-  // Pi 0.82+ owns compaction queue flushing and native continuation. Starting a
-  // competing turn here races operator text submitted during manual compaction
-  // and can leave the session stuck in prompt-processing until restart.
+  const deliveryKey = `compaction_resume:${runtime.lastCompactResumeKey || "unknown"}:${getSessionFrameKey() || "session"}`;
+  if (
+    runtime.compactResumeDeliveryKey === deliveryKey &&
+    ["deferred_to_next_turn", "unknown_completion"].includes(runtime.compactResumeDeliveryState)
+  ) {
+    return true;
+  }
+  // Pi owns prompt, queue, cancellation, reconnect, and the next agent turn.
+  // sendMessage() returns void, so delivery is intentionally recorded as
+  // unknown_completion and is never blindly retried.
   pi2.sendMessage(
     {
       customType: "focusa-compact-resume",
-      content: steerMessage,
+      content: resumeProjection,
       display: false,
     },
-    { triggerTurn: false }
+    { triggerTurn: false, deliverAs: "nextTurn" }
   );
-  getAttachmentRuntime().compactResumePending = false;
+  runtime.compactResumeDeliveryKey = deliveryKey;
+  runtime.compactResumeDeliveryState = "unknown_completion";
+  runtime.compactResumePending = false;
   persistState();
-  ctx.ui.notify(`✅ Compaction done — resume context queued; steering active`, "info");
+  if (ctx.hasUI) {
+    ctx.ui.notify("✅ Compaction done — Focusa context deferred to the next operator turn", "info");
+  }
   return true;
 }
 
-function scheduleCompactionResumeRetry(ctx: any, steerMessage: string, retryAttempt = 1) {
-  if (!getAttachmentRuntime().compactResumePending) return;
-  const nextAttempt = retryAttempt + 1;
-  compactResumeRetryTimer = setTimeout(
-    () => {
-      compactResumeRetryTimer = null;
-      if (!getAttachmentRuntime().compactResumePending) return;
-      try {
-        queueCompactionResumeContext(ctx, steerMessage);
-        scheduleCompactionResumeRetry(ctx, steerMessage, retryAttempt + 1);
-      } catch (e) {
-        const message = e instanceof Error ? e.message : String(e);
-        console.warn(`[focusa] compaction resume-context retry ${retryAttempt} failed:`, e);
-        if (ctx.hasUI) {
-          ctx.ui.notify(
-            `Compaction resume-context retry ${retryAttempt} failed: ${message.slice(0, 240)}. Retrying automatically.`,
-            "warning"
-          );
-        }
-        if (!getAttachmentRuntime().compactResumePending) return;
-        scheduleCompactionResumeRetry(ctx, steerMessage, nextAttempt);
-      }
-    },
-    Math.min(30_000, 2_000 * retryAttempt)
+type CompactionPrepareResult = {
+  schema?: string;
+  status?: "prepared" | "degraded" | "blocked" | "rollover_required";
+  epoch_id?: string;
+  source_revision?: number;
+  semantic_digest?: string;
+  resume_projection?: any;
+  native_compactor_instructions?: string;
+  warnings?: string[];
+};
+
+type ActiveCompactionEpoch = {
+  epochId: string;
+  scope: ReturnType<typeof currentCompactionScope>;
+  prepare: CompactionPrepareResult;
+  startedAt: number;
+};
+
+let activeCompactionEpoch: ActiveCompactionEpoch | null = null;
+
+async function withCompactionDeadline<T>(
+  signal: AbortSignal | undefined,
+  operation: (signal: AbortSignal) => Promise<T>,
+  timeoutMs = 2_500
+): Promise<T> {
+  const controller = new AbortController();
+  const abortFromParent = () => controller.abort(signal?.reason);
+  if (signal?.aborted) abortFromParent();
+  else signal?.addEventListener("abort", abortFromParent, { once: true });
+  const timer = setTimeout(() => controller.abort(new Error("compaction_epoch_deadline")), timeoutMs);
+  try {
+    return await operation(controller.signal);
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", abortFromParent);
+  }
+}
+
+function compactionEpochKey(event: any): string {
+  const entry = event?.compactionEntry || {};
+  const ordinal = getTotalCompactions() || entry.details?.totalCompactions || "unknown";
+  return String(
+    entry.id || entry.uuid || entry.timestamp || `${getSessionFrameKey() || "session"}:compact:${ordinal}`
   );
 }
 
-function scheduleCompactionResumeWatchdog(ctx: any, steerMessage: string) {
-  if (!getAttachmentRuntime().compactResumePending) return;
-  scheduleCompactionResumeRetry(ctx, steerMessage, 1);
+async function prepareCompactionEpoch(event: any): Promise<CompactionPrepareResult | null> {
+  const scope = currentCompactionScope();
+  if (!scope || !getAttachmentRuntime().focusaAvailable) return null;
+  const epochKey = compactionEpochKey(event);
+  const result = await withCompactionDeadline(event?.signal, (signal) =>
+    focusaFetch("/compaction/prepare", {
+      method: "POST",
+      signal,
+      body: JSON.stringify({
+        schema: "focusa.compaction_prepare_request.v1",
+        epoch: {
+          epoch_key: epochKey,
+          session_frame_key: getSessionFrameKey(),
+        },
+        scope,
+        trigger: {
+          source: "pi_session_before_compact",
+          manual: event?.manual === true,
+        },
+        current_ask: semanticCurrentAsk(),
+        local_semantic_deltas: {
+          decisions: getAttachmentRuntime().localDecisions.slice(-10),
+          constraints: getAttachmentRuntime().localConstraints.slice(-10),
+          failures: sanitizeFocusFailures(getAttachmentRuntime().localFailures).slice(-5),
+        },
+        native_pressure: {
+          tokens_before: event?.preparation?.tokensBefore ?? null,
+          first_kept_entry_id: event?.preparation?.firstKeptEntryId ?? null,
+        },
+        adapter_capabilities: {
+          native_compaction_owner: "pi",
+          explicit_next_turn_delivery: true,
+          send_message_completion: "void_unknown",
+        },
+      }),
+    })
+  );
+  if (!result?.epoch_id || !["prepared", "degraded"].includes(String(result.status))) return null;
+  activeCompactionEpoch = {
+    epochId: String(result.epoch_id),
+    scope: structuredClone(scope),
+    prepare: result,
+    startedAt: Date.now(),
+  };
+  return result;
+}
+
+async function runPostCompactionVerification(event: any, ctx: any): Promise<void> {
+  const runtime = getAttachmentRuntime();
+  const epoch = activeCompactionEpoch;
+  try {
+    scheduleCompactionMemoryEvaluation();
+    if (!epoch) {
+      runtime.compactResumeDeliveryState = "deferred_to_next_turn";
+      return;
+    }
+    const entry = event?.compactionEntry || {};
+    const verification = await withCompactionDeadline(undefined, (signal) =>
+      focusaFetch("/compaction/verify", {
+        method: "POST",
+        signal,
+        body: JSON.stringify({
+          schema: "focusa.compaction_verify_request.v1",
+          epoch_id: epoch.epochId,
+          native_compaction_result: {
+            entry_id: entry.id || entry.uuid || null,
+            timestamp: entry.timestamp || null,
+            modified_files: normalizeCompactionArtifacts(
+              entry.details?.modifiedFiles || entry.details?.fileOps || []
+            ),
+            read_files: Array.isArray(entry.details?.readFiles) ? entry.details.readFiles.slice(0, 20) : [],
+          },
+          context_usage_before: {
+            tokens: event?.preparation?.tokensBefore ?? null,
+          },
+          context_usage_after: {
+            tokens: null,
+          },
+          native_pressure_after: {
+            total_compactions: getTotalCompactions(),
+          },
+          delivery_posture: "deferred",
+        }),
+      })
+    );
+    if (!["verified", "degraded"].includes(String(verification?.status))) {
+      runtime.compactResumeDeliveryState = "failed";
+      return;
+    }
+    runtime.lastCompactResumeKey = compactionEpochKey(event);
+    runtime.lastCompactResumeAt = Date.now();
+    runtime.compactResumePending = true;
+    const projection = epoch.prepare.resume_projection;
+    const resumeText = projection
+      ? renderCompactionMissionPacket(projection)
+      : "Focusa compaction state is preserved; continue from the next verified Workpoint on the next operator turn.";
+    queueCompactionResumeContext(ctx, resumeText);
+  } catch (error) {
+    runtime.compactResumePending = false;
+    runtime.compactResumeDeliveryState = "failed";
+    console.warn("[focusa] post-compaction verification degraded; Pi remains authoritative:", error);
+    if (ctx.hasUI) {
+      ctx.ui.notify(
+        "Focusa verification degraded; Pi compaction and continuation remain available.",
+        "warning"
+      );
+    }
+  } finally {
+    runtime.compactionVerifyPendingKey = "";
+    activeCompactionEpoch = null;
+    persistState();
+  }
 }
 
 export function registerCompaction(pi: ExtensionAPI) {
   // ── session_before_compact (§33.1 ASCC replacement, §33.10 fallback) ───────
-  pi.on("session_before_compact", async (event, _ctx) => {
+  pi.on("session_before_compact", async (event: any, ctx: any): Promise<any> => {
     (getAttachmentRuntime() as any).compactionMemoryBefore = compactionMemorySample();
-    // Sync local shadow → Focusa before compaction
-    // §33.1 + N5: Use pushDelta() for ALL writes — enforces validateSlot() on every delta.
-    // session_compact bypassed validation before this fix — every compaction refilled
-    // recent_results with verbose entries that validateSlot would have rejected.
-    if (getAttachmentRuntime().focusaAvailable && getActiveFrameId()) {
-      await pushDelta({
-        decisions: getAttachmentRuntime().localDecisions.slice(-10),
-        constraints: getAttachmentRuntime().localConstraints.slice(-10),
-        failures: sanitizeFocusFailures(getAttachmentRuntime().localFailures).slice(-5),
-      });
-    }
-    await checkpointBeforeCompaction();
-    await checkpointTrajectoryBeforeCompaction("before_compaction");
-    await refreshTrajectoryClarityLifecycle(
-      "before_compaction",
-      currentCompactionScope()?.root_scope.root_path || ""
-    );
-    const trajectoryPacket = await refreshTrajectoryResumePacket("before_compaction");
-    void trajectoryPacket;
-    const workpointPacket = await refreshWorkpointResumePacket("compact_prompt");
-    const missionPacket = await buildCompactionMissionPacket("before_compaction");
-
-    // Always persist to Pi session entries as backup
-    await persistAuthoritativeState();
-
-    // Spec 130: a bounded typed mission packet supersedes ad-hoc prompt
-    // reconstruction when the daemon can build one for the verified scope.
-    if (missionPacket) {
-      const ev = event as any;
-      return {
-        compaction: {
-          summary: renderCompactionMissionPacket(missionPacket),
-          firstKeptEntryId: ev.preparation?.firstKeptEntryId,
-          tokensBefore: ev.preparation?.tokensBefore,
-        },
-      };
-    }
-
-    // §33.1: Try Focusa ASCC replacement FIRST
-    if (getAttachmentRuntime().focusaAvailable) {
-      try {
-        const ascc = await focusaFetch("/ascc/state");
-        if (ascc?.focus_state) {
-          const fs = ascc.focus_state;
-          const summary = await buildCompactionFallbackSummary(fs, workpointPacket);
-          const ev = event as any;
-          return {
-            compaction: {
-              summary,
-              firstKeptEntryId: ev.preparation?.firstKeptEntryId,
-              tokensBefore: ev.preparation?.tokensBefore,
-            },
-          };
-        }
-      } catch {
-        /* ASCC unavailable — fall through to §33.10 */
+    try {
+      // Pi 0.82.1 accepts only cancel or a full replacement compaction from
+      // this hook. Persist Focusa state, then return undefined so Pi owns the
+      // native summary rather than pretending a customInstructions return is used.
+      await prepareCompactionEpoch(event);
+      return undefined;
+    } catch (error) {
+      activeCompactionEpoch = null;
+      console.warn("[focusa] compaction prepare degraded; using Pi native compaction:", error);
+      if (ctx.hasUI) {
+        ctx.ui.notify("Focusa prepare degraded; continuing with Pi native compaction.", "warning");
       }
-
-      // §33.10: Softer fallback — customInstructions to guide Pi's compaction
-      return {
-        customInstructions: buildCompactInstructions(
-          "Preserve Focusa Focus State (decisions, constraints, intent). Summarize older turns."
-        ),
-      };
+      return undefined;
     }
-
-    // Focusa offline — fall through to Pi's default compaction
-    return undefined;
   });
 
-  // ── session_compact (§38.1 trim, §35.6 files + auto-resume) ───────────────
-  pi.on("session_compact", async (event, ctx) => {
-    // The compaction entry is already saved when this event fires. Reset only
-    // live-model context pressure; append-only native-session pressure remains authoritative.
+  // Pi awaits session_compact handlers before compaction_end and reconnect.
+  // Keep this hook network-free: append one bounded pending marker, return,
+  // then verify/enrich in the background after Pi regains lifecycle control.
+  pi.on("session_compact", (event, ctx) => {
     resetLiveContextPressureAfterCompaction();
     setContextStatus(ctx, "");
-
-    // §38.1: Trim local shadow only after Focusa confirms state.
-    // NOTE: getAttachmentRuntime().lastCompactDecision is saved BEFORE trimming (used in steer below).
-    const lastDecision =
-      getAttachmentRuntime().localDecisions[getAttachmentRuntime().localDecisions.length - 1] ??
-      "pre-compaction work";
-    getAttachmentRuntime().lastCompactDecision = lastDecision;
-
-    // §5.12: On compaction, force re-emit recent-turns slice on the resumed loop.
-    // Reset idempotency guard so the next before_agent_start injects fresh.
-    (getAttachmentRuntime() as any).lastRecentTurnsSliceTurn = -1;
-
-    if (getAttachmentRuntime().focusaAvailable && getActiveFrameId()) {
-      const data = await getFocusState();
-      if (data?.fs?.decisions?.length || data?.fs?.constraints?.length) {
-        getAttachmentRuntime().localDecisions = [];
-        getAttachmentRuntime().localConstraints = [];
-        getAttachmentRuntime().localFailures = [];
-      }
-    }
-
-    // §35.6: Feed modified/read files to Focusa as canonical artifact lines
-    const compaction = (event as any).compactionEntry;
-    const modifiedFiles = compaction?.details?.modifiedFiles || compaction?.details?.fileOps || [];
-    const readFiles = compaction?.details?.readFiles || [];
-    const artifacts = normalizeCompactionArtifacts(modifiedFiles);
-    const compactNotes: string[] = [];
-    if (artifacts.length)
-      compactNotes.push(`Session compacted. Modified: ${artifacts.map((a) => a.path_or_id).join(", ")}`);
-    if (Array.isArray(readFiles) && readFiles.length)
-      compactNotes.push(`Session compacted. Read: ${readFiles.slice(0, 20).join(", ")}`);
-    if (
-      getAttachmentRuntime().focusaAvailable &&
-      getActiveFrameId() &&
-      (artifacts.length || compactNotes.length)
-    ) {
-      await focusaFetch("/focus/update", {
-        method: "POST",
-        body: JSON.stringify({
-          frame_id: getActiveFrameId(),
-          project_root: currentCompactionScope()?.root_scope.root_path,
-          continuity_id: currentCompactionScope()?.continuity_id,
-          turn_id: `pi-turn-${getTurnCount()}`,
-          delta: {
-            ...(artifacts.length ? { artifacts } : {}),
-            ...(compactNotes.length ? { notes: compactNotes } : {}),
-          },
-        }),
-      }).catch(() => {});
-      await persistAuthoritativeState();
-    }
-
-    scheduleCompactionMemoryEvaluation();
-
-    // Queue bounded resume context after compaction without triggering a turn.
-    // Pi owns flushCompactionQueue() and native continuation; Focusa must not
-    // race operator steering submitted while manual compaction is active.
-    // Dedup ensures one context packet per compaction cycle.
-    const compactionEntry = (event as any).compactionEntry || {};
-    const compactOrdinal = getTotalCompactions() || compactionEntry.details?.totalCompactions || "unknown";
-    const compactResumeKey = String(
-      compactionEntry.id ||
-        compactionEntry.uuid ||
-        compactionEntry.timestamp ||
-        `${getSessionFrameKey() || "session"}:compact:${compactOrdinal}`
+    const runtime = getAttachmentRuntime();
+    const entry = (event as any).compactionEntry || {};
+    const ordinal = getTotalCompactions() || entry.details?.totalCompactions || "unknown";
+    const epochKey = String(
+      entry.id || entry.uuid || entry.timestamp || `${getSessionFrameKey() || "session"}:compact:${ordinal}`
     );
-    const recentlySubmitted =
-      getAttachmentRuntime().lastCompactResumeKey === compactResumeKey ||
-      (Date.now() - getAttachmentRuntime().lastCompactResumeAt < 30_000 && compactOrdinal !== "unknown");
-    if (!getAttachmentRuntime().compactResumePending && !recentlySubmitted) {
-      await refreshWorkpointResumePacket("compact_prompt");
-      await refreshTrajectoryClarityLifecycle(
-        "after_compaction",
-        currentCompactionScope()?.root_scope.root_path || ""
-      );
-      const trajectoryPacket = await refreshTrajectoryResumePacket("after_compaction");
-      const missionPacket = await buildCompactionMissionPacket("after_compaction");
-      getAttachmentRuntime().lastCompactResumeKey = compactResumeKey;
-      getAttachmentRuntime().lastCompactResumeAt = Date.now();
-      persistState();
-      if (compactResumeRetryTimer) {
-        clearTimeout(compactResumeRetryTimer);
-        compactResumeRetryTimer = null;
-      }
-      getAttachmentRuntime().compactResumePending = true;
-      const pi2 = getAttachmentRuntime().pi;
-      if (pi2) {
-        queueMicrotask(() => {
-          // lastDecision saved above, before localDecisions was cleared
-          const scopedPacket = getScopedWorkpointPacket();
-          const v2Prompt = formatResumePacketV2ForPrompt(scopedPacket);
-          const trajectoryPrompt = formatTrajectoryPacketForPrompt(
-            trajectoryPacket || getLastTrajectoryClarity()
+    if (runtime.compactionVerifyPendingKey === epochKey) return;
+    runtime.compactionVerifyPendingKey = epochKey;
+    runtime.compactResumeDeliveryState = "pending";
+    pi.appendEntry("focusa-compaction-verification-pending", {
+      schema: "focusa.compaction_pending_marker.v1",
+      epoch_key: epochKey,
+      recorded_at: new Date().toISOString(),
+      delivery_state: "pending",
+    });
+    setTimeout(() => {
+      void runPostCompactionVerification(event, ctx).catch((error) => {
+        runtime.compactionVerifyPendingKey = "";
+        runtime.compactResumePending = false;
+        runtime.compactResumeDeliveryState = "failed";
+        persistState();
+        console.warn("[focusa] post-compaction verification failed:", error);
+        if (ctx.hasUI) {
+          ctx.ui.notify(
+            "Focusa post-compaction verification degraded; Pi continuation remains available.",
+            "warning"
           );
-          const visibleRecapReason = toolOutputVisibleRecapReason();
-          const attentionPrompt = [
-            ...formatAttentionRecallFocusSliceLines(
-              buildAttentionRecallVerdict({
-                workpointPacket: scopedPacket,
-                currentAskText: semanticCurrentAsk(),
-                currentAskKind: getAttachmentRuntime().currentAsk?.kind,
-                queryScopeKind: getAttachmentRuntime().queryScope?.scopeKind,
-                projectRoot: getSessionCwd(),
-                continuityId: getContinuityId(),
-                visibleRecapReason,
-              })
-            ),
-            ...formatCurrentAskScopeVerdictLines(
-              buildCurrentAskScopeVerdict({
-                currentAskText: semanticCurrentAsk(),
-                workpointPacket: scopedPacket,
-                projectRoot: getSessionCwd(),
-                continuityId: getContinuityId(),
-              })
-            ),
-            ...formatToolOutputVisibleRecapLines(visibleRecapReason),
-          ].join("\n");
-          const directive = v2Prompt
-            ? `Call focusa_workpoint_resume first if uncertain; treat WorkpointResumePacketV2 as canonical only when canonical=true and project_root+continuity_id match. Use the injected TrajectoryResumePacket as TL north-star context, then use focusa_trajectory_view for refresh and focusa_traverse for bounded supporting slices. Include prediction/metacog context in trajectory review and final task report. Never use transcript tail as authority.`
-            : `No verified WorkpointResumePacketV2 is available for this exact project_root+continuity_id; call focusa_workpoint_resume, focusa_trajectory_view, focusa_metacog_doctor, focusa_predict_recent/stats, or focusa_tool_doctor before trusting any carryover.`;
-          const note = getTotalCompactions() > 0 ? ` [compaction #${getTotalCompactions()}]` : "";
-          const missionPrompt = missionPacket
-            ? renderCompactionMissionPacket(missionPacket)
-            : "## CompactionMissionPacket\nUNAVAILABLE; rehydrate from canonical Workpoint and Trajectory routes.";
-          const steerMessage = `# Compaction Complete${note}
-${missionPrompt}
-## Last Active Focus
-${getAttachmentRuntime().lastCompactDecision || "pre-compaction work"}
-## AttentionRecallVerdict
-${attentionPrompt}
-## WorkpointResumePacketV2
-${v2Prompt || `No project-bound WorkpointResumePacketV2 recorded (${projectRootAuthorityFailure(currentCompactionScope()?.root_scope.root_path || "") || "v2 packet unavailable"}); continue from Last Active Focus only after a fresh safe resume/orientation call.`}
-## TrajectoryResumePacket
-${trajectoryPrompt || `No project-bound TrajectoryResumePacket recorded (${projectRootAuthorityFailure(currentCompactionScope()?.root_scope.root_path || "") || "trajectory packet unavailable"}); call focusa_trajectory_view before treating TL context as current.`}
-## Directive
-${directive}
-
----
-
-## End-of-task Learning Loop
-Before claiming task completion or writing a final work report:
-- Summarize the task outcome and proof.
-- Run/consult focusa_predict_recent or focusa_predict_stats; evaluate relevant predictions with focusa_predict_evaluate.
-- Run/consult focusa_metacog_doctor or focusa_metacog_retrieve; capture reusable lessons with focusa_metacog_capture when evidence-backed.
-- Cross-reference the next possibility as a bounded prediction plus trajectory gap.
-
-## Focusa Tool Guidance
-When using focusa_scratch / focusa_decide / focusa_constraint / focusa_failure:
-- **Working notes** → focusa_scratch (all internal monologue welcome)
-- **Crystallized decision** → focusa_decide (ONE sentence, max 160 chars, architectural choice)
-- **Discovered requirement** → focusa_constraint (hard boundary from environment/architecture)
-- **Failure diagnosis** → focusa_failure (specific component + why it failed)
-- **Validation** fails if: task patterns (Fix/Add/Check), debug patterns (error/failed), self-reference (I think/I tried), or exceeding char limits
-
-See: ls /tmp/pi-scratch/ | cat /tmp/pi-scratch/turn-NNNN/notes.txt`;
-          try {
-            queueCompactionResumeContext(ctx, steerMessage);
-          } catch (e) {
-            console.warn("[focusa] resume-context delivery failed:", e);
-            scheduleCompactionResumeWatchdog(ctx, steerMessage);
-          }
-        });
-      }
-    } else if (recentlySubmitted) {
-      ctx.ui.notify(
-        "↩️ Compaction resume context already queued for this cycle; suppressing duplicate.",
-        "info"
-      );
-    }
+        }
+      });
+    }, 0);
   });
 }
 

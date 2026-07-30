@@ -109,15 +109,17 @@ test("attempt, primary failure, retry, rejection, and ROI outcomes are durably l
   assert.match(source, /net_positive:/);
 });
 
-test("compaction exposes elapsed heartbeat, retries, and resume failures", () => {
+test("compaction exposes elapsed heartbeat and bounded no-retry resume outcomes", () => {
   assert.match(source, /startCompactionHeartbeat\(ctx, invokedEpoch, usageBefore\.percent \?\? undefined\)/);
   assert.match(source, /setInterval\(render, 5_000\)/);
   assert.match(source, /Focusa compaction still running/);
   assert.match(source, /Focusa compaction attempt .* failed:/);
   assert.match(source, /Retrying in .*s/);
   assert.match(source, /stopCompactionHeartbeat\(ctx\)/);
-  assert.match(compactionSource, /Compaction resume-context retry .* failed:/);
-  assert.match(compactionSource, /Retrying automatically/);
+  assert.match(compactionSource, /deliverAs: "nextTurn"/);
+  assert.match(compactionSource, /compactResumeDeliveryState = "unknown_completion"/);
+  assert.doesNotMatch(compactionSource, /scheduleCompactionResumeRetry/);
+  assert.doesNotMatch(compactionSource, /Retrying automatically/);
 });
 
 test("one process-wide first-owner coordinator suppresses duplicate registrations", () => {
