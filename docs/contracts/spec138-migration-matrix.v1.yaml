@@ -1,8 +1,8 @@
 {
   "serialization": "JSON-compatible YAML 1.2",
-  "generated_at": "2026-07-30T21:45:00Z",
-  "runtime_claim": "legacy_prediction_metacognition_migration",
-  "runtime_status": "verified_complete",
+  "generated_at": "2026-07-31T17:03:56+00:00",
+  "runtime_claim": "none",
+  "runtime_status": "implementation_open",
   "schema": "focusa.spec138_migration_matrix.v1",
   "sources": [
     "PredictionValue_v1",
@@ -23,10 +23,5 @@
     "rollback",
     "receipt"
   ],
-  "status": "verified_complete",
-  "runtime_ref": "crates/focusa-core/src/prediction_migration.rs",
-  "storage_ref": "crates/focusa-core/src/prediction_authority_storage.rs",
-  "test_ref": "prediction_migration::tests",
-  "evidence_ref": "docs/evidence/spec138/focusa-vbcqu.2.2.6-profile-migration-client-parity.txt",
-  "receipt_ref": "receipt:spec138:migration:focusa-vbcqu.2.2.6"
+  "status": "runtime_migration_open"
 }

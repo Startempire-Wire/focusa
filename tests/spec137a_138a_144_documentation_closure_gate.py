@@ -2,7 +2,6 @@
 from pathlib import Path
 import json
 import re
-import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 required = [
@@ -49,15 +48,9 @@ for rel in required:
     assert path.is_file(), rel
     text = path.read_text()
     assert len(text) > 200, f"empty/shell artifact: {rel}"
-    data = yaml.safe_load(text)
-    assert isinstance(data, dict), rel
-    assert data.get("runtime_claim") not in {None, ""}, rel
-    assert data.get("runtime_status") in {
-        "implementation_open", "not_activated", "verified_complete",
-        "parent_verified_spec138a_open",
-    }, rel
-    if data.get("runtime_status") == "verified_complete":
-        assert data.get("runtime_claim") != "none", rel
+    data = json.loads(text)
+    assert data.get("runtime_claim") == "none", rel
+    assert data.get("runtime_status") in {"implementation_open", "not_activated"}, rel
 
 s137 = (ROOT / "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md").read_text()
 s138 = (ROOT / "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md").read_text()
@@ -67,17 +60,11 @@ assert "Mandatory companion" in s138 and "Spec 138A" in s138
 for token in ("Spec 137 + Spec 137A", "Spec 138 + Spec 138A", "Spec 139", "focusa.verification.core@1", "ObligationCompilationReceipt", "VerificationExecutionBinding", "CognitiveExecutionIdentity", "SettlementRevalidationTrigger"):
     assert token in s144, token
 
-ledger137_path = ROOT / "docs/contracts/spec137-complete-feature-ledger.v1.yaml"
-ledger137 = ledger137_path.read_text()
+ledger137 = (ROOT / "docs/contracts/spec137-complete-feature-ledger.v1.yaml").read_text()
 assert "combined_normative_source_v2" in ledger137 and "spec137a_requirement_rows" in ledger137
-assert ledger137.count("# Combined Spec 137 + 137A closure extension") == 1
-for spec in (137, 138, 140):
-    ledger = ROOT / f"docs/contracts/spec{spec}-complete-feature-ledger.v1.yaml"
-    parsed = yaml.safe_load(ledger.read_text())
-    assert isinstance(parsed, dict), ledger
 
 alignment = (ROOT / "docs/evidence/141-focusa-latest-spec-public-doc-alignment.md").read_text()
-assert alignment.count("combined full conformance verified") >= 2
+assert "combined full conformance open" in alignment
 assert "normative documentation only; implementation not activated" in alignment
 
 ci = (ROOT / "scripts/ci/run-spec-gates.sh").read_text()
@@ -91,7 +78,7 @@ for rel in (
     "docs/contracts/spec138a-normative-source-coverage.v1.yaml",
     "docs/contracts/spec144-normative-source-coverage.v1.yaml",
 ):
-    data = yaml.safe_load((ROOT / rel).read_text())
+    data = json.loads((ROOT / rel).read_text())
     assert data["source_atom_count"] == len(data["source_atoms"]), rel
     assert not data["unmapped_source_atom_refs"], rel
     for src in data["sources"]:

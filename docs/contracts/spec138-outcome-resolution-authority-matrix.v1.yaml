@@ -1,8 +1,8 @@
 {
   "serialization": "JSON-compatible YAML 1.2",
-  "generated_at": "2026-07-27T00:47:15+00:00",
-  "runtime_claim": "spec138_outcome_authority",
-  "runtime_status": "verified_complete",
+  "generated_at": "2026-07-31T17:03:56+00:00",
+  "runtime_claim": "none",
+  "runtime_status": "implementation_open",
   "schema": "focusa.spec138_outcome_resolution_authority_matrix.v1",
   "states": [
     "claimed",
@@ -24,23 +24,5 @@
     "caller_score_is_advisory",
     "corrections_append",
     "resolution_policy_frozen"
-  ],
-  "runtime_refs": [
-    "crates/focusa-core/src/metacognitive_learning.rs",
-    "crates/focusa-core/src/outcome_resolution.rs",
-    "crates/focusa-core/src/prediction_authority_storage.rs"
-  ],
-  "evidence_refs": [
-    "docs/evidence/spec138/S138-learning-outcome-acceptance.txt"
-  ],
-  "receipt_ref": "docs/contracts/138-focusa-learning-outcome-receipt.v1.yaml",
-  "state_statuses": {
-    "claimed": "verified_complete",
-    "disputed": "verified_complete",
-    "pending_authority": "verified_complete",
-    "resolved": "verified_complete",
-    "corrected": "verified_complete",
-    "void": "verified_complete",
-    "censored": "verified_complete"
-  }
+  ]
 }

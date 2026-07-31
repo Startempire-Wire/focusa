@@ -1,8 +1,8 @@
 {
   "serialization": "JSON-compatible YAML 1.2",
-  "generated_at": "2026-07-27T00:47:15+00:00",
-  "runtime_claim": "spec138_source_fusion",
-  "runtime_status": "verified_complete",
+  "generated_at": "2026-07-31T17:03:56+00:00",
+  "runtime_claim": "none",
+  "runtime_status": "implementation_open",
   "schema": "focusa.spec138_source_independence_and_triangulation_matrix.v1",
   "required_dimensions": [
     "source_identity",
@@ -17,12 +17,5 @@
     "first_available_time"
   ],
   "law": "dependent_evidence_never_counts_as_independent_confirmation",
-  "status": "verified_complete",
-  "runtime_refs": [
-    "crates/focusa-core/src/epistemic_fusion.rs"
-  ],
-  "evidence_refs": [
-    "docs/evidence/spec138/S138-advanced-transfer-fusion-acceptance.txt"
-  ],
-  "receipt_ref": "docs/contracts/138-focusa-advanced-transfer-fusion-receipt.v1.yaml"
+  "status": "runtime_implementation_open"
 }

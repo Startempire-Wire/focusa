@@ -1,23 +1,18 @@
-serialization: JSON-compatible YAML 1.2
-generated_at: '2026-07-30T23:00:00Z'
-runtime_claim: zero_forbidden_closure_dispositions
-runtime_status: verified_complete
-schema: focusa.spec138_forbidden_placeholder_audit.v1
-forbidden:
-- eventually
-- suggested only
-- profile not implemented yet
-- schema complete
-- core recording is enough
-- mock scorer
-- mock resolver
-- static card
-result: verified_zero_hits
-evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
-test_ref: tests/spec138a_full_conformance_gate.py
-receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
-scan_scope:
-- spec138_complete_feature_ledger
-- spec138_runtime_proof_map
-- spec138_profile_and_surface_matrices
-forbidden_hit_refs: []
+{
+  "serialization": "JSON-compatible YAML 1.2",
+  "generated_at": "2026-07-31T17:03:56+00:00",
+  "runtime_claim": "none",
+  "runtime_status": "implementation_open",
+  "schema": "focusa.spec138_forbidden_placeholder_audit.v1",
+  "forbidden": [
+    "eventually",
+    "suggested only",
+    "profile not implemented yet",
+    "schema complete",
+    "core recording is enough",
+    "mock scorer",
+    "mock resolver",
+    "static card"
+  ],
+  "result": "prohibited_as_closure_dispositions"
+}

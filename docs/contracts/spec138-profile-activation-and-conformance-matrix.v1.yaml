@@ -1,8 +1,8 @@
 {
   "serialization": "JSON-compatible YAML 1.2",
-  "generated_at": "2026-07-30T21:45:00Z",
-  "runtime_claim": "full_spec138_conformance",
-  "runtime_status": "verified_complete",
+  "generated_at": "2026-07-31T17:03:56+00:00",
+  "runtime_claim": "none",
+  "runtime_status": "implementation_open",
   "schema": "focusa.spec138_profile_activation_and_conformance_matrix.v1",
   "profiles": [
     {
@@ -21,11 +21,7 @@
       ],
       "runtime_activation": "selective_by_scope",
       "full_conformance_requirement": "mandatory",
-      "status": "verified_complete",
-      "runtime_ref": "crates/focusa-core/src/prediction_profiles.rs",
-      "test_ref": "tests/spec138_full_conformance_gate.py",
-      "evidence_ref": "docs/evidence/spec138/focusa-vbcqu.2.2.6-profile-migration-client-parity.txt",
-      "receipt_ref": "receipt:spec138:profile-A:focusa-vbcqu.2.2.6"
+      "status": "runtime_implementation_open"
     },
     {
       "profile": "B",
@@ -44,11 +40,7 @@
       ],
       "runtime_activation": "selective_by_scope",
       "full_conformance_requirement": "mandatory",
-      "status": "verified_complete",
-      "runtime_ref": "crates/focusa-core/src/prediction_profiles.rs",
-      "test_ref": "tests/spec138_full_conformance_gate.py",
-      "evidence_ref": "docs/evidence/spec138/focusa-vbcqu.2.2.6-profile-migration-client-parity.txt",
-      "receipt_ref": "receipt:spec138:profile-B:focusa-vbcqu.2.2.6"
+      "status": "runtime_implementation_open"
     },
     {
       "profile": "C",
@@ -68,11 +60,7 @@
       ],
       "runtime_activation": "selective_by_scope",
       "full_conformance_requirement": "mandatory",
-      "status": "verified_complete",
-      "runtime_ref": "crates/focusa-core/src/prediction_profiles.rs",
-      "test_ref": "tests/spec138_full_conformance_gate.py",
-      "evidence_ref": "docs/evidence/spec138/focusa-vbcqu.2.2.6-profile-migration-client-parity.txt",
-      "receipt_ref": "receipt:spec138:profile-C:focusa-vbcqu.2.2.6"
+      "status": "runtime_implementation_open"
     },
     {
       "profile": "D",
@@ -90,11 +78,7 @@
       ],
       "runtime_activation": "selective_by_scope",
       "full_conformance_requirement": "mandatory",
-      "status": "verified_complete",
-      "runtime_ref": "crates/focusa-core/src/prediction_profiles.rs",
-      "test_ref": "tests/spec138_full_conformance_gate.py",
-      "evidence_ref": "docs/evidence/spec138/focusa-vbcqu.2.2.6-profile-migration-client-parity.txt",
-      "receipt_ref": "receipt:spec138:profile-D:focusa-vbcqu.2.2.6"
+      "status": "runtime_implementation_open"
     },
     {
       "profile": "E",
@@ -114,11 +98,7 @@
       ],
       "runtime_activation": "selective_by_scope",
       "full_conformance_requirement": "mandatory",
-      "status": "verified_complete",
-      "runtime_ref": "crates/focusa-core/src/prediction_profiles.rs",
-      "test_ref": "tests/spec138_full_conformance_gate.py",
-      "evidence_ref": "docs/evidence/spec138/focusa-vbcqu.2.2.6-profile-migration-client-parity.txt",
-      "receipt_ref": "receipt:spec138:profile-E:focusa-vbcqu.2.2.6"
+      "status": "runtime_implementation_open"
     },
     {
       "profile": "F",
@@ -135,11 +115,7 @@
       ],
       "runtime_activation": "selective_by_scope",
       "full_conformance_requirement": "mandatory",
-      "status": "verified_complete",
-      "runtime_ref": "crates/focusa-core/src/prediction_profiles.rs",
-      "test_ref": "tests/spec138_full_conformance_gate.py",
-      "evidence_ref": "docs/evidence/spec138/focusa-vbcqu.2.2.6-profile-migration-client-parity.txt",
-      "receipt_ref": "receipt:spec138:profile-F:focusa-vbcqu.2.2.6"
+      "status": "runtime_implementation_open"
     },
     {
       "profile": "G",
@@ -159,11 +135,7 @@
       ],
       "runtime_activation": "selective_by_scope",
       "full_conformance_requirement": "mandatory",
-      "status": "verified_complete",
-      "runtime_ref": "crates/focusa-core/src/prediction_profiles.rs",
-      "test_ref": "tests/spec138_full_conformance_gate.py",
-      "evidence_ref": "docs/evidence/spec138/focusa-vbcqu.2.2.6-profile-migration-client-parity.txt",
-      "receipt_ref": "receipt:spec138:profile-G:focusa-vbcqu.2.2.6"
+      "status": "runtime_implementation_open"
     },
     {
       "profile": "H",
@@ -181,23 +153,7 @@
       ],
       "runtime_activation": "selective_by_scope",
       "full_conformance_requirement": "mandatory",
-      "status": "verified_complete",
-      "runtime_ref": "crates/focusa-core/src/prediction_profiles.rs",
-      "test_ref": "tests/spec138_full_conformance_gate.py",
-      "evidence_ref": "docs/evidence/spec138/focusa-vbcqu.2.2.6-profile-migration-client-parity.txt",
-      "receipt_ref": "receipt:spec138:profile-H:focusa-vbcqu.2.2.6"
+      "status": "runtime_implementation_open"
     }
-  ],
-  "full_conformance_status": "verified_complete",
-  "required_scorer_count": 31,
-  "durable_append_only_history": true,
-  "migration_verified": true,
-  "client_parity_verified": true,
-  "security_verified": true,
-  "evidence_refs": [
-    "crates/focusa-core/src/prediction_profiles.rs",
-    "tests/spec138_full_conformance_gate.py",
-    "docs/evidence/spec138/focusa-vbcqu.2.2.6-profile-migration-client-parity.txt"
-  ],
-  "receipt_ref": "receipt:spec138:full-conformance:focusa-vbcqu.2.2.6"
+  ]
 }

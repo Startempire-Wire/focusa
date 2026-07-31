@@ -1,91 +1,90 @@
-serialization: JSON-compatible YAML 1.2
-generated_at: '2026-07-30T23:00:00Z'
-runtime_claim: ordered_full_spec138_delivery
-runtime_status: verified_complete
-schema: focusa.spec138_delivery_dag.v1
-root: full_spec138_conformance
-nodes:
-- id: order_0
-  label: "Order 0 \u2014 Reconciliation and contracts"
-  depends_on: []
-  status: verified_complete
-  closure_blocking: true
-  evidence_refs:
-  - docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
-  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
-- id: order_1
-  label: "Order 1 \u2014 Core type extraction"
-  depends_on:
-  - order_0
-  status: verified_complete
-  closure_blocking: true
-  evidence_refs:
-  - docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
-  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
-- id: order_2
-  label: "Order 2 \u2014 Append-only event storage"
-  depends_on:
-  - order_1
-  status: verified_complete
-  closure_blocking: true
-  evidence_refs:
-  - docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
-  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
-- id: order_3
-  label: "Order 3 \u2014 Scoring registry and calibration"
-  depends_on:
-  - order_2
-  status: verified_complete
-  closure_blocking: true
-  evidence_refs:
-  - docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
-  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
-- id: order_4
-  label: "Order 4 \u2014 Metacognitive authority"
-  depends_on:
-  - order_3
-  status: verified_complete
-  closure_blocking: true
-  evidence_refs:
-  - docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
-  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
-- id: order_5
-  label: "Order 5 \u2014 Transfer and self-model"
-  depends_on:
-  - order_4
-  status: verified_complete
-  closure_blocking: true
-  evidence_refs:
-  - docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
-  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
-- id: order_6
-  label: "Order 6 \u2014 Fusion and scenarios"
-  depends_on:
-  - order_5
-  status: verified_complete
-  closure_blocking: true
-  evidence_refs:
-  - docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
-  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
-- id: order_7
-  label: "Order 7 \u2014 Consolidation"
-  depends_on:
-  - order_6
-  status: verified_complete
-  closure_blocking: true
-  evidence_refs:
-  - docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
-  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
-- id: order_8
-  label: "Order 8 \u2014 Surfacing and automation"
-  depends_on:
-  - order_7
-  status: verified_complete
-  closure_blocking: true
-  evidence_refs:
-  - docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
-  receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
-rule: later_order_is_dependency_sequence_not_backlog
-evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
-test_ref: tests/spec138a_full_conformance_gate.py
-receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
+{
+  "serialization": "JSON-compatible YAML 1.2",
+  "generated_at": "2026-07-31T17:03:56+00:00",
+  "runtime_claim": "none",
+  "runtime_status": "implementation_open",
+  "schema": "focusa.spec138_delivery_dag.v1",
+  "root": "full_spec138_conformance",
+  "nodes": [
+    {
+      "id": "order_0",
+      "label": "Order 0 — Reconciliation and contracts",
+      "depends_on": [],
+      "status": "documentation_defined_runtime_open",
+      "closure_blocking": true
+    },
+    {
+      "id": "order_1",
+      "label": "Order 1 — Core type extraction",
+      "depends_on": [
+        "order_0"
+      ],
+      "status": "documentation_defined_runtime_open",
+      "closure_blocking": true
+    },
+    {
+      "id": "order_2",
+      "label": "Order 2 — Append-only event storage",
+      "depends_on": [
+        "order_1"
+      ],
+      "status": "documentation_defined_runtime_open",
+      "closure_blocking": true
+    },
+    {
+      "id": "order_3",
+      "label": "Order 3 — Scoring registry and calibration",
+      "depends_on": [
+        "order_2"
+      ],
+      "status": "documentation_defined_runtime_open",
+      "closure_blocking": true
+    },
+    {
+      "id": "order_4",
+      "label": "Order 4 — Metacognitive authority",
+      "depends_on": [
+        "order_3"
+      ],
+      "status": "documentation_defined_runtime_open",
+      "closure_blocking": true
+    },
+    {
+      "id": "order_5",
+      "label": "Order 5 — Transfer and self-model",
+      "depends_on": [
+        "order_4"
+      ],
+      "status": "documentation_defined_runtime_open",
+      "closure_blocking": true
+    },
+    {
+      "id": "order_6",
+      "label": "Order 6 — Fusion and scenarios",
+      "depends_on": [
+        "order_5"
+      ],
+      "status": "documentation_defined_runtime_open",
+      "closure_blocking": true
+    },
+    {
+      "id": "order_7",
+      "label": "Order 7 — Consolidation",
+      "depends_on": [
+        "order_6"
+      ],
+      "status": "documentation_defined_runtime_open",
+      "closure_blocking": true
+    },
+    {
+      "id": "order_8",
+      "label": "Order 8 — Surfacing and automation",
+      "depends_on": [
+        "order_7"
+      ],
+      "status": "documentation_defined_runtime_open",
+      "closure_blocking": true
+    }
+  ],
+  "rule": "later_order_is_dependency_sequence_not_backlog"
+}

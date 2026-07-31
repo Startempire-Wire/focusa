@@ -1,37 +1,37 @@
-serialization: JSON-compatible YAML 1.2
-generated_at: '2026-07-30T23:00:00Z'
-runtime_claim: explicit_primitive_family_ownership
-runtime_status: verified_complete
-schema: focusa.spec138_primitive_ownership_matrix.v1
-rows:
-- family: time_deadlines_freshness
-  owner: Spec 137 + 137A
-  status: verified_complete
-  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
-- family: semantic_identity_domain_packs
-  owner: Specs 45-50 and 135F
-  status: verified_complete
-  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
-- family: evidence_receipts
-  owner: Specs 119 and Evidence primitives
-  status: verified_complete
-  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
-- family: proposal_to_settlement
-  owner: Spec 136
-  status: verified_complete
-  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
-- family: prediction_outcome_scoring_calibration_learning_transfer
-  owner: Spec 138 + 138A
-  status: verified_complete
-  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
-- family: verification_routing
-  owner: Spec 144
-  status: verified_complete
-  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
-- family: environment_placement
-  owner: Spec 139
-  status: verified_complete
-  evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
-evidence_ref: docs/evidence/spec138a/focusa-vbcqu.2.2.7-zero-deferral-combined-conformance.txt
-test_ref: tests/spec138a_full_conformance_gate.py
-receipt_ref: docs/contracts/138a-focusa-zero-deferral-conformance-receipt.v1.yaml
+{
+  "serialization": "JSON-compatible YAML 1.2",
+  "generated_at": "2026-07-31T17:03:56+00:00",
+  "runtime_claim": "none",
+  "runtime_status": "implementation_open",
+  "schema": "focusa.spec138_primitive_ownership_matrix.v1",
+  "rows": [
+    {
+      "family": "time_deadlines_freshness",
+      "owner": "Spec 137 + 137A"
+    },
+    {
+      "family": "semantic_identity_domain_packs",
+      "owner": "Specs 45-50 and 135F"
+    },
+    {
+      "family": "evidence_receipts",
+      "owner": "Specs 119 and Evidence primitives"
+    },
+    {
+      "family": "proposal_to_settlement",
+      "owner": "Spec 136"
+    },
+    {
+      "family": "prediction_outcome_scoring_calibration_learning_transfer",
+      "owner": "Spec 138 + 138A"
+    },
+    {
+      "family": "verification_routing",
+      "owner": "Spec 144"
+    },
+    {
+      "family": "environment_placement",
+      "owner": "Spec 139"
+    }
+  ]
+}
