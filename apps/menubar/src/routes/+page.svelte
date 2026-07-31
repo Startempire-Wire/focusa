@@ -75,9 +75,11 @@
       const temporalPath = projectRoot && continuityId
         ? projectScopedPath('/v1/temporal/status', projectRoot, continuityId)
         : null;
-      const predictionAuthorityPath = projectRoot && continuityId
-        ? projectScopedPath('/v1/prediction-authority/projection', projectRoot, continuityId)
-        : null;
+      const predictionAuthorityPath = predictionScopedPath(
+        '/v1/prediction-authority/projection',
+        projectIdentityRecord,
+        continuityId,
+      );
       const [health, doctor, contracts, focusFrame, trajectory, workpoint, workpointResume, workLoop, workLoopHealth, workLoopCheckpoints, memoryTelemetry, events, tokenBudget, cacheMetadata, predictionsRecent, predictionsStats, metacogStatus, metacogEvaluations, snapshotsRecent, lineageHead, releaseProof, updateNotifications, silentSessionDashboard, temporal, predictionAuthority, instructionIntegrity] = await Promise.all([
         safe(() => fetchJson('/v1/health')),
         safe(() => fetchJson('/v1/doctor', 5000)),

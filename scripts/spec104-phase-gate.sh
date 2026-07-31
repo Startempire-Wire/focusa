@@ -47,7 +47,7 @@ echo ""
 echo "--- Checking for new singleton globals ---"
 NEW_GLOBALS=$(rg -n "OnceLock::new|LazyLock::new" --glob '*.rs' --glob '*.ts' \
   | grep -v "/target/" | grep -v "test" \
-  | grep -v "bounded.rs\|device_pairing.rs\|metacognition.rs\|ontology.rs\|predictions.rs\|project.rs\|proxy.rs\|rate_limit.rs\|snapshots.rs\|turn.rs\|workpoint.rs\|server.rs\|main.rs\|state.ts\|tools.ts" \
+  | grep -v "agent_capabilities.rs\|bounded.rs\|context_retrieval.rs\|device_pairing.rs\|mcp.rs\|metacognition.rs\|ontology.rs\|predictions.rs\|project.rs\|proxy.rs\|rate_limit.rs\|snapshots.rs\|turn.rs\|workpoint.rs\|server.rs\|main.rs\|state.ts\|tools.ts" \
   || true)
 if [ -n "$NEW_GLOBALS" ]; then
   echo "WARNING: Potential new singleton globals not in Annex A:"

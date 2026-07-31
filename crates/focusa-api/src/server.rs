@@ -241,6 +241,7 @@ pub struct AppState {
     #[allow(dead_code)]
     pub event_broadcaster: EventBroadcaster,
     pub config: FocusaConfig,
+    pub license_guard: focusa_license::LicenseGuard,
     /// Direct persistence access for sync routes.
     pub persistence: SqlitePersistence,
     /// Process-wide bounded single-writer for state snapshots and checkpoint acks.
@@ -1076,6 +1077,7 @@ pub async fn run(
     persistence_runtime: (SqlitePersistence, PersistenceActor),
     write_serial_lock: Arc<Mutex<()>>,
     external_mutation_epoch: Arc<AtomicU64>,
+    license_guard: focusa_license::LicenseGuard,
 ) -> anyhow::Result<()> {
     let bind_addr = config.api_bind.clone();
     let (persistence, persistence_actor) = persistence_runtime;
@@ -1098,6 +1100,7 @@ pub async fn run(
         events_tx,
         event_broadcaster: broadcaster,
         config,
+        license_guard,
         persistence,
         persistence_actor: Some(persistence_actor),
         write_serial_lock,

@@ -370,16 +370,32 @@ impl App {
             .extra_data
             .get("workpoint_resume")
             .and_then(Option::as_ref)
-            .and_then(|value| {
+            .and_then(|value| find_json_string(value, "continuity_id", 8))
+            .and_then(|continuity_id| {
+                let scope = self
+                    .extra_data
+                    .get("project_identity")
+                    .and_then(Option::as_ref)?
+                    .pointer("/project_identity/scope_ref")?;
                 Some((
-                    find_json_string(value, "project_root", 8)?.to_string(),
-                    find_json_string(value, "continuity_id", 8)?.to_string(),
+                    scope.get("scope_kind")?.as_str()?.to_string(),
+                    scope.get("scope_id")?.as_str()?.to_string(),
+                    scope.get("root_path")?.as_str()?.to_string(),
+                    scope.get("canonical_name")?.as_str()?.to_string(),
+                    scope.get("fingerprint")?.as_str()?.to_string(),
+                    continuity_id.to_string(),
                 ))
             });
-        if let Some((project_root, continuity_id)) = authority_scope {
+        if let Some((scope_kind, scope_id, root_path, canonical_name, fingerprint, continuity_id)) =
+            authority_scope
+        {
             let endpoint = format!(
-                "/v1/prediction-authority/projection?project_root={}&continuity_id={}",
-                encode_query_component(&project_root),
+                "/v1/prediction-authority/projection?scope_kind={}&scope_id={}&root_path={}&canonical_name={}&fingerprint={}&continuity_id={}",
+                encode_query_component(&scope_kind),
+                encode_query_component(&scope_id),
+                encode_query_component(&root_path),
+                encode_query_component(&canonical_name),
+                encode_query_component(&fingerprint),
                 encode_query_component(&continuity_id),
             );
             let value = self.client.fetch_json(&endpoint).await.ok();

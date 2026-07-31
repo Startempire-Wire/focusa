@@ -50,8 +50,7 @@ pub struct PredictionAuthorityLedger {
 
 impl PredictionAuthorityLedger {
     pub fn append(&mut self, event: ScopedAuthorityEvent) -> Result<(), String> {
-        if event.scope.project_root.trim().is_empty() || event.scope.continuity_id.trim().is_empty()
-        {
+        if event.scope.validate().is_err() {
             return Err("typed project/workstream scope required".into());
         }
         if self.event_ids.contains(&event.event_id) {

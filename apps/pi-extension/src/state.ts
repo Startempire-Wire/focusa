@@ -7,7 +7,11 @@ import { dirname, join, resolve } from "path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { DEFAULT_DAEMON_RESTART_COMMAND, type FocusaConfig } from "./config.js";
 import type { NativeSessionPressureV1 } from "./session-pressure.js";
-import { buildProjectWorkstreamKey, type AttachmentKey } from "./scoped-state.js";
+import {
+  buildProjectWorkstreamKey,
+  registerVerifiedScopeRef,
+  type AttachmentKey,
+} from "./scoped-state.js";
 import { projectBindingAllowsDurableWrites, type ProjectBindingDecisionV1 } from "./project-binding.js";
 import {
   COMPACTION_PERSISTENCE_ANCHOR_REF_SCHEMA,
@@ -4598,6 +4602,9 @@ export function getLastProjectVerify(): Record<string, any> | null {
 export function setLastProjectVerify(result: Record<string, any> | null): void {
   const store = getCurrentScopeStore();
   if (store) store.lastProjectVerify = result;
+  if (result?.canonical === true || result?.verification?.verified === true) {
+    registerVerifiedScopeRef(result?.project_identity?.scope_ref);
+  }
 }
 
 /** Session-scoped startup binding receipt; project authority remains root+continuity scoped. */

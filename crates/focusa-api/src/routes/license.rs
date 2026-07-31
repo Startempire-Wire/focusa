@@ -2,24 +2,10 @@
 //!
 //! Returns current tier, capability posture, key fingerprint, and expiry.
 
-use axum::{Json, Router, routing::get};
+use axum::{Json, Router, extract::State, routing::get};
 use focusa_license::{Capability, CapabilityCheck, LicenseGuard};
 use serde::Serialize;
-use std::sync::{Arc, OnceLock};
-
-static GUARD: OnceLock<LicenseGuard> = OnceLock::new();
-
-/// Initialize the daemon's LicenseGuard (called once at startup).
-pub fn init_guard(guard: LicenseGuard) {
-    let _ = GUARD.set(guard);
-}
-
-pub fn current_guard() -> LicenseGuard {
-    GUARD
-        .get()
-        .cloned()
-        .unwrap_or_else(|| LicenseGuard::eval(7))
-}
+use std::sync::Arc;
 
 pub fn router() -> Router<Arc<crate::server::AppState>> {
     Router::new().route("/v1/license/status", get(license_status))
@@ -32,8 +18,10 @@ struct CapabilityPosture {
     reason: Option<String>,
 }
 
-async fn license_status() -> Json<serde_json::Value> {
-    let g = current_guard();
+async fn license_status(
+    State(state): State<Arc<crate::server::AppState>>,
+) -> Json<serde_json::Value> {
+    let g = state.license_guard.clone();
     let caps = [
         Capability::CommercialUse,
         Capability::HostedMode,

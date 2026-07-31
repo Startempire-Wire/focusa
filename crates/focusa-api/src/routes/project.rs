@@ -2133,6 +2133,13 @@ fn candidate_payload(
             "active_worktree_root": candidate.working_context.get("active_worktree_root").cloned().unwrap_or(Value::Null),
             "project_summary": project_summary.clone(),
             "fingerprint": candidate.fingerprint,
+            "scope_ref": if canonical { json!({
+                "scope_kind": "project",
+                "scope_id": format!("project:{}", candidate.project_id),
+                "root_path": candidate.project_root,
+                "canonical_name": candidate.canonical_name,
+                "fingerprint": candidate.fingerprint,
+            }) } else { Value::Null },
             "confidence": candidate.confidence,
             "signals": candidate.signals.iter().map(signal_json).collect::<Vec<_>>(),
             "mismatches": mismatches,
@@ -5221,6 +5228,31 @@ mod tests {
         assert_eq!(candidate.status, "verified");
         assert_eq!(candidate.confidence, "high");
         assert!(candidate.mismatches.is_empty());
+        let payload = project_identity_payload_for_scope(root.to_str(), root.to_str(), None);
+        assert_eq!(
+            payload
+                .pointer("/project_identity/scope_ref/scope_kind")
+                .and_then(Value::as_str),
+            Some("project")
+        );
+        assert_eq!(
+            payload
+                .pointer("/project_identity/scope_ref/scope_id")
+                .and_then(Value::as_str),
+            Some("project:quorum")
+        );
+        assert_eq!(
+            payload
+                .pointer("/project_identity/scope_ref/root_path")
+                .and_then(Value::as_str),
+            root.to_str()
+        );
+        assert!(
+            payload
+                .pointer("/project_identity/scope_ref/fingerprint")
+                .and_then(Value::as_str)
+                .is_some()
+        );
         let _ = fs::remove_dir_all(root);
     }
 
@@ -5896,6 +5928,11 @@ mod tests {
                 .pointer("/details/tool_result_v1/failure_class")
                 .and_then(Value::as_str),
             Some("scope_mismatch")
+        );
+        assert!(
+            payload
+                .pointer("/project_identity/scope_ref")
+                .is_some_and(Value::is_null)
         );
     }
 }

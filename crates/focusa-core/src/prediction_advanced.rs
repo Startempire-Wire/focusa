@@ -374,6 +374,74 @@ mod tests {
         assert_eq!(disposition, TransferDisposition::Rollback);
     }
     #[test]
+    fn typed_prediction_storage_and_legacy_scanner_remain_scope_isolated() {
+        use crate::{
+            prediction_authority_storage::{
+                PersistentPredictionAuthorityLedger, PredictionStorageError,
+            },
+            scoped_state::{ScopeRef, WorkstreamKey},
+        };
+        let base =
+            std::env::temp_dir().join(format!("focusa-typed-scope-{}", uuid::Uuid::now_v7()));
+        let project = WorkstreamKey::new(
+            ScopeRef::project(
+                "project:test",
+                base.join("project"),
+                "project-test",
+                "fingerprint:project",
+            )
+            .unwrap(),
+            "main",
+        )
+        .unwrap();
+        let host = WorkstreamKey::new(
+            ScopeRef::host("host:test", "/", "host-test", "fingerprint:host").unwrap(),
+            "main",
+        )
+        .unwrap();
+        let project_ledger = PersistentPredictionAuthorityLedger::for_project(project).unwrap();
+        let host_ledger = PersistentPredictionAuthorityLedger::for_scope(
+            host.clone(),
+            Some(base.to_string_lossy().as_ref()),
+        )
+        .unwrap();
+        assert_ne!(project_ledger.path(), host_ledger.path());
+        assert!(matches!(
+            PersistentPredictionAuthorityLedger::for_project(host),
+            Err(PredictionStorageError::ScopeKindMismatch)
+        ));
+
+        let legacy_path = base.join("legacy.jsonl");
+        let legacy = serde_json::json!({"event":{"event_id":"legacy:1","recorded_at":"2026-07-31T00:00:00Z","scope":{"project_root":"/legacy","continuity_id":"main"}}});
+        let typed = serde_json::json!({"event":{"event_id":"typed:1","recorded_at":"2026-07-31T00:00:01Z","scope":{"root_scope":{"scope_kind":"project","scope_id":"project:typed","root_path":"/typed","canonical_name":"typed","fingerprint":"fingerprint:typed"},"continuity_id":"main"}}});
+        std::fs::create_dir_all(&base).unwrap();
+        std::fs::write(&legacy_path, format!("{legacy}\n{typed}\n")).unwrap();
+        let rows = crate::prediction_migration::scan_legacy_unscoped_prediction_rows(&legacy_path)
+            .unwrap();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].legacy_project_root.as_deref(), Some("/legacy"));
+        assert_eq!(rows[0].source_record_ref.as_deref(), Some("legacy:1"));
+        let _ = std::fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn transfer_outcome_preserves_negative_transfer() {
+        let outcome = crate::prediction_authority::TransferOutcome {
+            outcome_id: "outcome:1".into(),
+            transfer_id: "transfer:1".into(),
+            result: crate::prediction_authority::TransferResult::NegativeTransfer,
+            observed_metric_delta: -0.2,
+            resolved_at: Utc::now(),
+            evidence_refs: vec!["evidence:transfer".into()],
+            receipt_ref: "receipt:transfer".into(),
+        };
+        assert_eq!(
+            outcome.result,
+            crate::prediction_authority::TransferResult::NegativeTransfer
+        );
+    }
+
+    #[test]
     fn global_or_unproven_self_model_is_prohibited() {
         let now = Utc::now();
         let estimate = SelfModelEstimate {

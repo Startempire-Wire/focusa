@@ -16,8 +16,10 @@ try {
 
   const tools = await import(pathToFileURL(join(outDir, "tools.js")).href);
   const state = await import(pathToFileURL(join(outDir, "state.js")).href);
+  const scopedState = await import(pathToFileURL(join(outDir, "scoped-state.js")).href);
 
   state.attachmentRuntimeRegistry.reset();
+  scopedState.registerVerifiedScopeRef({ scope_kind: "project", scope_id: "project:bloatgaurd", root_path: "/tmp/focusa-bloatgaurd", canonical_name: "focusa-bloatgaurd", fingerprint: "fingerprint:bloatgaurd" });
   const registeredTools = new Map();
 
   const pi = {

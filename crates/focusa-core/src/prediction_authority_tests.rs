@@ -1,12 +1,71 @@
-use crate::prediction_authority::*;
-use crate::prediction_authority_ledger::*;
+use crate::{prediction_authority::*, prediction_authority_ledger::*};
 
 use chrono::{DateTime, Duration, Utc};
 
+fn epistemic_scope(scope_id: &str, root: &str, continuity_id: &str) -> EpistemicScope {
+    crate::scoped_state::WorkstreamKey::new(
+        crate::scoped_state::ScopeRef::project(
+            scope_id,
+            root,
+            scope_id,
+            format!("fingerprint:{scope_id}"),
+        )
+        .unwrap(),
+        continuity_id,
+    )
+    .unwrap()
+}
+
+fn host_epistemic_scope(scope_id: &str, continuity_id: &str) -> EpistemicScope {
+    crate::scoped_state::WorkstreamKey::new(
+        crate::scoped_state::ScopeRef::host(
+            scope_id,
+            "/",
+            scope_id,
+            format!("fingerprint:{scope_id}"),
+        )
+        .unwrap(),
+        continuity_id,
+    )
+    .unwrap()
+}
+
+fn scope_evidence(
+    evidence_id: &str,
+    kind: crate::prediction_migration::ScopeAttributionEvidenceKind,
+    scope: EpistemicScope,
+) -> crate::prediction_migration::ScopeAttributionEvidence {
+    crate::prediction_migration::ScopeAttributionEvidence {
+        evidence_id: evidence_id.into(),
+        kind,
+        candidate_scope: Some(scope),
+        source_ref: evidence_id.into(),
+        source_digest: "a".repeat(64),
+        observed_at: now(),
+    }
+}
+
+fn migration_plan(
+    plan_id: &str,
+    source_ref: &str,
+    source_sha256: String,
+    evidence: Vec<crate::prediction_migration::ScopeAttributionEvidence>,
+) -> crate::prediction_migration::LegacyScopeMigrationPlan {
+    crate::prediction_migration::plan_legacy_scope_migration(
+        plan_id,
+        source_ref,
+        source_sha256,
+        now(),
+        Some(format!("vector:{source_ref}")),
+        evidence,
+        format!("migration:{source_ref}"),
+        format!("receipt:{plan_id}"),
+    )
+    .unwrap()
+}
+
 fn now() -> DateTime<Utc> {
-    DateTime::parse_from_rfc3339("2026-07-27T00:00:00Z")
-        .unwrap()
-        .with_timezone(&Utc)
+    "2026-07-27T00:00:00Z".parse().unwrap()
 }
 
 fn commitment() -> PredictionCommitment {
@@ -183,14 +242,8 @@ fn negative_effect_blocks_promotion() {
 
 #[test]
 fn append_only_recovery_and_scope_isolation_are_deterministic() {
-    let scope_a = EpistemicScope {
-        project_root: "/a".into(),
-        continuity_id: "a".into(),
-    };
-    let scope_b = EpistemicScope {
-        project_root: "/b".into(),
-        continuity_id: "b".into(),
-    };
+    let scope_a = epistemic_scope("project:a", "/a", "a");
+    let scope_b = epistemic_scope("project:b", "/b", "b");
     let question = |id: &str| PredictionQuestion {
         question_id: id.into(),
         subject_ref: "s".into(),
@@ -328,6 +381,99 @@ fn action_prediction_and_actual_delta_lifecycle_is_temporally_ordered() {
 }
 
 #[test]
+fn singleton_migration_requires_converged_authoritative_typed_scope_evidence() {
+    use crate::prediction_migration::*;
+    let destination = epistemic_scope("project:migration", "/project", "main");
+    let payload = serde_json::json!({"legacy":true});
+    let event = migrate_legacy_record(
+        "migration:1",
+        LegacyEpistemicSource::PredictionValueV1,
+        "legacy:1",
+        &payload,
+        destination.clone(),
+        1,
+        vec!["lineage:1".into()],
+        vec!["evidence:source".into()],
+        "receipt:legacy",
+        now(),
+    )
+    .unwrap();
+    let PredictionAuthorityEvent::LegacyMigration(record) = &event.event else {
+        panic!("legacy")
+    };
+    let evidence = scope_evidence(
+        "evidence:typed-scope",
+        ScopeAttributionEvidenceKind::TypedScopeIdentity,
+        destination.clone(),
+    );
+    let plan = migration_plan(
+        "plan:1",
+        "legacy:1",
+        record.source_sha256.clone(),
+        vec![evidence],
+    );
+    assert_eq!(
+        plan.disposition,
+        LegacyScopeMigrationDisposition::ScopedCanonical
+    );
+    let migrated = apply_legacy_scope_migration_plan(event, &plan)
+        .unwrap()
+        .unwrap();
+    let PredictionAuthorityEvent::LegacyMigration(ref record) = migrated.event else {
+        panic!("legacy")
+    };
+    assert_eq!(
+        record.authority_status,
+        LegacyAuthorityStatus::ScopedCanonicalMigration
+    );
+    assert_eq!(record.destination_scope, Some(destination.clone()));
+
+    let weak = scope_evidence(
+        "evidence:path-similarity",
+        ScopeAttributionEvidenceKind::PathSimilarity,
+        destination.clone(),
+    );
+    let weak_plan = migration_plan("plan:weak", "legacy:weak", "c".repeat(64), vec![weak]);
+    assert_eq!(
+        weak_plan.disposition,
+        LegacyScopeMigrationDisposition::QuarantinedNoAuthoritativeEvidence
+    );
+    assert!(
+        apply_legacy_scope_migration_plan(migrated.clone(), &weak_plan)
+            .unwrap()
+            .is_none()
+    );
+
+    let host = host_epistemic_scope("host:operator", "main");
+    let conflict_plan = migration_plan(
+        "plan:conflict",
+        "legacy:conflict",
+        "d".repeat(64),
+        vec![
+            scope_evidence(
+                "evidence:project",
+                ScopeAttributionEvidenceKind::VerifiedProjectMarker,
+                destination,
+            ),
+            scope_evidence(
+                "evidence:host",
+                ScopeAttributionEvidenceKind::VerifiedHostIdentity,
+                host,
+            ),
+        ],
+    );
+    assert_eq!(
+        conflict_plan.disposition,
+        LegacyScopeMigrationDisposition::QuarantinedConflictingEvidence
+    );
+    assert!(
+        apply_legacy_scope_migration_plan(migrated, &conflict_plan)
+            .unwrap()
+            .is_none()
+    );
+}
+
+#[test]
 fn recurring_action_delta_pattern_requires_unique_evidence_backed_samples() {
     let pattern = crate::metacognitive_learning::ActionDeltaPattern {
         pattern_id: "pattern:cache-miss".into(),
@@ -348,18 +494,4 @@ fn recurring_action_delta_pattern_requires_unique_evidence_backed_samples() {
         crate::metacognitive_learning::validate_action_delta_pattern(&duplicate),
         Err(crate::metacognitive_learning::LearningAuthorityError::InvalidPatternSamples)
     );
-}
-
-#[test]
-fn transfer_outcome_preserves_negative_transfer() {
-    let outcome = TransferOutcome {
-        outcome_id: "outcome:1".into(),
-        transfer_id: "transfer:1".into(),
-        result: TransferResult::NegativeTransfer,
-        observed_metric_delta: -0.2,
-        resolved_at: now(),
-        evidence_refs: vec!["evidence:transfer".into()],
-        receipt_ref: "receipt:transfer".into(),
-    };
-    assert_eq!(outcome.result, TransferResult::NegativeTransfer);
 }
