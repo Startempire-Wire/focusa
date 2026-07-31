@@ -53,7 +53,8 @@ export function registerAgentRuntimeTools(pi: ExtensionAPI) {
   pi.registerTool({
     name: "focusa_instruction_sources",
     label: "Focusa Instruction Sources",
-    description: "Discover bounded, registered project instruction sources with trust and authority metadata.",
+    description:
+      "Discover bounded, registered project instruction sources with trust and authority metadata.",
     parameters: Type.Object({
       project_root: Type.String(),
       max_source_bytes: Type.Optional(Type.Number({ minimum: 1 })),
@@ -67,7 +68,8 @@ export function registerAgentRuntimeTools(pi: ExtensionAPI) {
   pi.registerTool({
     name: "focusa_instruction_conflicts",
     label: "Focusa Instruction Conflicts",
-    description: "Read deterministic instruction conflicts; unresolved equal-authority claims remain blocked.",
+    description:
+      "Read deterministic instruction conflicts; unresolved equal-authority claims remain blocked.",
     parameters: Type.Object({
       project_root: Type.String(),
       max_source_bytes: Type.Optional(Type.Number({ minimum: 1 })),
@@ -171,7 +173,8 @@ export function registerAgentRuntimeTools(pi: ExtensionAPI) {
   pi.registerTool({
     name: "focusa_agent_artifact_delivery",
     label: "Focusa Agent Artifact Delivery",
-    description: "Commit verified agent artifacts with explicit operator confirmation and a durable Receipt reference.",
+    description:
+      "Commit verified agent artifacts with explicit operator confirmation and a durable Receipt reference.",
     parameters: Type.Object({
       request: Type.Any({ description: "Typed delivery request." }),
       confirmed: Type.Boolean({ description: "Explicit operator confirmation." }),
@@ -202,10 +205,7 @@ export function registerAgentRuntimeTools(pi: ExtensionAPI) {
       "Evaluate the foundational headless InstructionIntegrityGuard and durably record its fail-closed decision.",
     parameters: Type.Object({ request: Type.Any({ description: "Typed integrity event envelope." }) }),
     async execute(_id, params) {
-      return post(
-        "/agent-runtime/instruction-integrity/evaluate",
-        (params as { request: Payload }).request
-      );
+      return post("/agent-runtime/instruction-integrity/evaluate", (params as { request: Payload }).request);
     },
   });
 
@@ -216,10 +216,7 @@ export function registerAgentRuntimeTools(pi: ExtensionAPI) {
       "Record an operator-originated canonical instruction amendment proposal without activating it.",
     parameters: Type.Object({ request: Type.Any({ description: "Typed amendment proposal envelope." }) }),
     async execute(_id, params) {
-      return post(
-        "/agent-runtime/amendments/propose",
-        (params as { request: Payload }).request
-      );
+      return post("/agent-runtime/amendments/propose", (params as { request: Payload }).request);
     },
   });
 
@@ -273,7 +270,8 @@ export function registerAgentRuntimeTools(pi: ExtensionAPI) {
   pi.registerTool({
     name: "focusa_agent_runtime_doctor",
     label: "Focusa Agent Runtime Doctor",
-    description: "Diagnose Runtime Constitution compiler defaults, replacement gates, and delivery readiness.",
+    description:
+      "Diagnose Runtime Constitution compiler defaults, replacement gates, and delivery readiness.",
     parameters: Type.Object({}),
     async execute() {
       return get("/agent-runtime/doctor");

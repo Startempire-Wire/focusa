@@ -2,15 +2,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-const source = readFileSync(
-  fileURLToPath(new URL("../src/agent-runtime-tools.ts", import.meta.url)),
-  "utf8"
-);
+const source = readFileSync(fileURLToPath(new URL("../src/agent-runtime-tools.ts", import.meta.url)), "utf8");
 const index = readFileSync(fileURLToPath(new URL("../src/index.ts", import.meta.url)), "utf8");
-const contracts = readFileSync(
-  fileURLToPath(new URL("../src/tool-contracts.ts", import.meta.url)),
-  "utf8"
-);
+const contracts = readFileSync(fileURLToPath(new URL("../src/tool-contracts.ts", import.meta.url)), "utf8");
 
 for (const tool of [
   "focusa_agent_runtime_effective",

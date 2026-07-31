@@ -189,9 +189,7 @@ test("numeric pressure, artifacts, and injected advisories cannot become project
   assert.match(stateSource, /NON_PROJECT_ARTIFACT_SUFFIXES/);
   assert.match(stateSource, /isPlausibleProjectAlias\(entry\.project_alias\)/);
   assert.ok(
-    stateSource.includes(
-      'stripped = stripped.replace(/\\[\\s*focusa advisory[^\\]]*\\][\\s\\S]*$/i, "");'
-    ),
+    stateSource.includes('stripped = stripped.replace(/\\[\\s*focusa advisory[^\\]]*\\][\\s\\S]*$/i, "");'),
     "injected Focusa advisories must be removed before current-ask scope inference"
   );
 });
