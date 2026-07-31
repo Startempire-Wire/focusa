@@ -24,7 +24,8 @@ function block(source, startToken, endToken) {
 test("ECS handle trajectory summaries require exact current project/workstream scope", () => {
   const formatter = block(turns, "function handleTrajectoryMatchesCurrentScope", "function safeExists");
   assert.match(formatter, /candidateRoot !== currentRoot/);
-  assert.match(formatter, /candidateContinuity === currentContinuity/);
+  assert.match(formatter, /candidateContinuity !== currentContinuity/);
+  assert.match(formatter, /candidateTrajectoryId === activeTrajectoryId/);
   assert.match(formatter, /if \(!handleTrajectoryMatchesCurrentScope\(handle\)\) return ""/);
 
   const ecs = block(turns, 'focusaFetch("/ecs/store"', "// §7.4 + §33.3: If Focusa unavailable");
