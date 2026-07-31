@@ -139,11 +139,31 @@ def main() -> int:
             or not row.get("recovery_refs")
             or not row.get("evidence_refs")
         ]
+        families = matrix.get("internal_families", [])
+        unresolved_families = [
+            str(row.get("family") or "unknown")
+            for row in families
+            if row.get("status") not in COMPLETE
+            or not row.get("applicability_decision")
+            or not row.get("focus_stack_refs")
+            or not row.get("reducer_event_refs")
+            or not row.get("projection_replay_refs")
+            or not row.get("awareness_refs")
+            or not row.get("runbook_refs")
+            or not row.get("recovery_refs")
+            or not row.get("evidence_refs")
+        ]
         if unresolved:
             failures.append(f"all Focusa tools: unresolved grounding rows: {len(unresolved)}")
+        if unresolved_families:
+            failures.append(
+                f"internal tool families: unresolved grounding rows: {len(unresolved_families)}"
+            )
         summary["tool_grounding"] = {
             "tools": len(tools),
             "unresolved": len(unresolved),
+            "internal_families": len(families),
+            "unresolved_internal_families": len(unresolved_families),
         }
 
     result = {
