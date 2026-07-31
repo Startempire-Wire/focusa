@@ -31,7 +31,7 @@
   "unique_ready_frontier": [
     "focusa-gkwt",
     "focusa-vbcqu.8.4",
-    "focusa-vbcqu.8.4.1",
+    "focusa-vbcqu.8.4.2",
     "focusa-vbcqu.9.9",
     "focusa-vbcqu.9.9.1"
   ],
@@ -177,7 +177,7 @@
     }
   ],
   "provider_missing_members": 0,
-  "membership_digest": "sha256:291fe5ec8096427d043831af6e88db020a79d4fbf346e9c4462e564cea3b3c52",
+  "membership_digest": "sha256:ec11904351ed380313bed8ac477d813dd3fd442d039d5d6b3a7dda7442fed2d7",
   "graph_digest": "sha256:90561f9800a5028beb44108dee91fd8030e520d23c20354195c81b3a784600a4",
   "sealed_at": "2026-07-29T23:35:32Z",
   "out_of_order_in_progress": [],
