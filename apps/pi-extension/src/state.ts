@@ -777,6 +777,9 @@ export function stripQuotedFocusaContext(text: string): string {
   if (!raw) return "";
 
   let stripped = raw;
+  // Focusa advisories are injected control-plane context, not operator scope evidence.
+  // Strip the whole advisory before project-alias inference to prevent recursive scope poisoning.
+  stripped = stripped.replace(/\[\s*focusa advisory[^\]]*\][\s\S]*$/i, "");
   stripped = stripped.replace(/\[focusa-context\][\s\S]*$/i, "");
   stripped = stripped.replace(/#\s*focusa context[\s\S]*$/i, "");
   stripped = stripped.replace(/rendered live from focusa-pi-bridge current state\.?[\s\S]*$/i, "");

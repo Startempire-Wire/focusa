@@ -183,9 +183,15 @@ test("transport retry exhaustion defers to Pi instead of auto-queuing rollover",
   assert.doesNotMatch(source, /rollover_auto_queued/);
 });
 
-test("numeric pressure and artifact filenames cannot become project aliases", () => {
+test("numeric pressure, artifacts, and injected advisories cannot become project aliases", () => {
   assert.match(stateSource, /!\/\[a-z\]\//);
   assert.match(stateSource, /\^\\d\+\(\?:\\\.\\d\+\)\+\$/);
   assert.match(stateSource, /NON_PROJECT_ARTIFACT_SUFFIXES/);
   assert.match(stateSource, /isPlausibleProjectAlias\(entry\.project_alias\)/);
+  assert.ok(
+    stateSource.includes(
+      'stripped = stripped.replace(/\\[\\s*focusa advisory[^\\]]*\\][\\s\\S]*$/i, "");'
+    ),
+    "injected Focusa advisories must be removed before current-ask scope inference"
+  );
 });
