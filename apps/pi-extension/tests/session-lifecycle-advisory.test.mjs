@@ -103,7 +103,8 @@ function input() {
 
 const sessionSource = fs.readFileSync(sessionPath, "utf8");
 assert.doesNotMatch(sessionSource, /\.sendUserMessage\s*\(/);
-assert.equal((sessionSource.match(/queueLifecycleAdvisory\s*\(/g) || []).length, 2);
+assert.equal((sessionSource.match(/queueLifecycleAdvisory\s*\(/g) || []).length, 3);
+assert.match(sessionSource, /advisoryKind: "project_scope_recovery"/);
 assert.match(sessionSource, /pi_unbound_project_advisory_outcome/);
 assert.match(sessionSource, /pi_vital_project_root_advisory_outcome/);
 

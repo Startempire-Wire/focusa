@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const source = readFileSync(fileURLToPath(new URL("../src/agent-runtime-tools.ts", import.meta.url)), "utf8");
-const index = readFileSync(fileURLToPath(new URL("../src/index.ts", import.meta.url)), "utf8");
+const tools = readFileSync(fileURLToPath(new URL("../src/tools.ts", import.meta.url)), "utf8");
 const contracts = readFileSync(fileURLToPath(new URL("../src/tool-contracts.ts", import.meta.url)), "utf8");
 
 for (const tool of [
@@ -26,5 +26,5 @@ for (const tool of [
 assert.match(source, /operator_confirmed: p\.confirmed/);
 assert.match(source, /\/agent-runtime\/delivery\/commit/);
 assert.match(source, /never writes files/i);
-assert.match(index, /registerAgentRuntimeTools\(pi\)/);
+assert.match(tools, /registerAgentRuntimeTools\(pi\)/);
 console.log("Spec140 Pi agent-runtime tool surface passed");
