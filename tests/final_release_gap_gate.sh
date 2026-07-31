@@ -86,6 +86,7 @@ pass 'compaction and session-recovery gates'
 
 python3 tests/spec145_canonical_release_cycle_static_test.py
 python3 tests/spec146_release_intelligence_workflow_gate.py
-pass 'canonical release kernel, OTA truth, topology, speed, intelligence, and architecture gates'
+python3 scripts/audit-cross-spec-reality-grounding.py
+pass 'canonical release kernel, cross-spec reality grounding, tool/runbook awareness, and architecture gates'
 
 printf 'FINAL RELEASE GAP GATE: PASS\n'

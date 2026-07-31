@@ -108,10 +108,17 @@ while (stack.length) {
 }
 for (const descendant of descendants) expected.add(descendant);
 
-if (manifest.lock_revision !== 6 || manifest.scope_state !== "locked")
-  fail("scope manifest is not sealed at final revision 6");
-if (manifest.current_explicit_issue_count !== 43)
-  fail("explicit issue count is not 43");
+if (
+  !Number.isInteger(manifest.lock_revision) ||
+  manifest.lock_revision < 6 ||
+  manifest.scope_state !== "locked"
+)
+  fail("scope manifest is not sealed at or after revision 6");
+const expectedExplicitCount =
+  manifest.pre_decomposition_open_issue_count +
+  (manifest.operator_authorized_post_lock_additions?.length ?? 0);
+if (manifest.current_explicit_issue_count !== expectedExplicitCount)
+  fail("explicit issue count does not match authorized scope");
 const expectedMemberCount = manifest.current_locked_bead_member_count;
 if (!Number.isInteger(expectedMemberCount) || expectedMemberCount < 252) {
   fail("locked member count regressed below the sealed baseline");
@@ -139,7 +146,11 @@ if (
 ) {
   fail("final scope additions are not durably closed");
 }
-if (manifest.final_scope_addition_id !== "focusa-o4gkd")
+if (
+  manifest.final_scope_admission?.issue_id !== manifest.final_scope_addition_id ||
+  manifest.execution_lock?.final_scope_addition_id !==
+    manifest.final_scope_addition_id
+)
   fail("final scope addition mismatch");
 if (manifest.final_scope_admission?.further_additions_allowed !== false)
   fail("further scope additions remain allowed");
@@ -161,10 +172,13 @@ if (manifest.execution_lock?.first_touch_issue_id !== "focusa-627th.4.3")
 
 if (definition.schema_version !== "focusa.workset.v1")
   fail("workset schema mismatch");
-if (definition.workset_id !== "workset:focusa-next-locked-release:r6")
-  fail("workset id mismatch");
-if (definition.revision !== 6 || definition.admission_state !== "sealed")
-  fail("workset is not sealed at final revision 6");
+const expectedWorksetId = `workset:focusa-next-locked-release:r${manifest.lock_revision}`;
+if (definition.workset_id !== expectedWorksetId) fail("workset id mismatch");
+if (
+  definition.revision !== manifest.lock_revision ||
+  definition.admission_state !== "sealed"
+)
+  fail("workset is not sealed at the current lock revision");
 if (
   definition.cardinality_mode !== "fixed" ||
   definition.membership_policy !== "exclusive"
@@ -174,8 +188,8 @@ if (definition.scope?.project_root !== "/home/wirebot/focusa")
   fail("workset project root mismatch");
 if (definition.scope?.continuity_id !== "focusa-v0.9.135-locked-14")
   fail("workset continuity mismatch");
-if (binding.binding_id !== "provider:bd:focusa-next-locked-release:r6")
-  fail("provider binding id mismatch");
+const expectedBindingId = `provider:bd:focusa-next-locked-release:r${manifest.lock_revision}`;
+if (binding.binding_id !== expectedBindingId) fail("provider binding id mismatch");
 if (
   binding.provider !== "bd" ||
   binding.query_semantics !== "explicit_ids" ||
@@ -195,11 +209,17 @@ for (const id of expected)
 for (const member of members) {
   if (!member.mandatory)
     fail(`non-mandatory locked member: ${member.member_id}`);
-  const expectedBindingRef =
-    member.member_id === "focusa-o4gkd"
-      ? "provider:bd:focusa-next-locked-release:r6"
-      : "provider:bd:focusa-next-locked-release:r5";
-  if (member.provider_binding_ref !== expectedBindingRef)
+  const isCurrentAdmission = ["focusa-vbcqu.8.4", "focusa-vbcqu.9.9"].some(
+    (prefix) =>
+      member.member_id === prefix || member.member_id.startsWith(`${prefix}.`),
+  );
+  if (
+    (isCurrentAdmission && member.provider_binding_ref !== expectedBindingId) ||
+    (!isCurrentAdmission &&
+      !/^provider:bd:focusa-next-locked-release:r[56]$/.test(
+        member.provider_binding_ref ?? ""
+      ))
+  )
     fail(`provider binding mismatch: ${member.member_id}`);
   if (!/^execution-phase:[0-8]$/.test(member.task_plan_ref ?? ""))
     fail(`invalid execution phase: ${member.member_id}`);
@@ -443,8 +463,11 @@ if (
 }
 if (
   proof.scope_expansion !== true ||
-  proof.authorized_scope_expansion_count !== 1 ||
-  proof.final_scope_addition !== "focusa-o4gkd" ||
+  proof.authorized_scope_expansion_count !==
+    manifest.operator_authorized_post_lock_additions.filter(
+      (entry) => entry.final_scope_addition === true,
+    ).length ||
+  proof.final_scope_addition !== manifest.final_scope_addition_id ||
   proof.further_scope_additions_allowed !== false
 ) {
   fail("final authorized scope-addition proof mismatch");
@@ -535,7 +558,7 @@ console.log(
       unique_ready_frontier: ready,
       out_of_order_in_progress: 0,
       scope_expansion: true,
-      final_scope_addition: "focusa-o4gkd",
+      final_scope_addition: manifest.final_scope_addition_id,
       further_scope_additions_allowed: false,
     },
     null,

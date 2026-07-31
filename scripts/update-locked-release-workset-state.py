@@ -139,7 +139,18 @@ def main() -> int:
 
     # Every reconciled phase leaf is gated by the prior wave and closes through
     # its phase container, matching the original Workset graph convention.
-    for member_id in reconciled_ids:
+    current_revision = max(
+        int(str(row.get("provider_binding_ref", "")).rsplit(":r", 1)[-1])
+        for row in member_by_id.values()
+        if ":r" in str(row.get("provider_binding_ref", ""))
+    )
+    current_binding = f"provider:bd:focusa-next-locked-release:r{current_revision}"
+    phase_admission_ids = sorted(
+        member_id
+        for member_id, row in member_by_id.items()
+        if member_id in reconciled_ids or row.get("provider_binding_ref") == current_binding
+    )
+    for member_id in phase_admission_ids:
         member = member_by_id[member_id]
         phase = int(str(member["task_plan_ref"]).rsplit(":", 1)[-1])
         phase_gate = f"focusa-vbcqu.{phase + 1}"
