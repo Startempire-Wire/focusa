@@ -3178,6 +3178,38 @@ impl FocusaState {
         })
     }
 
+    /// Return trajectory context only when it belongs to the exact requested project/workstream.
+    pub fn trajectory_ladder_context_for_scope(
+        &self,
+        project_root: Option<&str>,
+        continuity_id: Option<&str>,
+    ) -> Option<TrajectoryLadderContext> {
+        let requested_root = project_root.unwrap_or_default().trim_end_matches('/');
+        if requested_root.is_empty() {
+            return None;
+        }
+        let context = self.trajectory_ladder_context()?;
+        let context_root = context
+            .project_root
+            .as_deref()
+            .unwrap_or_default()
+            .trim_end_matches('/');
+        if context_root != requested_root {
+            return None;
+        }
+        if let (Some(requested), Some(actual)) = (
+            continuity_id.filter(|value| !value.is_empty()),
+            context
+                .continuity_id
+                .as_deref()
+                .filter(|value| !value.is_empty()),
+        ) && requested != actual
+        {
+            return None;
+        }
+        Some(context)
+    }
+
     /// Create a new empty state for a fresh session.
     pub fn new() -> Self {
         Self {
@@ -3268,6 +3300,26 @@ mod focusa_state_tests {
         assert_eq!(context.mlg.as_deref(), Some("Active MLG"));
         assert_eq!(context.stg.as_deref(), Some("Active STG"));
         assert_eq!(context.waypoints.len(), 8);
+        assert!(
+            state
+                .trajectory_ladder_context_for_scope(Some("/tmp/project"), Some("cont"))
+                .is_some()
+        );
+        assert!(
+            state
+                .trajectory_ladder_context_for_scope(Some("/tmp/other"), Some("cont"))
+                .is_none()
+        );
+        assert!(
+            state
+                .trajectory_ladder_context_for_scope(Some("/tmp/project"), Some("other-cont"))
+                .is_none()
+        );
+        assert!(
+            state
+                .trajectory_ladder_context_for_scope(None, None)
+                .is_none()
+        );
     }
 
     #[test]

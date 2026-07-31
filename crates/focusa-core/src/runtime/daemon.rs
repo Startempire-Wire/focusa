@@ -4826,7 +4826,10 @@ Return:
                     project_root,
                     continuity_id,
                 )?;
-                handle.trajectory = self.state.trajectory_ladder_context();
+                handle.trajectory = self.state.trajectory_ladder_context_for_scope(
+                    handle.project_root.as_deref(),
+                    handle.continuity_id.as_deref(),
+                );
                 Ok(vec![FocusaEvent::ArtifactRegistered {
                     handle: handle.clone(),
                     storage_uri: format!("ecs://{}", handle.sha256),

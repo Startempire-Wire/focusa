@@ -471,7 +471,25 @@ function trajectoryWaypointTitle(value: any): string {
   return "";
 }
 
+function handleTrajectoryMatchesCurrentScope(handle: any): boolean {
+  const trajectory = handle?.trajectory || {};
+  const scope = trajectory?.scope || handle?.scope || {};
+  const candidateRoot = String(scope.project_root || trajectory.project_root || handle?.project_root || "")
+    .trim()
+    .replace(/\/+$/, "");
+  const currentRoot = String(getSessionCwd() || "")
+    .trim()
+    .replace(/\/+$/, "");
+  if (!candidateRoot || !currentRoot || candidateRoot !== currentRoot) return false;
+  const candidateContinuity = String(
+    scope.continuity_id || trajectory.continuity_id || handle?.continuity_id || ""
+  ).trim();
+  const currentContinuity = String(getContinuityId() || "").trim();
+  return !candidateContinuity || !currentContinuity || candidateContinuity === currentContinuity;
+}
+
 function formatHandleTrajectorySummary(handle: any): string {
+  if (!handleTrajectoryMatchesCurrentScope(handle)) return "";
   const trajectory = handle?.trajectory || {};
   const parts = [
     trajectory.trajectory_id ? `id=${boundedTrajectoryText(trajectory.trajectory_id, 80)}` : "",
@@ -2828,6 +2846,8 @@ export function registerTurns(pi: ExtensionAPI) {
           content: content.slice(0, 32_000),
           surface: "pi",
           turn_id: `pi-turn-${getTurnCount()}`,
+          project_root: getSessionCwd(),
+          continuity_id: getContinuityId(),
         }),
       });
       if (handle?.id) {

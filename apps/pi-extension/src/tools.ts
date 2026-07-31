@@ -68,6 +68,8 @@ import {
   buildProjectWorkstreamKey,
   renderScopedResultHuman,
   scopedQueryParams,
+  isWorkstreamKey,
+  sameWorkstream,
   type ScopedResultEnvelope,
   type WorkstreamKey,
 } from "./scoped-state.js";
@@ -2994,6 +2996,30 @@ export function registerTools(pi: ExtensionAPI) {
     return String(
       body?.human_readable || body?.human?.summary || body?.summary || body?.reason || body?.error || fallback
     );
+  }
+
+  function typedTrajectoryScopeMatches(value: any, projectRoot: string, continuityId: string): boolean {
+    const responseRoot = normalizeProjectRoot(
+      value?.project_identity?.project_root ||
+        value?.trajectory?.project_root ||
+        value?.scope?.project_root ||
+        value?.project_root
+    );
+    if (!responseRoot || responseRoot !== normalizeProjectRoot(projectRoot)) return false;
+    const responseContinuity = String(
+      value?.trajectory?.continuity_id || value?.scope?.continuity_id || value?.continuity_id || ""
+    ).trim();
+    return !responseContinuity || !continuityId || responseContinuity === continuityId;
+  }
+
+  function cachedTrajectoryForScope(projectRoot: string, continuityId: string): Record<string, any> | null {
+    const cached = getLastTrajectoryClarity();
+    if (!cached) return null;
+    const cachedRoot = normalizeProjectRoot(cached.project_root);
+    const cachedContinuity = String(cached.continuity_id || "").trim();
+    if (!cachedRoot || cachedRoot !== normalizeProjectRoot(projectRoot)) return null;
+    if (cachedContinuity && continuityId && cachedContinuity !== continuityId) return null;
+    return cached;
   }
 
   async function focusaFetchDetailed(
@@ -6517,8 +6543,8 @@ export function registerTools(pi: ExtensionAPI) {
       query.set("project_root", projectRoot);
       if (p.session_id || getAttachmentRuntime().sessionFrameKey)
         query.set("session_id", String(p.session_id || getAttachmentRuntime().sessionFrameKey));
-      if (p.continuity_id || getContinuityId())
-        query.set("continuity_id", String(p.continuity_id || getContinuityId()));
+      const requestedContinuity = String(p.continuity_id || getContinuityId() || "").trim();
+      if (requestedContinuity) query.set("continuity_id", requestedContinuity);
       const viewMode = String(p.mode || "summary");
       query.set("mode", viewMode);
       if (p.allow_prior_project_trajectory === true) query.set("allow_prior_project_trajectory", "true");
@@ -6526,7 +6552,7 @@ export function registerTools(pi: ExtensionAPI) {
       const body = result.body || {};
       if (!result.ok && body.failure_class === "hot_path_timeout") {
         const fallback = {
-          ...(getLastTrajectoryClarity() || {}),
+          ...(cachedTrajectoryForScope(projectRoot, requestedContinuity) || {}),
           status: "timeout_preserved",
           canonical: false,
           degraded: true,
@@ -6569,6 +6595,31 @@ export function registerTools(pi: ExtensionAPI) {
       }
       const project = body.project_identity || {};
       const trajectory = body.trajectory || {};
+      if (!typedTrajectoryScopeMatches(body, projectRoot, requestedContinuity)) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "trajectory view blocked: response scope does not match the requested project/workstream",
+            },
+          ],
+          details: {
+            ok: false,
+            status: "blocked",
+            canonical: true,
+            degraded: true,
+            failure_class: "scope_mismatch",
+            endpoint: "/v1/trajectory/view",
+            requested_scope: { project_root: projectRoot, continuity_id: requestedContinuity || null },
+            response_scope: {
+              project_root: project.project_root || trajectory.project_root || body.project_root || null,
+              continuity_id:
+                trajectory.continuity_id || body.scope?.continuity_id || body.continuity_id || null,
+            },
+            next_tools: ["focusa_project_identity", "focusa_project_verify", "focusa_trajectory_view"],
+          },
+        } as any;
+      }
       if (trajectory.short_term_goal && !body.intelligence_view?.focus_trajectory_sync?.current_focus) {
         body.intelligence_view = {
           ...(body.intelligence_view || {}),
@@ -6592,7 +6643,7 @@ export function registerTools(pi: ExtensionAPI) {
         trajectory.active_gap
       ) {
         setLastTrajectoryClarity({
-          ...(getLastTrajectoryClarity() || {}),
+          ...(cachedTrajectoryForScope(projectRoot, requestedContinuity) || {}),
           reason: "trajectory_view_tool",
           refreshed_at: Date.now(),
           status: String(
@@ -13779,6 +13830,16 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
           failureClass === "scope_mismatch"
             ? ["focusa_project_identity", "focusa_workpoint_resume"]
             : ["focusa_tool_doctor"]
+        );
+      }
+      if (!isWorkstreamKey(body.scope) || !sameWorkstream(body.scope, scope)) {
+        return blockedToolResponse(
+          "focusa_predict_recent",
+          "prediction",
+          "predictions recent blocked → response scope differs from requested project/workstream",
+          "scope_mismatch",
+          body,
+          ["focusa_project_identity", "focusa_workpoint_resume"]
         );
       }
       const legacyBody = body as any;
