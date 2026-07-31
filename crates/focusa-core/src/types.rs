@@ -993,6 +993,8 @@ pub struct TrajectoryDefinitionOfDoneRecord {
 #[derive(Debug, Clone, Serialize)]
 pub struct TrajectoryProjectionRecord {
     pub trajectory_id: String,
+    #[serde(default)]
+    pub scope_ref: Option<crate::scoped_state::ScopeRef>,
     pub session_identity: Option<FocusaSessionIdentity>,
     pub project_root: Option<String>,
     pub continuity_id: Option<String>,
@@ -1033,6 +1035,8 @@ pub struct TrajectoryProjectionRecord {
 struct TrajectoryProjectionWireRecord {
     #[serde(default)]
     trajectory_id: String,
+    #[serde(default)]
+    scope_ref: Option<crate::scoped_state::ScopeRef>,
     session_identity: Option<FocusaSessionIdentity>,
     project_root: Option<String>,
     continuity_id: Option<String>,
@@ -1154,6 +1158,7 @@ impl<'de> Deserialize<'de> for TrajectoryProjectionRecord {
         }
         Ok(Self {
             trajectory_id: wire.trajectory_id,
+            scope_ref: wire.scope_ref,
             session_identity: wire.session_identity,
             project_root: wire.project_root,
             continuity_id: wire.continuity_id,
@@ -1189,6 +1194,7 @@ impl Default for TrajectoryProjectionRecord {
     fn default() -> Self {
         Self {
             trajectory_id: String::new(),
+            scope_ref: None,
             session_identity: None,
             project_root: None,
             continuity_id: None,

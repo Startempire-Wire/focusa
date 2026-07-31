@@ -19,6 +19,38 @@ try {
   for (const [root, id] of [["/tmp/project-a", "project:a"], ["/tmp/project-b", "project:b"]]) {
     scopedState.registerVerifiedScopeRef({ scope_kind: "project", scope_id: id, root_path: root, canonical_name: id, fingerprint: `fingerprint:${id}` });
   }
+  const trajectorySnapshot = (root, continuityId, scopeId, goal) => ({
+    trajectory_id: `trajectory:${scopeId}:${continuityId}`,
+    project_root: root,
+    continuity_id: continuityId,
+    long_term_goal: goal,
+    scope_verification: {
+      status: "verified_exact",
+      rendered_trajectory_id: `trajectory:${scopeId}:${continuityId}`,
+      source_trajectory_id: `trajectory:${scopeId}:${continuityId}`,
+      project_root: root,
+      continuity_id: continuityId,
+      scope_ref: {
+        scope_kind: "project",
+        scope_id: scopeId,
+        root_path: root,
+        canonical_name: scopeId,
+        fingerprint: `fingerprint:${scopeId}`,
+      },
+    },
+    project_identity: {
+      status: "verified",
+      project_identity_api: {
+        scope_ref: {
+          scope_kind: "project",
+          scope_id: scopeId,
+          root_path: root,
+          canonical_name: scopeId,
+          fingerprint: `fingerprint:${scopeId}`,
+        },
+      },
+    },
+  });
   const keyA = state.makeAttachmentKey({
     projectRoot: "/tmp/project-a",
     continuityId: "cont-a",
@@ -92,11 +124,9 @@ try {
       continuity_id: "cont-a",
       mission: "wp-a",
     });
-    state.setLastTrajectoryClarity({
-      project_root: "/tmp/project-a",
-      continuity_id: "cont-a",
-      long_term_goal: "traj-a",
-    });
+    state.setLastTrajectoryClarity(
+      trajectorySnapshot("/tmp/project-a", "cont-a", "project:a", "traj-a")
+    );
     state.setLastProjectIdentity({ project_root: "/tmp/project-a", canonical_name: "identity-a" });
     state.setTurnCount(7);
   });
@@ -113,11 +143,9 @@ try {
       continuity_id: "cont-b",
       mission: "wp-b",
     });
-    state.setLastTrajectoryClarity({
-      project_root: "/tmp/project-b",
-      continuity_id: "cont-b",
-      long_term_goal: "traj-b",
-    });
+    state.setLastTrajectoryClarity(
+      trajectorySnapshot("/tmp/project-b", "cont-b", "project:b", "traj-b")
+    );
     state.setLastProjectIdentity({ project_root: "/tmp/project-b", canonical_name: "identity-b" });
     state.setTurnCount(3);
   });

@@ -31,6 +31,7 @@ import {
   isWorkpointPacketScopedToCurrentSession,
   normalizeWorkpointResumePacketEnvelope,
   refreshTrajectoryClarityLifecycle,
+  refreshOntologyContextLifecycle,
   stampWorkpointPacketForCurrentPiSession,
   resetPiSessionScopedState,
   adoptPiProjectRoot,
@@ -859,6 +860,7 @@ async function promptForTrajectoryIfNeeded(ctx: any, projectRoot: string, reason
   if (res?.canonical === true || res?.persisted === true) {
     ctx.ui.notify("Focusa trajectory defined for this project.", "info");
     await refreshTrajectoryClarityLifecycle(`${reason}_trajectory_defined`, projectRoot);
+    await refreshOntologyContextLifecycle(`${reason}_ontology_refreshed`);
     persistState();
   } else {
     ctx.ui.notify(
@@ -1330,27 +1332,12 @@ export function registerSession(pi: ExtensionAPI) {
           intent: d.intent || "",
           currentFocus: d.currentFocus || "",
         };
-        if (d.projectRootResolution) setLastProjectRootResolution(d.projectRootResolution);
-        if (d.lastProjectIdentity) {
-          const pi = d.lastProjectIdentity;
-          const piRoot = pi.project_root ? normalizeProjectRoot(pi.project_root) : "";
-          const cwdRoot = normalizeProjectRoot(ctx.cwd);
-          setLastProjectIdentity(piRoot && piRoot === cwdRoot ? pi : null);
-        }
-        if (d.lastTrajectoryClarity) {
-          const c = d.lastTrajectoryClarity;
-          const cRoot = c.project_root ? adoptPiProjectRoot(c.project_root) : "";
-          const cwdRoot = adoptPiProjectRoot(ctx.cwd);
-          setLastTrajectoryClarity(
-            (!cRoot || cRoot === cwdRoot) &&
-              (!c.session_id ||
-                c.session_id === eventSessionId ||
-                c.fallback_prior_project_trajectory === true)
-              ? c
-              : null
-          );
-        }
+        // Stable ProjectIdentity ScopeRef must be registered before any scoped
+        // recovery shadow is restored. Rolling session ids never grant authority.
         if (d.lastProjectVerify) setLastProjectVerify(d.lastProjectVerify);
+        if (d.lastProjectIdentity) setLastProjectIdentity(d.lastProjectIdentity);
+        if (d.projectRootResolution) setLastProjectRootResolution(d.projectRootResolution);
+        if (d.lastTrajectoryClarity) setLastTrajectoryClarity(d.lastTrajectoryClarity);
         if (d.latestReportSummary?.handle) setLatestReportSummary(d.latestReportSummary);
         if (d.toolOutputPressure?.recapRequired)
           getAttachmentRuntime().toolOutputPressure = d.toolOutputPressure;
@@ -1512,6 +1499,7 @@ export function registerSession(pi: ExtensionAPI) {
         );
       }
     }
+    await refreshOntologyContextLifecycle("session_start");
     updateNorthStarCard(ctx, "session_start_ready_check");
 
     // §35.8: Pi owns the session display name (/name, session selector).
@@ -1739,6 +1727,7 @@ export function registerSession(pi: ExtensionAPI) {
       }).catch(() => null);
       await refreshSessionWorkpointPacket("fork");
       await refreshTrajectoryClarityLifecycle("handoff_fork", getSessionCwd() || process.cwd());
+      await refreshOntologyContextLifecycle("handoff_fork");
     }
     await persistAuthoritativeState();
     if (getAttachmentRuntime().focusaAvailable && getAttachmentRuntime().activeFrameId) {

@@ -9,6 +9,7 @@ use crate::routes::bounded::{
     pressure_status, record_json_response_size,
 };
 use crate::routes::predictions::append_prediction_record_scoped;
+use crate::routes::project::project_identity_payload_for_scope;
 use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::{Query, State};
@@ -19,10 +20,10 @@ use axum::{
 };
 use chrono::Utc;
 use focusa_core::prediction::{PredictionOntologyContext, PredictionValue};
-#[cfg(test)]
-use focusa_core::scoped_state::ScopeRef;
-use focusa_core::scoped_state::WorkstreamKey;
-use focusa_core::types::{Action, FocusaEvent, FocusaState, FrameRecord, HandleKind, HandleRef};
+use focusa_core::scoped_state::{ScopeKind, ScopeRef, WorkstreamKey};
+use focusa_core::types::{
+    Action, FocusaEvent, FocusaState, FrameRecord, HandleKind, HandleRef, RuleScope,
+};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
@@ -5774,13 +5775,160 @@ fn build_ontology_read_index(
     }
 }
 
+fn ontology_value_matches_scope(value: &Value, project_root: &str, continuity_id: &str) -> bool {
+    let scope_class = value
+        .get("scope_class")
+        .or_else(|| value.pointer("/scope/class"))
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    if scope_class == "global_schema" {
+        return true;
+    }
+    let root = value
+        .get("project_root")
+        .or_else(|| value.pointer("/scope/project_root"))
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    let continuity = value
+        .get("continuity_id")
+        .or_else(|| value.pointer("/scope/continuity_id"))
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    root == project_root && continuity == continuity_id
+}
+
+fn scoped_ontology_state(focusa: &FocusaState, scope: &ScopeContext) -> Option<FocusaState> {
+    let project_root = scope.project_root.as_deref()?.trim();
+    let continuity_id = scope.continuity_id.as_deref()?.trim();
+    if project_root.is_empty() || continuity_id.is_empty() {
+        return None;
+    }
+    let mut scoped = focusa.clone();
+    scoped.clt = crate::routes::clt::scoped_clt_state(&focusa.clt, scope);
+    scoped.session = focusa
+        .session
+        .as_ref()
+        .filter(|session| {
+            session.project_root.as_deref() == Some(project_root)
+                && session.continuity_id.as_deref() == Some(continuity_id)
+        })
+        .cloned();
+
+    scoped.focus_stack.frames.retain(|frame| {
+        frame.project_root.as_deref() == Some(project_root)
+            && frame.continuity_id.as_deref() == Some(continuity_id)
+    });
+    let frame_ids = scoped
+        .focus_stack
+        .frames
+        .iter()
+        .map(|frame| frame.id)
+        .collect::<BTreeSet<_>>();
+    scoped.focus_stack.active_id = scoped
+        .focus_stack
+        .active_id
+        .filter(|id| frame_ids.contains(id));
+    scoped.focus_stack.root_id = scoped
+        .focus_stack
+        .root_id
+        .filter(|id| frame_ids.contains(id));
+    scoped
+        .focus_stack
+        .stack_path_cache
+        .retain(|id| frame_ids.contains(id));
+
+    scoped.workpoint.records.retain(|record| {
+        record.project_root.as_deref() == Some(project_root)
+            && record.continuity_id.as_deref() == Some(continuity_id)
+    });
+    let workpoint_ids = scoped
+        .workpoint
+        .records
+        .iter()
+        .map(|record| record.workpoint_id)
+        .collect::<BTreeSet<_>>();
+    scoped.workpoint.active_workpoint_id = scoped
+        .workpoint
+        .active_workpoint_id
+        .filter(|id| workpoint_ids.contains(id));
+    scoped.workpoint.resume_events.retain(|record| {
+        record
+            .workpoint_id
+            .as_ref()
+            .is_some_and(|id| workpoint_ids.contains(id))
+    });
+    scoped.workpoint.drift_events.retain(|record| {
+        record
+            .workpoint_id
+            .as_ref()
+            .is_some_and(|id| workpoint_ids.contains(id))
+    });
+    scoped
+        .workpoint
+        .degraded_fallbacks
+        .retain(|record| workpoint_ids.contains(&record.workpoint_id));
+
+    scoped.trajectory.records.retain(|record| {
+        record.project_root.as_deref() == Some(project_root)
+            && record.continuity_id.as_deref() == Some(continuity_id)
+            && record.scope_ref.as_ref().is_some_and(|scope_ref| {
+                scope_ref.scope_kind == ScopeKind::Project
+                    && scope_ref.root_path.to_string_lossy() == project_root
+            })
+    });
+    let trajectory_ids = scoped
+        .trajectory
+        .records
+        .iter()
+        .map(|record| record.trajectory_id.clone())
+        .collect::<BTreeSet<_>>();
+    scoped.trajectory.active_trajectory_id = scoped
+        .trajectory
+        .active_trajectory_id
+        .filter(|id| trajectory_ids.contains(id));
+    scoped
+        .trajectory
+        .checkpoints
+        .retain(|record| trajectory_ids.contains(&record.trajectory_id));
+    scoped
+        .trajectory
+        .state_deltas
+        .retain(|record| trajectory_ids.contains(&record.trajectory_id));
+
+    scoped.reference_index.handles.retain(|handle| {
+        handle.project_root.as_deref() == Some(project_root)
+            && handle.continuity_id.as_deref() == Some(continuity_id)
+    });
+    scoped.memory.procedural.retain(|rule| match &rule.scope {
+        RuleScope::Global => true,
+        RuleScope::Project(root) => root == project_root,
+        RuleScope::Frame(frame_id) => frame_ids.contains(frame_id),
+    });
+
+    scoped
+        .ontology
+        .objects
+        .retain(|value| ontology_value_matches_scope(value, project_root, continuity_id));
+    scoped
+        .ontology
+        .links
+        .retain(|value| ontology_value_matches_scope(value, project_root, continuity_id));
+    scoped.ontology.proposals.clear();
+    scoped.ontology.verifications.clear();
+    scoped.ontology.working_set_refreshes.clear();
+    scoped.ontology.delta_log.retain(|record| {
+        ontology_value_matches_scope(&record.payload, project_root, continuity_id)
+    });
+    Some(scoped)
+}
+
 fn ontology_read_index(
     focusa: &FocusaState,
     frame_id: Option<&str>,
     _scope: Option<&ScopeContext>,
 ) -> Arc<OntologyReadIndex> {
-    // Rebuild this advisory projection from reducer state per request. A
-    // process-global cache can retain scope-relative objects across requests.
+    // The caller supplies a pre-filtered exact-workstream state. Immutable
+    // ontology schema remains global; mutable instance records are scoped.
     Arc::new(build_ontology_read_index(
         focusa,
         frame_id,
@@ -6338,7 +6486,26 @@ fn ontology_identity_axes_payload(
     })
 }
 
-fn ontology_context_payload(focusa: &FocusaState, body: &OntologyContextRequest) -> Value {
+fn verified_scope_ref_for_context(scope: &ScopeContext) -> Option<ScopeRef> {
+    let project_root = scope.project_root.as_deref()?.trim();
+    let payload = project_identity_payload_for_scope(Some(project_root), Some(project_root), None);
+    let scope_ref: ScopeRef = payload
+        .pointer("/project_identity/scope_ref")
+        .cloned()
+        .and_then(|value| serde_json::from_value(value).ok())?;
+    (scope_ref.scope_kind == ScopeKind::Project
+        && scope_ref.root_path.to_string_lossy() == project_root
+        && !scope_ref.scope_id.trim().is_empty()
+        && !scope_ref.fingerprint.trim().is_empty())
+    .then_some(scope_ref)
+}
+
+fn ontology_context_payload(
+    focusa: &FocusaState,
+    body: &OntologyContextRequest,
+    scope: &ScopeContext,
+    scope_ref: &ScopeRef,
+) -> Value {
     let budget_tokens = body.budget_tokens.unwrap_or(500).clamp(100, 4_000);
     let member_limit = (budget_tokens / 80).clamp(3, 20);
     let first_target = body.target_refs.first().map(String::as_str);
@@ -6352,7 +6519,7 @@ fn ontology_context_payload(focusa: &FocusaState, body: &OntologyContextRequest)
             limit: member_limit,
             include_reasons: true,
             cursor: 0,
-            scope: None,
+            scope: Some(scope),
         },
     );
     let members = working_set
@@ -6415,8 +6582,39 @@ fn ontology_context_payload(focusa: &FocusaState, body: &OntologyContextRequest)
         "authority": ontology_projection_authority_metadata(),
         "advisory_only": true,
         "canonical": false,
-        "promotion_path": "prompt-safe active object/next-action projection -> active-object resolve -> Workpoint checkpoint/evidence capture",
+        "scope": {
+            "root_scope": scope_ref,
+            "continuity_id": scope.continuity_id,
+            "working_subpath_id": scope.working_subpath_id,
+        },
+        "scope_verification": {
+            "status": "verified_exact",
+            "project_root": scope.project_root,
+            "continuity_id": scope.continuity_id,
+            "scope_ref": scope_ref,
+        },
+        "cross_plane_agreement": {
+            "status": "partial",
+            "ontology_scope": "verified",
+            "temporal_authority": "receipt_required",
+            "prediction_authority": "receipt_required",
+            "rdf_owl_shacl_integrity": "receipt_required",
+            "evidence_verifiers": "receipt_required",
+            "policy": "do_not_promote_partial_agreement_to_canonical_authority",
+        },
+        "promotion_path": "prompt-safe scoped inner-world projection -> temporal/prediction/RDF/verifier agreement -> active-object resolve -> Workpoint checkpoint/evidence capture",
         "source_state_version": focusa.version,
+        "observed_at_wall_clock_utc": Utc::now().to_rfc3339(),
+        "temporal_context": {
+            "clock_domain": "wall_clock_utc",
+            "source": "daemon_system_wall_clock",
+            "authority": "observation_only_until_calibrated",
+            "calibration_status": "required_for_exact_or_high_consequence_claims",
+        },
+        "freshness": {
+            "status": "fresh",
+            "ttl_seconds": env_limit("FOCUSA_ONTOLOGY_CONTEXT_TTL_SECONDS", 300),
+        },
         "view_profile": body.view_profile.as_deref().unwrap_or("pi_operator_view"),
         "budget_tokens": budget_tokens,
         "workpoint_id": body.workpoint_id,
@@ -6736,7 +6934,12 @@ fn local_bm25_rerank(
     hits.truncate(top_k);
 }
 
-fn retrieval_governor_payload(focusa: &FocusaState, body: &RetrievalGovernorRequest) -> Value {
+fn retrieval_governor_payload(
+    focusa: &FocusaState,
+    body: &RetrievalGovernorRequest,
+    scope: &ScopeContext,
+    scope_ref: &ScopeRef,
+) -> Value {
     let ask = body.current_ask.as_deref().unwrap_or_default();
     let ask_lc = ask.to_ascii_lowercase();
     let budget_tokens = body.budget_tokens.unwrap_or(800).clamp(100, 8_000);
@@ -6760,7 +6963,7 @@ fn retrieval_governor_payload(focusa: &FocusaState, body: &RetrievalGovernorRequ
         operator_steering_detected: false,
         active_object_refs: Vec::new(),
     };
-    let ontology_context = ontology_context_payload(focusa, &context_body);
+    let ontology_context = ontology_context_payload(focusa, &context_body, scope, scope_ref);
     let first_target = body.target_refs.first().map(String::as_str);
     let affordances = include_affordances.then(|| {
         affordances_payload(
@@ -8569,10 +8772,29 @@ async fn working_set(
 
 async fn context(
     State(state): State<Arc<AppState>>,
+    scope: ScopeContext,
     Json(body): Json<OntologyContextRequest>,
 ) -> Json<Value> {
+    let Some(scope_ref) = verified_scope_ref_for_context(&scope) else {
+        return Json(json!({
+            "status": "scope_mismatch",
+            "canonical": false,
+            "advisory_only": true,
+            "failure_class": "scope_mismatch",
+            "why": "ontology context requires verified ProjectIdentity ScopeRef plus continuity_id",
+            "recovery_hint": "verify project identity and retry with exact typed scope headers",
+        }));
+    };
     let focusa = state.focusa.read().await;
-    Json(ontology_context_payload(&focusa, &body))
+    let Some(scoped) = scoped_ontology_state(&focusa, &scope) else {
+        return Json(json!({
+            "status": "scope_mismatch",
+            "canonical": false,
+            "advisory_only": true,
+            "failure_class": "scope_mismatch",
+        }));
+    };
+    Json(ontology_context_payload(&scoped, &body, &scope, &scope_ref))
 }
 
 async fn graph_communities(
@@ -8604,10 +8826,27 @@ async fn affordances(
 
 async fn retrieval_governor(
     State(state): State<Arc<AppState>>,
+    scope: ScopeContext,
     Json(body): Json<RetrievalGovernorRequest>,
 ) -> Json<Value> {
+    let Some(scope_ref) = verified_scope_ref_for_context(&scope) else {
+        return Json(json!({
+            "status": "scope_mismatch",
+            "canonical": false,
+            "failure_class": "scope_mismatch",
+        }));
+    };
     let focusa = state.focusa.read().await;
-    Json(retrieval_governor_payload(&focusa, &body))
+    let Some(scoped) = scoped_ontology_state(&focusa, &scope) else {
+        return Json(json!({
+            "status": "scope_mismatch",
+            "canonical": false,
+            "failure_class": "scope_mismatch",
+        }));
+    };
+    Json(retrieval_governor_payload(
+        &scoped, &body, &scope, &scope_ref,
+    ))
 }
 
 async fn tool_contracts() -> Json<Value> {
@@ -8884,6 +9123,25 @@ mod tests {
     use serde_json::json;
     use std::fs;
     use std::path::{Path, PathBuf};
+
+    fn exact_test_scope() -> (ScopeContext, ScopeRef) {
+        let scope_ref = ScopeRef::project(
+            "project:ontology-test",
+            "/tmp/focusa-ontology-test",
+            "ontology-test",
+            "fingerprint:ontology-test",
+        )
+        .expect("valid project scope");
+        (
+            ScopeContext {
+                project_root: Some("/tmp/focusa-ontology-test".to_string()),
+                continuity_id: Some("ontology-test-continuity".to_string()),
+                source: crate::scope::ScopeSource::Header,
+                ..ScopeContext::default()
+            },
+            scope_ref,
+        )
+    }
 
     fn fixture_workspace(test_name: &str, with_git: bool, with_cargo: bool) -> PathBuf {
         let root =
@@ -9756,7 +10014,8 @@ mod tests {
             operator_steering_detected: false,
             active_object_refs: Vec::new(),
         };
-        let payload = ontology_context_payload(&focusa, &body);
+        let (scope, scope_ref) = exact_test_scope();
+        let payload = ontology_context_payload(&focusa, &body, &scope, &scope_ref);
         assert_eq!(
             payload["source"].as_str(),
             Some("ontology_prompt_safe_context")
@@ -9825,7 +10084,8 @@ mod tests {
             degraded_state: false,
             previous_retrieval_outcomes: Vec::new(),
         };
-        let payload = retrieval_governor_payload(&focusa, &body);
+        let (scope, scope_ref) = exact_test_scope();
+        let payload = retrieval_governor_payload(&focusa, &body, &scope, &scope_ref);
         assert_eq!(
             payload["source"].as_str(),
             Some("ontology_retrieval_governor")

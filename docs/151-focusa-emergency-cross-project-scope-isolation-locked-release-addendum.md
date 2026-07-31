@@ -32,7 +32,7 @@ This is a cross-project authority-boundary breach. Advisory labeling does not re
 3. A context packet is atomic: HLT, MLG, STG, waypoints, gap, evidence, and trajectory id must originate from one scope-verified trajectory revision.
 4. Missing, stale, ambiguous, conflicting, or unverifiable scope fails closed.
 5. Suppressing trajectory injection is always safer than injecting a possibly foreign trajectory.
-6. No fallback may silently cross `ProjectRootKey`, `WorkstreamKey`, or `WorkingSubpathId`.
+6. No fallback may cross `ProjectRootKey`; a prior-continuity fallback within the same verified project must be explicit, separately labeled, advisory-only, and non-authoritative.
 
 ---
 
@@ -48,9 +48,9 @@ TrajectoryContextKey {
 }
 ```
 
-`session_id` is temporal metadata, not project authority. A verified worktree may map to its canonical project root only through ProjectIdentity evidence. A raw cwd string is not a canonical project root.
+`session_id` and `session_identity` are rolling temporal metadata, not stable project authority. They may corroborate provenance or detect stale sessions but MUST NOT independently authorize or reject a trajectory. Stable ownership is `ScopeRef(ProjectIdentity) + continuity_id + WorkingSubpathId`. A verified worktree may map to its canonical project root only through ProjectIdentity evidence. A raw cwd string is not a canonical project root.
 
-A packet may be injected only when all of the following are true:
+A canonical packet may be injected only when all of the following are true:
 
 ```text
 packet.project_root_key == active.project_root_key
@@ -62,6 +62,8 @@ packet.stale == false
 packet.scope_conflict_reason == none
 ```
 
+A prior-continuity fallback may remain available when `packet.project_root_key == active.project_root_key`, but it must carry its source continuity, remain separately labeled advisory context, and never be merged field-by-field with the current trajectory or treated as action authority.
+
 ---
 
 ## 4. Normative requirements
@@ -69,12 +71,12 @@ packet.scope_conflict_reason == none
 | ID | Requirement |
 |---|---|
 | ESI-001 | Every Trajectory read, cache, preload, render, and injection MUST require exact `ProjectRootKey` plus `WorkstreamKey`. |
-| ESI-002 | Working-subpath resolution MUST use verified ProjectIdentity mapping; raw cwd equality or path hashing MUST NOT grant authority. |
+| ESI-002 | Working-subpath resolution MUST use verified ProjectIdentity `ScopeRef`; raw cwd equality, path hashing, rolling `session_id`, or rolling `session_identity` MUST NOT grant stable authority. |
 | ESI-003 | HLT, MLG, STG, waypoints, active gap, evidence refs, and trajectory id MUST be loaded and validated as one atomic scoped revision. |
 | ESI-004 | The renderer MUST reject mixed-field packets assembled from different trajectories, revisions, projects, or workstreams. |
 | ESI-005 | Missing or empty project/workstream identity MUST suppress injection and return a typed scope failure. |
-| ESI-006 | `allow_prior_project_trajectory` MUST remain explicit, advisory-only, separately labeled, and MUST NOT enter automatic tool-result context. |
-| ESI-007 | Same-project prior-continuity recovery MUST require explicit policy plus verified root identity and MUST remain non-canonical until promoted. |
+| ESI-006 | `allow_prior_project_trajectory` MUST remain supported, but candidates MUST match the exact verified `ProjectRootKey`, carry source continuity, remain advisory-only, and be rendered separately from canonical context. |
+| ESI-007 | Same-project prior-continuity recovery MAY enter automatic tool-result context only as an explicitly labeled advisory fallback; it remains non-canonical and cannot grant action authority until promoted. |
 | ESI-008 | Cross-project fallback is prohibited for prompt injection, tool guidance, action authority, mutation planning, and evidence settlement. |
 | ESI-009 | All process caches MUST be keyed by `TrajectoryContextKey`; singleton “last trajectory” state is prohibited. |
 | ESI-010 | Project, cwd, worktree, continuity, fork, resume, compaction, reconnect, and model-switch transitions MUST invalidate incompatible cached context before the next tool result. |
@@ -88,6 +90,11 @@ packet.scope_conflict_reason == none
 | ESI-018 | Scope mismatch telemetry MUST be exact-scope, content-minimized, restart-safe, and incapable of becoming selection authority. |
 | ESI-019 | Security tests MUST cover maliciously crafted packets whose HLT matches the active project while MLG/STG/waypoints belong to another project. |
 | ESI-020 | Release proof MUST demonstrate zero foreign context across alternating projects and workstreams under cache, resume, compaction, reconnect, and concurrent execution pressure. |
+| ESI-021 | Work Loop writer leases, preflight, mutation, checkpoint, and context updates MUST derive the identical stable scope key; first-writer bootstrap MUST NOT depend circularly on an already-held lease. |
+| ESI-022 | Begin-session, preload, resume, compaction, model-switch, fork, reconnect, and recovery-sidecar injection MUST independently revalidate stable scope immediately before prompt visibility. |
+| ESI-023 | Rolling `session_id` changes MUST NOT repartition or authorize project/workstream stores; session identity remains metadata attached to the stable scope store. |
+| ESI-024 | Every trajectory-consuming tool family MUST reject or quarantine a packet that lacks a verified stable scope receipt bound to its trajectory id and source revision. |
+| ESI-025 | Scope remediation MUST preserve every valid feature, projection, and fallback; implementations MUST refactor ownership and verification rather than delete functionality as a safety shortcut. |
 
 ---
 
@@ -101,6 +108,24 @@ packet.scope_conflict_reason == none
 6. **Transition invalidator:** clears incompatible cache entries on project/workstream/subpath/session transitions.
 7. **Migration service:** per-record evidence scanner, planner, dry-run, apply, receipt, quarantine, and rollback.
 8. **Bounded diagnostics:** reports mismatch metadata without disclosing foreign project content.
+
+### 5.1 Affected architecture and tool families
+
+The change is cross-cutting and MUST cover:
+
+- ProjectIdentity, scope resolution, working-subpath mapping, and typed scope stores;
+- Trajectory define/view/assess/propose/checkpoint/resume/history and HLT fallback;
+- Workpoint checkpoint/resume/evidence composition and ECS trajectory attachments;
+- Work Loop writer status/control/context/checkpoint/select-next lease authority;
+- Context Cognition, awareness, preload, bootstrap, session transfer, and recovery packets;
+- begin-session, resume, compaction, model switch, fork, reconnect, and sidecar restore;
+- prediction, metacognition, ontology, evidence, browser diagnostics, and report surfaces that render trajectory-linked context;
+- Pi tool-result decoration and every tool family receiving common injected context;
+- CLI, API, Canvas, TUI, menubar, browser bridge, and silent-session projections.
+
+### 5.2 Lease-bug relationship
+
+The broad-cwd and rolling-session partition defects overlap with `focusa-mzqsa`, but trajectory isolation does not by itself close the Work Loop lease bug. Closure requires separate proof that first-writer bootstrap acquires exact scoped authority without circular lease dependency and that preflight and mutation resolve identical stable scope keys.
 
 ## 6. Required adversarial matrix
 
@@ -116,7 +141,7 @@ The gate MUST exercise at least these pairings:
 | broad cwd `/root` | cached project trajectory | reject until ProjectIdentity verifies exact root |
 | valid Focusa HLT + foreign MLG/STG | mixed packet | reject |
 | stale exact-scope packet | old revision | reject or render explicitly stale outside prompt authority |
-| prior same-project trajectory, explicit recovery | advisory candidate | never automatic injection |
+| prior same-project trajectory, explicit recovery | advisory candidate | render only as separately labeled non-authoritative fallback |
 | missing scope fields | legacy record | quarantine; never infer |
 
 Tests MUST alternate projects repeatedly and run concurrently to expose cache-key and last-value defects.
