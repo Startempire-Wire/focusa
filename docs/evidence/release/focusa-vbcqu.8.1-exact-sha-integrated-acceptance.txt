@@ -1,7 +1,7 @@
 focusa-vbcqu.8.1 — exact-SHA integrated acceptance matrix
 Status: PASS; no publication, tag, or deployment performed
 Observed: 2026-07-31
-Source SHA: cdc578bf74d100fc8183f2e172ffe20b58084548
+Tested revision before evidence-only commit: 0fee478b4faf73727f8af95a51c2d44df82ce0e6
 Branch: locked-release-all-open-spec137-138-140
 Build authority: exact candidate checkout; existing Bun route and dependency tree only; no runtime installation
 
