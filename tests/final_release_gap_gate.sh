@@ -84,6 +84,7 @@ npx --yes tsx tests/spec130a_release_stress_runtime_test.mts
 pass 'compaction and session-recovery gates'
 
 python3 tests/spec145_canonical_release_cycle_static_test.py
-pass 'canonical release kernel, OTA truth, topology, speed, and architecture gates'
+python3 tests/spec146_release_intelligence_workflow_gate.py
+pass 'canonical release kernel, OTA truth, topology, speed, intelligence, and architecture gates'
 
 printf 'FINAL RELEASE GAP GATE: PASS\n'
