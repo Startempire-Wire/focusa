@@ -1484,6 +1484,7 @@ pub(crate) async fn materialize_workpoint_events(
     let guard = state.write_serial_lock.lock().await;
     let mut current = { state.focusa.read().await.clone() };
     let mut entries = Vec::new();
+    let temporal = focusa_core::temporal_clock::capture_operator_temporal_action_envelope();
 
     for event in events {
         let result = reducer::reduce_with_meta(current, event, None, None, false).map_err(|error| {
@@ -1493,18 +1494,14 @@ pub(crate) async fn materialize_workpoint_events(
         current = result.new_state;
 
         for emitted in result.emitted_events {
-            entries.push(EventLogEntry {
-                id: Uuid::now_v7(),
-                timestamp: Utc::now(),
-                event: emitted,
-                correlation_id: Some(correlation_id.to_string()),
-                origin: SignalOrigin::Adapter,
-                machine_id: None,
-                instance_id: None,
-                session_id: current.session.as_ref().map(|session| session.session_id),
-                thread_id: None,
-                is_observation: false,
-            });
+            let mut entry = EventLogEntry::with_temporal(
+                emitted,
+                SignalOrigin::Adapter,
+                Some(correlation_id.to_string()),
+                temporal.clone(),
+            );
+            entry.session_id = current.session.as_ref().map(|session| session.session_id);
+            entries.push(entry);
         }
     }
 

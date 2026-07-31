@@ -76,19 +76,15 @@ async fn materialize_turn_event(
     })?;
 
     let new_state = result.new_state;
+    let temporal = focusa_core::temporal_clock::capture_operator_temporal_action_envelope();
     for emitted in result.emitted_events {
-        let entry = EventLogEntry {
-            id: Uuid::now_v7(),
-            timestamp: Utc::now(),
-            event: emitted,
-            correlation_id: Some(correlation_id.to_string()),
-            origin: SignalOrigin::Adapter,
-            machine_id: None,
-            instance_id: None,
-            session_id: new_state.session.as_ref().map(|session| session.session_id),
-            thread_id: None,
-            is_observation: false,
-        };
+        let mut entry = EventLogEntry::with_temporal(
+            emitted,
+            SignalOrigin::Adapter,
+            Some(correlation_id.to_string()),
+            temporal.clone(),
+        );
+        entry.session_id = new_state.session.as_ref().map(|session| session.session_id);
         if let Err(error) = state.append_events_checkpoint(vec![entry.clone()]).await {
             tracing::error!(error = %error, correlation_id, "failed to persist turn event");
             return Err((
@@ -629,18 +625,7 @@ mod tests {
         tokio::spawn(async move {
             while let Some(action) = rx.recv().await {
                 if let Action::EmitEvent { event } = action {
-                    let entry = EventLogEntry {
-                        id: Uuid::now_v7(),
-                        timestamp: Utc::now(),
-                        event,
-                        correlation_id: None,
-                        origin: SignalOrigin::Daemon,
-                        machine_id: None,
-                        instance_id: None,
-                        session_id: None,
-                        thread_id: None,
-                        is_observation: false,
-                    };
+                    let entry = EventLogEntry::captured(event, SignalOrigin::Daemon, None);
                     let _ = p.append_event(&entry);
                 }
             }

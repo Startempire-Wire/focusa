@@ -924,19 +924,15 @@ async fn dispatch_event(
         .map_err(trajectory_reducer_rejected)?;
 
     let new_state = result.new_state;
+    let temporal = focusa_core::temporal_clock::capture_operator_temporal_action_envelope();
     for emitted in result.emitted_events {
-        let entry = EventLogEntry {
-            id: Uuid::now_v7(),
-            timestamp: Utc::now(),
-            event: emitted,
-            correlation_id: Some("api:trajectory".to_string()),
-            origin: SignalOrigin::Adapter,
-            machine_id: None,
-            instance_id: None,
-            session_id: new_state.session.as_ref().map(|session| session.session_id),
-            thread_id: None,
-            is_observation: false,
-        };
+        let mut entry = EventLogEntry::with_temporal(
+            emitted,
+            SignalOrigin::Adapter,
+            Some("api:trajectory".to_string()),
+            temporal.clone(),
+        );
+        entry.session_id = new_state.session.as_ref().map(|session| session.session_id);
         if let Err(error) = state.append_events_checkpoint(vec![entry.clone()]).await {
             return Err(trajectory_persistence_failed(error));
         } else if let Ok(serialized) = serde_json::to_string(&entry) {
@@ -3290,6 +3286,7 @@ mod tests {
             stats: FrameStats::default(),
             constraints: vec![],
             focus_state: FocusState::default(),
+            temporal_context: None,
             completed_at: None,
             completion_reason: None::<CompletionReason>,
         });

@@ -5,6 +5,235 @@ use crate::temporal::TemporalScope;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+pub enum LookupLocationKind {
+    MemoryCache,
+    ProcessCache,
+    Sqlite,
+    Filesystem,
+    Network,
+    Provider,
+    Peer,
+    Other,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CacheDisposition {
+    Hit,
+    Miss,
+    Stale,
+    Revalidated,
+    Bypassed,
+    Unavailable,
+    NotApplicable,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LookupLatencyComponents {
+    pub queue_ns: Option<u128>,
+    pub network_ns: Option<u128>,
+    pub storage_ns: Option<u128>,
+    pub deserialize_ns: Option<u128>,
+    pub compute_ns: Option<u128>,
+}
+
+impl LookupLatencyComponents {
+    fn observed_sum(&self) -> u128 {
+        [
+            self.queue_ns,
+            self.network_ns,
+            self.storage_ns,
+            self.deserialize_ns,
+            self.compute_ns,
+        ]
+        .into_iter()
+        .flatten()
+        .sum()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LookupTimingSpan {
+    pub span_id: String,
+    pub action_id: String,
+    pub parent_span_id: Option<String>,
+    pub parallel_group_id: Option<String>,
+    pub location_kind: LookupLocationKind,
+    pub location_ref: String,
+    pub provider_ref: Option<String>,
+    pub storage_tier: Option<String>,
+    pub cache_disposition: CacheDisposition,
+    pub cache_age_ns: Option<u128>,
+    pub started_monotonic_ns: u128,
+    pub ended_monotonic_ns: u128,
+    pub elapsed_ns: u128,
+    pub expected_elapsed_ns: Option<u128>,
+    pub expected_actual_delta_ns: Option<i128>,
+    pub components: LookupLatencyComponents,
+    pub critical_path_contribution_ns: u128,
+    pub evidence_refs: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ActionTimingTrace {
+    pub trace_id: String,
+    pub action_id: String,
+    pub prediction_id: String,
+    pub started_temporal_envelope_ref: String,
+    pub completed_temporal_envelope_ref: String,
+    pub started_monotonic_ns: u128,
+    pub completed_monotonic_ns: u128,
+    pub total_elapsed_ns: u128,
+    pub spans: Vec<LookupTimingSpan>,
+    pub attributed_union_ns: u128,
+    pub unattributed_ns: u128,
+    pub reconciliation_delta_ns: i128,
+    pub evidence_refs: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ActionTimingTraceError {
+    EmptyIdentity,
+    InvalidActionInterval,
+    DuplicateSpanId,
+    ForeignActionSpan,
+    MissingParentSpan,
+    InvalidSpanInterval,
+    InvalidSpanElapsed,
+    InvalidExpectedActualDelta,
+    ComponentsExceedSpan,
+    SpanOutsideAction,
+    ParallelCriticalPathConflict,
+    CriticalPathExceedsAction,
+    InvalidAttributedUnion,
+    InvalidReconciliation,
+}
+
+fn interval_union_ns(spans: &[LookupTimingSpan]) -> u128 {
+    let mut intervals = spans
+        .iter()
+        .map(|span| (span.started_monotonic_ns, span.ended_monotonic_ns))
+        .collect::<Vec<_>>();
+    intervals.sort_unstable_by_key(|interval| interval.0);
+    let mut total = 0_u128;
+    let mut current: Option<(u128, u128)> = None;
+    for (start, end) in intervals {
+        match current {
+            None => current = Some((start, end)),
+            Some((current_start, current_end)) if start <= current_end => {
+                current = Some((current_start, current_end.max(end)));
+            }
+            Some((current_start, current_end)) => {
+                total = total.saturating_add(current_end.saturating_sub(current_start));
+                current = Some((start, end));
+            }
+        }
+    }
+    if let Some((start, end)) = current {
+        total = total.saturating_add(end.saturating_sub(start));
+    }
+    total
+}
+
+pub fn validate_action_timing_trace(
+    trace: &ActionTimingTrace,
+) -> Result<(), ActionTimingTraceError> {
+    if trace.trace_id.trim().is_empty()
+        || trace.action_id.trim().is_empty()
+        || trace.prediction_id.trim().is_empty()
+        || trace.started_temporal_envelope_ref.trim().is_empty()
+        || trace.completed_temporal_envelope_ref.trim().is_empty()
+    {
+        return Err(ActionTimingTraceError::EmptyIdentity);
+    }
+    if trace.completed_monotonic_ns < trace.started_monotonic_ns
+        || trace.total_elapsed_ns
+            != trace
+                .completed_monotonic_ns
+                .saturating_sub(trace.started_monotonic_ns)
+    {
+        return Err(ActionTimingTraceError::InvalidActionInterval);
+    }
+    let ids = trace
+        .spans
+        .iter()
+        .map(|span| span.span_id.as_str())
+        .collect::<std::collections::HashSet<_>>();
+    if ids.len() != trace.spans.len() {
+        return Err(ActionTimingTraceError::DuplicateSpanId);
+    }
+    let mut critical_parallel_groups = std::collections::HashSet::new();
+    let mut critical_sum = 0_u128;
+    for span in &trace.spans {
+        if span.action_id != trace.action_id {
+            return Err(ActionTimingTraceError::ForeignActionSpan);
+        }
+        if span
+            .parent_span_id
+            .as_deref()
+            .is_some_and(|parent| !ids.contains(parent))
+        {
+            return Err(ActionTimingTraceError::MissingParentSpan);
+        }
+        if span.ended_monotonic_ns < span.started_monotonic_ns {
+            return Err(ActionTimingTraceError::InvalidSpanInterval);
+        }
+        if span.elapsed_ns
+            != span
+                .ended_monotonic_ns
+                .saturating_sub(span.started_monotonic_ns)
+        {
+            return Err(ActionTimingTraceError::InvalidSpanElapsed);
+        }
+        if span
+            .expected_elapsed_ns
+            .map(|expected| span.elapsed_ns as i128 - expected as i128)
+            != span.expected_actual_delta_ns
+        {
+            return Err(ActionTimingTraceError::InvalidExpectedActualDelta);
+        }
+        if span.components.observed_sum() > span.elapsed_ns {
+            return Err(ActionTimingTraceError::ComponentsExceedSpan);
+        }
+        if span.started_monotonic_ns < trace.started_monotonic_ns
+            || span.ended_monotonic_ns > trace.completed_monotonic_ns
+        {
+            return Err(ActionTimingTraceError::SpanOutsideAction);
+        }
+        if span.critical_path_contribution_ns > span.elapsed_ns {
+            return Err(ActionTimingTraceError::CriticalPathExceedsAction);
+        }
+        if span.critical_path_contribution_ns > 0 {
+            critical_sum = critical_sum.saturating_add(span.critical_path_contribution_ns);
+            if let Some(group) = span.parallel_group_id.as_deref()
+                && !critical_parallel_groups.insert(group)
+            {
+                return Err(ActionTimingTraceError::ParallelCriticalPathConflict);
+            }
+        }
+    }
+    if critical_sum > trace.total_elapsed_ns {
+        return Err(ActionTimingTraceError::CriticalPathExceedsAction);
+    }
+    let attributed_union_ns = interval_union_ns(&trace.spans);
+    if trace.attributed_union_ns != attributed_union_ns
+        || attributed_union_ns > trace.total_elapsed_ns
+    {
+        return Err(ActionTimingTraceError::InvalidAttributedUnion);
+    }
+    let reconciled = trace
+        .attributed_union_ns
+        .saturating_add(trace.unattributed_ns);
+    if trace.reconciliation_delta_ns != trace.total_elapsed_ns as i128 - reconciled as i128
+        || trace.reconciliation_delta_ns != 0
+    {
+        return Err(ActionTimingTraceError::InvalidReconciliation);
+    }
+    Ok(())
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ProgressSignalKind {
     TargetStateAdvanced,
     AcceptanceEvidenceAdded,

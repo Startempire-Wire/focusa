@@ -248,18 +248,13 @@ async fn update_delta(
             vec!["focusa_tool_doctor", "focusa_workpoint_resume"],
         )
     })?;
-    let entry = EventLogEntry {
-        id: Uuid::now_v7(),
-        timestamp: Utc::now(),
+    let mut entry = EventLogEntry::captured(
         event,
-        correlation_id: Some("api:ascc_update_delta".to_string()),
-        origin: SignalOrigin::Cli,
-        machine_id,
-        instance_id: None,
-        session_id: new_state.session.as_ref().map(|session| session.session_id),
-        thread_id: None,
-        is_observation: false,
-    };
+        SignalOrigin::Cli,
+        Some("api:ascc_update_delta".to_string()),
+    );
+    entry.machine_id = machine_id;
+    entry.session_id = new_state.session.as_ref().map(|session| session.session_id);
     let _ = state
         .persist_events_checkpoint(vec![entry.clone()], new_state.clone())
         .await;

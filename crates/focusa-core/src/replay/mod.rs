@@ -425,6 +425,7 @@ mod tests {
         let entry = EventLogEntry {
             id: Uuid::now_v7(),
             timestamp: Utc::now(),
+            temporal: Default::default(),
             event,
             correlation_id: None,
             origin: SignalOrigin::Daemon,

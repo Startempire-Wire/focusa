@@ -3,6 +3,93 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ActionOutcomeObservation {
+    pub observation_id: String,
+    pub action_id: String,
+    pub commitment_id: String,
+    pub predicted_outcome: String,
+    pub actual_outcome: String,
+    pub outcome_match_score: f64,
+    pub completed_temporal: crate::temporal_clock::TemporalActionEnvelope,
+    pub timing_trace: crate::temporal_progress::ActionTimingTrace,
+    pub expected_duration_ns: u128,
+    pub actual_duration_ns: u128,
+    pub duration_delta_ns: i128,
+    pub outcome_claim: crate::prediction_authority::OutcomeClaim,
+    pub evidence_refs: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ActionOutcomeObservationError {
+    MissingIdentity,
+    CrossActionSettlement,
+    CommitmentMismatch,
+    OutcomePredictionMismatch,
+    CompletionBeforeAction,
+    UnavailableCompletionTime,
+    InvalidTimingTrace,
+    DurationMismatch,
+    InvalidDurationDelta,
+    InvalidOutcomeScore,
+    ClaimTimestampMismatch,
+    MissingEvidence,
+}
+
+pub fn validate_action_outcome_observation(
+    prediction: &crate::prediction_authority::ActionPredictionCommitment,
+    observation: &ActionOutcomeObservation,
+) -> Result<(), ActionOutcomeObservationError> {
+    if observation.observation_id.trim().is_empty() || observation.action_id.trim().is_empty() {
+        return Err(ActionOutcomeObservationError::MissingIdentity);
+    }
+    if observation.action_id != prediction.action_id
+        || observation.timing_trace.action_id != prediction.action_id
+    {
+        return Err(ActionOutcomeObservationError::CrossActionSettlement);
+    }
+    if observation.commitment_id != prediction.commitment.commitment_id
+        || observation.outcome_claim.commitment_id != prediction.commitment.commitment_id
+        || observation.timing_trace.prediction_id != prediction.commitment.commitment_id
+    {
+        return Err(ActionOutcomeObservationError::CommitmentMismatch);
+    }
+    if observation.predicted_outcome != prediction.commitment.predicted_outcome {
+        return Err(ActionOutcomeObservationError::OutcomePredictionMismatch);
+    }
+    if observation.completed_temporal.confidence == crate::temporal::TemporalConfidence::Unavailable
+        || observation.completed_temporal.capture_failure.is_some()
+    {
+        return Err(ActionOutcomeObservationError::UnavailableCompletionTime);
+    }
+    if observation.completed_temporal.monotonic_ns < prediction.action_start_temporal.monotonic_ns
+        || observation.completed_temporal.captured_at_utc
+            < prediction.action_start_temporal.captured_at_utc
+    {
+        return Err(ActionOutcomeObservationError::CompletionBeforeAction);
+    }
+    crate::temporal_progress::validate_action_timing_trace(&observation.timing_trace)
+        .map_err(|_| ActionOutcomeObservationError::InvalidTimingTrace)?;
+    if observation.actual_duration_ns != observation.timing_trace.total_elapsed_ns {
+        return Err(ActionOutcomeObservationError::DurationMismatch);
+    }
+    if observation.duration_delta_ns
+        != observation.actual_duration_ns as i128 - observation.expected_duration_ns as i128
+    {
+        return Err(ActionOutcomeObservationError::InvalidDurationDelta);
+    }
+    if !(0.0..=1.0).contains(&observation.outcome_match_score) {
+        return Err(ActionOutcomeObservationError::InvalidOutcomeScore);
+    }
+    if observation.outcome_claim.claimed_at != observation.completed_temporal.captured_at_utc {
+        return Err(ActionOutcomeObservationError::ClaimTimestampMismatch);
+    }
+    if observation.evidence_refs.is_empty() || observation.outcome_claim.evidence_refs.is_empty() {
+        return Err(ActionOutcomeObservationError::MissingEvidence);
+    }
+    Ok(())
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum OutcomeState {

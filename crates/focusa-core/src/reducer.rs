@@ -2209,6 +2209,7 @@ pub fn reduce_with_meta(
                 stats: FrameStats::default(),
                 constraints,
                 focus_state: FocusState::default(),
+                temporal_context: None,
                 completed_at: None,
                 completion_reason: None,
             });
@@ -2401,6 +2402,39 @@ pub fn reduce_with_meta(
 
             apply_delta(&mut frame.focus_state, &delta);
             frame.updated_at = Utc::now();
+        }
+        FocusaEvent::TemporalFrameContextProjected { frame_id, context } => {
+            let frame = state
+                .focus_stack
+                .frames
+                .iter_mut()
+                .find(|candidate| candidate.id == frame_id)
+                .ok_or_else(|| ReducerError::FrameNotFound(frame_id.to_string()))?;
+            if frame.status == FrameStatus::Completed {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "TemporalFrameContextProjected for completed frame {}",
+                    frame_id
+                )));
+            }
+            let frame_root = frame.project_root.as_deref().unwrap_or_default();
+            let frame_continuity = frame.continuity_id.as_deref().unwrap_or_default();
+            if frame_root != context.projection.scope.project_root
+                || frame_continuity != context.projection.scope.continuity_id
+            {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "temporal context scope mismatch for frame {}",
+                    frame_id
+                )));
+            }
+            if context.projected_at < context.projection.as_of {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "temporal context projection time precedes source projection for frame {}",
+                    frame_id
+                )));
+            }
+            frame.updated_at = context.projected_at;
+            frame.temporal_context = Some(context);
+            state.focus_stack.version += 1;
         }
 
         // ─── Intuition → Gate ────────────────────────────────────────────
@@ -4606,6 +4640,44 @@ mod tests {
         (state, frame_id)
     }
 
+    fn temporal_context(
+        project_root: &str,
+        continuity_id: &str,
+        projected_at: chrono::DateTime<Utc>,
+    ) -> TemporalFrameContext {
+        TemporalFrameContext {
+            projection: crate::temporal::TemporalProjection {
+                scope: crate::temporal::TemporalScope {
+                    project_root: project_root.to_string(),
+                    continuity_id: continuity_id.to_string(),
+                    host_id: None,
+                    operator_id: None,
+                    workpoint_id: None,
+                    task_id: None,
+                    item_id: None,
+                },
+                as_of: projected_at,
+                deadline_status: crate::temporal::DeadlineStatus::None,
+                approaching_deadlines: vec![],
+                deadline_conflict_state: "none".to_string(),
+                human_calendar_context: None,
+                temporal_priority_frame: None,
+                temporal_execution_guard: None,
+                authorized_forecast_range: None,
+                latest_forecast_evaluation: None,
+                active_commitment: None,
+                active_forecast: None,
+                observed_duration_count: 0,
+                critical_path_ms: None,
+                slack_ms: None,
+                urgency: None,
+                warnings: vec![],
+            },
+            source_event_count: 0,
+            projected_at,
+        }
+    }
+
     fn workpoint_record(work_item_id: &str) -> WorkpointRecord {
         WorkpointRecord {
             workpoint_id: Uuid::now_v7(),
@@ -4983,6 +5055,76 @@ mod tests {
         let result = reduce(state, event);
 
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn temporal_context_projection_is_scoped_and_replayable() {
+        let (state, frame_id) = push_frame(fresh_state(), "Temporal frame");
+        let projected_at = Utc::now();
+        let event = FocusaEvent::TemporalFrameContextProjected {
+            frame_id,
+            context: temporal_context("/repo/test", "cont-test", projected_at),
+        };
+        let first = reduce(state.clone(), event.clone()).unwrap().new_state;
+        let replay = reduce(state, event).unwrap().new_state;
+        assert_eq!(
+            serde_json::to_value(&first.focus_stack).unwrap(),
+            serde_json::to_value(&replay.focus_stack).unwrap()
+        );
+        let frame = first
+            .focus_stack
+            .frames
+            .iter()
+            .find(|frame| frame.id == frame_id)
+            .unwrap();
+        assert_eq!(
+            frame
+                .temporal_context
+                .as_ref()
+                .unwrap()
+                .projection
+                .scope
+                .continuity_id,
+            "cont-test"
+        );
+    }
+
+    #[test]
+    fn temporal_context_projection_rejects_foreign_scope() {
+        let (state, frame_id) = push_frame(fresh_state(), "Temporal frame");
+        let event = FocusaEvent::TemporalFrameContextProjected {
+            frame_id,
+            context: temporal_context("/repo/foreign", "cont-foreign", Utc::now()),
+        };
+        assert!(matches!(
+            reduce(state, event),
+            Err(ReducerError::InvalidEvent(message))
+                if message.contains("temporal context scope mismatch")
+        ));
+    }
+
+    #[test]
+    fn temporal_context_projection_rejects_completed_frame() {
+        let (state, _) = push_frame(fresh_state(), "Temporal root");
+        let (state, frame_id) = push_frame(state, "Temporal child");
+        let state = reduce(
+            state,
+            FocusaEvent::FocusFrameCompleted {
+                frame_id,
+                completion_reason: CompletionReason::GoalAchieved,
+            },
+        )
+        .unwrap()
+        .new_state;
+        let event = FocusaEvent::TemporalFrameContextProjected {
+            frame_id,
+            context: temporal_context("/repo/test", "cont-test", Utc::now()),
+        };
+        assert!(matches!(
+            reduce(state, event),
+            Err(ReducerError::InvalidEvent(message))
+                if message.contains("completed frame")
+        ));
     }
 
     #[test]
@@ -5427,6 +5569,7 @@ mod tests {
             stats: FrameStats::default(),
             constraints: vec![],
             focus_state: FocusState::default(),
+            temporal_context: None,
             completed_at: None,
             completion_reason: None,
         });
