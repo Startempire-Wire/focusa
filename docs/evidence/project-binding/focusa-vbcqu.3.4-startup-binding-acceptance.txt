@@ -1,0 +1,43 @@
+focusa-vbcqu.3.4 — Pi startup project binding acceptance
+Observed: 2026-07-31
+Source authority: locked-release-all-open-spec137-138-140; commit containing this evidence
+
+Implemented:
+- ProjectBindingDecisionV1 states DISCOVER/RECONCILE/VERIFY/BOUND/RECOVERING/QUARANTINED.
+- Session-scoped decision receipts, evidence revisions, fingerprints, capability tiers, supersession, deduplicated recovery packets, and telemetry.
+- Non-modal startup verification; no ctx.ui.confirm on degraded verification.
+- RECOVERING/QUARANTINED durable mutation fence with identity/verify/resume recovery allowlist.
+- Mutation-bound candidate selection emitted once per evidence revision.
+- Fresh matching offline binding reuse; stale/different repo fails closed.
+- Same-project worktree reconciliation by repo/project fingerprint.
+- Bootstrap/Genesis startup status preserves canonical next action; no automatic commit without explicit confirmation.
+- Rust API/core binding decision parity and verified binding receipt.
+
+OVH canonical build proof (focusa-ovh-build; no KH Cargo/npm target):
+- tests/spec143_project_binding_decision_release_gate_test.py: PASS.
+- apps/pi-extension npm run test:project-binding: PASS.
+- Full apps/pi-extension test:* matrix: PASS.
+- apps/pi-extension npm run check: PASS.
+- apps/pi-extension npm run lint: PASS.
+- cargo test -p focusa-core working_subpath --lib --quiet: 8 passed, 0 failed.
+- cargo check -p focusa-api --quiet: PASS.
+- tests/spec143_project_bootstrap_release_gate_test.py: PASS.
+- tests/spec143_project_genesis_release_gate_test.py: PASS.
+- tests/spec96_project_identity_quorum_static_test.sh: PASS.
+- tests/spec102_project_identity_mismatch_semantics_test.sh: static checks PASS with daemon intentionally unavailable.
+- OVH disk after proof: 65 GiB free (67% used).
+
+macOS E2E proof:
+- Host: MacBook-Pro.lan; user vsmith; direct home resolves under /Volumes/Macintosh HD/Users/vsmith.
+- Node v22.23.1; dependency-free temporary harness.
+- Direct macOS user home quarantined and never promoted: PASS.
+- Verified marked macOS project binds without verification modal: PASS.
+- Same-project worktree fingerprint permits fresh offline reuse: PASS.
+- Stale different-repo evidence cannot reuse authority: PASS.
+- 4 passed, 0 failed.
+- Temporary Mac harness: 92 KiB; removed after test (cleanup PASS).
+
+Disk-safety proof:
+- KH local compilation/package installation was not used.
+- Restored locked worktree size: 65 MiB.
+- KH disk during work: approximately 40 GiB free; OVH performed all build-heavy gates.

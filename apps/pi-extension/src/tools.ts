@@ -53,6 +53,8 @@ import {
   getLastProjectVerify,
   getLatestReportSummary,
   setLastProjectVerify,
+  currentProjectBindingDecision,
+  setCurrentProjectBindingDecision,
   getToolUsageBatch,
   getCurrentTaskTurnStart,
   currentAttachmentKey,
@@ -70,6 +72,7 @@ import {
   type WorkstreamKey,
 } from "./scoped-state.js";
 import { buildNorthStarSnapshot, renderNorthStarCard } from "./north-star.js";
+import { projectBindingAllowsDurableWrites, reconcileProjectBindingDecision } from "./project-binding.js";
 
 const SCRATCHPAD_DIR = "/tmp/pi-scratch";
 
@@ -2997,7 +3000,55 @@ export function registerTools(pi: ExtensionAPI) {
     path: string,
     opts: RequestInit = {}
   ): Promise<{ ok: boolean; status: number; body: any | null }> {
-    const timeout = timeoutBudgetForRoute(path, String(opts.method || "GET"));
+    const method = String(opts.method || "GET").toUpperCase();
+    const timeout = timeoutBudgetForRoute(path, method);
+    const bindingDecision = currentProjectBindingDecision();
+    const bindingRecoveryRoute =
+      path.startsWith("/project/identity") ||
+      path.startsWith("/project/verify") ||
+      path.startsWith("/workpoint/resume");
+    if (
+      !["GET", "HEAD", "OPTIONS"].includes(method) &&
+      !bindingRecoveryRoute &&
+      !projectBindingAllowsDurableWrites(bindingDecision)
+    ) {
+      const blockedReason = `project_binding_${String(bindingDecision?.state || "unknown").toLowerCase()}`;
+      const selectionKey = `project_binding_mutation_selection:${bindingDecision?.evidence_revision || "unknown"}`;
+      const firstMutationSelection =
+        bindingDecision?.state === "QUARANTINED" && !getAttachmentRuntime().vitalInfoPrompted[selectionKey];
+      if (firstMutationSelection) {
+        getAttachmentRuntime().vitalInfoPrompted[selectionKey] = Date.now();
+        getAttachmentRuntime().projectBindingTelemetry.operator_interruption_count += 1;
+      }
+      getAttachmentRuntime().projectBindingTelemetry.blocked_write_reasons[blockedReason] =
+        (getAttachmentRuntime().projectBindingTelemetry.blocked_write_reasons[blockedReason] || 0) + 1;
+      persistState();
+      return {
+        ok: false,
+        status: 409,
+        body: {
+          status: "blocked",
+          canonical: true,
+          degraded: true,
+          failure_class: "scope_recovery_required",
+          error: "durable project mutation is fenced until ProjectBindingDecisionV1 state is BOUND",
+          binding_state: bindingDecision?.state || "unknown",
+          capability_tier: bindingDecision?.permitted_capability_tier || "recovery_read_plan",
+          operator_selection_required: firstMutationSelection,
+          duplicate_selection_suppressed: bindingDecision?.state === "QUARANTINED" && !firstMutationSelection,
+          candidates: firstMutationSelection
+            ? (bindingDecision?.candidates || []).slice(0, 4).map((candidate) => ({
+                project_root: candidate.project_root,
+                score: candidate.score,
+                sources: candidate.sources,
+                markers: candidate.markers,
+              }))
+            : [],
+          next_tools: ["focusa_project_identity", "focusa_project_verify", "focusa_workpoint_resume"],
+          retry: { safe: true, posture: "verify_scope_first" },
+        },
+      };
+    }
     const base = getAttachmentRuntime().cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
     const token = getAttachmentRuntime().cfg?.focusaToken || "";
     const attachmentKey = currentAttachmentKey();
@@ -5839,19 +5890,40 @@ export function registerTools(pi: ExtensionAPI) {
       }
       const identity = body.project_identity || {};
       const verified = body.verification?.verified === true;
-      if (identity && Object.keys(identity).length) setLastProjectVerify(body);
-      const verifiedRoot = normalizeProjectRoot(identity.project_root);
-      if (
-        verified &&
-        verifiedRoot &&
-        body.binding_decision?.ambiguous !== true &&
-        body.status !== "ambiguous_project_binding" &&
-        isProjectRootAuthoritySafe(verifiedRoot)
-      ) {
+      const verifiedRoot = normalizeProjectRoot(identity.project_root || p.project_root || p.cwd);
+      const bindingCandidates = Array.isArray(body.binding_candidates) ? body.binding_candidates : [];
+      const selectedCandidate = bindingCandidates.find(
+        (candidate: any) => normalizeProjectRoot(candidate?.project_root) === verifiedRoot
+      );
+      const previousBinding = currentProjectBindingDecision();
+      const bindingDecisionV1 = reconcileProjectBindingDecision({
+        selectedProjectRoot: verifiedRoot || undefined,
+        selectedWorktreeRoot: selectedCandidate?.active_worktree_root,
+        canonicalParentRoot: selectedCandidate?.canonical_parent_root,
+        continuityId: verifiedRoot ? ensureContinuityId(verifiedRoot) : getContinuityId(),
+        candidates: bindingCandidates,
+        ambiguous: body.binding_decision?.ambiguous === true || body.status === "ambiguous_project_binding",
+        selectedRootSafe: !!verifiedRoot && isProjectRootAuthoritySafe(verifiedRoot),
+        verificationCanonical: verified,
+        verificationStatus: String(identity.status || body.status || "unknown"),
+        daemonAvailable: result.ok,
+        evidenceFreshness: verified ? "current" : "unknown",
+        repoFingerprint: selectedCandidate?.repo_fingerprint,
+        projectFingerprint: selectedCandidate?.project_fingerprint,
+        rejectionReasons: verified
+          ? []
+          : [String(body.verification?.required_recovery || "project_verify_not_canonical")],
+        recoveryPacketRef: `project-scope-recovery:${getSessionFrameKey() || "no-session"}`,
+        previousDecision: previousBinding,
+      });
+      setCurrentProjectBindingDecision(bindingDecisionV1);
+      if (identity && Object.keys(identity).length)
+        setLastProjectVerify({ ...body, binding_decision_v1: bindingDecisionV1 });
+      if (bindingDecisionV1.state === "BOUND" && verifiedRoot) {
         confirmPiProjectRoot(verifiedRoot, "focusa_project_verify_verified");
         ensureContinuityId(verifiedRoot);
-        persistState();
       }
+      persistState();
       const text = result.ok
         ? `project verify → verified=${verified} status=${String(identity.status || body.status || "unknown")} confidence=${String(identity.confidence || "unknown")} root=${String(identity.project_root || "unknown")}`
         : `project verify blocked → ${explainWorkLoopResult(result, "project verify unavailable")}`;
@@ -5880,6 +5952,7 @@ export function registerTools(pi: ExtensionAPI) {
           degraded: body.degraded === true,
           project_identity: identity,
           verification: body.verification,
+          binding_decision_v1: bindingDecisionV1,
           tool_result_v1: toolResult,
           failure_class: toolResult.failure_class || body.failure_class || null,
           next_tools: toolResult.next_tools ||

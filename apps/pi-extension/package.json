@@ -29,6 +29,7 @@
     "test:work-rail-width": "node tests/work-rail-widget-width.test.mjs",
     "test:settings-attachment": "node tests/settings-attachment-safety.test.mjs",
     "test:interaction-mode": "node tests/interaction-mode.test.mjs",
+    "test:project-binding": "node tests/project-binding-decision.test.mjs && node tests/session-project-classification.test.mjs && node tests/north-star-gate.test.mjs && node tests/session-health-lifecycle-race.test.mjs && node tests/unbound-project-binding-guidance.test.mjs",
     "test:unbound-project": "node tests/unbound-project-binding-guidance.test.mjs",
     "test:pi-security": "node tests/pi-sdk-security.test.mjs",
     "test:menu-audit": "node tests/menu-audit-gate.test.mjs",

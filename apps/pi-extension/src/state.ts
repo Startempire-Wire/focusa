@@ -8,6 +8,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { DEFAULT_DAEMON_RESTART_COMMAND, type FocusaConfig } from "./config.js";
 import type { NativeSessionPressureV1 } from "./session-pressure.js";
 import { buildProjectWorkstreamKey, type AttachmentKey } from "./scoped-state.js";
+import { projectBindingAllowsDurableWrites, type ProjectBindingDecisionV1 } from "./project-binding.js";
 import {
   COMPACTION_PERSISTENCE_ANCHOR_REF_SCHEMA,
   COMPACTION_PERSISTENCE_ANCHOR_SCHEMA,
@@ -319,6 +320,15 @@ function createAttachmentRuntime() {
         provenance: string;
       }
     >,
+    projectBindingDecisions: {} as Record<string, ProjectBindingDecisionV1>,
+    projectBindingTelemetry: {
+      startup_count: 0,
+      automatic_resolution_count: 0,
+      operator_interruption_count: 0,
+      false_bind_count: 0,
+      recovery_duration_ms: 0,
+      blocked_write_reasons: {} as Record<string, number>,
+    },
     // First-turn guard: only inject behavioral directive once per session, not on every before_agent_start
     seenFirstBeforeAgentStart: false,
     // ECS handle registry: kind -> id -> { content, stored_at }
@@ -1708,10 +1718,12 @@ export function buildCurrentAskScopeVerdict(
     reason = "no competing project signal in current ask";
   }
   const actionAllowed = true;
+  const sessionBindingDecision = currentProjectBindingDecision();
   const durableProjectWriteAllowed =
     status === "aligned" &&
     isProjectRootAuthoritySafe(savedRoot) &&
-    (!candidateRoot || candidateRoot === savedRoot);
+    (!candidateRoot || candidateRoot === savedRoot) &&
+    projectBindingAllowsDurableWrites(sessionBindingDecision);
   const verdict = {
     status,
     saved_scope: { project_root: savedRoot || "unknown", continuity_id: continuityId || "unknown" },
@@ -3959,6 +3971,10 @@ function buildPersistedRecoveryState(): Record<string, any> {
     piSessionProjectRegistry: Object.fromEntries(
       Object.entries(getAttachmentRuntime().piSessionProjectRegistry).slice(-64)
     ),
+    projectBindingDecisions: Object.fromEntries(
+      Object.entries(getAttachmentRuntime().projectBindingDecisions).slice(-16)
+    ),
+    projectBindingTelemetry: getAttachmentRuntime().projectBindingTelemetry,
     lastCompactResumeKey: getAttachmentRuntime().lastCompactResumeKey,
     lastCompactResumeAt: getAttachmentRuntime().lastCompactResumeAt,
     compactResumeDeliveryKey: getAttachmentRuntime().compactResumeDeliveryKey,
@@ -4582,6 +4598,23 @@ export function getLastProjectVerify(): Record<string, any> | null {
 export function setLastProjectVerify(result: Record<string, any> | null): void {
   const store = getCurrentScopeStore();
   if (store) store.lastProjectVerify = result;
+}
+
+/** Session-scoped startup binding receipt; project authority remains root+continuity scoped. */
+export function currentProjectBindingDecision(
+  sessionId = getAttachmentRuntime().sessionFrameKey
+): ProjectBindingDecisionV1 | null {
+  return sessionId ? getAttachmentRuntime().projectBindingDecisions[sessionId] || null : null;
+}
+
+export function setCurrentProjectBindingDecision(
+  decision: ProjectBindingDecisionV1,
+  sessionId = getAttachmentRuntime().sessionFrameKey
+): void {
+  if (!sessionId) return;
+  getAttachmentRuntime().projectBindingDecisions[sessionId] = decision;
+  const bounded = Object.entries(getAttachmentRuntime().projectBindingDecisions).slice(-16);
+  getAttachmentRuntime().projectBindingDecisions = Object.fromEntries(bounded);
 }
 
 /** PI-06: Get latestReportSummary from scope store only. */

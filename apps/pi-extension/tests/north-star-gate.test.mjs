@@ -29,7 +29,7 @@ test("north-star gate is an inspectable read-only Pi tool", () => {
 
 test("session startup fails closed before durable project initialization", () => {
   const block = sessionStartBlock();
-  const verify = block.indexOf("const projectVerified = await promptForProjectVerifyIfNeeded");
+  const verify = block.indexOf("const projectBindingDecisionV1 = await promptForProjectVerifyIfNeeded");
   const blocked = block.indexOf("if (!projectVerified)");
   const durableSession = block.indexOf("await ensureFocusaSession");
   assert.ok(verify >= 0 && blocked > verify && durableSession > blocked);
@@ -46,14 +46,15 @@ test("north-star startup order is project then trajectory then Workpoint", () =>
   assert.match(block, /updateNorthStarCard\(ctx, "session_start_ready_check"\)/);
 });
 
-test("scope-limited confirmation never promotes mismatched verification", () => {
+test("degraded project verification is non-modal and never promotes durable authority", () => {
   const start = session.indexOf("async function promptForProjectVerifyIfNeeded");
   const end = session.indexOf("async function promptForWorkpointIfNeeded", start);
   const block = session.slice(start, end);
-  assert.match(block, /Operator confirmation permits bounded read-only continuation/);
-  assert.match(block, /const promptEnabled = vitalPromptSurfaceEnabled/);
-  assert.doesNotMatch(block, /mode === "off"[\s\S]{0,80}return true/);
-  assert.match(block, /return false;/);
+  assert.match(block, /ProjectBindingDecisionV1/);
+  assert.match(block, /shouldEmitProjectScopeRecoveryPacket/);
+  assert.match(block, /Conversation and diagnosis continue/);
+  assert.doesNotMatch(block, /ctx\.ui\.confirm/);
+  assert.match(block, /decision\.state === "BOUND"/);
 });
 
 test("Workpoint resume binds current ask and rejects stale action authority", () => {

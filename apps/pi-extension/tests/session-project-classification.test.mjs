@@ -1,7 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { classifyPiSessionProject } from "../src/session-classification.ts";
+import ts from "typescript";
+
+const source = readFileSync(new URL("../src/session-classification.ts", import.meta.url), "utf8");
+const compiled = ts.transpileModule(source, {
+  compilerOptions: {
+    module: ts.ModuleKind.ESNext,
+    target: ts.ScriptTarget.ES2022,
+  },
+}).outputText;
+const classification = await import(
+  `data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`
+);
+const { classifyPiSessionProject } = classification;
 
 const base = {
   currentProjectRoot: "/projects/focusa",
@@ -58,18 +70,29 @@ test("project mismatch fails closed and fork metadata preserves continuation", (
 });
 
 test("Pi 0.81 lifecycle consumes classification instead of obsolete post-switch events", () => {
-  const source = readFileSync(new URL("../src/session.ts", import.meta.url), "utf8");
-  assert.match(source, /ctx\.sessionManager\.getSessionId\(\)/);
-  assert.match(source, /pi_session_project_classified/);
-  assert.match(source, /session_project_mismatch_blocked/);
-  assert.match(source, /binding_decision/);
-  assert.match(source, /persisted_project_root/);
-  assert.match(source, /sameCanonicalProject/);
+  const sessionSource = readFileSync(new URL("../src/session.ts", import.meta.url), "utf8");
+  assert.match(sessionSource, /ctx\.sessionManager\.getSessionId\(\)/);
+  assert.match(sessionSource, /pi_session_project_classified/);
+  assert.match(sessionSource, /session_project_mismatch_blocked/);
+  assert.match(sessionSource, /binding_decision/);
+  assert.match(sessionSource, /persisted_project_root/);
+  assert.match(sessionSource, /sameCanonicalProject/);
+  assert.match(sessionSource, /sameRepoFingerprint/);
+  assert.match(sessionSource, /sameProjectFingerprint/);
+  assert.match(sessionSource, /persisted_binding_conflicts_with_current_repo/);
+  const mismatchStart = sessionSource.indexOf('sessionProjectClassification === "session_project_mismatch"');
+  const mismatchEnd = sessionSource.indexOf(
+    "const projectRoot = await promptForConfirmedProjectRoot",
+    mismatchStart
+  );
+  const mismatchBlock = sessionSource.slice(mismatchStart, mismatchEnd);
+  assert.match(mismatchBlock, /Candidate selection is deferred until a project-aware mutation is requested/);
+  assert.doesNotMatch(mismatchBlock, /queueProjectIdentityBootstrapTurn/);
   assert.ok(
-    source.indexOf('sessionProjectClassification === "new_session_new_project"') <
-      source.indexOf('queueUnboundProjectNag(pi, ctx, "new_session_new_project")'),
+    sessionSource.indexOf('sessionProjectClassification === "new_session_new_project"') <
+      sessionSource.indexOf('queueUnboundProjectNag(pi, ctx, "new_session_new_project")'),
     "onboarding advisory must route only after session/project classification"
   );
-  assert.doesNotMatch(source, /pi\.on\("session_switch"/);
-  assert.doesNotMatch(source, /pi\.on\("session_fork"/);
+  assert.doesNotMatch(sessionSource, /pi\.on\("session_switch"/);
+  assert.doesNotMatch(sessionSource, /pi\.on\("session_fork"/);
 });

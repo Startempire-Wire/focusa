@@ -2905,11 +2905,18 @@ async fn verify(
         .is_none()
     {
         let start = resolve_start(body.cwd.as_deref(), body.project_root.as_deref());
-        let decision = resolve_project_binding_candidates(
+        let mut decision = resolve_project_binding_candidates(
             &start,
             body.project_root.as_deref().map(Path::new),
             body.persisted_project_root.as_deref().map(Path::new),
         );
+        if payload
+            .pointer("/verification/verified")
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+        {
+            decision = decision.mark_verified();
+        }
         if let Some(object) = payload.as_object_mut() {
             object.insert(
                 "binding_candidates".to_string(),
