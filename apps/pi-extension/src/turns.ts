@@ -485,7 +485,15 @@ function handleTrajectoryMatchesCurrentScope(handle: any): boolean {
     scope.continuity_id || trajectory.continuity_id || handle?.continuity_id || ""
   ).trim();
   const currentContinuity = String(getContinuityId() || "").trim();
-  return !candidateContinuity || !currentContinuity || candidateContinuity === currentContinuity;
+  if (candidateContinuity && currentContinuity && candidateContinuity !== currentContinuity) return false;
+
+  // Outer scope metadata is insufficient: a stale ECS handle can retain the
+  // current root/workstream while carrying a foreign trajectory payload.
+  // Render only when its canonical trajectory identity matches the active
+  // exact-scoped trajectory cache; missing identity fails closed.
+  const candidateTrajectoryId = String(trajectory.trajectory_id || "").trim();
+  const activeTrajectoryId = String(getLastTrajectoryClarity()?.trajectory_id || "").trim();
+  return Boolean(candidateTrajectoryId && activeTrajectoryId && candidateTrajectoryId === activeTrajectoryId);
 }
 
 function formatHandleTrajectorySummary(handle: any): string {
