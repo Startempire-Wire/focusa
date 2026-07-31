@@ -29,6 +29,7 @@
     "8": "focusa-vbcqu"
   },
   "unique_ready_frontier": [
+    "focusa-gkwt",
     "focusa-vbcqu.8.2"
   ],
   "terminal_member_ref": "focusa-vbcqu",
@@ -173,7 +174,7 @@
     }
   ],
   "provider_missing_members": 0,
-  "membership_digest": "sha256:f991fb1dd7e9ec5068c77e6a546bf5315fdc9cb429b9cbb44a4368e76a8618c2",
+  "membership_digest": "sha256:31e121952b3a831acc9c4e37067498b9271e132cd994f30b67a0d1d95dee8d43",
   "graph_digest": "sha256:6dbc99417482989867e1830de8a5dd9d7dbb2c572a1cbac657231bbef7799500",
   "sealed_at": "2026-07-29T23:35:32Z",
   "out_of_order_in_progress": [],
@@ -195,6 +196,6 @@
     "focusa-o4gkd"
   ],
   "phase0_next_member": null,
-  "active_phase": 7,
+  "active_phase": 2,
   "generated_at": "2026-07-31T02:30:00Z"
 }
