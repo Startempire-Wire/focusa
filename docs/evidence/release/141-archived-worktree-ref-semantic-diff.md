@@ -1,8 +1,8 @@
 # 141 — Focusa Archived Worktree and Ref Semantic-Diff Evidence
 
-- Locked release head: `6bd4ed8996f846b17541567409998e1b725834f0`
+- Locked release head: `5d1b0f4c968ed66514500ec084aed2b79d55bc44`
 - Status: `verified`
-- Evidence digest: `sha256:8ce34b73d5c385b4ba9a93ca2a1220938abbd8cd152ea7bfb184078e4adc1a05`
+- Evidence digest: `sha256:564a822a161fa34de799f5eb65ef5b0fb2ef1e4da2fa984a81abd500dddacda0`
 - Preserved bundle: none present under the operator-declared search roots; refs remain preserved in Git.
 
 - Unsettled refs: `0`
@@ -11,7 +11,7 @@
 |---|---:|---:|---:|---:|---:|---:|
 | `agents/canary-a42` | `conflicting_candidate` | 1 | 0 | 3 | no | evidence_superseded |
 | `agents/focusa-bootstrap-w2` | `conflicting_candidate` | 5 | 0 | 23 | no | evidence_superseded |
-| `agents/focusa-genesis-w2` | `conflicting_candidate` | 5 | 0 | 27 | no | evidence_superseded |
+| `agents/focusa-genesis-w2` | `conflicting_candidate` | 5 | 0 | 28 | no | evidence_superseded |
 | `agents/focusa-temporal-w1` | `obsolete_integrated_ancestor` | 0 | 0 | 0 | no | not_required |
 | `agents/focusa-vbcqu-w1` | `obsolete_integrated_ancestor` | 0 | 0 | 0 | no | not_required |
 | `agents/spark-bloat-circuit` | `obsolete_integrated_ancestor` | 0 | 0 | 0 | no | not_required |

@@ -43,6 +43,7 @@ require 'latest\.json|updater' .github/workflows/release.yml 'release publishes 
 require 'focusa-daemon' .github/workflows/release.yml 'release packages daemon/API surface'
 require 'focusa-tui' .github/workflows/release.yml 'release packages TUI surface'
 bash tests/spec132_public_uninstall_preservation_test.sh
+bash tests/spec132_public_bootstrap_dry_run_static_test.sh
 bash tests/installer_explicit_target_alias_test.sh
 bash tests/spec114_public_benchmark_flywheel_static_test.sh
 python3 tests/spec114_observatory_ui_static_test.py

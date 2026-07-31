@@ -1,0 +1,30 @@
+focusa-w26jj platform/environment/customer-path family settlement
+Observed: 2026-07-31
+Current source head during proof: 5d1b0f4c968ed66514500ec084aed2b79d55bc44
+
+Current OVH proof — all PASS:
+- 132-e5-platform-matrix-runtime-test.sh with explicit current CLI/TUI fixtures.
+- 132-e6-failure-matrix-runtime-test.sh with stable Cargo override.
+- Spec128 installer preflight and updater runtime.
+- Spec132 Pi extension ownership, portable binary selection, PTY lifecycle, and public uninstall preservation.
+- Explicit target aliases and installer update policy.
+- Installer completion ordering, truthful failure rollback, smoke integration, and UI integration.
+- 14/14 bounded family gates passed in /tmp/focusa-w26-family-final-summary.txt.
+
+Durable native/cross-platform proof:
+- GitHub Actions platform matrix run 29551308143: completed/success at 51530b40, all 11 jobs.
+- Full lint/test run 29551035631: completed/success.
+- Signed release run 29551308132: completed/success.
+- Live deploy run 29552019926: completed/success.
+- docs/evidence/132-f2-evidence-index-20260713T201500Z.md binds Windows ConPTY, macOS, Linux, native Linux, release-target, E6 failure, signed-release, and deploy proof.
+- Existing operator Mac lifecycle proof covers signed OTA apply, SHA-verified rollback, reapply, daemon health, and Pi-layout purge.
+- Current macOS 14.7.6 Spec130A harness independently proves bounded overflow/WebSocket recovery without a Mac install.
+
+Failure/recovery proof:
+- Offline/proxy, malformed archive, signal/cancellation, trust, service, Pi, upgrade, cleanup, and transcript paths are exercised by the E6 matrix.
+- Fresh-install rollback and prior-install restoration assertions bind the current execute_real_install implementation.
+- Current exact final_release_gap_gate passes.
+
+Settlement:
+- focusa-w26jj.9.3.5, .9.4.6, and .9.6.1-.9.6.5 have current or durable native proof.
+- No unsupported platform claim is inferred; unsupported optional backends remain fail-closed.

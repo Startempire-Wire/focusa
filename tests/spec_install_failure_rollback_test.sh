@@ -14,7 +14,12 @@ assert 'clean-state cleanup completed; no prior installation existed' in text
 assert 'phase_atomic_recover' in text
 assert 'remove failed fresh install' in text
 assert 'pre-commit binary smoke test failed' in text
-assert text.index('pre-commit binary smoke test failed') < text.index('place_symlinks(&bin_dir, install_root)')
+commit_start = text.index('async fn execute_real_install(')
+commit_end = text.index('\nasync fn delegate_service_render(', commit_start)
+commit = text[commit_start:commit_end]
+assert commit.index('pre-commit binary smoke test failed') < commit.index(
+    'place_symlinks(target, &bin_dir, install_root)'
+)
 assert 'eprint!("\\x1b[?25h\\x1b[?1049l")' not in text
 # Failure paths preserve their original error after emitting presentation state.
 for marker in ('recovering from installer phase failure', 'recovering from smoke-test failure'):

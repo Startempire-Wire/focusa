@@ -628,18 +628,26 @@ if [ -n "$LICENSE_KEY" ]; then
   RESP_EMAIL="$(printf '%s' "$VALIDATE_RESP" | json_get customer_email)"
   CUSTOMER_EMAIL="${RESP_EMAIL:-${LICENSE_EMAIL:-}}"
   log "license valid: tier=${TIER}"
-  write_license_authority
-  write_license_json "$KH" "$KP" "$PRODUCT" "$TIER" "$STATUS" "$COMMERCIAL" \
-                     "$FEATURES" "$EXPIRES" "$ACTIVATED" "false"
-  write_license_receipt "$TIER" "$STATUS" "$EXPIRES" "$CUSTOMER_EMAIL" "false"
+  if [ "$DRY_RUN" = 1 ]; then
+    log "DRY RUN: would write commercial license authority, state, and receipt"
+  else
+    write_license_authority
+    write_license_json "$KH" "$KP" "$PRODUCT" "$TIER" "$STATUS" "$COMMERCIAL" \
+                       "$FEATURES" "$EXPIRES" "$ACTIVATED" "false"
+    write_license_receipt "$TIER" "$STATUS" "$EXPIRES" "$CUSTOMER_EMAIL" "false"
+  fi
 elif [ "$EVAL" = 1 ]; then
-  log "eval mode: writing self-signed license.json with 7-day offline grace"
   KH="eval"
   KP="eval-$(date -u +%Y%m%d)"
-  write_license_authority
-  write_license_json "$KH" "$KP" "focusa" "evaluation" "active" "false" \
-                     '["daemon","tui","cli"]' "" "" "true"
-  write_license_receipt "evaluation" "active" "" "" "true"
+  if [ "$DRY_RUN" = 1 ]; then
+    log "DRY RUN: would write evaluation license authority, state, and receipt"
+  else
+    log "eval mode: writing self-signed license.json with 7-day offline grace"
+    write_license_authority
+    write_license_json "$KH" "$KP" "focusa" "evaluation" "active" "false" \
+                       '["daemon","tui","cli"]' "" "" "true"
+    write_license_receipt "evaluation" "active" "" "" "true"
+  fi
 else
   # Should be unreachable (BSL gate above). Surface a clear error.
   err "no license key provided and --eval not set. pass --eval or --license-key."
@@ -650,7 +658,9 @@ fi
 # Migrate any pre-existing legacy license.json (customer_email: null shape)
 # so the daemon parser accepts it.
 # ----------------------------------------------------------------------------
-migrate_legacy_license
+if [ "$DRY_RUN" = 0 ]; then
+  migrate_legacy_license
+fi
 
 # ----------------------------------------------------------------------------
 # Download focusa bootstrapper binary for this target triple.
@@ -759,7 +769,9 @@ fi
 # ----------------------------------------------------------------------------
 # Place the bootstrapper binary and hand off to the Rust orchestrator.
 # ----------------------------------------------------------------------------
-mkdir -p "$BIN_DIR" "$STATE_DIR" "$CONFIG_DIR" "$LIBEXEC_DIR"
+if [ "$DRY_RUN" = 0 ]; then
+  mkdir -p "$BIN_DIR" "$STATE_DIR" "$CONFIG_DIR" "$LIBEXEC_DIR"
+fi
 
 # Anti-rollback: refuse to downgrade an existing install unless --force.
 INSTALLED_VERSION_FILE="${STATE_DIR}/installed_version"
