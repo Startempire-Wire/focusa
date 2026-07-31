@@ -3,19 +3,19 @@
   "status": "verified",
   "lock_revision": 6,
   "workset_id": "workset:focusa-next-locked-release:r6",
-  "scope_member_count": 252,
-  "execution_edge_count": 590,
+  "scope_member_count": 258,
+  "execution_edge_count": 640,
   "phase_count": 9,
   "phase_counts": {
+    "6": 163,
     "0": 7,
-    "1": 42,
     "2": 14,
+    "8": 3,
+    "1": 42,
     "3": 5,
     "4": 8,
-    "5": 6,
-    "6": 163,
-    "7": 4,
-    "8": 3
+    "5": 10,
+    "7": 6
   },
   "phase_gates": {
     "0": "focusa-o4gkd",
@@ -29,10 +29,10 @@
     "8": "focusa-vbcqu"
   },
   "unique_ready_frontier": [
-    "focusa-a6yq6.10.8"
+    "focusa-vbcqu.8.1"
   ],
   "terminal_member_ref": "focusa-vbcqu",
-  "terminal_coverage_count": 252,
+  "terminal_coverage_count": 258,
   "dependency_cycles": 0,
   "unresolved_external_blockers": 0,
   "external_closed_blockers": [
@@ -173,8 +173,8 @@
     }
   ],
   "provider_missing_members": 0,
-  "membership_digest": "sha256:ecdc36a4a748691f49c4e95b20e1ffd8dc3cf21e27c7dda68f24eea7d0ab6122",
-  "graph_digest": "sha256:86debebcd5a55e4449b88af669b591a2021acd51c88b90debace7fa31055efb4",
+  "membership_digest": "sha256:8eeca1be4f8fe7b81d6a6018afd515208dfee094923f476c59940cd70f6e6502",
+  "graph_digest": "sha256:6dbc99417482989867e1830de8a5dd9d7dbb2c572a1cbac657231bbef7799500",
   "sealed_at": "2026-07-29T23:35:32Z",
   "out_of_order_in_progress": [],
   "scope_expansion": true,
@@ -195,6 +195,6 @@
     "focusa-o4gkd"
   ],
   "phase0_next_member": null,
-  "active_phase": 6,
+  "active_phase": 7,
   "generated_at": "2026-07-31T02:30:00Z"
 }

@@ -1,0 +1,41 @@
+Focusa locked-release final candidate acceptance
+Candidate SHA: d1896f2bf74a870c8a326a62fcf20a2503684f16
+Branch: locked-release-all-open-spec137-138-140
+Observed: 2026-07-31
+Publication during proof: none
+
+Exact OVH Git checkout:
+- Git HEAD and branch verified; 24 agent/archive refs present.
+- cargo build produced current focusa, focusa-daemon, and focusa-tui fixtures.
+- cargo test --workspace --all-targets: PASS.
+- Generator parity: 29 skills, root/packaged parity PASS.
+- Pi Node22 check, lint, format, and all 17 declared test targets: PASS.
+- final_release_gap_gate: PASS.
+- 15/15 current installer/platform/failure/OTA/rollback/customer-path gates: PASS.
+- Spec135, all Spec137/137A, Spec138/138A, Spec140A, Spec143, Spec149, release-static, decomposition, and workset-schema gates: PASS.
+- All standalone Spec133 gates pass; argument-driven spec133_fault_fixture.py is not a standalone gate.
+- Spec133 Phase 7 passes against the exact candidate daemon on isolated port 18977; the earlier live-daemon 404s were an environment mismatch, not candidate failures.
+
+Native/durable platform proof:
+- Current macOS 14.7.6 compaction/WebSocket fixture: PASS.
+- GitHub Actions platform matrix 29551308143: success, 11 jobs.
+- Signed release 29551308132 and live deploy 29552019926: success for retained installer/platform contracts.
+- Live Bash/PowerShell bootstrapper parity and public empty-HOME dry-run: PASS.
+
+Trace and no-deferral proof:
+- docs/142-focusa-release-requirement-trace-matrix.md binds locked requirements to waves and acceptance.
+- docs/contracts/135-locked-release-compatibility-delta.v1.yaml reports zero unknown impacts and no Spec135L.
+- docs/evidence/release/141-archived-worktree-ref-semantic-diff.json reports zero unsettled legacy refs at current predecessor head.
+- No test, security, trust, format, migration, platform, compaction, or release-intelligence gate was weakened.
+- Workset descendant reconciliation is 258/258 with 640 acyclic edges, zero unresolved external blockers, full terminal coverage, and one ready frontier: focusa-w26jj.9.7.4.
+- Legacy gate is verified with zero unmapped issues, duplicates, unsettled refs, or external blockers.
+
+Environment:
+- Builds/tests ran on OVH; KH performed Git/file orchestration only.
+- Existing Node22, Corepack pnpm, Cargo cache, and operator-approved Bun 1.3.6 were used.
+- OVH retained more than 30 GiB free after the full Rust matrix.
+
+Release decision status:
+- Candidate acceptance without publishing: PASS.
+- Strict local no-pass decision: PASS; only release-container/integrated/dogfood/publication tasks remain open.
+- Remote CI and the explicit W7 dogfood/publication sequence remain required before tag/publication.

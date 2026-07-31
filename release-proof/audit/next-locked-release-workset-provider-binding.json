@@ -5,8 +5,8 @@
   "provider_revision_ref": "git:1b27c87e+final-scope-admission",
   "query_semantics": "explicit_ids",
   "query": {
-    "member_count": 252,
-    "member_ids_digest": "sha256:e18be5dee86e724a4df8cd5dad36f005f5577bd779effcdb34518f2c0a8ddf20"
+    "member_count": 258,
+    "member_ids_digest": "sha256:1ee9486a5ebf465fa56e3c8ba532806aa08bf059902b5f0cdc1e5caeb459d7b4"
   },
   "cursor": null,
   "ordering_key": "workset_phase_then_provider_dependency",
