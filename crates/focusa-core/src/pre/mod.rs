@@ -19,11 +19,24 @@ pub fn submit(
     payload: serde_json::Value,
     deadline_ms: u64,
 ) -> Uuid {
+    submit_scoped(state, None, kind, source, payload, deadline_ms)
+}
+
+/// Submit a proposal bound to stable project/workstream authority.
+pub fn submit_scoped(
+    state: &mut PreState,
+    workstream: Option<crate::scoped_state::WorkstreamKey>,
+    kind: ProposalKind,
+    source: &str,
+    payload: serde_json::Value,
+    deadline_ms: u64,
+) -> Uuid {
     let id = Uuid::now_v7();
     let now = Utc::now();
     let deadline = now + chrono::Duration::milliseconds(deadline_ms as i64);
 
     state.proposals.push(Proposal {
+        workstream,
         id,
         kind,
         source: source.into(),

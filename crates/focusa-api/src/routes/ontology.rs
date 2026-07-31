@@ -5787,11 +5787,13 @@ fn ontology_value_matches_scope(value: &Value, project_root: &str, continuity_id
     let root = value
         .get("project_root")
         .or_else(|| value.pointer("/scope/project_root"))
+        .or_else(|| value.pointer("/workstream/root_scope/root_path"))
         .and_then(Value::as_str)
         .unwrap_or_default();
     let continuity = value
         .get("continuity_id")
         .or_else(|| value.pointer("/scope/continuity_id"))
+        .or_else(|| value.pointer("/workstream/continuity_id"))
         .and_then(Value::as_str)
         .unwrap_or_default();
     root == project_root && continuity == continuity_id
@@ -6498,6 +6500,11 @@ fn verified_scope_ref_for_context(scope: &ScopeContext) -> Option<ScopeRef> {
         && !scope_ref.scope_id.trim().is_empty()
         && !scope_ref.fingerprint.trim().is_empty())
     .then_some(scope_ref)
+}
+
+fn verified_workstream_key(scope: &ScopeContext) -> Option<WorkstreamKey> {
+    let root_scope = verified_scope_ref_for_context(scope)?;
+    WorkstreamKey::new(root_scope, scope.continuity_id.as_deref()?.trim()).ok()
 }
 
 fn ontology_context_payload(
@@ -7264,13 +7271,18 @@ fn tool_result_candidate_deltas(body: &ToolResultProposalRequest) -> Vec<Value> 
     deltas
 }
 
-fn events_from_tool_result_deltas(proposal_id: Uuid, deltas: &[Value]) -> Vec<FocusaEvent> {
+fn events_from_tool_result_deltas(
+    proposal_id: Uuid,
+    deltas: &[Value],
+    workstream: &WorkstreamKey,
+) -> Vec<FocusaEvent> {
     deltas
         .iter()
         .filter_map(
             |delta| match delta.get("delta_kind").and_then(|v| v.as_str()) {
                 Some("ontology_object_upsert_proposed") => {
                     Some(FocusaEvent::OntologyObjectUpsertProposed {
+                        workstream: Some(workstream.clone()),
                         proposal_id,
                         object_type: delta
                             .get("object_type")
@@ -7290,6 +7302,7 @@ fn events_from_tool_result_deltas(proposal_id: Uuid, deltas: &[Value]) -> Vec<Fo
                 }
                 Some("ontology_link_upsert_proposed") => {
                     Some(FocusaEvent::OntologyLinkUpsertProposed {
+                        workstream: Some(workstream.clone()),
                         proposal_id,
                         link_type: delta
                             .get("link_type")
@@ -7315,6 +7328,7 @@ fn events_from_tool_result_deltas(proposal_id: Uuid, deltas: &[Value]) -> Vec<Fo
                 }
                 Some("ontology_status_change_proposed") => {
                     Some(FocusaEvent::OntologyStatusChangeProposed {
+                        workstream: Some(workstream.clone()),
                         proposal_id,
                         subject: delta
                             .get("subject")
@@ -7917,14 +7931,18 @@ fn ontology_dispatch_failed(
 
 async fn tool_result_proposals(
     State(state): State<Arc<AppState>>,
+    scope: ScopeContext,
     Json(body): Json<ToolResultProposalRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     if body.tool_name.trim().is_empty() {
         return Err(ontology_validation_rejected("tool_name is required"));
     }
+    let workstream = verified_workstream_key(&scope).ok_or_else(|| {
+        ontology_validation_rejected("verified project and continuity scope required")
+    })?;
     let proposal_id = Uuid::now_v7();
     let deltas = tool_result_candidate_deltas(&body);
-    let events = events_from_tool_result_deltas(proposal_id, &deltas);
+    let events = events_from_tool_result_deltas(proposal_id, &deltas, &workstream);
     if body.emit_proposals {
         for event in events {
             state
@@ -7964,6 +7982,7 @@ fn proposed_events_from_action(
     action_type: &str,
     payload: &Value,
     source: &str,
+    workstream: &WorkstreamKey,
 ) -> Vec<FocusaEvent> {
     let mut events = Vec::new();
 
@@ -7973,6 +7992,7 @@ fn proposed_events_from_action(
         payload.get("target_id").and_then(|v| v.as_str()),
     ) {
         events.push(FocusaEvent::OntologyLinkUpsertProposed {
+            workstream: Some(workstream.clone()),
             proposal_id,
             link_type: link_type.to_string(),
             source_id: source_id.to_string(),
@@ -8014,6 +8034,7 @@ fn proposed_events_from_action(
                     _ => "active",
                 };
                 events.push(FocusaEvent::OntologyStatusChangeProposed {
+                    workstream: Some(workstream.clone()),
                     proposal_id,
                     subject,
                     from_status: payload
@@ -8027,6 +8048,7 @@ fn proposed_events_from_action(
 
             if action_type == "refresh_working_set" {
                 events.push(FocusaEvent::OntologyWorkingSetMembershipProposed {
+                    workstream: Some(workstream.clone()),
                     proposal_id,
                     subject: payload
                         .get("subject")
@@ -8039,6 +8061,7 @@ fn proposed_events_from_action(
             }
 
             events.push(FocusaEvent::OntologyObjectUpsertProposed {
+                workstream: Some(workstream.clone()),
                 proposal_id,
                 object_type: payload
                     .get("object_type")
@@ -8062,6 +8085,7 @@ fn proposed_events_from_action(
         | "verify_answer_scope"
         | "record_scope_failure" => {
             events.push(FocusaEvent::OntologyObjectUpsertProposed {
+                workstream: Some(workstream.clone()),
                 proposal_id,
                 object_type: payload
                     .get("object_type")
@@ -8085,6 +8109,7 @@ fn proposed_events_from_action(
         }
         "select_relevant_context" | "exclude_irrelevant_context" => {
             events.push(FocusaEvent::OntologyWorkingSetMembershipProposed {
+                workstream: Some(workstream.clone()),
                 proposal_id,
                 subject: payload
                     .get("subject")
@@ -8121,6 +8146,7 @@ fn proposed_events_from_action(
                     payload.get("canonical_id").and_then(|v| v.as_str()),
                 ) {
                     events.push(FocusaEvent::OntologyLinkUpsertProposed {
+                        workstream: Some(workstream.clone()),
                         proposal_id,
                         link_type: "canonicalizes".to_string(),
                         source_id: alias_id.to_string(),
@@ -8131,6 +8157,7 @@ fn proposed_events_from_action(
 
                 if let Some(canonical_id) = canonical_object_id.clone() {
                     events.push(FocusaEvent::OntologyStatusChangeProposed {
+                        workstream: Some(workstream.clone()),
                         proposal_id,
                         subject: canonical_id,
                         from_status: Some("candidate".to_string()),
@@ -8141,6 +8168,7 @@ fn proposed_events_from_action(
             }
 
             events.push(FocusaEvent::OntologyObjectUpsertProposed {
+                workstream: Some(workstream.clone()),
                 proposal_id,
                 object_type: payload
                     .get("object_type")
@@ -8176,6 +8204,7 @@ fn proposed_events_from_action(
                 && let Some(view_id) = view_object_id.clone()
             {
                 events.push(FocusaEvent::OntologyStatusChangeProposed {
+                    workstream: Some(workstream.clone()),
                     proposal_id,
                     subject: view_id,
                     from_status: Some("candidate".to_string()),
@@ -8185,6 +8214,7 @@ fn proposed_events_from_action(
             }
 
             events.push(FocusaEvent::OntologyObjectUpsertProposed {
+                workstream: Some(workstream.clone()),
                 proposal_id,
                 object_type: payload
                     .get("object_type")
@@ -8264,6 +8294,7 @@ fn proposed_events_from_action(
                 };
 
                 events.push(FocusaEvent::OntologyStatusChangeProposed {
+                    workstream: Some(workstream.clone()),
                     proposal_id,
                     subject,
                     from_status,
@@ -8273,6 +8304,7 @@ fn proposed_events_from_action(
             }
 
             events.push(FocusaEvent::OntologyObjectUpsertProposed {
+                workstream: Some(workstream.clone()),
                 proposal_id,
                 object_type: payload
                     .get("object_type")
@@ -8298,6 +8330,7 @@ fn proposed_events_from_action(
         | "determine_handoff_boundary"
         | "restore_identity_continuity" => {
             events.push(FocusaEvent::OntologyObjectUpsertProposed {
+                workstream: Some(workstream.clone()),
                 proposal_id,
                 object_type: payload
                     .get("object_type")
@@ -8338,6 +8371,7 @@ fn proposed_events_from_action(
                 });
 
             events.push(FocusaEvent::OntologyObjectUpsertProposed {
+                workstream: Some(workstream.clone()),
                 proposal_id,
                 object_type,
                 object_id,
@@ -8351,12 +8385,16 @@ fn proposed_events_from_action(
 
 async fn execute_ontology_action(
     State(state): State<Arc<AppState>>,
+    scope: ScopeContext,
     Json(body): Json<OntologyActionRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     if !ACTION_TYPES.contains(&body.action_type.as_str()) {
         return Err(ontology_validation_rejected("unknown ontology action_type"));
     }
 
+    let workstream = verified_workstream_key(&scope).ok_or_else(|| {
+        ontology_validation_rejected("verified project and continuity scope required")
+    })?;
     let source = body
         .source
         .as_deref()
@@ -8375,10 +8413,17 @@ async fn execute_ontology_action(
         )));
     }
 
-    let mut events = proposed_events_from_action(proposal_id, &body.action_type, &payload, &source);
+    let mut events = proposed_events_from_action(
+        proposal_id,
+        &body.action_type,
+        &payload,
+        &source,
+        &workstream,
+    );
 
     if auto_verify {
         events.push(FocusaEvent::OntologyVerificationApplied {
+            workstream: Some(workstream.clone()),
             proposal_id: Some(proposal_id),
             verification: format!("action:{}", body.action_type),
             outcome: payload
@@ -8391,6 +8436,7 @@ async fn execute_ontology_action(
 
     if auto_promote {
         events.push(FocusaEvent::OntologyProposalPromoted {
+            workstream: Some(workstream.clone()),
             proposal_id,
             target_class: action_target_types(&body.action_type)
                 .first()
@@ -8409,6 +8455,7 @@ async fn execute_ontology_action(
             | "verify_post_migration_conformance"
     ) {
         events.push(FocusaEvent::OntologyWorkingSetRefreshed {
+            workstream: Some(workstream.clone()),
             scope: payload
                 .get("scope_kind")
                 .and_then(|v| v.as_str())
@@ -9141,6 +9188,34 @@ mod tests {
             },
             scope_ref,
         )
+    }
+
+    #[test]
+    fn ontology_scope_filter_accepts_only_exact_typed_workstream_or_global_schema() {
+        let (_, scope_ref) = exact_test_scope();
+        let workstream =
+            WorkstreamKey::new(scope_ref, "ontology-test-continuity").expect("valid workstream");
+        let exact = json!({"workstream": workstream, "id": "object:exact"});
+        assert!(ontology_value_matches_scope(
+            &exact,
+            "/tmp/focusa-ontology-test",
+            "ontology-test-continuity"
+        ));
+        assert!(!ontology_value_matches_scope(
+            &exact,
+            "/tmp/focusa-foreign",
+            "ontology-test-continuity"
+        ));
+        assert!(!ontology_value_matches_scope(
+            &json!({"id": "legacy:unowned"}),
+            "/tmp/focusa-ontology-test",
+            "ontology-test-continuity"
+        ));
+        assert!(ontology_value_matches_scope(
+            &json!({"scope_class": "global_schema", "id": "schema:decision"}),
+            "/tmp/focusa-foreign",
+            "foreign-continuity"
+        ));
     }
 
     fn fixture_workspace(test_name: &str, with_git: bool, with_cargo: bool) -> PathBuf {
@@ -10141,7 +10216,10 @@ mod tests {
                 .iter()
                 .any(|delta| delta["object_type"].as_str() == Some("workpoint"))
         );
-        let events = events_from_tool_result_deltas(Uuid::now_v7(), &deltas);
+        let (_, scope_ref) = exact_test_scope();
+        let workstream =
+            WorkstreamKey::new(scope_ref, "ontology-test-continuity").expect("valid workstream");
+        let events = events_from_tool_result_deltas(Uuid::now_v7(), &deltas, &workstream);
         assert!(!events.is_empty());
     }
 

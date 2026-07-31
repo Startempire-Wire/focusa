@@ -567,6 +567,8 @@ pub struct WorkLoopState {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct OntologyProposalRecord {
+    #[serde(default)]
+    pub workstream: Option<WorkstreamKey>,
     pub proposal_id: Uuid,
     pub proposal_kind: String,
     pub target_class: String,
@@ -583,6 +585,8 @@ pub struct OntologyProposalRecord {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct OntologyVerificationRecord {
+    #[serde(default)]
+    pub workstream: Option<WorkstreamKey>,
     pub proposal_id: Option<Uuid>,
     pub verification: String,
     pub outcome: String,
@@ -591,6 +595,8 @@ pub struct OntologyVerificationRecord {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct OntologyWorkingSetRefreshRecord {
+    #[serde(default)]
+    pub workstream: Option<WorkstreamKey>,
     pub scope: String,
     pub reason: String,
     pub timestamp: Option<DateTime<Utc>>,
@@ -598,6 +604,8 @@ pub struct OntologyWorkingSetRefreshRecord {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct OntologyDeltaRecord {
+    #[serde(default)]
+    pub workstream: Option<WorkstreamKey>,
     pub delta_kind: String,
     pub payload: serde_json::Value,
     pub timestamp: Option<DateTime<Utc>>,
@@ -4345,6 +4353,8 @@ pub enum FocusaEvent {
 
     // PRE / governance
     ProposalSubmitted {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Uuid,
         kind: ProposalKind,
         source: String,
@@ -4353,6 +4363,8 @@ pub enum FocusaEvent {
         score: Option<f64>,
     },
     ProposalStatusChanged {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Uuid,
         status: ProposalStatus,
     },
@@ -4387,6 +4399,8 @@ pub enum FocusaEvent {
     // ─── Ontology Classification / Reducer (docs/50) ─────────────────
     #[serde(rename = "ontology_object_upsert_proposed")]
     OntologyObjectUpsertProposed {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Uuid,
         object_type: String,
         object_id: Option<String>,
@@ -4394,6 +4408,8 @@ pub enum FocusaEvent {
     },
     #[serde(rename = "ontology_link_upsert_proposed")]
     OntologyLinkUpsertProposed {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Uuid,
         link_type: String,
         source_id: String,
@@ -4402,6 +4418,8 @@ pub enum FocusaEvent {
     },
     #[serde(rename = "ontology_status_change_proposed")]
     OntologyStatusChangeProposed {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Uuid,
         subject: String,
         from_status: Option<String>,
@@ -4410,6 +4428,8 @@ pub enum FocusaEvent {
     },
     #[serde(rename = "ontology_working_set_membership_proposed")]
     OntologyWorkingSetMembershipProposed {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Uuid,
         subject: String,
         operation: String,
@@ -4417,24 +4437,32 @@ pub enum FocusaEvent {
     },
     #[serde(rename = "ontology_proposal_promoted")]
     OntologyProposalPromoted {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Uuid,
         target_class: String,
         applied_kind: String,
     },
     #[serde(rename = "ontology_proposal_rejected")]
     OntologyProposalRejected {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Uuid,
         target_class: String,
         reason: String,
     },
     #[serde(rename = "ontology_verification_applied")]
     OntologyVerificationApplied {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Option<Uuid>,
         verification: String,
         outcome: String,
     },
     #[serde(rename = "ontology_working_set_refreshed")]
     OntologyWorkingSetRefreshed {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         scope: String,
         reason: String,
     },
@@ -4807,6 +4835,7 @@ pub enum Action {
 
     // Proposals
     SubmitProposal {
+        workstream: Option<WorkstreamKey>,
         kind: ProposalKind,
         source: String,
         payload: serde_json::Value,
@@ -5406,6 +5435,8 @@ pub enum AttachmentRole {
 /// Proposal — timestamped async request for state change.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Proposal {
+    #[serde(default)]
+    pub workstream: Option<WorkstreamKey>,
     pub id: Uuid,
     pub kind: ProposalKind,
     pub source: String,
