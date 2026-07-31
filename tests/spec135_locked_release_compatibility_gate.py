@@ -14,14 +14,39 @@ def main() -> None:
     assert packet["frozen_series_terminal"] == "135K"
     assert packet["spec135l_created"] is False
     assert packet["unknown_impact_count"] == 0
-    assert len(packet["changes"]) == 5
+    expected_changes = {
+        "temporal-authority-137-137a",
+        "epistemic-authority-138-138a",
+        "instruction-integrity-140-140a",
+        "working-subpath-workloop-recovery",
+        "agent-capability-and-doc-parity",
+        "startup-project-binding-v1",
+        "cross-project-context-isolation",
+        "scoped-mission-canvas-refresh",
+        "advisory-scope-poisoning-guard",
+    }
+    assert {change["change_id"] for change in packet["changes"]} == expected_changes
+    parity_surfaces = {
+        surface for change in packet["changes"] for surface in change["affected_surfaces"]
+    }
+    assert {"API", "Pi", "Mission Canvas"} <= parity_surfaces
+    assert not list((ROOT / "docs").glob("135l-*"))
+    required_fields = set(packet["agent_handoff"]["required_change_fields"])
     for change in packet["changes"]:
+        assert required_fields <= set(change)
+
         assert change["spec135_impact"] in {"none", "indirect", "direct"}
         assert change["affected_specs"] and change["affected_primitives"]
+        assert change["affected_docs"] and change["affected_contracts"]
         assert change["affected_surfaces"] and change["compatibility"]
-        assert change["migration"] and change["rollback"]
+        assert change["migration"] and change["rollback"] and change["agent_handoff"]
         assert change["tests"] and change["evidence_refs"]
-        for ref in [*change["tests"], *change["evidence_refs"]]:
+        for ref in [
+            *change["affected_docs"],
+            *change["affected_contracts"],
+            *change["tests"],
+            *change["evidence_refs"],
+        ]:
             assert (ROOT / ref).exists(), (change["change_id"], ref)
     manifest = (ROOT / packet["baseline_manifest_ref"]).read_text()
     assert "135-locked-release-compatibility-delta.v1.yaml" in manifest

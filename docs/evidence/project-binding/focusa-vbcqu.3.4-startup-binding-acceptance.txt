@@ -10,6 +10,7 @@ Implemented:
 - Mutation-bound candidate selection emitted once per evidence revision.
 - Fresh matching offline binding reuse; stale/different repo fails closed.
 - Same-project worktree reconciliation by repo/project fingerprint.
+- Focusa advisory injection is stripped before current-ask extraction, preventing stale advisory text from poisoning project or action authority.
 - Bootstrap/Genesis startup status preserves canonical next action; no automatic commit without explicit confirmation.
 - Rust API/core binding decision parity and verified binding receipt.
 

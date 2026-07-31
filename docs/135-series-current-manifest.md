@@ -8,22 +8,22 @@ Spec 135 and every companion below form one required implementation and closure 
 
 ## Locked release compatibility
 
-The `v0.9.141-locked-release` delta is classified with zero unknown impacts in [`docs/contracts/135-locked-release-compatibility-delta.v1.yaml`](contracts/135-locked-release-compatibility-delta.v1.yaml). Additive temporal, epistemic, instruction-integrity, working-subpath, and agent-capability changes reuse existing Spec135D/E/J/K governance and Mission Canvas substrates; no Spec135L exists.
+The `v0.9.141-locked-release` delta is classified with zero unknown impacts in [`docs/contracts/135-locked-release-compatibility-delta.v1.yaml`](contracts/135-locked-release-compatibility-delta.v1.yaml). Additive temporal, epistemic, instruction-integrity, working-subpath, agent-capability, startup-binding, cross-project-isolation, scoped-refresh, and advisory-boundary changes reuse existing Spec135A–135K governance and Mission Canvas substrates; no Spec135L exists. Every admitted change declares affected primitives, documents, contracts, surfaces, tests, compatibility, migration, rollback, and agent handoff in that packet.
 
-| Order | Spec | Required subject |
-|---:|---|---|
-| 1 | [135](135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md) | Master product, authority, workspace, C.R.I.S.T., and closure contract |
-| 2 | [135A](135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md) | Workspace projection, Mission Canvas, Work Rail, themes, and vertical UX |
-| 3 | [135B](135b-crist-project-genesis-context-role-interview-spec-tasks.md) | Context, Role, Interview, Spec, Tasks, and Project Genesis state |
-| 4 | [135C](135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md) | UIAI artifacts, browser identity, FPV, and live refresh |
-| 5 | [135D](135d-complete-implementation-order-framework-reuse-performance-and-no-deferral-spec.md) | Complete implementation graph, framework reuse, performance, and no-deferral law |
-| 6 | [135E](135e-cross-spec-amendments-migration-and-closure-matrix.md) | Cross-spec amendments, migration, compatibility, and closure |
-| 7 | [135F](135f-domain-general-ontology-core-semantic-graph-domain-packs-and-reactive-context-spec.md) | Ontology core, semantic graphs, domain packs, verification, and reactive context |
-| 8 | [135G](135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md) | Multiplexed Work Surfaces, sessions, attachments, browser isolation, and restoration |
-| 9 | [135H](135h-cross-functional-alpha-grill-interview-and-implementation-acceleration-spec.md) | Grill Interview, Cross-Functional Alpha, decided OSS stack, and speed law |
-| 10 | [135I](135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md) | Real-time generated C.R.I.S.T. UI, nontechnical onboarding, A2UI, and generated action surfaces |
-| 11 | [135J](135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md) | Core API Operation Registry, durable replayable stream, shared envelopes, and runtime reuse |
-| 12 | [135K](135k-uxp-ufi-adaptive-generated-ui-friction-learning-and-nontechnical-usability-spec.md) | Canonical UXP/UFI reuse, adaptive generated UI, transparent friction learning, and nontechnical usability proof |
+| Order | Spec                                                                                                            | Required subject                                                                                                |
+| ----: | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+|     1 | [135](135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md)                              | Master product, authority, workspace, C.R.I.S.T., and closure contract                                          |
+|     2 | [135A](135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md)                                  | Workspace projection, Mission Canvas, Work Rail, themes, and vertical UX                                        |
+|     3 | [135B](135b-crist-project-genesis-context-role-interview-spec-tasks.md)                                         | Context, Role, Interview, Spec, Tasks, and Project Genesis state                                                |
+|     4 | [135C](135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md)                                        | UIAI artifacts, browser identity, FPV, and live refresh                                                         |
+|     5 | [135D](135d-complete-implementation-order-framework-reuse-performance-and-no-deferral-spec.md)                  | Complete implementation graph, framework reuse, performance, and no-deferral law                                |
+|     6 | [135E](135e-cross-spec-amendments-migration-and-closure-matrix.md)                                              | Cross-spec amendments, migration, compatibility, and closure                                                    |
+|     7 | [135F](135f-domain-general-ontology-core-semantic-graph-domain-packs-and-reactive-context-spec.md)              | Ontology core, semantic graphs, domain packs, verification, and reactive context                                |
+|     8 | [135G](135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md) | Multiplexed Work Surfaces, sessions, attachments, browser isolation, and restoration                            |
+|     9 | [135H](135h-cross-functional-alpha-grill-interview-and-implementation-acceleration-spec.md)                     | Grill Interview, Cross-Functional Alpha, decided OSS stack, and speed law                                       |
+|    10 | [135I](135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md)              | Real-time generated C.R.I.S.T. UI, nontechnical onboarding, A2UI, and generated action surfaces                 |
+|    11 | [135J](135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md)                  | Core API Operation Registry, durable replayable stream, shared envelopes, and runtime reuse                     |
+|    12 | [135K](135k-uxp-ufi-adaptive-generated-ui-friction-learning-and-nontechnical-usability-spec.md)                 | Canonical UXP/UFI reuse, adaptive generated UI, transparent friction learning, and nontechnical usability proof |
 
 ## 1. Final framework and ownership decisions
 
@@ -327,4 +327,5 @@ The full series closes only when every machine-readable ledger entry is verified
 → agent directives
 → 135A → 135B → 135C → 135D → 135E → 135F → 135G → 135H → 135I → 135J → 135K
 → machine-readable delivery graph
+→ locked-release compatibility/delta packet
 ```
