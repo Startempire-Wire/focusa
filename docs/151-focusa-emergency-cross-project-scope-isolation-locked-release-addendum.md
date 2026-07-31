@@ -203,3 +203,16 @@ The emergency addendum is complete only when:
 7. the operator approves lifting the P0 release block.
 
 Until then: **locked release remains blocked; no tag, deploy, publish, or completion claim.**
+
+## 11. Implementation checkpoint — stable ontology and PRE ownership
+
+The locked working subpath now enforces these additional boundaries:
+
+- mutable ontology events and persisted proposal, verification, working-set refresh, and delta records carry optional stable `WorkstreamKey`; `None` is legacy replay state only;
+- ontology mutation routes, generic PRE submission/list/resolution, and constitution proposal ingress require verified ProjectIdentity root plus continuity scope before mutation or disclosure;
+- reducer lookup and mutation use `(WorkstreamKey, record/object/link identity)` so duplicate ids in different projects cannot cross-promote, reject, verify, or refresh;
+- serialized ontology objects and links carry the same workstream receipt; scoped projections recognize `workstream.root_scope.root_path` plus `workstream.continuity_id`;
+- unowned legacy mutable records remain deserializable but are quarantined from scoped projections; immutable `global_schema` objects remain visible;
+- adversarial reducer proof covers duplicate proposal/object ids in two workstreams through propose, promote, and failed verification transitions.
+
+Current proof: core `731/731`; API `430/430`. This checkpoint advances `ESI-006`, `ESI-007`, `ESI-008`, `ESI-010`, `ESI-013`, and `ESI-018` but does not settle them until migration receipts, all client surfaces, runtime reload, and end-to-end alternation gates pass.

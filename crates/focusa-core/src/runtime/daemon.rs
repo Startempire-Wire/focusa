@@ -3434,14 +3434,21 @@ Return:
             }]),
 
             Action::SubmitProposal {
+                workstream,
                 kind,
                 source,
                 payload,
                 deadline_ms,
                 score,
             } => {
-                let proposal_id =
-                    crate::pre::submit(&mut self.state.pre, kind, &source, payload, deadline_ms);
+                let proposal_id = crate::pre::submit_scoped(
+                    &mut self.state.pre,
+                    workstream,
+                    kind,
+                    &source,
+                    payload,
+                    deadline_ms,
+                );
                 if let Some(score) = score {
                     let _ = crate::pre::score_proposal(&mut self.state.pre, proposal_id, score);
                 }
