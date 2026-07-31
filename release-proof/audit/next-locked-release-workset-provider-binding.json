@@ -1,12 +1,12 @@
 {
-  "binding_id": "provider:bd:focusa-next-locked-release:r6",
+  "binding_id": "provider:bd:focusa-next-locked-release:r7",
   "provider": "bd",
   "provider_scope_ref": "/tmp/focusa-next-locked-release/.beads",
-  "provider_revision_ref": "git:1b27c87e+final-scope-admission",
+  "provider_revision_ref": "git:e28e7337+spec150-r7-admission",
   "query_semantics": "explicit_ids",
   "query": {
-    "member_count": 258,
-    "member_ids_digest": "sha256:1ee9486a5ebf465fa56e3c8ba532806aa08bf059902b5f0cdc1e5caeb459d7b4"
+    "member_count": 274,
+    "member_ids_digest": "sha256:87a3c98f5e39fd6b8450c91c6aef66612bfc30ad84e4cf4d7d2713b1e751e2bf"
   },
   "cursor": null,
   "ordering_key": "workset_phase_then_provider_dependency",

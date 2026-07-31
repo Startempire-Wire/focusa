@@ -10,20 +10,20 @@
     "focusa-vbcqu.9.7"
   ],
   "locked_at": "2026-07-28T18:45:00-07:00",
-  "lock_revision": 6,
-  "relocked_at": "2026-07-30T00:19:52Z",
+  "lock_revision": 7,
+  "relocked_at": "2026-07-31T17:40:00Z",
   "scope_state": "locked",
-  "current_explicit_issue_count": 43,
-  "current_locked_bead_member_count": 258,
+  "current_explicit_issue_count": 45,
+  "current_locked_bead_member_count": 274,
   "execution_lock": {
     "schema": "focusa.locked_release_execution_lock.v1",
     "status": "sealed",
-    "workset_id": "workset:focusa-next-locked-release:r6",
-    "workset_revision": 6,
+    "workset_id": "workset:focusa-next-locked-release:r7",
+    "workset_revision": 7,
     "first_touch_issue_id": "focusa-627th.4.3",
     "terminal_member_ref": "focusa-vbcqu",
     "publication_gate": "focusa-vbcqu.9.7",
-    "member_count": 258,
+    "member_count": 274,
     "phase_count": 9,
     "phase_gates": [
       "focusa-o4gkd",
@@ -44,7 +44,7 @@
     "proof_ref": "release-proof/audit/next-locked-release-execution-proof.json",
     "audit_ref": "scripts/audit-locked-release-execution.mjs",
     "schema_audit_ref": "scripts/audit-locked-release-workset-schema.py",
-    "final_scope_addition_id": "focusa-o4gkd",
+    "final_scope_addition_id": "focusa-vbcqu.8.4",
     "scope_additions_closed": true,
     "phase0_sequence": [
       "focusa-627th.4.3",
@@ -53,18 +53,26 @@
   },
   "membership_reconciliation": {
     "scope_expansion": false,
-    "previous_declared_member_count": 252,
-    "reconciled_member_count": 258,
-    "restored_descendant_count": 6,
+    "previous_declared_member_count": 260,
+    "reconciled_member_count": 274,
+    "restored_descendant_count": 14,
     "restored_descendant_ids": [
-      "focusa-vbcqu.6.1.1",
-      "focusa-vbcqu.6.1.2",
-      "focusa-vbcqu.6.1.3",
-      "focusa-vbcqu.6.1.4",
-      "focusa-vbcqu.8.1.1",
-      "focusa-vbcqu.8.1.2"
+      "focusa-vbcqu.8.4.1",
+      "focusa-vbcqu.8.4.2",
+      "focusa-vbcqu.8.4.3",
+      "focusa-vbcqu.8.4.4",
+      "focusa-vbcqu.8.4.5",
+      "focusa-vbcqu.8.4.6",
+      "focusa-vbcqu.8.4.7",
+      "focusa-vbcqu.8.4.8",
+      "focusa-vbcqu.9.9.1",
+      "focusa-vbcqu.9.9.2",
+      "focusa-vbcqu.9.9.3",
+      "focusa-vbcqu.9.9.4",
+      "focusa-vbcqu.9.9.5",
+      "focusa-vbcqu.9.9.6"
     ],
-    "reason": "closed decomposition descendants were absent from sealed Workset membership"
+    "reason": "Spec144 and Spec150 descendants admitted under two operator-authorized revision-7 roots"
   },
   "operator_authorized_post_lock_additions": [
     {
@@ -122,6 +130,34 @@
       "summary": "Mandatory north-star binding, continuous stale-state validation, and recoverable writer/checkpoint acquisition",
       "authorization_source": "operator_message:final_bug_and_no_more",
       "parent": "focusa-vbcqu.5"
+    },
+    {
+      "issue_id": "focusa-vbcqu.9.9",
+      "kind": "epic",
+      "lane": "locked-wave-7",
+      "execution_order": 7,
+      "final_scope_addition": true,
+      "after_issue_id": "focusa-vbcqu.8.1",
+      "before_issue_id": "focusa-vbcqu.8.2",
+      "terminal_gate": "focusa-vbcqu.9.7",
+      "parent": "focusa-vbcqu.8",
+      "priority": "P0",
+      "summary": "Ship complete Spec150 guided install, first project, maintenance, recovery, and cross-platform lifecycle",
+      "authorization_source": "operator_message:ensure_it_ships_no_omissions_no_deferrals"
+    },
+    {
+      "issue_id": "focusa-vbcqu.8.4",
+      "kind": "epic",
+      "lane": "locked-wave-7",
+      "execution_order": 7,
+      "final_scope_addition": true,
+      "after_issue_id": "focusa-vbcqu.8.1",
+      "before_issue_id": "focusa-vbcqu.8.2",
+      "terminal_gate": "focusa-vbcqu.9.7",
+      "parent": "focusa-vbcqu.8",
+      "priority": "P0",
+      "summary": "Ship full Spec144 semantic integrity and reality-grounded verification system",
+      "authorization_source": "operator_message:specs_must_permeate_reality_grounding_no_omissions"
     }
   ],
   "operator_scope": "original 38-item snapshot plus Specs 137, 137a, 138, 138a, and 140 plus four operator-authorized P0 bugs; all 251 existing descendants and mapped members are execution-sealed without scope expansion",
@@ -207,14 +243,14 @@
   },
   "scope_additions_closed": true,
   "scope_addition_policy": "closed_no_further_admissions",
-  "final_scope_addition_id": "focusa-o4gkd",
+  "final_scope_addition_id": "focusa-vbcqu.8.4",
   "final_scope_admission": {
-    "issue_id": "focusa-o4gkd",
-    "authorized_at": "2026-07-30T00:19:52Z",
-    "authorization_source": "operator_message:final_bug_and_no_more",
-    "reason": "Writer/checkpoint staleness blocks governed locked-release execution",
-    "execution_predecessor": "focusa-627th.4.3",
-    "execution_successor_phase": 1,
+    "issue_id": "focusa-vbcqu.8.4",
+    "authorized_at": "2026-07-31T17:45:00Z",
+    "authorization_source": "operator_message:specs_must_permeate_reality_grounding_no_omissions",
+    "reason": "Spec144 must permeate runtime and produce lasting reality-grounded effects",
+    "execution_predecessor": "focusa-vbcqu.8.1",
+    "execution_successor": "focusa-vbcqu.8.2",
     "further_additions_allowed": false
   }
 }

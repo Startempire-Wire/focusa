@@ -40,14 +40,18 @@ if (audit.schema !== "focusa.locked_release_decomposition.v2")
 if (manifest.pre_decomposition_open_issue_count !== 38)
   failures.push("original locked manifest count is not 38");
 if (
-  manifest.lock_revision !== 6 ||
+  !Number.isInteger(manifest.lock_revision) ||
+  manifest.lock_revision < 6 ||
   manifest.scope_state !== "locked" ||
   !manifest.relocked_at
 ) {
-  failures.push("release was not durably relocked at final revision 6");
+  failures.push("release is not durably relocked at or after revision 6");
 }
-if (manifest.current_explicit_issue_count !== 43)
-  failures.push("current explicit issue count is not 43");
+const expectedExplicitCount =
+  manifest.pre_decomposition_open_issue_count +
+  (manifest.operator_authorized_post_lock_additions?.length ?? 0);
+if (manifest.current_explicit_issue_count !== expectedExplicitCount)
+  failures.push("current explicit issue count does not match authorized scope");
 if (
   !Number.isInteger(manifest.current_locked_bead_member_count) ||
   manifest.current_locked_bead_member_count < 252
@@ -63,14 +67,19 @@ if (
   manifest.execution_lock?.audit_ref !==
     "scripts/audit-locked-release-execution.mjs" ||
   manifest.execution_lock?.schema_audit_ref !==
-    "scripts/audit-locked-release-workset-schema.py"
+    "scripts/audit-locked-release-workset-schema.py" ||
+  manifest.execution_lock?.workset_revision !== manifest.lock_revision ||
+  manifest.execution_lock?.workset_id !==
+    `workset:focusa-next-locked-release:r${manifest.lock_revision}`
 ) {
-  failures.push("final revision 6 execution lock contract is incomplete");
+  failures.push("current execution lock contract is incomplete");
 }
 if (
   manifest.scope_additions_closed !== true ||
   manifest.scope_addition_policy !== "closed_no_further_admissions" ||
-  manifest.final_scope_addition_id !== "focusa-o4gkd" ||
+  manifest.execution_lock?.final_scope_addition_id !==
+    manifest.final_scope_addition_id ||
+  manifest.final_scope_admission?.issue_id !== manifest.final_scope_addition_id ||
   manifest.final_scope_admission?.further_additions_allowed !== false ||
   manifest.execution_lock?.phase0_sequence?.join(",") !==
     "focusa-627th.4.3,focusa-o4gkd"
@@ -108,8 +117,11 @@ const manifestAdditions =
   manifest.operator_authorized_post_lock_additions ?? [];
 const decompositionAdditions =
   audit.operator_authorized_post_lock_additions ?? [];
-if (manifestAdditions.length !== 5 || decompositionAdditions.length !== 5) {
-  failures.push("operator-authorized post-lock addition count is not 5");
+if (
+  manifestAdditions.length !== decompositionAdditions.length ||
+  manifestAdditions.length < 5
+) {
+  failures.push("operator-authorized post-lock addition count mismatch");
 }
 const finalAddition = manifestAdditions.find(
   (entry) => entry.issue_id === "focusa-o4gkd",
@@ -152,7 +164,7 @@ sameSet(
 );
 for (const entry of decompositionAdditions) {
   if (
-    entry.kind !== "bug" ||
+    !["bug", "epic"].includes(entry.kind) ||
     !entry.lane ||
     !entry.parent ||
     !entry.terminal_gate ||

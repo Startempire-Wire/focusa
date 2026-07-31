@@ -1,21 +1,21 @@
 {
   "schema_version": "focusa.workset.v1",
-  "workset_id": "workset:focusa-next-locked-release:r6",
+  "workset_id": "workset:focusa-next-locked-release:r7",
   "scope": {
     "project_root": "/home/wirebot/focusa",
     "continuity_id": "focusa-v0.9.135-locked-14",
     "working_subpath_id": "working-subpath:06c27313b3e2a1c81f30775357d00150dcc1e4fbcb22fcbdec90749404ff6d8a"
   },
-  "title": "Focusa next locked release revision 6 final execution lock",
+  "title": "Focusa next locked release revision 7 Spec150 execution lock",
   "mission": "Close every locked member in dependency order: GitHub #14 first, final workflow-staleness bug #111 second, then phases 1-8 and zero-deferral publication proof.",
   "cardinality_mode": "fixed",
   "admission_state": "sealed",
   "lifecycle_state": "running",
-  "revision": 6,
+  "revision": 7,
   "relationship": "root",
   "membership_policy": "exclusive",
-  "membership_digest": "sha256:31e121952b3a831acc9c4e37067498b9271e132cd994f30b67a0d1d95dee8d43",
-  "graph_digest": "sha256:6dbc99417482989867e1830de8a5dd9d7dbb2c572a1cbac657231bbef7799500",
+  "membership_digest": "sha256:291fe5ec8096427d043831af6e88db020a79d4fbf346e9c4462e564cea3b3c52",
+  "graph_digest": "sha256:90561f9800a5028beb44108dee91fd8030e520d23c20354195c81b3a784600a4",
   "digest_algorithm": "sha256-jcs-v1",
   "created_at": "2026-07-29T23:35:32Z",
   "created_by": "operator:verious",
@@ -24,7 +24,7 @@
   "member_ledger_ref": "release-proof/audit/next-locked-release-workset-members.jsonl",
   "edge_ledger_ref": "release-proof/audit/next-locked-release-workset-edges.jsonl",
   "provider_binding_refs": [
-    "provider:bd:focusa-next-locked-release:r6"
+    "provider:bd:focusa-next-locked-release:r7"
   ],
   "specification_refs": [
     "docs/149-focusa-workset-flow-ledger-and-release-completion-spec.md"

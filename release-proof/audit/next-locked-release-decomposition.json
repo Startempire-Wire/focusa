@@ -49,6 +49,30 @@
       "terminal_gate": "focusa-vbcqu.9.7",
       "acceptance_ref": "https://github.com/Startempire-Wire/focusa/issues/111#issuecomment-5124731380",
       "parent": "focusa-vbcqu.5"
+    },
+    {
+      "issue_id": "focusa-vbcqu.9.9",
+      "kind": "epic",
+      "lane": "locked-wave-7",
+      "execution_order": 7,
+      "final_scope_addition": true,
+      "after_issue_id": "focusa-vbcqu.8.1",
+      "before_issue_id": "focusa-vbcqu.8.2",
+      "terminal_gate": "focusa-vbcqu.9.7",
+      "acceptance_ref": "operator_message:ensure_full_install_onboarding_no_omissions",
+      "parent": "focusa-vbcqu.8"
+    },
+    {
+      "issue_id": "focusa-vbcqu.8.4",
+      "kind": "epic",
+      "lane": "locked-wave-7",
+      "execution_order": 7,
+      "final_scope_addition": true,
+      "after_issue_id": "focusa-vbcqu.8.1",
+      "before_issue_id": "focusa-vbcqu.8.2",
+      "terminal_gate": "focusa-vbcqu.9.7",
+      "parent": "focusa-vbcqu.8",
+      "acceptance_ref": "operator_message:specs_must_permeate_reality_grounding_no_omissions"
     }
   ],
   "original_locked_issues": [
