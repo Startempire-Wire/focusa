@@ -5,8 +5,8 @@
   "locked_release_branch": "locked-release-all-open-spec137-138-140",
   "workset": {
     "workset_id": "workset:focusa-next-locked-release:r6",
-    "member_count": 252,
-    "unique_member_count": 252,
+    "member_count": 258,
+    "unique_member_count": 258,
     "missing_provider_members": [],
     "duplicate_member_count": 0,
     "unresolved_external_blockers": 0
@@ -24,8 +24,8 @@
     "focusa-vbcqu.7.4": "closed"
   },
   "issue_provider": {
-    "beads_owner_uid": 1001,
-    "issues_owner_uid": 1001,
+    "beads_owner_uid": 549,
+    "issues_owner_uid": 549,
     "owner_consistent": true
   },
   "restart_recovery_proofs": [
@@ -43,5 +43,5 @@
     "unresolved_external_blocker_count": 0
   },
   "errors": [],
-  "evidence_digest": "sha256:5693f9a189327acc39d94b0e4892ec2fe765947744ecbcb0db1a85fe975f9c9a"
+  "evidence_digest": "sha256:665590594e09ce86091f08c437d9a2034d91aaaef86db9c58f604ceca1832b77"
 }
