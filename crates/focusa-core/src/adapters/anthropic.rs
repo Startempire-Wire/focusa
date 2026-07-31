@@ -383,6 +383,7 @@ mod tests {
                 failures: vec![],
                 notes: vec![],
             },
+            temporal_context: None,
             completed_at: None,
             completion_reason: None,
         });

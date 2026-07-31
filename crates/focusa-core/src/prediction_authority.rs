@@ -71,6 +71,62 @@ pub struct PredictionCommitment {
     pub receipt_ref: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ActionPredictionCommitment {
+    pub action_id: String,
+    pub action_kind: String,
+    pub action_scope_ref: String,
+    pub prediction_temporal: crate::temporal_clock::TemporalActionEnvelope,
+    pub action_start_temporal: crate::temporal_clock::TemporalActionEnvelope,
+    pub commitment: PredictionCommitment,
+    pub expected_duration_ns: Option<u128>,
+    pub pattern_cohort_keys: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ActionPredictionGateError {
+    MissingActionIdentity,
+    IncompletePredictionPrerequisites,
+    UnavailableTemporalAuthority,
+    PredictionAfterActionStart,
+    CommitmentTimestampMismatch,
+}
+
+pub fn validate_action_prediction_commitment(
+    linked: &ActionPredictionCommitment,
+) -> Result<(), ActionPredictionGateError> {
+    if linked.action_id.trim().is_empty()
+        || linked.action_kind.trim().is_empty()
+        || linked.action_scope_ref.trim().is_empty()
+    {
+        return Err(ActionPredictionGateError::MissingActionIdentity);
+    }
+    if linked.prediction_temporal.confidence == crate::temporal::TemporalConfidence::Unavailable
+        || linked.action_start_temporal.confidence
+            == crate::temporal::TemporalConfidence::Unavailable
+        || linked.prediction_temporal.capture_failure.is_some()
+        || linked.action_start_temporal.capture_failure.is_some()
+    {
+        return Err(ActionPredictionGateError::UnavailableTemporalAuthority);
+    }
+    if linked.prediction_temporal.monotonic_ns > linked.action_start_temporal.monotonic_ns
+        || linked.prediction_temporal.captured_at_utc > linked.action_start_temporal.captured_at_utc
+    {
+        return Err(ActionPredictionGateError::PredictionAfterActionStart);
+    }
+    if linked.commitment.committed_at != linked.prediction_temporal.captured_at_utc {
+        return Err(ActionPredictionGateError::CommitmentTimestampMismatch);
+    }
+    if linked.commitment.evidence_refs.is_empty()
+        || linked.commitment.receipt_ref.trim().is_empty()
+        || linked.expected_duration_ns.is_none()
+        || linked.pattern_cohort_keys.is_empty()
+    {
+        return Err(ActionPredictionGateError::IncompletePredictionPrerequisites);
+    }
+    Ok(())
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OutcomeClaim {
     pub claim_id: String,

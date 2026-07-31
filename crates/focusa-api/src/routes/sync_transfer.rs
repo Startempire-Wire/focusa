@@ -14,7 +14,10 @@ use crate::server::AppState;
 use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
-use focusa_core::types::{Action, EventLogEntry, FocusaEvent, SignalOrigin};
+use focusa_core::{
+    temporal_clock::TemporalActionEnvelope,
+    types::{Action, EventLogEntry, FocusaEvent, SignalOrigin},
+};
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
@@ -81,6 +84,8 @@ struct TransferEvent {
     event_id: String,
     timestamp: String,
     machine_id: String,
+    #[serde(default)]
+    temporal: Option<TemporalActionEnvelope>,
     /// The event payload (FocusaEvent as JSON)
     event: serde_json::Value,
 }
@@ -157,6 +162,11 @@ pub async fn transfer_impl(
             timestamp: chrono::DateTime::parse_from_rfc3339(&remote.timestamp)
                 .map_err(|_| transfer_timestamp_rejected(&remote.timestamp))?
                 .with_timezone(&chrono::Utc),
+            temporal: remote.temporal.clone().unwrap_or_else(|| {
+                TemporalActionEnvelope::unavailable(
+                    "legacy_remote_transfer_missing_temporal_action_envelope",
+                )
+            }),
             event,
             correlation_id: Some(format!("sync:transfer:from:{}", body.peer_id)),
             origin: SignalOrigin::Sync,

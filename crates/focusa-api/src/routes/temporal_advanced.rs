@@ -1,6 +1,7 @@
 //! Spec137 forecast, civil-time, platform-clock, and high-consequence API operations.
 
-use axum::{Json, http::StatusCode};
+use crate::server::AppState;
+use axum::{Json, extract::State, http::StatusCode};
 use base64::{Engine as _, engine::general_purpose::STANDARD};
 use chrono::Utc;
 use focusa_core::{
@@ -25,10 +26,12 @@ use focusa_core::{
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
+use std::sync::Arc;
 use uuid::Uuid;
 
 use super::temporal::{
-    TemporalScopeDimensions, append_signed_events, fail, ledger, read_events, scope,
+    TemporalScopeDimensions, append_signed_events, fail, ledger, project_active_focus_frame,
+    read_events, scope,
 };
 
 #[derive(Debug, Deserialize)]
@@ -130,6 +133,7 @@ fn phase_from_claim(claim: &TemporalClaim) -> Option<ReleasePhase> {
 }
 
 pub(super) async fn forecast(
+    State(state): State<Arc<AppState>>,
     Json(req): Json<TemporalForecastRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let scope = scope(req.project_root, req.continuity_id, req.dimensions);
@@ -221,7 +225,7 @@ pub(super) async fn forecast(
             event_id: Uuid::now_v7().to_string(),
             sequence: 0,
             event_kind: TemporalEventKind::ForecastEvaluated,
-            scope,
+            scope: scope.clone(),
             claim: None,
             clock_sample: None,
             metadata: evaluation_metadata,
@@ -233,6 +237,7 @@ pub(super) async fn forecast(
         });
     }
     let signed_events = append_signed_events(&ledger, &req.idempotency_key, forecast_events)?;
+    project_active_focus_frame(state.as_ref(), &scope, &ledger).await?;
     Ok(Json(json!({
         "schema":"focusa.temporal_forecast.v1", "status":"completed", "canonical":false,
         "forecast":range, "evaluation":evaluation,"events":signed_events,
@@ -242,6 +247,7 @@ pub(super) async fn forecast(
 }
 
 pub(super) async fn commit_priority(
+    State(state): State<Arc<AppState>>,
     Json(req): Json<TemporalPriorityCommitRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let scope = scope(req.project_root, req.continuity_id, req.dimensions);
@@ -279,7 +285,7 @@ pub(super) async fn commit_priority(
         event_id: Uuid::now_v7().to_string(),
         sequence: 0,
         event_kind: TemporalEventKind::GuardIssued,
-        scope,
+        scope: scope.clone(),
         claim: None,
         clock_sample: None,
         metadata,
@@ -290,6 +296,7 @@ pub(super) async fn commit_priority(
         digest: String::new(),
     };
     let events = append_signed_events(&ledger, &req.idempotency_key, vec![event])?;
+    project_active_focus_frame(state.as_ref(), &scope, &ledger).await?;
     Ok(Json(json!({
         "schema":"focusa.temporal_priority_commit.v1","status":"completed","canonical":true,
         "events":events,"receipt_ref":format!("temporal-priority:{}",req.idempotency_key)
@@ -297,6 +304,7 @@ pub(super) async fn commit_priority(
 }
 
 pub(super) async fn resolve_civil(
+    State(state): State<Arc<AppState>>,
     Json(req): Json<TemporalCivilTimeResolveRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let scope = scope(req.project_root, req.continuity_id, req.dimensions);
@@ -326,7 +334,7 @@ pub(super) async fn resolve_civil(
         event_id: Uuid::now_v7().to_string(),
         sequence: 0,
         event_kind: TemporalEventKind::CivilTimeResolved,
-        scope,
+        scope: scope.clone(),
         claim: None,
         clock_sample: None,
         metadata,
@@ -337,6 +345,7 @@ pub(super) async fn resolve_civil(
         digest: String::new(),
     };
     let events = append_signed_events(&ledger, &req.idempotency_key, vec![event])?;
+    project_active_focus_frame(state.as_ref(), &scope, &ledger).await?;
     Ok(Json(json!({
         "schema":"focusa.temporal_civil_resolution.v1","status":"completed","canonical":true,
         "resolved_instants":resolved,"events":events,
@@ -345,6 +354,7 @@ pub(super) async fn resolve_civil(
 }
 
 pub(super) async fn capture_clock(
+    State(state): State<Arc<AppState>>,
     Json(req): Json<TemporalClockCaptureRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let scope = scope(req.project_root, req.continuity_id, req.dimensions);
@@ -365,7 +375,7 @@ pub(super) async fn capture_clock(
         event_id: Uuid::now_v7().to_string(),
         sequence: 0,
         event_kind: TemporalEventKind::ClockSampleObserved,
-        scope,
+        scope: scope.clone(),
         claim: None,
         clock_sample: Some(sample.clone()),
         metadata,
@@ -376,6 +386,7 @@ pub(super) async fn capture_clock(
         digest: String::new(),
     };
     let events = append_signed_events(&ledger, &req.idempotency_key, vec![capture])?;
+    project_active_focus_frame(state.as_ref(), &scope, &ledger).await?;
     Ok(Json(json!({
         "schema":"focusa.temporal_clock_capture.v1","status":"completed","canonical":true,
         "sample":sample,"events":events,"receipt_ref":format!("temporal-clock:{}",req.idempotency_key)
@@ -414,6 +425,7 @@ pub(super) async fn high_consequence_preflight(
 }
 
 pub(super) async fn migrate_signatures(
+    State(state): State<Arc<AppState>>,
     Json(req): Json<TemporalSignatureMigrationRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     if !req.confirm {
@@ -447,7 +459,7 @@ pub(super) async fn migrate_signatures(
         event_id: Uuid::now_v7().to_string(),
         sequence: 0,
         event_kind: TemporalEventKind::LegacySignatureAttestation,
-        scope,
+        scope: scope.clone(),
         claim: None,
         clock_sample: None,
         metadata,
@@ -458,6 +470,7 @@ pub(super) async fn migrate_signatures(
         digest: String::new(),
     };
     let appended = append_signed_events(&ledger, &req.idempotency_key, vec![attestation])?;
+    project_active_focus_frame(state.as_ref(), &scope, &ledger).await?;
     Ok(Json(json!({
         "schema":"focusa.temporal_signature_migration.v1",
         "status":"completed","canonical":true,"events":appended,

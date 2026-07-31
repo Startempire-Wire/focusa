@@ -315,6 +315,7 @@ mod tests {
             stats: FrameStats::default(),
             constraints: vec![],
             focus_state: sample_state(),
+            temporal_context: None,
             completed_at: None,
             completion_reason: None,
         };
@@ -344,6 +345,7 @@ mod tests {
             stats: FrameStats::default(),
             constraints: vec![],
             focus_state: sample_state(),
+            temporal_context: None,
             completed_at: None,
             completion_reason: None,
         };

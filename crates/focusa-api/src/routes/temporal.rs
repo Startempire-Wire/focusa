@@ -3,7 +3,7 @@
 use crate::server::AppState;
 use axum::{
     Json, Router,
-    extract::Query,
+    extract::{Query, State},
     http::StatusCode,
     routing::{get, post},
 };
@@ -184,6 +184,8 @@ pub(super) fn append_signed_events(
         })
 }
 
+pub(super) use super::focus::project_active_temporal_frame as project_active_focus_frame;
+
 pub(super) fn ledger(scope: TemporalScope) -> Result<TemporalLedger, (StatusCode, Json<Value>)> {
     TemporalLedger::for_project(scope).map_err(|error| {
         fail(
@@ -297,6 +299,7 @@ async fn status(
 }
 
 async fn commit(
+    State(state): State<Arc<AppState>>,
     Json(req): Json<TemporalClaimRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let scope = scope(req.project_root, req.continuity_id, req.dimensions);
@@ -326,12 +329,13 @@ async fn commit(
         &ledger,
         &req.idempotency_key,
         vec![event(
-            scope,
+            scope.clone(),
             TemporalEventKind::ClaimCommitted,
             req.claim,
             &req.idempotency_key,
         )],
     )?;
+    project_active_focus_frame(state.as_ref(), &scope, &ledger).await?;
     Ok(Json(json!({
         "schema":"focusa.temporal_commit_result.v1", "status":"completed", "canonical":true,
         "events":events, "receipt_ref":format!("temporal:{}",req.idempotency_key),
@@ -340,6 +344,7 @@ async fn commit(
 }
 
 async fn revise(
+    State(state): State<Arc<AppState>>,
     Json(req): Json<TemporalClaimRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let scope = scope(req.project_root, req.continuity_id, req.dimensions);
@@ -382,13 +387,14 @@ async fn revise(
                 &req.idempotency_key,
             ),
             event(
-                scope,
+                scope.clone(),
                 TemporalEventKind::ClaimRevised,
                 revised,
                 &req.idempotency_key,
             ),
         ],
     )?;
+    project_active_focus_frame(state.as_ref(), &scope, &ledger).await?;
     Ok(Json(json!({
         "schema":"focusa.temporal_revision_result.v1", "status":"completed", "canonical":true,
         "events":appended, "receipt_ref":format!("temporal:{}",req.idempotency_key),
@@ -397,6 +403,7 @@ async fn revise(
 }
 
 async fn observe(
+    State(state): State<Arc<AppState>>,
     Json(req): Json<TemporalObserveRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let scope = scope(req.project_root, req.continuity_id, req.dimensions);
@@ -428,12 +435,13 @@ async fn observe(
         &ledger,
         &req.idempotency_key,
         vec![event(
-            scope,
+            scope.clone(),
             TemporalEventKind::DurationObserved,
             claim,
             &req.idempotency_key,
         )],
     )?;
+    project_active_focus_frame(state.as_ref(), &scope, &ledger).await?;
     Ok(Json(json!({
         "schema":"focusa.temporal_observation_result.v1", "status":"completed",
         "outcome":req.outcome, "events":events,

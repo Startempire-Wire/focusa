@@ -293,6 +293,7 @@ mod tests {
         let entry = EventLogEntry {
             id: Uuid::now_v7(),
             timestamp: Utc::now(),
+            temporal: Default::default(),
             event: crate::types::FocusaEvent::SessionStarted {
                 session_id: Uuid::now_v7(),
                 adapter_id: None,
@@ -325,6 +326,7 @@ mod tests {
             let entry = EventLogEntry {
                 id: Uuid::now_v7(),
                 timestamp: Utc::now(),
+                temporal: Default::default(),
                 event: crate::types::FocusaEvent::IntuitionSignalObserved {
                     signal_id: Uuid::now_v7(),
                     signal_type: crate::types::SignalKind::UserInput,
@@ -347,6 +349,7 @@ mod tests {
             let entry = EventLogEntry {
                 id: Uuid::now_v7(),
                 timestamp: Utc::now(),
+                temporal: Default::default(),
                 event: crate::types::FocusaEvent::IntuitionSignalObserved {
                     signal_id: Uuid::now_v7(),
                     signal_type: crate::types::SignalKind::AssistantOutput,
@@ -382,6 +385,7 @@ mod tests {
                 let entry = EventLogEntry {
                     id: Uuid::now_v7(),
                     timestamp: Utc::now(),
+                    temporal: Default::default(),
                     event: crate::types::FocusaEvent::IntuitionSignalObserved {
                         signal_id: Uuid::now_v7(),
                         signal_type: crate::types::SignalKind::UserInput,
@@ -433,6 +437,7 @@ mod tests {
             entry: EventLogEntry {
                 id: Uuid::now_v7(),
                 timestamp: Utc::now(),
+                temporal: Default::default(),
                 event: crate::types::FocusaEvent::SessionStarted {
                     session_id: Uuid::now_v7(),
                     adapter_id: None,

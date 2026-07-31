@@ -238,6 +238,90 @@ fn append_only_recovery_and_scope_isolation_are_deterministic() {
 }
 
 #[test]
+fn action_prediction_and_actual_delta_lifecycle_is_temporally_ordered() {
+    let prediction_temporal =
+        crate::temporal_clock::capture_temporal_action_envelope("UTC", None).unwrap();
+    let mut action_start_temporal = prediction_temporal.clone();
+    action_start_temporal.envelope_id = "temporal:action-start".into();
+    action_start_temporal.monotonic_ns += 1_000;
+    action_start_temporal.captured_at_utc += Duration::microseconds(1);
+    action_start_temporal.utc_unix_ns += 1_000;
+    let mut prediction = commitment();
+    prediction.committed_at = prediction_temporal.captured_at_utc;
+    let linked = ActionPredictionCommitment {
+        action_id: "action:1".into(),
+        action_kind: "lookup".into(),
+        action_scope_ref: "scope:project+continuity".into(),
+        prediction_temporal: prediction_temporal.clone(),
+        action_start_temporal: action_start_temporal.clone(),
+        commitment: prediction.clone(),
+        expected_duration_ns: Some(2_000),
+        pattern_cohort_keys: vec!["cache:hot".into()],
+    };
+    assert_eq!(validate_action_prediction_commitment(&linked), Ok(()));
+    let mut backfilled = linked.clone();
+    backfilled.prediction_temporal.monotonic_ns = action_start_temporal.monotonic_ns + 1;
+    assert_eq!(
+        validate_action_prediction_commitment(&backfilled),
+        Err(ActionPredictionGateError::PredictionAfterActionStart)
+    );
+
+    let mut completed = action_start_temporal.clone();
+    completed.envelope_id = "temporal:completed".into();
+    completed.monotonic_ns += 3_000;
+    completed.captured_at_utc += Duration::microseconds(3);
+    completed.utc_unix_ns += 3_000;
+    let trace = crate::temporal_progress::ActionTimingTrace {
+        trace_id: "trace:1".into(),
+        action_id: "action:1".into(),
+        prediction_id: prediction.commitment_id.clone(),
+        started_temporal_envelope_ref: action_start_temporal.envelope_id.clone(),
+        completed_temporal_envelope_ref: completed.envelope_id.clone(),
+        started_monotonic_ns: action_start_temporal.monotonic_ns,
+        completed_monotonic_ns: completed.monotonic_ns,
+        total_elapsed_ns: 3_000,
+        spans: vec![],
+        attributed_union_ns: 0,
+        unattributed_ns: 3_000,
+        reconciliation_delta_ns: 0,
+        evidence_refs: vec!["evidence:timing".into()],
+    };
+    let claim = OutcomeClaim {
+        claim_id: "claim:1".into(),
+        commitment_id: prediction.commitment_id.clone(),
+        claimed_outcome: "yes".into(),
+        claimed_at: completed.captured_at_utc,
+        source_ref: "action:1".into(),
+        evidence_refs: vec!["evidence:actual".into()],
+    };
+    let observation = crate::outcome_resolution::ActionOutcomeObservation {
+        observation_id: "observation:1".into(),
+        action_id: "action:1".into(),
+        commitment_id: prediction.commitment_id.clone(),
+        predicted_outcome: "yes".into(),
+        actual_outcome: "yes".into(),
+        outcome_match_score: 1.0,
+        completed_temporal: completed,
+        timing_trace: trace,
+        expected_duration_ns: 2_000,
+        actual_duration_ns: 3_000,
+        duration_delta_ns: 1_000,
+        outcome_claim: claim,
+        evidence_refs: vec!["evidence:settlement".into()],
+    };
+    assert_eq!(
+        crate::outcome_resolution::validate_action_outcome_observation(&linked, &observation),
+        Ok(())
+    );
+    let mut wrong_delta = observation;
+    wrong_delta.duration_delta_ns = 0;
+    assert_eq!(
+        crate::outcome_resolution::validate_action_outcome_observation(&linked, &wrong_delta),
+        Err(crate::outcome_resolution::ActionOutcomeObservationError::InvalidDurationDelta)
+    );
+}
+
+#[test]
 fn transfer_outcome_preserves_negative_transfer() {
     let outcome = TransferOutcome {
         outcome_id: "outcome:1".into(),

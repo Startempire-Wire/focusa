@@ -4,9 +4,16 @@ use chrono::{Duration, Utc};
 use ed25519_dalek::SigningKey;
 
 use crate::{
-    temporal::*, temporal_authority::*, temporal_clock::*, temporal_deadline::*,
-    temporal_foundation::*, temporal_high_consequence::*, temporal_integrity::*,
-    temporal_operations::*, temporal_progress::*,
+    temporal::*,
+    temporal_authority::*,
+    temporal_clock::*,
+    temporal_deadline::*,
+    temporal_foundation::*,
+    temporal_high_consequence::*,
+    temporal_integrity::*,
+    temporal_operations::*,
+    temporal_progress::*,
+    types::{EventLogEntry, FocusaEvent, SignalOrigin},
 };
 
 fn scope() -> TemporalScope {
@@ -331,6 +338,84 @@ fn closure_keeps_factual_completion_separate_from_disposition_and_temporal_failu
         validate_closure_posture(&posture),
         Err(ClosurePostureError::NonCompletionMasqueradesAsCompletion)
     );
+}
+
+#[test]
+fn action_timing_trace_attributes_parallel_cache_latency_without_double_counting() {
+    let span = |id: &str, end: u128, cache_disposition, critical| LookupTimingSpan {
+        span_id: id.into(),
+        action_id: "action-1".into(),
+        parent_span_id: None,
+        parallel_group_id: Some("parallel-lookups".into()),
+        location_kind: LookupLocationKind::Network,
+        location_ref: format!("location:{id}"),
+        provider_ref: None,
+        storage_tier: Some("hot".into()),
+        cache_disposition,
+        cache_age_ns: None,
+        started_monotonic_ns: 100,
+        ended_monotonic_ns: end,
+        elapsed_ns: end - 100,
+        expected_elapsed_ns: Some(300),
+        expected_actual_delta_ns: Some((end - 100) as i128 - 300),
+        components: LookupLatencyComponents {
+            network_ns: Some(end - 150),
+            ..Default::default()
+        },
+        critical_path_contribution_ns: critical,
+        evidence_refs: vec![format!("evidence:{id}")],
+    };
+    let trace = ActionTimingTrace {
+        trace_id: "trace-1".into(),
+        action_id: "action-1".into(),
+        prediction_id: "prediction-1".into(),
+        started_temporal_envelope_ref: "temporal:start".into(),
+        completed_temporal_envelope_ref: "temporal:end".into(),
+        started_monotonic_ns: 0,
+        completed_monotonic_ns: 1_000,
+        total_elapsed_ns: 1_000,
+        spans: vec![
+            span("cache", 500, CacheDisposition::Miss, 0),
+            span("provider", 800, CacheDisposition::NotApplicable, 700),
+        ],
+        attributed_union_ns: 700,
+        unattributed_ns: 300,
+        reconciliation_delta_ns: 0,
+        evidence_refs: vec!["trace:evidence".into()],
+    };
+    assert_eq!(validate_action_timing_trace(&trace), Ok(()));
+    let mut double_counted = trace;
+    double_counted.spans[0].critical_path_contribution_ns = 400;
+    assert_eq!(
+        validate_action_timing_trace(&double_counted),
+        Err(ActionTimingTraceError::ParallelCriticalPathConflict)
+    );
+}
+
+#[test]
+fn event_log_temporal_envelope_is_single_sample_and_legacy_safe() {
+    let entry = EventLogEntry::captured(
+        FocusaEvent::ContinuousTransportAbortForwarded {
+            reason: "test".into(),
+        },
+        SignalOrigin::Daemon,
+        Some("test:temporal-envelope".into()),
+    );
+    assert_eq!(entry.timestamp, entry.temporal.captured_at_utc);
+    assert_eq!(
+        entry.temporal.schema_version,
+        "focusa.temporal_action_envelope.v1"
+    );
+
+    let mut legacy_json = serde_json::to_value(&entry).unwrap();
+    legacy_json.as_object_mut().unwrap().remove("temporal");
+    let legacy: EventLogEntry = serde_json::from_value(legacy_json).unwrap();
+    assert_eq!(legacy.temporal.confidence, TemporalConfidence::Unavailable);
+    assert_eq!(
+        legacy.temporal.capture_failure.as_deref(),
+        Some("legacy_event_missing_temporal_action_envelope")
+    );
+    assert_eq!(legacy.temporal.monotonic_ns, 0);
 }
 
 #[test]

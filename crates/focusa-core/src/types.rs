@@ -3537,12 +3537,23 @@ pub struct FrameRecord {
     pub constraints: Vec<String>,
     /// The frame's current cognitive state (updated incrementally via deltas).
     pub focus_state: FocusState,
+    /// Replayable projection of the canonical temporal event ledger for this exact frame scope.
+    /// This is presentation/context state, never a competing temporal authority.
+    #[serde(default)]
+    pub temporal_context: Option<TemporalFrameContext>,
     /// When the frame was completed (G1-detail-05 UPDATE §Completion Semantics).
     #[serde(default)]
     pub completed_at: Option<DateTime<Utc>>,
     /// Why the frame was completed (G1-detail-05 UPDATE §Completion Semantics).
     #[serde(default)]
     pub completion_reason: Option<CompletionReason>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TemporalFrameContext {
+    pub projection: crate::temporal::TemporalProjection,
+    pub source_event_count: usize,
+    pub projected_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -4230,6 +4241,11 @@ pub enum FocusaEvent {
         frame_id: FrameId,
         delta: FocusStateDelta,
     },
+    /// Replay a typed temporal-ledger projection into the exact scoped Focus Stack frame.
+    TemporalFrameContextProjected {
+        frame_id: FrameId,
+        context: TemporalFrameContext,
+    },
 
     // Intuition → Gate
     IntuitionSignalObserved {
@@ -4558,6 +4574,10 @@ pub struct ReductionResult {
 pub struct EventLogEntry {
     pub id: Uuid,
     pub timestamp: DateTime<Utc>,
+    /// Universal evidence-backed wall-clock and causal-time context captured once at action ingress.
+    /// Legacy entries deserialize to an explicit unavailable sentinel; replay never recaptures time.
+    #[serde(default)]
+    pub temporal: crate::temporal_clock::TemporalActionEnvelope,
     #[serde(flatten)]
     pub event: FocusaEvent,
     pub correlation_id: Option<String>,
@@ -4579,6 +4599,38 @@ pub struct EventLogEntry {
     /// Observations are recorded but do not mutate canonical Focus Stack/State.
     #[serde(default)]
     pub is_observation: bool,
+}
+
+impl EventLogEntry {
+    pub fn captured(
+        event: FocusaEvent,
+        origin: SignalOrigin,
+        correlation_id: Option<String>,
+    ) -> Self {
+        let temporal = crate::temporal_clock::capture_operator_temporal_action_envelope();
+        Self::with_temporal(event, origin, correlation_id, temporal)
+    }
+
+    pub fn with_temporal(
+        event: FocusaEvent,
+        origin: SignalOrigin,
+        correlation_id: Option<String>,
+        temporal: crate::temporal_clock::TemporalActionEnvelope,
+    ) -> Self {
+        Self {
+            id: Uuid::now_v7(),
+            timestamp: temporal.captured_at_utc,
+            temporal,
+            event,
+            correlation_id,
+            origin,
+            machine_id: None,
+            instance_id: None,
+            session_id: None,
+            thread_id: None,
+            is_observation: false,
+        }
+    }
 }
 
 // ─── Workers (from G1-10-workers.md) ────────────────────────────────────────

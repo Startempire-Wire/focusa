@@ -3276,18 +3276,13 @@ async fn set_decision_context(
         )
     })?;
     let new_state = result.new_state;
-    let entry = EventLogEntry {
-        id: Uuid::now_v7(),
-        timestamp: Utc::now(),
+    let mut entry = EventLogEntry::captured(
         event,
-        correlation_id: Some("api:work_loop_context".to_string()),
-        origin: SignalOrigin::Cli,
-        machine_id,
-        instance_id: None,
-        session_id: new_state.session.as_ref().map(|session| session.session_id),
-        thread_id: None,
-        is_observation: false,
-    };
+        SignalOrigin::Cli,
+        Some("api:work_loop_context".to_string()),
+    );
+    entry.machine_id = machine_id;
+    entry.session_id = new_state.session.as_ref().map(|session| session.session_id);
     let _ = state
         .persist_events_checkpoint(vec![entry.clone()], new_state.clone())
         .await;
@@ -3858,18 +3853,13 @@ async fn attach_session(
         )
     })?;
     let new_state = result.new_state;
-    let entry = EventLogEntry {
-        id: Uuid::now_v7(),
-        timestamp: Utc::now(),
+    let mut entry = EventLogEntry::captured(
         event,
-        correlation_id: Some("api:work_loop_attach_session".to_string()),
-        origin: SignalOrigin::Cli,
-        machine_id,
-        instance_id: None,
-        session_id: new_state.session.as_ref().map(|session| session.session_id),
-        thread_id: None,
-        is_observation: false,
-    };
+        SignalOrigin::Cli,
+        Some("api:work_loop_attach_session".to_string()),
+    );
+    entry.machine_id = machine_id;
+    entry.session_id = new_state.session.as_ref().map(|session| session.session_id);
     let _ = state
         .persist_events_checkpoint(vec![entry.clone()], new_state.clone())
         .await;
@@ -3922,18 +3912,13 @@ async fn abort_session(
         )
     })?;
     let new_state = result.new_state;
-    let entry = EventLogEntry {
-        id: Uuid::now_v7(),
-        timestamp: Utc::now(),
+    let mut entry = EventLogEntry::captured(
         event,
-        correlation_id: Some("api:work_loop_abort_session".to_string()),
-        origin: SignalOrigin::Cli,
-        machine_id,
-        instance_id: None,
-        session_id: new_state.session.as_ref().map(|session| session.session_id),
-        thread_id: None,
-        is_observation: false,
-    };
+        SignalOrigin::Cli,
+        Some("api:work_loop_abort_session".to_string()),
+    );
+    entry.machine_id = machine_id;
+    entry.session_id = new_state.session.as_ref().map(|session| session.session_id);
     let _ = state
         .persist_events_checkpoint(vec![entry.clone()], new_state.clone())
         .await;
@@ -4031,18 +4016,13 @@ async fn set_pause_flags(
                 Some("governance decision pending".to_string());
         }
     }
-    let entry = EventLogEntry {
-        id: Uuid::now_v7(),
-        timestamp: Utc::now(),
+    let mut entry = EventLogEntry::captured(
         event,
-        correlation_id: Some("api:work_loop_pause_flags".to_string()),
-        origin: SignalOrigin::Cli,
-        machine_id,
-        instance_id: None,
-        session_id: new_state.session.as_ref().map(|session| session.session_id),
-        thread_id: None,
-        is_observation: false,
-    };
+        SignalOrigin::Cli,
+        Some("api:work_loop_pause_flags".to_string()),
+    );
+    entry.machine_id = machine_id;
+    entry.session_id = new_state.session.as_ref().map(|session| session.session_id);
     let _ = state
         .persist_events_checkpoint(vec![entry.clone()], new_state.clone())
         .await;
@@ -4397,22 +4377,18 @@ async fn checkpoint(
         )
     })?;
     let new_state = result.new_state;
-    let entry = EventLogEntry {
-        id: checkpoint_id,
-        timestamp: Utc::now(),
+    let mut entry = EventLogEntry::captured(
         event,
-        correlation_id: Some(format!(
+        SignalOrigin::Cli,
+        Some(format!(
             "work_loop_checkpoint|project_root={}|continuity_id={}",
             scope.0.root_scope.root_path.display(),
             scope.0.continuity_id
         )),
-        origin: SignalOrigin::Cli,
-        machine_id,
-        instance_id: None,
-        session_id: new_state.session.as_ref().map(|session| session.session_id),
-        thread_id: None,
-        is_observation: false,
-    };
+    );
+    entry.id = checkpoint_id;
+    entry.machine_id = machine_id;
+    entry.session_id = new_state.session.as_ref().map(|session| session.session_id);
     state
         .persist_events_checkpoint(vec![entry.clone()], new_state.clone())
         .await

@@ -154,18 +154,10 @@ async fn materialize_thread_event(
         )
     })?;
     let new_state = result.new_state;
-    let entry = EventLogEntry {
-        id: Uuid::now_v7(),
-        timestamp: Utc::now(),
-        event,
-        correlation_id: Some(correlation_id.to_string()),
-        origin: SignalOrigin::Cli,
-        machine_id,
-        instance_id: None,
-        session_id: new_state.session.as_ref().map(|session| session.session_id),
-        thread_id: None,
-        is_observation: false,
-    };
+    let mut entry =
+        EventLogEntry::captured(event, SignalOrigin::Cli, Some(correlation_id.to_string()));
+    entry.machine_id = machine_id;
+    entry.session_id = new_state.session.as_ref().map(|session| session.session_id);
     let _ = state
         .persist_events_checkpoint(vec![entry.clone()], new_state.clone())
         .await;
