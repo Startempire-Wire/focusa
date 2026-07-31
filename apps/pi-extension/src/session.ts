@@ -74,6 +74,7 @@ import {
   shouldEmitProjectScopeRecoveryPacket,
   type ProjectBindingDecisionV1,
 } from "./project-binding.js";
+import { publishScopedStateChange } from "./scoped-surface-refresh.js";
 
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
 let sseAbort: AbortController | null = null;
@@ -970,6 +971,43 @@ function connectSSE() {
 
 // §30: Metacognitive awareness indicators + §37.10: Cross-surface events
 function handleSSEEvent(evt: any) {
+  const scopedRefreshEvents = new Set([
+    "project_bound",
+    "project_verified",
+    "trajectory_goal_defined",
+    "trajectory_updated",
+    "workpoint_checkpointed",
+    "workpoint_updated",
+    "evidence_linked",
+    "bead_updated",
+    "focus_state_updated",
+    "work_loop_updated",
+  ]);
+  if (scopedRefreshEvents.has(String(evt?.type || ""))) {
+    const eventRoot = normalizeProjectRoot(
+      evt?.scope?.project_root || evt?.project_root || evt?.data?.project_root
+    );
+    const eventContinuity = String(
+      evt?.scope?.continuity_id || evt?.continuity_id || evt?.data?.continuity_id || ""
+    ).trim();
+    const currentRoot = normalizeProjectRoot(getSessionCwd());
+    const currentContinuity = getContinuityId();
+    if (
+      eventRoot &&
+      eventRoot === currentRoot &&
+      (!eventContinuity || !currentContinuity || eventContinuity === currentContinuity)
+    ) {
+      publishScopedStateChange({
+        source: "sse",
+        mutation_kind: String(evt.type),
+        project_root: currentRoot,
+        continuity_id: currentContinuity,
+        status: "observed",
+        evidence_revision: String(evt?.revision || evt?.event_id || "").trim() || undefined,
+        effective_at: new Date().toISOString(),
+      });
+    }
+  }
   switch (evt.type) {
     case "worker_started":
       getAttachmentRuntime().lastMetacogEvent = "thinking...";

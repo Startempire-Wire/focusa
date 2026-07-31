@@ -218,9 +218,10 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
           : Array.isArray(packet?.evidence_refs)
             ? packet.evidence_refs.length
             : 0;
+        const proofStatus = proof > 0 ? `proof:${proof}` : "proof:missing";
         const next = workpoint?.next_slice || packet?.next_slice || "checkpoint next action";
         ctx.ui.notify(
-          `Work Rail | ${bead} | ${workpointId} | proof:${proof} | next:${next}`,
+          `Work Rail | ${bead} | ${workpointId} | ${proofStatus} | next:${next}`,
           packet ? "info" : "warning"
         );
       },

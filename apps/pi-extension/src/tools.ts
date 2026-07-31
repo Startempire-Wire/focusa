@@ -75,6 +75,7 @@ import {
 } from "./scoped-state.js";
 import { buildNorthStarSnapshot, renderNorthStarCard } from "./north-star.js";
 import { projectBindingAllowsDurableWrites, reconcileProjectBindingDecision } from "./project-binding.js";
+import { publishScopedStateChange } from "./scoped-surface-refresh.js";
 
 const SCRATCHPAD_DIR = "/tmp/pi-scratch";
 
@@ -3106,10 +3107,34 @@ export function registerTools(pi: ExtensionAPI) {
       } catch {
         body = null;
       }
+      if (r.ok && !["GET", "HEAD", "OPTIONS"].includes(method)) {
+        const responseRoot = normalizeProjectRoot(
+          body?.scope?.root_scope?.root_path || body?.project_root || body?.project_identity?.project_root
+        );
+        const responseContinuity = String(body?.scope?.continuity_id || body?.continuity_id || "").trim();
+        const requestedRoot = normalizeProjectRoot(attachmentKey.workstream.root_scope.root_path);
+        const requestedContinuity = attachmentKey.workstream.continuity_id;
+        if (
+          (!responseRoot || responseRoot === requestedRoot) &&
+          (!responseContinuity || responseContinuity === requestedContinuity)
+        ) {
+          publishScopedStateChange({
+            source: "tool",
+            mutation_kind: path.split("?")[0] || path,
+            project_root: requestedRoot,
+            continuity_id: requestedContinuity,
+            status: body?.degraded === true ? "degraded" : "accepted",
+            evidence_revision:
+              String(
+                body?.revision || body?.event_id || body?.receipt_id || body?.workpoint_id || ""
+              ).trim() || undefined,
+            effective_at: new Date().toISOString(),
+          });
+        }
+      }
       return { ok: r.ok, status: r.status, body };
     } catch (err: any) {
       const aborted = err?.name === "AbortError";
-      const method = String(opts.method || "GET");
       const routeTier = focusaRouteTier(path, method);
       const failureClass = aborted ? timeoutFailureClassForRoute(path, method) : "daemon_unavailable";
       return {
