@@ -150,6 +150,7 @@ impl GoogleDriveConnector {
         }
     }
 
+    #[allow(clippy::result_large_err)]
     pub async fn discover(
         &self,
         query: Option<&str>,
@@ -200,6 +201,7 @@ impl GoogleDriveConnector {
         })
     }
 
+    #[allow(clippy::result_large_err)]
     pub async fn import_candidate(
         &self,
         file_id: &str,

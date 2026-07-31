@@ -288,7 +288,7 @@ async fn draft(
             .map(|source| source.content_sha256.as_str())
             .collect::<Vec<_>>()
             .join(":"),
-        lifecycle: composition.constitution.status.clone(),
+        lifecycle: composition.constitution.status,
         created_at: Utc::now(),
     });
     let event_id = Uuid::now_v7().to_string();

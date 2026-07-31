@@ -3,7 +3,10 @@
 use crate::api_client::ApiClient;
 use clap::{Args, Subcommand};
 use serde_json::{Value, json};
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 #[derive(Subcommand)]
 pub enum AgentRuntimeCmd {
@@ -277,7 +280,7 @@ fn project_query(action: &str, args: &ProjectArgs) -> anyhow::Result<String> {
     ))
 }
 
-fn canonical_root(path: &PathBuf) -> anyhow::Result<String> {
+fn canonical_root(path: &Path) -> anyhow::Result<String> {
     Ok(path.canonicalize()?.to_string_lossy().into_owned())
 }
 

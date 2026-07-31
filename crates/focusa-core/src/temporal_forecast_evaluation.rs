@@ -43,6 +43,7 @@ pub fn forecast_remains_valid(
     issued == current
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn evaluate_forecast(
     range: &ForecastRange,
     actual_ms: u64,

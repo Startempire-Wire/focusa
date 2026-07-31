@@ -50,6 +50,7 @@ pub enum PredictionMigrationError {
     InvalidSequence,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn migrate_legacy_record(
     migration_id: impl Into<String>,
     source: LegacyEpistemicSource,

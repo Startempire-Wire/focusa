@@ -131,6 +131,7 @@ pub fn validate_evaluation_authority(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn build_calibration_report(
     report_id: impl Into<String>,
     observations: &[CalibrationObservation],

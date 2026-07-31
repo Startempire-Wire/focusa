@@ -3034,6 +3034,7 @@ Return:
         }
     }
 
+    #[allow(clippy::result_large_err)]
     async fn complete_work_item_via_lifecycle(
         &self,
         task: &SpecLinkedTaskPacket,

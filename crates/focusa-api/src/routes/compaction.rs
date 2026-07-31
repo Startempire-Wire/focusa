@@ -234,7 +234,7 @@ fn build_packet(state: &FocusaState, req: &BuildCompactionPacketRequest) -> Valu
         .project_root
         .as_deref()
         .zip(req.continuity_id.as_deref())
-        .map(|(project_root, continuity_id)| {
+        .and_then(|(project_root, continuity_id)| {
             let scope = focusa_core::temporal::TemporalScope::project(project_root, continuity_id);
             focusa_core::temporal::TemporalLedger::for_project(scope.clone())
                 .and_then(|ledger| ledger.read_all())
@@ -248,7 +248,6 @@ fn build_packet(state: &FocusaState, req: &BuildCompactionPacketRequest) -> Valu
                     .ok()
                 })
         })
-        .flatten()
         .unwrap_or_else(|| json!({"status":"degraded","authority":"advisory_only"}));
 
     json!({

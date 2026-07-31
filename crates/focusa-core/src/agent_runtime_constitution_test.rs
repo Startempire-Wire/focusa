@@ -83,7 +83,7 @@ fn all_reducer_event_names_are_stable() {
         lifecycle: RuntimeConstitutionLifecycleState::Draft,
         created_at: Utc::now(),
     };
-    let events = vec![
+    let events = [
         RuntimeConstitutionEvent::InstructionSourceScanStarted(serde_json::json!({})),
         RuntimeConstitutionEvent::RuntimeConstitutionDrafted(version.clone()),
         RuntimeConstitutionEvent::RuntimeConstitutionApproved(version.clone()),

@@ -109,6 +109,7 @@ pub enum SourceSecurityError {
     EmptyAuditExport,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn build_security_audit_export(
     export_id: impl Into<String>,
     policy: &SourceSecurityPolicy,

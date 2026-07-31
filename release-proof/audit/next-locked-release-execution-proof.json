@@ -29,8 +29,7 @@
     "8": "focusa-vbcqu"
   },
   "unique_ready_frontier": [
-    "focusa-a6yq6.10.8",
-    "focusa-vbcqu.7.2"
+    "focusa-a6yq6.10.8"
   ],
   "terminal_member_ref": "focusa-vbcqu",
   "terminal_coverage_count": 252,
@@ -174,7 +173,7 @@
     }
   ],
   "provider_missing_members": 0,
-  "membership_digest": "sha256:be538f3c67a79755e6d5b01e5e47963be17f0706158eb05fcd9ec59973dd40ab",
+  "membership_digest": "sha256:ecdc36a4a748691f49c4e95b20e1ffd8dc3cf21e27c7dda68f24eea7d0ab6122",
   "graph_digest": "sha256:86debebcd5a55e4449b88af669b591a2021acd51c88b90debace7fa31055efb4",
   "sealed_at": "2026-07-29T23:35:32Z",
   "out_of_order_in_progress": [],

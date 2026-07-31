@@ -105,13 +105,12 @@ impl PersistentPredictionAuthorityLedger {
             return Err(PredictionStorageError::DuplicateEvent);
         }
         let mut predecessor = existing.last().map(|row| row.digest.clone());
-        let mut next_sequence = existing.last().map_or(1, |row| row.event.sequence + 1);
+        let next_sequence = existing.last().map_or(1, |row| row.event.sequence + 1);
         let mut appended = Vec::new();
-        for event in events {
-            self.validate_event(&event, next_sequence)?;
+        for (offset, event) in events.into_iter().enumerate() {
+            self.validate_event(&event, next_sequence + offset as u64)?;
             let row = seal(event, predecessor.clone())?;
             predecessor = Some(row.digest.clone());
-            next_sequence += 1;
             appended.push(row);
         }
         if let Some(parent) = self.path.parent() {
@@ -246,16 +245,15 @@ impl PersistentPredictionAuthorityLedger {
                     ));
                 }
             }
-            PredictionAuthorityEvent::LegacyMigration(migration) => {
+            PredictionAuthorityEvent::LegacyMigration(migration)
                 if migration.evidence_refs.is_empty()
                     || migration.receipt_ref.trim().is_empty()
                     || migration.lineage_refs.is_empty()
-                    || migration.rollback_ref.trim().is_empty()
-                {
-                    return Err(PredictionStorageError::InvalidPrimitive(
-                        "legacy migration lineage/proof required".into(),
-                    ));
-                }
+                    || migration.rollback_ref.trim().is_empty() =>
+            {
+                return Err(PredictionStorageError::InvalidPrimitive(
+                    "legacy migration lineage/proof required".into(),
+                ));
             }
             _ => {}
         }

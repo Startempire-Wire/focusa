@@ -1,0 +1,735 @@
+{
+  "schema": "focusa.archived_worktree_ref_semantic_diff.v1",
+  "status": "verified",
+  "unsettled_ref_count": 0,
+  "locked_release_head": "6bd4ed8996f846b17541567409998e1b725834f0",
+  "ref_namespaces": [
+    "refs/heads/agents/*",
+    "refs/heads/archive/*"
+  ],
+  "preserved_bundle": {
+    "status": "not_present",
+    "searched_roots": [
+      "/root",
+      "/tmp"
+    ]
+  },
+  "classification_counts": {
+    "conflicting_candidate": 9,
+    "obsolete_integrated_ancestor": 9,
+    "patch_equivalent": 6
+  },
+  "refs": [
+    {
+      "ref": "agents/canary-a42",
+      "ref_sha": "80baf74cd751690b22fb341227f32db2393121f0",
+      "merge_base": "c6e73f685425d083e1ce3a61164ed9e0396225dc",
+      "classification": "conflicting_candidate",
+      "unique_commit_count": 1,
+      "patch_equivalent_commit_count": 0,
+      "unique_commits": [
+        "80baf74cd751690b22fb341227f32db2393121f0"
+      ],
+      "changed_paths": [
+        "apps/pi-extension/src/commands.ts",
+        "apps/pi-extension/tests/spec130-rollover-command-lifecycle.test.mjs",
+        "crates/focusa-api/src/routes/workpoint.rs"
+      ],
+      "conflict_markers": [
+        "(content): Merge conflict in apps/pi-extension/src/commands.ts",
+        "(content): Merge conflict in apps/pi-extension/tests/spec130-rollover-command-lifecycle.test.mjs",
+        "(content): Merge conflict in crates/focusa-api/src/routes/workpoint.rs"
+      ],
+      "security_sensitive": false,
+      "settlement": {
+        "disposition": "evidence_superseded",
+        "rationale": "The locked release implements the rollover materialization and recovery contract under the newer Spec130A lifecycle.",
+        "evidence_refs": [
+          "apps/pi-extension/tests/spec130-rollover-command-lifecycle.test.mjs",
+          "tests/spec130a_proactive_compaction_runtime_test.sh",
+          "tests/spec130a_release_stress_runtime_test.mts"
+        ]
+      }
+    },
+    {
+      "ref": "agents/focusa-bootstrap-w2",
+      "ref_sha": "ad7b7d82787b2f20438d5d9084416e607a883483",
+      "merge_base": "947164b3c9b2c2ade7238e803aaca4bfd2b6d504",
+      "classification": "conflicting_candidate",
+      "unique_commit_count": 5,
+      "patch_equivalent_commit_count": 0,
+      "unique_commits": [
+        "ecee96dedfd0908cbcb90fa5004d5ce13049896b",
+        "7e2c3b0cf62db53a5a12c234b80bc2baffb38ef5",
+        "f86a45993f6edd1f4f71a2acce7b41d73ffea465",
+        "07f2c1b9f16ca364939671845ac32d063cbc110c",
+        "ad7b7d82787b2f20438d5d9084416e607a883483"
+      ],
+      "changed_paths": [
+        ".beads/issues.jsonl",
+        ".pi/skills/focusa/references/01-focusa-core-agent-runbook.md",
+        "README.md",
+        "apps/pi-extension/skills/focusa/references/01-focusa-core-agent-runbook.md",
+        "apps/pi-extension/src/tool-contracts.ts",
+        "apps/pi-extension/src/tools.ts",
+        "crates/focusa-api/src/routes/mod.rs",
+        "crates/focusa-api/src/routes/project_bootstrap.rs",
+        "crates/focusa-api/src/routes/project_bootstrap_support.rs",
+        "crates/focusa-api/src/routes/project_genesis.rs",
+        "crates/focusa-api/src/server.rs",
+        "crates/focusa-cli/src/commands/project.rs",
+        "crates/focusa-cli/tests/project_genesis_e2e.rs",
+        "docs/contracts/spec135/generated-contract-v1/openapi-3.0.3.json",
+        "docs/contracts/spec135/generated-contract-v1/operation-registry.json",
+        "docs/contracts/spec135/generated-contract-v1/ui-action-bindings.fixture.json",
+        "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
+        "docs/contracts/spec141/generated-capability-v2/agent-capability-reference.md",
+        "docs/contracts/spec141/generated-capability-v2/agent-card.json",
+        "docs/contracts/spec141/generated-capability-v2/cli-commands.json",
+        "docs/contracts/spec141/generated-capability-v2/mcp-tools.json",
+        "docs/contracts/spec141/generated-capability-v2/openai-tools.json",
+        "docs/contracts/spec141/generated-capability-v2/pi-tools.json",
+        "docs/contracts/spec141/generated-capability-v2/rest-agent-operations.json",
+        "docs/contracts/spec141/generated-capability-v2/route-classification.json",
+        "docs/current/API_REFERENCE_CURRENT.md",
+        "docs/current/CLI_REFERENCE_CURRENT.md",
+        "docs/current/focusa-tool-choreography.json",
+        "docs/current/focusa-tool-contracts.json",
+        "docs/focusa-tools/tools/focusa_project_bootstrap.md",
+        "docs/focusa-tools/tools/focusa_project_verify.md",
+        "scripts/ci/run-spec-gates.sh",
+        "tests/spec129_agent_docs_surface_static_test.sh",
+        "tests/spec143_project_bootstrap_release_gate_test.py"
+      ],
+      "conflict_markers": [
+        "(content): Merge conflict in .beads/issues.jsonl",
+        "(content): Merge conflict in .pi/skills/focusa/references/01-focusa-core-agent-runbook.md",
+        "(content): Merge conflict in README.md",
+        "(content): Merge conflict in apps/pi-extension/skills/focusa/references/01-focusa-core-agent-runbook.md",
+        "(content): Merge conflict in apps/pi-extension/src/tool-contracts.ts",
+        "(content): Merge conflict in apps/pi-extension/src/tools.ts",
+        "(content): Merge conflict in crates/focusa-cli/tests/project_genesis_e2e.rs",
+        "(content): Merge conflict in docs/contracts/spec135/generated-contract-v1/openapi-3.0.3.json",
+        "(content): Merge conflict in docs/contracts/spec135/generated-contract-v1/operation-registry.json",
+        "(content): Merge conflict in docs/contracts/spec135/generated-contract-v1/ui-action-bindings.fixture.json",
+        "(content): Merge conflict in docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
+        "(content): Merge conflict in docs/contracts/spec141/generated-capability-v2/agent-capability-reference.md",
+        "(content): Merge conflict in docs/contracts/spec141/generated-capability-v2/agent-card.json",
+        "(content): Merge conflict in docs/contracts/spec141/generated-capability-v2/cli-commands.json",
+        "(content): Merge conflict in docs/contracts/spec141/generated-capability-v2/mcp-tools.json",
+        "(content): Merge conflict in docs/contracts/spec141/generated-capability-v2/openai-tools.json",
+        "(content): Merge conflict in docs/contracts/spec141/generated-capability-v2/pi-tools.json",
+        "(content): Merge conflict in docs/contracts/spec141/generated-capability-v2/rest-agent-operations.json",
+        "(content): Merge conflict in docs/contracts/spec141/generated-capability-v2/route-classification.json",
+        "(content): Merge conflict in docs/current/API_REFERENCE_CURRENT.md",
+        "(content): Merge conflict in docs/current/focusa-tool-choreography.json",
+        "(content): Merge conflict in docs/current/focusa-tool-contracts.json",
+        "(content): Merge conflict in tests/spec129_agent_docs_surface_static_test.sh"
+      ],
+      "security_sensitive": false,
+      "settlement": {
+        "disposition": "evidence_superseded",
+        "rationale": "Project Bootstrap discipline, broad-root rejection, provider isolation, and post-bind verification are covered by the locked Spec143 implementation.",
+        "evidence_refs": [
+          "tests/spec143_project_bootstrap_release_gate_test.py",
+          "tests/spec96_broad_root_scope_isolation_static_test.sh"
+        ]
+      }
+    },
+    {
+      "ref": "agents/focusa-genesis-w2",
+      "ref_sha": "de63d4ab3d3352c20be31e84f521620bf62f7b05",
+      "merge_base": "4da49841bd3f92f4e767a3c77ea22d5c99bc8515",
+      "classification": "conflicting_candidate",
+      "unique_commit_count": 5,
+      "patch_equivalent_commit_count": 0,
+      "unique_commits": [
+        "1291248f6f50110a6d960fd37826c528fac1b098",
+        "198cdfc0f93d75ea458201d5c08ccf90e1906bad",
+        "f758bf57b589095889dda6782345b9a60d97e1b1",
+        "9e8946325339055c98e4246de786b9b46e666111",
+        "de63d4ab3d3352c20be31e84f521620bf62f7b05"
+      ],
+      "changed_paths": [
+        ".beads/issues.jsonl",
+        "README.md",
+        "apps/pi-extension/src/session.ts",
+        "apps/pi-extension/src/tool-contracts.ts",
+        "apps/pi-extension/src/tools.ts",
+        "crates/focusa-api/src/routes/mod.rs",
+        "crates/focusa-api/src/routes/project_genesis.rs",
+        "crates/focusa-api/src/routes/project_genesis_support.rs",
+        "crates/focusa-api/src/routes/project_genesis_tests.rs",
+        "crates/focusa-api/src/routes/workpoint.rs",
+        "crates/focusa-api/src/server.rs",
+        "crates/focusa-cli/src/commands/project.rs",
+        "crates/focusa-cli/tests/project_genesis_e2e.rs",
+        "docs/contracts/spec135/generated-contract-v1/openapi-3.0.3.json",
+        "docs/contracts/spec135/generated-contract-v1/operation-registry.json",
+        "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
+        "docs/contracts/spec141/generated-capability-v2/agent-capability-reference.md",
+        "docs/contracts/spec141/generated-capability-v2/agent-card.json",
+        "docs/contracts/spec141/generated-capability-v2/cli-commands.json",
+        "docs/contracts/spec141/generated-capability-v2/mcp-tools.json",
+        "docs/contracts/spec141/generated-capability-v2/openai-tools.json",
+        "docs/contracts/spec141/generated-capability-v2/pi-tools.json",
+        "docs/contracts/spec141/generated-capability-v2/rest-agent-operations.json",
+        "docs/contracts/spec141/generated-capability-v2/route-classification.json",
+        "docs/current/API_REFERENCE_CURRENT.md",
+        "docs/current/CLI_REFERENCE_CURRENT.md",
+        "docs/current/focusa-tool-choreography.json",
+        "docs/current/focusa-tool-contracts.json",
+        "docs/focusa-tools/tools/focusa_project_genesis.md",
+        "docs/focusa-tools/tools/focusa_project_verify.md",
+        "scripts/ci/run-spec-gates.sh",
+        "tests/spec129_agent_docs_surface_static_test.sh",
+        "tests/spec143_project_genesis_release_gate_test.py"
+      ],
+      "conflict_markers": [
+        "(add/add): Merge conflict in crates/focusa-api/src/routes/project_genesis.rs",
+        "(add/add): Merge conflict in crates/focusa-cli/tests/project_genesis_e2e.rs",
+        "(content): Merge conflict in .beads/issues.jsonl",
+        "(content): Merge conflict in README.md",
+        "(content): Merge conflict in apps/pi-extension/src/tool-contracts.ts",
+        "(content): Merge conflict in apps/pi-extension/src/tools.ts",
+        "(content): Merge conflict in crates/focusa-api/src/routes/mod.rs",
+        "(content): Merge conflict in crates/focusa-api/src/server.rs",
+        "(content): Merge conflict in crates/focusa-cli/src/commands/project.rs",
+        "(content): Merge conflict in docs/contracts/spec135/generated-contract-v1/openapi-3.0.3.json",
+        "(content): Merge conflict in docs/contracts/spec135/generated-contract-v1/operation-registry.json",
+        "(content): Merge conflict in docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json",
+        "(content): Merge conflict in docs/contracts/spec141/generated-capability-v2/agent-capability-reference.md",
+        "(content): Merge conflict in docs/contracts/spec141/generated-capability-v2/agent-card.json",
+        "(content): Merge conflict in docs/contracts/spec141/generated-capability-v2/cli-commands.json",
+        "(content): Merge conflict in docs/contracts/spec141/generated-capability-v2/mcp-tools.json",
+        "(content): Merge conflict in docs/contracts/spec141/generated-capability-v2/openai-tools.json",
+        "(content): Merge conflict in docs/contracts/spec141/generated-capability-v2/pi-tools.json",
+        "(content): Merge conflict in docs/contracts/spec141/generated-capability-v2/rest-agent-operations.json",
+        "(content): Merge conflict in docs/contracts/spec141/generated-capability-v2/route-classification.json",
+        "(content): Merge conflict in docs/current/API_REFERENCE_CURRENT.md",
+        "(content): Merge conflict in docs/current/CLI_REFERENCE_CURRENT.md",
+        "(content): Merge conflict in docs/current/focusa-tool-choreography.json",
+        "(content): Merge conflict in docs/current/focusa-tool-contracts.json",
+        "(content): Merge conflict in docs/focusa-tools/tools/focusa_project_verify.md",
+        "(content): Merge conflict in scripts/ci/run-spec-gates.sh",
+        "(content): Merge conflict in tests/spec129_agent_docs_surface_static_test.sh"
+      ],
+      "security_sensitive": false,
+      "settlement": {
+        "disposition": "evidence_superseded",
+        "rationale": "Atomic Genesis activation, first-Workpoint creation, ambient bootstrap, and warm resume are covered by the locked Spec143 implementation.",
+        "evidence_refs": [
+          "tests/spec143_project_genesis_release_gate_test.py",
+          "tests/spec143_project_bootstrap_release_gate_test.py"
+        ]
+      }
+    },
+    {
+      "ref": "agents/focusa-temporal-w1",
+      "ref_sha": "b6adda38d5a8744f98339b09704d0cfb314d8a4a",
+      "merge_base": "b6adda38d5a8744f98339b09704d0cfb314d8a4a",
+      "classification": "obsolete_integrated_ancestor",
+      "unique_commit_count": 0,
+      "patch_equivalent_commit_count": 0,
+      "unique_commits": [],
+      "changed_paths": [],
+      "conflict_markers": [],
+      "security_sensitive": false,
+      "settlement": null
+    },
+    {
+      "ref": "agents/focusa-vbcqu-w1",
+      "ref_sha": "d90e0418779513bffb582a263d20527ca9416e61",
+      "merge_base": "d90e0418779513bffb582a263d20527ca9416e61",
+      "classification": "obsolete_integrated_ancestor",
+      "unique_commit_count": 0,
+      "patch_equivalent_commit_count": 0,
+      "unique_commits": [],
+      "changed_paths": [],
+      "conflict_markers": [],
+      "security_sensitive": false,
+      "settlement": null
+    },
+    {
+      "ref": "agents/spark-bloat-circuit",
+      "ref_sha": "cea1e1ee01fd04dcc92f0e5b429aa24025838479",
+      "merge_base": "cea1e1ee01fd04dcc92f0e5b429aa24025838479",
+      "classification": "obsolete_integrated_ancestor",
+      "unique_commit_count": 0,
+      "patch_equivalent_commit_count": 0,
+      "unique_commits": [],
+      "changed_paths": [],
+      "conflict_markers": [],
+      "security_sensitive": false,
+      "settlement": null
+    },
+    {
+      "ref": "agents/spark-bloat-contract",
+      "ref_sha": "0b77a2e98fbcaaf23fe5cbde45c8d8bc4b562f4d",
+      "merge_base": "3ee4a5c7c084aa82aebef4042502964ea8f8ed6d",
+      "classification": "patch_equivalent",
+      "unique_commit_count": 0,
+      "patch_equivalent_commit_count": 1,
+      "unique_commits": [],
+      "changed_paths": [
+        ".github/workflows/spec132-terminal-matrix.yml",
+        "apps/pi-extension/src/tools.ts",
+        "apps/pi-extension/tests/spec101-bloatgaurd-details-route.test.mjs"
+      ],
+      "conflict_markers": [],
+      "security_sensitive": true,
+      "settlement": null
+    },
+    {
+      "ref": "agents/spark-bloat-profile",
+      "ref_sha": "14c7eac7cc2eceb91937c704ca770998bd6e6209",
+      "merge_base": "14c7eac7cc2eceb91937c704ca770998bd6e6209",
+      "classification": "obsolete_integrated_ancestor",
+      "unique_commit_count": 0,
+      "patch_equivalent_commit_count": 0,
+      "unique_commits": [],
+      "changed_paths": [],
+      "conflict_markers": [],
+      "security_sensitive": false,
+      "settlement": null
+    },
+    {
+      "ref": "agents/spark-bloat-profile-atomic",
+      "ref_sha": "91b163521fc9927a455fa62e80f9fbcd0ae3f2a0",
+      "merge_base": "14c7eac7cc2eceb91937c704ca770998bd6e6209",
+      "classification": "patch_equivalent",
+      "unique_commit_count": 0,
+      "patch_equivalent_commit_count": 1,
+      "unique_commits": [],
+      "changed_paths": [
+        ".github/workflows/spec132-terminal-matrix.yml",
+        "apps/pi-extension/src/config.ts",
+        "apps/pi-extension/tests/spec101-bloatgaurd-profile-runtime.test.mjs"
+      ],
+      "conflict_markers": [],
+      "security_sensitive": true,
+      "settlement": null
+    },
+    {
+      "ref": "agents/spark-e6-runtime",
+      "ref_sha": "6010f558b75edf7c469a19c327783af3fed66759",
+      "merge_base": "4e8511149114f76fba1bcf99c257e6dad2019571",
+      "classification": "patch_equivalent",
+      "unique_commit_count": 0,
+      "patch_equivalent_commit_count": 1,
+      "unique_commits": [],
+      "changed_paths": [
+        "crates/focusa-cli/src/commands/install.rs",
+        "crates/focusa-cli/src/commands/install_e6_failure_matrix_tests.rs",
+        "crates/focusa-terminal-ui/tests/132-e6-renderer-transcripts.rs",
+        "docs/evidence/132-e6-failure-matrix-runtime-proof-20260715T054601Z.md",
+        "tests/132-e6-failure-matrix-runtime-test.sh"
+      ],
+      "conflict_markers": [],
+      "security_sensitive": false,
+      "settlement": null
+    },
+    {
+      "ref": "agents/spark-h1-portable-proof",
+      "ref_sha": "560f1d3cc8ff2fba2aebaeaf2f922b2b0b2ba99d",
+      "merge_base": "0fbc38babe3c82db7ee767c50b8355e7c4b0c0d6",
+      "classification": "patch_equivalent",
+      "unique_commit_count": 0,
+      "patch_equivalent_commit_count": 1,
+      "unique_commits": [],
+      "changed_paths": [
+        "tests/132-e5-platform-matrix-runtime-test.sh",
+        "tests/focusa_portable_bin.sh",
+        "tests/spec112_agent_context_bundle_test.sh",
+        "tests/spec128_update_runtime_test.sh",
+        "tests/spec132_portable_binary_selection_test.sh",
+        "tests/spec132_pty_lifecycle_runtime_test.sh",
+        "tests/spec_install_animation_env_validation_test.sh",
+        "tests/spec_install_smoke_integration_test.sh"
+      ],
+      "conflict_markers": [],
+      "security_sensitive": false,
+      "settlement": null
+    },
+    {
+      "ref": "agents/spark-h2-runtime-matrix",
+      "ref_sha": "c11f7946304f2c41b02a0362c454fa59ca182426",
+      "merge_base": "db1ad202439ae8c4f58740e8e9349ca6eb935451",
+      "classification": "conflicting_candidate",
+      "unique_commit_count": 1,
+      "patch_equivalent_commit_count": 0,
+      "unique_commits": [
+        "c11f7946304f2c41b02a0362c454fa59ca182426"
+      ],
+      "changed_paths": [
+        ".github/workflows/spec132-terminal-matrix.yml",
+        "tests/132-e5-platform-matrix-runtime-test.sh",
+        "tests/132-e5-windows-conpty-runner.cs",
+        "tests/132-e5-windows-conpty-runtime-test.ps1"
+      ],
+      "conflict_markers": [
+        "(content): Merge conflict in .github/workflows/spec132-terminal-matrix.yml",
+        "(content): Merge conflict in tests/132-e5-platform-matrix-runtime-test.sh"
+      ],
+      "security_sensitive": true,
+      "settlement": {
+        "disposition": "evidence_superseded",
+        "rationale": "The strict native updater contract matrix is covered by the locked Spec132 runtime and portable-binary gates.",
+        "evidence_refs": [
+          "tests/spec132_portable_binary_selection_test.sh",
+          "tests/spec132_pty_lifecycle_runtime_test.sh",
+          "tests/spec132_public_uninstall_preservation_test.sh"
+        ]
+      }
+    },
+    {
+      "ref": "agents/spark-h3-gate",
+      "ref_sha": "7923620064c1517d439b5bd3516e995da0b1cb51",
+      "merge_base": "7923620064c1517d439b5bd3516e995da0b1cb51",
+      "classification": "obsolete_integrated_ancestor",
+      "unique_commit_count": 0,
+      "patch_equivalent_commit_count": 0,
+      "unique_commits": [],
+      "changed_paths": [],
+      "conflict_markers": [],
+      "security_sensitive": false,
+      "settlement": null
+    },
+    {
+      "ref": "agents/spark-intro-animation",
+      "ref_sha": "4e8511149114f76fba1bcf99c257e6dad2019571",
+      "merge_base": "4e8511149114f76fba1bcf99c257e6dad2019571",
+      "classification": "obsolete_integrated_ancestor",
+      "unique_commit_count": 0,
+      "patch_equivalent_commit_count": 0,
+      "unique_commits": [],
+      "changed_paths": [],
+      "conflict_markers": [],
+      "security_sensitive": false,
+      "settlement": null
+    },
+    {
+      "ref": "agents/spec130-pi-launch",
+      "ref_sha": "c77c8016b0f8bb6e59ddd29683d77de9ae643312",
+      "merge_base": "c77c8016b0f8bb6e59ddd29683d77de9ae643312",
+      "classification": "obsolete_integrated_ancestor",
+      "unique_commit_count": 0,
+      "patch_equivalent_commit_count": 0,
+      "unique_commits": [],
+      "changed_paths": [],
+      "conflict_markers": [],
+      "security_sensitive": false,
+      "settlement": null
+    },
+    {
+      "ref": "agents/v135-issue15",
+      "ref_sha": "acca77ff9dfdd381df0b7a71fbe6df8fa004e833",
+      "merge_base": "acca77ff9dfdd381df0b7a71fbe6df8fa004e833",
+      "classification": "obsolete_integrated_ancestor",
+      "unique_commit_count": 0,
+      "patch_equivalent_commit_count": 0,
+      "unique_commits": [],
+      "changed_paths": [],
+      "conflict_markers": [],
+      "security_sensitive": false,
+      "settlement": null
+    },
+    {
+      "ref": "agents/worker-env-inventory",
+      "ref_sha": "1983ffb5d81f99c5d225ef9b80c5fde184e032fb",
+      "merge_base": "c6e73f685425d083e1ce3a61164ed9e0396225dc",
+      "classification": "conflicting_candidate",
+      "unique_commit_count": 1,
+      "patch_equivalent_commit_count": 0,
+      "unique_commits": [
+        "1983ffb5d81f99c5d225ef9b80c5fde184e032fb"
+      ],
+      "changed_paths": [
+        "crates/focusa-cli/src/commands/install.rs",
+        "tests/environment_inventory_runtime_test.sh",
+        "tests/spec128_installer_preflight_static_test.sh"
+      ],
+      "conflict_markers": [
+        "(add/add): Merge conflict in tests/environment_inventory_runtime_test.sh",
+        "(content): Merge conflict in crates/focusa-cli/src/commands/install.rs"
+      ],
+      "security_sensitive": false,
+      "settlement": {
+        "disposition": "evidence_superseded",
+        "rationale": "The locked installer publishes and tests the complete OS, architecture, shell, package-manager, privilege, PATH, install, license, and policy inventory.",
+        "evidence_refs": [
+          "tests/spec128_installer_preflight_static_test.sh",
+          "crates/focusa-cli/src/commands/install.rs"
+        ]
+      }
+    },
+    {
+      "ref": "agents/worker-h2-integrate",
+      "ref_sha": "c6e73f685425d083e1ce3a61164ed9e0396225dc",
+      "merge_base": "c6e73f685425d083e1ce3a61164ed9e0396225dc",
+      "classification": "obsolete_integrated_ancestor",
+      "unique_commit_count": 0,
+      "patch_equivalent_commit_count": 0,
+      "unique_commits": [],
+      "changed_paths": [],
+      "conflict_markers": [],
+      "security_sensitive": false,
+      "settlement": null
+    },
+    {
+      "ref": "agents/worker-launch-hardening",
+      "ref_sha": "f3e7fec8c4a88cc8a51e7c482a0b98501f1836ae",
+      "merge_base": "c6e73f685425d083e1ce3a61164ed9e0396225dc",
+      "classification": "patch_equivalent",
+      "unique_commit_count": 0,
+      "patch_equivalent_commit_count": 1,
+      "unique_commits": [],
+      "changed_paths": [
+        "apps/pi-extension/src/tool-contracts.ts",
+        "apps/pi-extension/src/tools.ts",
+        "apps/pi-extension/tests/silent-session-launch-hardening.test.mjs"
+      ],
+      "conflict_markers": [],
+      "security_sensitive": false,
+      "settlement": null
+    },
+    {
+      "ref": "agents/worker-onboard-json",
+      "ref_sha": "076e5fe477b99d55f73e0c9c9e73e38919c39965",
+      "merge_base": "c6e73f685425d083e1ce3a61164ed9e0396225dc",
+      "classification": "patch_equivalent",
+      "unique_commit_count": 0,
+      "patch_equivalent_commit_count": 1,
+      "unique_commits": [],
+      "changed_paths": [
+        "crates/focusa-cli/src/commands/onboard.rs",
+        "tests/onboard_json_quiet_runtime_test.sh",
+        "tests/spec_focusa_112_onboard_scoped_static_test.sh"
+      ],
+      "conflict_markers": [],
+      "security_sensitive": false,
+      "settlement": null
+    },
+    {
+      "ref": "archive/focusa-api-scope",
+      "ref_sha": "4faf3c20951018267cc55a061b1d6f3eda120989",
+      "merge_base": "168e96ee69be14911d2013228dc9eb83a59be701",
+      "classification": "conflicting_candidate",
+      "unique_commit_count": 2,
+      "patch_equivalent_commit_count": 0,
+      "unique_commits": [
+        "5786f7a768a09647ee8d97b81d144840af59b582",
+        "4faf3c20951018267cc55a061b1d6f3eda120989"
+      ],
+      "changed_paths": [
+        ".beads/issues.jsonl",
+        "apps/menubar/src-tauri/src/main.rs",
+        "config/spec104-scoped-state-inventory.json",
+        "crates/focusa-api/src/routes/bounded.rs",
+        "crates/focusa-api/src/routes/metacognition.rs",
+        "crates/focusa-api/src/routes/reflection.rs",
+        "crates/focusa-api/src/routes/snapshots.rs",
+        "crates/focusa-api/src/routes/turn.rs",
+        "crates/focusa-api/src/scope.rs",
+        "crates/focusa-api/src/server.rs",
+        "docs/evidence/spec104-api-scope-singleton-closure-2026-07-13.md",
+        "docs/evidence/spec104-remaining-singleton-closure-2026-07-13.md",
+        "tests/spec104_api_scope_singleton_closure_static_test.py",
+        "tests/spec104_remaining_singleton_closure_static_test.py"
+      ],
+      "conflict_markers": [
+        "(add/add): Merge conflict in docs/evidence/spec104-api-scope-singleton-closure-2026-07-13.md",
+        "(add/add): Merge conflict in docs/evidence/spec104-remaining-singleton-closure-2026-07-13.md",
+        "(add/add): Merge conflict in tests/spec104_api_scope_singleton_closure_static_test.py",
+        "(add/add): Merge conflict in tests/spec104_remaining_singleton_closure_static_test.py",
+        "(content): Merge conflict in .beads/issues.jsonl",
+        "(content): Merge conflict in apps/menubar/src-tauri/src/main.rs",
+        "(content): Merge conflict in config/spec104-scoped-state-inventory.json",
+        "(content): Merge conflict in crates/focusa-api/src/routes/bounded.rs",
+        "(content): Merge conflict in crates/focusa-api/src/routes/metacognition.rs",
+        "(content): Merge conflict in crates/focusa-api/src/routes/reflection.rs",
+        "(content): Merge conflict in crates/focusa-api/src/routes/turn.rs",
+        "(content): Merge conflict in crates/focusa-api/src/scope.rs",
+        "(content): Merge conflict in crates/focusa-api/src/server.rs"
+      ],
+      "security_sensitive": false,
+      "settlement": {
+        "disposition": "evidence_superseded",
+        "rationale": "The locked release closes API singleton scope across typed project/workstream identity with hostile-scope and restart coverage.",
+        "evidence_refs": [
+          "tests/spec104_api_scope_singleton_closure_static_test.py",
+          "tests/security_api_route_scope_dynamic_test.sh",
+          "tests/spec96_broad_root_scope_isolation_static_test.sh"
+        ]
+      }
+    },
+    {
+      "ref": "archive/focusa-pi-scope",
+      "ref_sha": "f85a86b634702ec9da358184a2f2e64af98a9f0f",
+      "merge_base": "168e96ee69be14911d2013228dc9eb83a59be701",
+      "classification": "conflicting_candidate",
+      "unique_commit_count": 3,
+      "patch_equivalent_commit_count": 0,
+      "unique_commits": [
+        "408dabc82b9ca8297b51605196f18cbad38d45ba",
+        "9db6ea2d239d7d7e793b1e8e2626434dcc154d70",
+        "f85a86b634702ec9da358184a2f2e64af98a9f0f"
+      ],
+      "changed_paths": [
+        ".beads/issues.jsonl",
+        "apps/pi-extension/package.json",
+        "apps/pi-extension/src/auto-compaction.ts",
+        "apps/pi-extension/src/awareness-substrate.ts",
+        "apps/pi-extension/src/awareness.ts",
+        "apps/pi-extension/src/commands.ts",
+        "apps/pi-extension/src/compaction.ts",
+        "apps/pi-extension/src/index.ts",
+        "apps/pi-extension/src/persistence.ts",
+        "apps/pi-extension/src/polish.ts",
+        "apps/pi-extension/src/scoped-state.ts",
+        "apps/pi-extension/src/session-pressure.ts",
+        "apps/pi-extension/src/session.ts",
+        "apps/pi-extension/src/state.ts",
+        "apps/pi-extension/src/tool-contracts.ts",
+        "apps/pi-extension/src/tools.ts",
+        "apps/pi-extension/src/turns.ts",
+        "apps/pi-extension/src/wbm.ts",
+        "apps/pi-extension/tests/spec104-attachment-runtime-isolation.test.mjs",
+        "apps/pi-extension/tests/spec104-pi-runtime-isolation.test.mjs",
+        "apps/pi-extension/tests/spec130-rollover-command-lifecycle.test.mjs",
+        "config/spec104-scoped-state-inventory.json",
+        "docs/evidence/spec104-pi-singleton-closure-20260713.md",
+        "docs/focusa-tools/tools/focusa_session_transfer.md"
+      ],
+      "conflict_markers": [
+        "(add/add): Merge conflict in apps/pi-extension/tests/spec104-attachment-runtime-isolation.test.mjs",
+        "(add/add): Merge conflict in apps/pi-extension/tests/spec104-pi-runtime-isolation.test.mjs",
+        "(add/add): Merge conflict in apps/pi-extension/tests/spec130-rollover-command-lifecycle.test.mjs",
+        "(add/add): Merge conflict in docs/evidence/spec104-pi-singleton-closure-20260713.md",
+        "(content): Merge conflict in .beads/issues.jsonl",
+        "(content): Merge conflict in apps/pi-extension/package.json",
+        "(content): Merge conflict in apps/pi-extension/src/auto-compaction.ts",
+        "(content): Merge conflict in apps/pi-extension/src/awareness.ts",
+        "(content): Merge conflict in apps/pi-extension/src/commands.ts",
+        "(content): Merge conflict in apps/pi-extension/src/compaction.ts",
+        "(content): Merge conflict in apps/pi-extension/src/index.ts",
+        "(content): Merge conflict in apps/pi-extension/src/polish.ts",
+        "(content): Merge conflict in apps/pi-extension/src/scoped-state.ts",
+        "(content): Merge conflict in apps/pi-extension/src/session-pressure.ts",
+        "(content): Merge conflict in apps/pi-extension/src/session.ts",
+        "(content): Merge conflict in apps/pi-extension/src/state.ts",
+        "(content): Merge conflict in apps/pi-extension/src/tools.ts",
+        "(content): Merge conflict in apps/pi-extension/src/turns.ts",
+        "(content): Merge conflict in apps/pi-extension/src/wbm.ts",
+        "(content): Merge conflict in config/spec104-scoped-state-inventory.json",
+        "(content): Merge conflict in docs/focusa-tools/tools/focusa_session_transfer.md"
+      ],
+      "security_sensitive": false,
+      "settlement": {
+        "disposition": "evidence_superseded",
+        "rationale": "The locked release replaces Pi singleton shadows with typed attachment and project/workstream scope stores plus lifecycle isolation tests.",
+        "evidence_refs": [
+          "apps/pi-extension/tests/spec104-attachment-runtime-isolation.test.mjs",
+          "tests/spec104_pi_runtime_scope_integrity_test.sh",
+          "tests/spec98_pi_scope_cache_switch_handling_runtime_test.mts"
+        ]
+      }
+    },
+    {
+      "ref": "archive/focusa-spec132",
+      "ref_sha": "47553ed94e25c459cdd945157d5986cc76025e28",
+      "merge_base": "300afb78c728b836376c6d35b2d82f57518b419d",
+      "classification": "conflicting_candidate",
+      "unique_commit_count": 3,
+      "patch_equivalent_commit_count": 0,
+      "unique_commits": [
+        "a3bd52b8c4f4044450aa743ab87821a19acfca99",
+        "c3602c97066479a31e22c7c811cedb7218e134aa",
+        "47553ed94e25c459cdd945157d5986cc76025e28"
+      ],
+      "changed_paths": [
+        ".beads/issues.jsonl",
+        "crates/focusa-cli/src/commands/install.rs",
+        "docs/112-install-binary-architecture-spec.md",
+        "docs/128-focusa-over-the-air-auto-update-and-dev-mode-license-spec.md",
+        "docs/current/CLI_REFERENCE_CURRENT.md",
+        "docs/current/INSTALLER_UPDATE_POLICY.md",
+        "docs/current/PORTABILITY_AUDIT.md",
+        "docs/current/TROUBLESHOOTING_CURRENT.md",
+        "docs/current/VALIDATION_AND_RELEASE_PROOF.md",
+        "docs/evidence/132-e5-f1-docs-static-proof-20260713T200506Z.md",
+        "docs/evidence/132-e6-failure-matrix-static-proof-20260713T193748Z.md",
+        "docs/evidence/132-f2-evidence-index-20260713T201500Z.md",
+        "docs/evidence/132-f3-forbidden-shortcut-audit-20260713T201500Z.md",
+        "docs/evidence/132-f4-agent-completion-report-draft-20260713T201500Z.md"
+      ],
+      "conflict_markers": [
+        "(add/add): Merge conflict in docs/evidence/132-f2-evidence-index-20260713T201500Z.md",
+        "(add/add): Merge conflict in docs/evidence/132-f3-forbidden-shortcut-audit-20260713T201500Z.md",
+        "(add/add): Merge conflict in docs/evidence/132-f4-agent-completion-report-draft-20260713T201500Z.md",
+        "(content): Merge conflict in .beads/issues.jsonl",
+        "(content): Merge conflict in crates/focusa-cli/src/commands/install.rs",
+        "(content): Merge conflict in docs/current/INSTALLER_UPDATE_POLICY.md"
+      ],
+      "security_sensitive": false,
+      "settlement": {
+        "disposition": "evidence_superseded",
+        "rationale": "The archived Spec132 draft and fixture proofs are superseded by the final locked runtime, ownership, portability, and uninstall-preservation gates.",
+        "evidence_refs": [
+          "tests/spec132_pi_extension_ownership_test.sh",
+          "tests/spec132_portable_binary_selection_test.sh",
+          "tests/spec132_pty_lifecycle_runtime_test.sh",
+          "tests/spec132_public_uninstall_preservation_test.sh"
+        ]
+      }
+    },
+    {
+      "ref": "archive/focusa-spec133",
+      "ref_sha": "f808b9f6530e0c28aa8909b9d4e39d3b97ba381d",
+      "merge_base": "300afb78c728b836376c6d35b2d82f57518b419d",
+      "classification": "conflicting_candidate",
+      "unique_commit_count": 2,
+      "patch_equivalent_commit_count": 0,
+      "unique_commits": [
+        "d534f852b20f21d2d5d11b35cf794a4fc7deeda4",
+        "f808b9f6530e0c28aa8909b9d4e39d3b97ba381d"
+      ],
+      "changed_paths": [
+        ".beads/issues.jsonl",
+        "apps/pi-extension/src/state.ts",
+        "apps/pi-extension/src/tool-contracts.ts",
+        "apps/pi-extension/src/tools.ts",
+        "docs/current/focusa-tool-contracts.json",
+        "docs/evidence/spec133-p0-singleton-conversion.md",
+        "docs/evidence/spec133-phase0-baseline.md",
+        "docs/evidence/spec133-phase0-release-gate.md",
+        "docs/evidence/spec133-phase0-traceability.md",
+        "docs/focusa-tools/tools/focusa_silent_sessions.md",
+        "tests/spec133_phase0_static_test.sh"
+      ],
+      "conflict_markers": [
+        "(add/add): Merge conflict in docs/evidence/spec133-phase0-release-gate.md",
+        "(add/add): Merge conflict in docs/evidence/spec133-phase0-traceability.md",
+        "(add/add): Merge conflict in tests/spec133_phase0_static_test.sh",
+        "(content): Merge conflict in .beads/issues.jsonl",
+        "(content): Merge conflict in apps/pi-extension/src/state.ts",
+        "(content): Merge conflict in apps/pi-extension/src/tool-contracts.ts",
+        "(content): Merge conflict in apps/pi-extension/src/tools.ts",
+        "(content): Merge conflict in docs/current/focusa-tool-contracts.json",
+        "(content): Merge conflict in docs/focusa-tools/tools/focusa_silent_sessions.md"
+      ],
+      "security_sensitive": false,
+      "settlement": {
+        "disposition": "evidence_superseded",
+        "rationale": "The archived phase-zero and Pi scope work is superseded by the complete locked Spec133 supervision, isolation, evidence, and operator gates.",
+        "evidence_refs": [
+          "tests/spec133_phase4_runtime_gate.sh",
+          "tests/spec133_phase5_isolation_gate.sh",
+          "tests/spec133_phase6_evidence_gate.sh",
+          "tests/spec133_phase7_operator_gate.sh"
+        ]
+      }
+    }
+  ],
+  "evidence_digest": "sha256:8ce34b73d5c385b4ba9a93ca2a1220938abbd8cd152ea7bfb184078e4adc1a05"
+}

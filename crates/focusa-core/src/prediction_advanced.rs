@@ -193,6 +193,7 @@ pub fn project_scenario(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn evaluate_transfer(
     assessment: &TransferAssessment,
     evaluation_id: impl Into<String>,
