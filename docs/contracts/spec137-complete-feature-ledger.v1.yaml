@@ -712,11 +712,11 @@ requirements:
   - crates/focusa-api/src/routes/temporal_advanced.rs#migrate_signatures
   - crates/focusa-core/src/temporal_tests.rs#legacy_project_scope_deserializes_without_inventing_finer_authority
   positive_tests:
-  - crates/focusa-core/src/temporal_full_tests.rs
-  - crates/focusa-core/src/temporal_tests.rs
+  - crates/focusa-core/src/temporal_platform.rs#s137_req_001_platform_clock_domains_are_distinct_and_capability_consistent
+  - crates/focusa-core/src/temporal_tests.rs#clock_sample_pair_rejects_negative_or_unscientific_bounds
   negative_tests:
-  - crates/focusa-core/src/temporal_full_tests.rs
-  - tests/spec137_temporal_authority_release_gate_test.py
+  - crates/focusa-core/src/temporal_platform.rs#s137_req_001_platform_clock_domains_are_distinct_and_capability_consistent
+  - crates/focusa-core/src/temporal_tests.rs#clock_sample_pair_rejects_negative_or_unscientific_bounds
   restart_recovery_tests:
   - crates/focusa-core/src/temporal_tests.rs#ledger_fsyncs_causal_batch_and_replays_idempotently
   - crates/focusa-core/src/temporal_full_tests.rs#reboot_suspend_and_wall_discontinuity_never_become_false_exact_elapsed
@@ -726,8 +726,8 @@ requirements:
   accessibility_tests:
   - tests/spec137_temporal_authority_release_gate_test.py#TemporalAuthorityPeek
   evidence_refs:
-  - tests/spec137_temporal_authority_release_gate_test.py
-  - crates/focusa-core/src/temporal_full_tests.rs
+  - crates/focusa-core/src/temporal_platform.rs#s137_req_001_platform_clock_domains_are_distinct_and_capability_consistent
+  - crates/focusa-core/src/temporal_tests.rs#clock_sample_pair_rejects_negative_or_unscientific_bounds
   receipt_refs:
   - docs/contracts/137-focusa-parent-zero-omission-receipt.v1.yaml
   parent_closure_impact: blocking_for_claimed_conformance
