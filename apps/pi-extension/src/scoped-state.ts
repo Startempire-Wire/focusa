@@ -134,6 +134,12 @@ export function clearVerifiedScopeRefsForTest(): void {
   verifiedScopeByRoot.clear();
 }
 
+export function verifiedScopeRefForRoot(projectRoot: string): ScopeRef | null {
+  const root = String(projectRoot || "").trim().replace(/\/+$/, "");
+  const scope = verifiedScopeByRoot.get(root);
+  return scope ? { ...scope } : null;
+}
+
 export function buildProjectWorkstreamKey(
   projectRoot: string,
   continuityId: string,

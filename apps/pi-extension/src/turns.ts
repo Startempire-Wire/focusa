@@ -43,11 +43,13 @@ import {
   getCachedSemanticMemorySummary,
   getEcsHandlesSummary,
   getCachedEcsHandlesSummary,
+  getCachedOntologyContext,
   getScopedWorkpointPacket,
   ensureContinuityId,
   isProjectRootAuthoritySafe,
   isWorkpointPacketScopedToCurrentSession,
   refreshTrajectoryClarityLifecycle,
+  refreshOntologyContextLifecycle,
   stampWorkpointPacketForCurrentPiSession,
   adoptPiProjectRoot,
   persistState,
@@ -71,6 +73,7 @@ import {
   getLastTrajectoryClarity,
   setLastTrajectoryClarity,
   getLastProjectVerify,
+  getCurrentScopeStore,
   getLatestReportSummary,
   setLastStreamLen,
   resetToolUsageBatch,
@@ -488,29 +491,47 @@ function trajectoryWaypointTitle(value: any): string {
   return "";
 }
 
+function currentVerifiedTrajectoryScope(): { projectRoot: string; continuityId: string } | null {
+  const store = getCurrentScopeStore();
+  if (!store || store.identity.scopeKind !== "project") return null;
+  const projectRoot = String(store.identity.rootPath || "")
+    .trim()
+    .replace(/\/+$/, "");
+  const continuityId = String(store.identity.continuityId || "").trim();
+  return projectRoot && continuityId ? { projectRoot, continuityId } : null;
+}
+
 function handleTrajectoryMatchesCurrentScope(handle: any): boolean {
+  const current = currentVerifiedTrajectoryScope();
+  if (!current) return false;
   const trajectory = handle?.trajectory || {};
   const scope = trajectory?.scope || handle?.scope || {};
   const candidateRoot = String(scope.project_root || trajectory.project_root || handle?.project_root || "")
     .trim()
     .replace(/\/+$/, "");
-  const currentRoot = String(getSessionCwd() || "")
-    .trim()
-    .replace(/\/+$/, "");
-  if (!candidateRoot || !currentRoot || candidateRoot !== currentRoot) return false;
   const candidateContinuity = String(
     scope.continuity_id || trajectory.continuity_id || handle?.continuity_id || ""
   ).trim();
-  const currentContinuity = String(getContinuityId() || "").trim();
-  if (candidateContinuity && currentContinuity && candidateContinuity !== currentContinuity) return false;
+  if (candidateRoot !== current.projectRoot || candidateContinuity !== current.continuityId) return false;
 
   // Outer scope metadata is insufficient: a stale ECS handle can retain the
   // current root/workstream while carrying a foreign trajectory payload.
   // Render only when its canonical trajectory identity matches the active
   // exact-scoped trajectory cache; missing identity fails closed.
   const candidateTrajectoryId = String(trajectory.trajectory_id || "").trim();
-  const activeTrajectoryId = String(getLastTrajectoryClarity()?.trajectory_id || "").trim();
-  return Boolean(candidateTrajectoryId && activeTrajectoryId && candidateTrajectoryId === activeTrajectoryId);
+  const active = getLastTrajectoryClarity();
+  const activeTrajectoryId = String(active?.trajectory_id || "").trim();
+  const activeRoot = String(active?.project_root || "")
+    .trim()
+    .replace(/\/+$/, "");
+  const activeContinuity = String(active?.continuity_id || "").trim();
+  return Boolean(
+    candidateTrajectoryId &&
+      activeTrajectoryId &&
+      candidateTrajectoryId === activeTrajectoryId &&
+      activeRoot === current.projectRoot &&
+      activeContinuity === current.continuityId
+  );
 }
 
 function formatHandleTrajectorySummary(handle: any): string {
@@ -651,8 +672,60 @@ function formatTrajectoryFallbackFocusSlice(root: string, reason: string): strin
   ];
 }
 
+function trajectoryViewMatchesCurrentScope(view: any): boolean {
+  const current = currentVerifiedTrajectoryScope();
+  if (!current || !view || typeof view !== "object") return false;
+  const project = view.project_identity || {};
+  const projectApi = project.project_identity_api || {};
+  const scopeRef = project.scope_ref || projectApi.scope_ref || {};
+  const projectRoot = String(project.project_root || projectApi.project_root || "")
+    .trim()
+    .replace(/\/+$/, "");
+  const scopeRoot = String(scopeRef.root_path || "")
+    .trim()
+    .replace(/\/+$/, "");
+  const continuityId = String(project.continuity_id || "").trim();
+  const trajectory = view.trajectory || {};
+  const trajectoryId = String(trajectory.trajectory_id || "").trim();
+  const receipt = trajectory.scope_verification || {};
+  const receiptScope = receipt.scope_ref || {};
+  const receiptRoot = String(receipt.project_root || "")
+    .trim()
+    .replace(/\/+$/, "");
+  const receiptContinuity = String(receipt.continuity_id || "").trim();
+  if (
+    project.status !== "verified" ||
+    scopeRef.scope_kind !== "project" ||
+    !String(scopeRef.scope_id || "").trim() ||
+    !String(scopeRef.fingerprint || "").trim() ||
+    projectRoot !== current.projectRoot ||
+    scopeRoot !== current.projectRoot ||
+    continuityId !== current.continuityId ||
+    !trajectoryId ||
+    String(receipt.rendered_trajectory_id || "").trim() !== trajectoryId ||
+    !String(receipt.source_trajectory_id || "").trim() ||
+    receiptRoot !== current.projectRoot ||
+    receiptScope.scope_kind !== scopeRef.scope_kind ||
+    String(receiptScope.scope_id || "") !== String(scopeRef.scope_id || "") ||
+    String(receiptScope.fingerprint || "") !== String(scopeRef.fingerprint || "") ||
+    String(receiptScope.root_path || "").replace(/\/+$/, "") !== current.projectRoot
+  ) {
+    return false;
+  }
+  if (trajectory.fallback_prior_project_trajectory === true) {
+    const sourceContinuity = String(trajectory.fallback_source_continuity_id || "").trim();
+    return Boolean(
+      receipt.status === "verified_same_project_fallback" &&
+        sourceContinuity &&
+        sourceContinuity !== current.continuityId &&
+        receiptContinuity === sourceContinuity
+    );
+  }
+  return receipt.status === "verified_exact" && receiptContinuity === current.continuityId;
+}
+
 function formatTrajectoryFocusSlice(view: any): string[] {
-  if (!view || typeof view !== "object") return [];
+  if (!trajectoryViewMatchesCurrentScope(view)) return [];
   const project = view.project_identity || {};
   const trajectory = view.trajectory || {};
   const intelligence = view.intelligence_view || {};
@@ -890,14 +963,15 @@ function getToolAffordanceFocusSliceLines(options: {
 }
 
 function getCachedTrajectoryFocusSliceLines(): string[] {
-  const root = getSessionCwd() || process.cwd();
-  if (!isProjectRootAuthoritySafe(root)) return [];
-  return formatTrajectoryFallbackFocusSlice(root, "prompt_hot_path_cache");
+  const scope = currentVerifiedTrajectoryScope();
+  if (!scope || !isProjectRootAuthoritySafe(scope.projectRoot)) return [];
+  return formatTrajectoryFallbackFocusSlice(scope.projectRoot, "prompt_hot_path_cache");
 }
 
 async function getTrajectoryFocusSliceLines(): Promise<string[]> {
-  const root = getSessionCwd() || process.cwd();
-  if (!isProjectRootAuthoritySafe(root)) return [];
+  const scope = currentVerifiedTrajectoryScope();
+  if (!scope || !isProjectRootAuthoritySafe(scope.projectRoot)) return [];
+  const root = scope.projectRoot;
   if (!getAttachmentRuntime().focusaAvailable)
     return formatTrajectoryFallbackFocusSlice(root, "focusa_unavailable");
   try {
@@ -907,7 +981,7 @@ async function getTrajectoryFocusSliceLines(): Promise<string[]> {
     params.set("allow_prior_project_trajectory", "true");
     if (getAttachmentRuntime().sessionFrameKey)
       params.set("session_id", getAttachmentRuntime().sessionFrameKey);
-    if (getContinuityId()) params.set("continuity_id", getContinuityId());
+    params.set("continuity_id", scope.continuityId);
     const view = await focusaFetch(`/trajectory/view?${params.toString()}`);
     const lines = formatTrajectoryFocusSlice(view);
     return lines.length ? lines : formatTrajectoryFallbackFocusSlice(root, "empty_trajectory_view");
@@ -1358,10 +1432,9 @@ export function registerTurns(pi: ExtensionAPI) {
       governingPriors: activeGoverningPriors,
     });
     const canonicalReferenceAliases = buildCanonicalReferenceAliases(relevantVerifiedDeltas.items);
-    // Provider request hooks are latency-critical. Ontology is refreshed by
-    // background/session lifecycle work and omitted when no cached projection is
-    // available; a daemon timeout must never delay the operator's prompt.
-    const ontologyContext: any = null;
+    // Provider request hooks are latency-critical. Read only the exact-workstream
+    // verified cache; lifecycle refresh runs outside this hot path.
+    const ontologyContext: any = getCachedOntologyContext();
     const ontologyPayload = ontologyContext?.ontology_context || ontologyContext;
     const ontologyObjectLines = Array.isArray(ontologyPayload?.active_object_set)
       ? ontologyPayload.active_object_set
@@ -1387,7 +1460,11 @@ export function registerTurns(pi: ExtensionAPI) {
     const ontologyEvidenceLines = Array.isArray(ontologyPayload?.evidence_handles)
       ? ontologyPayload.evidence_handles.slice(0, 4).map((item: any) => {
           const trajectory = item?.trajectory || {};
-          const stg = boundedTrajectoryText(trajectory.stg || trajectory.short_term_goal, 70);
+          const verifiedTrajectory = handleTrajectoryMatchesCurrentScope({ trajectory }) ? trajectory : {};
+          const stg = boundedTrajectoryText(
+            verifiedTrajectory.stg || verifiedTrajectory.short_term_goal,
+            70
+          );
           return `${item.kind || "evidence"}:${item.label || item.id || "unknown"}${stg ? ` (STG=${stg})` : ""}`;
         })
       : [];
@@ -2287,6 +2364,11 @@ export function registerTurns(pi: ExtensionAPI) {
         .catch(() => null);
       if (steeringDetected && rootConfirmed) {
         refreshTrajectoryClarityLifecycle("operator_steering", projectRoot).catch(() => null);
+        refreshOntologyContextLifecycle(
+          "operator_steering",
+          getAttachmentRuntime().currentAsk?.text,
+          true
+        ).catch(() => null);
       }
     }
 
@@ -2443,6 +2525,10 @@ export function registerTurns(pi: ExtensionAPI) {
         refreshTrajectoryClarityLifecycle("failure_or_degradation", getSessionCwd() || process.cwd()).catch(
           () => null
         );
+        refreshOntologyContextLifecycle(
+          "failure_or_degradation",
+          getAttachmentRuntime().currentAsk?.text
+        ).catch(() => null);
       }
       if (scopeFailures.length === 0) {
         queueTraceTelemetry({
