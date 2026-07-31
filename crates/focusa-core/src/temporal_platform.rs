@@ -140,3 +140,55 @@ pub fn unix_epoch_ns() -> Option<u128> {
         .ok()
         .map(|duration| duration.as_nanos())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn s137_req_001_platform_clock_domains_are_distinct_and_capability_consistent() {
+        let capture = capture_platform_clocks();
+
+        assert!(capture.capabilities.realtime);
+        assert_eq!(
+            capture.capabilities.suspend_excluding_monotonic,
+            capture.suspend_excluding_monotonic_ns.is_some()
+        );
+        assert_eq!(
+            capture.capabilities.suspend_aware_monotonic,
+            capture.suspend_aware_monotonic_ns.is_some()
+        );
+        assert_eq!(
+            capture.capabilities.process_cpu,
+            capture.process_cpu_ns.is_some()
+        );
+        assert_eq!(
+            capture.capabilities.thread_cpu,
+            capture.thread_cpu_ns.is_some()
+        );
+        assert_eq!(capture.capabilities.tai, capture.tai_ns.is_some());
+        assert_eq!(
+            capture.capabilities.evidence_refs,
+            vec!["runtime:platform-clock-capability-probe"]
+        );
+
+        let unsupported_domain_exists = !capture.capabilities.suspend_excluding_monotonic
+            || !capture.capabilities.suspend_aware_monotonic
+            || !capture.capabilities.tai;
+        assert_eq!(
+            capture.capabilities.fallback_behavior.is_some(),
+            unsupported_domain_exists
+        );
+        if let Some(fallback) = &capture.capabilities.fallback_behavior {
+            assert!(fallback.contains("remain absent"));
+            assert!(fallback.contains("no wall-clock substitution"));
+        }
+
+        if let (Some(active), Some(suspend_aware)) = (
+            capture.suspend_excluding_monotonic_ns,
+            capture.suspend_aware_monotonic_ns,
+        ) {
+            assert!(suspend_aware >= active);
+        }
+    }
+}
