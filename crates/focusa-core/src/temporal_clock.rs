@@ -9,6 +9,8 @@ use crate::temporal::{TemporalClockDomain, TemporalClockSample, TemporalConfiden
 pub struct TemporalActionEnvelope {
     pub schema_version: String,
     pub envelope_id: String,
+    pub action_id: String,
+    pub prediction_id: Option<String>,
     pub captured_at_utc: DateTime<Utc>,
     pub utc_unix_ns: i128,
     pub operator_timezone: String,
@@ -50,6 +52,8 @@ impl TemporalActionEnvelope {
         Self {
             schema_version: "focusa.temporal_action_envelope.v1".to_string(),
             envelope_id: "temporal:unavailable".to_string(),
+            action_id: "action:unavailable".to_string(),
+            prediction_id: None,
             captured_at_utc: epoch,
             utc_unix_ns: 0,
             operator_timezone: "unknown".to_string(),
@@ -201,9 +205,12 @@ pub fn capture_temporal_action_envelope(
         .unwrap_or_default();
     let synchronization_source = calibration.map(|budget| budget.method.clone());
 
+    let action_id = Uuid::now_v7().to_string();
     Ok(TemporalActionEnvelope {
         schema_version: "focusa.temporal_action_envelope.v1".to_string(),
         envelope_id: Uuid::now_v7().to_string(),
+        action_id,
+        prediction_id: None,
         captured_at_utc,
         utc_unix_ns: realtime_ns as i128,
         operator_timezone: operator_timezone.to_string(),

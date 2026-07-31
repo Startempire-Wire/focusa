@@ -1,7 +1,42 @@
-//! Spec138 metacognitive claim, promotion, outcome, and rollback authority.
-
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ActionDeltaPattern {
+    pub pattern_id: String,
+    pub cohort_key: String,
+    pub action_ids: Vec<String>,
+    pub observation_refs: Vec<String>,
+    pub mean_duration_delta_ns: i128,
+    pub mean_outcome_match_ppm: u32,
+    pub evidence_refs: Vec<String>,
+}
+
+pub fn validate_action_delta_pattern(
+    pattern: &ActionDeltaPattern,
+) -> Result<(), LearningAuthorityError> {
+    if pattern.pattern_id.trim().is_empty() || pattern.cohort_key.trim().is_empty() {
+        return Err(LearningAuthorityError::MissingIdentity);
+    }
+    if pattern.evidence_refs.is_empty() || pattern.observation_refs.is_empty() {
+        return Err(LearningAuthorityError::MissingEvidence);
+    }
+    if pattern.action_ids.len() < 3
+        || pattern.action_ids.len() != pattern.observation_refs.len()
+        || pattern
+            .action_ids
+            .iter()
+            .collect::<std::collections::HashSet<_>>()
+            .len()
+            != pattern.action_ids.len()
+    {
+        return Err(LearningAuthorityError::InvalidPatternSamples);
+    }
+    if pattern.mean_outcome_match_ppm > 1_000_000 {
+        return Err(LearningAuthorityError::OutcomeMismatch);
+    }
+    Ok(())
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -147,6 +182,7 @@ pub enum LearningAuthorityError {
     HighConsequenceApprovalRequired,
     SingleEventApprovalRequired,
     OutcomeMismatch,
+    InvalidPatternSamples,
 }
 
 pub fn validate_reflection_claim(claim: &ReflectionClaim) -> Result<(), LearningAuthorityError> {

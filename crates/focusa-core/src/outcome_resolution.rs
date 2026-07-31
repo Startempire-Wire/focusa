@@ -30,6 +30,7 @@ pub enum ActionOutcomeObservationError {
     UnavailableCompletionTime,
     InvalidTimingTrace,
     DurationMismatch,
+    ExpectedDurationMismatch,
     InvalidDurationDelta,
     InvalidOutcomeScore,
     ClaimTimestampMismatch,
@@ -72,6 +73,9 @@ pub fn validate_action_outcome_observation(
         .map_err(|_| ActionOutcomeObservationError::InvalidTimingTrace)?;
     if observation.actual_duration_ns != observation.timing_trace.total_elapsed_ns {
         return Err(ActionOutcomeObservationError::DurationMismatch);
+    }
+    if observation.expected_duration_ns != prediction.duration_baseline.estimate_ns {
+        return Err(ActionOutcomeObservationError::ExpectedDurationMismatch);
     }
     if observation.duration_delta_ns
         != observation.actual_duration_ns as i128 - observation.expected_duration_ns as i128

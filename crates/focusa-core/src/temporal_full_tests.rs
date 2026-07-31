@@ -393,6 +393,24 @@ fn action_timing_trace_attributes_parallel_cache_latency_without_double_counting
 }
 
 #[test]
+fn duration_baseline_distinguishes_learned_bounds_from_unknown_cold_start() {
+    let mut cold = DurationPredictionBaseline {
+        estimate_ns: 0,
+        lower_bound_ns: 0,
+        upper_bound_ns: None,
+        source: "cold_start_no_history".into(),
+        sample_count: 0,
+        cohort_key: "action:unknown".into(),
+    };
+    assert_eq!(validate_duration_prediction_baseline(&cold), Ok(()));
+    cold.estimate_ns = 1_000;
+    assert_eq!(
+        validate_duration_prediction_baseline(&cold),
+        Err(DurationPredictionBaselineError::FabricatedColdStartPrecision)
+    );
+}
+
+#[test]
 fn event_log_temporal_envelope_is_single_sample_and_legacy_safe() {
     let entry = EventLogEntry::captured(
         FocusaEvent::ContinuousTransportAbortForwarded {

@@ -3,6 +3,46 @@ use serde::{Deserialize, Serialize};
 
 use crate::temporal::TemporalScope;
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DurationPredictionBaseline {
+    pub estimate_ns: u128,
+    pub lower_bound_ns: u128,
+    pub upper_bound_ns: Option<u128>,
+    pub source: String,
+    pub sample_count: u64,
+    pub cohort_key: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DurationPredictionBaselineError {
+    MissingSource,
+    InvalidBounds,
+    FabricatedColdStartPrecision,
+}
+
+pub fn validate_duration_prediction_baseline(
+    baseline: &DurationPredictionBaseline,
+) -> Result<(), DurationPredictionBaselineError> {
+    if baseline.source.trim().is_empty() || baseline.cohort_key.trim().is_empty() {
+        return Err(DurationPredictionBaselineError::MissingSource);
+    }
+    if baseline.estimate_ns < baseline.lower_bound_ns
+        || baseline
+            .upper_bound_ns
+            .is_some_and(|upper| upper < baseline.lower_bound_ns || baseline.estimate_ns > upper)
+    {
+        return Err(DurationPredictionBaselineError::InvalidBounds);
+    }
+    if baseline.sample_count == 0
+        && (baseline.estimate_ns != 0
+            || baseline.lower_bound_ns != 0
+            || baseline.upper_bound_ns.is_some())
+    {
+        return Err(DurationPredictionBaselineError::FabricatedColdStartPrecision);
+    }
+    Ok(())
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum LookupLocationKind {
