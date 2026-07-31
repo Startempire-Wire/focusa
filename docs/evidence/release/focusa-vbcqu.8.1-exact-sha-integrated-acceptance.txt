@@ -1,0 +1,33 @@
+focusa-vbcqu.8.1 — exact-SHA integrated acceptance matrix
+Status: BLOCKED; partial completion is rejected
+Observed: 2026-07-31
+Source SHA: 317f94528147da3e3b7642916fff2f1351072551
+Branch: locked-release-all-open-spec137-138-140
+Build authority: OVH focusa-build-ovh only; no KH build/toolchain install
+
+PASS:
+- cargo test --workspace --all-targets (OVH): PASS.
+- Pi TypeScript check and ESLint (Node 22.23.1): PASS.
+- All 17 declared Pi test:* targets (Node 22.23.1): PASS after restoring the repository-locked brace-expansion 5.0.8 and running the existing shrinkwrap overlay.
+- Pi security and project-binding suites: PASS; the initial failures were stale OVH dependency state and an incorrect Node 20 PATH, not source failures.
+- Spec135 compatibility gate: PASS; nine classified changes, zero unknowns, no Spec135L.
+- Every Spec137, Spec137A, Spec138, Spec138A, Spec140A, and Spec143 Python gate: PASS.
+- Spec142 workflow dependency gate and release static gate: PASS.
+- Spec149 contract audit: verified with 80 requirements, 31 operations, 29 OpenAPI paths, 44 events, zero errors, and zero unresolved blockers.
+- Locked-release decomposition and workset-schema audits: PASS after explicitly transferring tracked release-proof/audit inputs omitted by the OVH source mirror.
+
+BLOCKERS:
+1. Pi `npm run format` fails on 33 tracked files: 29 generated skill documents plus agent-runtime-tools.ts, tool-contracts.ts, agent-runtime-tools.test.mjs, and auto-compaction-resilience.test.mjs. No broad auto-format or gate exclusion was applied.
+2. `tests/final_release_gap_gate.sh` requires Bun for two generators and Spec141 conformance. OVH has no Bun runtime. Node 22 directly passes generate-agent-tool-docs.ts but cannot resolve the source .js-to-.ts dependency graph for the other two; standalone tsc is not a compatible runner. No new runtime was installed.
+3. After explicit transfer of current `.beads` and tracked release-proof inputs, the execution audit correctly reports an out-of-phase frontier plus missing proof for focusa-vbcqu.8.1. The provider currently shows W6 OTA/release-intelligence prerequisites in progress and previously closed `.4.4`/`.5.4` as open; release order is therefore not settled.
+4. The legacy release audit requires Git branch metadata, but `focusa-ovh-build` provides a source mirror without `.git`; it cannot prove the exact branch in that mirror. Run it in an approved OVH Git checkout or provide a specified immutable source-identity envelope. This is not waived.
+
+ENVIRONMENT NOTES:
+- OVH default Node 20 is incompatible with the package engine and TypeScript runtime tests; existing ~/.nvm/versions/node/v22.23.1 is the accepted matrix runtime.
+- Repository lock/override already requires brace-expansion 5.0.8; OVH had stale 5.0.7. The exact locked package was restored remotely without KH installation.
+- OVH disk after Rust and Pi matrix work remained approximately 59 GiB free.
+
+DECISION:
+- Release admission remains blocked.
+- No test, format, security, execution-frontier, or runtime gate is weakened.
+- Resume only after formatting drift, an approved OVH Bun/runtime route, provider prerequisite/frontier repair, and an OVH Git/source-identity route are resolved; then rerun the full final gap and execution/legacy audits.
