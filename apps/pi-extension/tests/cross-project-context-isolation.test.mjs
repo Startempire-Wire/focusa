@@ -22,11 +22,44 @@ function block(source, startToken, endToken) {
 }
 
 test("ECS handle trajectory summaries require exact current project/workstream scope", () => {
+  const matcherSource = block(
+    turns,
+    "function handleTrajectoryMatchesCurrentScope",
+    "function formatHandleTrajectorySummary"
+  );
   const formatter = block(turns, "function handleTrajectoryMatchesCurrentScope", "function safeExists");
   assert.match(formatter, /candidateRoot !== currentRoot/);
   assert.match(formatter, /candidateContinuity !== currentContinuity/);
   assert.match(formatter, /candidateTrajectoryId === activeTrajectoryId/);
   assert.match(formatter, /if \(!handleTrajectoryMatchesCurrentScope\(handle\)\) return ""/);
+
+  const executableMatcher = matcherSource.replace(
+    "function handleTrajectoryMatchesCurrentScope(handle: any): boolean",
+    "function handleTrajectoryMatchesCurrentScope(handle)"
+  );
+  const matches = new Function(
+    "getSessionCwd",
+    "getContinuityId",
+    "getLastTrajectoryClarity",
+    `${executableMatcher}; return handleTrajectoryMatchesCurrentScope;`
+  )(
+    () => "/home/wirebot/focusa",
+    () => "focusa-v0.9.135-locked-14",
+    () => ({ trajectory_id: "trajectory:focusa:canonical" })
+  );
+  const scoped = {
+    scope: {
+      project_root: "/home/wirebot/focusa",
+      continuity_id: "focusa-v0.9.135-locked-14",
+    },
+  };
+  assert.equal(
+    matches({ trajectory: { ...scoped, trajectory_id: "trajectory:wire-pitch:foreign" } }),
+    false,
+    "matching outer scope must not admit a foreign trajectory identity"
+  );
+  assert.equal(matches({ trajectory: { ...scoped, trajectory_id: "trajectory:focusa:canonical" } }), true);
+  assert.equal(matches({ trajectory: scoped }), false, "missing trajectory identity fails closed");
 
   const ecs = block(turns, 'focusaFetch("/ecs/store"', "// §7.4 + §33.3: If Focusa unavailable");
   assert.match(ecs, /project_root: getSessionCwd\(\)/);
