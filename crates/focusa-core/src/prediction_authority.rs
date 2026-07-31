@@ -4,11 +4,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct EpistemicScope {
-    pub project_root: String,
-    pub continuity_id: String,
-}
+pub type EpistemicScope = crate::scoped_state::WorkstreamKey;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ConfidenceDimensions {

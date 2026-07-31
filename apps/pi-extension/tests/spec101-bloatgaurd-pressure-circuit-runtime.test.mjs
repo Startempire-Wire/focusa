@@ -170,6 +170,7 @@ try {
   const autoCompaction = await import(pathToFileURL(join(outDir, "auto-compaction.js")).href);
   const compaction = await import(pathToFileURL(join(outDir, "compaction.js")).href);
   const state = await import(pathToFileURL(join(outDir, "state.js")).href);
+  const scopedState = await import(pathToFileURL(join(outDir, "scoped-state.js")).href);
 
   assert(checkStart >= 0, "checkCompactionTier source must be discoverable");
   assert(checkEnd > checkStart, "checkCompactionTier source block must include micro-compact boundary");
@@ -209,6 +210,7 @@ try {
   assert.equal(compaction.classifyBloatgaurdPressureAction(85, pressureCfg, false), "hard");
 
   state.attachmentRuntimeRegistry.reset();
+  scopedState.registerVerifiedScopeRef({ scope_kind: "project", scope_id: "project:pressure", root_path: "/tmp/focusa-bloatgaurd-pressure", canonical_name: "focusa-bloatgaurd-pressure", fingerprint: "fingerprint:pressure" });
   const attachmentKey = state.makeAttachmentKey({
     projectRoot: "/tmp/focusa-bloatgaurd-pressure",
     continuityId: "cont-pressure",

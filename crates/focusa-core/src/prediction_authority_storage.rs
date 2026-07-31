@@ -1,8 +1,9 @@
-//! Durable append-only, causal Spec138 prediction authority event storage.
-
-use crate::prediction_authority::{EpistemicScope, PredictionAuthorityEvent, ScopedAuthorityEvent};
 use crate::prediction_authority_ledger::{
     PredictionAuthorityLedger, PredictionAuthorityProjection,
+};
+use crate::{
+    prediction_authority::{EpistemicScope, PredictionAuthorityEvent, ScopedAuthorityEvent},
+    scoped_state::ScopeKind,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -32,9 +33,12 @@ pub enum PredictionStorageError {
     DuplicateEvent,
     InvalidChain,
     CorruptLine(usize),
+    LegacyScopeMigrationRequired(usize),
     Io(String),
     Projection(String),
     InvalidPrimitive(String),
+    HostDataDirRequired,
+    ScopeKindMismatch,
 }
 
 pub struct PersistentPredictionAuthorityLedger {
@@ -43,23 +47,38 @@ pub struct PersistentPredictionAuthorityLedger {
 }
 
 impl PersistentPredictionAuthorityLedger {
-    pub fn for_project(scope: EpistemicScope) -> Result<Self, PredictionStorageError> {
-        if !Path::new(&scope.project_root).is_absolute()
-            || matches!(
-                scope.project_root.as_str(),
-                "/" | "/root" | "/home" | "/tmp"
-            )
-            || scope.continuity_id.trim().is_empty()
-        {
-            return Err(PredictionStorageError::UnsafeScope);
-        }
-        Ok(Self {
-            path: Path::new(&scope.project_root)
+    pub fn for_scope(
+        scope: EpistemicScope,
+        host_data_dir: Option<&str>,
+    ) -> Result<Self, PredictionStorageError> {
+        scope
+            .validate()
+            .map_err(|_| PredictionStorageError::UnsafeScope)?;
+        let path = match scope.root_scope.scope_kind {
+            ScopeKind::Project => scope
+                .root_scope
+                .root_path
                 .join(".focusa")
                 .join("prediction-authority")
                 .join("events.jsonl"),
-            scope,
-        })
+            ScopeKind::Host => Path::new(
+                host_data_dir
+                    .filter(|path| Path::new(path).is_absolute())
+                    .ok_or(PredictionStorageError::HostDataDirRequired)?,
+            )
+            .join("scoped")
+            .join("prediction-authority")
+            .join(scope.storage_key())
+            .join("events.jsonl"),
+        };
+        Ok(Self { path, scope })
+    }
+
+    pub fn for_project(scope: EpistemicScope) -> Result<Self, PredictionStorageError> {
+        if scope.root_scope.scope_kind != ScopeKind::Project {
+            return Err(PredictionStorageError::ScopeKindMismatch);
+        }
+        Self::for_scope(scope, None)
     }
 
     pub fn path(&self) -> &Path {
@@ -77,8 +96,17 @@ impl PersistentPredictionAuthorityLedger {
             if line.trim().is_empty() {
                 continue;
             }
+            let value = serde_json::from_str::<serde_json::Value>(&line)
+                .map_err(|_| PredictionStorageError::CorruptLine(index + 1))?;
+            if value.pointer("/event/scope/project_root").is_some()
+                && value.pointer("/event/scope/root_scope").is_none()
+            {
+                return Err(PredictionStorageError::LegacyScopeMigrationRequired(
+                    index + 1,
+                ));
+            }
             rows.push(
-                serde_json::from_str::<DurablePredictionEvent>(&line)
+                serde_json::from_value::<DurablePredictionEvent>(value)
                     .map_err(|_| PredictionStorageError::CorruptLine(index + 1))?,
             );
         }
@@ -358,17 +386,22 @@ mod tests {
     static NEXT_SCOPE: AtomicU64 = AtomicU64::new(1);
 
     fn scope() -> EpistemicScope {
-        EpistemicScope {
-            project_root: std::env::temp_dir()
-                .join(format!(
-                    "focusa-prediction-ledger-{}-{}",
-                    std::process::id(),
-                    NEXT_SCOPE.fetch_add(1, Ordering::Relaxed)
-                ))
-                .to_string_lossy()
-                .to_string(),
-            continuity_id: "spec138-test".into(),
-        }
+        let root_path = std::env::temp_dir().join(format!(
+            "focusa-prediction-ledger-{}-{}",
+            std::process::id(),
+            NEXT_SCOPE.fetch_add(1, Ordering::Relaxed)
+        ));
+        crate::scoped_state::WorkstreamKey::new(
+            crate::scoped_state::ScopeRef::project(
+                "project:prediction-ledger-test",
+                &root_path,
+                "prediction-ledger-test",
+                format!("test:{}", root_path.display()),
+            )
+            .unwrap(),
+            "spec138-test",
+        )
+        .unwrap()
     }
 
     fn event(scope: &EpistemicScope, sequence: u64) -> ScopedAuthorityEvent {
@@ -393,7 +426,7 @@ mod tests {
     #[test]
     fn durable_ledger_restarts_projects_and_rejects_tamper() {
         let scope = scope();
-        let _ = std::fs::remove_dir_all(&scope.project_root);
+        let _ = std::fs::remove_dir_all(&scope.root_scope.root_path);
         let ledger = PersistentPredictionAuthorityLedger::for_project(scope.clone()).unwrap();
         ledger
             .append_batch(vec![event(&scope, 1), event(&scope, 2)])
@@ -402,7 +435,7 @@ mod tests {
         assert_eq!(restarted.read_all().unwrap().len(), 2);
         let projection = restarted.projection().unwrap();
         assert_eq!(projection.sequence, 2);
-        let backup = Path::new(&scope.project_root).join("backup/events.jsonl");
+        let backup = scope.root_scope.root_path.join("backup/events.jsonl");
         restarted.backup_to(&backup).unwrap();
         let mut body = std::fs::read_to_string(restarted.path()).unwrap();
         body = body.replacen("release-success", "tampered-subject", 1);
@@ -413,13 +446,13 @@ mod tests {
         );
         restarted.restore_from_backup(&backup).unwrap();
         assert_eq!(restarted.read_all().unwrap().len(), 2);
-        let _ = std::fs::remove_dir_all(&scope.project_root);
+        let _ = std::fs::remove_dir_all(&scope.root_scope.root_path);
     }
 
     #[test]
     fn legacy_envelope_migrates_forward_without_rewriting_history() {
         let scope = scope();
-        let _ = std::fs::remove_dir_all(&scope.project_root);
+        let _ = std::fs::remove_dir_all(&scope.root_scope.root_path);
         let ledger = PersistentPredictionAuthorityLedger::for_project(scope.clone()).unwrap();
         let mut legacy = DurablePredictionEvent {
             schema_version: 0,
@@ -441,13 +474,13 @@ mod tests {
         let rows = ledger.read_all().unwrap();
         assert_eq!(rows[0].schema_version, 0);
         assert_eq!(rows[1].schema_version, 1);
-        let _ = std::fs::remove_dir_all(&scope.project_root);
+        let _ = std::fs::remove_dir_all(&scope.root_scope.root_path);
     }
 
     #[test]
     fn durable_ledger_requires_exact_scope_sequence_evidence_and_receipt() {
         let scope = scope();
-        let _ = std::fs::remove_dir_all(&scope.project_root);
+        let _ = std::fs::remove_dir_all(&scope.root_scope.root_path);
         let ledger = PersistentPredictionAuthorityLedger::for_project(scope.clone()).unwrap();
         let mut invalid = event(&scope, 2);
         assert_eq!(
@@ -460,6 +493,6 @@ mod tests {
             ledger.append_batch(vec![invalid]),
             Err(PredictionStorageError::MissingEvidence)
         );
-        let _ = std::fs::remove_dir_all(&scope.project_root);
+        let _ = std::fs::remove_dir_all(&scope.root_scope.root_path);
     }
 }

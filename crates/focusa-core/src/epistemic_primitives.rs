@@ -95,7 +95,7 @@ pub fn validate_epistemic_primitive(
     if canonical.family != record.descriptor.family {
         return Err(EpistemicPrimitiveError::UnknownPrimitive);
     }
-    if record.scope.project_root.trim().is_empty() || record.scope.continuity_id.trim().is_empty() {
+    if record.scope.validate().is_err() {
         return Err(EpistemicPrimitiveError::InvalidScope);
     }
     if record.primitive_id.trim().is_empty() {
@@ -130,10 +130,17 @@ mod tests {
         EpistemicPrimitiveRecord {
             primitive_id: "source-1".into(),
             descriptor: resolve_canonical_primitive(2, "SourceIdentity").unwrap(),
-            scope: EpistemicScope {
-                project_root: "/project".into(),
-                continuity_id: "main".into(),
-            },
+            scope: crate::scoped_state::WorkstreamKey::new(
+                crate::scoped_state::ScopeRef::project(
+                    "project:primitive-test",
+                    "/project",
+                    "primitive-test",
+                    "fingerprint:primitive-test",
+                )
+                .unwrap(),
+                "main",
+            )
+            .unwrap(),
             status: EpistemicPrimitiveStatus::Canonical,
             value: serde_json::json!({"source":"operator"}),
             provenance: EpistemicProvenance {

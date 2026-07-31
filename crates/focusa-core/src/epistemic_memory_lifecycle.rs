@@ -324,10 +324,17 @@ mod tests {
         let now = Utc::now();
         LearningMemoryRecord {
             memory_id: id.into(),
-            scope: EpistemicScope {
-                project_root: "/project".into(),
-                continuity_id: "main".into(),
-            },
+            scope: crate::scoped_state::WorkstreamKey::new(
+                crate::scoped_state::ScopeRef::project(
+                    "project:memory-test",
+                    "/project",
+                    "memory-test",
+                    "fingerprint:memory-test",
+                )
+                .unwrap(),
+                "main",
+            )
+            .unwrap(),
             state: MemoryState::Active,
             applicability_refs: vec!["task:release".into()],
             source_memory_refs: vec![],

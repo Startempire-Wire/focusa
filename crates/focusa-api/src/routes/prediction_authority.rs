@@ -6,9 +6,9 @@ use axum::{
     routing::{get, post},
 };
 use focusa_core::{
-    prediction_authority::{EpistemicScope, ScopedAuthorityEvent},
+    prediction_authority::ScopedAuthorityEvent,
     prediction_authority_storage::{PersistentPredictionAuthorityLedger, PredictionStorageError},
-    scoped_state::WorkstreamKey,
+    scoped_state::{ScopeKind, ScopeRef, WorkstreamKey},
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -27,12 +27,40 @@ struct ProjectionQuery {
 
 #[derive(Debug, Deserialize)]
 struct ProjectionGetQuery {
-    project_root: String,
+    scope_kind: ScopeKind,
+    scope_id: String,
+    root_path: std::path::PathBuf,
+    canonical_name: String,
+    fingerprint: String,
     continuity_id: String,
 }
 
-fn profile_conformance(project_root: &str) -> Value {
-    let path = std::path::Path::new(project_root)
+impl ProjectionGetQuery {
+    fn into_scope(self) -> Result<WorkstreamKey, String> {
+        WorkstreamKey::new(
+            ScopeRef {
+                scope_kind: self.scope_kind,
+                scope_id: self.scope_id,
+                root_path: self.root_path,
+                canonical_name: self.canonical_name,
+                fingerprint: self.fingerprint,
+            },
+            self.continuity_id,
+        )
+        .and_then(|scope| {
+            scope.validate()?;
+            Ok(scope)
+        })
+        .map_err(|error| error.to_string())
+    }
+}
+
+fn profile_conformance(scope: &ScopeRef) -> Value {
+    if scope.scope_kind == ScopeKind::Host {
+        return json!({"status":"verified_not_applicable","reason":"project_profile_matrix_not_applicable_to_host_scope"});
+    }
+    let path = scope
+        .root_path
         .join("docs/contracts/spec138-profile-activation-and-conformance-matrix.v1.yaml");
     std::fs::read_to_string(path)
         .ok()
@@ -47,9 +75,8 @@ fn profile_conformance(project_root: &str) -> Value {
         })
 }
 
-fn scope_matches(scope: &WorkstreamKey, authority: &EpistemicScope) -> bool {
-    scope.root_scope.root_path.to_string_lossy() == authority.project_root
-        && scope.continuity_id == authority.continuity_id
+fn scope_matches(scope: &WorkstreamKey, authority: &WorkstreamKey) -> bool {
+    scope == authority
 }
 
 async fn append_event(
@@ -62,8 +89,11 @@ async fn append_event(
             Json(json!({"status":"blocked","error":"scope_mismatch"})),
         ));
     }
-    let durable = PersistentPredictionAuthorityLedger::for_project(body.event.scope.clone())
-        .map_err(storage_failure)?;
+    let durable = PersistentPredictionAuthorityLedger::for_scope(
+        body.event.scope.clone(),
+        Some(&state.config.data_dir),
+    )
+    .map_err(storage_failure)?;
     durable
         .append_batch(vec![body.event.clone()])
         .map_err(storage_failure)?;
@@ -85,20 +115,17 @@ async fn append_event(
 }
 
 async fn projection(
+    State(state): State<Arc<AppState>>,
     Json(query): Json<ProjectionQuery>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let scope = EpistemicScope {
-        project_root: query
-            .scope
-            .root_scope
-            .root_path
-            .to_string_lossy()
-            .into_owned(),
-        continuity_id: query.scope.continuity_id,
-    };
-    let conformance = profile_conformance(&scope.project_root);
+    query.scope.validate().map_err(|error| (
+        StatusCode::UNPROCESSABLE_ENTITY,
+        Json(json!({"status":"blocked","error":"typed_scope_invalid","reason":error.to_string()})),
+    ))?;
+    let conformance = profile_conformance(&query.scope.root_scope);
     let durable =
-        PersistentPredictionAuthorityLedger::for_project(scope).map_err(storage_failure)?;
+        PersistentPredictionAuthorityLedger::for_scope(query.scope, Some(&state.config.data_dir))
+            .map_err(storage_failure)?;
     let events = durable.read_all().map_err(storage_failure)?;
     let projection = durable.projection().map_err(storage_failure)?;
     Ok(Json(json!({
@@ -113,15 +140,19 @@ async fn projection(
 }
 
 async fn projection_get(
+    State(state): State<Arc<AppState>>,
     Query(query): Query<ProjectionGetQuery>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let scope = EpistemicScope {
-        project_root: query.project_root,
-        continuity_id: query.continuity_id,
-    };
-    let conformance = profile_conformance(&scope.project_root);
+    let scope = query.into_scope().map_err(|reason| {
+        (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(json!({"status":"blocked","error":"typed_scope_required","reason":reason})),
+        )
+    })?;
+    let conformance = profile_conformance(&scope.root_scope);
     let durable =
-        PersistentPredictionAuthorityLedger::for_project(scope).map_err(storage_failure)?;
+        PersistentPredictionAuthorityLedger::for_scope(scope, Some(&state.config.data_dir))
+            .map_err(storage_failure)?;
     let events = durable.read_all().map_err(storage_failure)?;
     let projection = durable.projection().map_err(storage_failure)?;
     Ok(Json(json!({

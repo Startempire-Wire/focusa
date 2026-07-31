@@ -16,6 +16,9 @@ try {
   const state = await import(pathToFileURL(join(outDir, "state.js")).href);
   const scopedState = await import(pathToFileURL(join(outDir, "scoped-state.js")).href);
   state.attachmentRuntimeRegistry.reset();
+  for (const [root, id] of [["/tmp/project-a", "project:a"], ["/tmp/project-b", "project:b"]]) {
+    scopedState.registerVerifiedScopeRef({ scope_kind: "project", scope_id: id, root_path: root, canonical_name: id, fingerprint: `fingerprint:${id}` });
+  }
   const keyA = state.makeAttachmentKey({
     projectRoot: "/tmp/project-a",
     continuityId: "cont-a",
@@ -34,13 +37,11 @@ try {
     "cont-a",
     "typed project attachment must bind to its Pi session"
   );
-  const unsafeKey = state.makeAttachmentKey({
-    projectRoot: "/root",
-    continuityId: "cont-unsafe",
-    sessionId: "session-a",
-    attachmentId: "attach-unsafe",
-  });
-  state.attachmentRuntimeRegistry.bindSessionAttachment(unsafeKey);
+  assert.throws(
+    () => state.makeAttachmentKey({ projectRoot: "/root", continuityId: "cont-unsafe", sessionId: "session-a", attachmentId: "attach-unsafe" }),
+    /verified_project_scope_required/,
+    "unregistered broad-root project scope must fail closed"
+  );
   assert.equal(
     state.attachmentRuntimeRegistry.boundSessionAttachment("session-a")?.workstream.continuity_id,
     "cont-a",
@@ -177,6 +178,7 @@ try {
     assert(detailed.includes("scopeHeaders"), `${route} mocked requests use shared scoped headers`);
   }
   const repoRoot = fileURLToPath(new URL("../../..", import.meta.url)).replace(/\/$/, "");
+  scopedState.registerVerifiedScopeRef({ scope_kind: "project", scope_id: "project:focusa", root_path: repoRoot, canonical_name: "Focusa", fingerprint: "fingerprint:focusa-test" });
   const recoveryKey = state.makeAttachmentKey({
     projectRoot: repoRoot,
     continuityId: "cont-frame-recovery",

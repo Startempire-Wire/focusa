@@ -637,6 +637,7 @@ mod tests {
             events_tx,
             event_broadcaster: crate::routes::sse::EventBroadcaster::new(),
             config: cfg.clone(),
+            license_guard: focusa_license::LicenseGuard::eval(7),
             persistence: persistence.clone(),
             persistence_actor: None,
             write_serial_lock: Arc::new(Mutex::new(())),

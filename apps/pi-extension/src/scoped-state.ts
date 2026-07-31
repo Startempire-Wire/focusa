@@ -1,5 +1,3 @@
-import { createHash } from "crypto";
-
 // Typed scope, authority, result, and CRDT contracts for Spec 104.
 // Canonical state is rooted by ScopeRef before continuity/workstream metadata.
 
@@ -121,6 +119,21 @@ export function isWorkstreamKey(value: unknown): value is WorkstreamKey {
   return Boolean(scope && isScopeRef(scope.root_scope) && nonempty(scope.continuity_id));
 }
 
+const verifiedScopeByRoot = new Map<string, ScopeRef>();
+
+export function registerVerifiedScopeRef(value: unknown): ScopeRef {
+  if (!isScopeRef(value)) throw new Error("verified_scope_ref_required");
+  const root = value.root_path.trim().replace(/\/+$/, "");
+  if (!root) throw new Error("verified_scope_root_required");
+  const scope = { ...value, root_path: root };
+  verifiedScopeByRoot.set(root, scope);
+  return scope;
+}
+
+export function clearVerifiedScopeRefsForTest(): void {
+  verifiedScopeByRoot.clear();
+}
+
 export function buildProjectWorkstreamKey(
   projectRoot: string,
   continuityId: string,
@@ -131,18 +144,12 @@ export function buildProjectWorkstreamKey(
     .replace(/\/+$/, "");
   const continuity = String(continuityId || "").trim();
   if (!root || !continuity) throw new Error("typed_scope_required");
-  const fingerprint = `sha256:${createHash("sha256").update(root).digest("hex")}`;
-  const name = canonicalName || root.split("/").filter(Boolean).at(-1) || "project";
-  return {
-    root_scope: {
-      scope_kind: "project",
-      scope_id: `project:${fingerprint.slice(7, 23)}`,
-      root_path: root,
-      canonical_name: name,
-      fingerprint,
-    },
-    continuity_id: continuity,
-  };
+  const scope = verifiedScopeByRoot.get(root);
+  if (!scope || scope.scope_kind !== "project") throw new Error("verified_project_scope_required");
+  if (canonicalName && canonicalName !== scope.canonical_name) {
+    throw new Error("verified_project_scope_name_mismatch");
+  }
+  return { root_scope: { ...scope }, continuity_id: continuity };
 }
 
 export function scopedQueryParams(scope: WorkstreamKey): URLSearchParams {

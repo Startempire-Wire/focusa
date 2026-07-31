@@ -333,6 +333,23 @@ function hardGateVitalProjectRoot(ctx: any): string | null {
   return null;
 }
 
+function predictionAuthorityProjectionPath(
+  verified: any,
+  continuityId: string
+): string | undefined {
+  const scope = verified?.project_identity?.scope_ref;
+  const continuity = String(continuityId || "").trim();
+  if (!scope || !continuity || !(verified?.canonical === true || verified?.verification?.verified === true)) {
+    return undefined;
+  }
+  const fields = ["scope_kind", "scope_id", "root_path", "canonical_name", "fingerprint"];
+  if (fields.some((field) => !String(scope?.[field] || "").trim())) return undefined;
+  const query = new URLSearchParams();
+  for (const field of fields) query.set(field, String(scope[field]));
+  query.set("continuity_id", continuity);
+  return `/prediction-authority/projection?${query.toString()}`;
+}
+
 function queueTraceTelemetry(event: Record<string, any>): void {
   traceBatch.push(event);
 }
@@ -2124,9 +2141,8 @@ export function registerTurns(pi: ExtensionAPI) {
             (runtime as any).temporalPriorityContext = undefined;
           }
         );
-        void focusaFetch(
-          `/prediction-authority/projection?project_root=${encodeURIComponent(projectRoot)}&continuity_id=${encodeURIComponent(continuityId)}`
-        ).then(
+        const predictionAuthorityPath = predictionAuthorityProjectionPath(verified, continuityId);
+        if (predictionAuthorityPath) void focusaFetch(predictionAuthorityPath).then(
           (authority) => {
             (runtime as any).predictionAuthorityContext = authority;
           },
@@ -2681,12 +2697,10 @@ export function registerTurns(pi: ExtensionAPI) {
       (getAttachmentRuntime() as any).temporalPriorityContext = undefined;
     }
     try {
-      (getAttachmentRuntime() as any).predictionAuthorityContext =
-        projectRoot && continuityId
-          ? await focusaFetch(
-              `/prediction-authority/projection?project_root=${encodeURIComponent(projectRoot)}&continuity_id=${encodeURIComponent(continuityId)}`
-            )
-          : undefined;
+      const predictionAuthorityPath = predictionAuthorityProjectionPath(verified, continuityId);
+      (getAttachmentRuntime() as any).predictionAuthorityContext = predictionAuthorityPath
+        ? await focusaFetch(predictionAuthorityPath)
+        : undefined;
     } catch {
       (getAttachmentRuntime() as any).predictionAuthorityContext = undefined;
     }

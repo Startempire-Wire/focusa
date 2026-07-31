@@ -365,7 +365,7 @@ async fn export_run(
     Json(body): Json<ExportRunBody>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     // Spec 125-style: license gate with actionable guidance.
-    let guard = crate::routes::license::current_guard();
+    let guard = state.license_guard.clone();
     if let focusa_license::CapabilityCheck::Denied { reason } =
         guard.check(focusa_license::Capability::CommercialUse)
     {

@@ -46,7 +46,11 @@ try {
   );
   writeFileSync(join(outDir, "package.json"), '{"type":"module"}\n');
   const state = await import(pathToFileURL(join(outDir, "state.js")).href);
+  const scopedState = await import(pathToFileURL(join(outDir, "scoped-state.js")).href);
   state.attachmentRuntimeRegistry.reset();
+  for (const [root, id] of [["/tmp/settings-a", "project:settings-a"], ["/tmp/settings-b", "project:settings-b"]]) {
+    scopedState.registerVerifiedScopeRef({ scope_kind: "project", scope_id: id, root_path: root, canonical_name: id, fingerprint: `fingerprint:${id}` });
+  }
   const keyA = state.makeAttachmentKey({
     projectRoot: "/tmp/settings-a",
     continuityId: "settings-a",

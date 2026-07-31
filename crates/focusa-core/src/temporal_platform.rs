@@ -1,7 +1,4 @@
-use std::{
-    sync::OnceLock,
-    time::{Instant, SystemTime, UNIX_EPOCH},
-};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -12,12 +9,10 @@ use crate::{
     temporal_clock::TemporalClockCapabilities,
 };
 
-static PROCESS_MONOTONIC_ORIGIN: OnceLock<Instant> = OnceLock::new();
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PlatformClockCapture {
     pub realtime_utc: DateTime<Utc>,
-    pub suspend_excluding_monotonic_ns: u128,
+    pub suspend_excluding_monotonic_ns: Option<u128>,
     pub suspend_aware_monotonic_ns: Option<u128>,
     pub process_cpu_ns: Option<u128>,
     pub thread_cpu_ns: Option<u128>,
@@ -60,10 +55,10 @@ fn boot_id() -> Option<String> {
 
 pub fn capture_platform_clocks() -> PlatformClockCapture {
     let realtime_utc: DateTime<Utc> = SystemTime::now().into();
-    let active = PROCESS_MONOTONIC_ORIGIN
-        .get_or_init(Instant::now)
-        .elapsed()
-        .as_nanos();
+    #[cfg(unix)]
+    let active = clock_gettime_ns(libc::CLOCK_MONOTONIC);
+    #[cfg(not(unix))]
+    let active = None;
     #[cfg(target_os = "linux")]
     let suspend_aware = clock_gettime_ns(libc::CLOCK_BOOTTIME);
     #[cfg(not(target_os = "linux"))]
@@ -80,10 +75,11 @@ pub fn capture_platform_clocks() -> PlatformClockCapture {
     let tai = clock_gettime_ns(libc::CLOCK_TAI);
     #[cfg(not(target_os = "linux"))]
     let tai = None;
-    let fallback_behavior = (suspend_aware.is_none() || tai.is_none()).then(|| {
-        "unsupported clock domains remain absent; no wall-clock substitution or false precision"
-            .into()
-    });
+    let fallback_behavior =
+        (active.is_none() || suspend_aware.is_none() || tai.is_none()).then(|| {
+            "unsupported clock domains remain absent; no wall-clock substitution or false precision"
+                .into()
+        });
     PlatformClockCapture {
         realtime_utc,
         suspend_excluding_monotonic_ns: active,
@@ -94,7 +90,7 @@ pub fn capture_platform_clocks() -> PlatformClockCapture {
         boot_id: boot_id(),
         capabilities: TemporalClockCapabilities {
             realtime: true,
-            suspend_excluding_monotonic: true,
+            suspend_excluding_monotonic: active.is_some(),
             suspend_aware_monotonic: suspend_aware.is_some(),
             process_cpu: process_cpu.is_some(),
             thread_cpu: thread_cpu.is_some(),
@@ -118,7 +114,7 @@ pub fn capture_temporal_clock_sample(
             TemporalClockDomain::MonotonicActive
         },
         wall_utc: capture.realtime_utc,
-        monotonic_ns: Some(capture.suspend_excluding_monotonic_ns),
+        monotonic_ns: capture.suspend_excluding_monotonic_ns,
         suspend_aware_ns: capture.suspend_aware_monotonic_ns,
         boot_id: capture.boot_id,
         timezone: timezone.into(),
