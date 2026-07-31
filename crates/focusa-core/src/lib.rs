@@ -86,6 +86,9 @@ pub mod prediction_advanced;
 pub mod prediction_authority;
 pub mod prediction_authority_ledger;
 pub mod prediction_authority_storage;
+#[cfg(test)]
+#[path = "prediction_authority_tests.rs"]
+mod prediction_authority_tests;
 pub mod prediction_calibration;
 pub mod prediction_migration;
 pub mod prediction_profiles;

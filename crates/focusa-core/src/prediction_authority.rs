@@ -79,7 +79,7 @@ pub struct ActionPredictionCommitment {
     pub prediction_temporal: crate::temporal_clock::TemporalActionEnvelope,
     pub action_start_temporal: crate::temporal_clock::TemporalActionEnvelope,
     pub commitment: PredictionCommitment,
-    pub expected_duration_ns: Option<u128>,
+    pub duration_baseline: crate::temporal_progress::DurationPredictionBaseline,
     pub pattern_cohort_keys: Vec<String>,
 }
 
@@ -89,7 +89,6 @@ pub enum ActionPredictionGateError {
     IncompletePredictionPrerequisites,
     UnavailableTemporalAuthority,
     PredictionAfterActionStart,
-    CommitmentTimestampMismatch,
 }
 
 pub fn validate_action_prediction_commitment(
@@ -114,13 +113,14 @@ pub fn validate_action_prediction_commitment(
     {
         return Err(ActionPredictionGateError::PredictionAfterActionStart);
     }
-    if linked.commitment.committed_at != linked.prediction_temporal.captured_at_utc {
-        return Err(ActionPredictionGateError::CommitmentTimestampMismatch);
-    }
     if linked.commitment.evidence_refs.is_empty()
         || linked.commitment.receipt_ref.trim().is_empty()
-        || linked.expected_duration_ns.is_none()
+        || linked.commitment.committed_at != linked.prediction_temporal.captured_at_utc
         || linked.pattern_cohort_keys.is_empty()
+        || crate::temporal_progress::validate_duration_prediction_baseline(
+            &linked.duration_baseline,
+        )
+        .is_err()
     {
         return Err(ActionPredictionGateError::IncompletePredictionPrerequisites);
     }
@@ -472,6 +472,9 @@ pub enum PredictionAuthorityEvent {
     LegacyMigration(crate::prediction_migration::LegacyMigrationRecord),
     Question(PredictionQuestion),
     Commitment(PredictionCommitment),
+    ActionCommitment(ActionPredictionCommitment),
+    ActionOutcome(crate::outcome_resolution::ActionOutcomeObservation),
+    ActionPattern(crate::metacognitive_learning::ActionDeltaPattern),
     OutcomeClaim(OutcomeClaim),
     OutcomeResolution(OutcomeResolution),
     ScoringPolicy(ScoringPolicy),
@@ -493,7 +496,3 @@ pub struct ScopedAuthorityEvent {
     pub evidence_refs: Vec<String>,
     pub receipt_ref: String,
 }
-
-#[cfg(test)]
-#[path = "prediction_authority_tests.rs"]
-mod tests;

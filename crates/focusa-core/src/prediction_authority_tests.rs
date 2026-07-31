@@ -1,8 +1,7 @@
 use crate::prediction_authority::*;
 use crate::prediction_authority_ledger::*;
 
-use super::*;
-use chrono::Duration;
+use chrono::{DateTime, Duration, Utc};
 
 fn now() -> DateTime<Utc> {
     DateTime::parse_from_rfc3339("2026-07-27T00:00:00Z")
@@ -255,7 +254,14 @@ fn action_prediction_and_actual_delta_lifecycle_is_temporally_ordered() {
         prediction_temporal: prediction_temporal.clone(),
         action_start_temporal: action_start_temporal.clone(),
         commitment: prediction.clone(),
-        expected_duration_ns: Some(2_000),
+        duration_baseline: crate::temporal_progress::DurationPredictionBaseline {
+            estimate_ns: 2_000,
+            lower_bound_ns: 1_000,
+            upper_bound_ns: Some(4_000),
+            source: "learned_cohort".into(),
+            sample_count: 10,
+            cohort_key: "cache:hot".into(),
+        },
         pattern_cohort_keys: vec!["cache:hot".into()],
     };
     assert_eq!(validate_action_prediction_commitment(&linked), Ok(()));
@@ -318,6 +324,29 @@ fn action_prediction_and_actual_delta_lifecycle_is_temporally_ordered() {
     assert_eq!(
         crate::outcome_resolution::validate_action_outcome_observation(&linked, &wrong_delta),
         Err(crate::outcome_resolution::ActionOutcomeObservationError::InvalidDurationDelta)
+    );
+}
+
+#[test]
+fn recurring_action_delta_pattern_requires_unique_evidence_backed_samples() {
+    let pattern = crate::metacognitive_learning::ActionDeltaPattern {
+        pattern_id: "pattern:cache-miss".into(),
+        cohort_key: "lookup:provider-a:cache-miss".into(),
+        action_ids: vec!["action:1".into(), "action:2".into(), "action:3".into()],
+        observation_refs: vec!["obs:1".into(), "obs:2".into(), "obs:3".into()],
+        mean_duration_delta_ns: 2_000,
+        mean_outcome_match_ppm: 900_000,
+        evidence_refs: vec!["evidence:pattern".into()],
+    };
+    assert_eq!(
+        crate::metacognitive_learning::validate_action_delta_pattern(&pattern),
+        Ok(())
+    );
+    let mut duplicate = pattern;
+    duplicate.action_ids[2] = "action:1".into();
+    assert_eq!(
+        crate::metacognitive_learning::validate_action_delta_pattern(&duplicate),
+        Err(crate::metacognitive_learning::LearningAuthorityError::InvalidPatternSamples)
     );
 }
 

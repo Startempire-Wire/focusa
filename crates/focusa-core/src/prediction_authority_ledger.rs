@@ -5,8 +5,10 @@ use crate::{
     epistemic_memory_lifecycle::MemoryLifecycleEvent,
     epistemic_primitives::EpistemicPrimitiveRecord,
     epistemic_security::SourceSecurityDecision,
-    metacognitive_learning::{LearningSettlement, PromotionAssessment, ReflectionClaim},
-    outcome_resolution::OutcomeAuthorityEvent,
+    metacognitive_learning::{
+        ActionDeltaPattern, LearningSettlement, PromotionAssessment, ReflectionClaim,
+    },
+    outcome_resolution::{ActionOutcomeObservation, OutcomeAuthorityEvent},
     prediction_advanced::{ScenarioProjection, SelfModelEstimate, TransferEvaluation},
     prediction_authority::*,
     prediction_migration::LegacyMigrationRecord,
@@ -31,6 +33,9 @@ pub struct PredictionAuthorityProjection {
     pub legacy_migrations: BTreeMap<String, LegacyMigrationRecord>,
     pub questions: BTreeMap<String, PredictionQuestion>,
     pub commitments: BTreeMap<String, PredictionCommitment>,
+    pub action_commitments: BTreeMap<String, ActionPredictionCommitment>,
+    pub action_outcomes: BTreeMap<String, ActionOutcomeObservation>,
+    pub action_patterns: BTreeMap<String, ActionDeltaPattern>,
     pub resolutions: BTreeMap<String, OutcomeResolution>,
     pub evaluations: BTreeMap<String, PredictionEvaluation>,
     pub learning: BTreeMap<String, LearningRecord>,
@@ -139,6 +144,21 @@ impl PredictionAuthorityLedger {
                     projection
                         .commitments
                         .insert(value.commitment_id.clone(), value.clone());
+                }
+                PredictionAuthorityEvent::ActionCommitment(value) => {
+                    projection
+                        .action_commitments
+                        .insert(value.action_id.clone(), value.clone());
+                }
+                PredictionAuthorityEvent::ActionOutcome(value) => {
+                    projection
+                        .action_outcomes
+                        .insert(value.action_id.clone(), value.clone());
+                }
+                PredictionAuthorityEvent::ActionPattern(value) => {
+                    projection
+                        .action_patterns
+                        .insert(value.pattern_id.clone(), value.clone());
                 }
                 PredictionAuthorityEvent::OutcomeResolution(value) => {
                     projection
