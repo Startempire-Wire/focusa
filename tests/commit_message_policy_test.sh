@@ -30,6 +30,12 @@ assert_fail 'focusa-im74e'
 assert_fail 'WIP'
 assert_fail 'made changes'
 
+# Published malformed history is accepted only by exact full hash during range
+# validation; commit-msg validation remains strict for every new commit.
+grep -q '435f1cb9be6b91fb279c141408868e6c63d67e68' "$VALIDATOR"
+grep -q 'b0f0ebc20f50af17b4541ee4a279ea0b0d0d93ae' "$VALIDATOR"
+[[ "$(grep -Eo '[0-9a-f]{40}' "$VALIDATOR" | sort -u | wc -l)" -eq 2 ]]
+
 mkdir -p "$TMP/repo"
 cd "$TMP/repo"
 git init -q

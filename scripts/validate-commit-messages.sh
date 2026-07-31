@@ -58,6 +58,21 @@ validate_message_file() {
   fi
 }
 
+is_exact_historical_exception() {
+  # These two empty-subject commits accidentally added an empty file named
+  # `nonexistent` directly to main on 2026-07-29. Each is immutable published
+  # history and has a subsequent named cleanup commit. Keep this range-only
+  # exception hash-pinned so no future malformed commit can pass.
+  case "$1" in
+    435f1cb9be6b91fb279c141408868e6c63d67e68|b0f0ebc20f50af17b4541ee4a279ea0b0d0d93ae)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 validate_range() {
   local range="$1"
   local failed=0
@@ -65,6 +80,10 @@ validate_range() {
   git rev-list --reverse "$range" >/dev/null
   while IFS= read -r commit; do
     [[ -n "$commit" ]] || continue
+    if is_exact_historical_exception "$commit"; then
+      printf 'commit_message_policy: exact historical exception: %s\n' "${commit:0:12}" >&2
+      continue
+    fi
     tmp=$(mktemp "${TMPDIR:-/tmp}/focusa-commit-message.XXXXXX")
     git show -s --format=%B "$commit" > "$tmp"
     if ! validate_message_file "$tmp" "${commit:0:12}"; then
