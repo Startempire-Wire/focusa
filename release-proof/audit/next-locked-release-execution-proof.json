@@ -4,7 +4,7 @@
   "lock_revision": 7,
   "workset_id": "workset:focusa-next-locked-release:r7",
   "scope_member_count": 274,
-  "execution_edge_count": 688,
+  "execution_edge_count": 704,
   "phase_count": 9,
   "phase_counts": {
     "6": 163,
@@ -29,12 +29,7 @@
     "8": "focusa-vbcqu"
   },
   "unique_ready_frontier": [
-    "focusa-gkwt",
-    "focusa-vbcqu.2.2.4",
-    "focusa-vbcqu.8.4",
-    "focusa-vbcqu.8.4.2",
-    "focusa-vbcqu.9.9",
-    "focusa-vbcqu.9.9.1"
+    "focusa-gkwt"
   ],
   "terminal_member_ref": "focusa-vbcqu",
   "terminal_coverage_count": 274,
@@ -178,8 +173,8 @@
     }
   ],
   "provider_missing_members": 0,
-  "membership_digest": "sha256:c84d8be2a15db4bd44afdeeeb2d28b6341126b10bb2442dba21d66b3448b9c86",
-  "graph_digest": "sha256:90561f9800a5028beb44108dee91fd8030e520d23c20354195c81b3a784600a4",
+  "membership_digest": "sha256:ae1b567fded64cbe2ca370d5313653e66f8accc68c221552692efd084aa2215c",
+  "graph_digest": "sha256:cb0adf7b00a01f6c586c19f0e1762d02888681bcedb5a7ebf464a56b66e3ef4d",
   "sealed_at": "2026-07-29T23:35:32Z",
   "out_of_order_in_progress": [],
   "scope_expansion": true,
@@ -200,6 +195,6 @@
     "focusa-o4gkd"
   ],
   "phase0_next_member": null,
-  "active_phase": 1,
+  "active_phase": 2,
   "generated_at": "2026-07-31T02:30:00Z"
 }
