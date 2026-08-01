@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 import time
@@ -10,6 +11,31 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "config/release-learning-guards.json"
+
+
+def resolve_command(command: list[str]) -> list[str]:
+    if not command or command[0] != "cargo":
+        return command
+    probe = subprocess.run(command[:1] + ["--version"], cwd=ROOT, text=True, capture_output=True)
+    if probe.returncode == 0:
+        return command
+    override = os.environ.get("FOCUSA_RELEASE_CARGO", "").strip()
+    if override:
+        return [override, *command[1:]]
+    # Root's stable proxy can exist without usable cargo/rustc components.
+    # Nightly is the installed fallback and satisfies the workspace rust-version;
+    # operators may pin another compatible toolchain explicitly.
+    toolchain = os.environ.get("FOCUSA_RELEASE_RUST_TOOLCHAIN", "nightly")
+    resolved = subprocess.run(
+        ["rustup", "which", "--toolchain", toolchain, "cargo"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+    )
+    candidate = resolved.stdout.strip()
+    if resolved.returncode == 0 and candidate:
+        return ["rustup", "run", toolchain, "cargo", *command[1:]]
+    return command
 
 
 def main() -> int:
@@ -31,7 +57,8 @@ def main() -> int:
     results = []
     started = time.monotonic()
     for guard in config.get("guards", []):
-        command = [str(part).replace("{tag}", args.tag) for part in guard["command"]]
+        configured_command = [str(part).replace("{tag}", args.tag) for part in guard["command"]]
+        command = resolve_command(configured_command)
         run = subprocess.run(command, cwd=ROOT, text=True, capture_output=True)
         results.append(
             {
