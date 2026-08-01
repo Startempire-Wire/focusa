@@ -135,3 +135,57 @@ export function workSurfaceLabel(surface: WorkSurfaceProjection): string {
   ].filter(Boolean);
   return `${surface.displayName} · ${surface.kind} · ${surface.lifecycleState}${markers.length ? ` · ${markers.join(" · ")}` : ""}`;
 }
+
+export type SemanticPairTruthState =
+  | "schema_only" | "pack_missing" | "migration_required" | "verification_required"
+  | "verification_blocked" | "operator_required" | "unsupported_future_definition"
+  | "writer_blocked" | "degraded" | "stale" | "conflicted" | "quarantined";
+
+export interface SemanticPairPortfolioItem {
+  pair_id: string; title: string; state: SemanticPairTruthState;
+  obligations: Array<{ obligation_id: string; statement: string; source_refs: string[]; status: string }>;
+  findings: Array<{ finding_id: string; severity: string; verdict: string; summary: string; evidence_refs: string[] }>;
+  settlement: { status: string; verdict?: string; receipt_refs: string[] };
+  replay: { status: string; generation: number; receipt_refs: string[] };
+  recovery: { required: boolean; state?: SemanticPairTruthState; next_operation?: string; reason?: string };
+  evidence_refs: string[]; receipt_refs: string[];
+}
+export interface SemanticPairPortfolio {
+  schema: "focusa.semantic_pair.portfolio.v1";
+  scope: { project_root: string; continuity_id: string };
+  items: SemanticPairPortfolioItem[]; state: SemanticPairTruthState;
+  stale: boolean; conflicted: boolean; quarantined: boolean;
+}
+export interface SemanticPairAction {
+  operation_id: string; kind: "read" | "mutation"; available: boolean;
+  disabled_reason?: SemanticPairTruthState | "read_only_surface";
+}
+
+const TRUTH_STATES = new Set<SemanticPairTruthState>([
+  "schema_only", "pack_missing", "migration_required", "verification_required",
+  "verification_blocked", "operator_required", "unsupported_future_definition",
+  "writer_blocked", "degraded", "stale", "conflicted", "quarantined",
+]);
+
+export function normalizeSemanticPairState(value: unknown): SemanticPairTruthState {
+  return typeof value === "string" && TRUTH_STATES.has(value as SemanticPairTruthState)
+    ? value as SemanticPairTruthState : "schema_only";
+}
+
+/** Preserve every daemon operation; unsupported Pi mutations remain visible and disabled. */
+export function normalizeSemanticPairActions(payload: unknown, canMutate = true): SemanticPairAction[] {
+  const root = asRecord(payload);
+  const rows = Array.isArray(root.operations) ? root.operations : Array.isArray(root.items) ? root.items : [];
+  return rows.map((raw) => {
+    const row = asRecord(raw);
+    const kind = row.kind === "mutation" ? "mutation" : "read";
+    const state = normalizeSemanticPairState(row.state ?? root.state);
+    const writerBlocked = row.availability === "writer_blocked" || state === "writer_blocked";
+    const surfaceBlocked = kind === "mutation" && !canMutate;
+    return {
+      operation_id: text(row.operation_id), kind,
+      available: !writerBlocked && !surfaceBlocked,
+      disabled_reason: surfaceBlocked ? "read_only_surface" as const : writerBlocked ? "writer_blocked" as const : undefined,
+    };
+  }).filter((row) => row.operation_id.length > 0);
+}

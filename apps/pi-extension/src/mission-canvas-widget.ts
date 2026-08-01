@@ -28,6 +28,10 @@ let pollingTimer: ReturnType<typeof setInterval> | null = null;
 let latestUiContext: any = null;
 let startupCwd = "";
 let pollInFlight = false;
+let semanticTruth = "schema_only";
+let semanticOperations = 0;
+let semanticMutations = 0;
+let semanticOperationLines: string[] = [];
 
 function bounded(value: unknown, max = 56): string {
   const text = String(value || "")
@@ -44,6 +48,8 @@ function truthfulStatusLines(ctx: any): string[] {
     `scope ${bounded(truth.selected_scope)} · startup ${bounded(truth.startup_cwd)} · project ${truth.project}`,
     `trajectory ${truth.trajectory} · workpoint ${truth.workpoint} · bead ${truth.bead} · ${proof}`,
     `refresh ${truth.last_refresh_status} · ${stale}`,
+    `semantic pair ${semanticTruth} · ${semanticOperations} operations · ${semanticMutations} mutations visible`,
+    ...semanticOperationLines,
   ];
 }
 
@@ -94,7 +100,7 @@ async function pollScopedSurfaceState(ctx: any): Promise<void> {
       continuity_id: continuityId,
       mode: "summary",
     });
-    const [trajectoryResult, workpointResult] = await Promise.all([
+    const [trajectoryResult, workpointResult, semanticResult, semanticRegistry] = await Promise.all([
       focusaFetch(`/trajectory/view?${trajectoryQuery.toString()}`, { method: "GET" }).catch(() => null),
       focusaFetch("/workpoint/resume", {
         method: "POST",
@@ -104,7 +110,26 @@ async function pollScopedSurfaceState(ctx: any): Promise<void> {
           continuity_id: continuityId,
         }),
       }).catch(() => null),
+      focusaFetch(`/semantic-integrity/status?${trajectoryQuery.toString()}`, { method: "GET" }).catch(() => null),
+      focusaFetch(`/semantic-integrity/operations?${trajectoryQuery.toString()}&limit=100`, { method: "GET" }).catch(() => null),
     ]);
+    const semantic = semanticResult && typeof semanticResult === "object"
+      ? semanticResult as Record<string, unknown> : {};
+    semanticTruth = bounded(semantic.state || "degraded", 40);
+    const registry = semanticRegistry && typeof semanticRegistry === "object"
+      ? semanticRegistry as Record<string, unknown> : {};
+    const operations = Array.isArray(registry.items) ? registry.items : [];
+    semanticOperations = operations.length;
+    semanticMutations = operations.filter((item) =>
+      item && typeof item === "object" && (item as Record<string, unknown>).kind === "mutation"
+    ).length;
+    semanticOperationLines = operations.map((item) => {
+      const op = item && typeof item === "object" ? item as Record<string, unknown> : {};
+      const kind = bounded(op.kind || "read", 12);
+      const support = kind === "mutation"
+        ? "unsupported on this Pi surface" : bounded(op.availability || "available", 24);
+      return `  ${bounded(op.operation_id || "unknown", 48)} · ${kind} · ${support}`;
+    });
     const trajectoryProjectRoot = normalizeProjectRoot(
       trajectoryResult?.project_identity?.project_root || trajectoryResult?.trajectory?.project_root
     );

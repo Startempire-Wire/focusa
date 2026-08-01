@@ -1,0 +1,14 @@
+{
+  "schema": "focusa.semantic_pair.portfolio.v1",
+  "scope": { "project_root": "/fixture/project", "continuity_id": "continuity-fixture" },
+  "items": [{
+    "pair_id": "pair-fixture", "title": "Fixture semantic pair", "state": "verification_required",
+    "obligations": [{ "obligation_id": "ob-1", "statement": "Prove parity", "source_refs": ["spec144"], "status": "open" }],
+    "findings": [{ "finding_id": "finding-1", "obligation_id": "ob-1", "severity": "warning", "verdict": "unknown", "summary": "Verification has not run", "evidence_refs": [] }],
+    "settlement": { "status": "unsettled", "receipt_refs": [] },
+    "replay": { "status": "not_requested", "generation": 0, "receipt_refs": [] },
+    "recovery": { "required": true, "state": "verification_required", "next_operation": "semantic_pair.verify.start" },
+    "evidence_refs": [], "receipt_refs": []
+  }],
+  "state": "verification_required", "stale": false, "conflicted": false, "quarantined": false
+}

@@ -12,6 +12,12 @@ import {
   FOCUSA_CATALOG_ID,
   focusaCatalog,
 } from "./focusa-catalog.js";
+export {
+  semanticPairActions,
+  semanticPairSurfaceModel,
+  type SemanticPairSurfaceMode,
+  type SemanticPairSurfaceModel,
+} from "./semantic-pair-surface.js";
 
 export const FOCUSA_A2UI_PROTOCOL = "v0.9" as const;
 export const FOCUSA_A2UI_CATALOG_ID = FOCUSA_CATALOG_ID;

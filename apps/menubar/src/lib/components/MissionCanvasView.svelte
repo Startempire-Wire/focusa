@@ -3,6 +3,7 @@
   import EpistemicAuthorityPeek from './EpistemicAuthorityPeek.svelte';
   import InstructionIntegrityPeek from './InstructionIntegrityPeek.svelte';
   import TemporalAuthorityPeek from './TemporalAuthorityPeek.svelte';
+  import SemanticPairPeek from './SemanticPairPeek.svelte';
 
   // Static contract markers retained for Spec96/106 Mission Canvas gates:
   // Mission-centered Focusa status | mission-brief | MISSION | ProjectIdentity | Continuity ID
@@ -28,6 +29,7 @@
   <TemporalAuthorityPeek />
   <EpistemicAuthorityPeek />
   <InstructionIntegrityPeek />
+  <SemanticPairPeek />
 </section>
 
 <style>

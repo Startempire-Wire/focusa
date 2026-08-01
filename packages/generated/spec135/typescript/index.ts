@@ -1,4 +1,10 @@
-export { createFocusaSpec135Client, type FocusaSpec135Client } from "./client.js";
+export {
+  createFocusaSpec135Client,
+  createSemanticPairClient,
+  type FocusaSpec135Client,
+  type SemanticPairTransport,
+} from "./client.js";
+export * from "./semantic-pair.js";
 export type { components, operations, paths, webhooks } from "./schema.js";
 export {
   toAgUiEvent,

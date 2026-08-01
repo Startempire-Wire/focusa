@@ -1,6 +1,7 @@
 import { diagnosticsStore } from '$lib/stores/diagnostics.svelte';
 import { getCurrentAuthToken } from '$lib/stores/pairing.svelte';
 import type { ScopeContext } from '$lib/projectContext.svelte';
+import type { SemanticPairActionRequest, SemanticPairStatus } from './types/focus-canvas';
 
 export const DEFAULT_API_URL = 'http://127.0.0.1:8787';
 export const SAVED_CONNECTIONS_KEY = 'focusa_saved_connections_v1';
@@ -228,6 +229,27 @@ export async function fetchJson<T = any>(path: string, timeoutMs = 3000): Promis
 
 export async function postJson<T = any>(path: string, body?: unknown, timeoutMs = 3000): Promise<T> {
   return requestJson<T>(path, { method: 'POST', body, timeoutMs });
+}
+
+/** Read semantic truth without implying this surface can mutate it. */
+export async function fetchSemanticPairStatus(
+  projectRoot: string,
+  continuityId: string,
+): Promise<SemanticPairStatus> {
+  const query = new URLSearchParams({ project_root: projectRoot, continuity_id: continuityId });
+  const [status, registry] = await Promise.all([
+    fetchJson<Omit<SemanticPairStatus, 'operations'>>(`/v1/semantic-integrity/status?${query}`),
+    fetchJson<{ items: SemanticPairStatus['operations'] }>(`/v1/semantic-integrity/operations?${query}&limit=100`),
+  ]);
+  return { ...status, operations: registry.items ?? [] };
+}
+
+/** Invoke a visible semantic operation; daemon policy remains authoritative. */
+export async function invokeSemanticPairAction<T = unknown>(
+  request: SemanticPairActionRequest,
+): Promise<T> {
+  const id = encodeURIComponent(request.operation_id);
+  return postJson<T>(`/v1/semantic-integrity/operations/${id}`, request);
 }
 
 /**

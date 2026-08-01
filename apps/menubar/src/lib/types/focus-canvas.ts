@@ -47,3 +47,34 @@ export interface CanvasState {
   events: CanvasEvent[];
   error: string | null;
 }
+
+export type SemanticPairTruthState =
+  | 'schema_only' | 'pack_missing' | 'migration_required' | 'verification_required'
+  | 'verification_blocked' | 'operator_required' | 'unsupported_future_definition'
+  | 'writer_blocked' | 'degraded' | 'stale' | 'conflicted' | 'quarantined';
+
+export interface SemanticPairOperation {
+  operation_id: string;
+  kind: 'read' | 'mutation';
+  availability: 'available' | 'writer_blocked';
+  truthful_states: SemanticPairTruthState[];
+}
+
+export interface SemanticPairStatus {
+  schema: string;
+  state: SemanticPairTruthState;
+  scope: { project_root: string; continuity_id: string };
+  operations: SemanticPairOperation[];
+  evidence_refs?: string[];
+  receipt_refs?: string[];
+}
+
+export interface SemanticPairActionRequest {
+  operation_id: string;
+  project_root: string;
+  continuity_id: string;
+  pair_id?: string;
+  idempotency_key?: string;
+  confirmation?: string;
+  payload?: Record<string, unknown>;
+}
