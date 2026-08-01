@@ -19,7 +19,9 @@ use serde_json::{Value, json};
 use shlex::try_quote;
 use std::fs;
 use std::path::PathBuf;
-use std::process::{Command, Stdio};
+use std::process::{Child, Command, Stdio};
+use std::thread;
+use std::time::Duration;
 
 /// Fire-and-forget POST - doesn't block on daemon response.
 async fn fire_and_forget(client: &ApiClient, path: &str, body: Value) {
@@ -271,10 +273,12 @@ fn parse_transcript(transcript: &str) -> (String, String) {
     (user_input, assistant_output)
 }
 
-/// Run harness with full session recording using `script` command.
+/// Run harness with bounded session recording using `script` command.
 ///
-/// Uses `script -q -c "command"` to record full terminal session including TUI.
+/// The recorder is monitored while the harness runs. It is terminated when the
+/// bounded capture budget is reached, preventing runaway PTY files and memory.
 /// Arguments are properly shell-quoted using shlex to prevent injection.
+const MAX_RECORDING_BYTES: u64 = 64 * 1024 * 1024;
 fn run_with_recording(
     harness_path: &str,
     args: &[String],
@@ -296,7 +300,7 @@ fn run_with_recording(
         .collect();
     let harness_cmd = format!("{} {}", harness_path, harness_args.join(" "));
 
-    let status = Command::new("script")
+    let mut child: Child = Command::new("script")
         .args(["-q", "-c", &harness_cmd])
         .arg("-a")
         .arg(&session_file)
@@ -304,23 +308,37 @@ fn run_with_recording(
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
         .envs(env_vars.iter().copied())
-        .status()
+        .spawn()
         .context("Failed to run script command")?;
 
-    // Read the recording (script writes to session_file, not stdout)
+    let mut capped = false;
+    loop {
+        if child.try_wait().context("Failed waiting for script command")?.is_some() {
+            break;
+        }
+        if fs::metadata(&session_file).map(|m| m.len() > MAX_RECORDING_BYTES).unwrap_or(false) {
+            capped = true;
+            eprintln!("[WARN] PTY recording exceeded {} bytes; stopping capture", MAX_RECORDING_BYTES);
+            child.kill().context("Failed stopping oversized script recording")?;
+            break;
+        }
+        thread::sleep(Duration::from_millis(50));
+    }
+    let status = child.wait().context("Failed to reap script command")?;
+
     let transcript = if session_file.exists() {
-        fs::read_to_string(&session_file)?
+        let bytes = fs::read(&session_file)?;
+        let limit = bytes.len().min(MAX_RECORDING_BYTES as usize);
+        String::from_utf8_lossy(&bytes[..limit]).into_owned()
     } else {
         String::new()
     };
 
-    // Clean up temp file (log error if fails)
     if let Err(e) = fs::remove_file(&session_file) {
         eprintln!("[DEBUG] Failed to remove session file: {}", e);
     }
 
-    let exit_code = status.code().unwrap_or(1);
-
+    let exit_code = if capped { 124 } else { status.code().unwrap_or(1) };
     Ok((exit_code, transcript))
 }
 
