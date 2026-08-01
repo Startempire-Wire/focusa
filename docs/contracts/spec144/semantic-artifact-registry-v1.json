@@ -1,0 +1,62 @@
+{
+  "schema": "focusa.semantic_artifact_registry.v1",
+  "registry_version": 1,
+  "namespace": "https://focusa.dev/ontology/v1#",
+  "source_spec": "docs/144-focusa-semantic-integrity-rdf-owl-shacl-build-verify-routing-and-vertical-intelligence-spec.md",
+  "source_spec_sha256": "sha256:4d28318dd3df2c71ca154ba7225cb9933cf6791859d66b51bc48aabd68a1a567",
+  "standards_profile": [
+    "rdf_1_1",
+    "json_ld_1_1",
+    "owl_2_rl",
+    "shacl_core",
+    "sparql_1_1_bounded",
+    "prov_o",
+    "json_schema_2020_12",
+    "openapi_3_0_3"
+  ],
+  "canonicalization_algorithm": "focusa-rdf-deterministic-v1",
+  "artifacts": [
+    {
+      "path": "docs/contracts/spec144/focusa-core-ontology-v1.ttl",
+      "sha256": "sha256:062ae1f9e99f13b57414e5870d6ce011fecbbab38fa7d0a7f1e81aea45c64650"
+    },
+    {
+      "path": "docs/contracts/spec144/focusa-core-shapes-v1.ttl",
+      "sha256": "sha256:ae14b85dfc0c249ec0dd26bde6f72f508cc295d3dd4de43676ee95a5122fc882"
+    },
+    {
+      "path": "docs/contracts/spec144/focusa-core-context-v1.jsonld",
+      "sha256": "sha256:07cacff4b164aff30fb8bfe3528ad4f3b8d3b2b6eae3aecd27b0130cbb453bb8"
+    }
+  ],
+  "validation_profile_families": [
+    "intake",
+    "promotion",
+    "action_preflight",
+    "verification_plan",
+    "finding_verdict",
+    "settlement",
+    "domain_pack",
+    "migration_replay",
+    "vertical_bundle",
+    "omission_firewall"
+  ],
+  "named_graph_kinds": [
+    "registry",
+    "shapes",
+    "contract",
+    "builder",
+    "observations",
+    "inference",
+    "verifier",
+    "response",
+    "settlement",
+    "quarantine"
+  ],
+  "activation": "dormant_until_spec144_release_gates_pass",
+  "evidence_refs": [
+    "crates/focusa-core/src/semantic_integrity.rs",
+    "crates/focusa-core/src/semantic_registry.rs",
+    "tests/spec144_semantic_artifacts_gate.py"
+  ]
+}

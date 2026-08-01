@@ -1,0 +1,57 @@
+@prefix focusa: <https://focusa.dev/ontology/v1#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+focusa:IntakeProfile a sh:NodeShape ;
+  sh:targetClass focusa:SemanticArtifact ;
+  sh:closed true ;
+  sh:property [ sh:path focusa:artifactId ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:severity sh:Violation ] ;
+  sh:property [ sh:path focusa:artifactVersion ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:nonNegativeInteger ; sh:severity sh:Violation ] ;
+  sh:property [ sh:path focusa:ownerScopeRef ; sh:minCount 1 ; sh:severity sh:Violation ] ;
+  sh:property [ sh:path focusa:evidenceRef ; sh:minCount 1 ; sh:severity sh:Violation ] .
+
+focusa:PromotionProfile a sh:NodeShape ;
+  sh:targetClass focusa:SemanticArtifact ;
+  sh:property [ sh:path focusa:evidenceRef ; sh:minCount 1 ; sh:severity sh:Violation ] ;
+  sh:property [ sh:path focusa:receiptRef ; sh:minCount 1 ; sh:severity sh:Violation ] .
+
+focusa:ActionPreflightProfile a sh:NodeShape ;
+  sh:targetClass focusa:SemanticWorkContract ;
+  sh:property [ sh:path focusa:ownerScopeRef ; sh:minCount 1 ; sh:severity sh:Violation ] ;
+  sh:property [ sh:path focusa:actionPlan ; sh:minCount 1 ; sh:maxCount 1 ; sh:class focusa:ActionPlan ; sh:severity sh:Violation ] .
+
+focusa:VerificationPlanProfile a sh:NodeShape ;
+  sh:targetClass focusa:SemanticWorkContract ;
+  sh:property [ sh:path focusa:verificationPlan ; sh:minCount 1 ; sh:maxCount 1 ; sh:class focusa:VerificationPlan ; sh:severity sh:Violation ] ;
+  sh:property [ sh:path focusa:usesValidationProfile ; sh:minCount 1 ; sh:severity sh:Violation ] .
+
+focusa:FindingVerdictProfile a sh:NodeShape ;
+  sh:targetClass focusa:VerificationContract ;
+  sh:property [ sh:path focusa:evidenceRef ; sh:minCount 1 ; sh:severity sh:Violation ] ;
+  sh:property [ sh:path focusa:ownerScopeRef ; sh:minCount 1 ; sh:severity sh:Violation ] .
+
+focusa:SettlementProfile a sh:NodeShape ;
+  sh:targetClass focusa:SemanticValidationReceipt ;
+  sh:property [ sh:path focusa:evidenceRef ; sh:minCount 1 ; sh:severity sh:Violation ] ;
+  sh:property [ sh:path focusa:receiptRef ; sh:minCount 1 ; sh:severity sh:Violation ] .
+
+focusa:DomainPackProfile a sh:NodeShape ;
+  sh:targetClass focusa:SemanticArtifact ;
+  sh:property [ sh:path focusa:artifactVersion ; sh:minCount 1 ; sh:severity sh:Violation ] ;
+  sh:property [ sh:path focusa:generatedBy ; sh:minCount 1 ; sh:severity sh:Violation ] .
+
+focusa:MigrationReplayProfile a sh:NodeShape ;
+  sh:targetClass focusa:SemanticArtifact ;
+  sh:property [ sh:path focusa:derivedFrom ; sh:minCount 1 ; sh:severity sh:Violation ] ;
+  sh:property [ sh:path focusa:epistemicClass ; sh:minCount 1 ; sh:severity sh:Violation ] .
+
+focusa:VerticalBundleProfile a sh:NodeShape ;
+  sh:targetClass focusa:SemanticArtifact ;
+  sh:property [ sh:path focusa:usesValidationProfile ; sh:minCount 1 ; sh:severity sh:Violation ] ;
+  sh:property [ sh:path focusa:evidenceRef ; sh:minCount 1 ; sh:severity sh:Violation ] .
+
+focusa:OmissionFirewallProfile a sh:NodeShape ;
+  sh:targetClass focusa:SemanticWorkContract ;
+  sh:property [ sh:path focusa:artifactId ; sh:minCount 1 ; sh:severity sh:Violation ] ;
+  sh:property [ sh:path focusa:evidenceRef ; sh:minCount 1 ; sh:severity sh:Violation ] ;
+  sh:property [ sh:path focusa:receiptRef ; sh:minCount 1 ; sh:severity sh:Violation ] .
