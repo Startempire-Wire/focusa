@@ -1,0 +1,281 @@
+schema: focusa.quantitative_scientific_cross_spec_dependency_dag.v1
+version: 1
+status: normative_initial
+created_at: 2026-08-01
+source_baseline: 77966bc82cd4229cf23985d0bff1a6bf14264363
+root_manifest_ref: docs/quantitative-scientific-cognition-series-current-manifest.md
+
+nodes:
+  - id: temporal_base
+    specs: [137, 137A]
+    provides:
+      - trusted_time
+      - deadlines
+      - temporal_uncertainty
+      - urgency
+      - temporal_closure
+
+  - id: temporal_high_resolution
+    specs: [137B]
+    depends_on: [temporal_base]
+    provides:
+      - high_resolution_stamps
+      - exact_temporal_transport
+      - stable_capture_points
+      - causal_ordering
+      - deterministic_temporal_guard
+      - market_temporal_trace
+
+  - id: prediction_base
+    specs: [138, 138A]
+    depends_on: [temporal_base]
+    provides:
+      - questions
+      - information_sets
+      - commitments
+      - outcomes
+      - scoring
+      - calibration
+      - learning
+      - transfer
+
+  - id: runtime_constitution
+    specs: [140, 140A]
+    depends_on: [temporal_base, prediction_base]
+    provides:
+      - instruction_identity
+      - runtime_constitution
+      - target_profile
+      - temporal_adaptation_envelope
+      - canonical_amendment
+
+  - id: semantic_verification
+    specs: [144]
+    depends_on: [temporal_base, prediction_base, runtime_constitution]
+    provides:
+      - ontology_compilation
+      - obligation_graph
+      - verifier_routing
+      - independent_verification
+      - settlement_gate
+
+  - id: mathematics
+    specs: [152]
+    depends_on: [temporal_base, runtime_constitution, semantic_verification]
+    provides:
+      - exact_quantities
+      - units_dimensions
+      - mathematical_models
+      - deterministic_computation
+      - quantitative_proof
+
+  - id: statistics
+    specs: [152A]
+    depends_on: [mathematics, temporal_base, prediction_base, semantic_verification]
+    provides:
+      - probability
+      - inference
+      - experiments
+      - time_series
+      - calibration_statistics
+      - causal_analysis
+
+  - id: physics
+    specs: [153]
+    depends_on: [mathematics, statistics, temporal_high_resolution, runtime_constitution, semantic_verification]
+    provides:
+      - physical_systems
+      - measurements
+      - simulations
+      - experiments
+      - physical_feasibility
+
+  - id: physical_settlement
+    specs: [153A]
+    depends_on: [physics, statistics, temporal_high_resolution, semantic_verification]
+    provides:
+      - measurement_authority
+      - calibration_admission
+      - physical_verification
+      - experimental_settlement
+      - actuation_safety
+
+  - id: adversarial_prediction
+    specs: [138B]
+    depends_on:
+      - temporal_high_resolution
+      - prediction_base
+      - runtime_constitution
+      - semantic_verification
+      - mathematics
+      - statistics
+    optional_dependencies:
+      - physics
+      - physical_settlement
+    provides:
+      - blind_counterforecasting
+      - disagreement_localization
+      - evidence_responsiveness
+      - style_invariance
+      - matched_controls
+      - promotion_assurance
+
+  - id: organism_integration
+    specs: [152B]
+    depends_on:
+      - temporal_high_resolution
+      - prediction_base
+      - adversarial_prediction
+      - runtime_constitution
+      - semantic_verification
+      - mathematics
+      - statistics
+      - physics
+      - physical_settlement
+    provides:
+      - ontology_modules
+      - reflexes
+      - secondary_cognition
+      - intuition_signals
+      - focus_gate_salience
+      - reducer_events
+      - bounded_state
+      - persistence_replay
+      - workpoint_compaction
+      - tool_surface_parity
+
+  - id: learning_discovery
+    specs: [152C]
+    depends_on:
+      - prediction_base
+      - adversarial_prediction
+      - semantic_verification
+      - mathematics
+      - statistics
+      - physics
+      - physical_settlement
+      - organism_integration
+    provides:
+      - concept_mastery
+      - explanations
+      - derivations
+      - conjecture_portfolios
+      - counterexamples
+      - discovery_governance
+
+  - id: vertical_bundles
+    specs: [144_vertical_intelligence]
+    depends_on:
+      - organism_integration
+      - learning_discovery
+    provides:
+      - market_models
+      - finance_models
+      - engineering_models
+      - operations_models
+      - research_models
+      - robotics_models
+      - property_models
+      - custom_science_models
+
+edges:
+  - from: temporal_base
+    to: all_temporal_consumers
+    invariant: no_secondary_clock_authority
+
+  - from: mathematics
+    to: statistics
+    invariant: statistics_reuses_quantity_and_numeric_semantics
+
+  - from: mathematics
+    to: physics
+    invariant: physics_reuses_units_dimensions_equations_and_solvers
+
+  - from: statistics
+    to: prediction_base
+    invariant: prediction_scoring_and_calibration_use_shared_statistics
+
+  - from: physics
+    to: adversarial_prediction
+    invariant: physical_predictions_bind_model_and_measurement_validity_when_applicable
+
+  - from: runtime_constitution
+    to: every_consequential_run
+    invariant: exact_runtime_identity_is_bound
+
+  - from: semantic_verification
+    to: every_consequential_claim
+    invariant: no_uncovered_mandatory_obligation
+
+  - from: secondary_cognition
+    to: reducer
+    invariant: proposal_only_no_direct_mutation
+
+  - from: deterministic_computation
+    to: reducer
+    invariant: typed_result_requires_admission
+
+  - from: simulation
+    to: observation
+    invariant: forbidden_direct_transition
+
+  - from: experimental_settlement
+    to: prediction_scoring
+    invariant: only_resolved_outcomes_are_scoreable
+
+  - from: matched_control_evaluation
+    to: learning_promotion
+    invariant: improvement_must_be_proven
+
+implementation_phases:
+  - phase: 0
+    name: source_coverage_and_current_reality_audit
+    required_nodes: [temporal_base, prediction_base, runtime_constitution, semantic_verification]
+
+  - phase: 1
+    name: quantity_numeric_unit_dimension_foundation
+    required_nodes: [mathematics]
+
+  - phase: 2
+    name: deterministic_computation_and_proof
+    required_nodes: [mathematics]
+
+  - phase: 3
+    name: probability_statistics_inference
+    required_nodes: [statistics]
+
+  - phase: 4
+    name: physical_measurement_simulation
+    required_nodes: [physics, physical_settlement]
+
+  - phase: 5
+    name: organism_integration
+    required_nodes: [organism_integration]
+
+  - phase: 6
+    name: high_resolution_adversarial_prediction
+    required_nodes: [temporal_high_resolution, adversarial_prediction]
+
+  - phase: 7
+    name: verification_and_settlement
+    required_nodes: [semantic_verification]
+
+  - phase: 8
+    name: vertical_bundles
+    required_nodes: [vertical_bundles]
+
+  - phase: 9
+    name: learning_and_discovery
+    required_nodes: [learning_discovery]
+
+closure_invariants:
+  - every_active_node_reachable_from_root_manifest
+  - every_requirement_has_primitive_owner
+  - every_consequential_operation_has_reducer_and_verification_path
+  - every_tool_surface_derives_from_operation_registry
+  - every_large_artifact_uses_reference_handle
+  - every_learning_claim_has_outcome_and_promotion_proof
+  - no_phase_removes_later_requirements_from_root_graph
+
+implementation_status: documentation_only
+full_conformance_status: not_claimed
