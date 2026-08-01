@@ -2,9 +2,9 @@
 
 Generated from current Axum route registration plus the Spec135/Spec141 operation registry. This public inventory is release-gated; do not edit route rows manually.
 
-- Classified paths: `518`
+- Classified paths: `524`
 - Agent eligible: `102`
-- Operator only: `404`
+- Operator only: `410`
 - Public health/pairing: `6`
 - Internal: `6`
 
@@ -2204,7 +2204,7 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 
 - Methods: `POST /v1/ontology/scope-migrations`
 - Classification: `operator_only`
-- Rationale: Scope migration mutates canonical ontology authority and requires explicit operator confirmation.
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/ontology.rs`
 - Agent operations: none
 
@@ -2803,42 +2803,42 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 ### `/v1/semantic-integrity/artifacts`
 
 - Methods: `GET /v1/semantic-integrity/artifacts`
-- Classification: `agent_eligible`
-- Rationale: Bounded exact-scope inspection of the embedded signed Spec144 artifact registry.
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/semantic_integrity.rs`
-- Agent operations: `semantic.integrity.artifact.list`
+- Agent operations: none
 
 ### `/v1/semantic-integrity/artifacts/{artifact_id}`
 
 - Methods: `GET /v1/semantic-integrity/artifacts/{artifact_id}`
-- Classification: `agent_eligible`
-- Rationale: Resolves one registered semantic artifact by path, filename, or digest without mutation.
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/semantic_integrity.rs`
-- Agent operations: `semantic.integrity.artifact.get`
+- Agent operations: none
 
 ### `/v1/semantic-integrity/operations`
 
 - Methods: `GET /v1/semantic-integrity/operations`
-- Classification: `agent_eligible`
-- Rationale: Bounded operation-registry discovery with truthful executable versus schema-only status.
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/semantic_integrity.rs`
-- Agent operations: `semantic.integrity.registry`
+- Agent operations: none
 
 ### `/v1/semantic-integrity/operations/{operation_id}`
 
 - Methods: `POST /v1/semantic-integrity/operations/{operation_id}`
-- Classification: `agent_eligible`
-- Rationale: Exact-scope typed semantic operation execution; mutations require idempotency and confirmation.
-- Sources: `crates/focusa-api/src/routes/semantic_integrity.rs`, `crates/focusa-api/src/routes/semantic_integrity_executor.rs`
-- Agent operations: operation-specific IDs returned by `/v1/semantic-integrity/operations`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/semantic_integrity.rs`
+- Agent operations: none
 
 ### `/v1/semantic-integrity/status`
 
 - Methods: `GET /v1/semantic-integrity/status`
-- Classification: `agent_eligible`
-- Rationale: Reports durable semantic runtime availability and executable operation count for an exact scope.
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
 - Sources: `crates/focusa-api/src/routes/semantic_integrity.rs`
-- Agent operations: `semantic.integrity.status`
+- Agent operations: none
 
 ### `/v1/session/bind`
 
