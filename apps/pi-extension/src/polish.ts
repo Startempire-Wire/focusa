@@ -564,6 +564,15 @@ export function registerPolishHooks(pi: ExtensionAPI) {
   hookApi.on("agent_end", async (_event: any, ctx: any) => {
     if (!getAttachmentRuntime().startupReceptionistActive) return;
     getAttachmentRuntime().startupReceptionistActive = false;
+    const previousThinking = getAttachmentRuntime().startupReceptionistPreviousThinkingLevel;
+    getAttachmentRuntime().startupReceptionistPreviousThinkingLevel = "";
+    if (previousThinking) {
+      try {
+        getAttachmentRuntime().pi?.setThinkingLevel(previousThinking as any);
+      } catch {
+        // Keep reception completion nonblocking even if model state changed.
+      }
+    }
     renderOperatorStatus(ctx);
     ctx?.ui?.setWidget?.(
       "focusa-vital",

@@ -699,6 +699,10 @@ async function promptForProjectVerifyIfNeeded(
     if (startupBlocked) {
       getAttachmentRuntime().startupReceptionistActive = true;
       getAttachmentRuntime().startupReceptionistStartedAt = Date.now();
+      getAttachmentRuntime().startupReceptionistPreviousThinkingLevel = String(
+        pi.getThinkingLevel?.() || ""
+      );
+      pi.setThinkingLevel?.("off");
       queueStartupReceptionistTurn(pi, ctx, {
         advisoryKey: `${recoveryRef}:receptionist:${getAttachmentRuntime().sessionFrameKey || "no-session"}`,
         advisoryKind: "startup_receptionist",
