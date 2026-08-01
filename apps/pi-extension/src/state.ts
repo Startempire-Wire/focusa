@@ -225,6 +225,7 @@ function createAttachmentRuntime() {
     continuityId: "" as string,
     startupReceptionistActive: false,
     startupReceptionistStartedAt: 0,
+    startupReceptionistPreviousThinkingLevel: "" as string,
     modelProvider: "" as string,
     modelId: "" as string,
     providerUsagePercent: null as number | null,
