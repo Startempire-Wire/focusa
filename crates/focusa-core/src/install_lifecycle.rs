@@ -3,12 +3,14 @@ use serde::{Deserialize, Serialize};
 
 mod adapters;
 mod models;
+mod orchestrator;
 mod preflight;
 mod preservation;
 mod transactions;
 
 pub use adapters::*;
 pub use models::*;
+pub use orchestrator::*;
 pub use preflight::*;
 pub use preservation::*;
 pub use transactions::*;
