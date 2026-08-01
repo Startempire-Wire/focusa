@@ -9,7 +9,6 @@ use crate::routes::bounded::{
     pressure_status, record_json_response_size,
 };
 use crate::routes::predictions::append_prediction_record_scoped;
-use crate::routes::project::project_identity_payload_for_scope;
 use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::{Query, State};
@@ -6502,22 +6501,14 @@ fn ontology_identity_axes_payload(
 }
 
 fn verified_scope_ref_for_context(scope: &ScopeContext) -> Option<ScopeRef> {
-    let project_root = scope.project_root.as_deref()?.trim();
-    let payload = project_identity_payload_for_scope(Some(project_root), Some(project_root), None);
-    let scope_ref: ScopeRef = payload
-        .pointer("/project_identity/scope_ref")
-        .cloned()
-        .and_then(|value| serde_json::from_value(value).ok())?;
-    (scope_ref.scope_kind == ScopeKind::Project
-        && scope_ref.root_path.to_string_lossy() == project_root
-        && !scope_ref.scope_id.trim().is_empty()
-        && !scope_ref.fingerprint.trim().is_empty())
-    .then_some(scope_ref)
+    scope
+        .require_workstream_key()
+        .ok()
+        .map(|workstream| workstream.root_scope)
 }
 
 fn verified_workstream_key(scope: &ScopeContext) -> Option<WorkstreamKey> {
-    let root_scope = verified_scope_ref_for_context(scope)?;
-    WorkstreamKey::new(root_scope, scope.continuity_id.as_deref()?.trim()).ok()
+    scope.require_workstream_key().ok()
 }
 
 fn ontology_context_payload(

@@ -1,6 +1,5 @@
 //! PRE (Proposal Resolution Engine) routes.
 
-use crate::routes::project::project_identity_payload_for_scope;
 use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::State;
@@ -9,7 +8,7 @@ use axum::{
     Json, Router,
     routing::{get, post},
 };
-use focusa_core::scoped_state::{ScopeKind, ScopeRef, WorkstreamKey};
+use focusa_core::scoped_state::WorkstreamKey;
 use focusa_core::types::{Action, FocusaEvent, ProposalKind, ProposalStatus};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -17,18 +16,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 pub(crate) fn verified_workstream_key(scope: &ScopeContext) -> Option<WorkstreamKey> {
-    let project_root = scope.project_root.as_deref()?.trim();
-    let payload = project_identity_payload_for_scope(Some(project_root), Some(project_root), None);
-    let root_scope: ScopeRef = payload
-        .pointer("/project_identity/scope_ref")
-        .cloned()
-        .and_then(|value| serde_json::from_value(value).ok())?;
-    if root_scope.scope_kind != ScopeKind::Project
-        || root_scope.root_path.to_string_lossy() != project_root
-    {
-        return None;
-    }
-    WorkstreamKey::new(root_scope, scope.continuity_id.as_deref()?.trim()).ok()
+    scope.require_workstream_key().ok()
 }
 
 /// GET /v1/proposals — list pending proposals for one verified workstream.

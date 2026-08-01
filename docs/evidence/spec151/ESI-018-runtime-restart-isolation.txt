@@ -1,0 +1,19 @@
+Spec151 ESI-018 isolated runtime/restart proof
+Observed: 2026-08-01 UTC
+Source: locked working subpath build, focusa-daemon 0.9.137-dev
+Build host artifact root: /tmp/spec151-runtime-proof-1785543900
+Isolation: temporary FOCUSA_DATA_DIR; alternate loopback ports 18794/18795; production daemon untouched.
+
+Fresh runtime assertions:
+- health status: ok
+- project A scoped proposal count after A submission: 1
+- project B scoped proposal count with same continuity id: 0
+- project A migration dry-run status: planned; mutation=false
+- project B migration status: completed; receipts=0
+
+Restart/reconnect assertions using the same temporary data directory:
+- project A replayed proposal count: 1
+- project B replayed proposal count: 0
+
+Default Tokio worker stack was used for the passing run.
+The earlier special PRE full-snapshot path caused a stack overflow; proposal submission was converted to canonical ProposalSubmitted reducer events before this proof passed.
