@@ -9,6 +9,22 @@ import {
 
 const MAX_RECORDS = 80;
 const MAX_TEXT = 500;
+let semanticSequence = 0;
+
+type PiSemanticEventEnvelope = {
+  schema: "focusa.pi_semantic_event.v1";
+  event_id: string;
+  sequence: number;
+  project_root: string;
+  continuity_id: string;
+  session_id: string;
+  turn_id?: string;
+  event_type: string;
+  message_id?: string;
+  tool_call_id?: string;
+  occurred_at: string;
+  content: Record<string, unknown>;
+};
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -61,11 +77,32 @@ function recordTokenTelemetry(record: Record<string, unknown>): void {
 }
 
 function bestEffortTelemetry(kind: string, payload: Record<string, unknown>): void {
+  const runtime = getAttachmentRuntime();
   if (!getFocusaAvailable()) return;
+  const sequence = ++semanticSequence;
+  const sessionId = String((payload.session_id as string | undefined) || "pi-session");
+  const messageId = typeof payload.message_id === "string" ? payload.message_id : undefined;
+  const toolCallId = typeof payload.tool_call_id === "string" ? payload.tool_call_id : undefined;
+  const eventId = simpleHash(`${sessionId}:${kind}:${messageId || toolCallId || "none"}:${sequence}`);
+  const semantic_event: PiSemanticEventEnvelope = {
+    schema: "focusa.pi_semantic_event.v1",
+    event_id: eventId,
+    sequence,
+    project_root: runtime.sessionCwd || "",
+    continuity_id: runtime.continuityId || "",
+    session_id: sessionId,
+    turn_id: typeof payload.turn_id === "string" ? payload.turn_id : undefined,
+    event_type: kind,
+    message_id: messageId,
+    tool_call_id: toolCallId,
+    occurred_at: nowIso(),
+    content: payload,
+  };
   focusaPost("/telemetry/event", {
     event_type: kind,
     source: "pi-extension-spec92",
     payload,
+    semantic_event,
   });
 }
 
