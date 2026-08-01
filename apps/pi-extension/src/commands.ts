@@ -1182,18 +1182,13 @@ export function registerCommands(pi: ExtensionAPI) {
             if (id === "contextStatusMode") draft.contextStatusMode = String(newValue) as any;
             if (id === "vitalInfoPromptMode") draft.vitalInfoPromptMode = String(newValue) as any;
             if (id === "vitalInfoPromptSurfaces") draft.vitalInfoPromptSurfaces = String(newValue);
-            if (
-              [
-                "operatorStatusBarEnabled",
-                "operatorStatusVersionEnabled",
-                "operatorStatusOtaEnabled",
-                "operatorStatusModelUsageEnabled",
-                "operatorStatusTimeEnabled",
-                "operatorStatusDeadlineEnabled",
-                "operatorStatusPredictionEnabled",
-              ].includes(id)
-            )
-              (draft as any)[id] = newValue === "true";
+            if (id === "operatorStatusBarEnabled") draft.operatorStatusBarEnabled = newValue === "true";
+            if (id === "operatorStatusVersionEnabled") draft.operatorStatusVersionEnabled = newValue === "true";
+            if (id === "operatorStatusOtaEnabled") draft.operatorStatusOtaEnabled = newValue === "true";
+            if (id === "operatorStatusModelUsageEnabled") draft.operatorStatusModelUsageEnabled = newValue === "true";
+            if (id === "operatorStatusTimeEnabled") draft.operatorStatusTimeEnabled = newValue === "true";
+            if (id === "operatorStatusDeadlineEnabled") draft.operatorStatusDeadlineEnabled = newValue === "true";
+            if (id === "operatorStatusPredictionEnabled") draft.operatorStatusPredictionEnabled = newValue === "true";
             if (id === "warnPct") draft.warnPct = Number(newValue);
             if (id === "compactPct") draft.compactPct = Number(newValue);
             if (id === "hardPct") draft.hardPct = Number(newValue);

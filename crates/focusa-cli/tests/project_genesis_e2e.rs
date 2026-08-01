@@ -94,6 +94,11 @@ fn start_isolated_daemon(repo_root: &Path) -> (IsolatedDaemon, String) {
         .unwrap(),
     )
     .unwrap();
+    // Project Genesis requires two matching independent identity signals before
+    // it may mint a typed ScopeRef. The marker plus project-local Beads root
+    // model the real bootstrap discipline without depending on a remote.
+    std::fs::create_dir_all(project_root.join(".beads")).unwrap();
+    std::fs::write(project_root.join(".beads/issues.jsonl"), b"").unwrap();
     let fake_bin = data_dir.join("bin");
     std::fs::create_dir_all(&fake_bin).unwrap();
     let fake_bd = fake_bin.join("bd");
