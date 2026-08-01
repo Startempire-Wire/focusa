@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { Value } from "../apps/pi-extension/node_modules/@sinclair/typebox/build/esm/value/index.mjs";
 import { makeAttachmentKey, runWithAttachmentRuntime } from "../apps/pi-extension/src/state.ts";
+import { registerVerifiedScopeRef } from "../apps/pi-extension/src/scoped-state.ts";
 import { registerTools } from "../apps/pi-extension/src/tools.ts";
 
 const root = resolve(import.meta.dir, "..");
@@ -23,6 +24,14 @@ const captured: any[] = [];
 registerTools({ registerTool: (tool: any) => captured.push(tool), on() {} } as any);
 const tools = new Map(captured.filter((tool) => tool.name.startsWith("focusa_")).map((tool) => [tool.name, tool]));
 const descriptors = new Map(registry.descriptors.map((descriptor: any) => [descriptor.tool_names.pi, descriptor]));
+registerVerifiedScopeRef({
+  scope_kind: "project",
+  scope_id: "project:spec141-agent-conformance",
+  root_path: root,
+  canonical_name: "focusa-next-locked-release",
+  fingerprint: "sha256:spec141-agent-conformance",
+});
+
 const attachmentKey = makeAttachmentKey({
   projectRoot: root,
   continuityId: "spec141-conformance",
