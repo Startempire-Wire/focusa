@@ -115,6 +115,7 @@ pub mod semantic_performance;
 pub mod semantic_reflex;
 pub mod semantic_registry;
 pub mod semantic_security;
+pub mod semantic_settlement;
 pub mod semantic_verification;
 pub mod semantic_vertical;
 pub mod silent_session;
