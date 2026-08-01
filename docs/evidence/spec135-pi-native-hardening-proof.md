@@ -18,6 +18,7 @@ The authoritative Mission Canvas renderer is `apps/pi-extension/src/mission-canv
 - Reference tests include hostile ANSI/OSC input and assert that payloads do not reach rendered output.
 - `spec135-pi-extension-npm-audit.json` reports zero production vulnerabilities.
 - `spec135-pi-extension-sbom.cdx.json` records the portable extension dependency inventory.
+- Linux-only suspend-aware clocks are isolated behind target-gated helpers; unsupported Windows/macOS clock domains return typed absence rather than importing unavailable libc constants.
 
 ## Explicit absence gate
 
