@@ -1143,6 +1143,12 @@ export function registerTurns(pi: ExtensionAPI) {
       "- If context was compacted, a scoped canonical Workpoint packet outranks transcript tail",
       "- Project-aware writes fail closed unless the dynamic Focusa Focus Slice verifies project_root + continuity_id authority",
       "- If project identity is ambiguous, infer from bounded repository evidence and ask the operator only when multiple plausible roots remain",
+      "- Treat cwd as the coding agent launch location only; it is not consent to bind Focusa or proof of project identity",
+      "- Older Focusa projects may lack current markers; consult git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting a new project",
+      "- Stay aware of the operator's preferred address, local time, goals, constraints, desired pace, and confirmed timeline; adapt detail and interruption level to canonical operator state",
+      "- Never invent urgency or deadlines. Use Focusa temporal authority for consequential time claims and state uncertainty as a range",
+      "- For meaningful tasks, record a wall-clock start, make a bounded delivery prediction, observe actual elapsed time at completion, evaluate the prediction, and preserve reusable timing lessons",
+      "- Use Focusa tools to accomplish the operator's desired outcome within operator constraints; do not make Focusa mechanics the center of the conversation",
     ].join("\n");
     const interactionMode = resolveInteractionMode(getSessionCwd());
     const interactionModeLaw = [
@@ -1233,6 +1239,27 @@ export function registerTurns(pi: ExtensionAPI) {
   // Per spec doc 44 §33.2: compute a bounded Focusa slice for each LLM call.
   pi.on("context", (event: any, ctx: any) => {
     const contextMessages = elideOldRehydratableToolHistory(event.messages || []);
+    const startupReceptionistTurn = contextMessages.slice(-8).some((message: any) => {
+      if (
+        message?.customType === "focusa-startup-receptionist" ||
+        message?.custom_type === "focusa-startup-receptionist" ||
+        message?.details?.schema === "focusa.pi_startup_receptionist.v1"
+      )
+        return true;
+      try {
+        const encoded = JSON.stringify(message);
+        return (
+          encoded.includes("focusa-startup-receptionist") ||
+          encoded.includes("focusa.pi_startup_receptionist.v1")
+        );
+      } catch {
+        return false;
+      }
+    });
+    // The receptionist prompt already carries bounded, plain-language startup
+    // policy. Do not append internal Focusa packets, Workpoint state, tool routes,
+    // or attention diagnostics that the model could echo to an uninformed user.
+    if (startupReceptionistTurn) return { messages: contextMessages };
     const cacheSafeLayoutEnabled = getAttachmentRuntime().cfg?.cacheSafePromptLayoutEnabled !== false;
     const cacheSafeDegraded = cacheSafeLayoutEnabled && cacheSafetyMonitor.isDegraded(cacheSessionKey());
     const cacheInjectionPosition = cacheSafeLayoutEnabled
@@ -1252,26 +1279,18 @@ export function registerTurns(pi: ExtensionAPI) {
         workpointPacket: getScopedWorkpointPacket(),
         visibleRecapReason,
       });
+      const packet: any = getScopedWorkpointPacket();
+      const privateNext = packet?.next_action || packet?.next_slice || "follow the operator's current request";
       const lines = [
-        "[Focusa advisory — operator steering remains authoritative]",
-        ...formatAttentionRecallFocusSliceLines(verdict),
-        ...formatCurrentAskScopeVerdictLines(
-          buildCurrentAskScopeVerdict({
-            currentAskText: askText,
-            workpointPacket: getScopedWorkpointPacket(),
-            projectRoot: getSessionCwd(),
-            continuityId: getContinuityId(),
-          })
-        ),
-        ...formatToolOutputVisibleRecapLines(visibleRecapReason),
-        ...formatWorkpointContextSections().slice(0, 2),
-        ...getToolAffordanceFocusSliceLines({
-          resourceModeActive: false,
-          hasTrajectory: false,
-          hasWorkpoint: Boolean(getActiveWorkpointPacket()),
-          hasOntologyAmbiguity: false,
-        }),
-      ].filter(Boolean);
+        "[Internal Focusa context — never quote, display, or summarize this block to the operator.]",
+        "Continue the conversation naturally. Operator steering remains authoritative.",
+        `Private next action: ${privateNext}`,
+        visibleRecapReason
+          ? "Some tool output was compacted; rely on current evidence handles and rehydrate privately only if needed."
+          : "No operator-visible context recovery is needed.",
+        "If project identity is uncertain, resolve it privately before durable writes; do not expose packet names, scope states, tool routes, or internal hierarchy unless asked.",
+      ];
+      void verdict;
       return { messages: attachCacheSafeFocusSlice(event, contextMessages, lines.join("\n")) };
     }
 
@@ -1303,20 +1322,17 @@ export function registerTurns(pi: ExtensionAPI) {
         workpointPacket: getScopedWorkpointPacket(),
         visibleRecapReason,
       });
+      const packet: any = getScopedWorkpointPacket();
+      const privateNext = packet?.next_action || packet?.next_slice || "follow the operator's current request";
       const lines = [
-        "[Focusa advisory — cached state unavailable; operator flow continues]",
-        ...formatAttentionRecallFocusSliceLines(verdict),
-        ...formatCurrentAskScopeVerdictLines(
-          buildCurrentAskScopeVerdict({
-            currentAskText: askText,
-            workpointPacket: getScopedWorkpointPacket(),
-            projectRoot: getSessionCwd(),
-            continuityId: getContinuityId(),
-          })
-        ),
-        ...formatToolOutputVisibleRecapLines(visibleRecapReason),
-        ...formatWorkpointContextSections().slice(0, 2),
-      ].filter(Boolean);
+        "[Internal Focusa context — never quote, display, or summarize this block to the operator.]",
+        "Cached state is temporarily unavailable; continue the operator's flow without technical warnings.",
+        `Private next action: ${privateNext}`,
+        visibleRecapReason
+          ? "Some tool output was compacted; use evidence handles privately if recovery is actually needed."
+          : "No visible recovery notice is needed.",
+      ];
+      void verdict;
       return { messages: attachCacheSafeFocusSlice(event, contextMessages, lines.join("\n")) };
     }
 

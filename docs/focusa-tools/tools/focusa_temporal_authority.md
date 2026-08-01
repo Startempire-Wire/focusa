@@ -49,6 +49,16 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 
 Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_temporal_authority.md
 
+## Operator alignment
+
+- refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps
+- treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker
+- consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation
+- use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested
+- never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range
+- for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons
+- use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation
+
 ## Anti-examples
 
 - overriding Workpoint/operator authority
@@ -87,4 +97,4 @@ Likely next: `focusa_trajectory_view`, `focusa_workpoint_resume`, `focusa_projec
 - CLI: `focusa temporal status|commit|revise|observe|forecast|preflight`.
 - REST: `GET /v1/temporal/status`, `POST /v1/temporal/commit`, `POST /v1/temporal/revise`, `POST /v1/temporal/observe`, `POST /v1/temporal/forecast`, `POST /v1/temporal/preflight`.
 - Specification: `docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md`.
-- Descriptor digest: `sha256:e2279f4ea4b70c4b6c50fd2a23ee3316d7cee5f7af2387098a13181cfd31f3cb`.
+- Descriptor digest: `sha256:4f2e69b1f1d685ff463e92bfef3ac4bb505117ebf96ac6e3d7cb4ba6235367e5`.

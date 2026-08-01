@@ -37,6 +37,16 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 
 Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_browser_capabilities_intake.md
 
+## Operator alignment
+
+- refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps
+- treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker
+- consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation
+- use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested
+- never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range
+- for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons
+- use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation
+
 ## Anti-examples
 
 - hiding failures behind null/unknown
@@ -75,4 +85,4 @@ Likely next: `focusa_browser_workflow_plan`, `focusa_browser_diagnostics_intake`
 - CLI: `focusa help all --json`.
 - REST: `POST /v1/browser/capabilities/intake`.
 - Specification: `docs/141-focusa-agent-first-tool-skill-runbook-and-documentation-release-gate-spec.md`.
-- Descriptor digest: `sha256:b28a8efecc1c43cbd2a2db30e97c974cb05186c37770fbea8717f54bceefc336`.
+- Descriptor digest: `sha256:b9267477555e4ffcaa1fba131102afb9c6444ad42850cf8471358b5d00381f14`.

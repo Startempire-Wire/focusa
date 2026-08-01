@@ -45,6 +45,16 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 
 Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_bootstrap.md
 
+## Operator alignment
+
+- refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps
+- treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker
+- consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation
+- use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested
+- never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range
+- for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons
+- use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation
+
 ## Anti-examples
 
 - assuming unsafe broad cwd is canonical
@@ -83,4 +93,4 @@ Likely next: `focusa_project_genesis`, `focusa_project_verify`, `focusa_workpoin
 - CLI: `focusa project bootstrap preview|apply|status|repair`.
 - REST: `POST /v1/project/bootstrap/preview`, `POST /v1/project/bootstrap/apply`, `GET /v1/project/bootstrap/status`, `POST /v1/project/bootstrap/repair`.
 - Specification: `docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md`.
-- Descriptor digest: `sha256:a768f876419b48f9bd7ef13a4c762caff3f061b9f39825811a488610a4635a22`.
+- Descriptor digest: `sha256:8c7bedff50dc223cf15295634f584385905c133fb94028f6b03ab546cbec08b7`.

@@ -38,6 +38,16 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 
 Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_call_stack_design.md
 
+## Operator alignment
+
+- refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps
+- treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker
+- consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation
+- use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested
+- never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range
+- for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons
+- use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation
+
 ## Anti-examples
 
 - broad roots such as /root
@@ -76,4 +86,4 @@ Likely next: `focusa_call_stack_verify`, `focusa_workpoint_link_evidence`, `focu
 - CLI: `focusa call-stack design`.
 - REST: `POST /v1/call-stack/design`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:aa0b85d05395111ce43a13cc709c8087f734b4ddd6e1cfcea5a2cb579ad96a90`.
+- Descriptor digest: `sha256:f0f7dbd91e48e19da748297bf17664fd3f248b6e7e114c375699eb96a12fad6b`.

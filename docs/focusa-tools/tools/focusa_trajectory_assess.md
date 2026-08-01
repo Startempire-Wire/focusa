@@ -30,6 +30,16 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 
 Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_trajectory_assess.md
 
+## Operator alignment
+
+- refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps
+- treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker
+- consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation
+- use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested
+- never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range
+- for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons
+- use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation
+
 ## Anti-examples
 
 - overriding Workpoint/operator authority
@@ -68,4 +78,4 @@ Likely next: `focusa_trajectory_propose_workpoint`, `focusa_workpoint_checkpoint
 - CLI: `focusa trajectory assess`.
 - REST: `POST /v1/trajectory/assess`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:c8fad58603fae51983c6e476fb795d676b8d3ad898f8c0d5c34b95508b8f5ecc`.
+- Descriptor digest: `sha256:dcbe6f26de047ec5ed62decb8a9bfb4d064521ca8e74638bd2f1463872534339`.

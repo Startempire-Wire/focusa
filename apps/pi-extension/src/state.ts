@@ -223,6 +223,12 @@ function createAttachmentRuntime() {
     sessionFrameKey: "" as string,
     sessionCwd: "" as string,
     continuityId: "" as string,
+    startupReceptionistActive: false,
+    startupReceptionistStartedAt: 0,
+    modelProvider: "" as string,
+    modelId: "" as string,
+    providerUsagePercent: null as number | null,
+    providerRenewalAt: "" as string,
     wbmEnabled: false,
     wbmDeep: false,
     wbmNoCatalogue: false, // §29 --no-catalogue flag

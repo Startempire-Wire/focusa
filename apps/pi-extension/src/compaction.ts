@@ -4,7 +4,12 @@
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { requestCoordinatedCompaction } from "./auto-compaction.js";
-import { buildProjectWorkstreamKey, scopedQueryParams, type WorkstreamKey } from "./scoped-state.js";
+import {
+  buildProjectWorkstreamKey,
+  scopedQueryParams,
+  verifiedScopeRefForRoot,
+  type WorkstreamKey,
+} from "./scoped-state.js";
 import {
   getAttachmentRuntime,
   focusaFetch,
@@ -135,6 +140,9 @@ function currentCompactionScope(): WorkstreamKey | null {
   const projectRoot = normalizeProjectRoot(getSessionCwd());
   const continuityId = String(getContinuityId() || "").trim();
   if (!isProjectRootAuthoritySafe(projectRoot) || !continuityId) return null;
+  // Host/reception bootstrap is intentionally unbound. Compaction must remain
+  // nonblocking until project identity has registered a verified ScopeRef.
+  if (!verifiedScopeRefForRoot(projectRoot)) return null;
   return buildProjectWorkstreamKey(projectRoot, continuityId);
 }
 
