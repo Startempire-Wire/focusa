@@ -30,11 +30,11 @@ def preflight() -> None:
 
 def release_activation() -> None:
     ledger = yaml.safe_load(body("docs/contracts/spec150-complete-feature-ledger.v1.yaml"))
-    assert ledger["runtime_status"] == "implementation_verified"
+    assert ledger["runtime_status"] == "verified_complete"
     rows = ledger["requirements"]
     assert len(rows) == ledger["source_atom_count"]
     for row in rows:
-        assert row["runtime_status"] == "implementation_verified", row["requirement_id"]
+        assert row["runtime_status"] == "verified_complete", row["requirement_id"]
         assert row["implementation_refs"]
         assert row["test_refs"]
         assert row["evidence_refs"]

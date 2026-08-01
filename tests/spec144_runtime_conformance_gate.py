@@ -40,10 +40,10 @@ def preflight() -> None:
 
 def release_activation() -> None:
     ledger = yaml.safe_load(text("docs/contracts/spec144-complete-feature-ledger.v1.yaml"))
-    assert ledger["runtime_status"] == "implementation_verified"
+    assert ledger["runtime_status"] == "verified_complete"
     assert ledger["runtime_claim"] == "activated"
     rows = ledger["requirements"]
-    assert rows and all(row.get("runtime_status") == "implementation_verified" for row in rows)
+    assert rows and all(row.get("runtime_status") == "verified_complete" for row in rows)
     assert all(row.get("runtime_evidence_refs") for row in rows)
     for name in [
         "spec144-proof-matrix.v1.yaml",
@@ -52,7 +52,7 @@ def release_activation() -> None:
         "spec144-forbidden-placeholder-audit.v1.yaml",
     ]:
         body = yaml.safe_load(text(f"docs/contracts/{name}"))
-        assert body.get("runtime_status") in {"implementation_verified", "activated"}, name
+        assert body.get("runtime_status") in {"verified_complete", "activated"}, name
         assert body.get("runtime_claim") in {"activated", "verified"}, name
 
 if __name__ == "__main__":

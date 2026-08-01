@@ -32,8 +32,8 @@ assert ACTIVATION["unknown_impact_refs"] == []
 assert ACTIVATION["blocking_conflict_refs"] == []
 activation_rows = [row for row in LEDGER["requirements"] if 413 <= row["source_line"] <= 460]
 assert len(activation_rows) == 23
-assert all(row["runtime_status"] == "implementation_verified" for row in activation_rows)
-assert all(row["runtime_status"] == "implementation_verified" for row in LEDGER["requirements"])
+assert all(row["runtime_status"] == "verified_complete" for row in activation_rows)
+assert all(row["runtime_status"] == "verified_complete" for row in LEDGER["requirements"])
 assert all(row.get("runtime_evidence_refs") for row in LEDGER["requirements"])
 for key in [
     "normative_source_coverage_ref", "feature_ledger_ref", "delivery_dag_ref",

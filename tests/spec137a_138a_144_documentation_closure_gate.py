@@ -54,7 +54,7 @@ for rel in required:
     assert (claim, status) in {
         ("none", "implementation_open"),
         ("none", "not_activated"),
-        ("activated", "implementation_verified"),
+        ("activated", "verified_complete"),
     }, rel
     if claim == "activated":
         assert data.get("activation_receipt_ref") == "release-proof/audit/spec144-spec150-double-e2e-receipt.json", rel

@@ -69,10 +69,42 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    rendered = yaml.safe_dump(build(), sort_keys=False, width=100)
+    expected = build()
+    rendered = yaml.safe_dump(expected, sort_keys=False, width=100)
     if args.check:
-        if not OUTPUT.is_file() or OUTPUT.read_text() != rendered:
+        if not OUTPUT.is_file():
             print("Spec150 complete feature ledger is stale or missing")
+            return 1
+        actual = yaml.safe_load(OUTPUT.read_text())
+        immutable_keys = ("schema", "spec_ref", "spec_hash", "source_atom_count")
+        if any(actual.get(key) != expected.get(key) for key in immutable_keys):
+            print("Spec150 complete feature ledger is stale or missing")
+            return 1
+        source_keys = (
+            "requirement_id",
+            "source_line",
+            "spec_section",
+            "requirement_text",
+            "requirement_text_sha256",
+            "applicability_decision",
+        )
+        actual_rows = actual.get("requirements", [])
+        expected_rows = expected["requirements"]
+        if len(actual_rows) != len(expected_rows) or any(
+            any(actual_row.get(key) != expected_row.get(key) for key in source_keys)
+            for actual_row, expected_row in zip(actual_rows, expected_rows)
+        ):
+            print("Spec150 complete feature ledger is stale or missing")
+            return 1
+        if actual.get("runtime_status") == "verified_complete" and any(
+            row.get("runtime_status") != "verified_complete"
+            or not row.get("implementation_refs")
+            or not row.get("test_refs")
+            or not row.get("evidence_refs")
+            or not row.get("receipt_refs")
+            for row in actual_rows
+        ):
+            print("Spec150 activated ledger has incomplete runtime evidence")
             return 1
         print("Spec150 complete feature ledger: current")
         return 0

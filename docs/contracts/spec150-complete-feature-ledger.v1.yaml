@@ -1,8 +1,8 @@
 schema: focusa.spec150.complete_feature_ledger.v1
 spec_ref: docs/150-focusa-guided-install-first-project-and-lifecycle-master-spec.md
-spec_hash: sha256:9f1b79f394cb834cdac26ff405425c5032b8e28cd7151a4df8a41c8c324d8991
-source_atom_count: 233
-runtime_status: implementation_verified
+spec_hash: sha256:624001765fedcaba46d69ba0c7fe64e61c8ab5299c407458291f51198ac19178
+source_atom_count: 235
+runtime_status: verified_complete
 requirements:
 - requirement_id: S150-R-0003-e7bf25081979
   source_line: 3
@@ -10,7 +10,7 @@ requirements:
   requirement_text: 'Status: Draft planning authority; implementation and publication are gated'
   requirement_text_sha256: sha256:066b24629e4d9bd0d097baf3a1a868c9bbb035ff2bfaa0ac9f69bb6da0e7e2c3
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: &id001 [crates/focusa-core/src/install_lifecycle/transactions.rs, crates/focusa-core/src/install_lifecycle/preflight.rs]
   test_refs: &id002 [crates/focusa-core/src/install_lifecycle/contract_tests.rs]
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -26,7 +26,7 @@ requirements:
   requirement_text: 'Date: 2026-07-29'
   requirement_text_sha256: sha256:e0b5521a7fee32491812733e3c9153cf9b0f9cc95943078a1b457aa18c87d87c
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -42,7 +42,7 @@ requirements:
   requirement_text: 'Scope: host installation through first canonical Workpoint, repair, update, rollback, and uninstall'
   requirement_text_sha256: sha256:5b516b84fd9653e3860bd81dfc5e69d1841cd315d062688a737cc1438c8d5d2c
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -58,7 +58,7 @@ requirements:
   requirement_text: 'Directive: complete install-process documentation and planning without weakening existing authority, safety, or compatibility contracts'
   requirement_text_sha256: sha256:b55d1a4ba0fe685bd40435467931c6182ef0e4cf267770cb9dfb9dad63770d8f
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -74,7 +74,7 @@ requirements:
   requirement_text: '---'
   requirement_text_sha256: sha256:cb3f91d54eee30e53e35b2b99905f70f169ed549fd78909d3dac2defc9ed8d3b
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -90,7 +90,7 @@ requirements:
   requirement_text: 'Focusa has strong component-level installation and onboarding contracts, but no single end-to-end authority connecting them safely. This specification orchestrates:'
   requirement_text_sha256: sha256:337ffee0017f9c84a6e6274b4cc46dcda70717aaea518e03ef207f8512ca0986
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -106,7 +106,7 @@ requirements:
   requirement_text: 1. verified Focusa host installation;
   requirement_text_sha256: sha256:c9ec957e00fc7afa0944bf3ef2861ba4fcff7a023a3bee58179566678e34f0f3
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -122,7 +122,7 @@ requirements:
   requirement_text: 2. explicitly selected optional integrations;
   requirement_text_sha256: sha256:24bf2cb742eaf77214cd3af666bd6b944ed4a47ac7c8c56c1ebb523e752801ea
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -138,7 +138,7 @@ requirements:
   requirement_text: 3. explicitly selected and verified project;
   requirement_text_sha256: sha256:0190618cdc5af8f6073148d6f8468c820899d7894e10a37fa5c94222739bd8f2
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -154,7 +154,7 @@ requirements:
   requirement_text: 4. governed Project Bootstrap and Project Genesis;
   requirement_text_sha256: sha256:652317abb8d9d0c09b9fa627f3e8034ac1fa6f2a1b5efbf32971a6258d0d32c7
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -170,7 +170,7 @@ requirements:
   requirement_text: 5. first canonical Workpoint and optional Mission Canvas mode;
   requirement_text_sha256: sha256:4c4f74ae34d532e535b86d6ec804bbc598e85d6875f5f4564c344c2936546d28
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -186,7 +186,7 @@ requirements:
   requirement_text: 6. durable acceptance evidence; and
   requirement_text_sha256: sha256:0042542dce842b41332b061d62db7da3e984dcba5e3715525904230370ce938b
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -202,7 +202,7 @@ requirements:
   requirement_text: 7. safe repair, update, rollback, uninstall, and purge paths.
   requirement_text_sha256: sha256:7c9bfe6fc2cf524f666a9b41ea57e7f7b5fc5a05a00c397355d395ad9b0b76be
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -218,7 +218,7 @@ requirements:
   requirement_text: Spec 150 coordinates existing owners; it does not replace their lower-level contracts.
   requirement_text_sha256: sha256:bc978d5c2486235b4696c8d405468e3fde6a9b6b64e1b4737aed7a062e21cbf8
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -234,7 +234,7 @@ requirements:
   requirement_text: 1. Host installation and project mutation are separate transactions.
   requirement_text_sha256: sha256:6b8f7b5f36db2ea592316626560efa10f87be2ff78d0cb738e104fb7fecf7b89
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -250,7 +250,7 @@ requirements:
   requirement_text: 2. Installation never infers a project from cwd and never creates a remote.
   requirement_text_sha256: sha256:df4df6b7c55c492ce835142417162b7e43462850d99c0e613bd2e3bcb6182e9f
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -266,7 +266,7 @@ requirements:
   requirement_text: 3. Existing user, project, provider, and harness state is preserved by default.
   requirement_text_sha256: sha256:33c15c35406e3ed6f13ae69944c1f7542322689f2852d44e0d33a516199776bb
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -282,7 +282,7 @@ requirements:
   requirement_text: 4. Every mutation has preview, confirmation, idempotency, evidence, and recovery semantics.
   requirement_text_sha256: sha256:b42a1978b65a6de5f353485a41077a23e427ae123c22e72d75dadccb7cf0ea6a
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -298,7 +298,7 @@ requirements:
   requirement_text: 5. The installer orchestrates owned components instead of duplicating them.
   requirement_text_sha256: sha256:304693da3dec20f47393f5fe736729e790f6bd241de2c81821e45884fd61ac63
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -314,7 +314,7 @@ requirements:
   requirement_text: 6. Pi retains authority over Pi prompts, queues, providers, compaction, and continuation.
   requirement_text_sha256: sha256:14cb2dc63954ed3b8cd8246fc98f5a62515d55d76c4490d0673f85a764df77a6
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -330,7 +330,7 @@ requirements:
   requirement_text: 7. UIAI is optional and governed, never a core-install prerequisite.
   requirement_text_sha256: sha256:4f98feaebc836c0e4e4fdecde08f30928454267a0a5bb2f9315f28b2d9793613
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -346,7 +346,7 @@ requirements:
   requirement_text: 8. Provider secrets remain provider- or harness-owned and never enter Focusa receipts.
   requirement_text_sha256: sha256:36a0fa6da08e676807bc0579a71a842f3f99ae4cb40908fb422739c51f1da8e5
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -362,7 +362,7 @@ requirements:
   requirement_text: 9. Generated instructions obey Specs 140/140A; silent overwrite is forbidden.
   requirement_text_sha256: sha256:8bb3e5c994bbc2a5b530a0b923885924028114a2732b9f8c9833390fa216d641
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -378,7 +378,7 @@ requirements:
   requirement_text: 10. Project Bootstrap and Project Genesis retain their own confirmation gates.
   requirement_text_sha256: sha256:d8b9bb27e024df9825220f675afc99ba12dc3259ac11f2f1b0f06c543a6c786b
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -394,7 +394,7 @@ requirements:
   requirement_text: 11. User data remains unless destructive purge is explicitly and separately confirmed.
   requirement_text_sha256: sha256:9a095d1932b08ac015b2f8fe9ac958b293282efdb2b48ed599d534769f3ac68d
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -410,7 +410,7 @@ requirements:
   requirement_text: 12. Documentation advertises only behavior proven by code or conformance evidence.
   requirement_text_sha256: sha256:d3acf5d041a903145f593df0b28f4e6837f6725bc2542291c66fe82e42fe678b
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -426,7 +426,7 @@ requirements:
   requirement_text: 13. Platform limitations are explicit; parity is never implied.
   requirement_text_sha256: sha256:f70b65034b7b9a7dbcf84d84023bef8faaee230c29db1f1e6a72293a6a2c3869
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -442,7 +442,7 @@ requirements:
   requirement_text: 14. Binary copy alone does not prove successful Focusa installation.
   requirement_text_sha256: sha256:5ec273651a59d14df7bf271b0f67471d04bbe86db28bd6ce1389f5021db7d337
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -458,7 +458,7 @@ requirements:
   requirement_text: '15. GitHub #14 remains the first locked-release implementation task.'
   requirement_text_sha256: sha256:91f7d89fda59ed4c5ab30d0bbe91961097a720f7170704c75fae9eaf233d6732
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -474,7 +474,7 @@ requirements:
   requirement_text: host preflight, target selection, artifact trust, license/evaluation/development authority;
   requirement_text_sha256: sha256:cff5f914f7f053878b8a844a289a99cb0e9ea3fc0af4874fb049cc4a5807c5ee
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -490,7 +490,7 @@ requirements:
   requirement_text: CLI, daemon, TUI, skills, Pi, optional UIAI, and Mac menubar compatibility;
   requirement_text_sha256: sha256:11e3ebde14923a94fb3e4e1191b0d4e096ac4d3f4e799282fca0a50b1c98e2af
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -506,7 +506,7 @@ requirements:
   requirement_text: interactive/headless, dependency, service, release-channel, and integration choices;
   requirement_text_sha256: sha256:8d65f0760e85cdff15bbaef94f63f989e0c96e169d3d7526264601db1d2656cc
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -522,7 +522,7 @@ requirements:
   requirement_text: provider capability discovery without provider-secret custody;
   requirement_text_sha256: sha256:ccb63e1a30e510e85d863e8c8516809f1609b21b9be2bef404ec3ed10d06c2a5
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -538,7 +538,7 @@ requirements:
   requirement_text: existing/new/skip-project paths, Git and task-provider choices;
   requirement_text_sha256: sha256:99717d47af3d0d9316d44214ace91aa135919b470b4fb53f44aa37fa4f8ae5cd
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -554,7 +554,7 @@ requirements:
   requirement_text: governed project instructions, Bootstrap, Genesis, first Workpoint, and Canvas mode;
   requirement_text_sha256: sha256:8d94a70afc4a4a215796e1e76b455320ca3ee1c64f9000e5d8e1122ed81afd8c
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -570,7 +570,7 @@ requirements:
   requirement_text: acceptance receipts, rerun, repair, update, rollback, uninstall, and purge;
   requirement_text_sha256: sha256:ee2a5d4429b67848043741875a9b2221ef765ce0eae60caec863a1f203feac80
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -586,7 +586,7 @@ requirements:
   requirement_text: declared Linux, macOS, and Windows capability boundaries.
   requirement_text_sha256: sha256:dcc2e50b9dd5c7aa58d55a1940d74b932b9aaf483f5c7016f5fc32f5549c8730
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -602,7 +602,7 @@ requirements:
   requirement_text: inferred remote, organization, visibility, deployment, DNS, firewall, port, or system service;
   requirement_text_sha256: sha256:59dbd466707034ab153dd574fa2b02381ea1b94535fea36aea0da50c5e24fcd1
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -618,7 +618,7 @@ requirements:
   requirement_text: provider account creation or Focusa custody of provider credentials;
   requirement_text_sha256: sha256:9ca6ebc643b22e7531ce72701cf6cbefe5f9004a10dbf1cb094e1a7c0cec3eec
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -634,7 +634,7 @@ requirements:
   requirement_text: bypassing BSL/commercial authority, Pi/UIAI lifecycle ownership, or project confirmation;
   requirement_text_sha256: sha256:7ac743738d7c7eb261d1c690679f993aa49e8a7155f7dbe2483c4244172ff02c
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -650,7 +650,7 @@ requirements:
   requirement_text: project mutation before exact identity and explicit selection;
   requirement_text_sha256: sha256:bbb864aaf0007735b08ae95a4751d148f2a1f41915684f299ecab80dddc6e34f
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -666,7 +666,7 @@ requirements:
   requirement_text: silently converting or overwriting an existing project.
   requirement_text_sha256: sha256:90d720f0a8cbb0504b28bae35793c772feabd0b500f212289f3f5e567f53f549
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -682,7 +682,7 @@ requirements:
   requirement_text: '| Owner | Existing authority | Spec 150 relationship | Conflict rule |'
   requirement_text_sha256: sha256:833ee07e1831aab1debbeb52af744c86cc6638b3e720798fcef09ab2725fa031
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -698,7 +698,7 @@ requirements:
   requirement_text: '|---|---|---|---|'
   requirement_text_sha256: sha256:4da1ec6f47782090102dc16bda978efb5655fbf2ddce0f84ecf1faf79a930f2d
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -714,7 +714,7 @@ requirements:
   requirement_text: '| Spec 112 | Binary architecture, artifacts, targets, checksums, rollback foundation | Import | Spec 112 owns binary mechanics |'
   requirement_text_sha256: sha256:b54da2721a75b3569752342a1aef94788a07e1aca512d91320d8ce4857c0156e
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -730,7 +730,7 @@ requirements:
   requirement_text: '| Spec 128 | OTA/update, installer intelligence, development licensing | Import | Spec 128 owns update/license mechanics |'
   requirement_text_sha256: sha256:4a500e824ff3a9c8bdf7b469d5c7e94730127dc6002a763630d124020e944e09
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -746,7 +746,7 @@ requirements:
   requirement_text: '| Spec 132 | Terminal animation and TTY behavior | Import | UX cannot weaken gates |'
   requirement_text_sha256: sha256:f352992bee750c4b81eab82a9208ca9b8d0e9a7d14a7b5945464c9a2e255c832
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -762,7 +762,7 @@ requirements:
   requirement_text: '| Specs 135/135i | Workspace, CRIST, Genesis, generated Mission Canvas | Import | Genesis/Canvas remain project-scoped |'
   requirement_text_sha256: sha256:1241bd77ead0815bd96f7c5ef512307b70d59178205e9f37e11b3e925e6970e2
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -778,7 +778,7 @@ requirements:
   requirement_text: '| Spec 140 | Instruction authority and cross-harness compilation | Import | Generated instructions stay governed |'
   requirement_text_sha256: sha256:04c7a07d608bea250195c41a1c18dd7ec5cfc133930f0f888e127d87b979b375
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -794,7 +794,7 @@ requirements:
   requirement_text: '| Spec 140A | Integrity, canonical amendment, headless enforcement | Import | Headless preserves equivalent gates |'
   requirement_text_sha256: sha256:729e43b51dd5241382d438d343543aa450b28904f0bfc626319db18cb81a0276
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -810,7 +810,7 @@ requirements:
   requirement_text: '| Spec 142 | Pi continuation and onboarding dependencies | Import | Pi owns queues/continuation |'
   requirement_text_sha256: sha256:e1127bcec75d8b15d85a6f613605a09b386d5e8bf31c250d7e1b1453153ef795
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -826,7 +826,7 @@ requirements:
   requirement_text: '| Spec 143 | Release-cycle trajectory and Genesis implementation | Import | Release proof differs from install proof |'
   requirement_text_sha256: sha256:874227c054f500b346e4f7f06d40184b728c855f5c5d9870c943f6a3802d3ef8
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -842,7 +842,7 @@ requirements:
   requirement_text: "| Specs 145\u2013147 | Canonical release architecture and operations | Reference | Consume only verified release artifacts |"
   requirement_text_sha256: sha256:da92192bbeb3f325e23bf67f7f4bb94c3b81a267b34753fa982255e8957ec373
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -858,7 +858,7 @@ requirements:
   requirement_text: '| Spec 148 | Benchmark journal | Reference | Install failures may settle predictions |'
   requirement_text_sha256: sha256:7d6de8d30f3b8343a04cc0b70e8ea1b25e1d46ab6ff1dfa4a31a424395d22eda
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -874,7 +874,7 @@ requirements:
   requirement_text: '| Spec 149 | Workset Flow Ledger | Reference | Implementation needs admitted workset |'
   requirement_text_sha256: sha256:cf6709f075f17bec7152dc9a5264d10bdb6d59d9247ec9d7d1167bd879414099
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -890,7 +890,7 @@ requirements:
   requirement_text: '| GitHub #14 | Pi lifecycle/compaction authority | Blocking prerequisite | Complete before Pi-guided install implementation |'
   requirement_text_sha256: sha256:36cc721412ac46bab75a2ea3e17e1d1e4b49de4bc6b46cbc6e2b21a38d6a2591
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -906,7 +906,7 @@ requirements:
   requirement_text: Spec 150 supersedes no existing owner by default. A contradiction fails closed and is resolved by the owner or a named amendment.
   requirement_text_sha256: sha256:528ac6183aeb083a6b6c5ce00f991520326b002e78c5c906aaaf8694ab951c7a
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -922,7 +922,7 @@ requirements:
   requirement_text: '| Surface | Current reality | Issue | Required disposition before publication |'
   requirement_text_sha256: sha256:917811557213b8310ea36a9f45a12dd3268afa4e6aaf4bb8d643dcaba535a923
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -938,7 +938,7 @@ requirements:
   requirement_text: '|---|---|---|---|'
   requirement_text_sha256: sha256:4da1ec6f47782090102dc16bda978efb5655fbf2ddce0f84ecf1faf79a930f2d
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -954,7 +954,7 @@ requirements:
   requirement_text: '| Bash bootstrapper | Dry-run, eval, target, channel, dependencies, service, force, uninstall, purge-data | Broadest public lifecycle contract | Keep authoritative until parity is proven |'
   requirement_text_sha256: sha256:802a142906a79e796df3986b8e555e6a872182c874eba5bd78906ceb9243ee08
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -970,7 +970,7 @@ requirements:
   requirement_text: '| Bash uninstall | Adds `--keep-data` unless purge is explicit | Safer than direct CLI | Preserve default and prove it |'
   requirement_text_sha256: sha256:5074b1882a3aa2059fc57c7b8b3f93aa4e84fdd1bff8be610eb809142684d2f5
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -986,7 +986,7 @@ requirements:
   requirement_text: '| `focusa uninstall` | Needs `--keep-data` to preserve customer state | Contradicts universal preservation claim | Unify default or distinguish entrypoints visibly |'
   requirement_text_sha256: sha256:81af859a9fe7b4ccb384f8f3644ffbab3374db558259c9ddd55139ae90b9aa80
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1002,7 +1002,7 @@ requirements:
   requirement_text: '| PowerShell bootstrapper | Thin Windows installer | Missing Bash uninstall/dependency/service/force/license parity | Implement parity or publish exact limitations |'
   requirement_text_sha256: sha256:2aac8b94ec4921e9f1b3fa48f725171cdc20774026c1a29b3281e34df54f84d9
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1018,7 +1018,7 @@ requirements:
   requirement_text: '| CLI install | Installs trusted artifacts to resolved target | Does not own provider/project onboarding | Host stage only |'
   requirement_text_sha256: sha256:0a4b13384a61304e6562580582ed4ffa4edcd8aa567739118312fcea7294a252
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1034,7 +1034,7 @@ requirements:
   requirement_text: '| CLI update | Uses release/update metadata | Compatibility spans daemon, extension, skills, UI | Require version-set rollback proof |'
   requirement_text_sha256: sha256:559c7853a5cee41de7b83e200410fd821c9531793e8a9f950b1f2594b74a23fe
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1050,7 +1050,7 @@ requirements:
   requirement_text: '| Project Bootstrap API | Preview/apply/status/repair plus confirm/idempotency | Must not merge into host install | Run only after explicit project selection |'
   requirement_text_sha256: sha256:6695b14fd2b2e6d55826afa40437061ef09db40ec734a40730e26f1f4c74232d
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1066,7 +1066,7 @@ requirements:
   requirement_text: '| Project Genesis API | Start/resume/status/commit plus confirm/takeover | HLT impasse/takeover governed | Preserve native state machine |'
   requirement_text_sha256: sha256:8a56feb83c9fc1456c4399d42660c8f6e96705d92edd837b23357ffd930a81e3
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1082,7 +1082,7 @@ requirements:
   requirement_text: '| Pi extension | Project, Workpoint, Canvas, preload, continuation | Scope/compaction regressions can corrupt setup | P0 compatibility issues are prerequisites |'
   requirement_text_sha256: sha256:2f935ebcbe4234a5e28d7d333cc33997ef846ca2cc0115e991860a1571620a17
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1098,7 +1098,7 @@ requirements:
   requirement_text: '| Mission Canvas | Project-scoped generated interaction and modes | Incoherent before identity/Genesis | Offer after project acceptance gate |'
   requirement_text_sha256: sha256:88d12af7a0d67d2e172c8028dcac15d78d68c20bcd110393dce614f3dee71379
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1114,7 +1114,7 @@ requirements:
   requirement_text: '| UIAI | Optional governed browser capability | Availability/pressure vary | Detect and verify; do not require |'
   requirement_text_sha256: sha256:4572cef0699cbd78d9e4e425b6bef084eb99ee69dd89a6afd595832e58eb4c12
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1130,7 +1130,7 @@ requirements:
   requirement_text: '| Providers | Harness/provider-owned | Focusa must not ingest secrets | Discover then provider-native handoff |'
   requirement_text_sha256: sha256:de469e1e9e7fecec73542dc98ab9c7732438cacd4c8610e797e02a7c1eea3d4f
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1146,7 +1146,7 @@ requirements:
   requirement_text: '| Instructions | Specs 140/140A compiler/governance | Existing files may be operator-owned | Preview, diff, provenance, confirm, receipt |'
   requirement_text_sha256: sha256:533076b677c82912c41de19d66ee743c747cb4d99951c0a9dac382e8b0829d6d
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1162,7 +1162,7 @@ requirements:
   requirement_text: '| Task provider | Bootstrap accepts explicit policy | Existing stores can be damaged | Detect, preview, preserve |'
   requirement_text_sha256: sha256:31f61a039524e5781ec5909bcf34b2c8f9c941ceb598ffc892f7d2d284e57b55
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1178,7 +1178,7 @@ requirements:
   requirement_text: '| Git | Bootstrap accepts explicit initialization | Remote/org/visibility not inferable | Explicit init; remote excluded |'
   requirement_text_sha256: sha256:125c1fc4a3f8e9edde5c4c784cc6c984d735d6a3c633cf4cb5d0d16fbe580915
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1194,7 +1194,7 @@ requirements:
   requirement_text: '| Mac menubar | Separate pairing/install surface | Signing/update/pairing platform-specific | Optional independent receipt |'
   requirement_text_sha256: sha256:5a8b08f4e7ec69854d57d19abb0a3f2961f751803b15c35ee4a4bb07f20f84c4
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1210,7 +1210,7 @@ requirements:
   requirement_text: '| Priority | Blocker |'
   requirement_text_sha256: sha256:c044ce51fb043750cf1934b3063c639c3a6855a006a645b3a93662536eb07df3
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1226,7 +1226,7 @@ requirements:
   requirement_text: '|---|---|'
   requirement_text_sha256: sha256:4199ba454d6d3ae83657120c2bb6bd674eefc0dd7d3cd4cc844171dc6725135b
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1242,7 +1242,7 @@ requirements:
   requirement_text: '| P0 | Bash and direct CLI disagree on uninstall preservation defaults |'
   requirement_text_sha256: sha256:deeb93f96faa21cec45196b0f7f7678e99ec8563652ab4d4d6daff8a36d5d2ce
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1258,7 +1258,7 @@ requirements:
   requirement_text: '| P0 | Windows lifecycle parity is incomplete or undocumented |'
   requirement_text_sha256: sha256:ff040762805e67c5fde9288a894dafaa7aad0f16c219209cdc6fb82010d6ef95
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1274,7 +1274,7 @@ requirements:
   requirement_text: '| P0 | Host and project scopes must not collapse into one transaction |'
   requirement_text_sha256: sha256:0d2429965ac9c91650866913ae0ef0f80134a8f6b4b7bef16ab1ce4be4b92f23
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1290,7 +1290,7 @@ requirements:
   requirement_text: '| P0 | GitHub #14 Pi compaction/queue compatibility remains unresolved |'
   requirement_text_sha256: sha256:d2028d10590b477026f150cf6af1d5ad09999b8f587c2937498f7fbc259c9a15
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1306,7 +1306,7 @@ requirements:
   requirement_text: '| P0 | Exact-project scope regressions must not contaminate onboarding |'
   requirement_text_sha256: sha256:6a4f190f82fe0c8dfb4aa29952691ac16581940822e0ecd3240b754483a70b98
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1322,7 +1322,7 @@ requirements:
   requirement_text: '| P1 | Repair is not uniformly defined across entrypoints |'
   requirement_text_sha256: sha256:17c91dd6ce33e951b89725cbca24b715ff933abbc63a52dc00d9606c1f39c7b3
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1338,7 +1338,7 @@ requirements:
   requirement_text: '| P1 | Provider/UIAI optionality needs explicit capability contracts |'
   requirement_text_sha256: sha256:5ce64c5a680d21ffc8d88032877df072b1c7e72896f3ccbd19a84540258ac020
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1354,7 +1354,7 @@ requirements:
   requirement_text: '| P1 | Cross-artifact update/rollback needs one compatible-version proof |'
   requirement_text_sha256: sha256:bfec0cfb1221c96d8a11b1bb8e33623c265260507792b8bee2f3c0423a292bae
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1370,7 +1370,7 @@ requirements:
   requirement_text: '| P1 | Existing user guides can drift from implementation truth |'
   requirement_text_sha256: sha256:78dfa0d1d941a491d3eb6e716cbc61e397bac1b74033605cc900ec5fc2791568
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1386,7 +1386,7 @@ requirements:
   requirement_text: Host installation cannot create, initialize, bind, or modify a project.
   requirement_text_sha256: sha256:b0319be84a251242d8255f9cc72e1ac7a692858f89bb823b1dfbe1aac151aeef
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1402,7 +1402,7 @@ requirements:
   requirement_text: 'Exactly one explicit action: `inspect | rerun | repair | update | rollback | uninstall | purge`. Purge cannot hide inside uninstall.'
   requirement_text_sha256: sha256:8d488360c5bcf905f43c39292ab4f32f6ee5756f5b66469aba5add5e0db5927e
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1418,7 +1418,7 @@ requirements:
   requirement_text: 'Primary states:'
   requirement_text_sha256: sha256:47700c47f2d1840a2ffcb736dcca3f47736bca268e51bea9f7b6ba158e4b3d40
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1434,7 +1434,7 @@ requirements:
   requirement_text: 'Recovery states:'
   requirement_text_sha256: sha256:3a0e03cce0d8fcf151e7e9561e9f1c750e841a81196c7d0a347de913e29a4fd0
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1450,7 +1450,7 @@ requirements:
   requirement_text: Every transition records transaction id, typed scope, prior/new state, typed action, status, evidence refs, bounded recovery, and timestamp. Unknown completion requires inspection before retry.
   requirement_text_sha256: sha256:34e36f9c7e08a5403939ca7fc1dba375a2ae03a43d9cb9869ff9536cfdc425e3
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1466,7 +1466,7 @@ requirements:
   requirement_text: Spec 150 does not invent unsupported monolithic install profiles. It coordinates existing dimensions independently.
   requirement_text_sha256: sha256:e168dc4b208ebb46b9ad4629b41caa7abf444a0f09b2ea31ef7bd7f860dae903
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1482,7 +1482,7 @@ requirements:
   requirement_text: '| Dimension | Choices | Default rule |'
   requirement_text_sha256: sha256:773cb0ed55f07678bdd44f6bf0a92409e65dc589646d0a976680441c111dac57
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1498,7 +1498,7 @@ requirements:
   requirement_text: '|---|---|---|'
   requirement_text_sha256: sha256:23cca02b74f386463efa24796c7a9011b0d2c93f0c38b4d15d5d276205b59b43
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1514,7 +1514,7 @@ requirements:
   requirement_text: '| Interaction | interactive, headless | TTY detection; no hidden headless consent |'
   requirement_text_sha256: sha256:6e7fdd54292798e6dd2d85aa27404025c22eb0986479cfddd5f674dce9d52bf9
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1530,7 +1530,7 @@ requirements:
   requirement_text: '| Authorization | evaluation, commercial, authorized development | Never infer entitlement |'
   requirement_text_sha256: sha256:41ae3a164fd817037424776d41d120dc1021eb298083872fc4ed79216375b7e6
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1546,7 +1546,7 @@ requirements:
   requirement_text: '| Channel | stable, preview, nightly where supported | Stable unless explicit |'
   requirement_text_sha256: sha256:5019f6ca3264bd787ddc04d1851af987c13b8a58557d490f7347e6326508c50f
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1562,7 +1562,7 @@ requirements:
   requirement_text: '| Target | detected supported target or explicit override | Ambiguity blocks |'
   requirement_text_sha256: sha256:fa4de517eb990afe2c22345a9344e1573ace5bc288899b291ebe37757173d842
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1578,7 +1578,7 @@ requirements:
   requirement_text: '| Dependencies | approved install, verify-only | Interactive confirmation unless pre-approved |'
   requirement_text_sha256: sha256:b2631597871ab9597f7daf270a1024c61d8972187238f8d8a05342dd679cbe67
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1594,7 +1594,7 @@ requirements:
   requirement_text: '| Service | supported user service, no service | No system-wide assumption |'
   requirement_text_sha256: sha256:7d7e513e7a79366d84d2b7c68d9934b026a08267c8e639da4cd4ac2a1b80ba4d
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1610,7 +1610,7 @@ requirements:
   requirement_text: '| Integrations | individually selected Pi, UIAI, menubar, declared harness, none | Optional/capability-gated |'
   requirement_text_sha256: sha256:884e52a47e45b54526da1af93630ec44789fbf33114133c784e276759bd5cb39
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1626,7 +1626,7 @@ requirements:
   requirement_text: '| Project | skip, explicit existing path, explicit new path | Skip until explicit |'
   requirement_text_sha256: sha256:9ac956387c89f3affc42294dc57737b9f68cac8d07cc8ca70d5269fcfc814d82
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1642,7 +1642,7 @@ requirements:
   requirement_text: '| Git | preserve, explicit initialize, skip | Never create/configure remote |'
   requirement_text_sha256: sha256:bcbf157f7331e0b10914a9a2415733d971336090fddb51b428020d97cbf62a4e
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1658,7 +1658,7 @@ requirements:
   requirement_text: '| Task provider | preserve, explicit supported provider, skip | Never overwrite |'
   requirement_text_sha256: sha256:74b81555dede625b892d1f11d09b4ddd13ec65002e9bb404fcc0da5cb3fdde5e
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1674,7 +1674,7 @@ requirements:
   requirement_text: '| Instructions | preserve, governed preview/generate, skip | Never silently write |'
   requirement_text_sha256: sha256:0f8926cb0dfa55473075910b20ebd5a90fe2ae25f6128cfdd144a9368bec2c38
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1690,7 +1690,7 @@ requirements:
   requirement_text: '| Canvas | guided, full, off, leave unchanged | Offer after project readiness |'
   requirement_text_sha256: sha256:f8a34658527628e4047d3a9df13f353297297ae082184e5489af78f3009b8a4a
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1706,7 +1706,7 @@ requirements:
   requirement_text: '| Maintenance | inspect, rerun, repair, update, rollback, uninstall, purge | Preview precedes mutation |'
   requirement_text_sha256: sha256:b03e479419a5f3731be0f0ccdd6ac19d0158895aa8b175da2586384afe449855
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1722,7 +1722,7 @@ requirements:
   requirement_text: 'Read-only preflight reports:'
   requirement_text_sha256: sha256:938dea5e0889cb3c77a928ac7b751ff453dc5cde2c24d7e394aa6186439fa226
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1738,7 +1738,7 @@ requirements:
   requirement_text: OS/architecture, user/home boundary, shell/TTY, supported target;
   requirement_text_sha256: sha256:3fda61bc5100cd7d0b99148cc8d933e1e3577fdea12773b1006c48ba16bb1375
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1754,7 +1754,7 @@ requirements:
   requirement_text: existing binaries, daemon, services, extension, skills, state, and version set;
   requirement_text_sha256: sha256:6ab69c9e9c315e60767e5234f604c7bfdc3af0c98da0923b5969fc7216b6677f
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1770,7 +1770,7 @@ requirements:
   requirement_text: writable user-safe targets without implicit escalation;
   requirement_text_sha256: sha256:bd621c17630aadf421802cdfca0f580abf1182ffcfc7edc95055c8e9f314a14d
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1786,7 +1786,7 @@ requirements:
   requirement_text: required/optional dependencies and network/offline posture;
   requirement_text_sha256: sha256:ac7eb92db327c55cb9c4e06af77245f2d9c68b342da5838a2505c2a256e4b698
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1802,7 +1802,7 @@ requirements:
   requirement_text: artifact/update metadata reachability and license posture without secret values;
   requirement_text_sha256: sha256:1d80f89df636e5da28ad6a65727deca274c831d7d4aed1276d8b1cd61c3ff880
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1818,7 +1818,7 @@ requirements:
   requirement_text: Pi/UIAI/menubar capabilities;
   requirement_text_sha256: sha256:259068daf5d179e26deab4e9744c6fcb62cc174b4589d23bcd78cf0de40e2e6d
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1834,7 +1834,7 @@ requirements:
   requirement_text: no project inspection until an explicit path is supplied.
   requirement_text_sha256: sha256:f1a271d5ddb840830b5ac1c0ac04352e3d107e90bbf066a056104d141805e263
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1850,7 +1850,7 @@ requirements:
   requirement_text: Each finding is `required`, `optional`, `already_satisfied`, `operator_choice`, `unsupported`, or `blocked`.
   requirement_text_sha256: sha256:d7684661f9e388c5830eacf6121f3426517d5e6a64a47a3c30dd3b74ef75ea9d
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1866,7 +1866,7 @@ requirements:
   requirement_text: Production installation requires declared version/channel, supported target, complete metadata, checksums/signatures, provenance, staged extraction, rollback metadata before replacement, atomic activation where supported, and post-activation version/health proof. No fallback may silently substitute a local build, stale asset, different channel, or partial version set.
   requirement_text_sha256: sha256:acf5036bb1af30a601d9c91678c237fa0a964d6aa80c93d89c6e249e2c424297
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id001
   test_refs: *id002
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1882,7 +1882,7 @@ requirements:
   requirement_text: detect Pi compatibility before mutation and install matching extension/skills;
   requirement_text_sha256: sha256:543b4f98e6060394c518356380eb51acaeb77985d9fbbbfcf0e6cf3a140a3b25
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: &id003 [crates/focusa-core/src/install_lifecycle/adapters.rs]
   test_refs: &id004 [crates/focusa-core/src/install_lifecycle/adapters_tests.rs]
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1898,7 +1898,7 @@ requirements:
   requirement_text: never submit lifecycle prompts during startup or compaction;
   requirement_text_sha256: sha256:50f21cf5e0e74058b5d7a69400aa08cdc78697f110867ca7cb85702a2199ffde
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id003
   test_refs: *id004
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1914,7 +1914,7 @@ requirements:
   requirement_text: use non-triggering next-turn guidance when guidance is required;
   requirement_text_sha256: sha256:b90671f55fabe90bec011456106d29289c66474177611fb0fd4a819be49f20a2
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id003
   test_refs: *id004
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1930,7 +1930,7 @@ requirements:
   requirement_text: preserve provider, queue, cancellation, compaction, and reconnect ownership;
   requirement_text_sha256: sha256:ed94582a17e53c25baf377be3da15666140206ef8ea214bf4de12f206db9b0f4
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id003
   test_refs: *id004
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1946,7 +1946,7 @@ requirements:
   requirement_text: prove tool discovery with one read-only scoped call;
   requirement_text_sha256: sha256:db088b8d94232c46d6568a115d89b9d2639c62756046bad3cf6bae1484422aeb
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id003
   test_refs: *id004
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1962,7 +1962,7 @@ requirements:
   requirement_text: keep core CLI/daemon acceptance independent of Pi.
   requirement_text_sha256: sha256:a772d29b5ecd78804e943a2cd23ca8eaad9aba582307a3135507521776dc7a9e
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id003
   test_refs: *id004
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1978,7 +1978,7 @@ requirements:
   requirement_text: UIAI is optional. Verify health, pressure, and capability; bind actions to session/origin; preserve normal confirmation/evidence; degrade to core installation when absent; never install unrelated browser software silently.
   requirement_text_sha256: sha256:89a784908713c2e9dbe1349a69cb0557b1660e641923d25407ec8ce35bfe1612
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id003
   test_refs: *id004
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -1994,7 +1994,7 @@ requirements:
   requirement_text: Discover through the selected harness, present provider-neutral choices, use provider-native OAuth/device/auth, never persist provider secrets, and allow resumable project setup when no provider is available.
   requirement_text_sha256: sha256:dfa2e9000d91d4f6eacdea16197ca8aea996a321023f1da3fe3a343c3a0b15fa
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id003
   test_refs: *id004
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2010,7 +2010,7 @@ requirements:
   requirement_text: macOS-only integration requires separate signature/update verification, explicit device pairing, revocation/expiry behavior, and independent health/uninstall receipt.
   requirement_text_sha256: sha256:c8dfb47c28ff17e481af18e654eafb459286bab28feb239eefd4c7ee7ceece61
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id003
   test_refs: *id004
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2026,7 +2026,7 @@ requirements:
   requirement_text: 'Required order:'
   requirement_text_sha256: sha256:105901720ca7cba7ad93ba20bda8d580e874061e9fadeedbde4b32bffb677aa5
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: &id005 [crates/focusa-core/src/install_lifecycle/orchestrator.rs]
   test_refs: &id006 [crates/focusa-core/src/install_lifecycle/orchestrator_tests.rs, tests/onboarding_lifecycle_runtime_test.sh]
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2042,7 +2042,7 @@ requirements:
   requirement_text: Scope mismatch blocks project mutation without invalidating a healthy host installation.
   requirement_text_sha256: sha256:ed54ed3d2bc1ce1f52f2af91faf3c7f2c16c775e8a04efb06b21f6545577a01f
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2058,7 +2058,7 @@ requirements:
   requirement_text: preserve existing repository, dirty worktree, and task store;
   requirement_text_sha256: sha256:d82e7db4c909403223f3c7bbafc5f50071f71a9e10a54d5c722539eb99e8fd34
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2074,7 +2074,7 @@ requirements:
   requirement_text: initialize only when explicitly selected and previewed;
   requirement_text_sha256: sha256:36d5c0da9089c4562bf3259d17637f1c6f18db8a9a8fd0db6ffb01570dafff68
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2090,7 +2090,7 @@ requirements:
   requirement_text: never infer repo name, branch, host, organization, visibility, or remote;
   requirement_text_sha256: sha256:8f9fc15c91f62f7ff12b253ade662d627f4e605806fb52f7bc0adc601f3bbade
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2106,7 +2106,7 @@ requirements:
   requirement_text: detect and preserve existing task provider; never invent tasks;
   requirement_text_sha256: sha256:e529dd5d0680c656004807c70fbfe01c9571d4b018d98bee18b1010a6e8a4d1f
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2122,7 +2122,7 @@ requirements:
   requirement_text: return optional remote setup as a continuation, not an install side effect.
   requirement_text_sha256: sha256:ef4598d5f6d46c1d62c392955ed44d1a04838ab1acbe0146f60aa523c4481e0f
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2138,7 +2138,7 @@ requirements:
   requirement_text: Governed generation requires canonical source/version, target harness, proposed files, preview/diff, conflict classification, explicit confirmation, atomic write/rollback, hashes/authority receipt, and no overwrite of operator-owned instructions without approved reconciliation.
   requirement_text_sha256: sha256:8de747b810e19e45c1b8a53b2c9bc69254d4d111f0b0300baec4dfc3e73ef3d1
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2154,7 +2154,7 @@ requirements:
   requirement_text: 'Project onboarding is incomplete until an exact-scoped canonical Workpoint exists or a typed blocked receipt explains why. Canvas selection follows project verification, Genesis context, and first Workpoint readiness:'
   requirement_text_sha256: sha256:8a4a645615b7a4017e42c14f6300188cc782e0897ed02b9e8c7cb855e0080e5b
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2170,7 +2170,7 @@ requirements:
   requirement_text: '| Mode | Meaning |'
   requirement_text_sha256: sha256:89737770d281bc22f1a866e5e435a299f299b8075432e5a095747b669d78cad3
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2186,7 +2186,7 @@ requirements:
   requirement_text: '|---|---|'
   requirement_text_sha256: sha256:4199ba454d6d3ae83657120c2bb6bd674eefc0dd7d3cd4cc844171dc6725135b
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2202,7 +2202,7 @@ requirements:
   requirement_text: '| `guided` | bounded assisted interaction |'
   requirement_text_sha256: sha256:36f4848f3f8223a2090244f54f3cbcc68a959c32dbbe655aff1f5d8197e3f914
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2218,7 +2218,7 @@ requirements:
   requirement_text: '| `full` | full generated Mission Canvas |'
   requirement_text_sha256: sha256:8d595ae67588db0a038214d559702a2a2cf4f231135dca51238713788c8bbceb
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2234,7 +2234,7 @@ requirements:
   requirement_text: '| `off` | no Canvas interaction |'
   requirement_text_sha256: sha256:48fad7f13abbb2e842dd7abd1553f66b1c271532b66654f49f3b91fc2e3d138b
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2250,7 +2250,7 @@ requirements:
   requirement_text: '| `leave_unchanged` | preserve persisted preference |'
   requirement_text_sha256: sha256:ec7f4d85aaa482c63d53840150f5d78ca3d484a06022411de985d1e6d2c69174
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2266,7 +2266,7 @@ requirements:
   requirement_text: Headless mode uses equivalent authority and evidence.
   requirement_text_sha256: sha256:d0c54f03ed88e584a8a86c1e45590769682004113c1151752ae485d2a7b2cc4b
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2282,7 +2282,7 @@ requirements:
   requirement_text: 'Secret classes: Focusa license, provider credentials, device tokens, signing/update verification material, and discovered project secrets. Never include values in previews, logs, receipts, diagnostics, or Workpoints; prefer approved environment/device/provider-native handoff; warn about command-line exposure; preserve least-privilege ownership.'
   requirement_text_sha256: sha256:c2cc18cfc961d3af8a6c4b571137a363bbb125deca2e5cf9a644036e3a0df619
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: &id007 [crates/focusa-core/src/install_lifecycle/preservation.rs]
   test_refs: &id008 [tests/spec132_public_uninstall_preservation_test.sh]
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2298,7 +2298,7 @@ requirements:
   requirement_text: 'Data classes must be independently itemized:'
   requirement_text_sha256: sha256:12da164a1901358de140fc43f9dfa127d57c2e21f99d507bcbf0b7058cc336f5
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id007
   test_refs: *id008
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2314,7 +2314,7 @@ requirements:
   requirement_text: '| Action | Contract |'
   requirement_text_sha256: sha256:ea2ea7b3d9b8643e4feb1927b9094bd65121438bb8711df2d18f1c49d57cac36
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id007
   test_refs: *id008
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2330,7 +2330,7 @@ requirements:
   requirement_text: '|---|---|'
   requirement_text_sha256: sha256:4199ba454d6d3ae83657120c2bb6bd674eefc0dd7d3cd4cc844171dc6725135b
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id007
   test_refs: *id008
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2346,7 +2346,7 @@ requirements:
   requirement_text: '| Inspect | Read-only version-set, health, drift, capabilities, next actions |'
   requirement_text_sha256: sha256:af1ebb5d80325727974651407d2c1ba74cbbc516e20ee5f2c9ad191815a0c577
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id007
   test_refs: *id008
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2362,7 +2362,7 @@ requirements:
   requirement_text: '| Rerun | Replay declared intent idempotently; no implicit upgrade/downgrade/repair/purge |'
   requirement_text_sha256: sha256:4b3a15539611d18517acadee41c36c1ad13e63dae9cce5b8a31eae9ff9aa9960
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id007
   test_refs: *id008
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2378,7 +2378,7 @@ requirements:
   requirement_text: '| Repair | Diagnosed drift, bounded proposal, preserved state, confirmation, rollback, proof |'
   requirement_text_sha256: sha256:249ebc2258595650a9886fbdb2e690e1ae44dc25408f5c0879c3e6e47fc2e76d
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id007
   test_refs: *id008
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2394,7 +2394,7 @@ requirements:
   requirement_text: '| Update | Trusted complete compatible version set with rollback authority |'
   requirement_text_sha256: sha256:9c800374c55f7aa2167958587f257dff393bd0afb9109136ef97df92533078d6
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id007
   test_refs: *id008
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2410,7 +2410,7 @@ requirements:
   requirement_text: '| Rollback | Restore last verified set while preserving newer user/project data by default |'
   requirement_text_sha256: sha256:707ebdc8869ab174214cc8145b44b34715d2e02cfde0b363da93aa55fcbc6bb7
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id007
   test_refs: *id008
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2426,7 +2426,7 @@ requirements:
   requirement_text: '| Uninstall | Remove managed executable/service/integration artifacts; preserve user/project data |'
   requirement_text_sha256: sha256:227f899c0ad985f069e91e22c5aa2fece05a40f03dd0d35310d5d45be9e2c38c
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id007
   test_refs: *id008
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2442,7 +2442,7 @@ requirements:
   requirement_text: '| Purge | Explicit, destructive, separately confirmed, itemized |'
   requirement_text_sha256: sha256:d714b02bb0652916add889dceb3db903e4f16f4d0a8c5cb4a2d89ba573efc437
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id007
   test_refs: *id008
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2458,7 +2458,7 @@ requirements:
   requirement_text: The desired preservation contract is not implemented until direct CLI and public entrypoints agree. Provider-secret and project deletion remain outside purge unless their owner explicitly authorizes them.
   requirement_text_sha256: sha256:fa1d5a72d412179c33bb40474dc6bb55eba1c8134b5c06a38fed65f8c77b3c9b
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id007
   test_refs: *id008
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2474,7 +2474,7 @@ requirements:
   requirement_text: '| Capability | Linux | macOS | Windows | Publication rule |'
   requirement_text_sha256: sha256:89761d5bdd9d71113d6e1521176c82859dd219fc40392d0a9804b20b001ed541
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id003
   test_refs: *id004
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2490,7 +2490,7 @@ requirements:
   requirement_text: '|---|---:|---:|---:|---|'
   requirement_text_sha256: sha256:d054e479de57711ae722ebaee78a528a5cb0d1aa5d2833ee4679ba5a4095a382
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id003
   test_refs: *id004
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2506,7 +2506,7 @@ requirements:
   requirement_text: '| Core CLI/daemon | prove | prove | prove | Signed per-target artifact |'
   requirement_text_sha256: sha256:5441ff85e576ca263350e0d2d264deeb0699c9cd90d3fbb8324e06779143b9e5
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id003
   test_refs: *id004
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2522,7 +2522,7 @@ requirements:
   requirement_text: '| User service | systemd-user where supported | launchd where supported | declare actual mechanism | No inferred parity |'
   requirement_text_sha256: sha256:4f0c07c6b6f4ba4c983f08b957dbee34342a460b37b638e535c38287a94c3a8e
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id003
   test_refs: *id004
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2538,7 +2538,7 @@ requirements:
   requirement_text: '| Bash lifecycle | supported targets | supported targets | N/A | Shell contract |'
   requirement_text_sha256: sha256:7c56d9ba85be8606df02a85b5f01ec201a2cb1f9c125b8cb7a8e9b84f39e134b
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id003
   test_refs: *id004
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2554,7 +2554,7 @@ requirements:
   requirement_text: '| PowerShell lifecycle | not primary | not primary | current install path | List gaps |'
   requirement_text_sha256: sha256:24c140370a368003e8cd8dc056ce93d8c1693f720397cc1dac2751be867cee7c
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id003
   test_refs: *id004
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2570,7 +2570,7 @@ requirements:
   requirement_text: '| Pi extension | compatible Pi | compatible Pi | compatible Pi | Independent proof |'
   requirement_text_sha256: sha256:cd3368e1ae7835f7d930b9f183486f34b1d93f9cb77eb5960175e0afb80333e7
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id003
   test_refs: *id004
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2586,7 +2586,7 @@ requirements:
   requirement_text: '| UIAI | optional | optional | optional | Absence cannot fail core |'
   requirement_text_sha256: sha256:5a9d8e29c2df562491fc18eb809a3c93d19149e631126429e3db491e7a5f6874
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id003
   test_refs: *id004
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2602,7 +2602,7 @@ requirements:
   requirement_text: '| Menubar | no | signed app | no | macOS-only language |'
   requirement_text_sha256: sha256:ed0a48d87c324204abc8613061e06d19b7facc2de3eef597f0071c11510fc412
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id003
   test_refs: *id004
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2618,7 +2618,7 @@ requirements:
   requirement_text: '| Data-preserving uninstall | prove | prove | prove or declare absent | Ambiguity blocks publication |'
   requirement_text_sha256: sha256:ac45ccb377ceef2f69253f6d374760179e131680be57904ae46a2816190ca062
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id003
   test_refs: *id004
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2634,7 +2634,7 @@ requirements:
   requirement_text: '| Update/rollback | prove set | prove set | prove set | No partial-success claim |'
   requirement_text_sha256: sha256:ca82d069b364ec5c29780964f9ee1ab16304a36036593acadacb982039d8a909
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id003
   test_refs: *id004
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2650,7 +2650,7 @@ requirements:
   requirement_text: Architecture/version support derives from release metadata, not this table alone.
   requirement_text_sha256: sha256:490553621a517c046c35cd53ef61b6b550c3f2c12c82e75c0b8cb993eee22ca4
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id003
   test_refs: *id004
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2666,7 +2666,7 @@ requirements:
   requirement_text: '| Failure | Response | Forbidden |'
   requirement_text_sha256: sha256:68a4da1c0c4761085cd616f67ae5cb728af55f85ed22cd262c98eb926208eede
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2682,7 +2682,7 @@ requirements:
   requirement_text: '|---|---|---|'
   requirement_text_sha256: sha256:23cca02b74f386463efa24796c7a9011b0d2c93f0c38b4d15d5d276205b59b43
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2698,7 +2698,7 @@ requirements:
   requirement_text: '| unsupported_host | stop with target evidence | force another target |'
   requirement_text_sha256: sha256:792e0109402f77c3db030074b1019aaa4f3a65928a6eaff706cc095680b952f4
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2714,7 +2714,7 @@ requirements:
   requirement_text: '| artifact_incomplete | block | install partial assets |'
   requirement_text_sha256: sha256:7c8506c7b93e6509453ec42a4f83c196e5f28be264e8880e4dd778406fe49303
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2730,7 +2730,7 @@ requirements:
   requirement_text: '| trust_failure | preserve prior install | bypass verification |'
   requirement_text_sha256: sha256:28be1ab4439ecebee79c324ec6a74962a8a068cb11de77dfa43864fb03b0447a
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2746,7 +2746,7 @@ requirements:
   requirement_text: '| permission_boundary | user-safe proposal or explicit escalation | silently use root/system scope |'
   requirement_text_sha256: sha256:269aa7ac5fded9a92749570ba614c7affc0de65980cfbc59cd004c771bed6f3b
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2762,7 +2762,7 @@ requirements:
   requirement_text: '| daemon_degraded | diagnose/preserve host transaction | begin project mutation |'
   requirement_text_sha256: sha256:8feb6e407d15809ec5c6c87feb9a4b455b137f0996ec48383ece49fcc8671702
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2778,7 +2778,7 @@ requirements:
   requirement_text: '| integration_incompatible | mark optional integration blocked | fail healthy core |'
   requirement_text_sha256: sha256:227341368dcf06ee1d20a99f8db4b48d614d62f0ac7efb43d9afc3483cea58a5
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2794,7 +2794,7 @@ requirements:
   requirement_text: '| scope_mismatch | stop project transaction | infer cwd/stale packet |'
   requirement_text_sha256: sha256:3643873ed7a31496abf18124dce1f07ac717ceaf35527ae797bdcfb03b0da2c9
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2810,7 +2810,7 @@ requirements:
   requirement_text: '| confirmation_missing | preview/continuation | mutate |'
   requirement_text_sha256: sha256:99a0e91e35c4bd10a30598dc72632fbd6523e8ab5293f20659e019d4bbf739ce
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2826,7 +2826,7 @@ requirements:
   requirement_text: '| provider_unavailable | resumable handoff | capture provider secret |'
   requirement_text_sha256: sha256:0b6e8a785c17a911f2f91cd3ff0779ae60db41d875a7c833aebf0db202a97095
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2842,7 +2842,7 @@ requirements:
   requirement_text: '| project_conflict | preserve and diff | overwrite |'
   requirement_text_sha256: sha256:b67b2d841a0a9d9fb9a55aed1227b581b4284d33d84064ff5ca535f075c6559b
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2858,7 +2858,7 @@ requirements:
   requirement_text: '| update_partial | rollback or degraded receipt | report success |'
   requirement_text_sha256: sha256:a197ed0c807a27c842e05138993e7311e971638cef359a59fa193c38ef0deeb3
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2874,7 +2874,7 @@ requirements:
   requirement_text: '| uninstall_ambiguous | itemized preview | delete data |'
   requirement_text_sha256: sha256:9e54af528fe0cef2d808744c0cef29a622950cbcac150caf2433ad379f1f3c96
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2890,7 +2890,7 @@ requirements:
   requirement_text: '| unknown_completion | inspect receipts/state | blind retry |'
   requirement_text_sha256: sha256:77ec4139b2729c1e4750afb5f3f6cb1387d0bc7a2662a365c9bd80f666d046e8
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2906,7 +2906,7 @@ requirements:
   requirement_text: One primary classification survives; cleanup noise cannot replace root cause.
   requirement_text_sha256: sha256:7148395fced5ab3ed827f7be98469c51c7f39a7471857b89eb32a8405d18a798
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id005
   test_refs: *id006
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2922,7 +2922,7 @@ requirements:
   requirement_text: Host receipt proves target/version set, trust refs, daemon health, service posture, selected integration outcomes, preserved-data policy, and recovery/update/uninstall actions. Project receipt proves exact identity, Bootstrap refs, Git/task/instruction choices, Genesis/HLT status, Workpoint ref, Canvas outcome, and deferred optional work.
   requirement_text_sha256: sha256:d29077c4645e2bab1455f8cdf56596d4f85d63a1970a5f4fc731e528bc6d1c33
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: &id009 [crates/focusa-cli/src/commands/lifecycle_guidance.rs]
   test_refs: &id010 [tests/spec150_lifecycle_runtime_gate.py]
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2938,7 +2938,7 @@ requirements:
   requirement_text: Completion is false if artifact trust is absent, version set incompatible, daemon unhealthy, required service failed, project mutated without exact scope, confirmation missing, Workpoint absent, secret leaked, uninstall preservation ambiguous, rollback unavailable after replacement, or platform behavior lacks evidence.
   requirement_text_sha256: sha256:f87d7b5beca63c4ac36ce04d631d85c5058a98a4ab851e519df57d92e3b620f2
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id009
   test_refs: *id010
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2954,7 +2954,7 @@ requirements:
   requirement_text: Planning may proceed while implementation remains blocked behind compaction compatibility.
   requirement_text_sha256: sha256:af8311a39df79e33ae317ab3185f45d8bb3489636bbfd787b51bc980ea559a7e
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: &id011 [tests/spec150_lifecycle_runtime_gate.py]
   test_refs: &id012 [tests/spec150_lifecycle_runtime_gate.py, tests/onboarding_lifecycle_runtime_test.sh]
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2970,7 +2970,7 @@ requirements:
   requirement_text: '0. Complete GitHub #14 Pi compaction/lifecycle compatibility.'
   requirement_text_sha256: sha256:8323bd692487e2e8b0523e3e0ed9c3f85d74605a531e61d229c1ab0e5f5cd58d
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -2986,7 +2986,7 @@ requirements:
   requirement_text: 1. Ratify Spec 150 matrices.
   requirement_text_sha256: sha256:415b5a3095bdacdc4824765a0dba556505681dfd35ee077f97d0b46c17cd3113
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3002,7 +3002,7 @@ requirements:
   requirement_text: 2. Create the requirement ledger and Beads decomposition.
   requirement_text_sha256: sha256:dd0c7f153e8ba15abade4ce93f0c46579a236ff576ed8076a4a4e380de5a3242
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3018,7 +3018,7 @@ requirements:
   requirement_text: 3. Resolve P0 code/document contradictions.
   requirement_text_sha256: sha256:4922c0a0ad676d8a45937d762c8e53218239a0053281a6b709a987b07f59593c
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3034,7 +3034,7 @@ requirements:
   requirement_text: 4. Implement host orchestration and receipts.
   requirement_text_sha256: sha256:f8ad82278fa86ddd5b623924b81fc02fef3db65f2917bf782f9dd5442f7a5e50
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3050,7 +3050,7 @@ requirements:
   requirement_text: 5. Implement optional integration capability flow.
   requirement_text_sha256: sha256:351fca8e2dd02970080b2bf4f6dd5eff3ebbdc354bc577b7c411a0c7e1a88d04
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3066,7 +3066,7 @@ requirements:
   requirement_text: 6. Implement project Bootstrap/Genesis orchestration.
   requirement_text_sha256: sha256:7036ddbfff8b82190e506e3e5d1ab776bab6bd421b6044ce9d1c08e1bdd02682
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3082,7 +3082,7 @@ requirements:
   requirement_text: 7. Implement maintenance parity and destructive-data gates.
   requirement_text_sha256: sha256:0b7a1b72948894175808de40b2018f7b8c0cb2e6fc4b187b3968184e63045737
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3098,7 +3098,7 @@ requirements:
   requirement_text: 8. Run platform and interactive/headless conformance.
   requirement_text_sha256: sha256:1ba56e54d12d21621d9fe0f9f0ef2c2192541e78474cfb6cf9d433da1f62688f
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3114,7 +3114,7 @@ requirements:
   requirement_text: 9. Reconcile and publish user-facing guides.
   requirement_text_sha256: sha256:be88586629eb59e2bcb9ce03f70dfe42585d4333e784d20b43a040eb035c4a04
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3130,7 +3130,7 @@ requirements:
   requirement_text: 10. Settle predictions, evidence, and release gate.
   requirement_text_sha256: sha256:4cad37e4b5f36b88f859ef590716796de47e1d95dea915e21652a42c2e273d34
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3146,7 +3146,7 @@ requirements:
   requirement_text: This file does not admit Spec 150 implementation into the locked release. Admission requires explicit operator authorization and a new lock revision.
   requirement_text_sha256: sha256:5943f57eefe470afbd8ef905cd346ae90e604b6f357ce7cb46bda9f572d4fa1e
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3162,7 +3162,7 @@ requirements:
   requirement_text: clean, healthy-existing, degraded, and partial install;
   requirement_text_sha256: sha256:4d13e69e76bdffea4b127b65e2dedadcd0a3d2aa4cb8998d8db7f6fdd10dfb2e
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3178,7 +3178,7 @@ requirements:
   requirement_text: interactive/headless; evaluation/commercial/development authority;
   requirement_text_sha256: sha256:825321c015ef043379168d62e2625f112818d6da41717724ac3da3830092f2ea
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3194,7 +3194,7 @@ requirements:
   requirement_text: supported channels/targets; dependency install/verify-only; service/no-service;
   requirement_text_sha256: sha256:381faba21f2d38fe7f89584af58aa9b836a17cc31bfcb4ef15390af6f5d70377
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3210,7 +3210,7 @@ requirements:
   requirement_text: Pi absent/present/incompatible/busy/compacting;
   requirement_text_sha256: sha256:b4449d833f435b1cc9f690ac88858e92b01adacc21a815157546cf511cc03779
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3226,7 +3226,7 @@ requirements:
   requirement_text: UIAI absent/healthy/saturated; provider configured/missing/auth-blocked;
   requirement_text_sha256: sha256:e713ef2ab056ebd165431756d466164eb3ad7a5337d60bee2ad39100e87c5b96
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3242,7 +3242,7 @@ requirements:
   requirement_text: project skipped/existing/new/conflicting;
   requirement_text_sha256: sha256:c6b6e55d40235212dba07b9a15fbbc7e4e9f863e8a51c34034379f24f6366269
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3258,7 +3258,7 @@ requirements:
   requirement_text: Git existing/explicit-init/skip; task provider preserve/init/skip;
   requirement_text_sha256: sha256:e3cb51d0fbf1ebd3572cc929f46c5456f930a4cfae217ad3dfe80f04c94bc756
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3274,7 +3274,7 @@ requirements:
   requirement_text: instructions preserve/generate/conflict;
   requirement_text_sha256: sha256:617a264ae960fab53b32cdd828aaf3688fe5d2ef33819c97efdee5c249c087ac
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3290,7 +3290,7 @@ requirements:
   requirement_text: Genesis sufficient/HLT impasse/takeover conflict;
   requirement_text_sha256: sha256:88f09837d45bca420d5eeac36329278573d5778121c22147087974b765111a04
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3306,7 +3306,7 @@ requirements:
   requirement_text: Canvas guided/full/off/unchanged;
   requirement_text_sha256: sha256:83a47651de2c76aaefa50206d254713fbf2e366445f21c83325533da9d996719
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3322,7 +3322,7 @@ requirements:
   requirement_text: rerun/repair/update/rollback/uninstall/purge;
   requirement_text_sha256: sha256:fc6c63036977bd7b054faa16f54debc4609c3f1c89097547c4b05f24304102fa
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3338,7 +3338,7 @@ requirements:
   requirement_text: each declared Linux/macOS/Windows target;
   requirement_text_sha256: sha256:2e5ce9bd67f41e0d0c94e806a2b54e215f41134a6e1e0704b040bccd0623f8a8
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3354,7 +3354,7 @@ requirements:
   requirement_text: offline/interrupted network, incomplete artifact, trust failure, unknown completion.
   requirement_text_sha256: sha256:487ecb1a93eaeb6a621e30aa0cbe05275736d67d483ab6340521c2334bee5ddb
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3370,7 +3370,7 @@ requirements:
   requirement_text: 'After code-compatible requirements and conformance evidence:'
   requirement_text_sha256: sha256:1107445d84ed831396e922a051c41f93e7f13fbd633d2181cb08843e7a91cb50
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3386,7 +3386,7 @@ requirements:
   requirement_text: 1. reconcile `docs/current/FOCUSA_FRIENDLY_ONBOARDING.md` as truthful quickstart;
   requirement_text_sha256: sha256:b108e5f103d828c0021178b50b2ddf67b349baac9317bda81431d1cb6c38d044
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3402,7 +3402,7 @@ requirements:
   requirement_text: 2. reconcile `docs/current/INSTALLER_UPDATE_POLICY.md` with maintenance semantics;
   requirement_text_sha256: sha256:2e9adc5cf7d2f7ccd0cc9431eb7235aeb734103c5855ea20c2cedeab3047c31d
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3418,7 +3418,7 @@ requirements:
   requirement_text: 3. cross-link owners rather than duplicating them;
   requirement_text_sha256: sha256:668d73f90d87ec013671b9401d19d211fa78a0ce78a0aecfaf7c0be93680feb7
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3434,7 +3434,7 @@ requirements:
   requirement_text: 4. publish exact platform and destructive-data tables;
   requirement_text_sha256: sha256:4dd0181227348d376bc5daf0b01831d799c3396f0840de415cd7bb786f106ce0
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3450,7 +3450,7 @@ requirements:
   requirement_text: 5. include recovery commands and receipt interpretation;
   requirement_text_sha256: sha256:0ca3cc3a76c37be92f7488aab32564f164016f2d4a28f90f86fdc4f62083ecd5
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3466,7 +3466,7 @@ requirements:
   requirement_text: 6. prevent user guides from leading implementation evidence.
   requirement_text_sha256: sha256:2530504359adfc521c36181bae7e9f88fcbdaee58c0679ce91152e42b970be3d
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3476,13 +3476,45 @@ requirements:
   reducer_event_refs: ['install_lifecycle::LifecycleJournalEntry']
   awareness_refs: [focusa.cli.lifecycle.receipt.v1]
   runbook_refs: [docs/150-focusa-guided-install-first-project-and-lifecycle-master-spec.md]
-- requirement_id: S150-R-0394-7b89954219c2
+- requirement_id: S150-R-0394-08d4ffa0c2e6
   source_line: 394
+  spec_section: '21.1'
+  requirement_text: 'The direct `focusa install`, `focusa update ...`, and `focusa uninstall` commands remain compatible. A guided transaction is selected with the global `--lifecycle-action` option:'
+  requirement_text_sha256: sha256:1427abb4e5e78c778cec9e19aec98767b5c182ac0575645275e0d4787d581a5c
+  applicability_decision: decision_required
+  runtime_status: verified_complete
+  implementation_refs: *id011
+  test_refs: *id012
+  evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
+  receipt_refs: [release-proof/audit/spec144-spec150-double-e2e-receipt.json]
+  platform_refs: ['linux-x86_64:isolated-lifecycle-e2e']
+  focus_stack_refs: [focusa-vbcqu.9.9]
+  reducer_event_refs: ['install_lifecycle::LifecycleJournalEntry']
+  awareness_refs: [focusa.cli.lifecycle.receipt.v1]
+  runbook_refs: [docs/150-focusa-guided-install-first-project-and-lifecycle-master-spec.md]
+- requirement_id: S150-R-0410-276116489450
+  source_line: 410
+  spec_section: '21.1'
+  requirement_text: '`inspect`, `preview`, and `confirm` do not mutate. A mutation without `--confirm` returns an `operator_required` receipt and an exact recovery command. Purge remains distinct from uninstall and requires the additional `--confirm-purge-data`; uninstall continues to preserve user data by default. `--json` emits `focusa.cli.lifecycle.receipt.v1`, including the typed operation, transaction transition, adapter contract, status, and recovery without credential values. The ordinary command''s existing result and degraded/operator-required handling remain authoritative after a guided action starts applying; the guidance receipt never claims completion.'
+  requirement_text_sha256: sha256:d141fcd957f8cbae3a47a09dd269086911f284aba4619540c056d05ecad1fe17
+  applicability_decision: decision_required
+  runtime_status: verified_complete
+  implementation_refs: *id011
+  test_refs: *id012
+  evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
+  receipt_refs: [release-proof/audit/spec144-spec150-double-e2e-receipt.json]
+  platform_refs: ['linux-x86_64:isolated-lifecycle-e2e']
+  focus_stack_refs: [focusa-vbcqu.9.9]
+  reducer_event_refs: ['install_lifecycle::LifecycleJournalEntry']
+  awareness_refs: [focusa.cli.lifecycle.receipt.v1]
+  runbook_refs: [docs/150-focusa-guided-install-first-project-and-lifecycle-master-spec.md]
+- requirement_id: S150-R-0414-6f2e405ffd29
+  source_line: 414
   spec_section: '22'
   requirement_text: '[ ] every imported owner acknowledges its boundary;'
   requirement_text_sha256: sha256:80e21975e14b2247cd9685b6c11ec69934930fe025016258625f009586e89dd1
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3492,13 +3524,13 @@ requirements:
   reducer_event_refs: ['install_lifecycle::LifecycleJournalEntry']
   awareness_refs: [focusa.cli.lifecycle.receipt.v1]
   runbook_refs: [docs/150-focusa-guided-install-first-project-and-lifecycle-master-spec.md]
-- requirement_id: S150-R-0395-7f1d413b333e
-  source_line: 395
+- requirement_id: S150-R-0415-d2aeb4b89651
+  source_line: 415
   spec_section: '22'
   requirement_text: '[ ] each code path is supported, unsupported, or planned;'
   requirement_text_sha256: sha256:527d18871dcd38aa1349f10d03a1e60a41dd3a8562b3302ecf0ffa31ec05537c
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3508,13 +3540,13 @@ requirements:
   reducer_event_refs: ['install_lifecycle::LifecycleJournalEntry']
   awareness_refs: [focusa.cli.lifecycle.receipt.v1]
   runbook_refs: [docs/150-focusa-guided-install-first-project-and-lifecycle-master-spec.md]
-- requirement_id: S150-R-0396-5304b9bcb572
-  source_line: 396
+- requirement_id: S150-R-0416-64a527d29be6
+  source_line: 416
   spec_section: '22'
   requirement_text: '[ ] Bash, PowerShell, and direct CLI differences are resolved or gated;'
   requirement_text_sha256: sha256:420587cdfbe1169ebb411fb6bc25c912074f89c5d5a523b70a6e5f0d94edee7e
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3524,13 +3556,13 @@ requirements:
   reducer_event_refs: ['install_lifecycle::LifecycleJournalEntry']
   awareness_refs: [focusa.cli.lifecycle.receipt.v1]
   runbook_refs: [docs/150-focusa-guided-install-first-project-and-lifecycle-master-spec.md]
-- requirement_id: S150-R-0397-e933a8ad35d9
-  source_line: 397
+- requirement_id: S150-R-0417-f80a9cf905da
+  source_line: 417
   spec_section: '22'
   requirement_text: '[ ] host/project transactions are independently modeled;'
   requirement_text_sha256: sha256:33ce3c7f11ab24393a23c67905f5f902c71b9f75ff9248c682416e7d3270e15f
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3540,13 +3572,13 @@ requirements:
   reducer_event_refs: ['install_lifecycle::LifecycleJournalEntry']
   awareness_refs: [focusa.cli.lifecycle.receipt.v1]
   runbook_refs: [docs/150-focusa-guided-install-first-project-and-lifecycle-master-spec.md]
-- requirement_id: S150-R-0398-aa17c8fdc061
-  source_line: 398
+- requirement_id: S150-R-0418-046e15312873
+  source_line: 418
   spec_section: '22'
   requirement_text: '[ ] mutation, confirmation, idempotency, rollback, and receipts are explicit;'
   requirement_text_sha256: sha256:af2a13f0bac832f7310880eada52a7b00fbf3e2153165844b481835998c7276d
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3556,13 +3588,13 @@ requirements:
   reducer_event_refs: ['install_lifecycle::LifecycleJournalEntry']
   awareness_refs: [focusa.cli.lifecycle.receipt.v1]
   runbook_refs: [docs/150-focusa-guided-install-first-project-and-lifecycle-master-spec.md]
-- requirement_id: S150-R-0399-1cc29874a9af
-  source_line: 399
+- requirement_id: S150-R-0419-a42d0f684969
+  source_line: 419
   spec_section: '22'
   requirement_text: '[ ] provider, Pi, UIAI, Canvas, Git, task, and instruction boundaries are explicit;'
   requirement_text_sha256: sha256:96b0f6f00a7d1a85c880d386610acb355bd016e69ee56acd2bb5b1e67b4928d0
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3572,13 +3604,13 @@ requirements:
   reducer_event_refs: ['install_lifecycle::LifecycleJournalEntry']
   awareness_refs: [focusa.cli.lifecycle.receipt.v1]
   runbook_refs: [docs/150-focusa-guided-install-first-project-and-lifecycle-master-spec.md]
-- requirement_id: S150-R-0400-df2047cc577e
-  source_line: 400
+- requirement_id: S150-R-0420-33684b272e07
+  source_line: 420
   spec_section: '22'
   requirement_text: '[ ] uninstall and purge data classes are proven;'
   requirement_text_sha256: sha256:38cf380dfc2a44676632918cd336ac096a6a56ec9f8d43c150f71342e68b24cc
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3588,13 +3620,13 @@ requirements:
   reducer_event_refs: ['install_lifecycle::LifecycleJournalEntry']
   awareness_refs: [focusa.cli.lifecycle.receipt.v1]
   runbook_refs: [docs/150-focusa-guided-install-first-project-and-lifecycle-master-spec.md]
-- requirement_id: S150-R-0401-71000cd860d8
-  source_line: 401
+- requirement_id: S150-R-0421-195622d56840
+  source_line: 421
   spec_section: '22'
   requirement_text: '[ ] platform claims have executable evidence;'
   requirement_text_sha256: sha256:faa5c99b2b9d251b50b5b44c32a8306d2b6209dc845460d12bed3dcb7faa1743
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3604,13 +3636,13 @@ requirements:
   reducer_event_refs: ['install_lifecycle::LifecycleJournalEntry']
   awareness_refs: [focusa.cli.lifecycle.receipt.v1]
   runbook_refs: [docs/150-focusa-guided-install-first-project-and-lifecycle-master-spec.md]
-- requirement_id: S150-R-0402-7d4001a79dfc
-  source_line: 402
+- requirement_id: S150-R-0422-a862bed66b5a
+  source_line: 422
   spec_section: '22'
   requirement_text: '[ ] a complete ledger maps requirements to Beads and proof;'
   requirement_text_sha256: sha256:9b7deb1d14251c9b0948512a80c52156408c945d22935b459e235f815450ce31
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3620,13 +3652,13 @@ requirements:
   reducer_event_refs: ['install_lifecycle::LifecycleJournalEntry']
   awareness_refs: [focusa.cli.lifecycle.receipt.v1]
   runbook_refs: [docs/150-focusa-guided-install-first-project-and-lifecycle-master-spec.md]
-- requirement_id: S150-R-0403-5004ca59908e
-  source_line: 403
+- requirement_id: S150-R-0423-c5626786c0b7
+  source_line: 423
   spec_section: '22'
   requirement_text: '[ ] guides reconcile only after implementation truth;'
   requirement_text_sha256: sha256:dd3d36041673070e93e08a1fb8eebd64e84f59d77940a6a6f172b381c88165b3
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3636,13 +3668,13 @@ requirements:
   reducer_event_refs: ['install_lifecycle::LifecycleJournalEntry']
   awareness_refs: [focusa.cli.lifecycle.receipt.v1]
   runbook_refs: [docs/150-focusa-guided-install-first-project-and-lifecycle-master-spec.md]
-- requirement_id: S150-R-0404-79ccb892d993
-  source_line: 404
+- requirement_id: S150-R-0424-01d5d6255d4d
+  source_line: 424
   spec_section: '22'
   requirement_text: '[ ] locked scope changes only with explicit authorization;'
   requirement_text_sha256: sha256:991e8bb49f27da572b95065f67e49f025afbfe4510fb086caa42ea1309ef3be7
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3652,13 +3684,13 @@ requirements:
   reducer_event_refs: ['install_lifecycle::LifecycleJournalEntry']
   awareness_refs: [focusa.cli.lifecycle.receipt.v1]
   runbook_refs: [docs/150-focusa-guided-install-first-project-and-lifecycle-master-spec.md]
-- requirement_id: S150-R-0405-4a145e5a688f
-  source_line: 405
+- requirement_id: S150-R-0425-49aaba688313
+  source_line: 425
   spec_section: '22'
   requirement_text: '[ ] GitHub #14 remains first implementation task.'
   requirement_text_sha256: sha256:52236559b1d3342cf6264b0361b39528f78c60b0292371bf2cb1e44ba87f8df5
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3668,13 +3700,13 @@ requirements:
   reducer_event_refs: ['install_lifecycle::LifecycleJournalEntry']
   awareness_refs: [focusa.cli.lifecycle.receipt.v1]
   runbook_refs: [docs/150-focusa-guided-install-first-project-and-lifecycle-master-spec.md]
-- requirement_id: S150-R-0409-bdd5379537cf
-  source_line: 409
+- requirement_id: S150-R-0429-32cb52925478
+  source_line: 429
   spec_section: '23'
   requirement_text: 'Specifications: `docs/112-install-binary-architecture-spec.md`, `docs/112-install-binary-architecture-audit.md`, `docs/128-focusa-over-the-air-auto-update-and-dev-mode-license-spec.md`, `docs/132-focusa-installer-animated-terminal-experience-spec.md`, `docs/135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md`, `docs/135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md`, `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`, `docs/140a-foundational-instruction-integrity-temporal-adaptation-canonical-amendment-and-headless-enforcement-addendum.md`, `docs/142-focusa-seamless-pi-continuation-and-workflow-dependency-onboarding-spec.md`, `docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md`, and `docs/149-focusa-workset-flow-ledger-and-release-completion-spec.md`.'
   requirement_text_sha256: sha256:b628b0927370bf2be712f9fe75820bc3b26188d25863a8dc572ef70314ebe046
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3684,13 +3716,13 @@ requirements:
   reducer_event_refs: ['install_lifecycle::LifecycleJournalEntry']
   awareness_refs: [focusa.cli.lifecycle.receipt.v1]
   runbook_refs: [docs/150-focusa-guided-install-first-project-and-lifecycle-master-spec.md]
-- requirement_id: S150-R-0411-95975f7a3151
-  source_line: 411
+- requirement_id: S150-R-0431-d2c9b9500b5f
+  source_line: 431
   spec_section: '23'
   requirement_text: 'Implementation: `scripts/install-focusa.sh`, `scripts/install-focusa.ps1`, `scripts/magic/install.sh`, `crates/focusa-cli/src/commands/install.rs`, `crates/focusa-cli/src/commands/update.rs`, `crates/focusa-cli/src/commands/uninstall.rs`, `crates/focusa-api/src/routes/project_bootstrap.rs`, `crates/focusa-api/src/routes/project_bootstrap_support.rs`, `crates/focusa-api/src/routes/project_genesis.rs`, `crates/focusa-api/src/routes/project_genesis_support.rs`, `apps/pi-extension/src/mission-canvas-model.ts`, and `apps/pi-extension/src/commands.ts`.'
   requirement_text_sha256: sha256:feb9738bd587497ab9ac7f17d6706893d2e685e5968a1fcbf1231f8c9b619a46
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3700,13 +3732,13 @@ requirements:
   reducer_event_refs: ['install_lifecycle::LifecycleJournalEntry']
   awareness_refs: [focusa.cli.lifecycle.receipt.v1]
   runbook_refs: [docs/150-focusa-guided-install-first-project-and-lifecycle-master-spec.md]
-- requirement_id: S150-R-0413-2f8f040d4f60
-  source_line: 413
+- requirement_id: S150-R-0433-68c57a58b529
+  source_line: 433
   spec_section: '23'
   requirement_text: 'Current guides: `docs/current/FOCUSA_FRIENDLY_ONBOARDING.md` and `docs/current/INSTALLER_UPDATE_POLICY.md`.'
   requirement_text_sha256: sha256:f84091be34a17f24f332ff58b0790cf4c557238e7ed93a9e3b729fcb78a6d721
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]
@@ -3716,13 +3748,13 @@ requirements:
   reducer_event_refs: ['install_lifecycle::LifecycleJournalEntry']
   awareness_refs: [focusa.cli.lifecycle.receipt.v1]
   runbook_refs: [docs/150-focusa-guided-install-first-project-and-lifecycle-master-spec.md]
-- requirement_id: S150-R-0415-2246211fd452
-  source_line: 415
+- requirement_id: S150-R-0435-ef8f34c196b1
+  source_line: 435
   spec_section: '23'
   requirement_text: 'Issue authority: <https://github.com/Startempire-Wire/focusa/issues/14> and <https://github.com/Startempire-Wire/focusa/issues/14#issuecomment-5123704895>.'
   requirement_text_sha256: sha256:f5a320b4b813d1f3eb3e776599b8739f041a6df70e9eb9276af7623b1aebf8fd
   applicability_decision: decision_required
-  runtime_status: implementation_verified
+  runtime_status: verified_complete
   implementation_refs: *id011
   test_refs: *id012
   evidence_refs: [docs/evidence/release/S144-E2E-01-run-1.txt, docs/evidence/release/S144-E2E-02-run-2.txt]

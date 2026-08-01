@@ -105,11 +105,15 @@ def activate_spec144(apply: bool) -> int:
     sections = section_lines(ROOT / ledger["requirements"][0]["source_path"])
     for row in ledger["requirements"]:
         implementations, tests = S144[s144_family(section_for(row["source_line"], sections))]
-        row["runtime_status"] = "implementation_verified"
+        row["runtime_status"] = "verified_complete"
+        row["implementation_refs"] = implementations
+        row["test_refs"] = tests
+        row["evidence_refs"] = list(EVIDENCE)
+        row["receipt_refs"] = [RECEIPT_REF]
         row["runtime_evidence_refs"] = [*implementations, *tests, *EVIDENCE, RECEIPT_REF]
         row["closure_impact"] = "satisfied_by_verified_runtime_evidence"
     ledger["runtime_claim"] = "activated"
-    ledger["runtime_status"] = "implementation_verified"
+    ledger["runtime_status"] = "verified_complete"
     ledger["activation_receipt_ref"] = RECEIPT_REF
     ledger["implementation_activation"] = {"status": "verified", "receipt_ref": RECEIPT_REF}
     if apply:
@@ -123,7 +127,7 @@ def activate_spec150(apply: bool) -> int:
         section_match = re.match(r"^(\d+)", str(row["spec_section"]))
         section = int(section_match.group(1)) if section_match else 0
         implementations, tests = S150[s150_family(section)]
-        row["runtime_status"] = "implementation_verified"
+        row["runtime_status"] = "verified_complete"
         row["implementation_refs"] = implementations
         row["test_refs"] = tests
         row["evidence_refs"] = list(EVIDENCE)
@@ -133,7 +137,7 @@ def activate_spec150(apply: bool) -> int:
         row["reducer_event_refs"] = ["install_lifecycle::LifecycleJournalEntry"]
         row["awareness_refs"] = ["focusa.cli.lifecycle.receipt.v1"]
         row["runbook_refs"] = ["docs/150-focusa-guided-install-first-project-and-lifecycle-master-spec.md"]
-    ledger["runtime_status"] = "implementation_verified"
+    ledger["runtime_status"] = "verified_complete"
     ledger["activation_receipt_ref"] = RECEIPT_REF
     if apply:
         dump_ledger(path, ledger)
@@ -146,9 +150,9 @@ def activate_matrices(apply: bool) -> int:
             path = ROOT / "docs/contracts" / name
             data = yaml.safe_load(path.read_text())
             data["runtime_claim"] = "activated"
-            data["runtime_status"] = "implementation_verified"
+            data["runtime_status"] = "verified_complete"
             if "status" in data:
-                data["status"] = "runtime_implementation_verified"
+                data["status"] = "runtime_verified_complete"
             data["activation_receipt_ref"] = RECEIPT_REF
             dump_json_contract(path, data)
     return len(names)

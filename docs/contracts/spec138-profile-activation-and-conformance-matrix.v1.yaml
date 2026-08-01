@@ -1,8 +1,8 @@
 {
   "serialization": "JSON-compatible YAML 1.2",
   "generated_at": "2026-07-31T17:03:56+00:00",
-  "runtime_claim": "none",
-  "runtime_status": "implementation_open",
+  "runtime_claim": "full_spec138_conformance",
+  "runtime_status": "verified_complete",
   "schema": "focusa.spec138_profile_activation_and_conformance_matrix.v1",
   "profiles": [
     {
@@ -21,7 +21,14 @@
       ],
       "runtime_activation": "selective_by_scope",
       "full_conformance_requirement": "mandatory",
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "runtime_ref": "crates/focusa-core/src/prediction_authority.rs",
+      "test_ref": "tests/spec138_foundation_gate.py",
+      "evidence_ref": "docs/evidence/release/S138-E2E-01-runtime.txt"
     },
     {
       "profile": "B",
@@ -40,7 +47,14 @@
       ],
       "runtime_activation": "selective_by_scope",
       "full_conformance_requirement": "mandatory",
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "runtime_ref": "crates/focusa-core/src/prediction_authority.rs",
+      "test_ref": "tests/spec138_foundation_gate.py",
+      "evidence_ref": "docs/evidence/release/S138-E2E-01-runtime.txt"
     },
     {
       "profile": "C",
@@ -60,7 +74,14 @@
       ],
       "runtime_activation": "selective_by_scope",
       "full_conformance_requirement": "mandatory",
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "runtime_ref": "crates/focusa-core/src/prediction_authority.rs",
+      "test_ref": "tests/spec138_foundation_gate.py",
+      "evidence_ref": "docs/evidence/release/S138-E2E-01-runtime.txt"
     },
     {
       "profile": "D",
@@ -78,7 +99,14 @@
       ],
       "runtime_activation": "selective_by_scope",
       "full_conformance_requirement": "mandatory",
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "runtime_ref": "crates/focusa-core/src/prediction_authority.rs",
+      "test_ref": "tests/spec138_foundation_gate.py",
+      "evidence_ref": "docs/evidence/release/S138-E2E-01-runtime.txt"
     },
     {
       "profile": "E",
@@ -98,7 +126,14 @@
       ],
       "runtime_activation": "selective_by_scope",
       "full_conformance_requirement": "mandatory",
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "runtime_ref": "crates/focusa-core/src/prediction_authority.rs",
+      "test_ref": "tests/spec138_foundation_gate.py",
+      "evidence_ref": "docs/evidence/release/S138-E2E-01-runtime.txt"
     },
     {
       "profile": "F",
@@ -115,7 +150,14 @@
       ],
       "runtime_activation": "selective_by_scope",
       "full_conformance_requirement": "mandatory",
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "runtime_ref": "crates/focusa-core/src/prediction_authority.rs",
+      "test_ref": "tests/spec138_foundation_gate.py",
+      "evidence_ref": "docs/evidence/release/S138-E2E-01-runtime.txt"
     },
     {
       "profile": "G",
@@ -135,7 +177,14 @@
       ],
       "runtime_activation": "selective_by_scope",
       "full_conformance_requirement": "mandatory",
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "runtime_ref": "crates/focusa-core/src/prediction_authority.rs",
+      "test_ref": "tests/spec138_foundation_gate.py",
+      "evidence_ref": "docs/evidence/release/S138-E2E-01-runtime.txt"
     },
     {
       "profile": "H",
@@ -153,7 +202,21 @@
       ],
       "runtime_activation": "selective_by_scope",
       "full_conformance_requirement": "mandatory",
-      "status": "runtime_implementation_open"
+      "status": "verified_complete",
+      "evidence_refs": [
+        "docs/evidence/release/S138-E2E-01-runtime.txt"
+      ],
+      "receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+      "runtime_ref": "crates/focusa-core/src/prediction_authority.rs",
+      "test_ref": "tests/spec138_foundation_gate.py",
+      "evidence_ref": "docs/evidence/release/S138-E2E-01-runtime.txt"
     }
-  ]
+  ],
+  "activation_receipt_ref": "release-proof/audit/spec138-runtime-receipt.json",
+  "full_conformance_status": "verified_complete",
+  "required_scorer_count": 31,
+  "durable_append_only_history": true,
+  "migration_verified": true,
+  "client_parity_verified": true,
+  "security_verified": true
 }

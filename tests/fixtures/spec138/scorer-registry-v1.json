@@ -1,0 +1,160 @@
+{
+  "schema": "focusa.spec138.scorer_registry_fixture.v1",
+  "scorers": [
+    {
+      "id": "binary_accuracy",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "multiclass_accuracy",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "brier_score",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "multiclass_brier_score",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "log_loss",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "multiclass_log_loss",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "spherical_score",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "continuous_ranked_probability_score",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "mean_absolute_error",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "mean_squared_error",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "root_mean_squared_error",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "mean_absolute_percentage_error",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "symmetric_mape",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "quantile_pinball_loss",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "interval_coverage",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "interval_width",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "winkler_interval_score",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "rank_correlation",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "information_coefficient",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "top_k_precision",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "top_k_recall",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "ndcg",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "concordance_index",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "survival_brier_score",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "expected_calibration_error",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "maximum_calibration_error",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "adaptive_calibration_error",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "skill_score",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "expected_utility",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "realized_regret",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    },
+    {
+      "id": "custom_registered",
+      "input_ref": "fixture:bounded",
+      "expected_invariant": "finite_deterministic_score"
+    }
+  ]
+}

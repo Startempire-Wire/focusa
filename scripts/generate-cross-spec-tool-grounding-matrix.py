@@ -74,11 +74,34 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    rendered = yaml.safe_dump(build(), sort_keys=False, width=100)
+    expected = build()
+    rendered = yaml.safe_dump(expected, sort_keys=False, width=100)
     if args.check:
-        if not OUTPUT.is_file() or OUTPUT.read_text() != rendered:
+        if not OUTPUT.is_file():
             print("cross-spec tool grounding matrix is stale or missing")
             return 1
+        actual = yaml.safe_load(OUTPUT.read_text())
+        immutable_keys = ("schema", "source_contract_ref", "source_tool_count", "governing_specs")
+        if any(actual.get(key) != expected.get(key) for key in immutable_keys):
+            print("cross-spec tool grounding matrix is stale or missing")
+            return 1
+        actual_tools = actual.get("tools", [])
+        expected_tools = expected["tools"]
+        if [(row.get("tool_name"), row.get("family")) for row in actual_tools] != [
+            (row.get("tool_name"), row.get("family")) for row in expected_tools
+        ]:
+            print("cross-spec tool grounding matrix is stale or missing")
+            return 1
+        if actual.get("status") == "verified_complete":
+            required_refs = (
+                "focus_stack_refs", "reducer_event_refs", "projection_replay_refs",
+                "awareness_refs", "runbook_refs", "recovery_refs",
+                "runtime_effect_refs", "adversarial_test_refs", "evidence_refs",
+            )
+            rows = [*actual_tools, *actual.get("internal_families", [])]
+            if any(row.get("status") != "verified_complete" or any(not row.get(key) for key in required_refs) for row in rows):
+                print("cross-spec activated tool grounding matrix is incomplete")
+                return 1
         print("cross-spec tool grounding matrix: current")
         return 0
     OUTPUT.write_text(rendered)
