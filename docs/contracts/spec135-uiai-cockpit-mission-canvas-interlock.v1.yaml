@@ -1,0 +1,666 @@
+schema: focusa.spec135_uiai_cockpit_mission_canvas_interlock.v1
+version: 1
+status: normative_documentation_only
+implementation_implied: false
+updated_at: 2026-08-01
+owner: Focusa / Verious Smith
+
+parent:
+  series: Spec 135
+  frozen_at: 135K
+  is_new_lettered_companion: false
+  correction_document: docs/current/SPEC135_UIAI_COCKPIT_MISSION_CANVAS_INTERLOCK_2026-08-01.md
+  host_renderer_contract: docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml
+  affected_specs:
+    - 135A
+    - 135C
+    - 135E
+    - 135G
+    - 135I
+    - 135J
+
+constitutional_law:
+  system_shape: two_distinct_guis_one_focusa_mission_authority_one_uiai_execution_plane
+  focusa_mission_canvas: canonical_mission_and_professional_workspace_projection
+  uiai_cockpit: rich_execution_verification_inspection_and_operator_control_environment
+  uiai_engine: execution_artifact_diagnostic_and_proof_production_plane
+  prohibited_claims:
+    - cockpit_is_canonical_mission_store
+    - cockpit_owns_workpoints_or_work_rail
+    - cockpit_owns_steering_or_follow_up
+    - cockpit_owns_focusa_completion_or_settlement
+    - mission_canvas_owns_browser_or_notebook_runtime
+    - visual_focus_is_canonical_scope
+    - uiai_event_is_direct_focusa_canonical_event
+
+ownership:
+  focusa:
+    - project_identity_and_exact_scope
+    - crist_state
+    - mission_trajectory_workpoint_and_work_items
+    - instances_sessions_attachments_and_work_surfaces
+    - work_rail
+    - steering_and_follow_up_queues
+    - capability_permission_approval_and_authority
+    - evidence_meaning_verification_receipts_completion_and_settlement
+    - next_safe_action
+    - recurring_mission_intent_and_temporal_authority
+    - operation_registry_and_canonical_event_history
+  uiai_engine:
+    - browser_sessions_contexts_targets_and_profiles
+    - browser_and_computer_actuation
+    - fpv_and_operator_input_control
+    - dom_accessibility_screenshots_visual_comparison_console_network
+    - research_and_source_capture
+    - notebook_kernel_cell_variable_output_and_simulation_execution
+    - document_media_and_test_execution
+    - execution_resource_accounting_and_telemetry
+    - secret_storage_opaque_handles_and_credential_injection
+    - technical_receipts_artifacts_and_evidence_candidates
+    - actuator_safety_freeze_and_reconciliation
+  cockpit_client_only:
+    - ephemeral_drafts
+    - panel_selection
+    - local_focus
+    - viewport
+    - local_cache
+    - unsent_forms
+  mission_canvas_presentation_only:
+    - open_pinned_grouped_split_surfaces
+    - focused_surface
+    - density_theme_accessibility_preferences
+
+client_roles:
+  pi_native_mission_canvas:
+    role: primary_authoritative_interactive_focusa_projection
+    mutation: generated_focusa_preview_commit
+    owns_canonical_state: false
+  uiai_engine_cockpit:
+    role: conformant_secondary_focusa_projection_host_plus_uiai_execution_shell
+    mutation: generated_focusa_preview_commit_only
+    owns_canonical_state: false
+    owns_uiai_runtime: true
+  mission_deck_web:
+    role: bounded_focusa_projection
+    mutation: generated_focusa_preview_commit
+    owns_canonical_state: false
+  pi_terminal_projection:
+    role: terminal_projection
+    mutation: generated_focusa_actions
+    owns_canonical_state: false
+
+cockpit_focusa_projection_levels:
+  - id: mission_context_strip
+    purpose: compact persistent mission context on every Focusa-bound UIAI object
+    required_fields:
+      - project_root_or_plain_project_label
+      - continuity_or_workstream
+      - workpoint_ref
+      - work_surface_ref
+      - mission_or_session_status
+      - next_safe_action_ref
+      - authority_or_approval_posture
+      - proof_posture
+      - source_state_revision
+      - event_cursor
+      - freshness
+    forbidden:
+      - duplicate_work_rail
+      - client_computed_next_safe_action
+  - id: mission_inspector
+    sections:
+      - mission
+      - current_work
+      - next_safe_action
+      - authority
+      - proof
+      - attachments
+      - contention
+      - receipts
+    actions: generated_focusa_action_bindings_only
+  - id: hosted_mission_canvas_dock
+    renderer: approved_focusa_generated_ui_package
+    owns_focusa_surface_model: false
+    owns_focusa_action_registry: false
+  - id: full_mission_canvas_work_object
+    renderer: approved_focusa_generated_ui_package
+    may_show:
+      - project_overview
+      - multiplexed_work_surfaces
+      - work_rail
+      - steering
+      - follow_up
+      - contention
+      - evidence_and_receipts
+
+mission_canvas_uiai_projection:
+  required_fields:
+    - uiai_work_object_kind
+    - uiai_session_or_job_ref
+    - browser_context_or_notebook_document_test_ref
+    - lifecycle_and_health
+    - browser_profile_and_isolation_if_applicable
+    - node_runner_resource_posture
+    - current_observed_target_or_object
+    - last_observed_at
+    - credential_grant_posture_without_secret
+    - operator_control_state
+    - artifact_and_diagnostic_counts
+    - proof_readiness_and_freshness
+    - retention_and_cleanup
+  allowed_actions:
+    - open_in_cockpit
+    - take_control
+    - pause_via_focusa
+    - stop_via_focusa
+    - inspect_artifacts
+    - capture_or_link_evidence_via_focusa
+  forbidden_ui_duplication:
+    - full_browser_chrome
+    - raw_dom_editor
+    - full_network_waterfall
+    - raw_secret_values
+    - notebook_cell_editor
+    - full_test_lab
+    - full_visual_comparison_canvas
+
+schemas:
+  work_surface_binding:
+    schema_id: focusa.uiai_work_surface_binding.v1
+    required:
+      - binding_id
+      - binding_revision
+      - scope.project_root
+      - scope.continuity_id
+      - focusa.attachment_id
+      - focusa.work_surface_id
+      - uiai.work_object_id
+      - uiai.work_object_kind
+      - control.access_mode
+      - freshness.source_state_revision
+    work_object_kinds:
+      - browser
+      - research
+      - document
+      - notebook
+      - test_run
+      - visual_compare
+      - automation_run
+      - report
+      - media_job
+    laws:
+      - focusa_mints_binding_and_scope
+      - uiai_supplies_stable_runtime_refs
+      - local_unbound_objects_are_labeled_cockpit_local
+      - rebinding_requires_preview_commit_revision_and_idempotency
+      - closing_view_does_not_terminate_runtime
+      - aggregate_views_are_read_only_until_target_selected
+      - cross_project_binding_forbidden_by_default
+  task_intake:
+    schema_id: focusa.task_intake_envelope.v1
+    statuses:
+      - proposed
+      - scope_review
+      - accepted
+      - attached
+      - rejected
+      - duplicate
+      - blocked
+    trust_laws:
+      verified_principal_instruction_may_carry_authority: true
+      quoted_text_is_instruction: false
+      page_content_is_instruction: false
+      document_text_is_instruction: false
+      attachment_text_is_instruction: false
+      tool_output_is_instruction: false
+      model_output_is_instruction: false
+  credential_use_grant:
+    schema_id: focusa.credential_use_grant.v1
+    secret_material_allowed: false
+    required_controls:
+      - exact_scope
+      - requesting_actor
+      - capability
+      - purpose
+      - allowed_origins
+      - operation_classes
+      - side_effect_ceiling
+      - spend_ceiling
+      - issued_at
+      - expires_at
+      - approval_ref
+      - revocation_state
+      - receipt_required
+  uiai_secret_binding:
+    schema_id: uiai.secret_binding.v1
+    owner: uiai_engine
+    required_controls:
+      - opaque_secret_ref
+      - vault_provider
+      - target_origins
+      - allowed_routes
+      - allowed_methods
+      - injection_mode
+      - lease
+      - use_count
+      - rotation_state
+      - revocation_state
+  workflow_context_policy:
+    schema_id: focusa.workflow_context_policy.v1
+    owner: focusa
+    fields:
+      - mission_ref
+      - schedule_or_trigger_ref
+      - completion_contract_ref
+      - authority_ref
+      - frozen_refs
+      - refresh_each_run
+      - carry_forward
+      - prohibited_reuse
+      - freshness_requirements
+      - evidence_requirements
+      - settlement_policy_ref
+  execution_context_manifest:
+    schema_id: uiai.execution_context_manifest.v1
+    owner: uiai_engine
+    fields:
+      - run_id
+      - workflow_context_policy_ref
+      - work_surface_binding_ref
+      - runner_and_node_refs
+      - browser_context_refs
+      - notebook_environment_refs
+      - document_and_dataset_refs
+      - credential_grant_and_binding_refs
+      - tool_and_provider_versions
+      - resource_budget_ref
+      - actual_inputs
+      - actual_outputs
+      - diagnostics_refs
+      - receipt_refs
+  operator_delta_receipt:
+    schema_id: uiai.operator_delta_receipt.v1
+    owner: uiai_engine
+    required:
+      - control_lease_ref
+      - work_surface_binding_ref
+      - started_at
+      - ended_at
+      - changed
+      - not_performed
+      - current_state_refs
+      - pending_side_effect
+      - reobservation_required
+
+handoff:
+  ui_label: Hand Off to Focusa
+  sources:
+    - browser_tab
+    - selected_region
+    - research_capture
+    - document
+    - notebook
+    - cell_or_output
+    - test_run
+    - visual_comparison
+    - artifact
+  uiai_captures:
+    - stable_context_refs
+    - execution_and_runtime_identity
+    - authenticated_posture_without_secrets
+    - requested_outcome
+    - expected_technical_evidence
+    - untrusted_content_classification
+    - retention_and_cleanup
+  focusa_decides:
+    - attach_existing_workpoint
+    - propose_new_workpoint
+    - route_to_steering
+    - route_to_follow_up
+    - capture_context_or_evidence_candidate
+    - reject_duplicate_block_or_request_scope
+    - create_work_surface_and_binding
+  forbidden:
+    - create_cockpit_local_canonical_task_then_sync
+
+operator_takeover:
+  focusa_state_machine:
+    - running
+    - pause_requested
+    - paused_for_operator
+    - operator_intervention
+    - resume_proposed
+    - resumed
+    - redirected
+    - stopped
+    - blocked
+  uiai_state_machine:
+    - agent_controlled
+    - local_freeze
+    - operator_controlled
+    - operator_delta_capture
+    - reobservation_required
+    - agent_controlled
+    - terminated
+  laws:
+    - local_freeze_may_precede_focusa_ack_for_safety
+    - local_freeze_is_not_canonical_pause
+    - operator_delta_required_before_resume
+    - agent_reobservation_required_after_operator_change
+    - mission_canvas_take_control_opens_exact_cockpit_surface
+    - cockpit_pause_stop_route_through_focusa
+
+credential_broker:
+  law: focusa_authorizes_without_secret_uiai_injects_without_self_authorization
+  receipts:
+    must_link:
+      - focusa_grant_ref
+      - uiai_secret_binding_ref
+      - origin
+      - operation_class
+      - timestamp
+      - result
+      - revocation_posture
+    forbidden_data:
+      - raw_secret
+      - cookie_value
+      - authorization_header
+      - private_key
+
+recurrence:
+  law: one_focusa_mission_schedule_one_uiai_execution_manifest
+  cockpit_local_exception:
+    allowed_when:
+      - unscoped
+      - non_mission_bearing
+      - no_workpoint
+      - no_focusa_evidence_or_settlement
+    promotion_rule: project_or_mission_binding_transfers_canonical_recurrence_to_focusa
+
+deep_links:
+  allowed_payload:
+    - stable_opaque_refs
+    - expected_revision
+    - optional_view_hint
+  forbidden_payload:
+    - secrets
+    - cookies
+    - inline_canonical_state
+    - raw_artifact_payload
+  resolution_checks:
+    - exact_scope
+    - capability
+    - permission
+    - existence
+    - revision
+    - freshness
+  stale_behavior: recovery_surface_not_silent_rebinding
+
+focusa_operation_registry_targets:
+  - mission_canvas_projection_read
+  - mission_canvas_work_surface_list
+  - mission_canvas_work_surface_create
+  - mission_canvas_work_surface_arrange
+  - mission_canvas_work_surface_suspend
+  - mission_canvas_work_surface_resume
+  - mission_canvas_work_surface_close_view
+  - uiai_work_surface_binding_list
+  - uiai_work_surface_binding_preview
+  - uiai_work_surface_binding_commit
+  - uiai_work_surface_binding_unbind
+  - task_intake_preview
+  - task_intake_commit
+  - task_intake_reject
+  - workpoint_attach_or_create_preview
+  - workpoint_attach_or_create_commit
+  - operator_intervention_preview
+  - operator_intervention_commit
+  - operator_intervention_reconcile
+  - credential_use_grant_preview
+  - credential_use_grant_commit
+  - credential_use_grant_revoke
+  - workflow_context_policy_preview
+  - workflow_context_policy_commit
+  - workflow_context_policy_revise
+  - artifact_evidence_capture_or_link
+  - deep_link_resolve
+  - deep_link_recover
+
+operation_law:
+  generated_from: Rust_Serde_Schemars_Utoipa_OpenAPI_3_0_3
+  uiai_client: generated_outside_focusa_core
+  required_controls:
+    - exact_scope
+    - capability_and_permission
+    - preview_when_required
+    - confirmation
+    - idempotency
+    - optimistic_concurrency
+    - receipt
+    - shared_tool_result
+  forbidden:
+    - handwritten_duplicate_uiai_focusa_dto
+    - handwritten_duplicate_operation_registry
+    - generic_ui_mutation_escape_hatch
+
+focusa_to_uiai_events:
+  - mission_canvas_projection_invalidated
+  - mission_canvas_work_surface_created
+  - mission_canvas_work_surface_revised
+  - mission_canvas_work_surface_suspended
+  - mission_canvas_work_surface_resumed
+  - mission_canvas_work_surface_closed
+  - uiai_work_surface_binding_created
+  - uiai_work_surface_binding_revised
+  - uiai_work_surface_binding_unbound
+  - uiai_work_surface_binding_stale
+  - workpoint_binding_revised
+  - task_intake_state_revised
+  - operator_intervention_revised
+  - credential_use_grant_issued
+  - credential_use_grant_expired
+  - credential_use_grant_revoked
+  - workflow_context_policy_revised
+  - evidence_or_receipt_linked
+  - capability_or_permission_changed
+  - source_state_revision_changed
+
+event_law:
+  focusa_events_require:
+    - stable_event_id
+    - sequence
+    - exact_scope
+    - source_state_revision
+    - cursor
+    - causation
+    - invalidation_keys
+  large_payloads: handles_only
+  uiai_direct_canonical_event_injection: forbidden
+  uiai_submits:
+    - artifact_refs
+    - diagnostic_refs
+    - execution_manifest_refs
+    - operator_delta_refs
+    - technical_receipt_refs
+  focusa_validates_and_emits: true
+
+truthful_local_states:
+  - binding_pending
+  - evidence_capture_pending
+  - local_safety_freeze
+  - focusa_reconciliation_pending
+  - offline_projection
+  - stale_focusa_state
+  - origin_mismatch
+  - grant_expired
+  - grant_revoked
+  - capability_unavailable
+  - external_contract_missing
+
+no_duplication_matrix:
+  project_mission_workpoint:
+    focusa: canonical_owner
+    uiai: projection
+  work_rail:
+    focusa: canonical_owner
+    uiai: never_duplicate
+  steering_follow_up:
+    focusa: canonical_owner
+    uiai: controls_route_to_focusa
+  session_attachment_lifecycle:
+    focusa: canonical_owner
+    uiai: adapter_and_telemetry
+  browser_context_target:
+    focusa: binding_and_governance_projection
+    uiai: runtime_owner
+  notebook_document_test:
+    focusa: workpoint_claim_and_proof_posture
+    uiai: runtime_editor_runner
+  activity:
+    focusa: mission_project_history
+    uiai: jobs_logs_diagnostics
+  evidence:
+    focusa: semantic_meaning_and_settlement
+    uiai: artifact_production_and_inspection
+  automation:
+    focusa: mission_intent_recurrence_continuity
+    uiai: recipe_execution_and_telemetry
+  credential:
+    focusa: use_grant_authority
+    uiai: secret_custody_and_injection
+  intake:
+    focusa: canonical_proposal_lifecycle
+    uiai: producer_and_origin_display
+  pause_stop:
+    focusa: canonical_lifecycle_decision
+    uiai: actuator_action_and_safety_freeze
+  completion:
+    focusa: verification_and_settlement
+    uiai: technical_result_and_receipt
+
+implementation_phases:
+  - id: I0
+    name: ownership_terminology_and_contract_freeze
+  - id: I1
+    name: generated_focusa_interlock_schemas_operations_and_client
+  - id: I2
+    name: uiai_focusa_projection_adapter_and_handshake
+  - id: I3
+    name: work_surface_binding_and_deep_links
+  - id: I4
+    name: mission_context_strip_and_inspector
+  - id: I5
+    name: contextual_handoff_to_workpoint
+  - id: I6
+    name: operator_takeover_delta_and_reconciliation
+  - id: I7
+    name: credential_grant_and_secret_broker
+  - id: I8
+    name: typed_cross_surface_intake
+  - id: I9
+    name: workflow_context_and_execution_manifest
+  - id: I10
+    name: hosted_focusa_projection_in_cockpit
+  - id: I11
+    name: cross_gui_restoration_security_accessibility_and_release_proof
+
+requirements:
+  - id: MCUI-001
+    statement: Focusa remains the sole canonical mission and work authority.
+  - id: MCUI-002
+    statement: Cockpit never duplicates Work Rail, steering, follow-up, approvals, recurrence authority, or completion state.
+  - id: MCUI-003
+    statement: Every mission-bound UIAI object has an exact versioned Focusa binding.
+  - id: MCUI-004
+    statement: Cockpit-hosted Focusa projections use generated Focusa contracts and action bindings.
+  - id: MCUI-005
+    statement: Mission Canvas UIAI projections remain bounded and deep-link to Cockpit for execution detail.
+  - id: MCUI-006
+    statement: Contextual handoff creates or attaches canonical Focusa work through preview and commit.
+  - id: MCUI-007
+    statement: All intake surfaces separate verified instruction from untrusted context.
+  - id: MCUI-008
+    statement: Operator takeover coordinates Focusa intervention and UIAI actuator control without collapsing their state machines.
+  - id: MCUI-009
+    statement: Agent resume after takeover requires operator delta and fresh observation.
+  - id: MCUI-010
+    statement: Focusa credential grants contain no secret and UIAI cannot self-authorize secret use.
+  - id: MCUI-011
+    statement: Mission-bound recurrence has one Focusa policy and one UIAI execution manifest.
+  - id: MCUI-012
+    statement: UIAI submits refs through typed operations and never injects canonical Focusa events directly.
+  - id: MCUI-013
+    statement: Deep links revalidate exact scope authority revision and freshness.
+  - id: MCUI-014
+    statement: Close view and terminate runtime remain distinct across both GUIs.
+  - id: MCUI-015
+    statement: Aggregate views cannot mutate without explicit target selection.
+  - id: MCUI-016
+    statement: Reconnect and restoration preserve exact Focusa and UIAI identities without silent adoption.
+  - id: MCUI-017
+    statement: Browser notebook document research test and automation objects reuse one binding model.
+  - id: MCUI-018
+    statement: All unavailable partial stale blocked and docs-only states are visible and truthful.
+  - id: MCUI-019
+    statement: UIAI Engine Eval provides actual cross-GUI functional and visual proof.
+  - id: MCUI-020
+    statement: Raw secrets never appear in Focusa or UIAI events prompts logs screenshots artifacts or receipts.
+
+proof_requirements:
+  functional:
+    - real_focusa_projection_updates_cockpit_after_event
+    - exact_open_mission_canvas_and_open_in_cockpit_navigation
+    - real_handoff_preview_commit_and_work_surface_creation
+    - mission_canvas_reflects_exact_uiai_runtime_refs
+    - takeover_full_state_machine_and_delta
+    - credential_origin_grant_and_secret_binding_enforcement
+    - one_recurrence_authority
+    - reconnect_replay_and_exact_identity_restoration
+    - close_view_vs_terminate
+    - aggregate_mutation_target_required
+    - common_binding_across_work_object_kinds
+  visual_states:
+    - cockpit_mission_context_strip_live
+    - cockpit_mission_context_strip_stale
+    - cockpit_mission_inspector
+    - mission_canvas_uiai_browser_surface
+    - mission_canvas_uiai_notebook_surface
+    - handoff_preview
+    - binding_pending
+    - takeover_agent_controlled
+    - takeover_operator_controlled
+    - takeover_reconciliation_pending
+    - credential_approval_required
+    - credential_active
+    - credential_expired_or_revoked
+    - workflow_context_freshness_blocked
+    - offline_and_reconnected
+    - narrow_viewport
+    - reduced_motion_and_keyboard
+  evidence:
+    - build_and_commit_sha
+    - focusa_contract_digest
+    - uiai_contract_digest
+    - event_cursor_and_source_revision
+    - runtime_and_binding_refs
+    - dom_or_accessibility_assertions
+    - screenshots_and_hashes
+    - diagnostics
+    - evidence_refs
+    - receipt_refs
+  forbidden_substitutes:
+    - static_cards
+    - handwritten_success_json
+    - fixture_specific_reducer
+    - manual_screenshot
+    - local_task_store
+    - browser_only_success_without_focusa_commit
+
+closure:
+  status: implementation_open
+  rule: >-
+    Close only when one Focusa mission authority, one Mission Canvas work
+    projection, one UIAI execution plane, generated cross-repository contracts,
+    exact bindings, typed handoff/intake, reversible control reconciliation,
+    split credential authority/custody, one recurrence authority, durable events,
+    and inspected functional visual proof are verified together.
