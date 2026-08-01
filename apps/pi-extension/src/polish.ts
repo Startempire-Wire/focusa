@@ -1,6 +1,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
   getAttachmentRuntime,
+  focusaFetch,
   focusaPost,
   getFocusaAvailable,
   getTurnCount,
@@ -10,6 +11,8 @@ import {
 const MAX_RECORDS = 80;
 const MAX_TEXT = 500;
 let semanticSequence = 0;
+const MAX_OFFLINE_SPOOL = 64;
+const offlineSemanticSpool: Array<Record<string, unknown>> = [];
 
 type PiSemanticEventEnvelope = {
   schema: "focusa.pi_semantic_event.v1";
@@ -76,6 +79,24 @@ function recordTokenTelemetry(record: Record<string, unknown>): void {
     );
 }
 
+async function postSemanticTelemetry(body: Record<string, unknown>): Promise<void> {
+  const pending = offlineSemanticSpool.splice(0, offlineSemanticSpool.length);
+  const batch = [...pending, body];
+  for (const item of batch) {
+    const result = await focusaFetch("/telemetry/event", {
+      method: "POST",
+      body: JSON.stringify(item),
+    });
+    if (result === null) {
+      offlineSemanticSpool.push(item);
+      if (offlineSemanticSpool.length > MAX_OFFLINE_SPOOL) {
+        offlineSemanticSpool.splice(0, offlineSemanticSpool.length - MAX_OFFLINE_SPOOL);
+      }
+      break;
+    }
+  }
+}
+
 function bestEffortTelemetry(kind: string, payload: Record<string, unknown>): void {
   const runtime = getAttachmentRuntime();
   if (!getFocusaAvailable()) return;
@@ -98,7 +119,7 @@ function bestEffortTelemetry(kind: string, payload: Record<string, unknown>): vo
     occurred_at: nowIso(),
     content: payload,
   };
-  focusaPost("/telemetry/event", {
+  void postSemanticTelemetry({
     event_type: kind,
     source: "pi-extension-spec92",
     payload,
