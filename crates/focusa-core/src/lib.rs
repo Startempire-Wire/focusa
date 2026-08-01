@@ -111,9 +111,18 @@ pub mod runtime;
 pub mod scope_safety;
 pub mod scoped_state;
 pub mod semantic_integrity;
+pub mod semantic_migration;
+#[cfg(test)]
+mod semantic_migration_tests;
+pub mod semantic_pair;
+#[cfg(test)]
+mod semantic_pair_tests;
 pub mod semantic_performance;
 pub mod semantic_reflex;
 pub mod semantic_registry;
+pub mod semantic_replay;
+#[cfg(test)]
+mod semantic_replay_tests;
 pub mod semantic_security;
 pub mod semantic_settlement;
 pub mod semantic_verification;

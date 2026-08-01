@@ -46,6 +46,7 @@ use crate::reference::store::ReferenceStore;
 use crate::runtime::events::create_entry;
 use crate::runtime::persistence_actor::PersistenceActor;
 use crate::runtime::persistence_sqlite::SqlitePersistence as Persistence;
+use crate::semantic_migration::SemanticStoreState;
 use crate::types::*;
 use crate::work_item::{
     BdAdapter, ClosureAuthorityContext, ClosureBlock, ClosureClaim, ClosureKind, EvidenceCitation,
@@ -102,6 +103,31 @@ fn beads_issue_exists(project_root: &str, beads_issue_id: &str) -> bool {
                 == Some(issue_id)
         })
     })
+}
+
+/// Operator-visible semantic persistence health. `Ready` is reported only
+/// after version and replay integrity checks succeed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SemanticPersistenceHealth {
+    Ready,
+    Degraded(String),
+    MigrationRequired { found: u32, supported: u32 },
+    QuarantinedFutureVersion { found: u32, supported: u32 },
+}
+
+impl From<SemanticStoreState> for SemanticPersistenceHealth {
+    fn from(state: SemanticStoreState) -> Self {
+        match state {
+            SemanticStoreState::Ready => Self::Ready,
+            SemanticStoreState::Degraded { reason } => Self::Degraded(reason),
+            SemanticStoreState::MigrationRequired { found, supported } => {
+                Self::MigrationRequired { found, supported }
+            }
+            SemanticStoreState::QuarantinedFutureVersion { found, supported } => {
+                Self::QuarantinedFutureVersion { found, supported }
+            }
+        }
+    }
 }
 
 /// The main daemon handle.
