@@ -16,7 +16,12 @@ import {
   makeAttachmentKey,
   runWithAttachmentRuntime,
 } from "./state.js";
-import { PiExtensionSessionBinding, attachmentRoutingHints } from "./scoped-state.js";
+import {
+  PiExtensionSessionBinding,
+  attachmentRoutingHints,
+  verifiedScopeRefForRoot,
+  type AttachmentKey,
+} from "./scoped-state.js";
 
 // ESM compat: require() for synchronous imports in message renderer callback
 const require = createRequire(import.meta.url);
@@ -33,12 +38,23 @@ import { registerPolishHooks } from "./polish.js";
 import { registerMissionCanvasWidget } from "./mission-canvas-widget.js";
 
 export default function focusaPiBridge(pi: ExtensionAPI) {
-  const extensionKey = makeAttachmentKey({
-    projectRoot: process.cwd(),
-    continuityId: "extension-bootstrap",
-    sessionId: `pi-extension-${process.pid}`,
-    attachmentId: "extension-bootstrap",
-  });
+  // Extension module load happens before daemon-backed project verification.
+  // Bootstrap on a host scope; never fabricate project authority just to load Pi.
+  const extensionKey: AttachmentKey = {
+    workstream: {
+      root_scope: {
+        scope_kind: "host",
+        scope_id: "host:pi-extension-bootstrap",
+        root_path: "/",
+        canonical_name: "Pi Extension Bootstrap",
+        fingerprint: "bootstrap:pi-extension",
+      },
+      continuity_id: "extension-bootstrap",
+    },
+    instance_id: "extension-bootstrap",
+    session_id: `pi-extension-${process.pid}`,
+    attachment_id: "extension-bootstrap",
+  };
   const withRuntime = <T>(fn: () => T): T => runWithAttachmentRuntime(extensionKey, fn);
   const sessionBinding = new PiExtensionSessionBinding();
   return withRuntime(() => {
@@ -60,9 +76,12 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
       const continuityId = String(
         explicitContinuity || getAttachmentRuntime(extensionKey).continuityId || "extension-bootstrap"
       );
+      // Let session_start establish verified identity from the host bootstrap.
+      // Promote only after initFocusa has registered the exact project ScopeRef.
+      if (!verifiedScopeRefForRoot(projectRoot)) return extensionKey;
       return makeAttachmentKey({ projectRoot, continuityId, sessionId, attachmentId: sessionId });
     };
-    const prepareRuntime = (key: ReturnType<typeof makeAttachmentKey>) => {
+    const prepareRuntime = (key: AttachmentKey) => {
       const bootstrap = getAttachmentRuntime(extensionKey);
       const target = getAttachmentRuntime(key);
       // Process configuration and the Pi adapter are attachment dependencies,
