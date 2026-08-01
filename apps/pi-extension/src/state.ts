@@ -2,7 +2,7 @@
 // Spec: docs/44-pi-focusa-integration-spec.md
 
 import { AsyncLocalStorage } from "async_hooks";
-import { appendFileSync, existsSync, readFileSync } from "fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync } from "fs";
 import { dirname, join, resolve } from "path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { DEFAULT_DAEMON_RESTART_COMMAND, type FocusaConfig } from "./config.js";
@@ -1451,7 +1451,6 @@ function markerMatchesProjectHint(marker: any, alias: string): boolean {
 function searchProjectMarkerForAlias(alias: string): string {
   // Core directory detection: recursive bounded marker search. This is not
   // Perpetua-specific; it resolves parent/child/subdomain folders from markers.
-  const fs = require("fs");
   const candidateDirs = [
     ...(process.env.FOCUSA_PROJECT_SEARCH_DIRS || "").split(":").filter(Boolean),
     process.env.HOME || "",
@@ -1469,12 +1468,12 @@ function searchProjectMarkerForAlias(alias: string): string {
     visited++;
     const markerPath = `${dir}/.focusa-project.json`;
     try {
-      const marker = JSON.parse(fs.readFileSync(markerPath, "utf-8"));
+      const marker = JSON.parse(readFileSync(markerPath, "utf-8"));
       if (markerMatchesProjectHint(marker, alias)) {
         const root = normalizeProjectRoot(String(marker.project_root || dir));
         try {
-          fs.mkdirSync("/tmp/pi-scratch", { recursive: true });
-          fs.appendFileSync(
+          mkdirSync("/tmp/pi-scratch", { recursive: true });
+          appendFileSync(
             "/tmp/pi-scratch/alias-resolution.log",
             `[alias-resolution] directory_detector: resolved ${alias} to ${root} via ${markerPath}\n`
           );
@@ -1489,7 +1488,7 @@ function searchProjectMarkerForAlias(alias: string): string {
       /* not a marker file or unreadable */
     }
     try {
-      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
         if (entry.isDirectory() && ![".git", "node_modules", "target"].includes(entry.name)) {
           queue.push({ dir: `${dir}/${entry.name}`, depth: item.depth + 1 });
         }

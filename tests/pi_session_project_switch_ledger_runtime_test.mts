@@ -1,3 +1,4 @@
+import { registerVerifiedScopeRef } from "../apps/pi-extension/src/scoped-state.ts";
 import {
   buildAttentionRecallVerdict,
   formatProjectSwitchLedgerLines,
@@ -12,6 +13,14 @@ import {
 function assert(cond: any, msg: string) {
   if (!cond) throw new Error(msg);
 }
+
+registerVerifiedScopeRef({
+  scope_kind: "project",
+  scope_id: "focusa",
+  root_path: "/home/wirebot/focusa",
+  canonical_name: "Focusa",
+  fingerprint: "sha256:focusa-session-ledger-runtime",
+});
 
 const key = makeAttachmentKey({
   projectRoot: "/home/wirebot/focusa",
