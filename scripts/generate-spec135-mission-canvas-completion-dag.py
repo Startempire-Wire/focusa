@@ -38,7 +38,7 @@ STATE_FINDINGS = [
     {
         "id": "STATE-002",
         "classification": "closure_reconciled",
-        "finding": "The legacy 73-requirement ledger is reconciled in place, the rich-host amendment is separate, and master acceptance remains evidence-derived rather than file-existence-derived.",
+        "finding": "The legacy 73-requirement ledger is reconciled in place, the Pi-native amendment is separate, and master acceptance remains evidence-derived rather than file-existence-derived.",
         "evidence": [
             "docs/contracts/spec135-complete-feature-ledger.v1.yaml",
             "docs/contracts/spec135-delivery-dag.v1.yaml",
@@ -115,15 +115,15 @@ STATE_FINDINGS = [
 
 FILE_RECONCILIATION = [
     {"path": "AGENTS.md", "state": "partial_update_required", "preserve": "Project discipline, release law, Spec 135 preflight", "pivot": "Reference adaptive-composition authority and completion DAG; prohibit fixed-slot/dead-chrome closure."},
-    {"path": "docs/135-series-current-manifest.md", "state": "partial_update_required", "preserve": "Current series authority and reopened rich-host truth", "pivot": "Incorporate replacement authority, F13/F14, adaptive occupancy requirements, and generated DAG."},
-    {"path": "docs/agent/spec135-implementation-acceleration-directive.md", "state": "strong_foundation_update_required", "preserve": "Fixed stack, foundation train, rich-host sequence, proof classes", "pivot": "Insert contribution resolver/no-dead-chrome train before rich shell construction."},
+    {"path": "docs/135-series-current-manifest.md", "state": "partial_update_required", "preserve": "Current series authority and reopened Pi-native truth", "pivot": "Incorporate replacement authority, F13/F14, adaptive occupancy requirements, and generated DAG."},
+    {"path": "docs/agent/spec135-implementation-acceleration-directive.md", "state": "strong_foundation_update_required", "preserve": "Fixed stack, foundation train, Pi-native sequence, proof classes", "pivot": "Insert contribution resolver/no-dead-chrome train before Pi-native shell construction."},
     {"path": "docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md", "state": "current_authority", "preserve": "All replacement text verbatim", "pivot": "Translate every law and proof requirement into machine contracts/tests without modifying source."},
     {"path": "docs/contracts/spec135/authoritative-handoff/focusa_activity_mode_recomposition.png", "state": "current_visual_example", "preserve": "Populated activity-mode visual intent", "pivot": "Use as fixture reference, never permanent inventory."},
     {"path": "docs/contracts/spec135/authoritative-handoff/focusa_dynamic_vertical_recomposition.png", "state": "current_visual_example", "preserve": "Populated vertical visual intent", "pivot": "Use as fixture reference, never permanent inventory."},
     {"path": "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml", "state": "authoritative_but_conflicted", "preserve": "Rich-host boundary, same-session invariant, product boundaries, invalid-proof rules", "pivot": "Reclassify six regions as supported semantic contributions rather than always-visible geometry."},
     {"path": "docs/contracts/spec135-complete-feature-ledger.v1.yaml", "state": "stale_false_closure", "preserve": "73 requirement definitions, owners, dependencies, tests", "pivot": "Reconcile statuses with Project Card/Beads/master acceptance and add F13/F14/adaptive requirements."},
     {"path": "docs/contracts/spec135-delivery-dag.v1.yaml", "state": "stale_false_closure", "preserve": "Legacy requirement edges and foundation ordering", "pivot": "Regenerate from truthful statuses and this completion DAG."},
-    {"path": "docs/contracts/spec135-proof-matrix.v1.yaml", "state": "revalidation_required", "preserve": "Existing evidence taxonomy and unaffected proof", "pivot": "Map thirteen occupancy proofs and all rich-host/cross-platform runtime scenarios."},
+    {"path": "docs/contracts/spec135-proof-matrix.v1.yaml", "state": "revalidation_required", "preserve": "Existing evidence taxonomy and unaffected proof", "pivot": "Map thirteen occupancy proofs and all Pi-native/cross-platform runtime scenarios."},
     {"path": "docs/contracts/spec135-master-final-acceptance.v1.json", "state": "truthfully_reopened", "preserve": "2/14 generated acceptance and reopen reasons", "pivot": "Regenerate only from runtime evidence after all reopened gates pass."},
     {"path": "docs/contracts/spec135-interaction-mode-toggle.v1.json", "state": "partial_foundation", "preserve": "Mode precedence, durable mode, headless behavior", "pivot": "Add independent host resolution and real same-session ON/OFF proof."},
     {"path": "docs/contracts/spec135-mission-canvas-agent-first-gui-proof.v1.json", "state": "invalidated", "preserve": "Invalidation rationale and historical evidence refs", "pivot": "Replace with generated real-window runtime evidence; never hand-edit to pass."},

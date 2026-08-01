@@ -228,8 +228,8 @@ run_gate python3 ./tests/spec135_mission_canvas_operation_registry_test.py
 run_gate python3 ./tests/spec135_mission_canvas_generated_parity_test.py
 run_gate python3 ./tests/spec135_mission_canvas_api_static_test.py
 run_gate python3 ./tests/spec135_profile_activity_registry_test.py
-run_gate python3 ./tests/spec135_generated_browser_surface_test.py
-run_gate python3 ./tests/spec135_rich_host_hardening_test.py
+run_gate python3 ./tests/spec135_generated_pi_surface_test.py
+run_gate python3 ./tests/spec135_pi_native_hardening_test.py
 run_gate python3 ./tests/spec135_uiai_evaluation_harness_test.py
 run_gate python3 ./tests/spec135_reconciliation_release_truth_test.py
 run_gate bash ./tests/spec135i_real_time_generated_ui_static_test.sh

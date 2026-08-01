@@ -34,16 +34,16 @@ def audit_clean(ref: str) -> bool:
 
 
 hardening_refs = [
-    "docs/evidence/spec135-rich-host-hardening-proof.md",
-    "docs/security/spec135-rich-host-threat-model.md",
+    "docs/evidence/spec135-pi-native-hardening-proof.md",
+    "docs/security/spec135-pi-native-threat-model.md",
     "docs/evidence/spec135-pi-extension-sbom.cdx.json",
-    "docs/evidence/spec135-a2ui-renderer-sbom.cdx.json",
+    "apps/pi-extension/src/mission-canvas-view.ts",
 ]
-rich_host_refs = [
-    "docs/adr/ADR-0135-rich-host-lifecycle.md",
-    "docs/evidence/spec135-f13-f14-rich-host-proof.md",
-    "apps/pi-extension/src/rich-host/lifecycle.ts",
-    "apps/pi-extension/rich-host/host-entrypoint.mjs",
+pi_native_refs = [
+    "docs/evidence/spec135-pi-native-reference-renders.png",
+    "docs/evidence/spec135-pi-native-interaction-proof.md",
+    "apps/pi-extension/src/mission-canvas-view.ts",
+    "apps/pi-extension/src/mission-canvas-shell.ts",
 ]
 generated_refs = [
     "schemas/spec135/mission-canvas/composition-bundle.v1.schema.json",
@@ -53,8 +53,8 @@ generated_refs = [
 ]
 ui_eval = (ROOT / "docs/evidence/spec135-p10-uiai-evaluation.md").read_text() if exists("docs/evidence/spec135-p10-uiai-evaluation.md") else ""
 uiai_visual_verified = "A UIAI screenshot artifact is intentionally not claimed" not in ui_eval
-security_verified = all_exist(hardening_refs) and audit_clean("docs/evidence/spec135-pi-extension-npm-audit.json") and audit_clean("docs/evidence/spec135-a2ui-renderer-npm-audit.json")
-rich_host_verified = all_exist(rich_host_refs)
+security_verified = all_exist(hardening_refs) and audit_clean("docs/evidence/spec135-pi-extension-npm-audit.json")
+pi_native_verified = all_exist(pi_native_refs)
 
 checks = [
     {
@@ -69,18 +69,18 @@ checks = [
     },
     {
         "check_id": "security_scope",
-        "evidence_ref": "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "evidence_ref": "docs/evidence/spec135-pi-native-hardening-proof.md",
         "status": "passed" if security_verified else "failed_security_or_supply_chain",
     },
     {
         "check_id": "performance",
-        "evidence_ref": "apps/pi-extension/tests/rich-host-stress.test.mjs",
-        "status": "passed" if exists("apps/pi-extension/tests/rich-host-stress.test.mjs") else "missing",
+        "evidence_ref": "apps/pi-extension/tests/mission-canvas-performance.test.mjs",
+        "status": "passed" if exists("apps/pi-extension/tests/mission-canvas-performance.test.mjs") else "missing",
     },
     {
         "check_id": "recovery",
         "evidence_ref": "crates/focusa-core/src/mission_canvas/persistence.rs",
-        "status": "passed" if all_exist(["crates/focusa-core/src/mission_canvas/persistence.rs", "apps/pi-extension/src/rich-host/lifecycle.ts"]) else "missing",
+        "status": "passed" if all_exist(["crates/focusa-core/src/mission_canvas/persistence.rs", "apps/pi-extension/src/mission-canvas-shell.ts"]) else "missing",
     },
     {
         "check_id": "dogfood",
@@ -89,23 +89,23 @@ checks = [
     },
     {
         "check_id": "interaction_mode_contract",
-        "evidence_ref": "docs/evidence/spec135-f13-f14-rich-host-proof.md",
-        "status": "passed" if rich_host_verified else "missing_rich_host",
+        "evidence_ref": "docs/evidence/spec135-pi-native-interaction-proof.md",
+        "status": "passed" if pi_native_verified else "missing_pi_native_renderer",
     },
     {
-        "check_id": "focusa_pi_rich_host",
-        "evidence_ref": "apps/pi-extension/tests/rich-host-entrypoint.integration.mjs",
-        "status": "passed" if rich_host_verified else "missing_rich_host",
+        "check_id": "focusa_pi_native_terminal",
+        "evidence_ref": "apps/pi-extension/tests/mission-canvas-pi-surface.test.mjs",
+        "status": "passed" if pi_native_verified else "missing_pi_native_renderer",
     },
     {
         "check_id": "same_session_canvas_toggle",
-        "evidence_ref": "apps/pi-extension/tests/rich-host-lifecycle.test.mjs",
-        "status": "passed" if rich_host_verified else "missing_rich_host",
+        "evidence_ref": "apps/pi-extension/tests/mission-canvas-mode-precedence.test.mjs",
+        "status": "passed" if pi_native_verified else "missing_pi_native_renderer",
     },
     {
         "check_id": "generated_crist_rich_work_surfaces",
         "evidence_ref": "docs/evidence/spec135-generated-uiai-rich-surface-proof.md",
-        "status": "passed" if exists("apps/pi-extension/rich-host/assets/a2ui-runtime.js") else "missing_generated_runtime",
+        "status": "passed" if exists("apps/pi-extension/src/mission-canvas-view.ts") else "missing_pi_native_renderer",
     },
     {
         "check_id": "multiplexing",

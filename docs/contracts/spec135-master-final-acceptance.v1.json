@@ -17,12 +17,12 @@
     },
     {
       "check_id": "security_scope",
-      "evidence_ref": "docs/evidence/spec135-rich-host-hardening-proof.md",
+      "evidence_ref": "docs/evidence/spec135-pi-native-hardening-proof.md",
       "status": "passed"
     },
     {
       "check_id": "performance",
-      "evidence_ref": "apps/pi-extension/tests/rich-host-stress.test.mjs",
+      "evidence_ref": "apps/pi-extension/tests/mission-canvas-performance.test.mjs",
       "status": "passed"
     },
     {
@@ -37,17 +37,17 @@
     },
     {
       "check_id": "interaction_mode_contract",
-      "evidence_ref": "docs/evidence/spec135-f13-f14-rich-host-proof.md",
+      "evidence_ref": "docs/evidence/spec135-pi-native-interaction-proof.md",
       "status": "passed"
     },
     {
-      "check_id": "focusa_pi_rich_host",
-      "evidence_ref": "apps/pi-extension/tests/rich-host-entrypoint.integration.mjs",
+      "check_id": "focusa_pi_native_terminal",
+      "evidence_ref": "apps/pi-extension/tests/mission-canvas-pi-surface.test.mjs",
       "status": "passed"
     },
     {
       "check_id": "same_session_canvas_toggle",
-      "evidence_ref": "apps/pi-extension/tests/rich-host-lifecycle.test.mjs",
+      "evidence_ref": "apps/pi-extension/tests/mission-canvas-mode-precedence.test.mjs",
       "status": "passed"
     },
     {

@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..", "rich-host");
+const root = join(dirname(fileURLToPath(import.meta.url)), "fixtures", "spec135-pi-native-uiai");
 const scope = { project_root: "/fixture/focusa", continuity_id: "uiai-eval", session_id: "session:uiai", attachment_id: "attachment:uiai", instance_id: null, working_subpath_id: null };
 let scenario = process.env.FOCUSA_UIAI_SCENARIO || "populated";
 let eventSequence = 1;
@@ -87,13 +87,13 @@ const server = createServer(async (request, response) => {
   if (url.pathname === "/v1/mission-canvas/activities") return json(response, [{ document_id: "activity:overview", payload: { activity_mode_id: "overview", display_name: "Overview", candidate_contribution_ids: projection().candidate_contribution_ids } }]);
   if (url.pathname === "/v1/mission-canvas/events") return json(response, { events: [] });
   if (url.pathname.startsWith("/v1/mission-canvas/")) return json(response, { accepted: true, projection: projection(), projection_revision: eventSequence, layout_revision: eventSequence });
-  const relative = url.pathname === "/" ? "assets/index.html" : url.pathname.replace(/^\//, "");
-  if (!/^(assets\/)?(index\.html|main\.js|a2ui-runtime\.js|styles\.css)$/.test(relative)) return response.writeHead(404).end("Not found");
-  const path = join(root, relative.startsWith("assets/") ? relative : `assets/${relative}`);
+  const relative = url.pathname === "/" ? "index.html" : url.pathname.replace(/^\//, "");
+  if (relative !== "index.html") return response.writeHead(404).end("Not found");
+  const path = join(root, relative);
   let body = await readFile(path);
   if (path.endsWith("index.html")) {
     const bootstrap = JSON.stringify({ daemon_base_url: `http://127.0.0.1:${server.address().port}/v1`, token: null, scope }).replaceAll("<", "\\u003c");
-    body = Buffer.from(String(body).replace("<script type=\"module\"", `<script>globalThis.__FOCUSA_RICH_HOST__=${bootstrap}</script><script type=\"module\"`));
+    body = Buffer.from(String(body).replace("</main>", `<script>globalThis.__FOCUSA_PI_NATIVE_FIXTURE__=${bootstrap}</script></main>`));
   }
   const contentType = extname(path) === ".js" ? "text/javascript" : extname(path) === ".css" ? "text/css" : "text/html";
   response.writeHead(200, { "content-type": `${contentType}; charset=utf-8`, "cache-control": "no-store" });

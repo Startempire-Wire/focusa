@@ -1,7 +1,5 @@
 {
-  "known_blockers": [
-    "UIAI loopback visual capture requires allow_private_urls"
-  ],
+  "known_blockers": [],
   "layers": [
     {
       "implementation": "schemas/spec135/mission-canvas",
@@ -19,14 +17,14 @@
       "proof": "cargo test -p focusa-api mission_canvas::tests"
     },
     {
-      "implementation": "apps/pi-extension/src/rich-host",
-      "layer": "pi_host",
-      "proof": "npm run test:rich-host"
+      "implementation": "apps/pi-extension/src/mission-canvas-view.ts + apps/pi-extension/src/mission-canvas-shell.ts",
+      "layer": "pi_terminal",
+      "proof": "npm run test:mission-canvas"
     },
     {
-      "implementation": "apps/pi-extension/rich-host/assets",
-      "layer": "rich_frontend",
-      "proof": "tests/spec135_generated_browser_surface_test.py"
+      "implementation": "apps/pi-extension/tests/mission-canvas-uiai-server.mjs",
+      "layer": "uiai_fixture",
+      "proof": "node tests/uiai-eval-harness.test.mjs"
     }
   ],
   "operation_ids": [

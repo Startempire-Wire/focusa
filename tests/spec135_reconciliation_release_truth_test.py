@@ -15,7 +15,7 @@ ledger = json.loads((ROOT / "docs/contracts/spec135-complete-feature-ledger.v1.y
 amendment = json.loads((ROOT / "docs/contracts/spec135-rich-host-delivery-contract.v1.json").read_text())
 acceptance = json.loads((ROOT / "docs/contracts/spec135-master-final-acceptance.v1.json").read_text())
 reconciliation = json.loads((ROOT / "docs/contracts/spec135-rich-host-reconciliation.v1.json").read_text())
-release = json.loads((ROOT / "tests/fixtures/spec135-rich-host-release-matrix.json").read_text())
+release = json.loads((ROOT / "tests/fixtures/spec135-pi-native-release-matrix.json").read_text())
 parity = json.loads((ROOT / "docs/contracts/spec135/mission-canvas-v1/client-parity-matrix.json").read_text())
 proof = json.loads((ROOT / "docs/contracts/spec135/mission-canvas-v1/implementation-proof-matrix.json").read_text())
 

@@ -2,7 +2,7 @@
 
 **Status:** Operator approved P00 execution; later phases remain dependency-gated
 **Graph:** `docs/contracts/spec135-mission-canvas-completion-dag.v2.json`
-**Graph digest:** `f604b467568f71399f8d30b3b6fe1fca81e0a6307f11c8b378d0ce8f81001d0b`
+**Graph digest:** `2ff4bfcc8af067ded096fd8e8ee9b72576ea85c24a391ec56dc3e6a8c4eaceca`
 **Granularity:** 308 implementation tasks, 381 total nodes including gates, 623 dependency edges
 
 ## 1. Necessary pivot
@@ -14,7 +14,7 @@ Stop extending the terminal/fixed-region representation. Preserve its useful mod
 | ID | Classification | Finding | Evidence |
 |---|---|---|---|
 | STATE-001 | `authority_current` | The adaptive-composition replacement and two recomposition images are preserved as current authority; the prior fixed-layout handoff and image are superseded history. | commit:883cf670<br>commit:060d7909 |
-| STATE-002 | `closure_reconciled` | The legacy 73-requirement ledger is reconciled in place, the rich-host amendment is separate, and master acceptance remains evidence-derived rather than file-existence-derived. | docs/contracts/spec135-complete-feature-ledger.v1.yaml<br>docs/contracts/spec135-delivery-dag.v1.yaml<br>docs/contracts/spec135-master-final-acceptance.v1.json |
+| STATE-002 | `closure_reconciled` | The legacy 73-requirement ledger is reconciled in place, the Pi-native amendment is separate, and master acceptance remains evidence-derived rather than file-existence-derived. | docs/contracts/spec135-complete-feature-ledger.v1.yaml<br>docs/contracts/spec135-delivery-dag.v1.yaml<br>docs/contracts/spec135-master-final-acceptance.v1.json |
 | STATE-003 | `pi_native_renderer_implemented` | ResolvedWorkspaceProjection is implemented in Core/API and the authoritative renderer mounts through ctx.ui.custom in the current Pi TypeScript TUI. | repository search across apps/, crates/, and packages/ |
 | STATE-004 | `authoritative_pi_native_foundation` | The Pi extension has durable mode precedence, current-session lifecycle, adaptive activity/profile composition, actual surfaces, same-session transcript/editor, accessibility, and deterministic visual evidence. | apps/pi-extension/src/<br>apps/pi-extension/package.json |
 | STATE-005 | `reusable_core_foundation` | Focusa Core and API already expose durable Mission Canvas Work Surface, state, binding, Work Rail, event-stream, operation-registry, OpenAPI, generated-client, A2UI/Lit, and Focusa element foundations. | crates/focusa-core/src/types.rs<br>crates/focusa-api/src/routes/mission_canvas_surfaces.rs<br>docs/contracts/spec135/generated-contract-v1/operation-registry.json<br>packages/a2ui-renderer/<br>packages/focusa-elements/ |
@@ -41,15 +41,15 @@ Stop extending the terminal/fixed-region representation. Preserve its useful mod
 | Path | Current classification | Preserve | Pivot |
 |---|---|---|---|
 | `AGENTS.md` | `partial_update_required` | Project discipline, release law, Spec 135 preflight | Reference adaptive-composition authority and completion DAG; prohibit fixed-slot/dead-chrome closure. |
-| `docs/135-series-current-manifest.md` | `partial_update_required` | Current series authority and reopened rich-host truth | Incorporate replacement authority, F13/F14, adaptive occupancy requirements, and generated DAG. |
-| `docs/agent/spec135-implementation-acceleration-directive.md` | `strong_foundation_update_required` | Fixed stack, foundation train, rich-host sequence, proof classes | Insert contribution resolver/no-dead-chrome train before rich shell construction. |
+| `docs/135-series-current-manifest.md` | `partial_update_required` | Current series authority and reopened Pi-native truth | Incorporate replacement authority, F13/F14, adaptive occupancy requirements, and generated DAG. |
+| `docs/agent/spec135-implementation-acceleration-directive.md` | `strong_foundation_update_required` | Fixed stack, foundation train, Pi-native sequence, proof classes | Insert contribution resolver/no-dead-chrome train before Pi-native shell construction. |
 | `docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md` | `current_authority` | All replacement text verbatim | Translate every law and proof requirement into machine contracts/tests without modifying source. |
 | `docs/contracts/spec135/authoritative-handoff/focusa_activity_mode_recomposition.png` | `current_visual_example` | Populated activity-mode visual intent | Use as fixture reference, never permanent inventory. |
 | `docs/contracts/spec135/authoritative-handoff/focusa_dynamic_vertical_recomposition.png` | `current_visual_example` | Populated vertical visual intent | Use as fixture reference, never permanent inventory. |
 | `docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml` | `authoritative_but_conflicted` | Rich-host boundary, same-session invariant, product boundaries, invalid-proof rules | Reclassify six regions as supported semantic contributions rather than always-visible geometry. |
 | `docs/contracts/spec135-complete-feature-ledger.v1.yaml` | `stale_false_closure` | 73 requirement definitions, owners, dependencies, tests | Reconcile statuses with Project Card/Beads/master acceptance and add F13/F14/adaptive requirements. |
 | `docs/contracts/spec135-delivery-dag.v1.yaml` | `stale_false_closure` | Legacy requirement edges and foundation ordering | Regenerate from truthful statuses and this completion DAG. |
-| `docs/contracts/spec135-proof-matrix.v1.yaml` | `revalidation_required` | Existing evidence taxonomy and unaffected proof | Map thirteen occupancy proofs and all rich-host/cross-platform runtime scenarios. |
+| `docs/contracts/spec135-proof-matrix.v1.yaml` | `revalidation_required` | Existing evidence taxonomy and unaffected proof | Map thirteen occupancy proofs and all Pi-native/cross-platform runtime scenarios. |
 | `docs/contracts/spec135-master-final-acceptance.v1.json` | `truthfully_reopened` | 2/14 generated acceptance and reopen reasons | Regenerate only from runtime evidence after all reopened gates pass. |
 | `docs/contracts/spec135-interaction-mode-toggle.v1.json` | `partial_foundation` | Mode precedence, durable mode, headless behavior | Add independent host resolution and real same-session ON/OFF proof. |
 | `docs/contracts/spec135-mission-canvas-agent-first-gui-proof.v1.json` | `invalidated` | Invalidation rationale and historical evidence refs | Replace with generated real-window runtime evidence; never hand-edit to pass. |

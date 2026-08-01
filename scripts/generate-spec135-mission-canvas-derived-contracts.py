@@ -259,12 +259,12 @@ def implementation_proof_matrix(registry: dict[str, Any], bundle: dict[str, Any]
             {"layer":"contracts","implementation":"schemas/spec135/mission-canvas","proof":"tests/spec135_resolved_projection_contract_test.py"},
             {"layer":"core","implementation":"crates/focusa-core/src/mission_canvas","proof":"cargo test -p focusa-core mission_canvas --lib"},
             {"layer":"api","implementation":"crates/focusa-api/src/routes/mission_canvas.rs","proof":"cargo test -p focusa-api mission_canvas::tests"},
-            {"layer":"pi_host","implementation":"apps/pi-extension/src/rich-host","proof":"npm run test:rich-host"},
-            {"layer":"rich_frontend","implementation":"apps/pi-extension/rich-host/assets","proof":"tests/spec135_generated_browser_surface_test.py"},
+            {"layer":"pi_terminal","implementation":"apps/pi-extension/src/mission-canvas-view.ts + apps/pi-extension/src/mission-canvas-shell.ts","proof":"npm run test:mission-canvas"},
+            {"layer":"uiai_fixture","implementation":"apps/pi-extension/tests/mission-canvas-uiai-server.mjs","proof":"node tests/uiai-eval-harness.test.mjs"},
         ],
         "operation_ids": [entry["operation_id"] for entry in registry["operations"]],
         "schema_definition_count": len(bundle["$defs"]),
-        "known_blockers": ["UIAI loopback visual capture requires allow_private_urls"],
+        "known_blockers": [],
     }
 
 

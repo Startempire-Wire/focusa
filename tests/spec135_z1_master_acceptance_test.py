@@ -21,7 +21,7 @@ assert C["branch_policy"] == "feature branch + PR only; never direct commit to m
 assert "provider-owned" in C["beads_closure_authority"]
 
 required_ids = {
-    "focusa_pi_rich_host",
+    "focusa_pi_native_terminal",
     "same_session_canvas_toggle",
     "generated_crist_rich_work_surfaces",
     "vertical_professional_workspaces",

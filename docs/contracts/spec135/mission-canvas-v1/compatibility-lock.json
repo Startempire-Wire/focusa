@@ -2,7 +2,7 @@
   "derived_artifacts": {
     "capability-snapshot.json": "sha256:fe1dd2d2e910e6df06730d999e6f9ca3f43f213819242f0bd11ed7d16037fb28",
     "client-parity-matrix.json": "sha256:57d977a76234a13041e3f9697e7fb0fa4c549387d880ad820a847fed8c5585f8",
-    "implementation-proof-matrix.json": "sha256:fc638abdc15deb3efcbb6bbd6d7585ef86bf8cc0954faea32198bb380eb9c223",
+    "implementation-proof-matrix.json": "sha256:3ca5dd732d0e5e0f99eb3e75a1b4f794321596ef0a4ed69595084785481301e5",
     "openapi-3.0.3.json": "sha256:52ba3b95cc5599a77698f20f15562ff5b2e1a40f476774afbef7eee9b886d82a",
     "typescript/mission-canvas-client.generated.ts": "sha256:578ac10bb1ef3371a8f1dd9f79f8421d90265269c9b5f92e61f77162a14dfd37",
     "typescript/mission-canvas-types.generated.ts": "sha256:d7defc07f2018d210eb990ca53c0ba7b147a779fb428084cf31ea639ce6c1435",
