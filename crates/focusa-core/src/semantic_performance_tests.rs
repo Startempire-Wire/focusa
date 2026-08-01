@@ -93,12 +93,12 @@ fn expensive_whole_world_work_is_async_and_pressure_defers_without_loss() {
 
 #[test]
 fn oversized_neighborhood_and_configured_strength_downgrade_fail_closed() {
-    let mut request = request();
-    request.affected_node_refs = (0..101).map(|n| format!("node:{n}")).collect();
+    let mut oversized = request();
+    oversized.affected_node_refs = (0..101).map(|n| format!("node:{n}")).collect();
     assert_eq!(
         plan_semantic_execution(
             &policy(),
-            &request,
+            &oversized,
             SemanticPressureMode::Normal,
             &BTreeSet::new()
         ),

@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use super::InstallLifecycleValidationError;
+use super::{ChannelSelection, InstallLifecycleValidationError, LifecycleState};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -151,7 +151,7 @@ impl ArtifactTrustEvidence {
         }
     }
 
-    fn is_complete(&self) -> bool {
+    pub(super) fn is_complete(&self) -> bool {
         !self.declared_version.trim().is_empty()
             && !self.target.trim().is_empty()
             && self.metadata_complete
