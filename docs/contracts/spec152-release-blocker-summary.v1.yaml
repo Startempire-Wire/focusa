@@ -1,0 +1,28 @@
+schema: focusa.spec152.release_blocker_summary.v1
+status: blocked_for_new_evaluator_and_customer_distribution
+blockers:
+  - authority repository/live parity and rollback proof
+  - verified account/email device-code flow
+  - signed lease schema and cross-language golden vectors
+  - one canonical Focusa verifier and recovery-mode gate
+  - removal of self-issued Bash/PowerShell Evaluation
+  - Spec 150A lifecycle entitlement receipts
+  - entitlement-first menubar onboarding before pairing
+  - complete CLI/API/Pi/TUI/menubar/worker feature and limit coverage
+  - UIAI independent entitlement and child-token enforcement
+  - protected worker/capsule proof for selected features
+  - existing paid/evaluator migration
+  - refund/revoke/expiry/offline/node/limit E2E
+  - green documentation consistency workflows
+approved_before_entitlement:
+  - non-mutating preflight
+  - health/version and license recovery
+  - safe backup/export and repair
+  - data-preserving uninstall
+  - explicit separately confirmed purge
+legacy_not_approved:
+  - self-issued --eval
+  - missing license as Evaluation
+  - local or pairing token as entitlement
+  - loopback UIAI Evaluation
+  - source checkout as official product grant
