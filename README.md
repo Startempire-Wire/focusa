@@ -30,7 +30,7 @@ When a coding session gets long, context compacts, the mission drifts, proof get
 - **Daemon-native Silent Sessions:** durable background runs support observation, steering, pause/resume/restart, approvals, idempotency, and receipts.
 - **Governed work loop and recovery:** one writer, canonical checkpoints, proactive compaction, cache-safe context, and governed rollover.
 - **Mission Canvas and Work Rail:** scoped Work Surfaces, interviews, workspace artifacts, UIAI browser context, connectors, software/domain projections, and adaptive generated UI.
-- **Customer lifecycle mechanics:** typed install/repair/update/rollback/uninstall transactions with data preservation and proof.
+- **Customer lifecycle mechanics:** typed install/repair/update/rollback/uninstall transactions with data preservation and proof; uninstall with user data preserved by default, purge explicit.
 - **Agent-ready contracts:** every Focusa Pi tool has runtime, generated machine, documentation, skill, and runbook projections.
 - **Mandatory licensing target:** authority-issued signed Evaluation/paid/developer leases, recovery-only missing state, product-qualified features/limits, UIAI independent grants, and protected private workers/capsules for selected commercial functionality.
 
@@ -181,7 +181,8 @@ Focusa publishes generated capability descriptors across Pi, MCP, OpenAI-compati
 4. `focusa_tool_graph`
 5. `focusa_tool_bundle`
 
-Machine contracts: [`docs/contracts/spec141/generated-capability-v2/`](docs/contracts/spec141/generated-capability-v2/)  
+All 135 Focusa Pi tools are documented across the machine contracts, Agent Card, per-tool docs, and 29 generated skills. Machine contracts: [`docs/contracts/spec141/generated-capability-v2/`](docs/contracts/spec141/generated-capability-v2/)
+
 Every Pi tool: [`docs/focusa-tools/tools/`](docs/focusa-tools/tools/)  
 Skills/runbooks: [`.pi/skills/`](.pi/skills/)  
 Agent fast start: [`docs/agent/01-focusa-agent-docs-index.md`](docs/agent/01-focusa-agent-docs-index.md)
