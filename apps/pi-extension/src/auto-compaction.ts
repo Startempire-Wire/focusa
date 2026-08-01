@@ -147,7 +147,7 @@ type ProcessCompactionLease = {
 };
 
 const PROCESS_LEASE_SYMBOL = Symbol.for("focusa.compaction.coordinator.v1");
-const EXTENSION_BUILD = "focusa-pi-bridge@0.9.137-dev";
+const EXTENSION_BUILD = "focusa-pi-bridge@0.9.142";
 const REGISTRATION_SOURCE = import.meta.url;
 const REGISTERED_HANDLERS = [
   "session_before_compact",
