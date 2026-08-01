@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:a2576b07-1945-4934-ba88-3acc2c50a67d",
+  "serialNumber": "urn:uuid:a4aaee8e-cedd-45f0-bfa6-98f6d2fd312a",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-08-01T11:10:43.179Z",
+    "timestamp": "2026-08-01T19:55:09.755Z",
     "lifecycles": [
       {
         "phase": "build"
@@ -19,13 +19,13 @@
       }
     ],
     "component": {
-      "bom-ref": "focusa-pi-bridge@0.9.141",
+      "bom-ref": "focusa-pi-bridge@0.9.142",
       "type": "library",
       "name": "pi-extension",
-      "version": "0.9.141",
+      "version": "0.9.142",
       "scope": "required",
       "description": "Focusa cognitive integration extension for Pi coding agent",
-      "purl": "pkg:npm/focusa-pi-bridge@0.9.141",
+      "purl": "pkg:npm/focusa-pi-bridge@0.9.142",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -41,14 +41,14 @@
   },
   "components": [
     {
-      "bom-ref": "@earendil-works/pi-coding-agent@0.83.0",
+      "bom-ref": "@earendil-works/pi-coding-agent@0.82.1",
       "type": "library",
       "name": "@earendil-works/pi-coding-agent",
-      "version": "0.83.0",
+      "version": "0.82.1",
       "scope": "optional",
       "author": "Mario Zechner",
       "description": "Coding agent CLI with read, bash, edit, write tools and session management",
-      "purl": "pkg:npm/%40earendil-works/pi-coding-agent@0.83.0",
+      "purl": "pkg:npm/%40earendil-works/pi-coding-agent@0.82.1",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -62,7 +62,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/-/pi-coding-agent-0.83.0.tgz"
+          "url": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/-/pi-coding-agent-0.82.1.tgz"
         },
         {
           "type": "vcs",
@@ -80,7 +80,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "b98845f85b19c68828497fc0c4171476263e66496e6f0697c80a04180d9e430b077321008546082a1fd62d77bf6bcfa4f1e4c29b16fe64dd99a3d9b342dcdb5b"
+          "content": "cdb90086822e0cf305de92ae8dad1a8d969bacc594dbd154315f40fd73174ff5c2d725ece71b7ab7ab75dc6a20405b03ac3a9b14fe0391940ed70f2b59103360"
         }
       ],
       "licenses": [
@@ -1460,14 +1460,14 @@
       ]
     },
     {
-      "bom-ref": "@earendil-works/pi-agent-core@0.83.0",
+      "bom-ref": "@earendil-works/pi-agent-core@0.82.1",
       "type": "library",
       "name": "@earendil-works/pi-agent-core",
-      "version": "0.83.0",
+      "version": "0.82.1",
       "scope": "optional",
       "author": "Mario Zechner",
       "description": "General-purpose agent with transport abstraction, state management, and attachment support",
-      "purl": "pkg:npm/%40earendil-works/pi-agent-core@0.83.0",
+      "purl": "pkg:npm/%40earendil-works/pi-agent-core@0.82.1",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -1481,7 +1481,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/@earendil-works/pi-agent-core/-/pi-agent-core-0.83.0.tgz"
+          "url": "https://registry.npmjs.org/@earendil-works/pi-agent-core/-/pi-agent-core-0.82.1.tgz"
         },
         {
           "type": "vcs",
@@ -1505,14 +1505,14 @@
       ]
     },
     {
-      "bom-ref": "@earendil-works/pi-ai@0.83.0",
+      "bom-ref": "@earendil-works/pi-ai@0.82.1",
       "type": "library",
       "name": "@earendil-works/pi-ai",
-      "version": "0.83.0",
+      "version": "0.82.1",
       "scope": "optional",
       "author": "Mario Zechner",
       "description": "Unified LLM API with automatic model discovery and provider configuration",
-      "purl": "pkg:npm/%40earendil-works/pi-ai@0.83.0",
+      "purl": "pkg:npm/%40earendil-works/pi-ai@0.82.1",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -1526,7 +1526,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.83.0.tgz"
+          "url": "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-0.82.1.tgz"
         },
         {
           "type": "vcs",
@@ -1550,14 +1550,14 @@
       ]
     },
     {
-      "bom-ref": "@earendil-works/pi-tui@0.83.0",
+      "bom-ref": "@earendil-works/pi-tui@0.82.1",
       "type": "library",
       "name": "@earendil-works/pi-tui",
-      "version": "0.83.0",
+      "version": "0.82.1",
       "scope": "optional",
       "author": "Mario Zechner",
       "description": "Terminal User Interface library with differential rendering for efficient text-based applications",
-      "purl": "pkg:npm/%40earendil-works/pi-tui@0.83.0",
+      "purl": "pkg:npm/%40earendil-works/pi-tui@0.82.1",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -1571,7 +1571,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/@earendil-works/pi-tui/-/pi-tui-0.83.0.tgz"
+          "url": "https://registry.npmjs.org/@earendil-works/pi-tui/-/pi-tui-0.82.1.tgz"
         },
         {
           "type": "vcs",
@@ -3283,10 +3283,6 @@
       ],
       "externalReferences": [
         {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-5.0.7.tgz"
-        },
-        {
           "type": "vcs",
           "url": "git+https://github.com/juliangruber/brace-expansion.git"
         },
@@ -3297,12 +3293,6 @@
         {
           "type": "issue-tracker",
           "url": "https://github.com/juliangruber/brace-expansion/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "ee8172ef4dddc5f637fcd2f10b57e1d925024341fdae6018fb91290d57d78d44d3b3e1c4c11da761aa8bbfe196713b2e9b0c4f7e2cfa0b308d9305f0054c2a08"
         }
       ],
       "licenses": [
@@ -6215,14 +6205,14 @@
       ]
     },
     {
-      "bom-ref": "typebox@1.3.7",
+      "bom-ref": "typebox@1.1.38",
       "type": "library",
       "name": "typebox",
-      "version": "1.3.7",
+      "version": "1.1.38",
       "scope": "optional",
       "author": "sinclairzx81",
       "description": "Json Schema Type Builder with Static Type Resolution for TypeScript",
-      "purl": "pkg:npm/typebox@1.3.7",
+      "purl": "pkg:npm/typebox@1.1.38",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -6236,7 +6226,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/typebox/-/typebox-1.3.7.tgz"
+          "url": "https://registry.npmjs.org/typebox/-/typebox-1.1.38.tgz"
         },
         {
           "type": "vcs",
@@ -6254,7 +6244,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "99e2ae89f737dcf71cc743ba3dd23360cab73a0f33bcfe13222fdaf81c37004319331383d3e447190be982511ee99772df067c9ea9ff8fde61f0b5192e4ffa1e"
+          "content": "a59d1a40f98c997a14bd26deb967ff1f3b1cf9abcdc3f65de95784f02160915196cae1cf26fa9e2490de26a2ef7be2bbd0bbe3608a257867282473d3d7b716a0"
         }
       ],
       "licenses": [
@@ -6723,14 +6713,14 @@
       ]
     },
     {
-      "bom-ref": "@earendil-works/pi-tui@0.83.0",
+      "bom-ref": "@earendil-works/pi-tui@0.82.1",
       "type": "library",
       "name": "@earendil-works/pi-tui",
-      "version": "0.83.0",
+      "version": "0.82.1",
       "scope": "optional",
       "author": "Mario Zechner",
       "description": "Terminal User Interface library with differential rendering for efficient text-based applications",
-      "purl": "pkg:npm/%40earendil-works/pi-tui@0.83.0",
+      "purl": "pkg:npm/%40earendil-works/pi-tui@0.82.1",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -6744,7 +6734,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/@earendil-works/pi-tui/-/pi-tui-0.83.0.tgz"
+          "url": "https://registry.npmjs.org/@earendil-works/pi-tui/-/pi-tui-0.82.1.tgz"
         },
         {
           "type": "vcs",
@@ -6762,7 +6752,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "22862b6f4ace46310b984a4db68080fd4f237b72a8a4c911015251752cef5d1be06fe1eea3580d87c43909266f34e898b43c49763dad619647678077f8837784"
+          "content": "f7237c8402df29ac59abb9f9e04331aa11425a7322e8b1e4ada309ff56231e2013abbe57ac8e970cc569a67f440ed88aec592cf2151ed520d7513ac8bf04567d"
         }
       ],
       "licenses": [
@@ -6774,14 +6764,14 @@
       ]
     },
     {
-      "bom-ref": "@eslint-community/eslint-utils@4.9.1",
+      "bom-ref": "@eslint-community/eslint-utils@4.10.1",
       "type": "library",
       "name": "@eslint-community/eslint-utils",
-      "version": "4.9.1",
+      "version": "4.10.1",
       "scope": "optional",
       "author": "Toru Nagashima",
       "description": "Utilities for ESLint plugins.",
-      "purl": "pkg:npm/%40eslint-community/eslint-utils@4.9.1",
+      "purl": "pkg:npm/%40eslint-community/eslint-utils@4.10.1",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -6795,7 +6785,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/@eslint-community/eslint-utils/-/eslint-utils-4.9.1.tgz"
+          "url": "https://registry.npmjs.org/@eslint-community/eslint-utils/-/eslint-utils-4.10.1.tgz"
         },
         {
           "type": "vcs",
@@ -6813,7 +6803,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "a61ad898d898a6947bce714476a81f5875d1e8d0a46442bb8705831d95238adff6fd4d2be97be40e5d12627a0ce751eaec584219d2c34facf1082398d617b1b1"
+          "content": "72e69d73154513cb032ba89625bb3c4a7d1abf636b8764121908559415bd01a007a87c235ac6474fc2c9e211463e1ec048157675e15d33b1ff0cf8ee96687cae"
         }
       ],
       "licenses": [
@@ -6876,14 +6866,14 @@
       ]
     },
     {
-      "bom-ref": "@eslint/config-array@0.21.2",
+      "bom-ref": "@eslint/config-array@0.23.5",
       "type": "library",
       "name": "@eslint/config-array",
-      "version": "0.21.2",
+      "version": "0.23.5",
       "scope": "optional",
       "author": "Nicholas C. Zakas",
       "description": "General purpose glob-based configuration matching.",
-      "purl": "pkg:npm/%40eslint/config-array@0.21.2",
+      "purl": "pkg:npm/%40eslint/config-array@0.23.5",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -6897,7 +6887,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/@eslint/config-array/-/config-array-0.21.2.tgz"
+          "url": "https://registry.npmjs.org/@eslint/config-array/-/config-array-0.23.5.tgz"
         },
         {
           "type": "vcs",
@@ -6915,7 +6905,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "9c99762864e5adff468cb8a6808aeef95fe6ce048ad000420d046fc70e418d444bed67c7e6ea169a2cdb1fb401e8c9a730177c7080bdb9c7969deccbd556565b"
+          "content": "63790a2ef0b576f4ce4fea0696a350d572ea2ba0f51d4d985cf739d8d98094965b30c583cc66173223d127c4d80f7f66b83fce4e395998d27889beddbd2acc04"
         }
       ],
       "licenses": [
@@ -6927,166 +6917,13 @@
       ]
     },
     {
-      "bom-ref": "balanced-match@1.0.2",
-      "type": "library",
-      "name": "balanced-match",
-      "version": "1.0.2",
-      "scope": "optional",
-      "author": "Julian Gruber",
-      "description": "Match balanced character pairs, like \"{\" and \"}\"",
-      "purl": "pkg:npm/balanced-match@1.0.2",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/@eslint/config-array/node_modules/balanced-match"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/balanced-match/-/balanced-match-1.0.2.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git://github.com/juliangruber/balanced-match.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/juliangruber/balanced-match"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/juliangruber/balanced-match/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "de849e50ed13315ebb84dd4099b5ec2b8c9aa94eed8e21e56f144364ea47d0a5bdf82797e1b440697d009f1b74b71d8cae94695b041a3f02252121098585393f"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "brace-expansion@1.1.15",
-      "type": "library",
-      "name": "brace-expansion",
-      "version": "1.1.15",
-      "scope": "optional",
-      "author": "Julian Gruber",
-      "description": "Brace expansion as known from sh/bash",
-      "purl": "pkg:npm/brace-expansion@1.1.15",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/@eslint/config-array/node_modules/brace-expansion"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-1.1.15.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git://github.com/juliangruber/brace-expansion.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/juliangruber/brace-expansion"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/juliangruber/brace-expansion/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "1303820c47b1e2ab83dfb5e1a8cde89b0b4ca098ebfff8ac519cf5268a543569acfb8676562c8cfe4d5821178fa6854d9d0844367c6d1632dac4d1eb4fbc4852"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "minimatch@3.1.5",
-      "type": "library",
-      "name": "minimatch",
-      "version": "3.1.5",
-      "scope": "optional",
-      "author": "Isaac Z. Schlueter",
-      "description": "a glob matcher in javascript",
-      "purl": "pkg:npm/minimatch@3.1.5",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/@eslint/config-array/node_modules/minimatch"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/minimatch/-/minimatch-3.1.5.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git://github.com/isaacs/minimatch.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/isaacs/minimatch#readme"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/isaacs/minimatch/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "5608d652c9e74fa9fe35493a799abbef37857695b62d60f33facc51ab09b1d789836e9790f3aa4d871d0e6e147d83356e576e9f3e8d5cda78db7de2cb04125e3"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "ISC"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "@eslint/config-helpers@0.4.2",
+      "bom-ref": "@eslint/config-helpers@0.7.0",
       "type": "library",
       "name": "@eslint/config-helpers",
-      "version": "0.4.2",
+      "version": "0.7.0",
       "scope": "optional",
       "description": "Helper utilities for creating ESLint configuration",
-      "purl": "pkg:npm/%40eslint/config-helpers@0.4.2",
+      "purl": "pkg:npm/%40eslint/config-helpers@0.7.0",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -7100,7 +6937,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/@eslint/config-helpers/-/config-helpers-0.4.2.tgz"
+          "url": "https://registry.npmjs.org/@eslint/config-helpers/-/config-helpers-0.7.0.tgz"
         },
         {
           "type": "vcs",
@@ -7118,7 +6955,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "801af137cf203887f747b8dae4af6c97035ac9571980ae923943919b6b81cd378811f79568884ea42b53a31dcfe91ee8da32c5c0b1532e70bb914fd119c60483"
+          "content": "0ce6ddfca294b14f85685bf83cbc5245e9e95df41698f5d73f7a4f67afcad4f0ab32edaf42930332e41efc1a987a82dccfcae8d1b54317547138981f54476153"
         }
       ],
       "licenses": [
@@ -7130,14 +6967,14 @@
       ]
     },
     {
-      "bom-ref": "@eslint/core@0.17.0",
+      "bom-ref": "@eslint/core@1.2.1",
       "type": "library",
       "name": "@eslint/core",
-      "version": "0.17.0",
+      "version": "1.2.1",
       "scope": "optional",
       "author": "Nicholas C. Zakas",
       "description": "Runtime-agnostic core of ESLint",
-      "purl": "pkg:npm/%40eslint/core@0.17.0",
+      "purl": "pkg:npm/%40eslint/core@1.2.1",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -7151,7 +6988,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/@eslint/core/-/core-0.17.0.tgz"
+          "url": "https://registry.npmjs.org/@eslint/core/-/core-1.2.1.tgz"
         },
         {
           "type": "vcs",
@@ -7169,7 +7006,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "c8bfec2eba66b43685122523d68b113f84c8d8c0f3d4075d24bfa367b292aaf06e962378c6a618e7821f74df2a0fc4e86ba8358a5a298757f140d9233b1aeba5"
+          "content": "330704d4ff806780ba0d69698a7fce98e039e2698867ffb166e26241de12c81dbda00263377d145bdc2428da6d5b672da78704b2f8652d8fc2b10d6ea070e5a1"
         }
       ],
       "licenses": [
@@ -7181,421 +7018,14 @@
       ]
     },
     {
-      "bom-ref": "@eslint/eslintrc@3.3.5",
-      "type": "library",
-      "name": "@eslint/eslintrc",
-      "version": "3.3.5",
-      "scope": "optional",
-      "author": "Nicholas C. Zakas",
-      "description": "The legacy ESLintRC config file format for ESLint",
-      "purl": "pkg:npm/%40eslint/eslintrc@3.3.5",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/@eslint/eslintrc"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/@eslint/eslintrc/-/eslintrc-3.3.5.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git+https://github.com/eslint/eslintrc.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/eslint/eslintrc#readme"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/eslint/eslintrc/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "e08949c745f4a9fb55b0de44fbfbc6ba34d1205b70b8b6cdb1551eed33bacd83c34753ba9c5c2fc2120a10a4ab97a7597219980484dacf12a85183a376d8e546"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "ajv@6.15.0",
-      "type": "library",
-      "name": "ajv",
-      "version": "6.15.0",
-      "scope": "optional",
-      "author": "Evgeny Poberezkin",
-      "description": "Another JSON Schema Validator",
-      "purl": "pkg:npm/ajv@6.15.0",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/@eslint/eslintrc/node_modules/ajv"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/ajv/-/ajv-6.15.0.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git+https://github.com/ajv-validator/ajv.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/ajv-validator/ajv"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/ajv-validator/ajv/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "7e0171ec77e8abad32b4ad9cec386717c8c8bf362038cc5fba08cb3923078cb20f81e9ea6bb4bba1a6a001352af7d995e8862f376b51982d309d3617ea23db33"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "balanced-match@1.0.2",
-      "type": "library",
-      "name": "balanced-match",
-      "version": "1.0.2",
-      "scope": "optional",
-      "author": "Julian Gruber",
-      "description": "Match balanced character pairs, like \"{\" and \"}\"",
-      "purl": "pkg:npm/balanced-match@1.0.2",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/@eslint/eslintrc/node_modules/balanced-match"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/balanced-match/-/balanced-match-1.0.2.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git://github.com/juliangruber/balanced-match.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/juliangruber/balanced-match"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/juliangruber/balanced-match/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "de849e50ed13315ebb84dd4099b5ec2b8c9aa94eed8e21e56f144364ea47d0a5bdf82797e1b440697d009f1b74b71d8cae94695b041a3f02252121098585393f"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "brace-expansion@1.1.15",
-      "type": "library",
-      "name": "brace-expansion",
-      "version": "1.1.15",
-      "scope": "optional",
-      "author": "Julian Gruber",
-      "description": "Brace expansion as known from sh/bash",
-      "purl": "pkg:npm/brace-expansion@1.1.15",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/@eslint/eslintrc/node_modules/brace-expansion"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-1.1.15.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git://github.com/juliangruber/brace-expansion.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/juliangruber/brace-expansion"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/juliangruber/brace-expansion/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "1303820c47b1e2ab83dfb5e1a8cde89b0b4ca098ebfff8ac519cf5268a543569acfb8676562c8cfe4d5821178fa6854d9d0844367c6d1632dac4d1eb4fbc4852"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "ignore@5.3.2",
-      "type": "library",
-      "name": "ignore",
-      "version": "5.3.2",
-      "scope": "optional",
-      "author": "kael",
-      "description": "Ignore is a manager and filter for .gitignore rules, the one used by eslint, gitbook and many others.",
-      "purl": "pkg:npm/ignore@5.3.2",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/@eslint/eslintrc/node_modules/ignore"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/ignore/-/ignore-5.3.2.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git+ssh://git@github.com/kaelzhang/node-ignore.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/kaelzhang/node-ignore#readme"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/kaelzhang/node-ignore/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "86c053354a904c3c245ad71d608da2d3a63f9d4044b0d10324a8d676280bbde832f240ee2404bcb91969924710a721172f467fa630f2e4706632344227682afa"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "json-schema-traverse@0.4.1",
-      "type": "library",
-      "name": "json-schema-traverse",
-      "version": "0.4.1",
-      "scope": "optional",
-      "author": "Evgeny Poberezkin",
-      "description": "Traverse JSON Schema passing each schema object to callback",
-      "purl": "pkg:npm/json-schema-traverse@0.4.1",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/@eslint/eslintrc/node_modules/json-schema-traverse"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/json-schema-traverse/-/json-schema-traverse-0.4.1.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git+https://github.com/epoberezkin/json-schema-traverse.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/epoberezkin/json-schema-traverse#readme"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/epoberezkin/json-schema-traverse/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "c5b6c21f9742614e53f0b704861ba1ec727cf075ee5b7aac237634cce64529f6441dca5688753f271ce4eb6f41aec69bfe63221d0b62f7030ffbce3944f7b756"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "minimatch@3.1.5",
-      "type": "library",
-      "name": "minimatch",
-      "version": "3.1.5",
-      "scope": "optional",
-      "author": "Isaac Z. Schlueter",
-      "description": "a glob matcher in javascript",
-      "purl": "pkg:npm/minimatch@3.1.5",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/@eslint/eslintrc/node_modules/minimatch"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/minimatch/-/minimatch-3.1.5.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git://github.com/isaacs/minimatch.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/isaacs/minimatch#readme"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/isaacs/minimatch/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "5608d652c9e74fa9fe35493a799abbef37857695b62d60f33facc51ab09b1d789836e9790f3aa4d871d0e6e147d83356e576e9f3e8d5cda78db7de2cb04125e3"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "ISC"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "@eslint/js@9.39.4",
-      "type": "library",
-      "name": "@eslint/js",
-      "version": "9.39.4",
-      "scope": "optional",
-      "description": "ESLint JavaScript language implementation",
-      "purl": "pkg:npm/%40eslint/js@9.39.4",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/@eslint/js"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/@eslint/js/-/js-9.39.4.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git+https://github.com/eslint/eslint.git"
-        },
-        {
-          "type": "website",
-          "url": "https://eslint.org"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/eslint/eslint/issues/"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "9c4ec3108721bed8854f0070e0b7dbbb9f4f1be902a1f863b0a6825b3c53a6de257d18d132a1bab8c073297b847325e1387a14a7dae2026eff69660685767d73"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "@eslint/object-schema@2.1.7",
+      "bom-ref": "@eslint/object-schema@3.0.5",
       "type": "library",
       "name": "@eslint/object-schema",
-      "version": "2.1.7",
+      "version": "3.0.5",
       "scope": "optional",
       "author": "Nicholas C. Zakas",
       "description": "An object schema merger/validator",
-      "purl": "pkg:npm/%40eslint/object-schema@2.1.7",
+      "purl": "pkg:npm/%40eslint/object-schema@3.0.5",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -7609,7 +7039,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/@eslint/object-schema/-/object-schema-2.1.7.tgz"
+          "url": "https://registry.npmjs.org/@eslint/object-schema/-/object-schema-3.0.5.tgz"
         },
         {
           "type": "vcs",
@@ -7627,7 +7057,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "56d00e6b299655f65c9996e9e84da6ca6a43207bf28d7b3fd762ea5988d5c3aaa3adf17e54af9fc86df7902873de79caf92539fcd7873aaad31074bcb173b738"
+          "content": "bea4da504831ce6f980d274495a77a3e24685f8b7c5460e30adb74e739f89d4f35d14231fee34457bfe5649e8ac054e12993b33b1cd7cb8f1d6be368ec765a33"
         }
       ],
       "licenses": [
@@ -7639,14 +7069,14 @@
       ]
     },
     {
-      "bom-ref": "@eslint/plugin-kit@0.4.1",
+      "bom-ref": "@eslint/plugin-kit@0.7.2",
       "type": "library",
       "name": "@eslint/plugin-kit",
-      "version": "0.4.1",
+      "version": "0.7.2",
       "scope": "optional",
       "author": "Nicholas C. Zakas",
       "description": "Utilities for building ESLint plugins.",
-      "purl": "pkg:npm/%40eslint/plugin-kit@0.4.1",
+      "purl": "pkg:npm/%40eslint/plugin-kit@0.7.2",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -7660,7 +7090,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/@eslint/plugin-kit/-/plugin-kit-0.4.1.tgz"
+          "url": "https://registry.npmjs.org/@eslint/plugin-kit/-/plugin-kit-0.7.2.tgz"
         },
         {
           "type": "vcs",
@@ -7678,7 +7108,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "e37feab6b0d4a24afb2c9aa8176737f91227bbfb78cdfae961da120df632860e76af02d5e939cebdd1b87d79bb224481df012b91c9894bd88486356d3921238c"
+          "content": "f82340cf182592ba4d7ff90acb0a907e4ef8423b5c7ae384ed09be005f26891bcf17fc2698ae7e3893a0561dc05534f744fda61f7f8539ac65139bfbda8c24d0"
         }
       ],
       "licenses": [
@@ -7945,14 +7375,14 @@
       ]
     },
     {
-      "bom-ref": "@sinclair/typebox@0.34.49",
+      "bom-ref": "@sinclair/typebox@0.34.52",
       "type": "library",
       "name": "@sinclair/typebox",
-      "version": "0.34.49",
+      "version": "0.34.52",
       "scope": "required",
       "author": "sinclairzx81",
       "description": "Json Schema Type Builder with Static Type Resolution for TypeScript",
-      "purl": "pkg:npm/%40sinclair/typebox@0.34.49",
+      "purl": "pkg:npm/%40sinclair/typebox@0.34.52",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -7962,7 +7392,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/@sinclair/typebox/-/typebox-0.34.49.tgz"
+          "url": "https://registry.npmjs.org/@sinclair/typebox/-/typebox-0.34.52.tgz"
         },
         {
           "type": "vcs",
@@ -7980,7 +7410,57 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "6ebc92410b3b26d9f48e857c5e1f5957f8596fd3b36f4a666b30c801206460a0a35eb5d4de6a5c15a8662bfcf8603846910bcff665896d5c9a85db54e70400f8"
+          "content": "5e231087baaa565c59cdc543fa490630d18ccdc4eb0cc2d623b4b8c7bcf53240a46c33eb7a4a595c450ad1e66a64532e1d08366b60d939c0c887da39bf71a89f"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "@types/esrecurse@4.3.1",
+      "type": "library",
+      "name": "@types/esrecurse",
+      "version": "4.3.1",
+      "scope": "optional",
+      "description": "TypeScript definitions for esrecurse",
+      "purl": "pkg:npm/%40types/esrecurse@4.3.1",
+      "properties": [
+        {
+          "name": "cdx:npm:package:path",
+          "value": "node_modules/@types/esrecurse"
+        },
+        {
+          "name": "cdx:npm:package:development",
+          "value": "true"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@types/esrecurse/-/esrecurse-4.3.1.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/DefinitelyTyped/DefinitelyTyped.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/esrecurse"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/DefinitelyTyped/DefinitelyTyped/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "c490406c389fa398697df0c1b8797463ccb0b306e2029fd68bb63f1ad0204a5672200069a72babc55b9e38f13c2d440ec5d9608ba66a71eeeea04a6a3537a253"
         }
       ],
       "licenses": [
@@ -8142,13 +7622,13 @@
       ]
     },
     {
-      "bom-ref": "@typescript-eslint/eslint-plugin@8.63.0",
+      "bom-ref": "@typescript-eslint/eslint-plugin@8.65.0",
       "type": "library",
       "name": "@typescript-eslint/eslint-plugin",
-      "version": "8.63.0",
+      "version": "8.65.0",
       "scope": "optional",
       "description": "TypeScript plugin for ESLint",
-      "purl": "pkg:npm/%40typescript-eslint/eslint-plugin@8.63.0",
+      "purl": "pkg:npm/%40typescript-eslint/eslint-plugin@8.65.0",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -8162,7 +7642,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/@typescript-eslint/eslint-plugin/-/eslint-plugin-8.63.0.tgz"
+          "url": "https://registry.npmjs.org/@typescript-eslint/eslint-plugin/-/eslint-plugin-8.65.0.tgz"
         },
         {
           "type": "vcs",
@@ -8180,7 +7660,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "aefc1282a4fe0c7a567737d2ccf6ad44b9b4d9ad069444adfbef62cb784b08363806091a2dc97c2c18bd621ed7185069c1c044fcadf4db842e5d64e96f3e057d"
+          "content": "2048286fbf17d76ac7a549ad73016c5e165d54626dc1354ff058822d9911e8695856b9763dcb81f8a842139065542fde429427bbc59746d90766e3daafe80244"
         }
       ],
       "licenses": [
@@ -8192,13 +7672,13 @@
       ]
     },
     {
-      "bom-ref": "@typescript-eslint/parser@8.63.0",
+      "bom-ref": "@typescript-eslint/parser@8.65.0",
       "type": "library",
       "name": "@typescript-eslint/parser",
-      "version": "8.63.0",
+      "version": "8.65.0",
       "scope": "optional",
       "description": "An ESLint custom parser which leverages TypeScript ESTree",
-      "purl": "pkg:npm/%40typescript-eslint/parser@8.63.0",
+      "purl": "pkg:npm/%40typescript-eslint/parser@8.65.0",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -8212,7 +7692,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/@typescript-eslint/parser/-/parser-8.63.0.tgz"
+          "url": "https://registry.npmjs.org/@typescript-eslint/parser/-/parser-8.65.0.tgz"
         },
         {
           "type": "vcs",
@@ -8230,7 +7710,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "83087882fbe56950ca2b1c9fc4c1be1a7bb5bbd5f4390070c862e46f007ae5d23304a9f179188994d16a948df3c1584d5c922ceaa57b9a51429ff0486a39558a"
+          "content": "099e273315b082ed4710414d91e682a6dadaf500ad92629d81fdec5a1d6b975b6b2219b12e29604d5e1cc1c6d0e307a69d3e2c59037c09a28e99d631fa0da030"
         }
       ],
       "licenses": [
@@ -8242,13 +7722,13 @@
       ]
     },
     {
-      "bom-ref": "@typescript-eslint/project-service@8.63.0",
+      "bom-ref": "@typescript-eslint/project-service@8.65.0",
       "type": "library",
       "name": "@typescript-eslint/project-service",
-      "version": "8.63.0",
+      "version": "8.65.0",
       "scope": "optional",
       "description": "Standalone TypeScript project service wrapper for linting.",
-      "purl": "pkg:npm/%40typescript-eslint/project-service@8.63.0",
+      "purl": "pkg:npm/%40typescript-eslint/project-service@8.65.0",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -8262,7 +7742,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/@typescript-eslint/project-service/-/project-service-8.63.0.tgz"
+          "url": "https://registry.npmjs.org/@typescript-eslint/project-service/-/project-service-8.65.0.tgz"
         },
         {
           "type": "vcs",
@@ -8280,7 +7760,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "7b9761d3f508d28939dc0959e704645c2077db3fdfda3519a8f47fca0030e5661a4b0f23f44a095a54bbc108ebfdd98e6aa5a39cf227da6f878553c231619955"
+          "content": "4b19cf85b4ec19a862cc381bbbba2a147ff156dcc8a8c77fb3e5ad9d2c4dc49649a4b6dd4f920f77383c119c4edfe3e829a8579b024b78d40ea4a25bdff6e2ed"
         }
       ],
       "licenses": [
@@ -8292,13 +7772,13 @@
       ]
     },
     {
-      "bom-ref": "@typescript-eslint/scope-manager@8.63.0",
+      "bom-ref": "@typescript-eslint/scope-manager@8.65.0",
       "type": "library",
       "name": "@typescript-eslint/scope-manager",
-      "version": "8.63.0",
+      "version": "8.65.0",
       "scope": "optional",
       "description": "TypeScript scope analyser for ESLint",
-      "purl": "pkg:npm/%40typescript-eslint/scope-manager@8.63.0",
+      "purl": "pkg:npm/%40typescript-eslint/scope-manager@8.65.0",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -8312,7 +7792,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/@typescript-eslint/scope-manager/-/scope-manager-8.63.0.tgz"
+          "url": "https://registry.npmjs.org/@typescript-eslint/scope-manager/-/scope-manager-8.65.0.tgz"
         },
         {
           "type": "vcs",
@@ -8330,7 +7810,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "b94c9f3160a70d237c6c2a5cad8f2718fd812e443d5e7d06b22a5c38d7292035a1c213b8652c87bf24b5e14dd7ef99b3c56c4bdc8d94648ade9d3cddcdc24ef0"
+          "content": "12c6e5f0e498895c41a2462058f7fb5555a0fc113bf7cc178629a79fd30bf4fb79aa80dff1b7d09608e529747f93df3e01c37394b298ae909cadcb99f4364b82"
         }
       ],
       "licenses": [
@@ -8342,13 +7822,13 @@
       ]
     },
     {
-      "bom-ref": "@typescript-eslint/tsconfig-utils@8.63.0",
+      "bom-ref": "@typescript-eslint/tsconfig-utils@8.65.0",
       "type": "library",
       "name": "@typescript-eslint/tsconfig-utils",
-      "version": "8.63.0",
+      "version": "8.65.0",
       "scope": "optional",
       "description": "Utilities for collecting TSConfigs for linting scenarios.",
-      "purl": "pkg:npm/%40typescript-eslint/tsconfig-utils@8.63.0",
+      "purl": "pkg:npm/%40typescript-eslint/tsconfig-utils@8.65.0",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -8362,7 +7842,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/@typescript-eslint/tsconfig-utils/-/tsconfig-utils-8.63.0.tgz"
+          "url": "https://registry.npmjs.org/@typescript-eslint/tsconfig-utils/-/tsconfig-utils-8.65.0.tgz"
         },
         {
           "type": "vcs",
@@ -8380,7 +7860,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "b1401b92e96a040b2770a9db44fdfeec2b501512a271ec678fb670342e9d74247b126ad7be3bdd0983096d422a31dea5c2812b8998f02e8d3c692e6d4a354c1e"
+          "content": "8fa1b31aa0a245d03b421babd9556629902404b7e71c541fc784da2462fd44cbde66a0a8e3c8d21c73b40d3822cc49c686d5a7aa66ed0944aba9291d898ff41e"
         }
       ],
       "licenses": [
@@ -8392,13 +7872,13 @@
       ]
     },
     {
-      "bom-ref": "@typescript-eslint/type-utils@8.63.0",
+      "bom-ref": "@typescript-eslint/type-utils@8.65.0",
       "type": "library",
       "name": "@typescript-eslint/type-utils",
-      "version": "8.63.0",
+      "version": "8.65.0",
       "scope": "optional",
       "description": "Type utilities for working with TypeScript + ESLint together",
-      "purl": "pkg:npm/%40typescript-eslint/type-utils@8.63.0",
+      "purl": "pkg:npm/%40typescript-eslint/type-utils@8.65.0",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -8412,7 +7892,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/@typescript-eslint/type-utils/-/type-utils-8.63.0.tgz"
+          "url": "https://registry.npmjs.org/@typescript-eslint/type-utils/-/type-utils-8.65.0.tgz"
         },
         {
           "type": "vcs",
@@ -8430,7 +7910,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "373ce1fce1b15423a339b8da8f50901764546acc98cb625fba1fb36773e32f31b67d846b8808992e26fd50ab4ef82a50012dd81e2012f9c9190dc970a88d533c"
+          "content": "623699ecf448e6a63b6b1d8bdcf6ef5f4ad1c86b62a4045e096b349a18430478c7fef9748340689da197aca74aa4c6c822c308c0381b93fc739014f2025b52e6"
         }
       ],
       "licenses": [
@@ -8442,13 +7922,13 @@
       ]
     },
     {
-      "bom-ref": "@typescript-eslint/types@8.63.0",
+      "bom-ref": "@typescript-eslint/types@8.65.0",
       "type": "library",
       "name": "@typescript-eslint/types",
-      "version": "8.63.0",
+      "version": "8.65.0",
       "scope": "optional",
       "description": "Types for the TypeScript-ESTree AST spec",
-      "purl": "pkg:npm/%40typescript-eslint/types@8.63.0",
+      "purl": "pkg:npm/%40typescript-eslint/types@8.65.0",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -8462,7 +7942,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/@typescript-eslint/types/-/types-8.63.0.tgz"
+          "url": "https://registry.npmjs.org/@typescript-eslint/types/-/types-8.65.0.tgz"
         },
         {
           "type": "vcs",
@@ -8480,7 +7960,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "c722ed97d0d404116b7094b8c76a48a862c7ebcfed0b6b8e6b867ba54b5e5b4f43ddb5e79d75289b87723e29335a007b965988735ce8788ddaa14742e2b3cafd"
+          "content": "2524b058dcbe1f413fd358c910cfa1ad7e8dd0e143cc5cde2211c54804b4d6d95569ebe91bc705c9844f852e728c63af054c77b2a40754c8c22f508065933106"
         }
       ],
       "licenses": [
@@ -8492,13 +7972,13 @@
       ]
     },
     {
-      "bom-ref": "@typescript-eslint/typescript-estree@8.63.0",
+      "bom-ref": "@typescript-eslint/typescript-estree@8.65.0",
       "type": "library",
       "name": "@typescript-eslint/typescript-estree",
-      "version": "8.63.0",
+      "version": "8.65.0",
       "scope": "optional",
       "description": "A parser that converts TypeScript source code into an ESTree compatible form",
-      "purl": "pkg:npm/%40typescript-eslint/typescript-estree@8.63.0",
+      "purl": "pkg:npm/%40typescript-eslint/typescript-estree@8.65.0",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -8512,7 +7992,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/@typescript-eslint/typescript-estree/-/typescript-estree-8.63.0.tgz"
+          "url": "https://registry.npmjs.org/@typescript-eslint/typescript-estree/-/typescript-estree-8.65.0.tgz"
         },
         {
           "type": "vcs",
@@ -8530,7 +8010,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "ca006453e07b7b1e5423f80a85aa9ec567afefdb8849f22fed740244d60efe3983f2b18b3f258b01bdca3114fa9ddf06b7d6e65018bdfa25fab417587ce63cd5"
+          "content": "25ba00136b30698b78b5bd5f1e11d30011362be38bcb4f577dc4db8679383f0f7a7fd75dd9ef6262c276f20060807968e73e71d6b9325af70fa13b8d4dde281a"
         }
       ],
       "licenses": [
@@ -8542,13 +8022,13 @@
       ]
     },
     {
-      "bom-ref": "@typescript-eslint/utils@8.63.0",
+      "bom-ref": "@typescript-eslint/utils@8.65.0",
       "type": "library",
       "name": "@typescript-eslint/utils",
-      "version": "8.63.0",
+      "version": "8.65.0",
       "scope": "optional",
       "description": "Utilities for working with TypeScript + ESLint together",
-      "purl": "pkg:npm/%40typescript-eslint/utils@8.63.0",
+      "purl": "pkg:npm/%40typescript-eslint/utils@8.65.0",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -8562,7 +8042,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/@typescript-eslint/utils/-/utils-8.63.0.tgz"
+          "url": "https://registry.npmjs.org/@typescript-eslint/utils/-/utils-8.65.0.tgz"
         },
         {
           "type": "vcs",
@@ -8580,7 +8060,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "7d429a780beb4ee420fd382dde79620144991c933a0e509c7f2126c42be55fc922796492b415fee4ee459e276d7378b626b1fef5cfc62f8458da26ac77f18f4c"
+          "content": "8178b0207b18ade6e8c5e26e70728fbe0c25edd5ede74985f2cd7f734d1c3ff5a8553c9628576d7e1456c198976055391f63bcbd5a122cdadec45663612fd218"
         }
       ],
       "licenses": [
@@ -8592,13 +8072,13 @@
       ]
     },
     {
-      "bom-ref": "@typescript-eslint/visitor-keys@8.63.0",
+      "bom-ref": "@typescript-eslint/visitor-keys@8.65.0",
       "type": "library",
       "name": "@typescript-eslint/visitor-keys",
-      "version": "8.63.0",
+      "version": "8.65.0",
       "scope": "optional",
       "description": "Visitor keys used to help traverse the TypeScript-ESTree AST",
-      "purl": "pkg:npm/%40typescript-eslint/visitor-keys@8.63.0",
+      "purl": "pkg:npm/%40typescript-eslint/visitor-keys@8.65.0",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -8612,7 +8092,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/@typescript-eslint/visitor-keys/-/visitor-keys-8.63.0.tgz"
+          "url": "https://registry.npmjs.org/@typescript-eslint/visitor-keys/-/visitor-keys-8.65.0.tgz"
         },
         {
           "type": "vcs",
@@ -8630,7 +8110,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "51ec6b1c69c64e96ee40772dd84c4e73665c15b1944bd14e7ac0b1c6a74119ca48d41c58bbf2d9e94f00abaffbd97b45fea44193d9e1b861c52485d73213cc77"
+          "content": "f02ef50509068e23265eda29ee91d526ed65d8d3528457640b20fa6b67b3cece6f53f2f72d1b5bebd12d72d785c33d2660c3f32203b0d27e8e57854151665dec"
         }
       ],
       "licenses": [
@@ -8693,13 +8173,13 @@
       ]
     },
     {
-      "bom-ref": "acorn@8.17.0",
+      "bom-ref": "acorn@8.18.0",
       "type": "library",
       "name": "acorn",
-      "version": "8.17.0",
+      "version": "8.18.0",
       "scope": "optional",
       "description": "ECMAScript parser",
-      "purl": "pkg:npm/acorn@8.17.0",
+      "purl": "pkg:npm/acorn@8.18.0",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -8713,7 +8193,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/acorn/-/acorn-8.17.0.tgz"
+          "url": "https://registry.npmjs.org/acorn/-/acorn-8.18.0.tgz"
         },
         {
           "type": "vcs",
@@ -8731,7 +8211,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "c5141b0dbf419f00da7d8367e95c25f37f436158ea5d86f55d51ad58067591c0dcea2c002f8860dc1d5d665462b8434578ed87e778051b78a7eb6d4074445502"
+          "content": "946abef72af5fc6b8059a558207463befc921b9ff855f288bc2f045b14ad3dd70387f29aec51b7b703fabf8779064adabd48a584802c1b8423f37b74d8b5943d"
         }
       ],
       "licenses": [
@@ -8793,18 +8273,18 @@
       ]
     },
     {
-      "bom-ref": "ansi-styles@4.3.0",
+      "bom-ref": "ajv@6.15.0",
       "type": "library",
-      "name": "ansi-styles",
-      "version": "4.3.0",
+      "name": "ajv",
+      "version": "6.15.0",
       "scope": "optional",
-      "author": "Sindre Sorhus",
-      "description": "ANSI escape codes for styling strings in the terminal",
-      "purl": "pkg:npm/ansi-styles@4.3.0",
+      "author": "Evgeny Poberezkin",
+      "description": "Another JSON Schema Validator",
+      "purl": "pkg:npm/ajv@6.15.0",
       "properties": [
         {
           "name": "cdx:npm:package:path",
-          "value": "node_modules/ansi-styles"
+          "value": "node_modules/ajv"
         },
         {
           "name": "cdx:npm:package:development",
@@ -8814,81 +8294,31 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-4.3.0.tgz"
+          "url": "https://registry.npmjs.org/ajv/-/ajv-6.15.0.tgz"
         },
         {
           "type": "vcs",
-          "url": "git+https://github.com/chalk/ansi-styles.git"
+          "url": "git+https://github.com/ajv-validator/ajv.git"
         },
         {
           "type": "website",
-          "url": "https://github.com/chalk/ansi-styles#readme"
+          "url": "https://github.com/ajv-validator/ajv"
         },
         {
           "type": "issue-tracker",
-          "url": "https://github.com/chalk/ansi-styles/issues"
+          "url": "https://github.com/ajv-validator/ajv/issues"
         }
       ],
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "cdb07dac22404f5adb8e25436f686a2851cd60bc60b64f0d511c59dc86700f717a36dc5b5d94029e74a2d4b931f880e885d3e5169db6db05402c885e64941212"
+          "content": "7e0171ec77e8abad32b4ad9cec386717c8c8bf362038cc5fba08cb3923078cb20f81e9ea6bb4bba1a6a001352af7d995e8862f376b51982d309d3617ea23db33"
         }
       ],
       "licenses": [
         {
           "license": {
             "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "argparse@2.0.1",
-      "type": "library",
-      "name": "argparse",
-      "version": "2.0.1",
-      "scope": "optional",
-      "description": "CLI arguments parser. Native port of python's argparse.",
-      "purl": "pkg:npm/argparse@2.0.1",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/argparse"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/argparse/-/argparse-2.0.1.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git+https://github.com/nodeca/argparse.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/nodeca/argparse#readme"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/nodeca/argparse/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "f3ef56a9e6db173a57f4e47e59ae8edbd6ac22881e44ccdc1ad00835da4c1c7c80835d1fd3969215505b704a867ff3d7c35123019faadbf6c4060dc3beeacadd"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "Python-2.0"
           }
         }
       ]
@@ -8944,13 +8374,13 @@
       ]
     },
     {
-      "bom-ref": "brace-expansion@5.0.6",
+      "bom-ref": "brace-expansion@5.0.8",
       "type": "library",
       "name": "brace-expansion",
-      "version": "5.0.6",
+      "version": "5.0.8",
       "scope": "optional",
       "description": "Brace expansion as known from sh/bash",
-      "purl": "pkg:npm/brace-expansion@5.0.6",
+      "purl": "pkg:npm/brace-expansion@5.0.8",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -8964,11 +8394,11 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-5.0.6.tgz"
+          "url": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-5.0.8.tgz"
         },
         {
           "type": "vcs",
-          "url": "git+ssh://git@github.com/juliangruber/brace-expansion.git"
+          "url": "git+https://github.com/juliangruber/brace-expansion.git"
         },
         {
           "type": "website",
@@ -8982,211 +8412,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "90ba71bab638678afdb2032cc86d19f6ecec06582253f1052a18ff87dd7ff321eed1e768ed7ba2c4e207dd5709f24931b3afe33f3a08e94f558f75aa6cc43de2"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "callsites@3.1.0",
-      "type": "library",
-      "name": "callsites",
-      "version": "3.1.0",
-      "scope": "optional",
-      "author": "Sindre Sorhus",
-      "description": "Get callsites from the V8 stack trace API",
-      "purl": "pkg:npm/callsites@3.1.0",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/callsites"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/callsites/-/callsites-3.1.0.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git+https://github.com/sindresorhus/callsites.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/sindresorhus/callsites#readme"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/sindresorhus/callsites/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "3fc06302c5ef652f95203508d7584709012fef8613ebb6148b924914d588a8bdb7e6c0668d7e3eab1f4cbaf96ce62bf234435cb71e3ac502d0dda4ee13bb2c69"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "color-convert@2.0.1",
-      "type": "library",
-      "name": "color-convert",
-      "version": "2.0.1",
-      "scope": "optional",
-      "author": "Heather Arthur",
-      "description": "Plain color conversion functions",
-      "purl": "pkg:npm/color-convert@2.0.1",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/color-convert"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/color-convert/-/color-convert-2.0.1.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git+https://github.com/Qix-/color-convert.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/Qix-/color-convert#readme"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/Qix-/color-convert/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "4511023ec8fb8aeff16f9a0a61cb051d2a6914d9ec8ffe763954d129be333f9a275f0545df3566993a0d70e7c60be0910e97cafd4e7ce1f320dfc64709a12529"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "color-name@1.1.4",
-      "type": "library",
-      "name": "color-name",
-      "version": "1.1.4",
-      "scope": "optional",
-      "author": "DY",
-      "description": "A list of color names and its values",
-      "purl": "pkg:npm/color-name@1.1.4",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/color-name"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/color-name/-/color-name-1.1.4.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git+ssh://git@github.com/colorjs/color-name.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/colorjs/color-name"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/colorjs/color-name/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "74ecbedc0b96ddadb035b64722e319a537208c6b8b53fb812ffb9b71917d3976c3a3c7dfe0ef32569e417f479f4bcb84a18a39ab8171edd63d3a04065e002c40"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "concat-map@0.0.1",
-      "type": "library",
-      "name": "concat-map",
-      "version": "0.0.1",
-      "scope": "optional",
-      "author": "James Halliday",
-      "description": "concatenative mapdashery",
-      "purl": "pkg:npm/concat-map@0.0.1",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/concat-map"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/concat-map/-/concat-map-0.0.1.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git://github.com/substack/node-concat-map.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/substack/node-concat-map#readme"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/substack/node-concat-map/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "fd2aefe1db30c903417e8846a73f68e986f71b3dd2ad40ea047e6b4ee84647b6a1b656d82a7571c366c214c4658da03b1171da5d9f30b07768745bdb9212a6aa"
+          "content": "259c83caadc3e005227ca4cf381ec310b7fa5ec07759d3ee3710ada1bd6f1573ec49785d0221c1589fed27c1c073d687f3804afb924564b36424ac771bd93342"
         }
       ],
       "licenses": [
@@ -9402,14 +8628,14 @@
       ]
     },
     {
-      "bom-ref": "eslint@9.39.4",
+      "bom-ref": "eslint@10.8.0",
       "type": "library",
       "name": "eslint",
-      "version": "9.39.4",
+      "version": "10.8.0",
       "scope": "optional",
       "author": "Nicholas C. Zakas",
       "description": "An AST-based pattern checker for JavaScript.",
-      "purl": "pkg:npm/eslint@9.39.4",
+      "purl": "pkg:npm/eslint@10.8.0",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -9423,7 +8649,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/eslint/-/eslint-9.39.4.tgz"
+          "url": "https://registry.npmjs.org/eslint/-/eslint-10.8.0.tgz"
         },
         {
           "type": "vcs",
@@ -9441,7 +8667,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "5e83237413b07bf7ac56012f2e636c0f72111e49bb7db288506beb95e9682575198031e283620f58d9e2bfe1b08f2257cee36a56396be7ee32554663c9c2707d"
+          "content": "9ee28abcdfa82013b492837b4e6edd9649a791cdb59adb744092f000ace32ead78cba9514dd546dfa3191c9f1e407c1d24cc196d034c94f39879d32afe8549bd"
         }
       ],
       "licenses": [
@@ -9453,14 +8679,14 @@
       ]
     },
     {
-      "bom-ref": "eslint-config-prettier@9.1.2",
+      "bom-ref": "eslint-config-prettier@10.1.8",
       "type": "library",
       "name": "eslint-config-prettier",
-      "version": "9.1.2",
+      "version": "10.1.8",
       "scope": "optional",
       "author": "Simon Lydell",
       "description": "Turns off all rules that are unnecessary or might conflict with Prettier.",
-      "purl": "pkg:npm/eslint-config-prettier@9.1.2",
+      "purl": "pkg:npm/eslint-config-prettier@10.1.8",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -9474,7 +8700,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/eslint-config-prettier/-/eslint-config-prettier-9.1.2.tgz"
+          "url": "https://registry.npmjs.org/eslint-config-prettier/-/eslint-config-prettier-10.1.8.tgz"
         },
         {
           "type": "vcs",
@@ -9492,7 +8718,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "888d5ff83d958869febafbf91ee1d551a9a0f25978b4df8944719ce88262e133fd2a5f7be82e7b7f33d782c79736cf2fd2203c6922691ec4d68c36fd4096a619"
+          "content": "f36199523452d29fe381a9dfeaad6b10edb9552a071f484a3c24eb8229653e3748ff76e0061004d50cc7ac74e2ce3a51bf2ea9180bca8c326d936a45f4d0eaf3"
         }
       ],
       "licenses": [
@@ -9504,13 +8730,13 @@
       ]
     },
     {
-      "bom-ref": "eslint-scope@8.4.0",
+      "bom-ref": "eslint-scope@9.1.2",
       "type": "library",
       "name": "eslint-scope",
-      "version": "8.4.0",
+      "version": "9.1.2",
       "scope": "optional",
       "description": "ECMAScript scope analyzer for ESLint",
-      "purl": "pkg:npm/eslint-scope@8.4.0",
+      "purl": "pkg:npm/eslint-scope@9.1.2",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -9524,7 +8750,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/eslint-scope/-/eslint-scope-8.4.0.tgz"
+          "url": "https://registry.npmjs.org/eslint-scope/-/eslint-scope-9.1.2.tgz"
         },
         {
           "type": "vcs",
@@ -9542,7 +8768,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "b0d5ce7ca0a7ef8aedf1120228cbc94bb5ca57f5e4f6403b0f226bf262629374bb0b0832dea964926c92dae401de388983a54d75977fa43049bb49ef1b63654e"
+          "content": "c52f741f9d5c2b0d2396dc66be61f2d886a2d4b22aadf6f0e7b6fbf70fc9ecc7ef0df90890567e923eb30b7063b54c21d79d07b1249dc5765cb2ebfbda688315"
         }
       ],
       "licenses": [
@@ -9605,217 +8831,14 @@
       ]
     },
     {
-      "bom-ref": "ajv@6.15.0",
-      "type": "library",
-      "name": "ajv",
-      "version": "6.15.0",
-      "scope": "optional",
-      "author": "Evgeny Poberezkin",
-      "description": "Another JSON Schema Validator",
-      "purl": "pkg:npm/ajv@6.15.0",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/eslint/node_modules/ajv"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/ajv/-/ajv-6.15.0.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git+https://github.com/ajv-validator/ajv.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/ajv-validator/ajv"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/ajv-validator/ajv/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "7e0171ec77e8abad32b4ad9cec386717c8c8bf362038cc5fba08cb3923078cb20f81e9ea6bb4bba1a6a001352af7d995e8862f376b51982d309d3617ea23db33"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "balanced-match@1.0.2",
-      "type": "library",
-      "name": "balanced-match",
-      "version": "1.0.2",
-      "scope": "optional",
-      "author": "Julian Gruber",
-      "description": "Match balanced character pairs, like \"{\" and \"}\"",
-      "purl": "pkg:npm/balanced-match@1.0.2",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/eslint/node_modules/balanced-match"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/balanced-match/-/balanced-match-1.0.2.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git://github.com/juliangruber/balanced-match.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/juliangruber/balanced-match"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/juliangruber/balanced-match/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "de849e50ed13315ebb84dd4099b5ec2b8c9aa94eed8e21e56f144364ea47d0a5bdf82797e1b440697d009f1b74b71d8cae94695b041a3f02252121098585393f"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "brace-expansion@1.1.15",
-      "type": "library",
-      "name": "brace-expansion",
-      "version": "1.1.15",
-      "scope": "optional",
-      "author": "Julian Gruber",
-      "description": "Brace expansion as known from sh/bash",
-      "purl": "pkg:npm/brace-expansion@1.1.15",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/eslint/node_modules/brace-expansion"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-1.1.15.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git://github.com/juliangruber/brace-expansion.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/juliangruber/brace-expansion"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/juliangruber/brace-expansion/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "1303820c47b1e2ab83dfb5e1a8cde89b0b4ca098ebfff8ac519cf5268a543569acfb8676562c8cfe4d5821178fa6854d9d0844367c6d1632dac4d1eb4fbc4852"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "chalk@4.1.2",
-      "type": "library",
-      "name": "chalk",
-      "version": "4.1.2",
-      "scope": "optional",
-      "description": "Terminal string styling done right",
-      "purl": "pkg:npm/chalk@4.1.2",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/eslint/node_modules/chalk"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/chalk/-/chalk-4.1.2.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git+https://github.com/chalk/chalk.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/chalk/chalk#readme"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/chalk/chalk/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "a0a9db845c91217a54b9ecfc881326c846b89db8f820e432ba173fc32f6463bfd654f73020ef5503aebc3eef1190eefed06efa48b44e7b2c3d0a9434eb58b898"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "eslint-visitor-keys@4.2.1",
+      "bom-ref": "eslint-visitor-keys@5.0.1",
       "type": "library",
       "name": "eslint-visitor-keys",
-      "version": "4.2.1",
+      "version": "5.0.1",
       "scope": "optional",
       "author": "Toru Nagashima",
       "description": "Constants and utilities about visitor keys to traverse AST.",
-      "purl": "pkg:npm/eslint-visitor-keys@4.2.1",
+      "purl": "pkg:npm/eslint-visitor-keys@5.0.1",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -9829,7 +8852,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/eslint-visitor-keys/-/eslint-visitor-keys-4.2.1.tgz"
+          "url": "https://registry.npmjs.org/eslint-visitor-keys/-/eslint-visitor-keys-5.0.1.tgz"
         },
         {
           "type": "vcs",
@@ -9847,7 +8870,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "521764e6c7ea71e7bff47feb08e262918cfaee8d1ad93c3684644f386d98d51d9d83b6eb45ed6e1b4c9a3500c7bbe4cefee40f17fe5e09aa6f612987523b7b25"
+          "content": "b43e34787c40df98743c421935e223907a034786238c9a77e1b88cd260efa6505efff981f881c2a870c657ba7117eecc9254ef8a085c08f3d90bbca75b28dd4c"
         }
       ],
       "licenses": [
@@ -9910,116 +8933,14 @@
       ]
     },
     {
-      "bom-ref": "json-schema-traverse@0.4.1",
-      "type": "library",
-      "name": "json-schema-traverse",
-      "version": "0.4.1",
-      "scope": "optional",
-      "author": "Evgeny Poberezkin",
-      "description": "Traverse JSON Schema passing each schema object to callback",
-      "purl": "pkg:npm/json-schema-traverse@0.4.1",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/eslint/node_modules/json-schema-traverse"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/json-schema-traverse/-/json-schema-traverse-0.4.1.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git+https://github.com/epoberezkin/json-schema-traverse.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/epoberezkin/json-schema-traverse#readme"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/epoberezkin/json-schema-traverse/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "c5b6c21f9742614e53f0b704861ba1ec727cf075ee5b7aac237634cce64529f6441dca5688753f271ce4eb6f41aec69bfe63221d0b62f7030ffbce3944f7b756"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "minimatch@3.1.5",
-      "type": "library",
-      "name": "minimatch",
-      "version": "3.1.5",
-      "scope": "optional",
-      "author": "Isaac Z. Schlueter",
-      "description": "a glob matcher in javascript",
-      "purl": "pkg:npm/minimatch@3.1.5",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/eslint/node_modules/minimatch"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/minimatch/-/minimatch-3.1.5.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git://github.com/isaacs/minimatch.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/isaacs/minimatch#readme"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/isaacs/minimatch/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "5608d652c9e74fa9fe35493a799abbef37857695b62d60f33facc51ab09b1d789836e9790f3aa4d871d0e6e147d83356e576e9f3e8d5cda78db7de2cb04125e3"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "ISC"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "espree@10.4.0",
+      "bom-ref": "espree@11.2.0",
       "type": "library",
       "name": "espree",
-      "version": "10.4.0",
+      "version": "11.2.0",
       "scope": "optional",
       "author": "Nicholas C. Zakas",
       "description": "An Esprima-compatible JavaScript parser built on Acorn",
-      "purl": "pkg:npm/espree@10.4.0",
+      "purl": "pkg:npm/espree@11.2.0",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -10033,7 +8954,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/espree/-/espree-10.4.0.tgz"
+          "url": "https://registry.npmjs.org/espree/-/espree-11.2.0.tgz"
         },
         {
           "type": "vcs",
@@ -10051,7 +8972,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "8fa3c0436b94afbf4f6610633f90b97e197c7b7f459919ce8ec0f99469d6ac553c8b61bbefab412bbfa73fc2ae4144d3c80654c1f42a5c082b547e4c6c7f4261"
+          "content": "ee9dc3ad5108a295b50756af0062ee0928758ee6dcd351f624773c078aaa19b966839808f72ba60600028d6a3826521cd38b9fba0e3127749023c1e44bf460cf"
         }
       ],
       "licenses": [
@@ -10063,14 +8984,14 @@
       ]
     },
     {
-      "bom-ref": "eslint-visitor-keys@4.2.1",
+      "bom-ref": "eslint-visitor-keys@5.0.1",
       "type": "library",
       "name": "eslint-visitor-keys",
-      "version": "4.2.1",
+      "version": "5.0.1",
       "scope": "optional",
       "author": "Toru Nagashima",
       "description": "Constants and utilities about visitor keys to traverse AST.",
-      "purl": "pkg:npm/eslint-visitor-keys@4.2.1",
+      "purl": "pkg:npm/eslint-visitor-keys@5.0.1",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -10084,7 +9005,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/eslint-visitor-keys/-/eslint-visitor-keys-4.2.1.tgz"
+          "url": "https://registry.npmjs.org/eslint-visitor-keys/-/eslint-visitor-keys-5.0.1.tgz"
         },
         {
           "type": "vcs",
@@ -10102,7 +9023,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "521764e6c7ea71e7bff47feb08e262918cfaee8d1ad93c3684644f386d98d51d9d83b6eb45ed6e1b4c9a3500c7bbe4cefee40f17fe5e09aa6f612987523b7b25"
+          "content": "b43e34787c40df98743c421935e223907a034786238c9a77e1b88cd260efa6505efff981f881c2a870c657ba7117eecc9254ef8a085c08f3d90bbca75b28dd4c"
         }
       ],
       "licenses": [
@@ -10672,14 +9593,14 @@
       ]
     },
     {
-      "bom-ref": "flatted@3.4.2",
+      "bom-ref": "flatted@3.4.3",
       "type": "library",
       "name": "flatted",
-      "version": "3.4.2",
+      "version": "3.4.3",
       "scope": "optional",
       "author": "Andrea Giammarchi",
       "description": "A super light and fast circular JSON parser.",
-      "purl": "pkg:npm/flatted@3.4.2",
+      "purl": "pkg:npm/flatted@3.4.3",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -10693,7 +9614,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/flatted/-/flatted-3.4.2.tgz"
+          "url": "https://registry.npmjs.org/flatted/-/flatted-3.4.3.tgz"
         },
         {
           "type": "vcs",
@@ -10711,7 +9632,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "3e30ec7bb47385c3e4209c32e6deca3d641267d7006f341771a7ec7ad4280fbb0e2514251a290d6f1ef2669d8ea2d0e7272ac371bc91ab74ed6f5f2260eaa4c4"
+          "content": "ff38a95f1c8eeab1afb8d1838942d8f4cbc419291bda0686e06187e3280c8b4659cf23077546419a7b499b1e71d46d95b8fcad0b018de31b093fa730fac2bebd"
         }
       ],
       "licenses": [
@@ -10825,116 +9746,14 @@
       ]
     },
     {
-      "bom-ref": "globals@14.0.0",
-      "type": "library",
-      "name": "globals",
-      "version": "14.0.0",
-      "scope": "optional",
-      "author": "Sindre Sorhus",
-      "description": "Global identifiers from different JavaScript environments",
-      "purl": "pkg:npm/globals@14.0.0",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/globals"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/globals/-/globals-14.0.0.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git+https://github.com/sindresorhus/globals.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/sindresorhus/globals#readme"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/sindresorhus/globals/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "a1a846bee3064253f0fe2bc86018d54ab5807d62c17a4bb9b693c4d9f38f2e2f961df7c859bba1dad0a38724214c13cc7f913d8c3107e053a64d8818c1b2b0b5"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "has-flag@4.0.0",
-      "type": "library",
-      "name": "has-flag",
-      "version": "4.0.0",
-      "scope": "optional",
-      "author": "Sindre Sorhus",
-      "description": "Check if argv has a specific flag",
-      "purl": "pkg:npm/has-flag@4.0.0",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/has-flag"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/has-flag/-/has-flag-4.0.0.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git+https://github.com/sindresorhus/has-flag.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/sindresorhus/has-flag#readme"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/sindresorhus/has-flag/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "1329094ff4352a34d672da698080207d23b4b4a56e6548e180caf5ee4a93ba6325e807efdc421295e53ba99533a170c54c01d30c2e0d3a81bf67153712f94c3d"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "ignore@7.0.5",
+      "bom-ref": "ignore@7.0.6",
       "type": "library",
       "name": "ignore",
-      "version": "7.0.5",
+      "version": "7.0.6",
       "scope": "optional",
       "author": "kael",
       "description": "Ignore is a manager and filter for .gitignore rules, the one used by eslint, gitbook and many others.",
-      "purl": "pkg:npm/ignore@7.0.5",
+      "purl": "pkg:npm/ignore@7.0.6",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -10948,7 +9767,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/ignore/-/ignore-7.0.5.tgz"
+          "url": "https://registry.npmjs.org/ignore/-/ignore-7.0.6.tgz"
         },
         {
           "type": "vcs",
@@ -10966,58 +9785,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "1ece7dc4135f508ba730581601b197e5cabaf3ddc86d68382a7ae36d8c17dedc74ceda2b5604c303a076b317fc7a31c9e30cfc06a194318967ccd05eaf936f1a"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "import-fresh@3.3.1",
-      "type": "library",
-      "name": "import-fresh",
-      "version": "3.3.1",
-      "scope": "optional",
-      "author": "Sindre Sorhus",
-      "description": "Import a module while bypassing the cache",
-      "purl": "pkg:npm/import-fresh@3.3.1",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/import-fresh"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/import-fresh/-/import-fresh-3.3.1.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git+https://github.com/sindresorhus/import-fresh.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/sindresorhus/import-fresh#readme"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/sindresorhus/import-fresh/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "4d1dca7eb4d94d82cf07a8d48dfc7a305f56716ac72fdb2ee5339b2b866462005d58a3ce1684a8408744b93b91f36a66b711f6b29586f61e9eb707ebd692c1a9"
+          "content": "04083a42413c5be4ee40baebc34520afb1de81776e46eba3f3fb62da448e73e8f3d5d9b1f3f58d723afa5c69eae58a435b1170c1a6afa83d3e8c850e29e953b3"
         }
       ],
       "licenses": [
@@ -11233,57 +10001,6 @@
       ]
     },
     {
-      "bom-ref": "js-yaml@4.3.0",
-      "type": "library",
-      "name": "js-yaml",
-      "version": "4.3.0",
-      "scope": "optional",
-      "author": "Vladimir Zapparov",
-      "description": "YAML 1.2 parser and serializer",
-      "purl": "pkg:npm/js-yaml@4.3.0",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/js-yaml"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/js-yaml/-/js-yaml-4.3.0.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git+https://github.com/nodeca/js-yaml.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/nodeca/js-yaml#readme"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/nodeca/js-yaml/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "d6d77bf3c6809e7679aaced5d90211975a308ed6296cab7be3d637c5abaa420c0820617fc575b3d70313101c793b72cade55cb56ea973dd3f18f6068147696f5"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
       "bom-ref": "json-buffer@3.0.1",
       "type": "library",
       "name": "json-buffer",
@@ -11324,6 +10041,57 @@
         {
           "alg": "SHA-512",
           "content": "e1b57905f4769aa7d04c99be579b4f3dd7fe669ba1888bd3b8007983c91cad7399a534ff430c15456072c17d68cebea512e3dd6c7c70689966f46ea6236b1f49"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "json-schema-traverse@0.4.1",
+      "type": "library",
+      "name": "json-schema-traverse",
+      "version": "0.4.1",
+      "scope": "optional",
+      "author": "Evgeny Poberezkin",
+      "description": "Traverse JSON Schema passing each schema object to callback",
+      "purl": "pkg:npm/json-schema-traverse@0.4.1",
+      "properties": [
+        {
+          "name": "cdx:npm:package:path",
+          "value": "node_modules/json-schema-traverse"
+        },
+        {
+          "name": "cdx:npm:package:development",
+          "value": "true"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/json-schema-traverse/-/json-schema-traverse-0.4.1.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/epoberezkin/json-schema-traverse.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/epoberezkin/json-schema-traverse#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/epoberezkin/json-schema-traverse/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "c5b6c21f9742614e53f0b704861ba1ec727cf075ee5b7aac237634cce64529f6441dca5688753f271ce4eb6f41aec69bfe63221d0b62f7030ffbce3944f7b756"
         }
       ],
       "licenses": [
@@ -11528,57 +10296,6 @@
         {
           "alg": "SHA-512",
           "content": "88f64ae9e6236f146edee078fd667712c10830914ca80a28a65dd1fb3baad148dc026fcc3ba282c1e0e03df3f77a54f3b6828fdcab67547c539f63470520d553"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "lodash.merge@4.6.2",
-      "type": "library",
-      "name": "lodash.merge",
-      "version": "4.6.2",
-      "scope": "optional",
-      "author": "John-David Dalton",
-      "description": "The Lodash method `_.merge` exported as a module.",
-      "purl": "pkg:npm/lodash.merge@4.6.2",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/lodash.merge"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/lodash.merge/-/lodash.merge-4.6.2.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git+https://github.com/lodash/lodash.git"
-        },
-        {
-          "type": "website",
-          "url": "https://lodash.com/"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/lodash/lodash/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "d0aa63a97455beb6320ac5f5b3047f5d32b4bdae9542440ce8c368ecfa96efb0728c086801103c11facfd4de3e2a52a3f184b46540ad453fd852e872603ba321"
         }
       ],
       "licenses": [
@@ -11946,57 +10663,6 @@
       ]
     },
     {
-      "bom-ref": "parent-module@1.0.1",
-      "type": "library",
-      "name": "parent-module",
-      "version": "1.0.1",
-      "scope": "optional",
-      "author": "Sindre Sorhus",
-      "description": "Get the path of the parent module",
-      "purl": "pkg:npm/parent-module@1.0.1",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/parent-module"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/parent-module/-/parent-module-1.0.1.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git+https://github.com/sindresorhus/parent-module.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/sindresorhus/parent-module#readme"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/sindresorhus/parent-module/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "190d84591a5057cfe8f80c3c62ab5f6593df3515996246e2744f64e6ba65fe10b7bed1c705f1a6d887e2eaa595f9ca031a4ad42990311372e8b7991cb11961fa"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
       "bom-ref": "path-exists@4.0.0",
       "type": "library",
       "name": "path-exists",
@@ -12201,14 +10867,14 @@
       ]
     },
     {
-      "bom-ref": "prettier@3.9.4",
+      "bom-ref": "prettier@3.9.6",
       "type": "library",
       "name": "prettier",
-      "version": "3.9.4",
+      "version": "3.9.6",
       "scope": "optional",
       "author": "James Long",
       "description": "Prettier is an opinionated code formatter",
-      "purl": "pkg:npm/prettier@3.9.4",
+      "purl": "pkg:npm/prettier@3.9.6",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -12222,7 +10888,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/prettier/-/prettier-3.9.4.tgz"
+          "url": "https://registry.npmjs.org/prettier/-/prettier-3.9.6.tgz"
         },
         {
           "type": "vcs",
@@ -12240,7 +10906,7 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "c961bfa3fe2825fa34dfa10a01f2ba0020280ce7c77911f1e2dbb191f05989ab94462692998c25a4eaf92d0a8ab489110f6cf53cbb5e99ed96a311278f8b474e"
+          "content": "3a9374cf355d89a880871a6eba3e5e7e9212e2c63d8fb6d8eae4799a78f9c8fcc691d92334a4897944e13dbeb4270dbd42e019800e28fbf881e3d90589a057ea"
         }
       ],
       "licenses": [
@@ -12292,57 +10958,6 @@
         {
           "alg": "SHA-512",
           "content": "bd8b7b503d54f5683ad77f2c84bb4b3af740bbef03b02fe2945b44547707fb0c9d712a4d136d007d239db9fe8c91115a84be4563b5f5a14ee7295645b5fabc16"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "resolve-from@4.0.0",
-      "type": "library",
-      "name": "resolve-from",
-      "version": "4.0.0",
-      "scope": "optional",
-      "author": "Sindre Sorhus",
-      "description": "Resolve the path of a module like `require.resolve()` but from a given path",
-      "purl": "pkg:npm/resolve-from@4.0.0",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/resolve-from"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/resolve-from/-/resolve-from-4.0.0.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git+https://github.com/sindresorhus/resolve-from.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/sindresorhus/resolve-from#readme"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/sindresorhus/resolve-from/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "a5bfcc6265ecb40932b11171f2988d235b4614d408140def904dc6ab812e035745ea01e9ffebe066ab021896a9bf2f0ddd0fb8a3b170beab8f25c9d9ed1632e2"
         }
       ],
       "licenses": [
@@ -12496,108 +11111,6 @@
         {
           "alg": "SHA-512",
           "content": "efef9d161b5cc77df9dee05aabc0c347836ec417ad0730bb6503a19934089c711de9b4ab5dd884cb30af1b4ed9e3851874b4a1594c97b7933fca1cfc7a471bd4"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "strip-json-comments@3.1.1",
-      "type": "library",
-      "name": "strip-json-comments",
-      "version": "3.1.1",
-      "scope": "optional",
-      "author": "Sindre Sorhus",
-      "description": "Strip comments from JSON. Lets you use comments in your JSON files!",
-      "purl": "pkg:npm/strip-json-comments@3.1.1",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/strip-json-comments"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/strip-json-comments/-/strip-json-comments-3.1.1.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git+https://github.com/sindresorhus/strip-json-comments.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/sindresorhus/strip-json-comments#readme"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/sindresorhus/strip-json-comments/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "e9f3dcf91e22870a8fe8dfda22fd9fd60307f25395b56407a2a0b8c8aea8483555a1cba602c7c2aa39179ea89832198cc12fe61072e9ed57a196ddea97a9448a"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "MIT"
-          }
-        }
-      ]
-    },
-    {
-      "bom-ref": "supports-color@7.2.0",
-      "type": "library",
-      "name": "supports-color",
-      "version": "7.2.0",
-      "scope": "optional",
-      "author": "Sindre Sorhus",
-      "description": "Detect whether a terminal supports color",
-      "purl": "pkg:npm/supports-color@7.2.0",
-      "properties": [
-        {
-          "name": "cdx:npm:package:path",
-          "value": "node_modules/supports-color"
-        },
-        {
-          "name": "cdx:npm:package:development",
-          "value": "true"
-        }
-      ],
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://registry.npmjs.org/supports-color/-/supports-color-7.2.0.tgz"
-        },
-        {
-          "type": "vcs",
-          "url": "git+https://github.com/chalk/supports-color.git"
-        },
-        {
-          "type": "website",
-          "url": "https://github.com/chalk/supports-color#readme"
-        },
-        {
-          "type": "issue-tracker",
-          "url": "https://github.com/chalk/supports-color/issues"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "aa9080bd197db2db8e1ef78ab27ec79dc251befe74d6a21a70acd094effe2f0c5cf7ed2adb02f2bf80dfbedf34fc33e7da9a8e06c25d0e2a205c647df8ebf047"
         }
       ],
       "licenses": [
@@ -13069,26 +11582,26 @@
   ],
   "dependencies": [
     {
-      "ref": "focusa-pi-bridge@0.9.141",
+      "ref": "focusa-pi-bridge@0.9.142",
       "dependsOn": [
-        "@sinclair/typebox@0.34.49",
-        "@earendil-works/pi-coding-agent@0.83.0",
-        "@earendil-works/pi-tui@0.83.0",
+        "@sinclair/typebox@0.34.52",
+        "@earendil-works/pi-coding-agent@0.82.1",
+        "@earendil-works/pi-tui@0.82.1",
         "@types/node@25.5.0",
-        "@typescript-eslint/eslint-plugin@8.63.0",
-        "@typescript-eslint/parser@8.63.0",
-        "eslint@9.39.4",
-        "eslint-config-prettier@9.1.2",
-        "prettier@3.9.4",
+        "@typescript-eslint/eslint-plugin@8.65.0",
+        "@typescript-eslint/parser@8.65.0",
+        "eslint@10.8.0",
+        "eslint-config-prettier@10.1.8",
+        "prettier@3.9.6",
         "typescript@5.9.3"
       ]
     },
     {
-      "ref": "@earendil-works/pi-coding-agent@0.83.0",
+      "ref": "@earendil-works/pi-coding-agent@0.82.1",
       "dependsOn": [
-        "@earendil-works/pi-agent-core@0.83.0",
-        "@earendil-works/pi-ai@0.83.0",
-        "@earendil-works/pi-tui@0.83.0",
+        "@earendil-works/pi-agent-core@0.82.1",
+        "@earendil-works/pi-ai@0.82.1",
+        "@earendil-works/pi-tui@0.82.1",
         "@silvia-odwyer/photon-node@0.3.4",
         "chalk@5.6.2",
         "cross-spawn@7.0.6",
@@ -13101,7 +11614,7 @@
         "minimatch@10.2.5",
         "proper-lockfile@4.1.2",
         "semver@7.8.0",
-        "typebox@1.3.7",
+        "typebox@1.1.38",
         "undici@8.5.0",
         "yaml@2.9.0",
         "@mariozechner/clipboard@0.3.9"
@@ -13385,17 +11898,17 @@
       "dependsOn": []
     },
     {
-      "ref": "@earendil-works/pi-agent-core@0.83.0",
+      "ref": "@earendil-works/pi-agent-core@0.82.1",
       "dependsOn": [
-        "@earendil-works/pi-ai@0.83.0",
+        "@earendil-works/pi-ai@0.82.1",
         "diff@8.0.4",
         "ignore@7.0.5",
-        "typebox@1.3.7",
+        "typebox@1.1.38",
         "yaml@2.9.0"
       ]
     },
     {
-      "ref": "@earendil-works/pi-ai@0.83.0",
+      "ref": "@earendil-works/pi-ai@0.82.1",
       "dependsOn": [
         "@anthropic-ai/sdk@0.91.1",
         "@aws-sdk/client-bedrock-runtime@3.1048.0",
@@ -13407,11 +11920,11 @@
         "https-proxy-agent@7.0.6",
         "openai@6.26.0",
         "partial-json@0.1.7",
-        "typebox@1.3.7"
+        "typebox@1.1.38"
       ]
     },
     {
-      "ref": "@earendil-works/pi-tui@0.83.0",
+      "ref": "@earendil-works/pi-tui@0.82.1",
       "dependsOn": [
         "get-east-asian-width@1.6.0",
         "marked@18.0.5"
@@ -13925,7 +12438,7 @@
       "dependsOn": []
     },
     {
-      "ref": "typebox@1.3.7",
+      "ref": "typebox@1.1.38",
       "dependsOn": []
     },
     {
@@ -13969,16 +12482,16 @@
       ]
     },
     {
-      "ref": "@earendil-works/pi-tui@0.83.0",
+      "ref": "@earendil-works/pi-tui@0.82.1",
       "dependsOn": [
         "get-east-asian-width@1.6.0",
         "marked@18.0.5"
       ]
     },
     {
-      "ref": "@eslint-community/eslint-utils@4.9.1",
+      "ref": "@eslint-community/eslint-utils@4.10.1",
       "dependsOn": [
-        "eslint@9.39.4",
+        "eslint@10.8.0",
         "eslint-visitor-keys@3.4.3"
       ]
     },
@@ -13987,102 +12500,33 @@
       "dependsOn": []
     },
     {
-      "ref": "@eslint/config-array@0.21.2",
+      "ref": "@eslint/config-array@0.23.5",
       "dependsOn": [
-        "@eslint/object-schema@2.1.7",
+        "@eslint/object-schema@3.0.5",
         "debug@4.4.3",
-        "minimatch@3.1.5"
+        "minimatch@10.2.5"
       ]
     },
     {
-      "ref": "balanced-match@1.0.2",
-      "dependsOn": []
-    },
-    {
-      "ref": "brace-expansion@1.1.15",
+      "ref": "@eslint/config-helpers@0.7.0",
       "dependsOn": [
-        "balanced-match@1.0.2",
-        "concat-map@0.0.1"
+        "@eslint/core@1.2.1"
       ]
     },
     {
-      "ref": "minimatch@3.1.5",
-      "dependsOn": [
-        "brace-expansion@1.1.15"
-      ]
-    },
-    {
-      "ref": "@eslint/config-helpers@0.4.2",
-      "dependsOn": [
-        "@eslint/core@0.17.0"
-      ]
-    },
-    {
-      "ref": "@eslint/core@0.17.0",
+      "ref": "@eslint/core@1.2.1",
       "dependsOn": [
         "@types/json-schema@7.0.15"
       ]
     },
     {
-      "ref": "@eslint/eslintrc@3.3.5",
-      "dependsOn": [
-        "ajv@6.15.0",
-        "debug@4.4.3",
-        "espree@10.4.0",
-        "globals@14.0.0",
-        "ignore@5.3.2",
-        "import-fresh@3.3.1",
-        "js-yaml@4.3.0",
-        "minimatch@3.1.5",
-        "strip-json-comments@3.1.1"
-      ]
-    },
-    {
-      "ref": "ajv@6.15.0",
-      "dependsOn": [
-        "fast-deep-equal@3.1.3",
-        "fast-json-stable-stringify@2.1.0",
-        "json-schema-traverse@0.4.1",
-        "uri-js@4.4.1"
-      ]
-    },
-    {
-      "ref": "balanced-match@1.0.2",
+      "ref": "@eslint/object-schema@3.0.5",
       "dependsOn": []
     },
     {
-      "ref": "brace-expansion@1.1.15",
+      "ref": "@eslint/plugin-kit@0.7.2",
       "dependsOn": [
-        "balanced-match@1.0.2",
-        "concat-map@0.0.1"
-      ]
-    },
-    {
-      "ref": "ignore@5.3.2",
-      "dependsOn": []
-    },
-    {
-      "ref": "json-schema-traverse@0.4.1",
-      "dependsOn": []
-    },
-    {
-      "ref": "minimatch@3.1.5",
-      "dependsOn": [
-        "brace-expansion@1.1.15"
-      ]
-    },
-    {
-      "ref": "@eslint/js@9.39.4",
-      "dependsOn": []
-    },
-    {
-      "ref": "@eslint/object-schema@2.1.7",
-      "dependsOn": []
-    },
-    {
-      "ref": "@eslint/plugin-kit@0.4.1",
-      "dependsOn": [
-        "@eslint/core@0.17.0",
+        "@eslint/core@1.2.1",
         "levn@0.4.1"
       ]
     },
@@ -14113,7 +12557,11 @@
       "dependsOn": []
     },
     {
-      "ref": "@sinclair/typebox@0.34.49",
+      "ref": "@sinclair/typebox@0.34.52",
+      "dependsOn": []
+    },
+    {
+      "ref": "@types/esrecurse@4.3.1",
       "dependsOn": []
     },
     {
@@ -14131,73 +12579,73 @@
       ]
     },
     {
-      "ref": "@typescript-eslint/eslint-plugin@8.63.0",
+      "ref": "@typescript-eslint/eslint-plugin@8.65.0",
       "dependsOn": [
-        "eslint@9.39.4",
+        "eslint@10.8.0",
         "typescript@5.9.3",
-        "@typescript-eslint/parser@8.63.0",
+        "@typescript-eslint/parser@8.65.0",
         "@eslint-community/regexpp@4.12.2",
-        "ignore@7.0.5",
+        "ignore@7.0.6",
         "natural-compare@1.4.0",
         "ts-api-utils@2.5.0",
-        "@typescript-eslint/scope-manager@8.63.0",
-        "@typescript-eslint/type-utils@8.63.0",
-        "@typescript-eslint/utils@8.63.0",
-        "@typescript-eslint/visitor-keys@8.63.0"
+        "@typescript-eslint/scope-manager@8.65.0",
+        "@typescript-eslint/visitor-keys@8.65.0",
+        "@typescript-eslint/type-utils@8.65.0",
+        "@typescript-eslint/utils@8.65.0"
       ]
     },
     {
-      "ref": "@typescript-eslint/parser@8.63.0",
+      "ref": "@typescript-eslint/parser@8.65.0",
       "dependsOn": [
-        "eslint@9.39.4",
+        "eslint@10.8.0",
         "typescript@5.9.3",
         "debug@4.4.3",
-        "@typescript-eslint/scope-manager@8.63.0",
-        "@typescript-eslint/types@8.63.0",
-        "@typescript-eslint/typescript-estree@8.63.0",
-        "@typescript-eslint/visitor-keys@8.63.0"
+        "@typescript-eslint/scope-manager@8.65.0",
+        "@typescript-eslint/visitor-keys@8.65.0",
+        "@typescript-eslint/typescript-estree@8.65.0",
+        "@typescript-eslint/types@8.65.0"
       ]
     },
     {
-      "ref": "@typescript-eslint/project-service@8.63.0",
+      "ref": "@typescript-eslint/project-service@8.65.0",
       "dependsOn": [
         "typescript@5.9.3",
         "debug@4.4.3",
-        "@typescript-eslint/tsconfig-utils@8.63.0",
-        "@typescript-eslint/types@8.63.0"
+        "@typescript-eslint/tsconfig-utils@8.65.0",
+        "@typescript-eslint/types@8.65.0"
       ]
     },
     {
-      "ref": "@typescript-eslint/scope-manager@8.63.0",
+      "ref": "@typescript-eslint/scope-manager@8.65.0",
       "dependsOn": [
-        "@typescript-eslint/types@8.63.0",
-        "@typescript-eslint/visitor-keys@8.63.0"
+        "@typescript-eslint/types@8.65.0",
+        "@typescript-eslint/visitor-keys@8.65.0"
       ]
     },
     {
-      "ref": "@typescript-eslint/tsconfig-utils@8.63.0",
+      "ref": "@typescript-eslint/tsconfig-utils@8.65.0",
       "dependsOn": [
         "typescript@5.9.3"
       ]
     },
     {
-      "ref": "@typescript-eslint/type-utils@8.63.0",
+      "ref": "@typescript-eslint/type-utils@8.65.0",
       "dependsOn": [
-        "eslint@9.39.4",
+        "eslint@10.8.0",
         "typescript@5.9.3",
         "debug@4.4.3",
         "ts-api-utils@2.5.0",
-        "@typescript-eslint/types@8.63.0",
-        "@typescript-eslint/utils@8.63.0",
-        "@typescript-eslint/typescript-estree@8.63.0"
+        "@typescript-eslint/types@8.65.0",
+        "@typescript-eslint/typescript-estree@8.65.0",
+        "@typescript-eslint/utils@8.65.0"
       ]
     },
     {
-      "ref": "@typescript-eslint/types@8.63.0",
+      "ref": "@typescript-eslint/types@8.65.0",
       "dependsOn": []
     },
     {
-      "ref": "@typescript-eslint/typescript-estree@8.63.0",
+      "ref": "@typescript-eslint/typescript-estree@8.65.0",
       "dependsOn": [
         "typescript@5.9.3",
         "debug@4.4.3",
@@ -14205,28 +12653,28 @@
         "semver@7.8.5",
         "tinyglobby@0.2.17",
         "ts-api-utils@2.5.0",
-        "@typescript-eslint/project-service@8.63.0",
-        "@typescript-eslint/tsconfig-utils@8.63.0",
-        "@typescript-eslint/types@8.63.0",
-        "@typescript-eslint/visitor-keys@8.63.0"
+        "@typescript-eslint/tsconfig-utils@8.65.0",
+        "@typescript-eslint/project-service@8.65.0",
+        "@typescript-eslint/types@8.65.0",
+        "@typescript-eslint/visitor-keys@8.65.0"
       ]
     },
     {
-      "ref": "@typescript-eslint/utils@8.63.0",
+      "ref": "@typescript-eslint/utils@8.65.0",
       "dependsOn": [
-        "eslint@9.39.4",
+        "eslint@10.8.0",
         "typescript@5.9.3",
-        "@eslint-community/eslint-utils@4.9.1",
-        "@typescript-eslint/types@8.63.0",
-        "@typescript-eslint/typescript-estree@8.63.0",
-        "@typescript-eslint/scope-manager@8.63.0"
+        "@eslint-community/eslint-utils@4.10.1",
+        "@typescript-eslint/scope-manager@8.65.0",
+        "@typescript-eslint/typescript-estree@8.65.0",
+        "@typescript-eslint/types@8.65.0"
       ]
     },
     {
-      "ref": "@typescript-eslint/visitor-keys@8.63.0",
+      "ref": "@typescript-eslint/visitor-keys@8.65.0",
       "dependsOn": [
         "eslint-visitor-keys@5.0.1",
-        "@typescript-eslint/types@8.63.0"
+        "@typescript-eslint/types@8.65.0"
       ]
     },
     {
@@ -14234,52 +12682,33 @@
       "dependsOn": []
     },
     {
-      "ref": "acorn@8.17.0",
+      "ref": "acorn@8.18.0",
       "dependsOn": []
     },
     {
       "ref": "acorn-jsx@5.3.2",
       "dependsOn": [
-        "acorn@8.17.0"
+        "acorn@8.18.0"
       ]
     },
     {
-      "ref": "ansi-styles@4.3.0",
+      "ref": "ajv@6.15.0",
       "dependsOn": [
-        "color-convert@2.0.1"
+        "fast-deep-equal@3.1.3",
+        "fast-json-stable-stringify@2.1.0",
+        "json-schema-traverse@0.4.1",
+        "uri-js@4.4.1"
       ]
-    },
-    {
-      "ref": "argparse@2.0.1",
-      "dependsOn": []
     },
     {
       "ref": "balanced-match@4.0.4",
       "dependsOn": []
     },
     {
-      "ref": "brace-expansion@5.0.6",
+      "ref": "brace-expansion@5.0.8",
       "dependsOn": [
         "balanced-match@4.0.4"
       ]
-    },
-    {
-      "ref": "callsites@3.1.0",
-      "dependsOn": []
-    },
-    {
-      "ref": "color-convert@2.0.1",
-      "dependsOn": [
-        "color-name@1.1.4"
-      ]
-    },
-    {
-      "ref": "color-name@1.1.4",
-      "dependsOn": []
-    },
-    {
-      "ref": "concat-map@0.0.1",
-      "dependsOn": []
     },
     {
       "ref": "cross-spawn@7.0.6",
@@ -14304,28 +12733,25 @@
       "dependsOn": []
     },
     {
-      "ref": "eslint@9.39.4",
+      "ref": "eslint@10.8.0",
       "dependsOn": [
-        "@eslint-community/eslint-utils@4.9.1",
+        "@eslint-community/eslint-utils@4.10.1",
         "@eslint-community/regexpp@4.12.2",
-        "@eslint/config-array@0.21.2",
-        "@eslint/config-helpers@0.4.2",
-        "@eslint/core@0.17.0",
-        "@eslint/eslintrc@3.3.5",
-        "@eslint/js@9.39.4",
-        "@eslint/plugin-kit@0.4.1",
+        "@eslint/config-array@0.23.5",
+        "@eslint/config-helpers@0.7.0",
+        "@eslint/core@1.2.1",
+        "@eslint/plugin-kit@0.7.2",
         "@humanfs/node@0.16.8",
         "@humanwhocodes/module-importer@1.0.1",
         "@humanwhocodes/retry@0.4.3",
         "@types/estree@1.0.9",
         "ajv@6.15.0",
-        "chalk@4.1.2",
         "cross-spawn@7.0.6",
         "debug@4.4.3",
         "escape-string-regexp@4.0.0",
-        "eslint-scope@8.4.0",
-        "eslint-visitor-keys@4.2.1",
-        "espree@10.4.0",
+        "eslint-scope@9.1.2",
+        "eslint-visitor-keys@5.0.1",
+        "espree@11.2.0",
         "esquery@1.7.0",
         "esutils@2.0.3",
         "fast-deep-equal@3.1.3",
@@ -14336,21 +12762,22 @@
         "imurmurhash@0.1.4",
         "is-glob@4.0.3",
         "json-stable-stringify-without-jsonify@1.0.1",
-        "lodash.merge@4.6.2",
-        "minimatch@3.1.5",
+        "minimatch@10.2.5",
         "natural-compare@1.4.0",
         "optionator@0.9.4"
       ]
     },
     {
-      "ref": "eslint-config-prettier@9.1.2",
+      "ref": "eslint-config-prettier@10.1.8",
       "dependsOn": [
-        "eslint@9.39.4"
+        "eslint@10.8.0"
       ]
     },
     {
-      "ref": "eslint-scope@8.4.0",
+      "ref": "eslint-scope@9.1.2",
       "dependsOn": [
+        "@types/esrecurse@4.3.1",
+        "@types/estree@1.0.9",
         "esrecurse@4.3.0",
         "estraverse@5.3.0"
       ]
@@ -14360,34 +12787,7 @@
       "dependsOn": []
     },
     {
-      "ref": "ajv@6.15.0",
-      "dependsOn": [
-        "fast-deep-equal@3.1.3",
-        "fast-json-stable-stringify@2.1.0",
-        "json-schema-traverse@0.4.1",
-        "uri-js@4.4.1"
-      ]
-    },
-    {
-      "ref": "balanced-match@1.0.2",
-      "dependsOn": []
-    },
-    {
-      "ref": "brace-expansion@1.1.15",
-      "dependsOn": [
-        "balanced-match@1.0.2",
-        "concat-map@0.0.1"
-      ]
-    },
-    {
-      "ref": "chalk@4.1.2",
-      "dependsOn": [
-        "ansi-styles@4.3.0",
-        "supports-color@7.2.0"
-      ]
-    },
-    {
-      "ref": "eslint-visitor-keys@4.2.1",
+      "ref": "eslint-visitor-keys@5.0.1",
       "dependsOn": []
     },
     {
@@ -14395,25 +12795,15 @@
       "dependsOn": []
     },
     {
-      "ref": "json-schema-traverse@0.4.1",
-      "dependsOn": []
-    },
-    {
-      "ref": "minimatch@3.1.5",
+      "ref": "espree@11.2.0",
       "dependsOn": [
-        "brace-expansion@1.1.15"
-      ]
-    },
-    {
-      "ref": "espree@10.4.0",
-      "dependsOn": [
-        "acorn@8.17.0",
+        "acorn@8.18.0",
         "acorn-jsx@5.3.2",
-        "eslint-visitor-keys@4.2.1"
+        "eslint-visitor-keys@5.0.1"
       ]
     },
     {
-      "ref": "eslint-visitor-keys@4.2.1",
+      "ref": "eslint-visitor-keys@5.0.1",
       "dependsOn": []
     },
     {
@@ -14470,12 +12860,12 @@
     {
       "ref": "flat-cache@4.0.1",
       "dependsOn": [
-        "flatted@3.4.2",
+        "flatted@3.4.3",
         "keyv@4.5.4"
       ]
     },
     {
-      "ref": "flatted@3.4.2",
+      "ref": "flatted@3.4.3",
       "dependsOn": []
     },
     {
@@ -14489,23 +12879,8 @@
       ]
     },
     {
-      "ref": "globals@14.0.0",
+      "ref": "ignore@7.0.6",
       "dependsOn": []
-    },
-    {
-      "ref": "has-flag@4.0.0",
-      "dependsOn": []
-    },
-    {
-      "ref": "ignore@7.0.5",
-      "dependsOn": []
-    },
-    {
-      "ref": "import-fresh@3.3.1",
-      "dependsOn": [
-        "parent-module@1.0.1",
-        "resolve-from@4.0.0"
-      ]
     },
     {
       "ref": "imurmurhash@0.1.4",
@@ -14526,13 +12901,11 @@
       "dependsOn": []
     },
     {
-      "ref": "js-yaml@4.3.0",
-      "dependsOn": [
-        "argparse@2.0.1"
-      ]
+      "ref": "json-buffer@3.0.1",
+      "dependsOn": []
     },
     {
-      "ref": "json-buffer@3.0.1",
+      "ref": "json-schema-traverse@0.4.1",
       "dependsOn": []
     },
     {
@@ -14559,17 +12932,13 @@
       ]
     },
     {
-      "ref": "lodash.merge@4.6.2",
-      "dependsOn": []
-    },
-    {
       "ref": "marked@18.0.5",
       "dependsOn": []
     },
     {
       "ref": "minimatch@10.2.5",
       "dependsOn": [
-        "brace-expansion@5.0.6"
+        "brace-expansion@5.0.8"
       ]
     },
     {
@@ -14604,12 +12973,6 @@
       ]
     },
     {
-      "ref": "parent-module@1.0.1",
-      "dependsOn": [
-        "callsites@3.1.0"
-      ]
-    },
-    {
       "ref": "path-exists@4.0.0",
       "dependsOn": []
     },
@@ -14626,15 +12989,11 @@
       "dependsOn": []
     },
     {
-      "ref": "prettier@3.9.4",
+      "ref": "prettier@3.9.6",
       "dependsOn": []
     },
     {
       "ref": "punycode@2.3.1",
-      "dependsOn": []
-    },
-    {
-      "ref": "resolve-from@4.0.0",
       "dependsOn": []
     },
     {
@@ -14650,16 +13009,6 @@
     {
       "ref": "shebang-regex@3.0.0",
       "dependsOn": []
-    },
-    {
-      "ref": "strip-json-comments@3.1.1",
-      "dependsOn": []
-    },
-    {
-      "ref": "supports-color@7.2.0",
-      "dependsOn": [
-        "has-flag@4.0.0"
-      ]
     },
     {
       "ref": "tinyglobby@0.2.17",

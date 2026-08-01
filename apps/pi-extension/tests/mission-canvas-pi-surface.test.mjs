@@ -71,10 +71,11 @@ assert.doesNotMatch(view, /WHAT CHANGES/);
 assert.doesNotMatch(view, /WHAT STAYS THE SAME/);
 assert.doesNotMatch(view, /CURRENT WORKSPACE COCKPIT/);
 
-// Existing runtime/session identity remains attached to the same Pi process.
-assert.match(session, /presentation activation must never be blocked/);
-assert.match(session, /interactionMode === "canvas-guided"\) return/);
-assert.match(turns, /refreshMissionCanvasWidget/);
+// The current command surface owns the same-session Pi custom component and mode.
+assert.match(commands, /new MissionCanvasShell/);
+assert.match(commands, /canvas-guided/);
+assert.match(commands, /hasActiveMissionCanvasShell/);
+assert.match(commands, /refreshMissionCanvasWidget/);
 assert.match(inventory, /projectSessionInventory/);
 assert.match(model, /workpointId/);
 assert.match(config, /missionCanvasWorkspaceProfile/);
