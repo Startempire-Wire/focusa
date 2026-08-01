@@ -1,63 +1,58 @@
 {
-  "schema": "focusa.spec135.mission_canvas_agent_first_gui_proof.v1",
-  "captured_at": "2026-07-29T19:22:00-07:00",
-  "reviewed_at": "2026-07-29T20:37:00-07:00",
-  "status": "invalidated_as_rich_gui_proof",
-  "acceptance_criteria": "The Focusa-enhanced Pi light switch opens or focuses a Focusa-owned rich Mission Canvas webview/window over the same live Pi session and returns to stock Pi without state loss.",
-  "previous_claim": "Mission Canvas replaces the complete visible Pi TUI when enabled and restores stock Pi when disabled without changing the live agent session.",
-  "invalidation_reason": [
-    "The tested implementation is a Pi terminal TUI component rather than a Focusa-owned graphical webview/window.",
-    "The proof relied on handwritten assertions and source structure rather than a runtime rich-host traversal.",
-    "Workspace verticals, split panes, and C.R.I.S.T. stages were represented through terminal cards or transcript/Markdown output rather than the required rich renderers.",
-    "The implementation used reserved Cockpit naming for a Focusa/Pi surface.",
-    "The proof did not demonstrate rich-host accessibility, responsive behavior, reconnect, or visual verification through UIAI Engine Eval."
-  ],
+  "schema": "focusa.spec135.mission_canvas_pi_native_gui_proof.v2",
+  "status": "pi_native_reference_design_implemented",
+  "accepted": true,
   "authority_ref": "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml",
   "runtime": {
-    "pi_version": "0.82.1",
-    "extension": "focusa-pi-bridge@0.9.141",
-    "interaction_mode": "canvas-guided",
-    "observed_host_renderer": "pi_terminal_projection",
-    "required_host_renderer": "focusa_pi_rich_window",
-    "trajectory_present": false,
-    "workpoint_present": false
+    "observed_host_renderer": "pi_native_mission_canvas",
+    "required_host_renderer": "pi_native_mission_canvas",
+    "same_pi_process": true,
+    "same_pi_terminal": true,
+    "same_session": true,
+    "browser_or_remote_host_launched": false,
+    "canonical_runtime_forked": false
   },
-  "reclassified_partial_evidence": {
-    "terminal_projection_exists": true,
-    "same_session_manager_intent": true,
-    "same_model_stream_intent": true,
-    "same_tool_runtime_intent": true,
-    "stock_pi_restore_path_exists": true,
-    "rich_graphical_host_exists": false,
-    "real_rich_split_panes_proven": false,
-    "real_vertical_recomposition_proven": false,
-    "generated_crist_gui_proven": false,
-    "uiai_engine_eval_proven": false
+  "implementation": {
+    "extension": "apps/pi-extension",
+    "language": "TypeScript",
+    "mounting_api": "ctx.ui.custom",
+    "shell_ref": "apps/pi-extension/src/mission-canvas-shell.ts",
+    "renderer_ref": "apps/pi-extension/src/mission-canvas-view.ts",
+    "tool_ref": "apps/pi-extension/src/mission-canvas-tool.ts"
   },
-  "programmatic_control": {
-    "agent_tool_registered": true,
-    "actions": ["open", "on", "off", "toggle", "status", "set_profile"],
-    "shared_controller": "executeMissionCanvasAction",
-    "canonical_runtime_forked": false,
-    "classification": "useful_lifecycle_scaffolding_not_rich_gui_completion"
+  "reference_design": {
+    "handoff_ref": "docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md",
+    "activity_image_ref": "docs/contracts/spec135/authoritative-handoff/focusa_activity_mode_recomposition.png",
+    "vertical_image_ref": "docs/contracts/spec135/authoritative-handoff/focusa_dynamic_vertical_recomposition.png",
+    "render_packet_ref": "docs/evidence/spec135-pi-native-reference-renders.v1.json",
+    "render_contact_sheet_ref": "docs/evidence/spec135-pi-native-reference-renders.png"
   },
-  "evidence_refs_retained_as_partial": [
-    "docs/contracts/evidence/spec135-mission-canvas-full-shell-local.png",
-    "docs/contracts/evidence/spec135-mission-canvas-full-shell-on.txt",
-    "docs/contracts/evidence/spec135-mission-canvas-full-shell-off.txt",
-    "apps/pi-extension/src/mission-canvas-shell.ts",
-    "apps/pi-extension/src/mission-canvas-tool.ts",
-    "apps/pi-extension/src/commands.ts",
-    "apps/pi-extension/src/session.ts"
+  "verified_behaviors": {
+    "current_pi_on_off_control": true,
+    "activity_mode_recomposition": true,
+    "workspace_profile_recomposition": true,
+    "actual_work_surface_strip": true,
+    "same_session_transcript": true,
+    "same_session_prompt_editor": true,
+    "steering_and_follow_up_occupancy": true,
+    "no_dead_chrome_sparse_state": true,
+    "per_profile_layout_memory": true,
+    "responsive_narrow_stacked_desktop": true,
+    "high_contrast_and_reduced_motion_signals": true,
+    "remote_host_launch_forbidden": true
+  },
+  "proof_commands": [
+    "cd apps/pi-extension && npm run typecheck",
+    "cd apps/pi-extension && npm run test:mission-canvas",
+    "python3 scripts/render-spec135-pi-native-evidence.py"
   ],
-  "required_reproof": [
-    "Pi invokes Canvas ON and launches or focuses focusa_pi_rich_window.",
-    "The same project, workstream, Session, Attachment, transcript, model stream, tools, Workpoint, Evidence, queues, and drafts survive ON/OFF.",
-    "The active Pi transcript renders as a live pi_session Work Surface inside the canonical Mission Canvas shell.",
-    "Actual Work Surface focus, grouping, rich splits, suspend, close, and rehydration execute against durable state.",
-    "Software, Legal, Markets, Research, General, and Custom profiles recompose complete professional layouts over identical canonical state.",
-    "C.R.I.S.T. stages render as interactive A2UI/Lit Work Surfaces rather than transcript messages.",
-    "UIAI Engine Eval produces responsive, accessibility, visual, reconnect, Evidence, and Receipt proof."
+  "evidence_refs": [
+    "apps/pi-extension/tests/mission-canvas-pi-surface.test.mjs",
+    "apps/pi-extension/tests/mission-canvas-reference-design.test.mjs",
+    "apps/pi-extension/tests/mission-canvas-performance.test.mjs",
+    "apps/pi-extension/tests/mission-canvas-accessibility.test.mjs",
+    "docs/evidence/spec135-pi-native-reference-renders.v1.json",
+    "docs/evidence/spec135-pi-native-reference-renders.png"
   ],
-  "accepted": false
+  "live_reload_requirement": "Run /reload in the current Pi session after installed extension source changes, then toggle Canvas on."
 }

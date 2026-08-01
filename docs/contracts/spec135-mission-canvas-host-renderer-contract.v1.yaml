@@ -1,315 +1,157 @@
-schema: focusa.mission_canvas_host_renderer_contract.v1
-version: 1
+schema: focusa.mission_canvas_host_renderer_contract.v2
+version: 2
 status: normative
 owner: Focusa / Verious Smith
-updated_at: 2026-07-29
+updated_at: 2026-08-01
 
-# This is a machine-readable implementation contract, not a new Spec 135 companion.
 authority:
   delivery_contract: docs/135-series-current-manifest.md
   parent_spec: docs/135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md
-  affected_existing_specs:
-    - docs/135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md
-    - docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md
-    - docs/135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md
-    - docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md
-    - docs/135k-uxp-ufi-adaptive-generated-ui-friction-learning-and-nontechnical-usability-spec.md
-  no_new_lettered_companion: true
-  conflict_rule: this contract and the delivery contract govern conflicting host, renderer, toggle, and proof wording until the affected existing specs are harmonized in place
+  adaptive_composition_authority:
+    replacement_text: docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md
+    populated_examples:
+      - docs/contracts/spec135/authoritative-handoff/focusa_activity_mode_recomposition.png
+      - docs/contracts/spec135/authoritative-handoff/focusa_dynamic_vertical_recomposition.png
+    precedence: operator_steering_then_replacement_text_then_images_then_older_contracts
+  operator_clarification:
+    statement: Mission Canvas switches on and off inside the current Pi terminal; it is not a remote host, browser, webview, or sidecar.
+    supersedes:
+      - focusa_pi_rich_window_required_renderer
+      - svelte_or_tauri_host_requirement
+      - pi_terminal_projection_as_non_authoritative_fallback
 
-product_intent:
-  statement: >-
-    Focusa-enhanced Pi exposes Mission Canvas as a light-switch professional GUI.
-    The operator turns it on or off directly from Pi while the same Pi agent session,
-    canonical Focusa runtime, Workpoint, Evidence, queues, transcript, draft, and history continue.
-  canvas_on: open_or_focus_full_focusa_owned_rich_mission_canvas_bound_to_current_pi_session
-  canvas_off: close_or_unmount_rich_mission_canvas_and_return_focus_to_stock_pi
-  meaning_of_directly_in_pi: >-
-    Pi owns the command, shortcut, session binding, focus handoff, status, and lifecycle.
-    A portable full graphical interface is rendered in a Focusa-owned webview/window;
-    it is not falsely represented as HTML/CSS drawn inside a terminal cell grid.
+product_definition: >-
+  Mission Canvas is the authoritative adaptive workspace presentation mounted by
+  the Focusa Pi TypeScript extension through ctx.ui.custom() in the current Pi
+  terminal, preserving the same Pi process, session, model stream, tools,
+  transcript, prompt editor, attachments, drafts, and canonical Focusa runtime.
+
+interaction_modes:
+  values: [canvas-guided, terminal-guided, headless]
+  meanings:
+    canvas-guided: authoritative Mission Canvas component replaces only the visible Pi root in the current terminal
+    terminal-guided: stock Pi root is visible while Focusa canonical runtime remains active
+    headless: no human UI calls or renderer activation
+  precedence: session_env_then_project_then_user_then_default
+
+required_host_renderer:
+  id: pi_native_mission_canvas
+  package: apps/pi-extension
+  language: TypeScript
+  mounting_api: ctx.ui.custom
+  process_boundary: current_pi_process
+  terminal_boundary: current_pi_terminal
+  canonical_runtime_forked: false
+  separate_window_created: false
+  browser_created: false
+  remote_host_created: false
   same_runtime_not_a_handoff: true
-
-independent_axes:
-  interaction_mode:
-    enum:
-      - canvas-guided
-      - terminal-guided
-      - headless
-    meaning:
-      canvas-guided: a Mission Canvas projection is active through the best truthful host supported by the distribution
-      terminal-guided: stock Pi remains the primary interaction surface and the rich Canvas renderer is absent
-      headless: no human UI calls, windows, prompts, notifications, or renderer activation
-  host_renderer:
-    enum:
-      - focusa_pi_rich_window
-      - uiai_engine_cockpit
-      - mission_deck_web
-      - pi_terminal_projection
-      - native_tui
-      - menubar_peek
-      - headless_none
-    must_not_be_inferred_from_interaction_mode_alone: true
-
-required_enhanced_pi_host:
-  id: focusa_pi_rich_window
-  classification: primary_canvas_guided_renderer_for_focusa_enhanced_pi
-  ownership: Focusa
-  launch_control: Pi command, shortcut, or tool
-  implementation_shape:
-    shell: Focusa-owned SvelteKit 2 / Svelte 5 application in a Tauri webview or equivalent local webview window
-    generated_surfaces: A2UI v0.9.1 through @a2ui/web_core/v0_9 and @a2ui/lit/v0_9
-    domain_components: Focusa Svelte Custom Elements from the trusted catalog
-    stream: SQLite replay plus broadcast live tail plus scoped invalidation
-    session_bridge: typed Pi RPC / Extension bridge and canonical AttachmentKey
-  constraints:
-    - do_not_fork_the_pi_session_manager
-    - do_not_fork_model_or_tool_execution
-    - do_not_create_a_second_focusa_runtime
-    - do_not_transfer_focusa_authority_to_the_window
-    - do_not_call_this_ui_uiai_engine_cockpit
-    - do_not_require_uiai_engine_for_non_browser_canvas_work
-  lifecycle:
+  required_actions:
     on:
-      - resolve_exact_project_workstream_session_attachment_scope
-      - start_or_reuse_local_rich_host
-      - bind_current_pi_session_as_a_pi_session_work_surface
-      - restore_canvas_layout_and_unsent_canvas_draft
-      - focus_rich_window
+      - persist canvas-guided interaction mode
+      - mount MissionCanvasShell in current Pi terminal
+      - preserve current ExtensionContext and SessionManager
+      - focus current Pi prompt editor
     off:
-      - persist_presentation_state_and_unsent_canvas_draft
-      - unbind_or_hide_rich_projection_without_stopping_runtime_work
-      - return_keyboard_focus_to_stock_pi
-    reconnect:
-      - replay_from_durable_cursor
-      - reattach_to_same_session_and_attachment
-      - restore_open_work_surfaces_layout_and_focused_surface
+      - dispose MissionCanvasShell
+      - restore stock Pi root in same terminal
+      - preserve session identity, transcript, drafts, and Focusa runtime
+    toggle:
+      - execute exactly one of on or off based on current interaction mode
+    status:
+      - report interaction mode and pi_tui renderer without launching another host
 
-truthful_fallbacks:
-  pi_terminal_projection:
-    permitted_when:
-      - rich_host_not_installed
-      - webview_unavailable
-      - operator_explicitly_selects_terminal_projection
-      - terminal_only_environment
-    classification: compatibility_fallback
-    required_label: terminal_projection
-    forbidden_labels:
-      - full_gui
-      - graphical_gui
-      - rich_desktop_shell
-      - complete_a2ui_canvas
-    composition:
-      - work_surface_switcher
-      - focused_terminal_surface
-      - focusa_right_drawer_or_sidebar_when_supported
-      - lower_work_rail
-      - steering_queue
-      - follow_up_queue
-      - prompt_editor
-  native_tui:
-    classification: separate_terminal_client_projection
-  menubar_peek:
-    classification: bounded_status_and_launch_surface_only
+forbidden_host_behavior:
+  - launch_browser_for_canvas
+  - launch_webview_for_canvas
+  - launch_tauri_sidecar_for_canvas
+  - launch_remote_canvas_host
+  - label_the_authoritative_canvas_as_terminal_compatibility_projection
+  - transfer_focusa_authority_to_renderer
+  - fork_pi_session_or_model_stream
 
-canonical_shell_invariant:
-  ordered_regions:
-    - work_surface_strip
-    - focused_work_surface_with_focusa_right_inspector
-    - work_rail
-    - steering_queue
-    - follow_up_queue
-    - prompt_editor
-  focused_pi_transcript:
-    kind: pi_session
-    relationship: one_work_surface_inside_mission_canvas
-  optional_regions:
-    - global_scope_bar
-    - left_activity_rail
-    - detached_inspector
-  optional_regions_must_not_be_required_for_conformance: true
-  shells_that_do_not_satisfy_rich_gui:
-    - sidebar_only
-    - status_card_grid_only
-    - markdown_transcript_projection
-    - box_drawing_tui_shell
-    - source_string_or_json_assertion
+required_frame:
+  - project_workstream_workspace_session_activity_top_bar
+  - actual_work_surface_strip
+  - activity_mode_rail_or_compact_tabs
+  - resolved_contribution_grid
+  - steering_queue_when_populated
+  - follow_up_queue_when_populated
+  - prompt_editor_targeting_current_pi_session
 
-work_surface_requirements:
-  durable_and_rehydratable: true
-  kinds:
-    - project_overview
-    - pi_session
-    - uiai_browser
-    - silent_session
-    - document
-    - research
-    - provider_item
-    - evidence
-    - custom
-  operations:
-    - open
-    - focus
-    - pin
-    - unpin
-    - group
-    - reorder
-    - split_horizontal
-    - split_vertical
-    - compare
-    - suspend_projection
-    - rehydrate
-    - close_projection
-  mutation_target_requires_explicit_attachment: true
-  visual_focus_is_not_canonical_authority: true
-
-vertical_workspace_recomposition:
-  profiles:
-    - general
-    - software
-    - legal
-    - markets
-    - research
-    - custom
-  must_change:
-    - layout_geometry
-    - panel_composition_and_order
-    - terminology
-    - artifact_renderer_bindings
-    - evidence_and_verification_emphasis
-    - history_projection
-    - iconography
-    - density
-    - controls_and_next_action_emphasis
-  color_only_switch_is_nonconformant: true
-  hard_coded_client_local_vertical_applications_are_forbidden: true
-  required_registries:
-    - WorkspaceProfileRegistry
-    - PanelRegistry
-    - HomeCanvasRegistry
-    - WorkSurfaceRendererRegistry
-    - ArtifactRendererRegistry
-    - TerminologyRegistry
-    - DomainSemanticBindingRegistry
-
-continuity_invariants:
-  preserved_across_on_off_toggle:
-    - project_root_key
-    - workstream_key
-    - instance_id
-    - session_id
-    - attachment_id
-    - harness_session_ref
-    - model_stream
-    - tool_runtime
-    - transcript_and_tool_history
-    - unsent_pi_editor_draft
-    - unsent_canvas_draft
-    - workpoint
-    - trajectory
-    - task_and_provider_state
-    - open_work_surfaces
+adaptive_composition:
+  inputs:
+    - workspace_profile
+    - activity_mode
     - focused_work_surface
-    - canvas_layout
-    - steering_queue
-    - follow_up_queue
-    - evidence
-    - receipts
-    - authority_and_permissions
-    - approvals_and_contention
-    - browser_context_identity
-    - durable_event_cursor
-  forbidden_toggle_side_effects:
-    - project_restart
-    - session_restart
-    - canonical_state_fork
-    - workpoint_recreation
-    - transcript_reconstruction_from_chat_tail
-    - browser_context_reassignment
-    - repeated_enable_nag
+    - canonical_read_model
+    - available_operations
+    - capabilities
+    - permissions
+    - viewport
+    - project_constraints
+    - user_preferences
+  output: ResolvedWorkspaceProjection
+  occupancy_law:
+    - evaluate_semantic_relevance_before_geometry
+    - omit_empty_optional_contributions_before_layout
+    - remove_heading_border_and_spacing_with_omitted_contribution
+    - reflow_remaining_contributions_deterministically
+    - preserve_per_profile_layout_memory
+    - preserve_creation_affordance_without_empty_panel
 
-crist_generated_ui_boundary:
-  location: generated C.R.I.S.T. surfaces render inside focused Work Surfaces in rich hosts
-  protocol: A2UI_v0_9_1
-  web_renderer: '@a2ui/lit/v0_9'
-  owns_complete_mission_canvas_shell: false
-  may_own:
-    - stage_interaction_surface
-    - plain_language_explanations
-    - trusted_inputs
-    - validation_presentation
-    - generated_action_bindings
-    - progress_and_recovery_cards
-  must_not_be:
-    - transcript_message
-    - markdown_status_dump
-    - cli_workflow_with_decorative_panel
-    - arbitrary_generated_html_or_javascript
+activity_modes:
+  - Overview
+  - Context
+  - Role
+  - Interview
+  - Spec
+  - Tasks / Work
+  - Sessions
+  - Documents
+  - Research
+  - Evidence
+  - History
+  - Controls
 
-product_boundaries:
-  focusa_pi_rich_window:
-    owns:
-      - focusa_professional_workspace_projection
-      - mission_canvas_shell
-      - work_surfaces
-      - work_rail_and_queues
-      - focusa_generated_surfaces
-    does_not_own:
-      - browser_execution
-      - browser_credentials
-      - browser_context_storage
-      - canonical_runtime
+workspace_profiles:
+  - general
+  - software
+  - legal
+  - markets
+  - research
+  - custom
+
+responsive_modes:
+  narrow:
+    activity_navigation: compact_tabs
+    contribution_columns: 1
+  stacked:
+    activity_navigation: rail_when_viable
+    contribution_columns: 1
+  desktop:
+    activity_navigation: persistent_rail
+    contribution_columns: 2
+
+client_projection_boundaries:
+  pi_native_mission_canvas:
+    authority: authoritative_interactive_projection
+    mutation_mode: governed_preview_commit
+  menubar_peek:
+    authority: bounded_status_and_launch_surface_only
+  pwa:
+    authority: bounded_remote_projection
   uiai_engine_cockpit:
-    owns:
-      - browser_execution_controls
-      - browser_context_and_target_management
-      - fpv
-      - test_lab
-      - browser_diagnostics
-      - browser_eval_and_visual_proof
-    may_host_focusa_projection: true
-    remains_distinct_product: true
+    authority: browser_execution_and_visual_evaluation
 
-proof_contract:
-  rich_gui_requires:
-    - runtime_toggle_exercised_from_pi
-    - actual_focusa_owned_rich_window_or_webview
-    - same_session_and_attachment_before_during_after_toggle
-    - live_transcript_and_tool_event_continuity
-    - unsent_draft_preservation
-    - real_work_surface_switching
-    - real_split_and_rehydration_behavior
-    - real_vertical_recomposition
-    - generated_crist_surface_interaction
-    - responsive_and_accessibility_proof_through_uiai_engine_eval
-    - durable_event_replay_and_reconnect
-    - evidence_and_receipt_refs
-  invalid_as_rich_gui_proof:
-    - source_substring_checks
-    - handwritten_pass_json
-    - static_screenshot_without_runtime_trace
-    - markdown_representation_of_splits
-    - process_local_map_as_durable_layout
-    - terminal_box_drawing_shell
-    - transcript_only_crist_stage
-
-closure_reconciliation:
-  reopen_until_reproven:
-    - mission_canvas_rich_pi_host
-    - mission_canvas_full_shell_gui
-    - generated_crist_ui_in_pi_canvas
-    - real_split_pane_behavior
-    - vertical_workspace_rendering
-    - canvas_toggle_continuity
-    - spec135_master_final_acceptance
-  preserve_as_partial_or_valid:
-    - interaction_mode_enum_and_precedence
-    - canonical_runtime_continuity_intent
-    - headless_no_ui_behavior
-    - work_surface_schema_foundations
-    - browser_isolation_contracts
-    - terminal_projection_components
-  merge_gate: >-
-    Spec 135 cannot be declared complete or merge-ready until implementation and
-    runtime proof conform to this contract and all affected machine-readable ledgers
-    and acceptance artifacts are regenerated from those tests.
+proof_requirements:
+  - on_off_same_terminal_same_session
+  - reference_activity_mode_recomposition
+  - reference_vertical_profile_recomposition
+  - actual_only_work_surfaces
+  - queue_occupancy_and_prompt_expansion
+  - empty_work_rail_collapse_with_creation_affordance
+  - omission_diagnostics_without_dead_chrome
+  - responsive_keyboard_high_contrast_reduced_motion
+  - canonical_state_session_draft_and_focus_continuity
+  - rendered_snapshot_or_terminal_capture_evidence

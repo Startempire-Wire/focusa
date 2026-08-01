@@ -30,11 +30,11 @@ for token in (
     "responsiveCanvasMode(width)",
     "surfaceCapacity(width)",
     "virtualWindow(surfaces",
-    'layout:${mode}',
-    'motion:${preferences.reducedMotion',
-    "focusRestorationLabel(preferences)",
+    "preferences.highContrast",
+    "preferences.reducedMotion",
     "wrapTextWithAnsi",
     "truncateToWidth",
+    "filled(",
 ):
     assert token in VIEW, token
 

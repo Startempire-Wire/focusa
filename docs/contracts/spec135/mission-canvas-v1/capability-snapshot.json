@@ -1,0 +1,208 @@
+{
+  "all_operations_promoted": true,
+  "contract_version": "1.0.0",
+  "operations": [
+    {
+      "operation_id": "focusa.mission_canvas.projection.get",
+      "reason": "P03 runtime handler promoted",
+      "required_permissions": [
+        "mission_canvas:read"
+      ],
+      "status": "available"
+    },
+    {
+      "operation_id": "focusa.mission_canvas.projection.resolve",
+      "reason": "P03 runtime handler promoted",
+      "required_permissions": [
+        "mission_canvas:write"
+      ],
+      "status": "available"
+    },
+    {
+      "operation_id": "focusa.mission_canvas.profile.list",
+      "reason": "P03 runtime handler promoted",
+      "required_permissions": [
+        "mission_canvas:read"
+      ],
+      "status": "available"
+    },
+    {
+      "operation_id": "focusa.mission_canvas.profile.select",
+      "reason": "P03 runtime handler promoted",
+      "required_permissions": [
+        "mission_canvas:write"
+      ],
+      "status": "available"
+    },
+    {
+      "operation_id": "focusa.mission_canvas.profile.get",
+      "reason": "P03 runtime handler promoted",
+      "required_permissions": [
+        "mission_canvas:read"
+      ],
+      "status": "available"
+    },
+    {
+      "operation_id": "focusa.mission_canvas.activity.list",
+      "reason": "P03 runtime handler promoted",
+      "required_permissions": [
+        "mission_canvas:read"
+      ],
+      "status": "available"
+    },
+    {
+      "operation_id": "focusa.mission_canvas.activity.select",
+      "reason": "P03 runtime handler promoted",
+      "required_permissions": [
+        "mission_canvas:write"
+      ],
+      "status": "available"
+    },
+    {
+      "operation_id": "focusa.mission_canvas.domain_pack.install",
+      "reason": "P03 runtime handler promoted",
+      "required_permissions": [
+        "mission_canvas:write"
+      ],
+      "status": "available"
+    },
+    {
+      "operation_id": "focusa.mission_canvas.registry.list",
+      "reason": "P03 runtime handler promoted",
+      "required_permissions": [
+        "mission_canvas:read"
+      ],
+      "status": "available"
+    },
+    {
+      "operation_id": "focusa.mission_canvas.layout_memory.get",
+      "reason": "P03 runtime handler promoted",
+      "required_permissions": [
+        "mission_canvas:read"
+      ],
+      "status": "available"
+    },
+    {
+      "operation_id": "focusa.mission_canvas.layout_memory.update",
+      "reason": "P03 runtime handler promoted",
+      "required_permissions": [
+        "mission_canvas:write"
+      ],
+      "status": "available"
+    },
+    {
+      "operation_id": "focusa.mission_canvas.layout.mutate",
+      "reason": "P03 runtime handler promoted",
+      "required_permissions": [
+        "mission_canvas:write"
+      ],
+      "status": "available"
+    },
+    {
+      "operation_id": "focusa.mission_canvas.rich_host.resolve",
+      "reason": "P03 runtime handler promoted",
+      "required_permissions": [
+        "mission_canvas:host"
+      ],
+      "status": "available"
+    },
+    {
+      "operation_id": "focusa.mission_canvas.rich_host.launch",
+      "reason": "P03 runtime handler promoted",
+      "required_permissions": [
+        "mission_canvas:host"
+      ],
+      "status": "available"
+    },
+    {
+      "operation_id": "focusa.mission_canvas.rich_host.focus",
+      "reason": "P03 runtime handler promoted",
+      "required_permissions": [
+        "mission_canvas:host"
+      ],
+      "status": "available"
+    },
+    {
+      "operation_id": "focusa.mission_canvas.rich_host.hide",
+      "reason": "P03 runtime handler promoted",
+      "required_permissions": [
+        "mission_canvas:host"
+      ],
+      "status": "available"
+    },
+    {
+      "operation_id": "focusa.mission_canvas.rich_host.close",
+      "reason": "P03 runtime handler promoted",
+      "required_permissions": [
+        "mission_canvas:host"
+      ],
+      "status": "available"
+    },
+    {
+      "operation_id": "focusa.mission_canvas.draft.get",
+      "reason": "P03 runtime handler promoted",
+      "required_permissions": [
+        "mission_canvas:draft"
+      ],
+      "status": "available"
+    },
+    {
+      "operation_id": "focusa.mission_canvas.draft.sync",
+      "reason": "P03 runtime handler promoted",
+      "required_permissions": [
+        "mission_canvas:draft"
+      ],
+      "status": "available"
+    },
+    {
+      "operation_id": "focusa.mission_canvas.recipient.resolve",
+      "reason": "P03 runtime handler promoted",
+      "required_permissions": [
+        "mission_canvas:draft"
+      ],
+      "status": "available"
+    },
+    {
+      "operation_id": "focusa.mission_canvas.recomposition.evidence.get",
+      "reason": "P03 runtime handler promoted",
+      "required_permissions": [
+        "mission_canvas:read"
+      ],
+      "status": "available"
+    },
+    {
+      "operation_id": "focusa.mission_canvas.recomposition.receipt.get",
+      "reason": "P03 runtime handler promoted",
+      "required_permissions": [
+        "mission_canvas:read"
+      ],
+      "status": "available"
+    },
+    {
+      "operation_id": "focusa.mission_canvas.recomposition.diagnostics.list",
+      "reason": "P03 runtime handler promoted",
+      "required_permissions": [
+        "mission_canvas:read"
+      ],
+      "status": "available"
+    },
+    {
+      "operation_id": "focusa.mission_canvas.pi_session.event.append",
+      "reason": "P03 runtime handler promoted",
+      "required_permissions": [
+        "mission_canvas:write"
+      ],
+      "status": "available"
+    },
+    {
+      "operation_id": "focusa.mission_canvas.events.stream",
+      "reason": "P03 runtime handler promoted",
+      "required_permissions": [
+        "mission_canvas:read"
+      ],
+      "status": "available"
+    }
+  ],
+  "runtime_promoted": true,
+  "schema": "focusa.mission_canvas.capability_snapshot.v1"
+}

@@ -1,0 +1,15 @@
+{
+  "compatibility_lock_ref": "compatibility-lock.json",
+  "minimum_client_version": "1.0.0",
+  "operation_registry_digest": "sha256:3102b9ced96652f6a4d626709c9129fcce8acd3e39c31cf105f7c1df2ce68ffc",
+  "protocol_version": "1.0.0",
+  "required_scope_keys": [
+    "project_root",
+    "continuity_id",
+    "session_id",
+    "attachment_id"
+  ],
+  "runtime_promotion_required": false,
+  "schema": "focusa.mission_canvas.protocol_handshake.v1",
+  "schema_bundle_digest": "sha256:16991bc916560208b08a521adf42b387fe63ca9954f88011fcf7b51d3ccec8ef"
+}

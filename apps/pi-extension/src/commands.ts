@@ -537,6 +537,12 @@ export function registerCommands(pi: ExtensionAPI) {
           scopeStatus: `${String(workpoint?.status ?? "advisory")} · mode ${interactionMode.mode} (${interactionMode.source})`,
           workspaceProfile: presentation.missionCanvasWorkspaceProfile,
           visualVariant: presentation.missionCanvasVisualVariant,
+          steeringQueue: Array.isArray(workpoint?.steering_queue)
+            ? workpoint.steering_queue.slice(0, MAX_MISSION_CANVAS_ROWS).map((item: unknown) => String(item))
+            : [],
+          followUpQueue: Array.isArray(workpoint?.follow_up_queue)
+            ? workpoint.follow_up_queue.slice(0, MAX_MISSION_CANVAS_ROWS).map((item: unknown) => String(item))
+            : [],
         };
         return model;
       };
@@ -548,6 +554,7 @@ export function registerCommands(pi: ExtensionAPI) {
             model,
             theme,
             () => tui.requestRender(),
+            () => tui.terminal.rows,
             () => done(undefined),
             loadModel,
             pi,

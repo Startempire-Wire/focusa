@@ -1,0 +1,212 @@
+schema: focusa.spec135.ux_quality_bar.v1
+version: 1
+status: normative
+owner: Focusa
+updated_at: 2026-07-30
+
+authority:
+  operator_quality_boundary: absolutely_no_compromised_slop
+  adaptive_composition: docs/contracts/spec135-adaptive-composition.v1.yaml
+  spec_135k: docs/135k-uxp-ufi-adaptive-generated-ui-friction-learning-and-nontechnical-usability-spec.md
+  implementation_directive: docs/agent/spec135-implementation-acceleration-directive.md
+  browser_proof_owner: UIAI_Engine_Eval
+
+closure_law:
+  visual_approximation_without_interaction_completion: forbidden
+  polished_static_mock_without_canonical_runtime: forbidden
+  feature_complete_but_inaccessible: forbidden
+  desktop_only_behavior_claimed_cross_platform: forbidden
+  known_severe_friction_deferred_to_later_release: forbidden
+  closure_requires:
+    - canonical_runtime_behavior
+    - complete_interaction_states
+    - accessibility
+    - responsive_behavior
+    - interruption_and_recovery
+    - performance_budgets
+    - cross_platform_proof
+    - Evidence
+    - Receipt
+
+response:
+  pointer_down_feedback_required: true
+  keyboard_activation_feedback_required: true
+  avoidable_input_latency_forbidden: true
+  optimistic_feedback_must_not_claim_uncommitted_canonical_success: true
+  rejected_mutation_restores_previous_visual_and_semantic_state: true
+
+direct_manipulation:
+  applies_to:
+    - surface_reorder
+    - surface_group
+    - pane_split
+    - pane_resize
+    - tab_reorder
+    - inspector_resize
+  pointer_tracks_one_to_one: true
+  preserves_grab_offset: true
+  bounded_drag_threshold_and_hysteresis_required: true
+  valid_and_invalid_drop_targets_distinguishable_without_color_only: true
+  keyboard_and_menu_equivalent_required: true
+  canonical_mutation_commits_only_at_valid_target: true
+
+interruptibility:
+  input_not_locked_during_motion: true
+  live_retargeting_required: true
+  abort_stop_and_escape_semantics_explicit: true
+  profile_activity_and_capability_changes_may_interrupt_transition: true
+  final_state_resolves_from_latest_canonical_projection: true
+
+spatial_consistency:
+  open_and_close_share_spatial_origin_when_applicable: true
+  focus_restores_to_nearest_valid_semantic_target: true
+  recomposition_preserves_focused_surface_when_eligible: true
+  disappearing_target_uses_deterministic_focus_successor: true
+  scroll_selection_and_editor_cursor_preserved_when_semantically_valid: true
+
+motion:
+  purpose:
+    - preserve_object_identity
+    - explain_recomposition
+    - confirm_direct_manipulation
+    - maintain_focus_orientation
+  decorative_motion_that_delays_work: forbidden
+  elastic_overshoot_default: forbidden
+  reduced_motion:
+    transform_motion: cross_fade_or_immediate
+    spatial_continuity: preserved
+    information_loss: forbidden
+  every_transition:
+    - interruptible
+    - bounded
+    - deterministic_final_state
+    - no_placeholder_flash
+    - no_layout_hole
+
+materials_and_depth:
+  purpose: express_hierarchy_and_focus
+  excessive_translucency: forbidden
+  reduced_transparency_surfaces: solid_or_frostier
+  contrast_must_pass_declared_accessibility_target: true
+  depth_must_not_encode_authority_without_text_or_semantics: true
+
+loading_and_freshness:
+  permanent_loading_card: forbidden
+  empty_placeholder_after_resolution: forbidden
+  transient_loading_allowed_when:
+    - canonical_request_is_in_flight
+    - bounded_duration_or_progress_is_visible
+    - cancellation_or_recovery_is_available_when_long_running
+  preserve_safe_loaded_content_during_refresh: true
+  freshness_mark_only_where_workflow_relevant: true
+  stale_content_must_not_enable_invalid_mutation: true
+
+errors_and_recovery:
+  permanent_degraded_workspace_banner: forbidden
+  error_at_point_of_action: required
+  diagnostic_detail_on_explicit_request: required
+  recovery_action_when_available: required
+  canonical_state_not_replaced_by_client_guess: true
+  reconnect_uses_durable_cursor: true
+  transcript_tail_reconstruction_as_authority: forbidden
+
+controls:
+  dead_control: forbidden
+  disabled_control_allowed_only_when:
+    - action_is_immediately_relevant
+    - reason_is_contextual_and_accessible
+    - operator_can_resolve_or_understand_the_block
+  unavailable_capability_discovery_location:
+    - workspace_management
+    - command_palette
+    - explicit_capability_request
+    - Controls_diagnostics
+  daily_workspace_selector_must_not_show_dead_options: true
+
+accessibility:
+  keyboard_complete: true
+  screen_reader_semantics_complete: true
+  focus_visible: true
+  color_independent_status: true
+  text_scaling_supported: true
+  high_contrast_supported: true
+  reduced_motion_supported: true
+  reduced_transparency_supported: true
+  pointer_target_sizes_declared_and_tested: true
+  drag_operations_have_non_drag_alternative: true
+  dynamic_recomposition_announced_without_noise: true
+
+cross_platform:
+  required:
+    - macOS
+    - Windows
+    - Linux
+  shared_semantics_identical: true
+  platform_adapter_may_change:
+    - window_creation
+    - focus_activation
+    - system_menu_integration
+    - accessibility_bridge
+    - webview_runtime_discovery
+    - file_dialog
+    - clipboard_adapter
+  platform_adapter_may_not_change:
+    - canonical_projection
+    - contribution_eligibility
+    - operation_authority
+    - Work_Surface_semantics
+    - draft_and_session_continuity
+    - no_dead_chrome_law
+    - proof_threshold
+
+friction_gate:
+  capture_required_for:
+    - failed_action
+    - repeated_action
+    - abandoned_flow
+    - unexpected_backtrack
+    - focus_loss
+    - layout_instability
+    - inaccessible_operation
+    - recovery_failure
+    - cross_platform_divergence
+  severe_unresolved_friction_blocks_release: true
+  adaptive_proposal_must_pass_eval_and_rollback_contract: true
+
+proof:
+  unit_and_contract:
+    - focus_successor
+    - reduced_motion_policy
+    - control_eligibility
+    - operation_state_mapping
+  component:
+    - pointer_and_keyboard_equivalence
+    - focus_and_live_regions
+    - loading_error_recovery_states
+    - responsive_recomposition
+  runtime:
+    - same_session_actions
+    - interruption
+    - reconnect
+    - capability_loss
+    - draft_preservation
+  UIAI_Engine_Eval:
+    - visual_state
+    - responsive_viewports
+    - accessibility_tree
+    - keyboard_traversal
+    - diagnostics
+    - cross_platform_capture
+    - friction_scenario
+  evidence_fields:
+    - host_version
+    - platform
+    - viewport
+    - accessibility_preferences
+    - profile_and_activity
+    - projection_digest
+    - layout_revision
+    - scenario_id
+    - diagnostics_ref
+    - Evidence_ref
+    - Receipt_ref

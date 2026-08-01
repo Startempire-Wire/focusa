@@ -2,11 +2,71 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { Type } from "@sinclair/typebox";
 import { executeMissionCanvasAction } from "./commands.js";
 import { loadConfig, resolveInteractionMode, type MissionCanvasWorkspaceProfile } from "./config.js";
-import { getSessionCwd } from "./state.js";
+import { getAttachmentRuntime, getSessionCwd } from "./state.js";
+
+interface MissionCanvasScope {
+  project_root: string;
+  continuity_id: string;
+  session_id: string;
+  attachment_id: string;
+  working_subpath_id: string | null;
+}
 
 const ACTIONS = ["open", "on", "off", "toggle", "status", "set_profile"] as const;
 const PROFILES = ["general", "software", "legal", "markets", "research", "custom"] as const;
 let activePiContext: ExtensionContext | undefined;
+let piEventSequence = 0;
+
+function scopeForContext(ctx: ExtensionContext): MissionCanvasScope {
+  const sessionId = String(ctx.sessionManager.getSessionFile?.() || `pi-session-${process.pid}`);
+  const runtime = getAttachmentRuntime();
+  return {
+    project_root: getSessionCwd(),
+    continuity_id: runtime.continuityId || "extension-bootstrap",
+    session_id: sessionId,
+    attachment_id: sessionId,
+    working_subpath_id: null,
+  };
+}
+
+function appendPiEventSafely(
+  ctx: ExtensionContext,
+  eventKind: "pi_turn_started" | "pi_turn_completed" | "pi_message_updated" | "pi_tool_started" | "pi_tool_completed",
+  event: unknown
+): void {
+  const presentation = loadConfig(getSessionCwd()).config;
+  const scope = scopeForContext(ctx);
+  const eventId = `pi-event:${process.pid}:${Date.now()}:${++piEventSequence}`;
+  const url = `${presentation.focusaApiBaseUrl.replace(/\/$/, "")}/mission-canvas/pi-session/events`;
+  void fetch(url, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-focusa-permissions": "mission_canvas:write",
+      ...(presentation.focusaToken ? { authorization: `Bearer ${presentation.focusaToken}` } : {}),
+    },
+    body: JSON.stringify({
+      scope,
+      event_id: eventId,
+      event_kind: eventKind,
+      projection_revision: 0,
+      layout_revision: 0,
+      payload: boundedPiEvent(event),
+      occurred_at: new Date().toISOString(),
+    }),
+  }).catch(() => undefined);
+}
+
+function boundedPiEvent(event: unknown): unknown {
+  const serialized = JSON.stringify(event, (_key, value) => {
+    if (typeof value === "string" && value.length > 16_384) return `${value.slice(0, 16_384)}…`;
+    return value;
+  });
+  if (!serialized) return null;
+  return serialized.length > 32_768
+    ? { truncated: true, preview: serialized.slice(0, 32_768) }
+    : JSON.parse(serialized);
+}
 
 /** Agent-first Mission Canvas control. Uses the exact controller behind /mission-canvas. */
 export function registerMissionCanvasTool(pi: ExtensionAPI): void {
@@ -15,6 +75,11 @@ export function registerMissionCanvasTool(pi: ExtensionAPI): void {
   };
   pi.on("session_start", (event, ctx) => {
     bindContext(event, ctx);
+    appendPiEventSafely(ctx, "pi_message_updated", {
+      event_kind: "mission_canvas_session_restored",
+      interaction_mode: resolveInteractionMode(getSessionCwd()).mode,
+      current_pi_session: true,
+    });
     if (resolveInteractionMode(getSessionCwd()).mode === "canvas-guided" && ctx.hasUI) {
       // Let Pi finish mounting its stock root before replacing it; that root
       // remains alive underneath Canvas and is revealed by the off switch.
@@ -22,8 +87,22 @@ export function registerMissionCanvasTool(pi: ExtensionAPI): void {
     }
   });
   pi.on("before_agent_start", bindContext);
-  pi.on("turn_start", bindContext);
-
+  pi.on("turn_start", (event, ctx) => {
+    bindContext(event, ctx);
+    appendPiEventSafely(ctx, "pi_turn_started", event);
+  });
+  pi.on("turn_end", (event, ctx) => {
+    appendPiEventSafely(ctx, "pi_turn_completed", event);
+  });
+  pi.on("message_update", (event, ctx) => {
+    appendPiEventSafely(ctx, "pi_message_updated", event);
+  });
+  pi.on("tool_execution_start", (event, ctx) => {
+    appendPiEventSafely(ctx, "pi_tool_started", event);
+  });
+  pi.on("tool_execution_end", (event, ctx) => {
+    appendPiEventSafely(ctx, "pi_tool_completed", event);
+  });
   pi.registerTool({
     name: "focusa_mission_canvas",
     label: "Mission Canvas",
@@ -54,10 +133,17 @@ export function registerMissionCanvasTool(pi: ExtensionAPI): void {
           : params.action === "set_profile"
             ? `profile ${String(params.profile) as MissionCanvasWorkspaceProfile}`
             : params.action;
-      await executeMissionCanvasAction(command, ctx);
       const cwd = getSessionCwd();
       const interaction = resolveInteractionMode(cwd);
       const presentation = loadConfig(cwd).config;
+      // Mission Canvas is the current Pi TypeScript TUI itself. The tool must
+      // never launch a browser, webview, native sidecar, or remote host.
+      await executeMissionCanvasAction(command, ctx);
+      appendPiEventSafely(ctx, "pi_message_updated", {
+        event_kind: "mission_canvas_lifecycle_receipt",
+        action: params.action,
+        current_pi_session: true,
+      });
       const state = {
         action: params.action,
         canvas_enabled: interaction.mode === "canvas-guided",
@@ -66,7 +152,8 @@ export function registerMissionCanvasTool(pi: ExtensionAPI): void {
         workspace_profile: presentation.missionCanvasWorkspaceProfile,
         visual_variant: presentation.missionCanvasVisualVariant,
         canonical_runtime_active: true,
-        gui: params.action === "open" ? "opened_and_closed_by_operator" : "unchanged",
+        gui: "pi_tui",
+        host_scope: "current_pi_session",
       };
       return {
         content: [{ type: "text", text: JSON.stringify(state, null, 2) }],

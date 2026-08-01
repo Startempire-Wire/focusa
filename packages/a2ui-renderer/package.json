@@ -14,6 +14,7 @@
     "catalog": "npm run build && node scripts/export-catalog.mjs",
     "check": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.proof.json --noEmit",
     "proof:build": "vite build --config vite.proof.config.ts",
+    "rich-host:build": "vite build --config vite.rich-host.config.ts",
     "test": "npm run build && node --test tests/*.test.mjs"
   },
   "dependencies": {

@@ -1,0 +1,198 @@
+schema: focusa.spec135.responsive_matrix.v1
+version: 1
+status: normative
+owner: Focusa
+updated_at: 2026-07-30
+
+authority:
+  adaptive_composition: docs/contracts/spec135-adaptive-composition.v1.yaml
+  quality_bar: docs/contracts/spec135-ux-quality-bar.v1.yaml
+  activity_reference: docs/contracts/spec135/authoritative-handoff/focusa_activity_mode_recomposition.png
+  vertical_reference: docs/contracts/spec135/authoritative-handoff/focusa_dynamic_vertical_recomposition.png
+  proof_owner: UIAI_Engine_Eval
+
+host_scope:
+  surface: focusa_pi_rich_window
+  implementation_owner: Pi_extension
+  platforms:
+    - macOS
+    - Windows
+    - Linux
+  device_class: desktop
+  mobile_layout_claimed: false
+  minimum_window:
+    css_width: 1024
+    css_height: 720
+    enforcement: host_minimum_size
+  below_minimum_behavior: preserve_state_and_prevent_invalid_resize_not_render_a_degraded_dashboard
+
+viewport_classes:
+  - id: minimum
+    css_width: 1024
+    css_height: 720
+    expected_composition:
+      - single_primary_work_surface_or_compact_split
+      - inspector_compacts_to_tab_or_drawer_only_when_resolved
+      - activity_navigation_may_compact
+      - prompt_editor_remains_operable
+      - no_horizontal_page_scroll
+  - id: compact
+    css_width: 1024
+    css_height: 768
+    expected_composition:
+      - single_or_stacked_primary_arrangement
+      - one_queue_spans_when_present
+      - two_queues_stack_or_tab_by_canonical_projection
+      - empty_rail_and_queues_leave_no_geometry
+  - id: standard
+    css_width: 1280
+    css_height: 800
+    expected_composition:
+      - primary_surface_and_conditional_inspector_supported
+      - resolved_queue_arrangement_supported
+      - actual_surface_strip_without_dead_tabs
+  - id: productive
+    css_width: 1440
+    css_height: 900
+    expected_composition:
+      - split_primary_work_surfaces_supported
+      - inspector_and_rail_may_coexist_when_meaningful
+      - prompt_editor_preserves_practical_working_height
+  - id: wide
+    css_width: 1920
+    css_height: 1080
+    expected_composition:
+      - multi_pane_grid_supported_when_resolved
+      - remaining_contributions_expand_without_excessive_empty_gutters
+      - maximum_readable_line_lengths_applied_inside_text_content
+  - id: reference_capture
+    css_width: 1920
+    css_height: 1080
+    device_pixel_ratio: 2
+    source_pixel_dimensions:
+      width: 3840
+      height: 2160
+    expected_composition:
+      - populated_activity_and_vertical_reference_states_are_comparable
+      - source_images_do_not_force_inventory_in_sparse_states
+
+scale_matrix:
+  css_zoom_percent:
+    - 100
+    - 125
+    - 150
+    - 200
+  device_pixel_ratios:
+    - 1
+    - 1.25
+    - 1.5
+    - 2
+  required_at_each_scale:
+    - no_content_clipping
+    - no_unreachable_action
+    - no_overlapping_text_or_controls
+    - visible_focus_indicator
+    - readable_status_without_color_only
+    - deterministic_projection_for_equivalent_semantic_viewport_class
+
+platform_matrix:
+  macOS:
+    required_webview: WKWebView_or_approved_Tauri_equivalent
+    required_proof:
+      - launch_focus_close
+      - VoiceOver_semantics
+      - keyboard_navigation
+      - reduced_motion
+      - reduced_transparency
+      - Retina_scaling
+  Windows:
+    required_webview: WebView2_or_approved_Tauri_equivalent
+    required_proof:
+      - launch_focus_close
+      - Narrator_UI_Automation_semantics
+      - keyboard_navigation
+      - reduced_motion
+      - high_contrast
+      - 125_150_200_percent_scaling
+  Linux:
+    required_webview: WebKitGTK_or_approved_Tauri_equivalent
+    required_proof:
+      - launch_focus_close
+      - AT_SPI_semantics
+      - keyboard_navigation
+      - reduced_motion
+      - high_contrast
+      - 100_150_200_percent_scaling
+
+recomposition_rules:
+  input_is_canonical_viewport_and_device_descriptor: true
+  server_resolves_semantic_layout_tree: true
+  client_may_apply_only_renderer_level_measurement_within_resolved_constraints: true
+  client_may_not_change_contribution_eligibility: true
+  client_may_not_substitute_semantics: true
+  resize:
+    - interruptible
+    - debounced_only_for_canonical_commit_not_visual_feedback
+    - latest_viewport_wins
+    - focused_semantic_target_preserved
+    - draft_preserved
+    - session_and_attachment_preserved
+  overflow_priority:
+    - preserve_focused_work_surface
+    - preserve_prompt_editor_when_actionable
+    - preserve_active_operation_controls
+    - compact_navigation
+    - tab_compatible_secondary_contributions
+    - omit_viewport_inappropriate_optional_contributions_with_diagnostic
+  forbidden:
+    - horizontal_page_scroll_for_primary_shell
+    - offscreen_unreachable_controls
+    - blank_grid_tracks
+    - placeholder_panels_after_compaction
+    - client_local_breakpoint_semantic_invention
+
+accessibility_variants:
+  default: required
+  high_contrast: required
+  reduced_motion: required
+  reduced_transparency: required
+  text_scale_200_percent: required
+  keyboard_only: required
+  screen_reader: required
+  combined_high_contrast_reduced_motion_200_percent_text: required_at_minimum_and_standard
+
+UIAI_Engine_Eval:
+  scenarios:
+    - minimum_sparse_projection
+    - minimum_single_queue
+    - compact_two_queues
+    - standard_inspector_section_removal
+    - productive_real_split_resize
+    - wide_profile_recomposition
+    - reference_activity_mode_populated
+    - reference_vertical_populated
+    - capability_loss_during_resize
+    - contribution_return_with_layout_memory
+    - keyboard_only_recomposition
+    - high_contrast_reduced_motion
+    - reconnect_during_viewport_transition
+  each_scenario_records:
+    - platform
+    - host_version
+    - viewport_class
+    - css_dimensions
+    - device_pixel_ratio
+    - scale_and_accessibility_preferences
+    - canonical_input_revision
+    - candidate_contribution_ids
+    - eligible_contribution_ids
+    - omission_reasons
+    - projection_digest
+    - layout_revision
+    - focused_semantic_target_before_and_after
+    - session_and_attachment_before_and_after
+    - screenshot_ref
+    - accessibility_tree_ref
+    - diagnostics_ref
+    - Evidence_ref
+    - Receipt_ref

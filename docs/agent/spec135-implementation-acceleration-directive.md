@@ -8,20 +8,26 @@
 Before touching Mission Canvas, Pi UI, C.R.I.S.T. generated UI, Work Surfaces, workspace verticals, renderer code, proof files, or closure state:
 
 1. Read `docs/135-series-current-manifest.md`.
-2. Read `docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml`.
-3. Record both axes in the work item:
+2. Read the current replacement authority verbatim:
+   - `docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md`;
+   - `docs/contracts/spec135/authoritative-handoff/focusa_activity_mode_recomposition.png`;
+   - `docs/contracts/spec135/authoritative-handoff/focusa_dynamic_vertical_recomposition.png`.
+3. Apply the replacement text over the images and older contracts for occupancy; treat the images as populated examples, never fixed inventory.
+4. Read `docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml`.
+5. Record both axes in the work item:
    - `interaction_mode`
    - `host_renderer`
-4. State whether the slice is:
+6. State whether the slice is:
    - canonical runtime;
    - rich Focusa Pi host;
    - terminal projection/fallback;
    - UIAI Engine Cockpit projection;
    - generated C.R.I.S.T. Work Surface;
    - native TUI, Mission Deck, or menubar projection.
-5. Identify the proof class required before writing code.
+7. Identify the proof class required before writing code.
+8. State which semantic contributions are eligible and which are omitted before geometry, including the internal omission reasons.
 
-Do not infer GUI architecture from a screenshot, issue title, source comment, existing TUI component, or handwritten proof JSON.
+Do not infer GUI architecture from a screenshot, issue title, source comment, existing TUI component, or handwritten proof JSON. The six canonical concepts are contribution capabilities, not permanent panel slots. Missing content changes composition instead of producing placeholders.
 
 ### 0.1 Operator intent that must not drift
 
@@ -85,6 +91,14 @@ Complete machine-readable closure DAG
 
 Cross-Functional Alpha
   The earliest production-shaped traversal through every major function.
+
+Permanent integration gate
+  No phase closes from temporary wiring, terminal-only representation,
+  unmerged scaffolding, or proof that is not bound to the canonical runtime.
+
+No-deferral rule
+  Every normative requirement remains in the dependency graph until its
+  implementation, migration, runtime proof, Evidence, and Receipt are complete.
 ```
 
 The Alpha is implemented first. It does not remove requirements from the closure DAG.

@@ -1,0 +1,2478 @@
+{
+  "$defs": {
+    "AccessibilityDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "focus_semantic_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "keyboard_operation_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "label": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "landmark_role": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "live_region": {
+          "enum": [
+            "off",
+            "polite",
+            "assertive"
+          ]
+        }
+      },
+      "required": [
+        "label",
+        "landmark_role",
+        "focus_semantic_id"
+      ],
+      "type": "object"
+    },
+    "ActivityMode": {
+      "additionalProperties": false,
+      "properties": {
+        "activity_mode_id": {
+          "pattern": "^[a-z][a-z0-9._-]{0,79}$",
+          "type": "string"
+        },
+        "candidate_contribution_ids": {
+          "items": {
+            "$ref": "#/$defs/ContributionId"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "display_name": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "terminology_overrides_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "viability_rule_revision": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "activity_mode_id",
+        "revision",
+        "display_name",
+        "candidate_contribution_ids",
+        "viability_rule_revision"
+      ],
+      "type": "object"
+    },
+    "AuthorityDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "approval_required": {
+          "type": "boolean"
+        },
+        "canonical_owner": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "contention_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mutation_owner": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "read_only": {
+          "type": "boolean"
+        },
+        "scope": {
+          "$ref": "#/$defs/ExactScope"
+        }
+      },
+      "required": [
+        "canonical_owner",
+        "mutation_owner",
+        "scope",
+        "read_only"
+      ],
+      "type": "object"
+    },
+    "CandidateContribution": {
+      "additionalProperties": false,
+      "properties": {
+        "active_work_surface_relationships": {
+          "items": {
+            "enum": [
+              "focused",
+              "open",
+              "pinned",
+              "contextual",
+              "aggregate",
+              "none"
+            ]
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "applicable_activity_mode_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "applicable_profile_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "candidate_revision": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "canonical_content_refs": {
+          "items": {
+            "$ref": "#/$defs/CanonicalRef"
+          },
+          "type": "array"
+        },
+        "configuration_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "contribution_id": {
+          "$ref": "#/$defs/ContributionId"
+        },
+        "geometry": {
+          "$ref": "#/$defs/GeometryPreference"
+        },
+        "kind": {
+          "$ref": "#/$defs/ContributionKind"
+        },
+        "preference_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "priority": {
+          "maximum": 100000,
+          "minimum": -100000,
+          "type": "integer"
+        },
+        "renderer_binding_id": {
+          "$ref": "#/$defs/RendererBindingId"
+        },
+        "required_capabilities": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "required_operations": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "required_permissions": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "semantic_binding_id": {
+          "$ref": "#/$defs/SemanticBindingId"
+        }
+      },
+      "required": [
+        "contribution_id",
+        "kind",
+        "semantic_binding_id",
+        "renderer_binding_id",
+        "priority",
+        "applicable_profile_ids",
+        "applicable_activity_mode_ids",
+        "geometry",
+        "canonical_content_refs",
+        "required_capabilities",
+        "required_permissions",
+        "required_operations"
+      ],
+      "type": "object"
+    },
+    "CanonicalRef": {
+      "additionalProperties": false,
+      "properties": {
+        "freshness": {
+          "enum": [
+            "current",
+            "stale",
+            "unknown",
+            "not_applicable"
+          ]
+        },
+        "kind": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "revision": {
+          "minLength": 1,
+          "type": [
+            "integer",
+            "string"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "ref",
+        "revision"
+      ],
+      "type": "object"
+    },
+    "CanvasDraftState": {
+      "additionalProperties": false,
+      "properties": {
+        "attachment_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "conflict_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "content": {
+          "type": "string"
+        },
+        "content_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "draft_id": {
+          "pattern": "^draft:[a-z0-9._:-]+$",
+          "type": "string"
+        },
+        "draft_revision": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "idempotency_key": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "owner": {
+          "enum": [
+            "pi_editor",
+            "canvas_prompt_editor"
+          ]
+        },
+        "recipient_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/ExactScope"
+        },
+        "selection_end": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "selection_start": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "sync_state": {
+          "enum": [
+            "synchronized",
+            "pi_newer",
+            "canvas_newer",
+            "conflict",
+            "offline"
+          ]
+        },
+        "updated_at": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "draft_id",
+        "scope",
+        "owner",
+        "content",
+        "content_sha256",
+        "recipient_ref",
+        "attachment_id",
+        "draft_revision",
+        "sync_state",
+        "idempotency_key",
+        "updated_at"
+      ],
+      "type": "object"
+    },
+    "CapabilityProjection": {
+      "additionalProperties": false,
+      "properties": {
+        "available_operation_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "capabilities": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "capability_revision": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "permissions": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "scope": {
+          "$ref": "#/$defs/ExactScope"
+        },
+        "unavailable_operations": {
+          "items": {
+            "$ref": "#/$defs/UnavailableOperationDiagnostic"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "scope",
+        "capabilities",
+        "permissions",
+        "available_operation_ids",
+        "unavailable_operations",
+        "capability_revision",
+        "observed_at"
+      ],
+      "type": "object"
+    },
+    "ContributionEligibilityContext": {
+      "additionalProperties": false,
+      "properties": {
+        "activity_mode_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "activity_mode_revision": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "available_operations": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "canonical_read_model_revision": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "capabilities": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "focused_work_surface_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "observed_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "open_work_surface_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "permissions": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "pinned_work_surface_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "project_constraint_refs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "resolver_rule_revision": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/ExactScope"
+        },
+        "user_preference_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "viewport": {
+          "$ref": "#/$defs/ViewportDescriptor"
+        },
+        "workspace_profile_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "workspace_profile_revision": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "scope",
+        "workspace_profile_id",
+        "workspace_profile_revision",
+        "activity_mode_id",
+        "activity_mode_revision",
+        "focused_work_surface_id",
+        "canonical_read_model_revision",
+        "available_operations",
+        "capabilities",
+        "permissions",
+        "viewport",
+        "project_constraint_refs",
+        "user_preference_ref",
+        "resolver_rule_revision"
+      ],
+      "type": "object"
+    },
+    "ContributionId": {
+      "description": "Stable opaque semantic contribution identity; never inferred from a visual slot.",
+      "pattern": "^contribution:[a-z0-9][a-z0-9._:-]{0,159}$",
+      "type": "string"
+    },
+    "ContributionKind": {
+      "enum": [
+        "work_surface_strip",
+        "focused_work_surface",
+        "inspector",
+        "inspector_section",
+        "work_rail",
+        "steering_queue",
+        "follow_up_queue",
+        "prompt_editor",
+        "scope_bar",
+        "activity_navigation",
+        "toolbar_control",
+        "contextual_action",
+        "transient_notification",
+        "generated_surface"
+      ],
+      "type": "string"
+    },
+    "ContributionPlacementPreference": {
+      "additionalProperties": false,
+      "properties": {
+        "contribution_id": {
+          "$ref": "#/$defs/ContributionId"
+        },
+        "last_compatible_layout_node_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "maximum_span": {
+          "maximum": 12,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "minimum_span": {
+          "maximum": 12,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "preferred_adjacency": {
+          "items": {
+            "$ref": "#/$defs/ContributionId"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "preferred_order": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "preferred_regions": {
+          "items": {
+            "$ref": "#/$defs/RegionKind"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "contribution_id",
+        "preferred_regions",
+        "preferred_order",
+        "minimum_span",
+        "maximum_span"
+      ],
+      "type": "object"
+    },
+    "EligibilityDecision": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "outcome": {
+                "const": "omitted"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "omission": {
+                "$ref": "#/$defs/OmissionDiagnostic"
+              }
+            },
+            "required": [
+              "omission"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "outcome": {
+                "const": "merged"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "merged_into_contribution_id": {
+                "$ref": "#/$defs/ContributionId"
+              }
+            },
+            "required": [
+              "merged_into_contribution_id"
+            ]
+          }
+        }
+      ],
+      "properties": {
+        "contribution_id": {
+          "$ref": "#/$defs/ContributionId"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "merged_into_contribution_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContributionId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "omission": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OmissionDiagnostic"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "outcome": {
+          "enum": [
+            "eligible",
+            "omitted",
+            "merged",
+            "compacted",
+            "suspended"
+          ]
+        },
+        "projection_revision": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "rule_revision": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "contribution_id",
+        "outcome",
+        "rule_revision",
+        "projection_revision"
+      ],
+      "type": "object"
+    },
+    "ExactScope": {
+      "additionalProperties": false,
+      "properties": {
+        "attachment_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "continuity_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "instance_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "project_root": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "session_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "working_subpath_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ],
+      "type": "object"
+    },
+    "FreshnessDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "observed_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "refresh_operation_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stale_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "enum": [
+            "current",
+            "stale",
+            "unknown",
+            "not_applicable"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "observed_at"
+      ],
+      "type": "object"
+    },
+    "GeometryPreference": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "minimum_span",
+              "maximum_span"
+            ]
+          },
+          "then": {
+            "description": "minimum_span must be less than or equal to maximum_span; enforced by portable semantic validator."
+          }
+        }
+      ],
+      "properties": {
+        "inspector_side": {
+          "enum": [
+            "start",
+            "end",
+            "profile_default",
+            "none"
+          ]
+        },
+        "maximum_span": {
+          "maximum": 12,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "merge_policy": {
+          "enum": [
+            "never",
+            "compatible",
+            "preferred"
+          ]
+        },
+        "minimum_span": {
+          "maximum": 12,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "preferred_adjacency": {
+          "items": {
+            "$ref": "#/$defs/ContributionId"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "preferred_order": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "preferred_regions": {
+          "items": {
+            "$ref": "#/$defs/RegionKind"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "tab_policy": {
+          "enum": [
+            "never",
+            "compatible",
+            "preferred"
+          ]
+        }
+      },
+      "required": [
+        "preferred_regions",
+        "minimum_span",
+        "maximum_span",
+        "merge_policy",
+        "tab_policy"
+      ],
+      "type": "object"
+    },
+    "GridLayoutNode": {
+      "additionalProperties": false,
+      "properties": {
+        "children": {
+          "items": {
+            "$ref": "#/$defs/LayoutNode"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "columns": {
+          "maximum": 12,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "gap_token": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "kind": {
+          "const": "grid"
+        },
+        "node_id": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "node_id",
+        "kind",
+        "columns",
+        "children"
+      ],
+      "type": "object"
+    },
+    "HostLifecycleState": {
+      "additionalProperties": false,
+      "properties": {
+        "canvas_draft_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "durable_event_cursor": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "focused": {
+          "type": "boolean"
+        },
+        "host_instance_id": {
+          "pattern": "^rich-host:[a-z0-9._:-]+$",
+          "type": "string"
+        },
+        "last_error_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lifecycle_revision": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "pi_draft_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "process_id": {
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "renderer_resolution": {
+          "$ref": "#/$defs/HostRendererResolution"
+        },
+        "scope": {
+          "$ref": "#/$defs/ExactScope"
+        },
+        "state": {
+          "enum": [
+            "absent",
+            "launching",
+            "visible",
+            "focused",
+            "hidden",
+            "closing",
+            "reconnecting",
+            "failed"
+          ]
+        },
+        "updated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "window_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "host_instance_id",
+        "scope",
+        "renderer_resolution",
+        "state",
+        "focused",
+        "durable_event_cursor",
+        "lifecycle_revision",
+        "updated_at"
+      ],
+      "type": "object"
+    },
+    "HostRendererResolution": {
+      "additionalProperties": false,
+      "properties": {
+        "asset_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "asset_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "availability": {
+          "enum": [
+            "available",
+            "fallback",
+            "unavailable",
+            "headless"
+          ]
+        },
+        "diagnostic_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "interaction_mode": {
+          "enum": [
+            "canvas-guided",
+            "terminal-guided",
+            "headless"
+          ]
+        },
+        "platform": {
+          "enum": [
+            "macOS",
+            "Windows",
+            "Linux"
+          ]
+        },
+        "resolution_reason": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "resolver_revision": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "selected_renderer": {
+          "enum": [
+            "focusa_pi_rich_window",
+            "uiai_engine_cockpit",
+            "mission_deck_web",
+            "pi_terminal_projection",
+            "native_tui",
+            "menubar_peek",
+            "headless_none"
+          ]
+        }
+      },
+      "required": [
+        "interaction_mode",
+        "selected_renderer",
+        "platform",
+        "availability",
+        "resolution_reason",
+        "resolver_revision"
+      ],
+      "type": "object"
+    },
+    "InspectorLayoutNode": {
+      "additionalProperties": false,
+      "properties": {
+        "inspector_contribution_ids": {
+          "items": {
+            "$ref": "#/$defs/ContributionId"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "kind": {
+          "const": "inspector"
+        },
+        "node_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "primary": {
+          "$ref": "#/$defs/LayoutNode"
+        },
+        "side": {
+          "enum": [
+            "start",
+            "end"
+          ]
+        },
+        "span": {
+          "maximum": 6,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "node_id",
+        "kind",
+        "side",
+        "primary",
+        "inspector_contribution_ids"
+      ],
+      "type": "object"
+    },
+    "LayoutMutationCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "open",
+            "focus",
+            "pin",
+            "unpin",
+            "group",
+            "ungroup",
+            "reorder",
+            "split_horizontal",
+            "split_vertical",
+            "resize_split",
+            "compare",
+            "suspend_projection",
+            "rehydrate",
+            "close_projection",
+            "set_active_tab"
+          ]
+        },
+        "attachment_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "command_id": {
+          "pattern": "^layout-command:[a-z0-9._:-]+$",
+          "type": "string"
+        },
+        "expected_layout_revision": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "expected_projection_revision": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "idempotency_key": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "requested_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/ExactScope"
+        },
+        "secondary_work_surface_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "split_ratio": {
+          "maximum": 0.9,
+          "minimum": 0.1,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "target_contribution_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContributionId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "target_index": {
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "target_layout_node_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_work_surface_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "command_id",
+        "scope",
+        "action",
+        "attachment_id",
+        "expected_projection_revision",
+        "expected_layout_revision",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "LayoutMutationResult": {
+      "additionalProperties": false,
+      "properties": {
+        "accepted": {
+          "type": "boolean"
+        },
+        "command_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "error_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "event_cursor": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "evidence_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "layout_revision": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "projection_digest": {
+          "$ref": "#/$defs/ProjectionDigest"
+        },
+        "projection_revision": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "receipt_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "command_id",
+        "accepted",
+        "projection_revision",
+        "layout_revision",
+        "projection_digest",
+        "event_cursor"
+      ],
+      "type": "object"
+    },
+    "LayoutNode": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/SingleLayoutNode"
+        },
+        {
+          "$ref": "#/$defs/SplitLayoutNode"
+        },
+        {
+          "$ref": "#/$defs/StackLayoutNode"
+        },
+        {
+          "$ref": "#/$defs/GridLayoutNode"
+        },
+        {
+          "$ref": "#/$defs/TabLayoutNode"
+        },
+        {
+          "$ref": "#/$defs/InspectorLayoutNode"
+        }
+      ]
+    },
+    "LegacyLayoutMapping": {
+      "additionalProperties": false,
+      "properties": {
+        "diagnostic_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "legacy_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "mapping_status": {
+          "enum": [
+            "mapped",
+            "omitted",
+            "manual_review"
+          ]
+        },
+        "target_contribution_id": {
+          "$ref": "#/$defs/ContributionId"
+        }
+      },
+      "required": [
+        "legacy_ref",
+        "target_contribution_id",
+        "mapping_status"
+      ],
+      "type": "object"
+    },
+    "LegacyLayoutMigrationEnvelope": {
+      "additionalProperties": false,
+      "properties": {
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "error_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "idempotency_key": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "mappings": {
+          "items": {
+            "$ref": "#/$defs/LegacyLayoutMapping"
+          },
+          "type": "array"
+        },
+        "migration_id": {
+          "pattern": "^layout-migration:[a-z0-9._:-]+$",
+          "type": "string"
+        },
+        "preserved_draft_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/ExactScope"
+        },
+        "source_digest": {
+          "pattern": "^sha256:[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "source_kind": {
+          "enum": [
+            "terminal_local",
+            "process_local",
+            "legacy_canvas",
+            "imported_snapshot"
+          ]
+        },
+        "source_revision": {
+          "type": [
+            "integer",
+            "string"
+          ]
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "validated",
+            "applied",
+            "rejected",
+            "rolled_back"
+          ]
+        },
+        "target_activity_mode_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "target_layout_memory_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_profile_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "warning_refs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "migration_id",
+        "scope",
+        "source_kind",
+        "source_revision",
+        "source_digest",
+        "target_profile_id",
+        "target_activity_mode_id",
+        "mappings",
+        "preserved_draft_ref",
+        "status",
+        "idempotency_key",
+        "created_at"
+      ],
+      "type": "object"
+    },
+    "OmissionDiagnostic": {
+      "additionalProperties": false,
+      "properties": {
+        "canonical_input_refs": {
+          "items": {
+            "$ref": "#/$defs/CanonicalRef"
+          },
+          "type": "array"
+        },
+        "contribution_id": {
+          "$ref": "#/$defs/ContributionId"
+        },
+        "details_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "observed_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "projection_revision": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "reason": {
+          "$ref": "#/$defs/OmissionReason"
+        },
+        "rule_revision": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "contribution_id",
+        "reason",
+        "rule_revision",
+        "projection_revision",
+        "canonical_input_refs",
+        "observed_at"
+      ],
+      "type": "object"
+    },
+    "OmissionReason": {
+      "enum": [
+        "no_relevant_content",
+        "not_applicable",
+        "capability_not_present",
+        "not_authorized",
+        "merged",
+        "compacted",
+        "suspended",
+        "viewport_omitted"
+      ],
+      "type": "string"
+    },
+    "OperationBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "authority_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "confirmation": {
+          "enum": [
+            "none",
+            "preview",
+            "explicit"
+          ]
+        },
+        "disabled_reason_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "operation_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "target_contribution_id": {
+          "$ref": "#/$defs/ContributionId"
+        }
+      },
+      "required": [
+        "operation_id",
+        "target_contribution_id",
+        "enabled",
+        "authority_ref"
+      ],
+      "type": "object"
+    },
+    "ProfileLayoutMemory": {
+      "additionalProperties": false,
+      "properties": {
+        "absent_contribution_ids": {
+          "items": {
+            "$ref": "#/$defs/ContributionId"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "activity_mode_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "focused_semantic_target": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "idempotency_key": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "memory_id": {
+          "pattern": "^layout-memory:[a-z0-9._:-]+$",
+          "type": "string"
+        },
+        "memory_revision": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "placements": {
+          "items": {
+            "$ref": "#/$defs/ContributionPlacementPreference"
+          },
+          "type": "array"
+        },
+        "profile_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/ExactScope"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "viewport_class": {
+          "enum": [
+            "minimum",
+            "compact",
+            "standard",
+            "productive",
+            "wide",
+            "reference_capture"
+          ]
+        }
+      },
+      "required": [
+        "memory_id",
+        "scope",
+        "profile_id",
+        "activity_mode_id",
+        "viewport_class",
+        "placements",
+        "absent_contribution_ids",
+        "memory_revision",
+        "idempotency_key",
+        "updated_at"
+      ],
+      "type": "object"
+    },
+    "ProjectionDigest": {
+      "description": "Digest of normalized canonical projection inputs and output.",
+      "pattern": "^sha256:[a-f0-9]{64}$",
+      "type": "string"
+    },
+    "ProjectionEventKind": {
+      "enum": [
+        "candidate_discovered",
+        "contribution_eligible",
+        "contribution_omitted",
+        "contribution_merged",
+        "projection_resolved",
+        "layout_changed",
+        "focus_changed",
+        "profile_changed",
+        "activity_mode_changed",
+        "capability_changed",
+        "host_launch_requested",
+        "host_visible",
+        "host_focused",
+        "host_hidden",
+        "host_closed",
+        "host_reconnected",
+        "host_failed",
+        "draft_synchronized",
+        "draft_conflict",
+        "projection_suspended",
+        "projection_rehydrated",
+        "migration_started",
+        "migration_completed",
+        "migration_failed",
+        "pi_turn_started",
+        "pi_turn_completed",
+        "pi_message_updated",
+        "pi_tool_started",
+        "pi_tool_completed"
+      ],
+      "type": "string"
+    },
+    "ProjectionLifecycleEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "causation_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "contribution_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContributionId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "correlation_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "event_cursor": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "event_id": {
+          "pattern": "^projection-event:[a-z0-9._:-]+$",
+          "type": "string"
+        },
+        "event_kind": {
+          "$ref": "#/$defs/ProjectionEventKind"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "host_instance_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "layout_revision": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "payload_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "projection_revision": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "receipt_refs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "scope": {
+          "$ref": "#/$defs/ExactScope"
+        }
+      },
+      "required": [
+        "event_id",
+        "event_kind",
+        "scope",
+        "projection_revision",
+        "layout_revision",
+        "event_cursor",
+        "occurred_at",
+        "payload_ref",
+        "evidence_refs",
+        "receipt_refs"
+      ],
+      "type": "object"
+    },
+    "RecompositionEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_contribution_ids": {
+          "items": {
+            "$ref": "#/$defs/ContributionId"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "diagnostic_refs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "eligibility_decisions": {
+          "items": {
+            "$ref": "#/$defs/EligibilityDecision"
+          },
+          "type": "array"
+        },
+        "evidence_id": {
+          "pattern": "^recomposition-evidence:[a-z0-9._:-]+$",
+          "type": "string"
+        },
+        "input_projection_digest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProjectionDigest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "layout_decision_refs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "observed_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "output_projection_digest": {
+          "$ref": "#/$defs/ProjectionDigest"
+        },
+        "rule_revision": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/ExactScope"
+        },
+        "trigger": {
+          "enum": [
+            "canonical_read_change",
+            "profile_change",
+            "activity_mode_change",
+            "focus_change",
+            "viewport_change",
+            "capability_change",
+            "preference_change",
+            "migration",
+            "explicit_resolve"
+          ]
+        }
+      },
+      "required": [
+        "evidence_id",
+        "scope",
+        "trigger",
+        "input_projection_digest",
+        "output_projection_digest",
+        "rule_revision",
+        "candidate_contribution_ids",
+        "eligibility_decisions",
+        "observed_at"
+      ],
+      "type": "object"
+    },
+    "RecompositionReceipt": {
+      "additionalProperties": false,
+      "properties": {
+        "accepted": {
+          "type": "boolean"
+        },
+        "error_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "event_cursor": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "evidence_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "idempotency_key": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "issued_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "layout_revision": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "projection_digest": {
+          "$ref": "#/$defs/ProjectionDigest"
+        },
+        "projection_revision": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "receipt_id": {
+          "pattern": "^recomposition-receipt:[a-z0-9._:-]+$",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/ExactScope"
+        }
+      },
+      "required": [
+        "receipt_id",
+        "scope",
+        "accepted",
+        "projection_revision",
+        "layout_revision",
+        "projection_digest",
+        "event_cursor",
+        "evidence_id",
+        "idempotency_key",
+        "issued_at"
+      ],
+      "type": "object"
+    },
+    "RegionKind": {
+      "enum": [
+        "primary",
+        "secondary",
+        "inspector",
+        "rail",
+        "queue",
+        "composer",
+        "navigation",
+        "overlay"
+      ],
+      "type": "string"
+    },
+    "RegistryEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "entry_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "payload_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "registry_kind": {
+          "enum": [
+            "WorkspaceProfileRegistry",
+            "ActivityModeRegistry",
+            "PanelRegistry",
+            "HomeCanvasRegistry",
+            "WorkSurfaceRendererRegistry",
+            "ArtifactRendererRegistry",
+            "TerminologyRegistry",
+            "DomainSemanticBindingRegistry"
+          ]
+        },
+        "required_capabilities": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "required_permissions": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "revision": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "schema_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "supersedes_entry_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "registry_kind",
+        "entry_id",
+        "revision",
+        "schema_ref",
+        "payload_ref",
+        "enabled"
+      ],
+      "type": "object"
+    },
+    "RendererBindingId": {
+      "pattern": "^renderer:[a-z0-9][a-z0-9._:@/-]{0,239}$",
+      "type": "string"
+    },
+    "ResolvedContribution": {
+      "additionalProperties": false,
+      "properties": {
+        "accessibility": {
+          "$ref": "#/$defs/AccessibilityDescriptor"
+        },
+        "authority": {
+          "$ref": "#/$defs/AuthorityDescriptor"
+        },
+        "contribution_id": {
+          "$ref": "#/$defs/ContributionId"
+        },
+        "contribution_revision": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "data_ref": {
+          "$ref": "#/$defs/CanonicalRef"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "freshness": {
+          "$ref": "#/$defs/FreshnessDescriptor"
+        },
+        "kind": {
+          "$ref": "#/$defs/ContributionKind"
+        },
+        "operation_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "renderer_binding_id": {
+          "$ref": "#/$defs/RendererBindingId"
+        },
+        "resolved_geometry": {
+          "$ref": "#/$defs/GeometryPreference"
+        },
+        "semantic_binding_id": {
+          "$ref": "#/$defs/SemanticBindingId"
+        }
+      },
+      "required": [
+        "contribution_id",
+        "kind",
+        "semantic_binding_id",
+        "renderer_binding_id",
+        "data_ref",
+        "operation_ids",
+        "authority",
+        "freshness",
+        "resolved_geometry",
+        "accessibility",
+        "contribution_revision"
+      ],
+      "type": "object"
+    },
+    "ResolvedWorkspaceProjection": {
+      "additionalProperties": false,
+      "properties": {
+        "activity_mode_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "activity_mode_revision": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "candidate_contribution_ids": {
+          "items": {
+            "$ref": "#/$defs/ContributionId"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "canonical_read_model_revision": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "durable_event_cursor": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "eligible_contributions": {
+          "items": {
+            "$ref": "#/$defs/ResolvedContribution"
+          },
+          "type": "array"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "focused_semantic_target": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "focused_work_surface_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "layout_revision": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "layout_tree": {
+          "$ref": "#/$defs/LayoutNode"
+        },
+        "omission_diagnostics": {
+          "items": {
+            "$ref": "#/$defs/OmissionDiagnostic"
+          },
+          "type": "array"
+        },
+        "operation_bindings": {
+          "items": {
+            "$ref": "#/$defs/OperationBinding"
+          },
+          "type": "array"
+        },
+        "projection_digest": {
+          "$ref": "#/$defs/ProjectionDigest"
+        },
+        "projection_revision": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "receipt_refs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "resolved_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "schema": {
+          "const": "focusa.resolved_workspace_projection.v1"
+        },
+        "scope": {
+          "$ref": "#/$defs/ExactScope"
+        },
+        "workspace_profile_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "workspace_profile_revision": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "schema",
+        "scope",
+        "workspace_profile_id",
+        "workspace_profile_revision",
+        "activity_mode_id",
+        "activity_mode_revision",
+        "focused_work_surface_id",
+        "canonical_read_model_revision",
+        "candidate_contribution_ids",
+        "eligible_contributions",
+        "omission_diagnostics",
+        "layout_tree",
+        "operation_bindings",
+        "focused_semantic_target",
+        "projection_revision",
+        "layout_revision",
+        "durable_event_cursor",
+        "projection_digest"
+      ],
+      "type": "object"
+    },
+    "ResponsiveEvaluationFixture": {
+      "additionalProperties": false,
+      "properties": {
+        "activity_mode_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "candidate_contribution_ids": {
+          "items": {
+            "$ref": "#/$defs/ContributionId"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "expected_eligible_contribution_ids": {
+          "items": {
+            "$ref": "#/$defs/ContributionId"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "expected_layout_kinds": {
+          "items": {
+            "enum": [
+              "single",
+              "split",
+              "stack",
+              "grid",
+              "tabs",
+              "inspector"
+            ]
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "expected_omissions": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "contribution_id": {
+                "$ref": "#/$defs/ContributionId"
+              },
+              "reason": {
+                "$ref": "#/$defs/OmissionReason"
+              }
+            },
+            "required": [
+              "contribution_id",
+              "reason"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "fixture_id": {
+          "pattern": "^responsive-fixture:[a-z0-9._:-]+$",
+          "type": "string"
+        },
+        "maximum_visible_contributions": {
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "minimum_primary_span": {
+          "maximum": 12,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "must_preserve_focus": {
+          "type": "boolean"
+        },
+        "profile_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "viewport": {
+          "$ref": "#/$defs/ViewportDescriptor"
+        }
+      },
+      "required": [
+        "fixture_id",
+        "viewport",
+        "profile_id",
+        "activity_mode_id",
+        "candidate_contribution_ids",
+        "expected_eligible_contribution_ids",
+        "expected_omissions",
+        "expected_layout_kinds",
+        "minimum_primary_span"
+      ],
+      "type": "object"
+    },
+    "SemanticBindingId": {
+      "pattern": "^semantic:[a-z0-9][a-z0-9._:-]{0,159}$",
+      "type": "string"
+    },
+    "SingleLayoutNode": {
+      "additionalProperties": false,
+      "properties": {
+        "contribution_id": {
+          "$ref": "#/$defs/ContributionId"
+        },
+        "kind": {
+          "const": "single"
+        },
+        "node_id": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "node_id",
+        "kind",
+        "contribution_id"
+      ],
+      "type": "object"
+    },
+    "SplitLayoutNode": {
+      "additionalProperties": false,
+      "properties": {
+        "children": {
+          "items": {
+            "$ref": "#/$defs/LayoutNode"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+        },
+        "kind": {
+          "const": "split"
+        },
+        "node_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "orientation": {
+          "enum": [
+            "horizontal",
+            "vertical"
+          ]
+        },
+        "ratio": {
+          "maximum": 0.9,
+          "minimum": 0.1,
+          "type": "number"
+        }
+      },
+      "required": [
+        "node_id",
+        "kind",
+        "orientation",
+        "ratio",
+        "children"
+      ],
+      "type": "object"
+    },
+    "StackLayoutNode": {
+      "additionalProperties": false,
+      "properties": {
+        "children": {
+          "items": {
+            "$ref": "#/$defs/LayoutNode"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "gap_token": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "kind": {
+          "const": "stack"
+        },
+        "node_id": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "node_id",
+        "kind",
+        "children"
+      ],
+      "type": "object"
+    },
+    "TabLayoutNode": {
+      "additionalProperties": false,
+      "properties": {
+        "active_contribution_id": {
+          "$ref": "#/$defs/ContributionId"
+        },
+        "contribution_ids": {
+          "items": {
+            "$ref": "#/$defs/ContributionId"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "kind": {
+          "const": "tabs"
+        },
+        "node_id": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "node_id",
+        "kind",
+        "contribution_ids",
+        "active_contribution_id"
+      ],
+      "type": "object"
+    },
+    "UnavailableOperationDiagnostic": {
+      "additionalProperties": false,
+      "properties": {
+        "diagnostic_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "operation_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "reason": {
+          "enum": [
+            "capability_not_present",
+            "not_authorized",
+            "not_applicable",
+            "suspended",
+            "offline"
+          ]
+        }
+      },
+      "required": [
+        "operation_id",
+        "reason",
+        "diagnostic_ref"
+      ],
+      "type": "object"
+    },
+    "ViewportDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "class": {
+          "enum": [
+            "minimum",
+            "compact",
+            "standard",
+            "productive",
+            "wide",
+            "reference_capture"
+          ]
+        },
+        "css_height": {
+          "minimum": 720,
+          "type": "integer"
+        },
+        "css_width": {
+          "minimum": 1024,
+          "type": "integer"
+        },
+        "device_pixel_ratio": {
+          "maximum": 4,
+          "minimum": 1,
+          "type": "number"
+        },
+        "high_contrast": {
+          "type": "boolean"
+        },
+        "platform": {
+          "enum": [
+            "macOS",
+            "Windows",
+            "Linux"
+          ]
+        },
+        "reduced_motion": {
+          "type": "boolean"
+        },
+        "reduced_transparency": {
+          "type": "boolean"
+        },
+        "text_scale_percent": {
+          "maximum": 200,
+          "minimum": 100,
+          "type": "integer"
+        },
+        "zoom_percent": {
+          "enum": [
+            100,
+            125,
+            150,
+            200
+          ]
+        }
+      },
+      "required": [
+        "class",
+        "css_width",
+        "css_height",
+        "platform",
+        "device_pixel_ratio"
+      ],
+      "type": "object"
+    },
+    "WorkspaceProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_contribution_ids": {
+          "items": {
+            "$ref": "#/$defs/ContributionId"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "density": {
+          "enum": [
+            "comfortable",
+            "standard",
+            "compact",
+            "dense"
+          ]
+        },
+        "display_name": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "domain_semantic_binding_registry_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "installed": {
+          "type": "boolean"
+        },
+        "profile_id": {
+          "pattern": "^[a-z][a-z0-9._-]{0,79}$",
+          "type": "string"
+        },
+        "renderer_registry_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "terminology_registry_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "viability_rule_revision": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "profile_id",
+        "revision",
+        "display_name",
+        "candidate_contribution_ids",
+        "density",
+        "terminology_registry_ref",
+        "renderer_registry_ref",
+        "viability_rule_revision"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://focusa.dev/schemas/spec135/mission-canvas/composition-bundle.v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Portable contribution identity, eligibility, omission, and resolved contribution contracts.",
+  "title": "Focusa Spec 135 Mission Canvas composition contract bundle"
+}

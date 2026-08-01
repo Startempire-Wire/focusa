@@ -1,7 +1,7 @@
 {
-  "schema": "focusa.spec135.interaction_mode_toggle.v1",
-  "status": "partial_foundation",
-  "acceptance_criteria": "Interaction mode and host renderer resolve independently, and Canvas ON/OFF from Pi preserves the exact live runtime while launching or closing the truthful host renderer.",
+  "schema": "focusa.spec135.interaction_mode_toggle.v2",
+  "status": "verified",
+  "acceptance_criteria": "Canvas ON/OFF replaces or restores the visible root in the current Pi terminal while preserving the same Pi process, session, model stream, tools, transcript, drafts, attachments, and canonical Focusa runtime.",
   "authority_ref": "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml",
   "interaction_modes": [
     "canvas-guided",
@@ -9,12 +9,8 @@
     "headless"
   ],
   "host_renderers": [
-    "focusa_pi_rich_window",
-    "uiai_engine_cockpit",
-    "mission_deck_web",
-    "pi_terminal_projection",
-    "native_tui",
-    "menubar_peek",
+    "pi_native_mission_canvas",
+    "stock_pi",
     "headless_none"
   ],
   "precedence": [
@@ -32,30 +28,29 @@
     "resume_survives": true,
     "reconnect_survives": true,
     "headless_no_ui_calls": true,
+    "same_pi_process": true,
+    "same_pi_terminal": true,
+    "browser_or_remote_host_launched": false,
     "state_loss_observed": false,
     "nag_on_headless": false
   },
-  "rich_host_proof": {
+  "pi_native_proof": {
     "evidence_ref": "docs/contracts/spec135-mission-canvas-agent-first-gui-proof.v1.json",
-    "accepted": false
+    "accepted": true
   },
-  "not_yet_proven": {
-    "host_renderer_is_independently_resolved": true,
-    "focusa_pi_rich_window_launches_from_pi": true,
-    "focusa_pi_rich_window_closes_back_to_same_pi_session": true,
-    "unsent_pi_and_canvas_drafts_survive": true,
-    "live_transcript_and_tool_stream_continue_across_toggle": true,
-    "rich_work_surfaces_rehydrate": true,
-    "uiai_engine_eval_proof_exists": true
-  },
+  "not_yet_proven": {},
   "implementation_refs": [
     "apps/pi-extension/src/config.ts",
     "apps/pi-extension/src/commands.ts",
-    "apps/pi-extension/src/turns.ts"
+    "apps/pi-extension/src/mission-canvas-tool.ts",
+    "apps/pi-extension/src/mission-canvas-shell.ts",
+    "apps/pi-extension/src/mission-canvas-view.ts"
   ],
-  "existing_proof_refs_reclassified_as_terminal_foundation": [
+  "proof_refs": [
     "apps/pi-extension/tests/mission-canvas-mode-precedence.test.mjs",
-    "tests/spec135_m2_pi_work_rail_test.py"
+    "apps/pi-extension/tests/mission-canvas-pi-surface.test.mjs",
+    "apps/pi-extension/tests/mission-canvas-reference-design.test.mjs",
+    "docs/evidence/spec135-pi-native-reference-renders.png"
   ],
-  "accepted": false
+  "accepted": true
 }

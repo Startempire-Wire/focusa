@@ -43,6 +43,7 @@ pub mod llms_txt;
 pub mod mcp;
 pub mod memory;
 pub mod metacognition;
+pub mod mission_canvas;
 pub mod mission_canvas_surfaces;
 pub mod ontology;
 pub mod permissions;

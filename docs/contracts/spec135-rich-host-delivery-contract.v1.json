@@ -1,0 +1,186 @@
+{
+  "schema": "focusa.spec135.rich_host_delivery_contract.v1",
+  "base_ledger_ref": "docs/contracts/spec135-complete-feature-ledger.v1.yaml",
+  "requirement_count": 3,
+  "requirements": [
+    {
+      "acceptance_criteria": [
+        "Canvas ON launches or focuses one portable rich host for the exact Pi attachment without changing canonical authority."
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "mission_canvas",
+        "pi",
+        "typescript"
+      ],
+      "closure_status": "verified",
+      "core_types": [],
+      "current_status": "verified",
+      "delivery_lane": "rich_host_adaptive_composition",
+      "dependencies": [
+        "SPEC135-F12"
+      ],
+      "evidence_requirements": [
+        "F13 lifecycle integration proof"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client"
+      ],
+      "generated_ui_surfaces": [
+        "mission_canvas",
+        "pi"
+      ],
+      "implementation_tasks": [],
+      "migration_requirements": [
+        "in-place compatibility; no duplicate authority"
+      ],
+      "normative_text": "Canvas ON launches or focuses one portable rich host for the exact Pi attachment without changing canonical authority.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "Evidence and Receipt"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-F13",
+      "source_section": [
+        "135K rich host and adaptive composition amendment"
+      ],
+      "source_spec": "135K",
+      "tests": [
+        "tests/spec135_mission_canvas_api_static_test.py",
+        "apps/pi-extension/tests/run-rich-host-lifecycle.mjs"
+      ],
+      "uiai_eval_scenarios": [
+        "governed rich-host harness"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Canvas OFF hides or closes the rich host, restores stock Pi, and preserves session identity and drafts."
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "mission_canvas",
+        "pi",
+        "typescript"
+      ],
+      "closure_status": "verified",
+      "core_types": [],
+      "current_status": "verified",
+      "delivery_lane": "rich_host_adaptive_composition",
+      "dependencies": [
+        "SPEC135-F13"
+      ],
+      "evidence_requirements": [
+        "F14 OFF/restoration proof"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client"
+      ],
+      "generated_ui_surfaces": [
+        "mission_canvas",
+        "pi"
+      ],
+      "implementation_tasks": [],
+      "migration_requirements": [
+        "in-place compatibility; no duplicate authority"
+      ],
+      "normative_text": "Canvas OFF hides or closes the rich host, restores stock Pi, and preserves session identity and drafts.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "Evidence and Receipt"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-F14",
+      "source_section": [
+        "135K rich host and adaptive composition amendment"
+      ],
+      "source_spec": "135K",
+      "tests": [
+        "tests/spec135_mission_canvas_api_static_test.py",
+        "apps/pi-extension/tests/run-rich-host-lifecycle.mjs"
+      ],
+      "uiai_eval_scenarios": [
+        "governed rich-host harness"
+      ]
+    },
+    {
+      "acceptance_criteria": [
+        "Mission Canvas resolves meaningful semantic contributions into deterministic layouts and omits empty chrome with diagnostics."
+      ],
+      "api_operations": [],
+      "client_surfaces": [
+        "api",
+        "mission_canvas",
+        "pi",
+        "typescript"
+      ],
+      "closure_status": "verified",
+      "core_types": [],
+      "current_status": "verified",
+      "delivery_lane": "rich_host_adaptive_composition",
+      "dependencies": [
+        "SPEC135-F14",
+        "SPEC135-C4"
+      ],
+      "evidence_requirements": [
+        "adaptive composition schema, resolver, layout, responsive, and no-dead-chrome proofs"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
+      ],
+      "generated_contracts": [
+        "JSON Schema 2020-12",
+        "OpenAPI 3.0.3",
+        "generated TypeScript client"
+      ],
+      "generated_ui_surfaces": [
+        "mission_canvas",
+        "pi"
+      ],
+      "implementation_tasks": [],
+      "migration_requirements": [
+        "in-place compatibility; no duplicate authority"
+      ],
+      "normative_text": "Mission Canvas resolves meaningful semantic contributions into deterministic layouts and omits empty chrome with diagnostics.",
+      "primitive_owner": "Focusa Core",
+      "receipt_requirements": [
+        "Evidence and Receipt"
+      ],
+      "reducer_actions": [],
+      "repository_owner": "Startempire-Wire/focusa",
+      "requirement_id": "SPEC135-AC1",
+      "source_section": [
+        "135K rich host and adaptive composition amendment"
+      ],
+      "source_spec": "135K",
+      "tests": [
+        "tests/spec135_mission_canvas_api_static_test.py",
+        "apps/pi-extension/tests/run-rich-host-lifecycle.mjs"
+      ],
+      "uiai_eval_scenarios": [
+        "governed rich-host harness"
+      ]
+    }
+  ],
+  "status": "verified"
+}

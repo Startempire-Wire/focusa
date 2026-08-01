@@ -1,0 +1,27 @@
+{
+  "schema": "focusa.mission_canvas.profile_activity_matrix.v1",
+  "profiles": ["general", "software", "legal", "markets", "research", "custom"],
+  "activities": ["overview", "context", "role", "interview", "spec", "tasks", "sessions", "documents", "research", "evidence", "history", "controls"],
+  "vectors": [
+    {"profile":"general","activity":"overview","expected":["contribution:pi-session","contribution:project-overview","contribution:work-rail","contribution:controls"]},
+    {"profile":"software","activity":"context","expected":["contribution:context"]},
+    {"profile":"software","activity":"role","expected":["contribution:role"]},
+    {"profile":"software","activity":"interview","expected":["contribution:interview","contribution:steering-queue","contribution:follow-up-queue"]},
+    {"profile":"software","activity":"spec","expected":["contribution:spec","contribution:evidence"]},
+    {"profile":"software","activity":"tasks","expected":["contribution:tasks","contribution:work-rail","contribution:steering-queue","contribution:follow-up-queue"]},
+    {"profile":"software","activity":"sessions","expected":["contribution:pi-session","contribution:silent-sessions"]},
+    {"profile":"legal","activity":"documents","expected":["contribution:document","contribution:authority-inspector"]},
+    {"profile":"research","activity":"research","expected":["contribution:research","contribution:evidence"]},
+    {"profile":"markets","activity":"evidence","expected":["contribution:evidence","contribution:risk-inspector"]},
+    {"profile":"legal","activity":"history","expected":["contribution:history"]},
+    {"profile":"custom","activity":"controls","expected":["contribution:controls"]}
+  ],
+  "memory_disappearance_return": {
+    "profile":"software",
+    "activity_before":"tasks",
+    "activity_during":"sessions",
+    "activity_after":"tasks",
+    "contribution_id":"contribution:work-rail",
+    "expected_order":1
+  }
+}

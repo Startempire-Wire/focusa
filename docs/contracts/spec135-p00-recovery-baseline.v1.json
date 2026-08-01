@@ -1,0 +1,215 @@
+{
+  "schema": "focusa.spec135.p00_recovery_baseline.v1",
+  "status": "p00_complete_p01_authority_ready",
+  "captured_at": "2026-07-30T07:00:00Z",
+  "authority": {
+    "operator_steering": "continue",
+    "completion_graph": "docs/contracts/spec135-mission-canvas-completion-dag.v2.json",
+    "graph_status": "operator_approved_p00_execution",
+    "graph_digest": "6636bbdc72dd6b89f6edf724c7042702be0de37b4e5882b307f0b00fa37932fd"
+  },
+  "scope": {
+    "project_id": "focusa",
+    "canonical_name": "Focusa",
+    "parent_project_root": "/Volumes/Macintosh HD/Users/vsmith/focusa",
+    "working_subpath_root": "/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas",
+    "git_common_dir": "/Volumes/Macintosh HD/Users/vsmith/focusa/.git",
+    "branch": "feature/spec-135-context-connectors-b2",
+    "head_at_identity_check": "7b7806930403591184963e0d999696b39ccc5b1d",
+    "remote_head_at_identity_check": "7b7806930403591184963e0d999696b39ccc5b1d",
+    "remote": "https://github.com/Startempire-Wire/focusa.git",
+    "pull_request": "https://github.com/Startempire-Wire/focusa/pull/110",
+    "pull_request_draft": true,
+    "project_identity_warning": "The tracked deployment-specific project_root was removed from .focusa-project.json so the existing marker parser derives a portable root from marker location and git worktree context. Focusa ProjectIdentity writes still time out before returning a fresh verification packet."
+  },
+  "focusa_authority": {
+    "project_card_hlt": "Bring the Focusa Mission Canvas Spec series 135 into full existence and alignment with the current Focusa Core Product and make it fully operational.",
+    "prior_project_card_mlg": "Close all 30 remaining requirements in the machine-readable Spec 135 ledger in dependency order.",
+    "workpoint_status": "canonical_active",
+    "workpoint_id": "019fb3a9-5b29-7db3-84e4-bbb507cbe411",
+    "workpoint_scope": "/Volumes/Macintosh HD/Users/vsmith/focusa + extension-bootstrap + working-subpath:05a5992a432947ea77bde268f7cc8971231fb4bde36a91fbf5dc4e90d2a07b7c",
+    "workpoint_recovery": "Pi/CLI wrappers timed out, so the same canonical typed request was replayed through POST /v1/workpoint/checkpoint with a 300 second timeout and explicit parent scope. The daemon accepted and promoted it.",
+    "writer_lease": {
+      "writer_id": "pi-75087",
+      "fencing_token": 1785423090003000,
+      "acquired": true,
+      "lease_semantics": "bounded 30 second mutation lease; the continuous loop remains enabled/idle and manual work proceeds from the canonical Workpoint"
+    }
+  },
+  "task_provider_before": {
+    "mode": "SQLite auto-import",
+    "visible_issue_count": 0,
+    "failure": "Eight closed legacy records used unsupported issue types security/improvement; two records used unsupported deferred status. After migration, normal auto-import remained pathologically slow.",
+    "legacy_type_migrations": {
+      "security_to_bug": 3,
+      "improvement_to_feature": 5
+    },
+    "legacy_status_migrations": {
+      "deferred_to_blocked": 2
+    },
+    "history_preservation": "Original types/statuses are retained as legacy-type:* and legacy-status:* labels in canonical JSONL."
+  },
+  "task_provider_after": {
+    "canonical_mode": "Beads --no-db over tracked .beads/issues.jsonl",
+    "canonical_issue_count": 2553,
+    "sqlite_cache_new_graph_issue_count": 394,
+    "sqlite_cache_new_graph_dependency_count": 1014,
+    "new_epic": "focusa-mc2",
+    "new_materialized_records": 394,
+    "new_graph_nodes": 381,
+    "new_phase_epics": 12,
+    "new_dependency_edges": 1014,
+    "p00_initial_ready_tasks": [
+      "focusa-mc2.1.001",
+      "focusa-mc2.1.002",
+      "focusa-mc2.1.003",
+      "focusa-mc2.1.004",
+      "focusa-mc2.1.005"
+    ],
+    "provider_command": "bd --no-db --no-daemon",
+    "cache_sync": "scripts/materialize-spec135-mission-canvas-completion-beads.py --check --sync-db"
+  },
+  "ledger_reconciliation": {
+    "legacy_feature_ledger": {
+      "requirements": 73,
+      "provider_tasks": 73,
+      "provider_status": "all closed",
+      "repository_status": "73/73 verified",
+      "classification": "historical closure predating corrected rich-host/adaptive authority"
+    },
+    "superseded_recovery_epic": {
+      "prefix": "focusa-mc-full",
+      "records": 63,
+      "active_before": 53,
+      "dependency_edges_before": 0,
+      "architecture_conflict": "Root description declared Pi TUI the central Mission Canvas surface.",
+      "after": "All records retained closed with superseded_by=focusa-mc2 and historical labels."
+    },
+    "project_card_advisory": {
+      "remaining_count": 30,
+      "exact_ids_exposed": false,
+      "ready_frontier": [
+        "SPEC135-RI4",
+        "SPEC135-V3",
+        "SPEC135-V4",
+        "SPEC135-V5",
+        "SPEC135-P2",
+        "SPEC135-P4",
+        "SPEC135-Q1",
+        "SPEC135-Q3",
+        "SPEC135-Q4",
+        "SPEC135-E1"
+      ],
+      "classification": "Superseded as execution decomposition by operator-approved focusa-mc2 graph; HLT remains unchanged."
+    },
+    "generated_master_acceptance": {
+      "passed_gates": 2,
+      "total_gates": 14,
+      "status": "reopened",
+      "classification": "Current truthful closure baseline"
+    },
+    "authoritative_execution_decomposition": {
+      "epic": "focusa-mc2",
+      "implementation_tasks": 307,
+      "total_graph_nodes": 381,
+      "phase_count": 12,
+      "graph_edges": 621,
+      "beads_dependency_edges_including_parent_child": 1014
+    }
+  },
+  "test_baseline": {
+    "command": "bash scripts/ci/run-spec-gates.sh",
+    "master_acceptance_observed": "2/14, merge_ready=false",
+    "initial_run": {
+      "result": "failed at SPEC135-M4 binding E2E equality",
+      "diagnosis": "Transient result was not reproducible against the same release daemon; the real test uses a unique port and temporary data directory."
+    },
+    "m4_reproduction": {
+      "direct_runs": 5,
+      "passed": 5,
+      "debug_round_trip": "created and listed binding payloads were byte-for-byte JSON equivalent",
+      "subsequent_full_gate": "passed M4 and continued through later suites",
+      "classification": "non-reproducible transient; no production binding defect observed"
+    },
+    "clean_local_run": {
+      "result": "harness timeout after 2400 seconds with no assertion failure",
+      "last_completed_suite": "Spec 54/54a visible output boundary",
+      "next_suite_started": "Spec 51 Mode B proxy parity",
+      "worktree_at_start": "clean"
+    },
+    "github_ci_run_30558900096": {
+      "result": "failed after all earlier gates passed",
+      "first_failure": "apps/pi-extension/tests/mission-canvas-pi-surface.test.mjs retained obsolete full-shell title/footer markers after terminal-projection reclassification",
+      "repair": "Static assertions now require Terminal Projection title and FOCUSA TERMINAL CANVAS PROJECTION footer while explicitly rejecting rich-GUI classification."
+    },
+    "github_ci_run_30563528987": {
+      "result": "failed before B2 runtime execution",
+      "first_failure": "The shared Context ingestion harness hardcoded target/debug/focusa-daemon and ignored the canonical FOCUSA_DAEMON_BIN=target/release/focusa-daemon override supplied by run-spec-gates.sh.",
+      "repair": "tests/spec135_context_ingestion_e2e_test.py now resolves BINARY from FOCUSA_DAEMON_BIN with the debug path only as fallback.",
+      "local_reproof": [
+        "Spec 135 B2 Context artifacts/connectors E2E PASS",
+        "Spec 135 C1 Context ingestion E2E PASS"
+      ]
+    },
+    "github_ci_run_30564450086": {
+      "result": "failed in Spec 135H static authority gate",
+      "first_failure": "The gate required explicit Permanent integration gate and No-deferral rule labels after the corrected directive retained their semantics but lost those exact headings.",
+      "repair": "The acceleration directive now restores explicit permanent-integration and no-deferral laws; the Playwright assertion follows the current normative must-not-add wording.",
+      "local_reproof": "Spec 135H implementation acceleration static test PASS"
+    },
+    "github_ci_run_30565511587": {
+      "result": "failed in Spec 135J delivery discoverability gate",
+      "first_failure": "The corrected manifest defined generated C.R.I.S.T. surfaces and rejected transcript/static substitutes but no longer stated the exact nontechnical-path requirement in the current Delivery Contract.",
+      "repair": "The current manifest now explicitly requires a nontechnical generated UI path for every C.R.I.S.T. stage.",
+      "local_reproof": "Spec 135J core API/runtime reuse static test PASS"
+    },
+    "github_ci_run_30566758366": {
+      "result": "failed in generated-UI current-reality audit discoverability gate",
+      "first_failure": "The corrected Delivery Contract no longer linked the required SPEC135_REALTIME_GENERATED_UI_SPEED_AND_CORE_INTEGRATION_AUDIT_2026-07-18.md authority file.",
+      "repair": "The current manifest now names and links the required current-reality audit before the operator intent lock.",
+      "local_reproof": "Spec 135 generated UI/core integration audit static test PASS"
+    },
+    "github_ci_run_30566758366_following_gate": {
+      "result": "Delivery Contract regression would have failed on stale pre-correction dogfood wording and GNU-only find -printf",
+      "repair": "The gate now asserts the richer same-live-session rich Canvas plus real Work Surface switch/split/rehydration traversal and uses portable find -exec basename syntax.",
+      "local_reproof": "Spec 135 Delivery Contract regression static test PASS; all subsequent static release gates pass locally"
+    },
+    "github_ci_run_30568434414": {
+      "result": "passed",
+      "job": "90958772613",
+      "gate": "Spec Gates (strict)",
+      "head": "9e014aee",
+      "classification": "P00 clean code/test/proof/release baseline accepted"
+    },
+    "next_baseline_action": "P00 is complete. Begin P01 authority reconciliation only through the closed P00 phase gate and the canonical focusa-mc2 dependency graph."
+  },
+  "p00_progress": {
+    "completed": [
+      "focusa-mc2.1.001 scope identity verified with root-marker warning",
+      "focusa-mc2.1.002 branch and remote reconciled before P00 mutations",
+      "focusa-mc2.1.004 task-provider legacy schema repaired and canonical no-db visibility restored",
+      "focusa-mc2.1.005 ledger/provider/Project Card/master-acceptance contradiction reconciled to focusa-mc2",
+      "focusa-mc2.1.003 canonical Workpoint and bounded writer lease restored",
+      "focusa-mc2.1.006 identity wave gate",
+      "focusa-mc2.1.008 M4 transient diagnosed with 5/5 direct passes and subsequent full-gate pass",
+      "focusa-mc2.1.009 35-file implementation/proof classification",
+      "focusa-mc2.1.010 stale closure claims reclassified to truthful reopened state",
+      "focusa-mc2.1.007 clean GitHub Spec Gates baseline",
+      "focusa-mc2.1.011 baseline wave gate",
+      "focusa-mc2.1.012 work items declared for every implementation lane",
+      "focusa-mc2.1.013 isolated writer scopes and attachment identities recorded in spec135-writer-scope-plan.v1.json",
+      "focusa-mc2.1.014 PR 110 remains draft with generated reopened acceptance and strict false-closure gates",
+      "focusa-mc2.1.015 operator continue steering recorded as DAG approval",
+      "focusa-mc2.1.016 governance wave gate",
+      "focusa-mc2.1.017 P00 phase gate"
+    ],
+    "blocked": [],
+    "ready": [
+      "focusa-mc2.2.018 encode authority precedence and supersession",
+      "focusa-mc2.2.019 reclassify six canonical regions as semantic contribution capabilities",
+      "focusa-mc2.2.020 encode portable Pi-extension ownership invariant",
+      "focusa-mc2.2.021 encode populated-image-example semantics"
+    ],
+    "writer_scope_plan": "docs/contracts/spec135-writer-scope-plan.v1.json"
+  }
+}

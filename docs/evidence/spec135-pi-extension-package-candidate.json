@@ -1,0 +1,836 @@
+[
+  {
+    "id": "focusa-pi-bridge@0.9.141",
+    "name": "focusa-pi-bridge",
+    "version": "0.9.141",
+    "size": 499956,
+    "unpackedSize": 2424202,
+    "shasum": "23cb0766d734a69a6f261fba52a17281641b3c94",
+    "integrity": "sha512-32mGIkMS49V4fmTeJ//YxzFBMgYq6N/5LfDVcRZ8UMc/3f55xgTS3pjq1tSqgCRvVzR+OXrW5JpFtHC6L5qhrA==",
+    "filename": "focusa-pi-bridge-0.9.141.tgz",
+    "files": [
+      {
+        "path": ".beads/config.yaml",
+        "size": 2262,
+        "mode": 420
+      },
+      {
+        "path": ".beads/interactions.jsonl",
+        "size": 0,
+        "mode": 420
+      },
+      {
+        "path": ".beads/issues.jsonl",
+        "size": 75916,
+        "mode": 420
+      },
+      {
+        "path": ".beads/metadata.json",
+        "size": 62,
+        "mode": 420
+      },
+      {
+        "path": ".beads/README.md",
+        "size": 2250,
+        "mode": 420
+      },
+      {
+        "path": ".gitattributes",
+        "size": 70,
+        "mode": 420
+      },
+      {
+        "path": ".prettierignore",
+        "size": 35,
+        "mode": 420
+      },
+      {
+        "path": ".prettierrc",
+        "size": 175,
+        "mode": 420
+      },
+      {
+        "path": "AGENTS.md",
+        "size": 1327,
+        "mode": 420
+      },
+      {
+        "path": "README.md",
+        "size": 3448,
+        "mode": 420
+      },
+      {
+        "path": "eslint.config.mjs",
+        "size": 3311,
+        "mode": 420
+      },
+      {
+        "path": "package.json",
+        "size": 2450,
+        "mode": 420
+      },
+      {
+        "path": "prompts/focusa-context.md",
+        "size": 1969,
+        "mode": 420
+      },
+      {
+        "path": "rich-host/assets/a2ui-runtime.js",
+        "size": 457233,
+        "mode": 420
+      },
+      {
+        "path": "rich-host/assets/index.html",
+        "size": 1919,
+        "mode": 420
+      },
+      {
+        "path": "rich-host/assets/main.js",
+        "size": 27243,
+        "mode": 420
+      },
+      {
+        "path": "rich-host/assets/styles.css",
+        "size": 5623,
+        "mode": 420
+      },
+      {
+        "path": "rich-host/host-entrypoint.mjs",
+        "size": 3435,
+        "mode": 420
+      },
+      {
+        "path": "rich-host/package-lock.json",
+        "size": 258,
+        "mode": 420
+      },
+      {
+        "path": "rich-host/package.json",
+        "size": 307,
+        "mode": 420
+      },
+      {
+        "path": "rich-host/README.md",
+        "size": 593,
+        "mode": 420
+      },
+      {
+        "path": "rich-host/stories/reference-states.json",
+        "size": 1924,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-agent-bootstrap/references/01-focusa-agent-bootstrap-runbook.md",
+        "size": 2315,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-agent-bootstrap/SKILL.md",
+        "size": 2390,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-browser-uiai/references/01-focusa-browser-uiai-runbook.md",
+        "size": 1927,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-browser-uiai/SKILL.md",
+        "size": 2382,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-cli-api/references/01-focusa-cli-api-runbook.md",
+        "size": 1583,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-cli-api/SKILL.md",
+        "size": 2003,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-context-cognition/references/01-focusa-context-cognition-runbook.md",
+        "size": 2520,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-context-cognition/SKILL.md",
+        "size": 2336,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-device-pairing/references/01-focusa-device-pairing-runbook.md",
+        "size": 2212,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-device-pairing/SKILL.md",
+        "size": 2218,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-docs-maintenance/references/01-focusa-docs-maintenance-runbook.md",
+        "size": 1592,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-docs-maintenance/SKILL.md",
+        "size": 2066,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-dxux-recovery/references/01-focusa-dxux-recovery-runbook.md",
+        "size": 2026,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-dxux-recovery/SKILL.md",
+        "size": 2156,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-evidence-outcomes/references/01-focusa-evidence-outcomes-runbook.md",
+        "size": 1977,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-evidence-outcomes/SKILL.md",
+        "size": 2393,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-focus-state/references/01-focusa-focus-state-runbook.md",
+        "size": 2501,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-focus-state/SKILL.md",
+        "size": 2248,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-install-lifecycle/references/01-focusa-install-lifecycle-runbook.md",
+        "size": 2334,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-install-lifecycle/SKILL.md",
+        "size": 2304,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-lineage/references/01-focusa-lineage-runbook.md",
+        "size": 2276,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-lineage/SKILL.md",
+        "size": 2178,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-metacognition/references/01-focusa-metacognition-runbook.md",
+        "size": 2635,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-metacognition/SKILL.md",
+        "size": 2309,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-mission-canvas/references/01-focusa-mission-canvas-runbook.md",
+        "size": 2251,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-mission-canvas/SKILL.md",
+        "size": 2322,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-project-card/references/01-focusa-project-card-runbook.md",
+        "size": 1958,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-project-card/SKILL.md",
+        "size": 2141,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-project-scope/references/01-focusa-project-scope-runbook.md",
+        "size": 1828,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-project-scope/SKILL.md",
+        "size": 2294,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-release-proof/references/01-focusa-release-proof-runbook.md",
+        "size": 2312,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-release-proof/SKILL.md",
+        "size": 2385,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-resource-performance/references/01-focusa-resource-performance-runbook.md",
+        "size": 2299,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-resource-performance/SKILL.md",
+        "size": 2313,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-security-auth-licensing/references/01-focusa-security-auth-licensing-runbook.md",
+        "size": 1963,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-security-auth-licensing/SKILL.md",
+        "size": 2416,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-session-recovery/references/01-focusa-session-recovery-runbook.md",
+        "size": 2336,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-session-recovery/SKILL.md",
+        "size": 2352,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-silent-sessions/references/01-focusa-silent-sessions-runbook.md",
+        "size": 1595,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-silent-sessions/SKILL.md",
+        "size": 2063,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-spec-implementation/references/01-focusa-spec-implementation-runbook.md",
+        "size": 1967,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-spec-implementation/SKILL.md",
+        "size": 2371,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-temporal-authority/references/01-focusa-temporal-authority-runbook.md",
+        "size": 1921,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-temporal-authority/SKILL.md",
+        "size": 2329,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-tool-discovery/references/01-focusa-tool-discovery-runbook.md",
+        "size": 2223,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-tool-discovery/SKILL.md",
+        "size": 2325,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-trajectory/references/01-focusa-trajectory-runbook.md",
+        "size": 2367,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-trajectory/SKILL.md",
+        "size": 2231,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-troubleshooting/references/01-focusa-troubleshooting-runbook.md",
+        "size": 1591,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-troubleshooting/SKILL.md",
+        "size": 2059,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-work-loop/references/01-focusa-work-loop-runbook.md",
+        "size": 2232,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-work-loop/SKILL.md",
+        "size": 2185,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-workpoint/references/01-focusa-workpoint-runbook.md",
+        "size": 1992,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa-workpoint/SKILL.md",
+        "size": 2125,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa/references/01-focusa-core-agent-runbook.md",
+        "size": 1412,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa/references/01-focusa-runbook.md",
+        "size": 3021,
+        "mode": 420
+      },
+      {
+        "path": "skills/focusa/SKILL.md",
+        "size": 2301,
+        "mode": 420
+      },
+      {
+        "path": "skills/predictive-power/references/01-focusa-predictive-power-runbook.md",
+        "size": 1084,
+        "mode": 420
+      },
+      {
+        "path": "skills/predictive-power/references/01-predictive-power-runbook.md",
+        "size": 2056,
+        "mode": 420
+      },
+      {
+        "path": "skills/predictive-power/SKILL.md",
+        "size": 2156,
+        "mode": 420
+      },
+      {
+        "path": "src/auto-compaction.ts",
+        "size": 36434,
+        "mode": 420
+      },
+      {
+        "path": "src/awareness-substrate.ts",
+        "size": 35109,
+        "mode": 420
+      },
+      {
+        "path": "src/awareness.ts",
+        "size": 3488,
+        "mode": 420
+      },
+      {
+        "path": "src/cache-safe-context.ts",
+        "size": 10368,
+        "mode": 420
+      },
+      {
+        "path": "src/commands.ts",
+        "size": 79943,
+        "mode": 420
+      },
+      {
+        "path": "src/compaction.ts",
+        "size": 55717,
+        "mode": 420
+      },
+      {
+        "path": "src/config.ts",
+        "size": 19333,
+        "mode": 420
+      },
+      {
+        "path": "src/crist-canvas.ts",
+        "size": 2854,
+        "mode": 420
+      },
+      {
+        "path": "src/daemon-recovery-gate.ts",
+        "size": 2212,
+        "mode": 420
+      },
+      {
+        "path": "src/index.ts",
+        "size": 14278,
+        "mode": 420
+      },
+      {
+        "path": "src/interview-composer.ts",
+        "size": 10301,
+        "mode": 420
+      },
+      {
+        "path": "src/lifecycle-advisory.ts",
+        "size": 2623,
+        "mode": 420
+      },
+      {
+        "path": "src/lifecycle-guard.ts",
+        "size": 365,
+        "mode": 420
+      },
+      {
+        "path": "src/mission-canvas-accessibility.ts",
+        "size": 2137,
+        "mode": 420
+      },
+      {
+        "path": "src/mission-canvas-layout.ts",
+        "size": 7844,
+        "mode": 420
+      },
+      {
+        "path": "src/mission-canvas-model.ts",
+        "size": 5595,
+        "mode": 420
+      },
+      {
+        "path": "src/mission-canvas-session-inventory.ts",
+        "size": 4420,
+        "mode": 420
+      },
+      {
+        "path": "src/mission-canvas-shell.ts",
+        "size": 7047,
+        "mode": 420
+      },
+      {
+        "path": "src/mission-canvas-tool.ts",
+        "size": 6688,
+        "mode": 420
+      },
+      {
+        "path": "src/mission-canvas-view.ts",
+        "size": 20682,
+        "mode": 420
+      },
+      {
+        "path": "src/mission-canvas-widget.ts",
+        "size": 1684,
+        "mode": 420
+      },
+      {
+        "path": "src/nontechnical-onboarding.ts",
+        "size": 1614,
+        "mode": 420
+      },
+      {
+        "path": "src/ota-activation.ts",
+        "size": 5161,
+        "mode": 420
+      },
+      {
+        "path": "src/persistence.ts",
+        "size": 8768,
+        "mode": 420
+      },
+      {
+        "path": "src/polish.ts",
+        "size": 10138,
+        "mode": 420
+      },
+      {
+        "path": "src/research-bridge.ts",
+        "size": 7293,
+        "mode": 420
+      },
+      {
+        "path": "src/rich-artifact-renderers.ts",
+        "size": 7289,
+        "mode": 420
+      },
+      {
+        "path": "src/rich-host/api-client.ts",
+        "size": 8339,
+        "mode": 420
+      },
+      {
+        "path": "src/rich-host/lifecycle.ts",
+        "size": 5989,
+        "mode": 420
+      },
+      {
+        "path": "src/rich-host/platform.ts",
+        "size": 7562,
+        "mode": 420
+      },
+      {
+        "path": "src/rich-host/types.ts",
+        "size": 2452,
+        "mode": 420
+      },
+      {
+        "path": "src/role-composer.ts",
+        "size": 8325,
+        "mode": 420
+      },
+      {
+        "path": "src/scoped-state.ts",
+        "size": 9008,
+        "mode": 420
+      },
+      {
+        "path": "src/session-classification.ts",
+        "size": 2325,
+        "mode": 420
+      },
+      {
+        "path": "src/session-pressure.ts",
+        "size": 18132,
+        "mode": 420
+      },
+      {
+        "path": "src/session.ts",
+        "size": 64677,
+        "mode": 420
+      },
+      {
+        "path": "src/state.ts",
+        "size": 180139,
+        "mode": 420
+      },
+      {
+        "path": "src/tool-contracts.ts",
+        "size": 133628,
+        "mode": 420
+      },
+      {
+        "path": "src/tools.ts",
+        "size": 594778,
+        "mode": 420
+      },
+      {
+        "path": "src/turns.ts",
+        "size": 111711,
+        "mode": 420
+      },
+      {
+        "path": "src/wbm.ts",
+        "size": 11983,
+        "mode": 420
+      },
+      {
+        "path": "src/work-rail-interactions.ts",
+        "size": 6263,
+        "mode": 420
+      },
+      {
+        "path": "src/work-rail-widget.ts",
+        "size": 7446,
+        "mode": 420
+      },
+      {
+        "path": "src/workspace-invalidation.ts",
+        "size": 2260,
+        "mode": 420
+      },
+      {
+        "path": "src/workspace-verticals.ts",
+        "size": 8155,
+        "mode": 420
+      },
+      {
+        "path": "tests/auto-compaction-resilience.test.mjs",
+        "size": 9156,
+        "mode": 420
+      },
+      {
+        "path": "tests/cache-safe-context.test.mjs",
+        "size": 9350,
+        "mode": 420
+      },
+      {
+        "path": "tests/interaction-mode.test.mjs",
+        "size": 945,
+        "mode": 420
+      },
+      {
+        "path": "tests/menu-audit-gate.test.mjs",
+        "size": 2091,
+        "mode": 420
+      },
+      {
+        "path": "tests/mission-canvas-accessibility.test.mjs",
+        "size": 2201,
+        "mode": 420
+      },
+      {
+        "path": "tests/mission-canvas-mode-precedence.test.mjs",
+        "size": 2550,
+        "mode": 420
+      },
+      {
+        "path": "tests/mission-canvas-performance.test.mjs",
+        "size": 3778,
+        "mode": 420
+      },
+      {
+        "path": "tests/mission-canvas-pi-surface.test.mjs",
+        "size": 4293,
+        "mode": 420
+      },
+      {
+        "path": "tests/mission-canvas-reference-design.test.mjs",
+        "size": 6974,
+        "mode": 420
+      },
+      {
+        "path": "tests/mission-canvas-session-inventory.test.mjs",
+        "size": 2507,
+        "mode": 420
+      },
+      {
+        "path": "tests/mission-canvas-uiai-server.mjs",
+        "size": 7802,
+        "mode": 420
+      },
+      {
+        "path": "tests/ota-activation.test.mjs",
+        "size": 3827,
+        "mode": 420
+      },
+      {
+        "path": "tests/research-bridge.test.mjs",
+        "size": 3322,
+        "mode": 420
+      },
+      {
+        "path": "tests/rich-artifact-renderers.test.mjs",
+        "size": 3419,
+        "mode": 420
+      },
+      {
+        "path": "tests/rich-host-entrypoint.integration.mjs",
+        "size": 2579,
+        "mode": 420
+      },
+      {
+        "path": "tests/rich-host-frontend.test.mjs",
+        "size": 2909,
+        "mode": 420
+      },
+      {
+        "path": "tests/rich-host-lifecycle.test.mjs",
+        "size": 3914,
+        "mode": 420
+      },
+      {
+        "path": "tests/rich-host-stress.test.mjs",
+        "size": 2046,
+        "mode": 420
+      },
+      {
+        "path": "tests/run-rich-host-lifecycle.mjs",
+        "size": 1164,
+        "mode": 420
+      },
+      {
+        "path": "tests/session-health-lifecycle-race.test.mjs",
+        "size": 3624,
+        "mode": 420
+      },
+      {
+        "path": "tests/session-lifecycle-advisory.test.mjs",
+        "size": 3417,
+        "mode": 420
+      },
+      {
+        "path": "tests/session-project-classification.test.mjs",
+        "size": 2794,
+        "mode": 420
+      },
+      {
+        "path": "tests/settings-attachment-safety.test.mjs",
+        "size": 3710,
+        "mode": 420
+      },
+      {
+        "path": "tests/silent-session-launch-hardening.test.mjs",
+        "size": 1279,
+        "mode": 420
+      },
+      {
+        "path": "tests/spec101-bloatgaurd-details-route.test.mjs",
+        "size": 5153,
+        "mode": 420
+      },
+      {
+        "path": "tests/spec101-bloatgaurd-pressure-circuit-runtime.test.mjs",
+        "size": 11620,
+        "mode": 420
+      },
+      {
+        "path": "tests/spec101-bloatgaurd-profile-runtime.test.mjs",
+        "size": 8315,
+        "mode": 420
+      },
+      {
+        "path": "tests/spec101-bloatgaurd-tool-history-elision-runtime.test.mjs",
+        "size": 3607,
+        "mode": 420
+      },
+      {
+        "path": "tests/spec104-attachment-runtime-isolation.test.mjs",
+        "size": 10774,
+        "mode": 420
+      },
+      {
+        "path": "tests/spec104-pi-runtime-isolation.test.mjs",
+        "size": 4558,
+        "mode": 420
+      },
+      {
+        "path": "tests/spec130-rollover-command-lifecycle.test.mjs",
+        "size": 4636,
+        "mode": 420
+      },
+      {
+        "path": "tests/uiai-eval-harness.test.mjs",
+        "size": 2178,
+        "mode": 420
+      },
+      {
+        "path": "tests/work-loop-lease-client.test.mjs",
+        "size": 2939,
+        "mode": 420
+      },
+      {
+        "path": "tests/work-rail-widget-width.test.mjs",
+        "size": 2179,
+        "mode": 420
+      },
+      {
+        "path": "tests/workspace-invalidation.test.mjs",
+        "size": 1985,
+        "mode": 420
+      },
+      {
+        "path": "tests/workspace-verticals.test.mjs",
+        "size": 2330,
+        "mode": 420
+      },
+      {
+        "path": "tsconfig.json",
+        "size": 253,
+        "mode": 420
+      }
+    ],
+    "entryCount": 164,
+    "bundled": []
+  }
+]

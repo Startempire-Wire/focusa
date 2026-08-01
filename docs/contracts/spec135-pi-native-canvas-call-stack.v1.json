@@ -1,0 +1,25 @@
+{
+  "schema": "focusa.spec135.pi_native_canvas_call_stack.v1",
+  "mission": "Toggle the authoritative adaptive Mission Canvas inside the current Pi terminal without changing runtime authority.",
+  "entry_surfaces": [
+    {"name":"/mission-canvas","kind":"pi_command","implementation":"apps/pi-extension/src/commands.ts"},
+    {"name":"focusa_mission_canvas","kind":"pi_tool","implementation":"apps/pi-extension/src/mission-canvas-tool.ts"}
+  ],
+  "call_stack": [
+    {"layer":"entry","calls":["executeMissionCanvasAction"]},
+    {"layer":"mode_controller","calls":["resolveInteractionMode","saveConfigOverrides"]},
+    {"layer":"pi_mount","calls":["ctx.ui.custom","MissionCanvasShell"]},
+    {"layer":"projection_loader","calls":["focusaFetch","projectSessionInventory","workRailSnapshotFromPacket"]},
+    {"layer":"renderer","calls":["MissionCanvasView.render","resolveContributions","renderContributionGrid"]},
+    {"layer":"same_session_input","calls":["Input.onSubmit","pi.sendUserMessage"]},
+    {"layer":"restore","calls":["closeActiveMissionCanvasShell","done","setFooter(undefined)"]}
+  ],
+  "event_inputs": ["session_start","turn_start","turn_end","message_update","tool_execution_start","tool_execution_end"],
+  "state_boundaries": {
+    "canonical":"Focusa Core/API remains sole project/session/work authority",
+    "presentation":"Pi extension owns activity, profile, focused surface, and responsive presentation only",
+    "attachment":"scopeForContext binds events and projection to current Pi session/attachment"
+  },
+  "forbidden_calls": ["RichHostLifecycleManager.on","browser.open","Tauri sidecar launch","remote Canvas host"],
+  "failure_recovery": ["dispose Canvas component","restore stock Pi root","retain ExtensionContext and SessionManager","retry canonical projection refresh"]
+}

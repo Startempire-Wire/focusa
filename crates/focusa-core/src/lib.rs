@@ -44,6 +44,7 @@ pub mod google_drive_connector;
 pub mod intuition;
 pub mod license;
 pub mod memory;
+pub mod mission_canvas;
 pub mod permissions;
 pub mod pre;
 pub mod prediction;

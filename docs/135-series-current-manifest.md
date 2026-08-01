@@ -6,9 +6,29 @@
 
 Spec 135 and every companion below form one required implementation and closure set. The series is frozen at **135K**. No additional lettered companion is created for implementation clarification. Corrections are consolidated into this delivery contract, its machine-readable contracts, and the affected existing documents.
 
+**Required current-reality audit:** [SPEC135_REALTIME_GENERATED_UI_SPEED_AND_CORE_INTEGRATION_AUDIT_2026-07-18.md](current/SPEC135_REALTIME_GENERATED_UI_SPEED_AND_CORE_INTEGRATION_AUDIT_2026-07-18.md)
+
 ## 0. Operator intent lock — Mission Canvas inside the Pi experience
 
 This section is the first authority an agent must apply before changing Mission Canvas, Pi UI, generated UI, workspace profiles, Work Surfaces, or Spec 135 closure state.
+
+### 0.0 Adaptive-composition authority precedence
+
+For Mission Canvas occupancy, contribution eligibility, and layout recomposition, authority applies in this order:
+
+1. operator steering in the current Pi session;
+2. `docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md`;
+3. the two current populated visual examples:
+   - `focusa_activity_mode_recomposition.png`;
+   - `focusa_dynamic_vertical_recomposition.png`;
+4. `docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml`;
+5. this Delivery Contract and the affected existing 135A–135K documents.
+
+The replacement text governs every occupancy conflict. The images are populated examples of valid resolved projections; they are not fixed panel inventories, permanent slots, or pixel instructions to render unavailable content. Previous handoff text and the fixed-layout image remain superseded history only.
+
+The six numbered Mission Canvas concepts are required **semantic contribution capabilities**. They are not six permanently visible rectangles. A contribution that lacks meaningful, relevant, authorized, capable, focused-surface-related, and viewport-suitable content is omitted before geometry. Its heading, border, controls, and reserved space are also absent. Remaining valid contributions expand, promote, merge, tab, stack, split, or rearrange through deterministic resolution without semantic substitution.
+
+Mission Canvas is implemented and shipped by the Pi extension on macOS, Windows, and Linux through the canonical Git release pipeline. Platform adapters may vary only below the shared lifecycle, projection, interaction, and quality contracts.
 
 ### 0.1 Initial product vision
 
@@ -155,6 +175,8 @@ Color-only switching is nonconformant. Hard-coded separate client applications p
 ### 0.6 C.R.I.S.T. generated UI boundary
 
 A2UI, `@a2ui/web_core/v0_9`, `@a2ui/lit/v0_9`, and Focusa Svelte Custom Elements render generated onboarding and C.R.I.S.T. interaction surfaces **inside Work Surfaces** in rich hosts.
+
+A nontechnical generated UI path is required for every C.R.I.S.T. stage.
 
 They do not automatically own the complete Mission Canvas shell, canonical runtime, permissions, workflow authority, or history.
 

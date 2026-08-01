@@ -1,0 +1,427 @@
+schema: focusa.spec135.adaptive_composition.v1
+version: 1
+status: normative
+owner: Focusa
+updated_at: 2026-07-30
+
+# Machine-readable translation of the verbatim operator replacement handoff.
+authority:
+  replacement_text: docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md
+  populated_examples:
+    - docs/contracts/spec135/authoritative-handoff/focusa_activity_mode_recomposition.png
+    - docs/contracts/spec135/authoritative-handoff/focusa_dynamic_vertical_recomposition.png
+  host_renderer_contract: docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml
+  delivery_contract: docs/135-series-current-manifest.md
+  precedence:
+    - current_operator_steering
+    - replacement_text
+    - populated_examples
+    - host_renderer_contract
+    - delivery_contract_and_135A_through_135K
+  image_semantics: populated_examples_not_fixed_inventory
+  superseded_material_may_close_gates: false
+
+core_law:
+  no_dead_chrome: true
+  no_empty_panels: true
+  no_reserved_geometry_without_meaningful_content: true
+  no_permanent_unavailable_degraded_not_configured_or_no_items_cards: true
+  missing_content_changes_layout: true
+  internal_diagnostic_truth_preserved: true
+  internal_diagnostic_truth_forced_into_primary_workspace: false
+  eligibility_resolved_before_geometry: true
+  client_local_ad_hoc_reflow_forbidden: true
+  semantic_counterfeiting_forbidden: true
+
+resolved_workspace_projection:
+  type_name: ResolvedWorkspaceProjection
+  canonical_owner: Focusa_Core
+  renderer_owner: Pi_extension_rich_host
+  inputs_in_required_order:
+    - workspace_profile
+    - activity_mode
+    - focused_work_surface
+    - canonical_read_model
+    - available_operations
+    - capabilities
+    - permissions
+    - viewport_and_device
+    - project_constraints
+    - user_profile_preferences
+  output_fields_required:
+    - exact_scope
+    - profile_id_and_revision
+    - activity_mode_id_and_revision
+    - focused_work_surface_id
+    - canonical_read_model_revision
+    - candidate_contribution_ids
+    - eligible_contributions
+    - omitted_contribution_diagnostics
+    - resolved_layout_tree
+    - available_operation_bindings
+    - focused_semantic_target
+    - projection_revision
+    - layout_revision
+    - durable_event_cursor
+    - deterministic_projection_digest
+  deterministic_for_equivalent_inputs: true
+  clients_may_add_unknown_contributions: false
+  clients_may_reinterpret_unknown_semantic_ids: false
+
+workspace_profile:
+  defines:
+    - candidate_contributions
+    - contribution_priorities
+    - preferred_adjacency
+    - renderer_bindings
+    - density_preferences
+    - geometric_preferences
+    - terminology
+    - evidence_and_verification_emphasis
+    - controls_and_next_action_emphasis
+  does_not_define:
+    - rigid_permanently_visible_boxes
+    - empty_placeholder_inventory
+    - client_local_vertical_application
+
+contribution_kinds:
+  - work_surface_strip
+  - focused_work_surface
+  - inspector
+  - inspector_section
+  - work_rail
+  - steering_queue
+  - follow_up_queue
+  - prompt_editor
+  - scope_bar
+  - activity_navigation
+  - toolbar_control
+  - contextual_action
+  - transient_notification
+  - generated_surface
+
+eligibility:
+  evaluation_order:
+    - semantic_relevance
+    - applicable_activity_mode
+    - meaningful_content
+    - operator_authority
+    - runtime_capability
+    - active_work_surface_relationship
+    - viewport_suitability
+  all_required: true
+  meaningful_content_excludes:
+    - empty_collections
+    - empty_strings
+    - placeholder_copy
+    - synthetic_substitute_data
+    - permanent_migration_warnings
+    - unavailable_cards
+    - degraded_cards
+    - not_configured_cards
+    - no_items_cards
+    - dead_controls
+  authority_requirements:
+    - exact_project_workstream_session_attachment_scope
+    - permission_for_visible_operation
+    - explicit_recipient_for_mutation
+  capability_requirements:
+    - renderer_available
+    - required_runtime_capability_present
+    - required_operation_present
+  viewport_requirements:
+    - minimum_span_satisfied
+    - interaction_remains_accessible
+    - content_remains_meaningful_after_compaction
+  ineligible_action: omit_before_layout
+
+omission_diagnostics:
+  canonical_reasons:
+    - no_relevant_content
+    - not_applicable
+    - capability_not_present
+    - not_authorized
+    - merged
+    - compacted
+    - suspended
+    - viewport_omitted
+  durable_internal_record: true
+  available_to:
+    - explicit_diagnostics
+    - history
+    - controls
+    - migration_tools
+    - evidence_and_receipts
+  automatically_rendered_as_primary_cards: false
+  required_fields:
+    - contribution_id
+    - reason
+    - rule_revision
+    - projection_revision
+    - canonical_input_refs
+    - observed_at
+
+empty_contribution_behavior:
+  remove:
+    - content
+    - heading
+    - border
+    - controls
+    - landmark
+    - reserved_spacing
+    - grid_track
+  then:
+    - expand_remaining_contributions
+    - promote_remaining_contributions
+    - merge_compatible_contributions
+    - tab_compatible_contributions
+    - recompute_balanced_layout
+  discovery_remains_through:
+    - toolbar
+    - command_palette
+    - add_surface_action
+    - inspector_action
+    - prompt_editor_contextual_action
+  large_empty_panel_feature_discovery_forbidden: true
+
+optional_contributions:
+  no_useful_content_action: disappear_entirely
+  durable_internal_state_preserved:
+    - saved_preference
+    - preferred_position
+    - configuration
+    - last_valid_renderer_binding
+  return_rule: deterministic_resolver_may_restore_to_compatible_preferred_region
+  return_must_not_reserve_interim_geometry: true
+
+required_semantics:
+  always_visible_panel_implied: false
+  visible_when:
+    - relevant_information_exists
+    - state_affects_current_workflow
+    - available_action_depends_on_information
+    - operator_attention_required
+  unsafe_operation_behavior:
+    - remove_or_block_at_point_of_action
+    - provide_contextual_explanation_when_invoked
+  empty_safety_panel_forbidden: true
+
+capability_absence:
+  omit:
+    - dependent_contributions
+    - actions_that_cannot_work
+    - profile_choices_that_cannot_produce_meaningful_projection
+  preserve_internal:
+    - diagnostic_cause
+    - saved_preferences
+    - canonical_state
+  explain_when:
+    - operator_explicitly_requests_capability
+    - operator_invokes_dependent_command
+    - current_workflow_requires_attention
+  capability_error_dashboard_forbidden: true
+
+active_capability_loss:
+  preserve_when_safe:
+    - already_loaded_content
+    - Session
+    - Attachment
+    - Workpoint
+    - drafts
+    - canonical_state
+    - focused_work_surface
+    - profile_layout_memory
+  mutate_projection:
+    - mark_freshness_only_where_relevant
+    - remove_dead_controls
+    - omit_contributions_without_value
+    - reorganize_remaining_workspace
+  notification: bounded_transient_only_when_operator_awareness_needed
+  permanent_placeholder_forbidden: true
+  capability_return:
+    - resolve_against_current_canonical_inputs
+    - restore_contribution_automatically_when_eligible
+    - use_compatible_remembered_preference
+    - preserve_focus_unless_current_target_is_invalid
+
+inspector_composition:
+  section_is_conditional_contribution: true
+  empty_or_irrelevant_action: remove_section_heading_border_and_gap
+  remaining_sections:
+    - close_gaps
+    - reorder_by_profile_and_activity_mode
+  examples:
+    no_contention: omit_contention
+    no_browser_context: omit_browser_isolation
+    no_writer_lease: omit_writer_lease
+    no_recovery_event: omit_recovery_point
+    no_evidence_items_and_posture_irrelevant: omit_large_evidence_section
+
+work_rail_composition:
+  supported_scopes:
+    - surface_local
+    - project_aggregate
+    - cross_project_advisory_labeled_read_only
+  no_meaningful_entries:
+    - remove_region_heading_border_and_spacing
+    - expand_focused_workspace_or_queue_composer
+    - preserve_new_workpoint_as_contextual_action
+  blank_region_forbidden: true
+
+queue_composition:
+  steering_and_follow_up_populated: profile_preferred_arrangement
+  one_populated:
+    - single_queue_spans_queue_region
+    - no_blank_sibling_lane
+  neither_populated:
+    - remove_both_regions_headings_borders_and_spacing
+    - expand_prompt_editor_upward
+    - retain_compact_queue_creation_near_recipient_routing
+
+work_surface_strip:
+  show:
+    - actually_open_surfaces
+    - pinned_surfaces
+    - contextually_important_surfaces
+  do_not_show:
+    - possible_but_unopened_surface_types
+    - unavailable_surface_types
+    - unsupported_surface_types
+  discovery: add_surface_action
+
+profile_selector:
+  show: profiles_that_can_currently_produce_meaningful_projection
+  omit:
+    - unavailable_profiles
+    - degraded_profiles
+    - unsupported_profiles
+    - profiles_with_no_eligible_contribution
+  management_flow_owns:
+    - profile_installation
+    - domain_pack_setup
+    - advanced_configuration
+
+layout_recomposition:
+  canonical_owner: Focusa_Core
+  supports:
+    - deterministic_contribution_ranking
+    - preferred_adjacency
+    - minimum_and_maximum_spans
+    - merge_rules
+    - tab_rules
+    - single_pane
+    - split
+    - stack
+    - grid
+    - inspector
+    - viewport_aware_recomposition
+    - per_profile_layout_memory
+    - smooth_interruptible_transitions
+    - focused_work_surface_preservation
+    - operator_context_preservation
+  deterministic_tie_breaker_required: true
+  removal_result:
+    - deliberate
+    - balanced
+    - hole_free
+    - semantically_valid
+  random_rearrangement_forbidden: true
+
+semantic_anti_counterfeiting:
+  missing_contribution_may_be_replaced_by_different_semantic_panel: false
+  allowed_space_resolution:
+    - expand
+    - promote
+    - merge_compatible
+    - tab_compatible
+    - rearrange_valid
+  forbidden:
+    - invent_substitute_data
+    - reinterpret_unknown_semantic_id
+    - map_unknown_id_to_nearest_visual_component
+    - render_unrelated_panel_to_fill_space
+
+continuity_invariants:
+  preserved_across_recomposition:
+    - project_root_key
+    - workstream_key
+    - instance_id
+    - session_id
+    - attachment_id
+    - model_stream
+    - tool_runtime
+    - transcript_and_tool_history
+    - unsent_pi_draft
+    - unsent_canvas_draft
+    - workpoint
+    - trajectory
+    - task_and_provider_state
+    - open_work_surfaces
+    - focused_work_surface
+    - profile_layout_memory
+    - steering_queue
+    - follow_up_queue
+    - evidence
+    - receipts
+    - authority_and_permissions
+    - browser_context_identity
+    - durable_event_cursor
+    - focused_semantic_target
+
+proof_requirements:
+  - id: AC-01
+    proves: empty_optional_contribution_leaves_no_visible_or_geometric_trace
+  - id: AC-02
+    proves: panel_removal_causes_deterministic_balanced_reflow
+  - id: AC-03
+    proves: single_populated_queue_spans_queue_area
+  - id: AC-04
+    proves: two_empty_queues_collapse_and_prompt_editor_expands
+  - id: AC-05
+    proves: empty_work_rail_collapses_without_losing_new_workpoint
+  - id: AC-06
+    proves: empty_inspector_sections_disappear_and_gaps_close
+  - id: AC-07
+    proves: surface_tabs_represent_actual_surfaces_only
+  - id: AC-08
+    proves: profile_switch_recomputes_from_candidate_contributions
+  - id: AC-09
+    proves: per_profile_memory_survives_disappearance_and_return
+  - id: AC-10
+    proves: capability_loss_does_not_create_unavailable_dashboard
+  - id: AC-11
+    proves: canonical_state_session_drafts_and_focus_survive_recomposition
+  - id: AC-12
+    proves: UIAI_Engine_Eval_transitions_at_supported_viewports
+  - id: AC-13
+    proves: evidence_and_receipts_identify_profile_activity_contributions_and_layout_revision
+proof_evidence_requirements:
+  - canonical_seed_state
+  - profile_id_and_revision
+  - activity_mode_id_and_revision
+  - candidate_contribution_set
+  - eligible_contribution_set
+  - omission_diagnostics
+  - projection_digest
+  - layout_revision
+  - viewport_and_platform
+  - session_and_attachment_identity
+  - durable_event_cursor
+  - runtime_trace
+  - Evidence_ref
+  - Receipt_ref
+
+forbidden:
+  - fixed_dashboard_slots_filled_with_empty_state_cards
+  - persistent_unavailable_panels
+  - persistent_degraded_workspace_banners
+  - disabled_feature_controls_without_immediate_purpose
+  - dead_profile_options_in_daily_selector
+  - blank_queue_lanes
+  - blank_work_rail_regions
+  - blank_inspector_sections
+  - semantically_incorrect_substitute_panels
+  - client_local_ad_hoc_reflow_logic
+  - layouts_with_holes_after_removal
+  - static_screenshot_as_runtime_proof
+  - handwritten_pass_JSON_as_runtime_proof

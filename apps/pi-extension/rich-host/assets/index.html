@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <title>Focusa Mission Canvas</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main id="mission-canvas" aria-label="Focusa Mission Canvas">
+      <header class="app-frame">
+        <strong>Focusa</strong>
+        <label>Profile <select id="profile" aria-label="Workspace profile"></select></label>
+        <nav id="activities" aria-label="Activity modes"></nav>
+        <span id="scope">Connecting…</span>
+        <span id="freshness"></span>
+        <button id="add-surface" type="button">Add Surface</button>
+        <button id="manage-workspace" type="button">Manage</button>
+        <button id="controls" type="button">Controls</button>
+      </header>
+      <nav id="work-surfaces" aria-label="Open work surfaces"></nav>
+      <section id="layout" aria-live="polite" aria-label="Resolved workspace layout"></section>
+      <footer><span id="authority">Canonical state: Focusa Core</span><span id="connection">Starting</span></footer>
+    </main>
+    <dialog id="workspace-dialog" aria-labelledby="dialog-title">
+      <form method="dialog"><header><h2 id="dialog-title">Workspace</h2><button value="close" aria-label="Close">×</button></header><section id="dialog-content"></section></form>
+    </dialog>
+    <section id="notifications" aria-live="polite" aria-label="Notifications"></section>
+    <template id="contribution-template"><article class="contribution" tabindex="0" draggable="true"><header><h2></h2><span class="freshness"></span></header><section class="content"></section><footer class="operations"></footer></article></template>
+    <script type="module" src="./a2ui-runtime.js"></script>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

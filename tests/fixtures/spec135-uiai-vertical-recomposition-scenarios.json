@@ -1,0 +1,10 @@
+{
+  "schema": "focusa.mission_canvas.uiai_vertical_scenarios.v1",
+  "scenarios": [
+    {"id":"software-overview-standard","profile":"software","activity":"overview","viewport":{"width":1280,"height":800,"platform":"Linux"},"assertions":["pi-session-visible","work-rail-conditional","no-dead-dom"]},
+    {"id":"legal-documents-minimum","profile":"legal","activity":"documents","viewport":{"width":1024,"height":720,"platform":"Windows"},"assertions":["document-visible","authority-inspector-tabbed","keyboard-reachable"]},
+    {"id":"markets-evidence-wide","profile":"markets","activity":"evidence","viewport":{"width":1920,"height":1080,"platform":"macOS"},"assertions":["evidence-visible","risk-inspector-visible","scope-labeled"]},
+    {"id":"research-sources-high-contrast","profile":"research","activity":"research","viewport":{"width":1600,"height":1000,"platform":"Linux","high_contrast":true,"text_scale_percent":200},"assertions":["sources-visible","evidence-visible","no-clipping"]},
+    {"id":"custom-controls-reduced-motion","profile":"custom","activity":"controls","viewport":{"width":1280,"height":800,"platform":"macOS","reduced_motion":true},"assertions":["controls-visible","transitions-disabled","no-empty-shell"]}
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "schema": "focusa.mission_canvas.reference_states.v1",
+  "token_surface": "assets/styles.css",
+  "states": [
+    {
+      "id": "minimum-tabs",
+      "viewport": { "width": 1024, "height": 720 },
+      "layout": { "kind": "tabs", "node_id": "layout:tabs", "contribution_ids": ["contribution:pi-session", "contribution:inspector"], "active_contribution_id": "contribution:pi-session" },
+      "eligible_contribution_ids": ["contribution:pi-session", "contribution:inspector"],
+      "omitted": [{ "contribution_id": "contribution:work-rail", "reason": "viewport_omitted" }]
+    },
+    {
+      "id": "standard-inspector",
+      "viewport": { "width": 1280, "height": 800 },
+      "layout": {
+        "kind": "inspector",
+        "node_id": "layout:inspector",
+        "side": "end",
+        "primary": { "kind": "single", "node_id": "layout:primary", "contribution_id": "contribution:pi-session" },
+        "inspector_contribution_ids": ["contribution:focusa-inspector"],
+        "span": 3
+      },
+      "eligible_contribution_ids": ["contribution:pi-session", "contribution:focusa-inspector"],
+      "omitted": []
+    },
+    {
+      "id": "wide-grid-high-contrast",
+      "viewport": { "width": 1920, "height": 1080 },
+      "preferences": { "high_contrast": true, "reduced_motion": true, "text_scale_percent": 150 },
+      "layout": {
+        "kind": "grid",
+        "node_id": "layout:grid",
+        "columns": 3,
+        "children": [
+          { "kind": "single", "node_id": "layout:a", "contribution_id": "contribution:work-surface" },
+          { "kind": "single", "node_id": "layout:b", "contribution_id": "contribution:work-rail" },
+          { "kind": "single", "node_id": "layout:c", "contribution_id": "contribution:follow-up-queue" }
+        ]
+      },
+      "eligible_contribution_ids": ["contribution:work-surface", "contribution:work-rail", "contribution:follow-up-queue"],
+      "omitted": []
+    }
+  ]
+}

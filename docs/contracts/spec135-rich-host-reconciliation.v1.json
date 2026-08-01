@@ -1,0 +1,30 @@
+{
+  "schema": "focusa.spec135.rich_host_reconciliation.v1",
+  "series": ["135", "135A", "135B", "135C", "135D", "135E", "135F", "135G", "135H", "135I", "135J", "135K"],
+  "canonical_authorities": {
+    "workspace_state": "Focusa Core mission_canvas module",
+    "projection": "ResolvedWorkspaceProjection",
+    "layout": "Focusa Core deterministic resolver",
+    "host_lifecycle": "Pi extension RichHostLifecycleManager with durable Core projection",
+    "generated_ui": "A2UI 0.9.1 + Lit + Focusa Custom Elements",
+    "browser_execution": "UIAI Engine Cockpit",
+    "operation_discovery": "Focusa Operation Registry"
+  },
+  "supersessions": [
+    {"old":"fixed Mission Canvas panel shell","new":"candidate contributions plus deterministic LayoutNode tree","compatibility":"removed after projection parity"},
+    {"old":"process-local Pi canvas state","new":"scoped SQLite projection, memory, draft, lifecycle, and events","compatibility":"legacy layout migration envelope"},
+    {"old":"transcript-only C.R.I.S.T. proof","new":"permanent rich-host A2UI runtime traversal","compatibility":"proof artifacts retained as historical evidence"},
+    {"old":"interaction mode implies renderer","new":"interaction mode and renderer capability resolve independently","compatibility":"terminal and headless fallbacks"},
+    {"old":"UIAI embedded browser authority","new":"bounded UIAI Work Surface with Cockpit execution ownership","compatibility":"artifact refs preserved"}
+  ],
+  "requirement_ledger_ref": "docs/contracts/spec135-complete-feature-ledger.v1.yaml",
+  "delivery_dag_ref": "docs/contracts/spec135-mission-canvas-completion-dag.v2.json",
+  "client_parity_ref": "docs/contracts/spec135/mission-canvas-v1/client-parity-matrix.json",
+  "proof_matrix_ref": "docs/contracts/spec135/mission-canvas-v1/implementation-proof-matrix.json",
+  "acceptance_ref": "docs/contracts/spec135-master-final-acceptance.v1.json",
+  "status": "technically_reconciled_release_blocked",
+  "blockers": [
+    "UIAI Engine loopback visual capture policy",
+    "canonical PR merge and release require explicit operator authorization and green remote checks"
+  ]
+}

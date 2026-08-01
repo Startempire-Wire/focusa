@@ -1,0 +1,61 @@
+{
+  "known_blockers": [
+    "UIAI loopback visual capture requires allow_private_urls"
+  ],
+  "layers": [
+    {
+      "implementation": "schemas/spec135/mission-canvas",
+      "layer": "contracts",
+      "proof": "tests/spec135_resolved_projection_contract_test.py"
+    },
+    {
+      "implementation": "crates/focusa-core/src/mission_canvas",
+      "layer": "core",
+      "proof": "cargo test -p focusa-core mission_canvas --lib"
+    },
+    {
+      "implementation": "crates/focusa-api/src/routes/mission_canvas.rs",
+      "layer": "api",
+      "proof": "cargo test -p focusa-api mission_canvas::tests"
+    },
+    {
+      "implementation": "apps/pi-extension/src/rich-host",
+      "layer": "pi_host",
+      "proof": "npm run test:rich-host"
+    },
+    {
+      "implementation": "apps/pi-extension/rich-host/assets",
+      "layer": "rich_frontend",
+      "proof": "tests/spec135_generated_browser_surface_test.py"
+    }
+  ],
+  "operation_ids": [
+    "focusa.mission_canvas.projection.get",
+    "focusa.mission_canvas.projection.resolve",
+    "focusa.mission_canvas.profile.list",
+    "focusa.mission_canvas.profile.select",
+    "focusa.mission_canvas.profile.get",
+    "focusa.mission_canvas.activity.list",
+    "focusa.mission_canvas.activity.select",
+    "focusa.mission_canvas.domain_pack.install",
+    "focusa.mission_canvas.registry.list",
+    "focusa.mission_canvas.layout_memory.get",
+    "focusa.mission_canvas.layout_memory.update",
+    "focusa.mission_canvas.layout.mutate",
+    "focusa.mission_canvas.rich_host.resolve",
+    "focusa.mission_canvas.rich_host.launch",
+    "focusa.mission_canvas.rich_host.focus",
+    "focusa.mission_canvas.rich_host.hide",
+    "focusa.mission_canvas.rich_host.close",
+    "focusa.mission_canvas.draft.get",
+    "focusa.mission_canvas.draft.sync",
+    "focusa.mission_canvas.recipient.resolve",
+    "focusa.mission_canvas.recomposition.evidence.get",
+    "focusa.mission_canvas.recomposition.receipt.get",
+    "focusa.mission_canvas.recomposition.diagnostics.list",
+    "focusa.mission_canvas.pi_session.event.append",
+    "focusa.mission_canvas.events.stream"
+  ],
+  "schema": "focusa.mission_canvas.implementation_proof_matrix.v1",
+  "schema_definition_count": 47
+}

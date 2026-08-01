@@ -3,7 +3,7 @@ import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { performance } from "node:perf_hooks";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { Key } from "@earendil-works/pi-tui";
+import { Key, visibleWidth } from "@earendil-works/pi-tui";
 import ts from "typescript";
 
 const root = resolve(import.meta.dirname, "..");
@@ -74,12 +74,22 @@ for (let index = 0; index < 100; index++) {
   const lines = view.render(120);
   timings.push(performance.now() - started);
   assert(lines.length <= 60, lines.length);
-  assert(lines.every((line) => line.length <= 120));
+  assert(lines.every((line) => visibleWidth(line) <= 120));
 }
+const heapBefore = process.memoryUsage().heapUsed;
+for (let index = 0; index < 5_000; index++) {
+  if (index % 7 === 0) view.handleInput("mode-next");
+  if (index % 11 === 0) view.handleInput("profile-next");
+  if (index % 13 === 0) view.handleInput("surface-next");
+  const lines = view.render(index % 2 ? 80 : 160);
+  assert(lines.length <= 60);
+}
+const heapGrowth = process.memoryUsage().heapUsed - heapBefore;
+assert(heapGrowth < 32 * 1024 * 1024, `Mission Canvas long-session heap growth ${heapGrowth} exceeded 32 MiB`);
 view.dispose();
 timings.sort((a, b) => a - b);
 const p95 = timings[Math.floor(timings.length * 0.95)];
 rmSync(modulePath, { force: true });
 rmSync(accessibilityPath, { force: true });
 assert(p95 < 100, `Mission Canvas render p95 ${p95.toFixed(2)}ms exceeded 100ms`);
-console.log(`Mission Canvas performance: PASS (200 rows, render p95=${p95.toFixed(2)}ms)`);
+console.log(`Mission Canvas performance: PASS (5,000 transitions, render p95=${p95.toFixed(2)}ms, heap growth=${heapGrowth})`);

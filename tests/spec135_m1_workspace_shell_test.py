@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the bounded menubar Mission Canvas projection without calling it the rich Pi GUI."""
+"""Validate bounded menubar projection without confusing it with Pi-native Canvas."""
 import json
 from pathlib import Path
 
@@ -28,7 +28,7 @@ def main():
     assert proof["status"] == "partial_projection_foundation"
     assert proof["accepted"] is False
     assert proof["implementation"]["host_renderer"] == "menubar_peek"
-    assert "focusa_pi_rich_window" in authority
+    assert "pi_native_mission_canvas" in authority
     assert "menubar_peek" in authority
     assert "bounded_status_and_launch_surface_only" in authority
 
@@ -69,7 +69,7 @@ def main():
 
     print(
         "Spec 135 M1 menubar Mission Canvas projection: PASS "
-        "(partial; rich Pi host remains open)"
+        "(bounded; Pi-native Canvas owns current-terminal interaction)"
     )
 
 
