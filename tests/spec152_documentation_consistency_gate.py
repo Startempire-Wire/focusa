@@ -16,6 +16,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 OPERATOR_GUIDES = [
     "README.md",
+    "LICENSE-FAQ.md",
     "docs/INSTALL_PURCHASE_PUBLIC_STATUS.md",
     "docs/PHASE2_OPERATOR_PREVIEW.md",
     "docs/current/FIRST_RUN_FLOW.md",
