@@ -1,5 +1,5 @@
-schema: focusa.mission_canvas_host_renderer_contract.v2
-version: 2
+schema: focusa.mission_canvas_host_renderer_contract.v3
+version: 3
 status: normative
 owner: Focusa / Verious Smith
 updated_at: 2026-08-01
@@ -7,6 +7,18 @@ updated_at: 2026-08-01
 authority:
   delivery_contract: docs/135-series-current-manifest.md
   parent_spec: docs/135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md
+  cross_gui_interlock:
+    document: docs/current/SPEC135_UIAI_COCKPIT_MISSION_CANVAS_INTERLOCK_2026-08-01.md
+    contract: docs/contracts/spec135-uiai-cockpit-mission-canvas-interlock.v1.yaml
+    applies_to:
+      - uiai_engine_cockpit_hosting
+      - work_surface_binding
+      - contextual_handoff
+      - typed_intake
+      - operator_takeover
+      - credential_brokerage
+      - workflow_context
+      - cross_gui_proof
   adaptive_composition_authority:
     replacement_text: docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md
     populated_examples:
@@ -25,6 +37,9 @@ product_definition: >-
   the Focusa Pi TypeScript extension through ctx.ui.custom() in the current Pi
   terminal, preserving the same Pi process, session, model stream, tools,
   transcript, prompt editor, attachments, drafts, and canonical Focusa runtime.
+  UIAI Engine Cockpit may host conformant secondary Focusa projections through
+  generated contracts and action bindings, but it never becomes the Mission
+  Canvas authority, Work Rail owner, or canonical mission store.
 
 interaction_modes:
   values: [canvas-guided, terminal-guided, headless]
@@ -61,14 +76,47 @@ required_host_renderer:
     status:
       - report interaction mode and pi_tui renderer without launching another host
 
+secondary_projection_hosts:
+  uiai_engine_cockpit:
+    role: conformant_secondary_focusa_projection_host_plus_uiai_execution_shell
+    canonical_focusa_authority: false
+    owns_work_rail: false
+    owns_focusa_surface_model: false
+    owns_focusa_action_registry: false
+    owns_uiai_execution_runtime: true
+    allowed_projection_levels:
+      - mission_context_strip
+      - mission_inspector
+      - hosted_mission_canvas_dock
+      - full_mission_canvas_work_object
+    focusa_mutation_mode: generated_focusa_preview_commit_only
+    required_binding: focusa.uiai_work_surface_binding.v1
+    required_contract: docs/contracts/spec135-uiai-cockpit-mission-canvas-interlock.v1.yaml
+    required_behavior:
+      - render_source_revision_cursor_and_freshness
+      - show_truthful_local_pending_stale_offline_and_reconciliation_states
+      - deep_link_exact_work_surface_and_uiai_work_object
+      - preserve_close_view_vs_terminate_runtime
+      - route_session_level_pause_stop_and_steering_through_focusa
+      - keep_browser_notebook_document_test_and_secret_configuration_cockpit_native
+    prohibited_behavior:
+      - duplicate_work_rail
+      - duplicate_steering_or_follow_up_queue
+      - local_canonical_task_store
+      - local_focusa_completion_or_settlement
+      - hand_authored_duplicate_focusa_operation_registry
+      - infer_scope_from_focused_cockpit_tab
+
 forbidden_host_behavior:
-  - launch_browser_for_canvas
-  - launch_webview_for_canvas
-  - launch_tauri_sidecar_for_canvas
-  - launch_remote_canvas_host
-  - label_the_authoritative_canvas_as_terminal_compatibility_projection
+  - launch_browser_for_pi_canvas
+  - launch_webview_for_pi_canvas
+  - launch_tauri_sidecar_for_pi_canvas
+  - launch_remote_pi_canvas_host
+  - label_the_authoritative_pi_canvas_as_terminal_compatibility_projection
   - transfer_focusa_authority_to_renderer
   - fork_pi_session_or_model_stream
+  - treat_cockpit_hosting_as_focusa_authority_transfer
+  - duplicate_focusa_mission_or_work_state_in_cockpit
 
 required_frame:
   - project_workstream_workspace_session_activity_top_bar
@@ -135,14 +183,41 @@ responsive_modes:
 
 client_projection_boundaries:
   pi_native_mission_canvas:
-    authority: authoritative_interactive_projection
+    authority: primary_authoritative_interactive_focusa_projection
     mutation_mode: governed_preview_commit
+    owns_canonical_state: false
   menubar_peek:
     authority: bounded_status_and_launch_surface_only
+    mutation_mode: generated_focusa_actions_only
   pwa:
-    authority: bounded_remote_projection
+    authority: bounded_remote_focusa_projection
+    mutation_mode: generated_focusa_preview_commit
   uiai_engine_cockpit:
-    authority: browser_execution_and_visual_evaluation
+    authority: conformant_focusa_projection_host_and_uiai_execution_control
+    focusa_mutation_mode: generated_focusa_preview_commit_only
+    uiai_runtime_authority: browser_notebook_document_test_artifact_and_secret_execution
+    owns_canonical_focusa_state: false
+
+cross_gui_projection_requirements:
+  cockpit_mission_context_strip:
+    - project_and_workstream
+    - workpoint_and_work_surface
+    - mission_or_session_status
+    - next_safe_action_from_focusa
+    - authority_and_proof_posture
+    - revision_cursor_and_freshness
+  mission_canvas_uiai_surface:
+    - exact_uiai_runtime_refs
+    - lifecycle_health_and_control_state
+    - isolation_authentication_and_credential_grant_posture
+    - current_observed_object
+    - artifacts_diagnostics_proof_and_retention
+    - open_in_cockpit_deep_link
+  state_sync:
+    - focusa_durable_event_replay_and_live_tail
+    - typed_uiai_artifact_and_execution_refs_through_focusa_operations
+    - no_shared_frontend_canonical_store
+    - no_uiai_direct_focusa_event_injection
 
 proof_requirements:
   - on_off_same_terminal_same_session
@@ -155,3 +230,13 @@ proof_requirements:
   - responsive_keyboard_high_contrast_reduced_motion
   - canonical_state_session_draft_and_focus_continuity
   - rendered_snapshot_or_terminal_capture_evidence
+  - cockpit_mission_context_strip_real_focusa_projection
+  - exact_open_mission_canvas_and_open_in_cockpit_navigation
+  - contextual_handoff_real_focusa_preview_commit
+  - exact_work_surface_uiai_work_object_binding
+  - operator_takeover_delta_reobservation_and_reconciliation
+  - credential_grant_and_secret_binding_separation
+  - single_focusa_recurrence_authority
+  - cross_gui_disconnect_replay_and_identity_restoration
+  - close_view_vs_terminate_runtime
+  - ui_ai_engine_eval_cross_gui_functional_and_visual_evidence
