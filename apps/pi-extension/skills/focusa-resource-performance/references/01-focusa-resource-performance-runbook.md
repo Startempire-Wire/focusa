@@ -5,6 +5,9 @@
 - Verify project root plus continuity scope when project-bound.
 - Resume or checkpoint the canonical Workpoint before long/risky work.
 - Confirm current operator steering and mutation approval boundaries.
+- Refresh preferred address, timezone, local time, operator state, goals, constraints, desired pace, and confirmed timeline.
+- Treat cwd and missing markers as weak evidence; inspect legacy project signals before suggesting creation or binding.
+- Start wall-clock measurement and a human-readable bounded prediction for meaningful work; evaluate it against actual duration at completion.
 - Use targeted local gates during development; CI requires explicit release authorization.
 
 ## Dependency graph

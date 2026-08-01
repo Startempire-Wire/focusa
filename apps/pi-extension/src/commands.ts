@@ -664,6 +664,13 @@ export function registerCommands(pi: ExtensionAPI) {
         vitalInfoPromptMode: settingsRuntime.cfg?.vitalInfoPromptMode || "prompt",
         vitalInfoPromptSurfaces:
           settingsRuntime.cfg?.vitalInfoPromptSurfaces || "project_root,project_verify,workpoint,trajectory",
+        operatorStatusBarEnabled: settingsRuntime.cfg?.operatorStatusBarEnabled ?? true,
+        operatorStatusVersionEnabled: settingsRuntime.cfg?.operatorStatusVersionEnabled ?? true,
+        operatorStatusOtaEnabled: settingsRuntime.cfg?.operatorStatusOtaEnabled ?? true,
+        operatorStatusModelUsageEnabled: settingsRuntime.cfg?.operatorStatusModelUsageEnabled ?? true,
+        operatorStatusTimeEnabled: settingsRuntime.cfg?.operatorStatusTimeEnabled ?? true,
+        operatorStatusDeadlineEnabled: settingsRuntime.cfg?.operatorStatusDeadlineEnabled ?? true,
+        operatorStatusPredictionEnabled: settingsRuntime.cfg?.operatorStatusPredictionEnabled ?? true,
         warnPct: settingsRuntime.cfg?.warnPct || 50,
         compactPct: settingsRuntime.cfg?.compactPct || 70,
         hardPct: settingsRuntime.cfg?.hardPct || 85,
@@ -878,6 +885,12 @@ export function registerCommands(pi: ExtensionAPI) {
           values: ["off", "actionable", "all"],
         },
         {
+          id: "operatorStatusBarEnabled",
+          label: "Operator status bar",
+          currentValue: String(draft.operatorStatusBarEnabled),
+          values: BOOLEAN_OPTIONS,
+        },
+        {
           id: "vitalInfoPromptMode",
           label: "Vital project info prompt",
           currentValue: draft.vitalInfoPromptMode,
@@ -916,6 +929,20 @@ export function registerCommands(pi: ExtensionAPI) {
           currentValue: draft.contextStatusMode,
           values: ["off", "actionable", "all"],
         },
+        ...([
+          ["operatorStatusBarEnabled", "Operator status bar"],
+          ["operatorStatusVersionEnabled", "Status: Focusa version"],
+          ["operatorStatusOtaEnabled", "Status: OTA state"],
+          ["operatorStatusModelUsageEnabled", "Status: model/provider usage"],
+          ["operatorStatusTimeEnabled", "Status: local time"],
+          ["operatorStatusDeadlineEnabled", "Status: deadline"],
+          ["operatorStatusPredictionEnabled", "Status: next prediction"],
+        ] as const).map(([id, label]) => ({
+          id,
+          label,
+          currentValue: String(draft[id]),
+          values: BOOLEAN_OPTIONS,
+        })),
         {
           id: "vitalInfoPromptMode",
           label: "Vital project info prompt",
@@ -1155,6 +1182,18 @@ export function registerCommands(pi: ExtensionAPI) {
             if (id === "contextStatusMode") draft.contextStatusMode = String(newValue) as any;
             if (id === "vitalInfoPromptMode") draft.vitalInfoPromptMode = String(newValue) as any;
             if (id === "vitalInfoPromptSurfaces") draft.vitalInfoPromptSurfaces = String(newValue);
+            if (
+              [
+                "operatorStatusBarEnabled",
+                "operatorStatusVersionEnabled",
+                "operatorStatusOtaEnabled",
+                "operatorStatusModelUsageEnabled",
+                "operatorStatusTimeEnabled",
+                "operatorStatusDeadlineEnabled",
+                "operatorStatusPredictionEnabled",
+              ].includes(id)
+            )
+              (draft as any)[id] = newValue === "true";
             if (id === "warnPct") draft.warnPct = Number(newValue);
             if (id === "compactPct") draft.compactPct = Number(newValue);
             if (id === "hardPct") draft.hardPct = Number(newValue);

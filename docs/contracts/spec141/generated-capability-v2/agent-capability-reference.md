@@ -1,8 +1,18 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:b7c49de0255807304cefe284498e83e4bd88e919e9d02e6aa44c3db63799c7f7`
+Registry digest: `sha256:4231361362502c49a10c5ca1ff570e54f8e296e1e1356ac72cd0ad7e09c10915`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
+
+## Operator alignment contract
+
+- refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps
+- treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker
+- consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation
+- use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested
+- never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range
+- for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons
+- use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation
 
 ## focusa_active_object_resolve
 

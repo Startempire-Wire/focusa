@@ -28,6 +28,16 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 
 Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_instruction_integrity_evaluate.md
 
+## Operator alignment
+
+- refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps
+- treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker
+- consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation
+- use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested
+- never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range
+- for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons
+- use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation
+
 ## Anti-examples
 
 - unverified prompt sources
@@ -66,4 +76,4 @@ Likely next: `focusa_instruction_integrity_status`, `focusa_agent_runtime_headle
 - CLI: `focusa agent-runtime integrity-evaluate`.
 - REST: `POST /v1/agent-runtime/instruction-integrity/evaluate`.
 - Specification: `docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md`.
-- Descriptor digest: `sha256:42362afd3a837d93ea19c9f8173eb439d1b36ac2ad88668454231420437ee71f`.
+- Descriptor digest: `sha256:3350febcb7e81df80b0c710ac8bebee1f4b624c8087af3fe39332ed81658a235`.

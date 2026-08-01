@@ -65,7 +65,10 @@ import {
 } from "./state.js";
 import { loadPersistedRecoveryState } from "./persistence.js";
 import { measureNativeSessionPressure, type NativeSessionPressureV1 } from "./session-pressure.js";
-import { queueLifecycleAdvisory } from "./lifecycle-advisory.js";
+import {
+  queueLifecycleAdvisory,
+  queueStartupReceptionistTurn,
+} from "./lifecycle-advisory.js";
 import { pushDelta } from "./tools.js";
 import { updateNorthStarCard } from "./north-star.js";
 import { LifecycleGenerationGuard } from "./lifecycle-guard.js";
@@ -692,7 +695,38 @@ async function promptForProjectVerifyIfNeeded(
       ],
       { placement: "belowEditor" }
     );
-    if (shouldEmitProjectScopeRecoveryPacket(previous, decision)) {
+    const startupBlocked = reason === "session_start" || reason === "session_project_mismatch";
+    if (startupBlocked) {
+      getAttachmentRuntime().startupReceptionistActive = true;
+      getAttachmentRuntime().startupReceptionistStartedAt = Date.now();
+      queueStartupReceptionistTurn(pi, ctx, {
+        advisoryKey: `${recoveryRef}:receptionist:${getAttachmentRuntime().sessionFrameKey || "no-session"}`,
+        advisoryKind: "startup_receptionist",
+        title: "Focusa is helping orient this session",
+        content: [
+          "Act as Focusa's warm, environment-aware receptionist for an opened Pi session; never assume the operator is new to Focusa because trajectory or project state is missing.",
+          "Before replying, refresh canonical operator awareness (preferred address, timezone, and current local time) using available agent-kb/operator context; never expose private details.",
+          `In the background, perform a bounded read-only scan of the current directory, nearby project markers, known workspace roots, and recent verified Focusa project candidates. Search candidate workspace directories at least two levels deep, cap results at 20, and exclude dependency/build/cache/system trees such as .git, node_modules, target, vendor, cache, proc, sys, and dev. The coding agent launched from ${projectRoot || "an unknown directory"}; this launch location is not project intent, consent to bind Focusa, or proof that a project lives there. Project writes are not yet verified.`,
+          "Use bounded predictive analysis to distinguish: continue an existing project, start a new project, jump directly to a task without setup, conversation-only help, or an optional quick guided orientation.",
+          "A missing trajectory means only that trajectory is not configured; it does not mean the operator or project is new.",
+          "Older Focusa projects may have no current project marker. Treat a missing marker as weak evidence only: inspect git identity/remotes, Beads, prior Pi sessions, persisted Workpoints, aliases, and legacy Focusa state before suggesting a new project.",
+          "Never initialize, migrate, or add a project marker automatically during reception; explain any likely legacy-project match and ask before mutation.",
+          "Your first emitted assistant text—before any planning narration or tool call—must immediately acknowledge the operator with an appropriate local-time greeting and preferred address, and say in one sentence what you are checking while they wait.",
+          "After that acknowledgement, summarize any likely project match in one plain sentence when evidence is available.",
+          "Use plain language only—do not mention HLT, MLG, STG, Workpoint, frontier, quarantine, scope envelopes, or internal Focusa mechanics.",
+          "Do not echo internal Focusa advisories, tool routing, packet text, warnings, or planning scratchwork to the operator.",
+          "During reception, do not call north-star, utility-card, Workpoint, Trajectory, or broad Focusa bootstrap tools. Use bounded read-only environment/directory inspection first; use project identity only for a specific evidence-backed candidate.",
+          "Ask exactly one friendly, tailored question. Offer choices without forcing setup. If evidence is inconclusive, ask: Would you like me to look for an existing project, start something new, jump straight to a task, or do a quick guided setup to clarify the outcome and constraints?",
+          "If the operator wants a new project, ask where they want it. Offer two or three evidence-backed base-directory suggestions discovered from the environment, briefly flag system or broad home directories that are poor project homes, and always leave a custom path open without being overbearing.",
+          "Do not bind Focusa to cwd or initialize any directory merely because Pi started there.",
+          "The optional guided setup is a brief conversational CRIST-style experience, but never name internal frameworks or require it before ordinary help.",
+          "Do not make durable project changes until the operator answers or project identity becomes canonical.",
+        ].join("\n"),
+        reason: blockedReason,
+        projectRoot,
+        sessionId: getAttachmentRuntime().sessionFrameKey,
+      });
+    } else if (shouldEmitProjectScopeRecoveryPacket(previous, decision)) {
       queueLifecycleAdvisory(pi, ctx, {
         advisoryKey: recoveryRef,
         advisoryKind: "project_scope_recovery",
@@ -1468,11 +1502,16 @@ export function registerSession(pi: ExtensionAPI) {
     if (!projectVerified) {
       setActiveWorkpointPacket(null);
       setActiveWorkpointSummary("");
-      ctx.ui.notify(
-        `North-star gate blocked durable project startup: binding state=${projectBindingDecisionV1.state}. Read-only diagnosis remains available.`,
-        "warning"
-      );
-      updateNorthStarCard(ctx, "session_start_project_blocked");
+      // Receptionist UX already explains the wait in plain language. Keep
+      // internal binding state in telemetry/agent context, not operator warnings.
+      focusaPost("/telemetry/trace", {
+        event_type: "pi_project_startup_waiting_for_binding",
+        payload: { state: projectBindingDecisionV1.state, project_root: projectRoot },
+      });
+      // Progressive receptionist status owns startup UI until the operator has
+      // chosen a project path; hide internal hierarchy and empty work-rail data.
+      ctx.ui.setWidget("focusa-north-star", undefined);
+      ctx.ui.setWidget("focusa-mission-canvas-work-rail", undefined);
       return;
     }
     await ensureFocusaSession({ ...ctx, cwd: projectRoot });

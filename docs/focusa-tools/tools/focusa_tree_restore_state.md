@@ -29,6 +29,16 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 
 Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_restore_state.md
 
+## Operator alignment
+
+- refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps
+- treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker
+- consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation
+- use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested
+- never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range
+- for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons
+- use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation
+
 ## Anti-examples
 
 - treating lineage as current project authority
@@ -67,4 +77,4 @@ Likely next: `focusa_tree_head`, `focusa_tree_path`, `focusa_evidence_capture`.
 - CLI: `focusa state snapshot restore`.
 - REST: `POST /v1/focus/snapshots/restore`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:194200c263291a36d8668defbea0e5bf239fc3edbadfc388241b0496a198f780`.
+- Descriptor digest: `sha256:f50228a0f2de8209434e73efd80df9817b0cc62cc6d32ba445f4d1ce8939ebfc`.

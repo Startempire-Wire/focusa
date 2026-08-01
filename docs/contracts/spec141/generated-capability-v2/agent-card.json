@@ -22,7 +22,26 @@
     "device_pairing",
     "local_trusted"
   ],
-  "registry_digest": "sha256:b7c49de0255807304cefe284498e83e4bd88e919e9d02e6aa44c3db63799c7f7",
+  "operator_alignment": {
+    "schema": "focusa.operator_alignment.v1",
+    "authority": "operator_intent_constraints_and_confirmed_timeline_lead",
+    "requirements": [
+      "refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps",
+      "treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker",
+      "consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation",
+      "use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested",
+      "never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range",
+      "for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons",
+      "use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation"
+    ],
+    "project_reception": {
+      "candidate_scan_depth_min": 2,
+      "candidate_limit": 20,
+      "mutation_before_confirmation": false,
+      "guided_orientation_optional": true
+    }
+  },
+  "registry_digest": "sha256:4231361362502c49a10c5ca1ff570e54f8e296e1e1356ac72cd0ad7e09c10915",
   "pi_tool_count": 135,
   "pi_tool_docs_count": 135,
   "pi_tool_registry_path": "docs/contracts/spec141/generated-capability-v2/pi-tools.json",
@@ -364,5 +383,5 @@
     "workpoint"
   ],
   "extended_card_path": "/v1/agent/card",
-  "card_digest": "sha256:00349e5e25a17807f0f3de10e6cac5845a40fc7fca98f82a8a0c7c90490f432a"
+  "card_digest": "sha256:71ea0fd6a283eb44e278a9451dc0a6e1580f21e858f79e73618b3028a0fa63f3"
 }

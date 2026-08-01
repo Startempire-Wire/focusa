@@ -144,7 +144,11 @@ export function updateNorthStarCard(ctx: any, trigger: string): NorthStarSnapsho
   const snapshot = buildNorthStarSnapshot(trigger);
   getAttachmentRuntime().northStarSnapshot = snapshot;
   if (ctx?.hasUI) {
-    ctx.ui.setWidget("focusa-north-star", renderNorthStarCard(snapshot), { placement: "aboveEditor" });
+    if (getAttachmentRuntime().startupReceptionistActive) {
+      ctx.ui.setWidget("focusa-north-star", undefined);
+    } else {
+      ctx.ui.setWidget("focusa-north-star", renderNorthStarCard(snapshot), { placement: "aboveEditor" });
+    }
   }
   return snapshot;
 }

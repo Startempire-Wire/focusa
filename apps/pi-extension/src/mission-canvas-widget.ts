@@ -1,6 +1,8 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
   focusaFetch,
+  getAttachmentRuntime,
+  currentProjectBindingDecision,
   getActiveWorkpointPacket,
   getContinuityId,
   getEffectiveFocusSnapshot,
@@ -52,6 +54,11 @@ function truthfulStatusLines(ctx: any): string[] {
  */
 export function refreshMissionCanvasWidget(ctx: any): void {
   if (!ctx?.hasUI) return;
+  const binding = currentProjectBindingDecision();
+  if (getAttachmentRuntime().startupReceptionistActive || !binding || binding.state !== "BOUND") {
+    ctx.ui.setWidget("focusa-mission-canvas-work-rail", undefined);
+    return;
+  }
   const interactionMode = resolveInteractionMode(getSessionCwd());
   if (interactionMode.mode !== "canvas-guided") {
     ctx.ui.setWidget("focusa-mission-canvas-work-rail", undefined);

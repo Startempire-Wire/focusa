@@ -2,6 +2,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import { otaActivationPaths } from "./ota-activation.js";
 import {
   getAttachmentRuntime,
   focusaFetch,
@@ -227,22 +228,194 @@ function payloadSummary(payload: any): Record<string, unknown> {
   };
 }
 
-function skillPaths(): string[] {
-  const homeSkills = process.env.PI_SKILLS_DIR || (process.env.HOME ? `${process.env.HOME}/.pi/skills` : "");
-  return [`${process.cwd()}/.pi/skills`, `${process.cwd()}/apps/pi-extension/skills`, homeSkills].filter(
-    Boolean
+function compactStatusText(value: unknown, fallback: string, max = 72): string {
+  const text = String(value ?? "").replace(/\s+/g, " ").trim();
+  if (!text) return fallback;
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
+
+function otaStatus(): string {
+  try {
+    const paths = otaActivationPaths();
+    if (existsSync(paths.activating)) return "activating";
+    if (existsSync(paths.restart) || existsSync(paths.legacy)) return "ready";
+    if (existsSync(paths.receipt)) return "current";
+  } catch {
+    return "unknown";
+  }
+  return "idle";
+}
+
+function humanTimeClaim(value: unknown, fallback: string): string {
+  const text = String(value ?? "").trim();
+  if (!text) return fallback;
+  const numeric = Number(text);
+  const date = Number.isFinite(numeric)
+    ? new Date(numeric > 10_000_000_000 ? numeric : numeric * 1_000)
+    : new Date(text);
+  if (!Number.isNaN(date.getTime())) {
+    try {
+      return new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        timeZoneName: "short",
+        timeZone: String(process.env.TZ || "").trim() || undefined,
+      }).format(date);
+    } catch {
+      return date.toISOString();
+    }
+  }
+  return compactStatusText(text, fallback, 28);
+}
+
+function localClock(): string {
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short",
+      timeZone: String(process.env.TZ || "").trim() || undefined,
+    }).format(new Date());
+  } catch {
+    return new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  }
+}
+
+function headerValue(event: any, name: string): string {
+  const headers = event?.headers || event?.response?.headers;
+  if (typeof headers?.get === "function") return String(headers.get(name) || "");
+  const key = Object.keys(headers || {}).find((candidate) => candidate.toLowerCase() === name);
+  return key ? String(headers[key] || "") : "";
+}
+
+function updateProviderUsageFromHeaders(event: any): void {
+  const usedRaw = headerValue(event, "x-codex-primary-used-percent");
+  const remainingRaw = headerValue(event, "x-ratelimit-remaining-tokens");
+  const limitRaw = headerValue(event, "x-ratelimit-limit-tokens");
+  let used = Number.parseFloat(usedRaw);
+  if (!Number.isFinite(used)) {
+    const remaining = Number.parseFloat(remainingRaw);
+    const limit = Number.parseFloat(limitRaw);
+    if (Number.isFinite(remaining) && Number.isFinite(limit) && limit > 0)
+      used = ((limit - remaining) / limit) * 100;
+  }
+  if (Number.isFinite(used))
+    getAttachmentRuntime().providerUsagePercent = Math.max(0, Math.min(100, used));
+  const renewal =
+    headerValue(event, "x-codex-primary-reset-at") ||
+    headerValue(event, "x-ratelimit-reset-tokens") ||
+    headerValue(event, "x-ratelimit-reset");
+  if (renewal) getAttachmentRuntime().providerRenewalAt = renewal;
+}
+
+function renderOperatorStatus(ctx: any): void {
+  const runtime = getAttachmentRuntime();
+  const contextUsage = ctx?.getContextUsage?.();
+  if (
+    Number.isFinite(contextUsage?.tokens) &&
+    Number.isFinite(contextUsage?.contextWindow) &&
+    contextUsage.contextWindow > 0
+  )
+    runtime.currentContextPct = (contextUsage.tokens / contextUsage.contextWindow) * 100;
+  const cfg = runtime.cfg;
+  if (!cfg?.operatorStatusBarEnabled) {
+    ctx?.ui?.setStatus?.("focusa-operator-status", undefined);
+    ctx?.ui?.setWidget?.("focusa-next-prediction", undefined);
+    return;
+  }
+  const segments: string[] = [];
+  if (cfg.operatorStatusVersionEnabled)
+    segments.push(`Focusa ${compactStatusText(cfg.focusaExtensionBuild, "unknown").replace(/^focusa-pi-bridge@/, "")}`);
+  if (cfg.operatorStatusOtaEnabled) segments.push(`OTA ${otaStatus()}`);
+  if (cfg.operatorStatusModelUsageEnabled) {
+    const provider = compactStatusText(runtime.modelProvider, "provider unknown", 24);
+    const model = compactStatusText(runtime.modelId, "model unknown", 28);
+    const usage = runtime.providerUsagePercent === null
+      ? runtime.currentContextPct === null
+        ? "usage unavailable"
+        : `context ${Math.round(runtime.currentContextPct)}%`
+      : `usage ${Math.round(runtime.providerUsagePercent)}%`;
+    const renewal = humanTimeClaim(runtime.providerRenewalAt, "renewal unavailable");
+    segments.push(`${provider}/${model} · ${usage} · renew ${renewal}`);
+  }
+  if (cfg.operatorStatusTimeEnabled) segments.push(localClock());
+  ctx?.ui?.setStatus?.("focusa-operator-status", segments.join(" · "));
+
+  const lines: string[] = [];
+  if (cfg.operatorStatusDeadlineEnabled)
+    lines.push(`Deadline: ${humanTimeClaim(process.env.FOCUSA_CONFIRMED_DEADLINE, "none confirmed")}`);
+  if (cfg.operatorStatusPredictionEnabled) {
+    const packet: any = getActiveWorkpointPacket();
+    const prediction = runtime.startupReceptionistActive
+      ? "identify the project or task you want, then continue without changing anything prematurely"
+      : packet?.next_action || packet?.next_slice || "continue from the next verified project action";
+    lines.push(`Next likely: ${compactStatusText(prediction, "waiting for your direction", 120)}`);
+  }
+  ctx?.ui?.setWidget?.("focusa-next-prediction", lines, { placement: "belowEditor" });
+}
+
+function receptionistProgressGreeting(): string {
+  const hourText = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    hourCycle: "h23",
+    timeZone: String(process.env.TZ || "").trim() || undefined,
+  }).format(new Date());
+  const hour = Number.parseInt(hourText, 10);
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const preferred = String(
+    process.env.FOCUSA_PREFERRED_ADDRESS || process.env.OPERATOR_PREFERRED_ADDRESS || ""
+  ).trim();
+  return preferred ? `${greeting}, ${preferred}` : greeting;
+}
+
+function updateReceptionistProgress(ctx: any, message: string): void {
+  if (!getAttachmentRuntime().startupReceptionistActive) return;
+  ctx?.ui?.setWidget?.(
+    "focusa-vital",
+    [`${receptionistProgressGreeting()} — ${message}`],
+    { placement: "belowEditor" }
   );
+}
+
+function receptionistToolProgress(toolName: string): string {
+  const name = toolName.toLowerCase();
+  if (["bash", "read", "find", "fd", "rg"].includes(name))
+    return "I’m looking through nearby folders for likely projects (read-only)…";
+  if (name === "focusa_project_identity")
+    return "I’m checking whether the likely folders are existing Focusa projects…";
+  if (name === "focusa_project_verify")
+    return "I found a possible match and I’m checking it safely…";
+  if (name.includes("trajectory") || name.includes("workpoint") || name.includes("hlt"))
+    return "I’m reviewing existing project history so I don’t treat an established project as new…";
+  return "I’m gathering enough context to give you useful, simple choices…";
 }
 
 export function registerPolishHooks(pi: ExtensionAPI) {
   const hookApi = pi as any;
   hookApi.on("resources_discover", async (_event: any, _ctx: any) => {
-    const paths = Array.from(new Set(skillPaths()));
-    recordHookTelemetry({ hook: "resources_discover", skill_paths: paths });
-    return { skillPaths: paths };
+    // Pi settings/package installation is the single skill-path authority.
+    // Dynamically injecting cwd, package, and legacy home paths caused noisy
+    // name collisions and nondeterministic first-wins behavior.
+    recordHookTelemetry({ hook: "resources_discover", skill_authority: "pi_configuration" });
+    return {};
   });
 
-  hookApi.on("agent_start", async (event: any, _ctx: any) => {
+  hookApi.on("session_start", async (_event: any, ctx: any) => {
+    getAttachmentRuntime().modelProvider = String(ctx?.model?.provider || "");
+    getAttachmentRuntime().modelId = String(ctx?.model?.id || "");
+    renderOperatorStatus(ctx);
+  });
+
+  hookApi.on("model_select", async (event: any, ctx: any) => {
+    getAttachmentRuntime().modelProvider = String(event?.model?.provider || ctx?.model?.provider || "");
+    getAttachmentRuntime().modelId = String(event?.model?.id || ctx?.model?.id || "");
+    renderOperatorStatus(ctx);
+  });
+
+  hookApi.on("agent_start", async (event: any, ctx: any) => {
+    renderOperatorStatus(ctx);
     const record = {
       hook: "agent_start",
       event_keys: Object.keys(event || {}).slice(0, 20),
@@ -256,17 +429,21 @@ export function registerPolishHooks(pi: ExtensionAPI) {
     bestEffortTelemetry("spec92.agent_start", record);
   });
 
-  hookApi.on("message_start", async (event: any, _ctx: any) => {
+  hookApi.on("message_start", async (event: any, ctx: any) => {
     recordHookTelemetry({ hook: "message_start", ...messageSummary(event?.message || event) });
+    updateReceptionistProgress(ctx, "I’m checking recent projects and preparing a few clear options…");
   });
 
-  hookApi.on("message_end", async (event: any, _ctx: any) => {
+  hookApi.on("message_end", async (event: any, ctx: any) => {
     const record = { hook: "message_end", ...messageSummary(event?.message || event) };
     recordHookTelemetry(record);
     bestEffortTelemetry("spec92.message_end", record);
+    updateReceptionistProgress(ctx, "I’ve finished checking and I’m putting the best options into plain language…");
   });
 
-  hookApi.on("before_provider_request", async (event: any, _ctx: any) => {
+  hookApi.on("before_provider_request", async (event: any, ctx: any) => {
+    getAttachmentRuntime().modelProvider = String(event?.provider || event?.model?.provider || ctx?.model?.provider || "");
+    getAttachmentRuntime().modelId = String(event?.model?.id || event?.model || ctx?.model?.id || "");
     const summary = payloadSummary(event?.payload || event?.request || event);
     const record: any = {
       hook: "before_provider_request",
@@ -294,7 +471,9 @@ export function registerPolishHooks(pi: ExtensionAPI) {
     return undefined;
   });
 
-  hookApi.on("after_provider_response", async (event: any, _ctx: any) => {
+  hookApi.on("after_provider_response", async (event: any, ctx: any) => {
+    updateProviderUsageFromHeaders(event);
+    renderOperatorStatus(ctx);
     const record = {
       hook: "after_provider_response",
       status: event?.status || event?.response?.status || "unknown",
@@ -305,7 +484,7 @@ export function registerPolishHooks(pi: ExtensionAPI) {
     bestEffortTelemetry("spec92.after_provider_response", record);
   });
 
-  hookApi.on("tool_execution_start", async (event: any, _ctx: any) => {
+  hookApi.on("tool_execution_start", async (event: any, ctx: any) => {
     const record = {
       hook: "tool_execution_start",
       tool_call_id: event?.toolCallId || event?.id || "unknown",
@@ -314,6 +493,7 @@ export function registerPolishHooks(pi: ExtensionAPI) {
     };
     getAttachmentRuntime().spec92ToolStartTimes[String(record.tool_call_id)] = Date.now();
     recordHookTelemetry(record);
+    updateReceptionistProgress(ctx, receptionistToolProgress(String(record.tool_name)));
   });
 
   hookApi.on("tool_execution_update", async (event: any, _ctx: any) => {
@@ -325,7 +505,7 @@ export function registerPolishHooks(pi: ExtensionAPI) {
     });
   });
 
-  hookApi.on("tool_execution_end", async (event: any, _ctx: any) => {
+  hookApi.on("tool_execution_end", async (event: any, ctx: any) => {
     const id = String(event?.toolCallId || event?.id || "unknown");
     const started = getAttachmentRuntime().spec92ToolStartTimes[id];
     if (started) delete getAttachmentRuntime().spec92ToolStartTimes[id];
@@ -340,6 +520,7 @@ export function registerPolishHooks(pi: ExtensionAPI) {
     };
     recordHookTelemetry(record);
     bestEffortTelemetry("spec92.tool_execution_end", record);
+    updateReceptionistProgress(ctx, "I’m comparing what I found and narrowing it to useful choices…");
     // FOCUSA_FIX-tgij: shell-tool reminder — when the agent uses a shell-like
     // tool that could touch the Focusa daemon, emit a visible reminder to
     // prefer focusa_* tools for governed interactions.
@@ -378,6 +559,18 @@ export function registerPolishHooks(pi: ExtensionAPI) {
         }
       }
     }
+  });
+
+  hookApi.on("agent_end", async (_event: any, ctx: any) => {
+    if (!getAttachmentRuntime().startupReceptionistActive) return;
+    getAttachmentRuntime().startupReceptionistActive = false;
+    renderOperatorStatus(ctx);
+    ctx?.ui?.setWidget?.(
+      "focusa-vital",
+      ["Ready — I’ve shared the clearest next options above. Nothing was changed while I checked."],
+      { placement: "belowEditor" }
+    );
+    setTimeout(() => ctx?.ui?.setWidget?.("focusa-vital", undefined), 6_000);
   });
 
   hookApi.on("session_tree", async (event: any, _ctx: any) => {
