@@ -111,6 +111,7 @@ pub mod runtime;
 pub mod scope_safety;
 pub mod scoped_state;
 pub mod semantic_integrity;
+pub mod semantic_performance;
 pub mod semantic_registry;
 pub mod semantic_security;
 pub mod semantic_verification;
