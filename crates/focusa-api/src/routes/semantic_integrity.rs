@@ -20,6 +20,8 @@ use std::sync::Arc;
 
 pub(super) const CONTRACT: &str = "focusa.semantic_integrity.operation.v1";
 const MAX_PAGE: u16 = 100;
+const ARTIFACT_REGISTRY_JSON: &str =
+    include_str!("../../../../docs/contracts/spec144/semantic-artifact-registry-v1.json");
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ExactScope {
@@ -289,17 +291,30 @@ async fn artifacts(Query(q): Query<PageQuery>) -> Response {
         Err(e) => return e,
     };
     let limit = q.limit.unwrap_or(50).clamp(1, MAX_PAGE);
+    let offset = q.cursor.unwrap_or(0) as usize;
+    let registry: Value = serde_json::from_str(ARTIFACT_REGISTRY_JSON)
+        .expect("embedded Spec144 artifact registry is valid JSON");
+    let artifacts = registry["artifacts"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    let items = artifacts
+        .iter()
+        .skip(offset)
+        .take(limit as usize)
+        .cloned()
+        .collect::<Vec<_>>();
+    let next_cursor =
+        (offset + items.len() < artifacts.len()).then(|| (offset + items.len()).to_string());
     Json(Page::<Value> {
         contract: CONTRACT,
         scope,
-        items: vec![],
-        next_cursor: None,
+        items,
+        next_cursor,
         limit,
-        degraded: true,
-        degraded_reason: Some(
-            "artifact registry is not integrated; an empty page is not evidence of no artifacts",
-        ),
-        evidence_refs: vec![],
+        degraded: false,
+        degraded_reason: None,
+        evidence_refs: vec!["embedded-registry:spec144:v1".into()],
         receipt_refs: vec![],
     })
     .into_response()
@@ -310,23 +325,32 @@ async fn artifact(Path(artifact_id): Path<String>, Query(q): Query<PageQuery>) -
         Ok(v) => v,
         Err(e) => return e,
     };
-    (
-        StatusCode::NOT_IMPLEMENTED,
-        Json(OperationResult {
-            contract: CONTRACT,
-            operation_id: "semantic.integrity.artifact.get".into(),
-            scope,
-            state: Availability::SchemaOnly,
-            degraded: true,
-            message: "artifact inspection is registered but storage integration is unavailable"
-                .into(),
-            data: json!({"artifact_id": artifact_id}),
-            evidence_refs: vec![],
-            receipt_refs: vec![],
-            observed_at: Utc::now().to_rfc3339(),
-        }),
-    )
-        .into_response()
+    let registry: Value = serde_json::from_str(ARTIFACT_REGISTRY_JSON)
+        .expect("embedded Spec144 artifact registry is valid JSON");
+    let artifact = registry["artifacts"].as_array().and_then(|items| {
+        items.iter().find(|item| {
+            item["path"].as_str().is_some_and(|path| {
+                path == artifact_id || path.rsplit('/').next() == Some(artifact_id.as_str())
+            }) || item["sha256"].as_str() == Some(artifact_id.as_str())
+        })
+    });
+    let Some(artifact) = artifact else {
+        return problem(StatusCode::NOT_FOUND, "semantic artifact is not registered");
+    };
+    Json(OperationResult {
+        contract: CONTRACT,
+        operation_id: "semantic.integrity.artifact.get".into(),
+        scope,
+        state: Availability::Supported,
+        degraded: false,
+        message: "registered semantic artifact resolved from the embedded signed release registry"
+            .into(),
+        data: artifact.clone(),
+        evidence_refs: vec!["embedded-registry:spec144:v1".into()],
+        receipt_refs: vec![],
+        observed_at: Utc::now().to_rfc3339(),
+    })
+    .into_response()
 }
 
 async fn invoke(

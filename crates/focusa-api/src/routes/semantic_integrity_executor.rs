@@ -11,6 +11,7 @@ use chrono::Utc;
 use focusa_core::{
     runtime::persistence_sqlite::SqlitePersistence,
     semantic_migration::{compatibility_read, inspect_version, plan_v1_migration},
+    semantic_reflex::SHARED_SEMANTIC_REFLEXES,
     semantic_replay::{replay, SemanticEventEnvelope, SemanticPairEvent},
     semantic_settlement::{evaluate_settlement, SettlementInput},
 };
@@ -37,9 +38,12 @@ pub fn operation_is_executable(operation_id: &str) -> bool {
             operation_id,
             "semantic_pair.get"
                 | "semantic_pair.replay"
+                | "semantic_pair.snapshot.get"
+                | "semantic_pair.receipt.get"
                 | "semantic_pair.migration.status"
                 | "semantic_pair.migration.run"
                 | "semantic_pair.settlement.preview"
+                | "semantic.reflex.visibility"
         )
 }
 
@@ -49,12 +53,14 @@ pub async fn execute(state: Arc<AppState>, request: &OperationRequest) -> Option
         append_event(&state.persistence, request)
     } else {
         match operation_id {
-            "semantic_pair.get" | "semantic_pair.replay" => {
-                load_and_replay(&state.persistence, request)
-            }
+            "semantic_pair.get"
+            | "semantic_pair.replay"
+            | "semantic_pair.snapshot.get"
+            | "semantic_pair.receipt.get" => load_and_replay(&state.persistence, request),
             "semantic_pair.migration.status" => migration_status(request),
             "semantic_pair.migration.run" => run_migration(&state.persistence, request),
             "semantic_pair.settlement.preview" => settlement_preview(request),
+            "semantic.reflex.visibility" => reflex_visibility(),
             _ => return None,
         }
     };
@@ -216,6 +222,15 @@ fn run_migration(persistence: &SqlitePersistence, request: &OperationRequest) ->
             hex::encode(Sha256::digest(&bytes))
         )],
         vec![format!("migration-receipt:{}", migration_id)],
+    ))
+}
+
+fn reflex_visibility() -> ExecutorResult {
+    Ok((
+        "executable shared semantic reflex catalog projected".into(),
+        json!({"runtime_status": "executable", "reflexes": SHARED_SEMANTIC_REFLEXES}),
+        vec!["runtime:semantic-reflex:v1".into()],
+        vec![],
     ))
 }
 
