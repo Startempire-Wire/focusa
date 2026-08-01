@@ -77,6 +77,7 @@ pub mod install_lifecycle;
 pub mod intuition;
 pub mod license;
 pub mod memory;
+pub mod mission_canvas;
 pub mod metacognitive_learning;
 pub mod outcome_resolution;
 pub mod permissions;

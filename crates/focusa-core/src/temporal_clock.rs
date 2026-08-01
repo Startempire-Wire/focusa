@@ -119,6 +119,7 @@ pub fn capture_operator_temporal_action_envelope() -> TemporalActionEnvelope {
     }
 }
 
+#[cfg(unix)]
 fn clock_ns(clock_id: libc::clockid_t) -> Option<u128> {
     let mut sample = libc::timespec {
         tv_sec: 0,
@@ -143,6 +144,7 @@ fn suspend_aware_clock_ns() -> Option<u128> {
     None
 }
 
+#[cfg(unix)]
 fn clock_resolution_ns(clock_id: libc::clockid_t) -> Option<u64> {
     let mut resolution = libc::timespec {
         tv_sec: 0,
@@ -165,6 +167,34 @@ fn current_boot_id() -> Option<String> {
         .filter(|value| !value.is_empty())
 }
 
+#[cfg(unix)]
+fn capture_clock_measurements() -> Result<(u128, u128, u128, u64, u64), TemporalActionCaptureError>
+{
+    let monotonic_before = clock_ns(libc::CLOCK_MONOTONIC)
+        .ok_or(TemporalActionCaptureError::MonotonicClockUnavailable)?;
+    let realtime_ns = clock_ns(libc::CLOCK_REALTIME)
+        .ok_or(TemporalActionCaptureError::RealtimeClockUnavailable)?;
+    let monotonic_after = clock_ns(libc::CLOCK_MONOTONIC)
+        .ok_or(TemporalActionCaptureError::MonotonicClockUnavailable)?;
+    let realtime_resolution_ns = clock_resolution_ns(libc::CLOCK_REALTIME)
+        .ok_or(TemporalActionCaptureError::RealtimeResolutionUnavailable)?;
+    let monotonic_resolution_ns = clock_resolution_ns(libc::CLOCK_MONOTONIC)
+        .ok_or(TemporalActionCaptureError::MonotonicResolutionUnavailable)?;
+    Ok((
+        monotonic_before,
+        realtime_ns,
+        monotonic_after,
+        realtime_resolution_ns,
+        monotonic_resolution_ns,
+    ))
+}
+
+#[cfg(not(unix))]
+fn capture_clock_measurements() -> Result<(u128, u128, u128, u64, u64), TemporalActionCaptureError>
+{
+    Err(TemporalActionCaptureError::MonotonicClockUnavailable)
+}
+
 pub fn capture_temporal_action_envelope(
     operator_timezone: &str,
     calibration: Option<&ClockUncertaintyBudget>,
@@ -172,21 +202,18 @@ pub fn capture_temporal_action_envelope(
     let timezone = operator_timezone.parse::<Tz>().map_err(|_| {
         TemporalActionCaptureError::InvalidOperatorTimezone(operator_timezone.into())
     })?;
-    let monotonic_before = clock_ns(libc::CLOCK_MONOTONIC)
-        .ok_or(TemporalActionCaptureError::MonotonicClockUnavailable)?;
-    let realtime_ns = clock_ns(libc::CLOCK_REALTIME)
-        .ok_or(TemporalActionCaptureError::RealtimeClockUnavailable)?;
+    let (
+        monotonic_before,
+        realtime_ns,
+        monotonic_after,
+        realtime_resolution_ns,
+        monotonic_resolution_ns,
+    ) = capture_clock_measurements()?;
     let captured_at_utc = DateTime::<Utc>::from_timestamp(
         (realtime_ns / 1_000_000_000) as i64,
         (realtime_ns % 1_000_000_000) as u32,
     )
     .ok_or(TemporalActionCaptureError::InvalidRealtimeSample)?;
-    let monotonic_after = clock_ns(libc::CLOCK_MONOTONIC)
-        .ok_or(TemporalActionCaptureError::MonotonicClockUnavailable)?;
-    let realtime_resolution_ns = clock_resolution_ns(libc::CLOCK_REALTIME)
-        .ok_or(TemporalActionCaptureError::RealtimeResolutionUnavailable)?;
-    let monotonic_resolution_ns = clock_resolution_ns(libc::CLOCK_MONOTONIC)
-        .ok_or(TemporalActionCaptureError::MonotonicResolutionUnavailable)?;
     let capture_latency_ns = monotonic_after.saturating_sub(monotonic_before);
     let capture_uncertainty_ns = (capture_latency_ns / 2)
         .saturating_add(realtime_resolution_ns as u128)

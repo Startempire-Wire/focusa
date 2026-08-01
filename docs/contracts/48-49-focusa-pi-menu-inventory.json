@@ -1,7 +1,7 @@
 {
   "schema": "focusa.pi_menu_inventory.v1",
   "generated": true,
-  "source_sha256": "e28259de0c1df9e76acc0189ecef6e2d71197cb5b5046bbcc14d100039a1d9a3",
+  "source_sha256": "ab9693d10550cb7def2d0e46f95eeb1577dd746e03128b4e99da43cfad702c7d",
   "baseline": {
     "top_level_commands": 9,
     "simple_settings": 11,
@@ -43,10 +43,10 @@
       "id": "mission-canvas",
       "kind": "command",
       "owner": "focusa-pi-extension",
-      "user_job": "Open the keyboard-first Focusa Mission Canvas in Pi",
+      "user_job": "Open the Focusa Mission Canvas or switch it on/off without disabling Focusa",
       "placement": "top_level_command",
       "rationale": "direct operator action or compatibility entrypoint",
-      "help": "Open the keyboard-first Focusa Mission Canvas in Pi",
+      "help": "Open the Focusa Mission Canvas or switch it on/off without disabling Focusa",
       "scope": "attachment_or_explicit_project",
       "risk": "mutation_gated_by_handler",
       "interaction_test": "Pi typecheck plus command-specific contract test"
