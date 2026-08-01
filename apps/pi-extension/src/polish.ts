@@ -27,6 +27,7 @@ type PiSemanticEventEnvelope = {
   tool_call_id?: string;
   occurred_at: string;
   content: Record<string, unknown>;
+  artifact_handle?: string;
 };
 
 function nowIso(): string {
@@ -83,9 +84,37 @@ async function postSemanticTelemetry(body: Record<string, unknown>): Promise<voi
   const pending = offlineSemanticSpool.splice(0, offlineSemanticSpool.length);
   const batch = [...pending, body];
   for (const item of batch) {
+    let outbound = item;
+    const encoded = JSON.stringify(item);
+    if (encoded.length > 12_000) {
+      const runtime = getAttachmentRuntime();
+      const artifact = await focusaFetch("/ecs/store", {
+        method: "POST",
+        body: JSON.stringify({
+          kind: "Json",
+          label: `pi-semantic-event-${String(item.event_type || "unknown")}`,
+          content: encoded,
+          project_root: runtime.sessionCwd || undefined,
+          continuity_id: runtime.continuityId || undefined,
+        }),
+      });
+      const handle = artifact?.id || artifact?.handle?.id;
+      if (typeof handle === "string") {
+        const semantic = item.semantic_event as Record<string, unknown> | undefined;
+        outbound = {
+          ...item,
+          payload: { artifact_handle: handle, original_size: encoded.length },
+          semantic_event: semantic ? {
+            ...semantic,
+            artifact_handle: handle,
+            content: { artifact_handle: handle, original_size: encoded.length },
+          } : undefined,
+        };
+      }
+    }
     const result = await focusaFetch("/telemetry/event", {
       method: "POST",
-      body: JSON.stringify(item),
+      body: JSON.stringify(outbound),
     });
     if (result === null) {
       offlineSemanticSpool.push(item);
