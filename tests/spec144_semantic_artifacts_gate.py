@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTRACTS = ROOT / "docs/contracts/spec144"
 REGISTRY_PATH = CONTRACTS / "semantic-artifact-registry-v1.json"
 REGISTRY = json.loads(REGISTRY_PATH.read_text())
+LEDGER = json.loads((ROOT / "docs/contracts/spec144-complete-feature-ledger.v1.yaml").read_text())
 ACTIVATION = json.loads((ROOT / "docs/contracts/spec144-activation.v1.json").read_text())
 SPEC143_RECEIPT = json.loads((ROOT / "docs/contracts/spec143-completion-receipt.v1.json").read_text())
 INTEGRITY = (ROOT / "crates/focusa-core/src/semantic_integrity.rs").read_text()
@@ -28,6 +29,10 @@ assert ACTIVATION["status"] == "eligible"
 assert ACTIVATION["spec143_completion_receipt_ref"] == "docs/contracts/spec143-completion-receipt.v1.json"
 assert ACTIVATION["unknown_impact_refs"] == []
 assert ACTIVATION["blocking_conflict_refs"] == []
+activation_rows = [row for row in LEDGER["requirements"] if 413 <= row["source_line"] <= 460]
+assert len(activation_rows) == 23
+assert all(row["runtime_status"] == "verified_complete" for row in activation_rows)
+assert sum(row["runtime_status"] == "implementation_open" for row in LEDGER["requirements"]) == 654
 for key in [
     "normative_source_coverage_ref", "feature_ledger_ref", "delivery_dag_ref",
     "ownership_matrix_ref", "client_parity_matrix_ref", "vertical_pack_matrix_ref",

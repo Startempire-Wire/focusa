@@ -2,10 +2,10 @@
   "serialization": "JSON-compatible YAML 1.2",
   "generated_at": "2026-07-31T17:03:56+00:00",
   "runtime_claim": "none",
-  "runtime_status": "implementation_open",
+  "runtime_status": "implementation_partial",
   "schema": "focusa.spec144_complete_feature_ledger.v1",
   "spec_hash": "4d28318dd3df2c71ca154ba7225cb9933cf6791859d66b51bc48aabd68a1a567",
-  "implementation_activation": "blocked_until_spec143_closure_and_operator_activation",
+  "implementation_activation": "eligible",
   "requirements": [
     {
       "requirement_id": "S144-R-0007-8dd5b61271e8",
@@ -1920,8 +1920,22 @@
       "primitive_owner": "combined_source_owner",
       "applicability_status": "active_or_explicit_decision_required",
       "documentation_status": "contract_defined",
-      "runtime_status": "implementation_open",
-      "closure_impact": "blocking_for_claimed_conformance"
+      "runtime_status": "verified_complete",
+      "closure_impact": "activation_gate_satisfied",
+      "implementation_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "test_refs": [
+        "tests/spec144_semantic_artifacts_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "receipt_refs": [
+        "docs/contracts/spec144-activation.v1.json"
+      ]
     },
     {
       "requirement_id": "S144-R-0421-df96023a0970",
@@ -1935,8 +1949,22 @@
       "primitive_owner": "combined_source_owner",
       "applicability_status": "active_or_explicit_decision_required",
       "documentation_status": "contract_defined",
-      "runtime_status": "implementation_open",
-      "closure_impact": "blocking_for_claimed_conformance"
+      "runtime_status": "verified_complete",
+      "closure_impact": "activation_gate_satisfied",
+      "implementation_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "test_refs": [
+        "tests/spec144_semantic_artifacts_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "receipt_refs": [
+        "docs/contracts/spec144-activation.v1.json"
+      ]
     },
     {
       "requirement_id": "S144-R-0437-841001da4971",
@@ -1948,8 +1976,22 @@
       "primitive_owner": "combined_source_owner",
       "applicability_status": "active_or_explicit_decision_required",
       "documentation_status": "contract_defined",
-      "runtime_status": "implementation_open",
-      "closure_impact": "blocking_for_claimed_conformance"
+      "runtime_status": "verified_complete",
+      "closure_impact": "activation_gate_satisfied",
+      "implementation_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "test_refs": [
+        "tests/spec144_semantic_artifacts_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "receipt_refs": [
+        "docs/contracts/spec144-activation.v1.json"
+      ]
     },
     {
       "requirement_id": "S144-R-0438-584ad414cdc6",
@@ -1961,8 +2003,22 @@
       "primitive_owner": "combined_source_owner",
       "applicability_status": "active_or_explicit_decision_required",
       "documentation_status": "contract_defined",
-      "runtime_status": "implementation_open",
-      "closure_impact": "blocking_for_claimed_conformance"
+      "runtime_status": "verified_complete",
+      "closure_impact": "activation_gate_satisfied",
+      "implementation_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "test_refs": [
+        "tests/spec144_semantic_artifacts_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "receipt_refs": [
+        "docs/contracts/spec144-activation.v1.json"
+      ]
     },
     {
       "requirement_id": "S144-R-0439-7d1340e1eef3",
@@ -1974,8 +2030,22 @@
       "primitive_owner": "combined_source_owner",
       "applicability_status": "active_or_explicit_decision_required",
       "documentation_status": "contract_defined",
-      "runtime_status": "implementation_open",
-      "closure_impact": "blocking_for_claimed_conformance"
+      "runtime_status": "verified_complete",
+      "closure_impact": "activation_gate_satisfied",
+      "implementation_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "test_refs": [
+        "tests/spec144_semantic_artifacts_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "receipt_refs": [
+        "docs/contracts/spec144-activation.v1.json"
+      ]
     },
     {
       "requirement_id": "S144-R-0440-4df8cf28701c",
@@ -1987,8 +2057,22 @@
       "primitive_owner": "combined_source_owner",
       "applicability_status": "active_or_explicit_decision_required",
       "documentation_status": "contract_defined",
-      "runtime_status": "implementation_open",
-      "closure_impact": "blocking_for_claimed_conformance"
+      "runtime_status": "verified_complete",
+      "closure_impact": "activation_gate_satisfied",
+      "implementation_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "test_refs": [
+        "tests/spec144_semantic_artifacts_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "receipt_refs": [
+        "docs/contracts/spec144-activation.v1.json"
+      ]
     },
     {
       "requirement_id": "S144-R-0441-e819ef67e916",
@@ -2000,8 +2084,22 @@
       "primitive_owner": "combined_source_owner",
       "applicability_status": "active_or_explicit_decision_required",
       "documentation_status": "contract_defined",
-      "runtime_status": "implementation_open",
-      "closure_impact": "blocking_for_claimed_conformance"
+      "runtime_status": "verified_complete",
+      "closure_impact": "activation_gate_satisfied",
+      "implementation_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "test_refs": [
+        "tests/spec144_semantic_artifacts_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "receipt_refs": [
+        "docs/contracts/spec144-activation.v1.json"
+      ]
     },
     {
       "requirement_id": "S144-R-0442-594813224c24",
@@ -2013,8 +2111,22 @@
       "primitive_owner": "combined_source_owner",
       "applicability_status": "active_or_explicit_decision_required",
       "documentation_status": "contract_defined",
-      "runtime_status": "implementation_open",
-      "closure_impact": "blocking_for_claimed_conformance"
+      "runtime_status": "verified_complete",
+      "closure_impact": "activation_gate_satisfied",
+      "implementation_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "test_refs": [
+        "tests/spec144_semantic_artifacts_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "receipt_refs": [
+        "docs/contracts/spec144-activation.v1.json"
+      ]
     },
     {
       "requirement_id": "S144-R-0443-b55ee13ea94b",
@@ -2026,8 +2138,22 @@
       "primitive_owner": "combined_source_owner",
       "applicability_status": "active_or_explicit_decision_required",
       "documentation_status": "contract_defined",
-      "runtime_status": "implementation_open",
-      "closure_impact": "blocking_for_claimed_conformance"
+      "runtime_status": "verified_complete",
+      "closure_impact": "activation_gate_satisfied",
+      "implementation_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "test_refs": [
+        "tests/spec144_semantic_artifacts_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "receipt_refs": [
+        "docs/contracts/spec144-activation.v1.json"
+      ]
     },
     {
       "requirement_id": "S144-R-0444-9b5aa0ca71e3",
@@ -2039,8 +2165,22 @@
       "primitive_owner": "combined_source_owner",
       "applicability_status": "active_or_explicit_decision_required",
       "documentation_status": "contract_defined",
-      "runtime_status": "implementation_open",
-      "closure_impact": "blocking_for_claimed_conformance"
+      "runtime_status": "verified_complete",
+      "closure_impact": "activation_gate_satisfied",
+      "implementation_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "test_refs": [
+        "tests/spec144_semantic_artifacts_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "receipt_refs": [
+        "docs/contracts/spec144-activation.v1.json"
+      ]
     },
     {
       "requirement_id": "S144-R-0445-0f3868312b5a",
@@ -2052,8 +2192,22 @@
       "primitive_owner": "combined_source_owner",
       "applicability_status": "active_or_explicit_decision_required",
       "documentation_status": "contract_defined",
-      "runtime_status": "implementation_open",
-      "closure_impact": "blocking_for_claimed_conformance"
+      "runtime_status": "verified_complete",
+      "closure_impact": "activation_gate_satisfied",
+      "implementation_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "test_refs": [
+        "tests/spec144_semantic_artifacts_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "receipt_refs": [
+        "docs/contracts/spec144-activation.v1.json"
+      ]
     },
     {
       "requirement_id": "S144-R-0446-da8095ef14dd",
@@ -2065,8 +2219,22 @@
       "primitive_owner": "combined_source_owner",
       "applicability_status": "active_or_explicit_decision_required",
       "documentation_status": "contract_defined",
-      "runtime_status": "implementation_open",
-      "closure_impact": "blocking_for_claimed_conformance"
+      "runtime_status": "verified_complete",
+      "closure_impact": "activation_gate_satisfied",
+      "implementation_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "test_refs": [
+        "tests/spec144_semantic_artifacts_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "receipt_refs": [
+        "docs/contracts/spec144-activation.v1.json"
+      ]
     },
     {
       "requirement_id": "S144-R-0447-ed43e9bfcf93",
@@ -2078,8 +2246,22 @@
       "primitive_owner": "combined_source_owner",
       "applicability_status": "active_or_explicit_decision_required",
       "documentation_status": "contract_defined",
-      "runtime_status": "implementation_open",
-      "closure_impact": "blocking_for_claimed_conformance"
+      "runtime_status": "verified_complete",
+      "closure_impact": "activation_gate_satisfied",
+      "implementation_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "test_refs": [
+        "tests/spec144_semantic_artifacts_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "receipt_refs": [
+        "docs/contracts/spec144-activation.v1.json"
+      ]
     },
     {
       "requirement_id": "S144-R-0448-312b994ab8f3",
@@ -2091,8 +2273,22 @@
       "primitive_owner": "combined_source_owner",
       "applicability_status": "active_or_explicit_decision_required",
       "documentation_status": "contract_defined",
-      "runtime_status": "implementation_open",
-      "closure_impact": "blocking_for_claimed_conformance"
+      "runtime_status": "verified_complete",
+      "closure_impact": "activation_gate_satisfied",
+      "implementation_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "test_refs": [
+        "tests/spec144_semantic_artifacts_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "receipt_refs": [
+        "docs/contracts/spec144-activation.v1.json"
+      ]
     },
     {
       "requirement_id": "S144-R-0449-147da7e3f016",
@@ -2104,8 +2300,22 @@
       "primitive_owner": "combined_source_owner",
       "applicability_status": "active_or_explicit_decision_required",
       "documentation_status": "contract_defined",
-      "runtime_status": "implementation_open",
-      "closure_impact": "blocking_for_claimed_conformance"
+      "runtime_status": "verified_complete",
+      "closure_impact": "activation_gate_satisfied",
+      "implementation_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "test_refs": [
+        "tests/spec144_semantic_artifacts_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "receipt_refs": [
+        "docs/contracts/spec144-activation.v1.json"
+      ]
     },
     {
       "requirement_id": "S144-R-0450-1872d98be406",
@@ -2117,8 +2327,22 @@
       "primitive_owner": "combined_source_owner",
       "applicability_status": "active_or_explicit_decision_required",
       "documentation_status": "contract_defined",
-      "runtime_status": "implementation_open",
-      "closure_impact": "blocking_for_claimed_conformance"
+      "runtime_status": "verified_complete",
+      "closure_impact": "activation_gate_satisfied",
+      "implementation_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "test_refs": [
+        "tests/spec144_semantic_artifacts_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "receipt_refs": [
+        "docs/contracts/spec144-activation.v1.json"
+      ]
     },
     {
       "requirement_id": "S144-R-0451-b68aae25afc9",
@@ -2130,8 +2354,22 @@
       "primitive_owner": "combined_source_owner",
       "applicability_status": "active_or_explicit_decision_required",
       "documentation_status": "contract_defined",
-      "runtime_status": "implementation_open",
-      "closure_impact": "blocking_for_claimed_conformance"
+      "runtime_status": "verified_complete",
+      "closure_impact": "activation_gate_satisfied",
+      "implementation_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "test_refs": [
+        "tests/spec144_semantic_artifacts_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "receipt_refs": [
+        "docs/contracts/spec144-activation.v1.json"
+      ]
     },
     {
       "requirement_id": "S144-R-0452-7a95e289fa68",
@@ -2143,8 +2381,22 @@
       "primitive_owner": "combined_source_owner",
       "applicability_status": "active_or_explicit_decision_required",
       "documentation_status": "contract_defined",
-      "runtime_status": "implementation_open",
-      "closure_impact": "blocking_for_claimed_conformance"
+      "runtime_status": "verified_complete",
+      "closure_impact": "activation_gate_satisfied",
+      "implementation_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "test_refs": [
+        "tests/spec144_semantic_artifacts_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "receipt_refs": [
+        "docs/contracts/spec144-activation.v1.json"
+      ]
     },
     {
       "requirement_id": "S144-R-0453-a333e3758872",
@@ -2156,8 +2408,22 @@
       "primitive_owner": "combined_source_owner",
       "applicability_status": "active_or_explicit_decision_required",
       "documentation_status": "contract_defined",
-      "runtime_status": "implementation_open",
-      "closure_impact": "blocking_for_claimed_conformance"
+      "runtime_status": "verified_complete",
+      "closure_impact": "activation_gate_satisfied",
+      "implementation_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "test_refs": [
+        "tests/spec144_semantic_artifacts_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "receipt_refs": [
+        "docs/contracts/spec144-activation.v1.json"
+      ]
     },
     {
       "requirement_id": "S144-R-0454-5eb77412b81c",
@@ -2169,8 +2435,22 @@
       "primitive_owner": "combined_source_owner",
       "applicability_status": "active_or_explicit_decision_required",
       "documentation_status": "contract_defined",
-      "runtime_status": "implementation_open",
-      "closure_impact": "blocking_for_claimed_conformance"
+      "runtime_status": "verified_complete",
+      "closure_impact": "activation_gate_satisfied",
+      "implementation_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "test_refs": [
+        "tests/spec144_semantic_artifacts_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "receipt_refs": [
+        "docs/contracts/spec144-activation.v1.json"
+      ]
     },
     {
       "requirement_id": "S144-R-0455-64f1c17e993d",
@@ -2182,8 +2462,22 @@
       "primitive_owner": "combined_source_owner",
       "applicability_status": "active_or_explicit_decision_required",
       "documentation_status": "contract_defined",
-      "runtime_status": "implementation_open",
-      "closure_impact": "blocking_for_claimed_conformance"
+      "runtime_status": "verified_complete",
+      "closure_impact": "activation_gate_satisfied",
+      "implementation_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "test_refs": [
+        "tests/spec144_semantic_artifacts_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "receipt_refs": [
+        "docs/contracts/spec144-activation.v1.json"
+      ]
     },
     {
       "requirement_id": "S144-R-0456-21130bbe2c29",
@@ -2195,8 +2489,22 @@
       "primitive_owner": "combined_source_owner",
       "applicability_status": "active_or_explicit_decision_required",
       "documentation_status": "contract_defined",
-      "runtime_status": "implementation_open",
-      "closure_impact": "blocking_for_claimed_conformance"
+      "runtime_status": "verified_complete",
+      "closure_impact": "activation_gate_satisfied",
+      "implementation_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "test_refs": [
+        "tests/spec144_semantic_artifacts_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "receipt_refs": [
+        "docs/contracts/spec144-activation.v1.json"
+      ]
     },
     {
       "requirement_id": "S144-R-0459-3debd53c6487",
@@ -2210,8 +2518,22 @@
       "primitive_owner": "combined_source_owner",
       "applicability_status": "active_or_explicit_decision_required",
       "documentation_status": "contract_defined",
-      "runtime_status": "implementation_open",
-      "closure_impact": "blocking_for_claimed_conformance"
+      "runtime_status": "verified_complete",
+      "closure_impact": "activation_gate_satisfied",
+      "implementation_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "test_refs": [
+        "tests/spec144_semantic_artifacts_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec143-completion-receipt.v1.json",
+        "docs/contracts/spec144-activation.v1.json"
+      ],
+      "receipt_refs": [
+        "docs/contracts/spec144-activation.v1.json"
+      ]
     },
     {
       "requirement_id": "S144-R-0465-768db4836570",
