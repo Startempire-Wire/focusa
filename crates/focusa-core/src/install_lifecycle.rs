@@ -1,11 +1,13 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+mod adapters;
 mod models;
 mod preflight;
 mod preservation;
 mod transactions;
 
+pub use adapters::*;
 pub use models::*;
 pub use preflight::*;
 pub use preservation::*;
