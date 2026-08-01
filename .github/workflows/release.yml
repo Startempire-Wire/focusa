@@ -67,8 +67,8 @@ jobs:
           previous=$(git tag --sort=-version:refname | grep -v "^${TAG}$" | head -1 || true)
           since=$(if [ -n "$previous" ]; then git log -1 --format=%cI "$previous"; else echo '1970-01-01T00:00:00Z'; fi)
           gh pr list --repo "$REPOSITORY" --state merged --limit 500 \
-            --search "merged:>=${since%%T*}" --json number,mergeCommit,mergedAt,baseRefName \
-            | jq -r --arg since "$since" '.[] | select(.baseRefName == "main" and .mergedAt > $since) | [.number,.mergeCommit.oid] | @tsv' \
+            --search "merged:>=${since%%T*}" --json number,mergeCommit,mergedAt \
+            | jq -r --arg since "$since" '.[] | select(.mergedAt > $since) | [.number,.mergeCommit.oid] | @tsv' \
             | while IFS=$'\t' read -r number commit; do
                 [ -n "$commit" ] || { echo "::error::PR #$number has no merge commit"; exit 1; }
                 git merge-base --is-ancestor "$commit" "$TAG" || {
@@ -822,7 +822,7 @@ jobs:
             --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
             --output dist/release-intelligence.json \
             "${ARGS[@]}"
-          "$CLI" release cycle render-intelligence \
+          "$CLI" release render-intelligence \
             --packet dist/release-intelligence.json \
             --output dist/release-intelligence.md \
             --publishable
