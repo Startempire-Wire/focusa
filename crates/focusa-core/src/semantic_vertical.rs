@@ -51,6 +51,8 @@ pub enum VerticalGovernanceError {
     MissingSignature,
     #[error("vertical bundle signature is not verified")]
     SignatureUnverified,
+    #[error("vertical bundle cryptographic signature verification failed")]
+    SignatureVerificationFailed,
     #[error("vertical bundle is missing required semantic components")]
     IncompleteBundle,
     #[error("vertical bundle digest does not match content")]
@@ -236,6 +238,31 @@ pub fn validate_vertical_activation(
     if !bundle.signature_verified {
         return Err(VerticalGovernanceError::SignatureUnverified);
     }
+    validate_vertical_content(bundle, now)
+}
+
+pub fn validate_vertical_activation_with_trust(
+    bundle: &SignedVerticalBundle,
+    now: DateTime<Utc>,
+    trusted_keys: &BTreeMap<String, String>,
+) -> Result<(), VerticalGovernanceError> {
+    if bundle.signer_id.is_empty() || bundle.signature.is_empty() {
+        return Err(VerticalGovernanceError::MissingSignature);
+    }
+    crate::semantic_security::verify_ed25519_digest(
+        trusted_keys,
+        &bundle.signer_id,
+        &bundle.content_hash,
+        &bundle.signature,
+    )
+    .map_err(|_| VerticalGovernanceError::SignatureVerificationFailed)?;
+    validate_vertical_content(bundle, now)
+}
+
+fn validate_vertical_content(
+    bundle: &SignedVerticalBundle,
+    now: DateTime<Utc>,
+) -> Result<(), VerticalGovernanceError> {
     if bundle.content.ontology_refs.is_empty()
         || bundle.content.shape_refs.is_empty()
         || bundle.content.domain_graph.is_empty()

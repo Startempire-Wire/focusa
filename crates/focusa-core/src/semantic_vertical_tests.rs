@@ -1,5 +1,6 @@
 use super::*;
 use chrono::Duration;
+use ed25519_dalek::{Signer, SigningKey};
 
 fn calibration(id: &str, provider: &str, now: DateTime<Utc>) -> VerifierCalibration {
     VerifierCalibration {
@@ -133,5 +134,34 @@ fn vertical_activation_requires_digest_signature_window_and_resolved_critical_cl
         Err(VerticalGovernanceError::UnresolvedContradiction(
             "contradiction:critical".into()
         ))
+    );
+}
+
+#[test]
+fn trusted_activation_cryptographically_verifies_bundle_digest() {
+    let now = Utc::now();
+    let content = content(now);
+    let content_hash = vertical_content_hash(&content);
+    let signing = SigningKey::from_bytes(&[9; 32]);
+    let signature = hex::encode(signing.sign(content_hash.as_bytes()).to_bytes());
+    let mut bundle = SignedVerticalBundle {
+        content,
+        content_hash,
+        signer_id: "trusted-key".into(),
+        signature,
+        signature_verified: false,
+    };
+    let trusted = BTreeMap::from([(
+        "trusted-key".into(),
+        hex::encode(signing.verifying_key().to_bytes()),
+    )]);
+    assert_eq!(
+        validate_vertical_activation_with_trust(&bundle, now, &trusted),
+        Ok(())
+    );
+    bundle.content_hash.push('0');
+    assert_eq!(
+        validate_vertical_activation_with_trust(&bundle, now, &trusted),
+        Err(VerticalGovernanceError::SignatureVerificationFailed)
     );
 }

@@ -194,9 +194,22 @@ fn verify_artifact_signature(
     policy: &SemanticSecurityPolicy,
     envelope: &SemanticSecurityEnvelope,
 ) -> Result<(), SemanticSecurityError> {
-    let key_hex = policy
-        .trusted_keys
-        .get(&envelope.signing_key_id)
+    verify_ed25519_digest(
+        &policy.trusted_keys,
+        &envelope.signing_key_id,
+        &envelope.artifact_digest,
+        &envelope.signature_hex,
+    )
+}
+
+pub fn verify_ed25519_digest(
+    trusted_keys: &BTreeMap<String, String>,
+    signing_key_id: &str,
+    digest: &str,
+    signature_hex: &str,
+) -> Result<(), SemanticSecurityError> {
+    let key_hex = trusted_keys
+        .get(signing_key_id)
         .ok_or(SemanticSecurityError::InvalidSigningKey)?;
     let key_bytes: [u8; 32] = hex::decode(key_hex)
         .ok()
@@ -205,11 +218,10 @@ fn verify_artifact_signature(
     let key = VerifyingKey::from_bytes(&key_bytes)
         .map_err(|_| SemanticSecurityError::InvalidSigningKey)?;
     let signature = Signature::from_slice(
-        &hex::decode(&envelope.signature_hex)
-            .map_err(|_| SemanticSecurityError::InvalidSignature)?,
+        &hex::decode(signature_hex).map_err(|_| SemanticSecurityError::InvalidSignature)?,
     )
     .map_err(|_| SemanticSecurityError::InvalidSignature)?;
-    key.verify(envelope.artifact_digest.as_bytes(), &signature)
+    key.verify(digest.as_bytes(), &signature)
         .map_err(|_| SemanticSecurityError::InvalidSignature)
 }
 
