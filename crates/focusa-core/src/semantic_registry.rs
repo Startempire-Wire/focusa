@@ -11,11 +11,36 @@ use std::collections::{BTreeMap, BTreeSet};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum NamedGraphKind {
-    SystemOntology,
-    ProjectOntology,
-    RuntimeEvidence,
-    Verification,
+    Registry,
+    Shapes,
+    Contract,
+    Builder,
+    Observations,
+    Inference,
+    Verifier,
+    Response,
+    Settlement,
     Quarantine,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EpistemicClass {
+    OperatorAsserted,
+    UserAsserted,
+    DeterministicAsserted,
+    ToolObserved,
+    RuntimeObserved,
+    ReducerAsserted,
+    ModelProposed,
+    ModelInferred,
+    ReasonerInferred,
+    VerificationConfirmed,
+    LegacyAssumed,
+    Contradicted,
+    Invalid,
+    Quarantined,
+    UnsupportedOpaque,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -25,6 +50,7 @@ pub struct NamedGraphRegistration {
     pub owner_scope_ref: String,
     pub artifact_id: String,
     pub artifact_version: u64,
+    pub epistemic_class: EpistemicClass,
     pub evidence_refs: Vec<String>,
 }
 
@@ -361,10 +387,11 @@ mod tests {
             },
             graph: NamedGraphRegistration {
                 graph_iri: artifact.graph_iri.clone(),
-                kind: NamedGraphKind::ProjectOntology,
+                kind: NamedGraphKind::Registry,
                 owner_scope_ref: artifact.owner_scope_ref.clone(),
                 artifact_id: artifact.artifact_id.clone(),
                 artifact_version: artifact.version,
+                epistemic_class: EpistemicClass::DeterministicAsserted,
                 evidence_refs: vec!["spec144:graph".into()],
             },
             artifact,

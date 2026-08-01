@@ -157,13 +157,19 @@ pub fn canonicalize_semantic_artifact(
     })
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ValidationProfileFamily {
-    SystemInvariant,
-    ProjectArtifact,
-    OperationalEvent,
-    ReleaseEvidence,
+    Intake,
+    Promotion,
+    ActionPreflight,
+    VerificationPlan,
+    FindingVerdict,
+    Settlement,
+    DomainPack,
+    MigrationReplay,
+    VerticalBundle,
+    OmissionFirewall,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -210,6 +216,36 @@ pub struct SemanticValidationReport {
     pub conforms: bool,
     pub quarantine_required: bool,
     pub findings: Vec<SemanticValidationFinding>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SemanticValidationReceipt {
+    pub validation_id: String,
+    pub validation_purpose: ValidationProfileFamily,
+    pub target_ref: String,
+    pub semantic_pair_id: String,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub workpoint_ref: String,
+    pub registry_version: u64,
+    pub domain_pack_versions: Vec<String>,
+    pub shape_bundle_id: String,
+    pub shape_bundle_hash: String,
+    pub data_graph_hash: String,
+    pub inference_graph_hash: String,
+    pub inference_profile: String,
+    pub reasoner_implementation: String,
+    pub reasoner_version: String,
+    pub validator_implementation: String,
+    pub validator_version: String,
+    pub conforms: bool,
+    pub severity_counts: BTreeMap<SemanticSeverity, u64>,
+    pub results: Vec<SemanticValidationFinding>,
+    pub policy_refs: Vec<String>,
+    pub evidence_refs: Vec<String>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub expires_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub receipt_hash: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -393,7 +429,7 @@ mod tests {
     fn profile() -> ValidationProfile {
         ValidationProfile {
             profile_id: "profile:system".into(),
-            family: ValidationProfileFamily::SystemInvariant,
+            family: ValidationProfileFamily::Intake,
             version: 1,
             shapes: vec![SemanticShape {
                 shape_id: "shape:status".into(),
