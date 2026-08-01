@@ -14610,6 +14610,87 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
   });
 
   pi.registerTool({
+    name: "focusa_ontology_scope_migration",
+    label: "Ontology Scope Migration",
+    description:
+      "Dry-run, apply, inspect, or roll back granular legacy ontology scope migration. Apply/rollback require explicit confirmation and per-record evidence; ownership is never inferred.",
+    parameters: Type.Object({
+      action: Type.Union([
+        Type.Literal("dry_run"),
+        Type.Literal("apply"),
+        Type.Literal("status"),
+        Type.Literal("rollback"),
+      ]),
+      migration_id: Type.Optional(Type.String({ description: "Stable UUID for apply/retry or rollback target." })),
+      rollback_id: Type.Optional(Type.String({ description: "Stable UUID for idempotent rollback/retry." })),
+      selections: Type.Optional(
+        Type.Array(
+          Type.Object({
+            record_kind: Type.Union([
+              Type.Literal("object"),
+              Type.Literal("link"),
+              Type.Literal("proposal"),
+              Type.Literal("verification"),
+              Type.Literal("working_set_refresh"),
+              Type.Literal("delta"),
+              Type.Literal("pre_proposal"),
+            ]),
+            source_hash: Type.String(),
+            evidence_refs: Type.Array(Type.String(), { minItems: 1 }),
+          })
+        )
+      ),
+      evidence_refs: Type.Optional(Type.Array(Type.String(), { minItems: 1 })),
+      confirm: Type.Optional(
+        Type.Boolean({ description: "Required true for apply or rollback mutation." })
+      ),
+    }),
+    async execute(_id, params) {
+      const mutation = params.action === "apply" || params.action === "rollback";
+      if (mutation && params.confirm !== true) {
+        return blockedToolResponse(
+          "focusa_ontology_scope_migration",
+          "ontology",
+          `ontology scope migration ${params.action} blocked → explicit confirm=true required`,
+          "approval_required",
+          { action: params.action, canonical: false, mutation: true },
+          ["focusa_ontology_scope_migration", "focusa_project_verify"]
+        );
+      }
+      const res = await focusaFetchDetailed("/ontology/scope-migrations", {
+        method: "POST",
+        body: JSON.stringify({
+          action: params.action,
+          migration_id: params.migration_id,
+          rollback_id: params.rollback_id,
+          selections: params.selections || [],
+          evidence_refs: params.evidence_refs || [],
+        }),
+      });
+      const body = res.body || {};
+      if (!res.ok) {
+        return blockedToolResponse(
+          "focusa_ontology_scope_migration",
+          "ontology",
+          `ontology scope migration blocked → ${scopedResponseHuman(body, "request rejected")}`,
+          (body.failure_class || "validation_rejected") as FocusaFailureClass,
+          body,
+          ["focusa_project_verify", "focusa_tool_doctor"]
+        );
+      }
+      return {
+        content: [
+          {
+            type: "text",
+            text: `ontology scope migration → action=${params.action} status=${body.status || "unknown"} candidates=${body.candidate_count || 0} receipts=${body.receipts?.length || 0}`,
+          },
+        ],
+        details: body,
+      } as any;
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_browser_workflow_plan",
     label: "Browser Workflow Plan",
     description:
