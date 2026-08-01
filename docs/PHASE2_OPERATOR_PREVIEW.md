@@ -1,102 +1,171 @@
 # Phase 2 — Focusa Operator Preview (controlled cohort)
 
-**Date:** 2026-07-07
-**Owner:** Verious Smith
-**Status:** planned, not yet launched
-**Tag:** `v0.9.74-dev`
+**Original date:** 2026-07-07  
+**Reviewed:** 2026-08-01  
+**Owner:** Verious Smith  
+**Status:** planned and release-blocked by mandatory authority-issued licensing  
+**Historical target tag:** `v0.9.74-dev`
+
+## Supersession note
+
+This cohort plan originally assumed a one-line installer and an open install/daemon/Workpoint path. That assumption is no longer valid.
+
+Focusa is BSL source-available, not open source, and every official runtime—including Evaluation—must use an authority-issued signed entitlement. The current legacy `--eval`/no-key path is not approved for cohort use.
+
+The preview may begin only after the combined Spec 150 + Spec 150A + Spec 152 gates pass for the selected preview release.
 
 ## Goal
 
-Run a tight, **5–10 person Operator Preview cohort** before any public Product
-Hunt surface. The cohort is for serious AI coding users who can install Focusa
-from a one-line installer, complete a five-minute demo, and report whether the
-value is obvious without an operator in the room.
+Run a tight 5–10 person Operator Preview cohort before a broader public launch. The cohort should test whether verified evaluators can complete authority onboarding, install a coherent Focusa/UIAI set, reach a first Workpoint/Evidence proof, resume after handoff/compaction, understand limits/upgrade value, and recover safely without direct operator intervention.
 
-## What we are validating
+## What the preview validates
 
-| Question | How we measure |
-|---|---|
-| Install path works on a real user machine | successful install rate (target ≥ 9/10) |
-| Daemon comes up healthy | time to first `/v1/health ok` (target < 60s on Linux + macOS) |
-| First Workpoint is obvious | time to first Workpoint (target < 5 min) |
-| First Evidence ref is obvious | time to first Evidence ref (target < 10 min) |
-| Resume after handoff/compaction works | successful resume rate (target ≥ 8/10) |
-| Value is understood without an operator | score 1–5 on "did you need Verious to explain" (target ≤ 2) |
+| Question | Measure |
+| --- | --- |
+| Identity/license onboarding works | verified-email/device-code/signed-lease completion rate ≥ 9/10 |
+| Install path works on real machines | entitled atomic install success ≥ 9/10 |
+| Canonical state reconciles | authority, Focusa, and optional UIAI lease id/sequence/digests agree for every successful install |
+| Daemon comes up truthfully | entitled or recovery-only state in under 60 seconds after install |
+| First Workpoint is obvious | time to first entitled Workpoint under 5 minutes for ≥ 8/10 |
+| First Evidence ref is obvious | time to first Evidence ref under 10 minutes for ≥ 8/10 |
+| Resume works | successful resume after handoff/compaction ≥ 8/10 |
+| Evaluation limits are understandable | users can identify remaining time/capacity and locked features without support |
+| Paid activation is safe | synthetic/internal conversion or approved real conversion succeeds without reinstall/data loss |
+| Value is understood | explanation-dependence score ≤ 2/5 |
+| Expiry/recovery is safe | test fixture expires into recovery-only while export/backup/activation/uninstall remain usable |
 
-## Cohort profile (5–10)
+## Cohort profile
 
-Target audience (mix of):
+Target mix:
 
-- 2× indie hackers using Cursor / Claude Code / Codex / Pi power
-- 2× solo SaaS builder who runs long agent sessions overnight
-- 2× dev agency engineer carrying context across handoff
-- 1× macOS Tauri / Swift pair-programming user (probes the menubar preview)
-- 1× backend infra engineer who runs daemon on a VPS (proves the non-loopback auth path)
+- indie hackers using Cursor, Claude Code, Codex, or Pi;
+- solo SaaS builders running long sessions;
+- agency/consulting engineers carrying context across handoff;
+- macOS/Tauri user for menubar preview;
+- backend/VPS user for remote authentication and node registration;
+- one security-minded tester for wrong-product, copied-state, and token-boundary observations.
 
 Selection criteria:
 
-- Has shipped an AI-assisted project in the last 90 days
-- Comfortable running `curl install.focusa.dev/focusa | bash` and reading logs
-- Willing to give honest feedback in a 30-min debrief call
+- shipped an AI-assisted project recently;
+- comfortable running a signed installer and reading bounded logs;
+- willing to verify an email/account and accept Evaluation terms;
+- willing to give a debrief;
+- understands that Evaluation is non-commercial and bounded.
 
-## Install path the cohort runs
+Do not enroll external cohort members with test fixtures, developer licenses, shared keys, or legacy self-issued Evaluation.
 
-```bash
-curl -fsS install.focusa.dev/focusa | bash
-focusa start
-focusa init --quickstart
-focusa doctor
+## Required preview install path
+
+```text
+official signed preview release
+→ installer preflight
+→ Evaluate / Activate
+→ authority device code
+→ verified account/email and terms
+→ separate promotional-email choice
+→ authority-issued Evaluation license
+→ node registration and signed lease verification
+→ atomic Focusa install
+→ optional explicit UIAI product grant and child token
+→ pairing
+→ first project/Workpoint/Evidence walkthrough
 ```
 
-Expected outcome of the five-minute proof:
+Target command/route names are governed by Spec 152 and must not be documented here as shipped until implementation proof lands.
 
-1. `focusa doctor` returns `status=ok`.
-2. `focusa workpoint checkpoint` returns a Workpoint id.
-3. `focusa evidence link <workpoint-id> <proof-ref>` returns ok.
-4. `focusa resume <workpoint-id>` returns the resumed state.
+## Five-minute proof
 
-## Menubar preview cohort (optional 1× macOS user)
+Expected bounded proof after entitlement and install:
 
-If a cohort member uses macOS, also exercise:
+1. canonical license status reports `active_evaluation` or applicable paid state, with matching lease sequence and redacted product/features digest;
+2. daemon health reports entitled readiness rather than merely process health;
+3. project scope is explicit and verified;
+4. Workpoint checkpoint returns an id;
+5. Evidence linking returns a stable reference;
+6. resume returns the canonical state and next action;
+7. optional UIAI action succeeds only when the separate UIAI grant/feature/limit is present;
+8. locked feature invocation fails before side effects with a safe manage-license action.
 
-- `apps/menubar` build / install / first-run
-- Device pairing via QR + VPS browser handoff (focusa-ui0y Mode C)
-- Real `.app` lifecycle + screenshot/log capture (NOT required to ship preview verdict)
+## Menubar preview
 
-## What is OUT of scope for Phase 2
+For selected macOS testers:
 
-- Product Hunt listing
-- Pricing / commercial license messaging
-- Public web pages outside the canonical docs site
-- Native menubar lifecycle claims (still tracked testing work)
-- Marketing copy beyond the README + GTM five-minute proof
+- verify signed/ad-hoc distribution mode truthfully;
+- entitlement onboarding precedes pairing;
+- device code/account flow uses the verified authority origin;
+- pairing token is stored in Keychain but does not create entitlement;
+- UIAI inclusion/lock state is explicit;
+- restart preserves both pairing and canonical entitlement posture;
+- revoke/expire fixture returns to recovery-only;
+- app lifecycle, screenshots, and logs remain redacted.
 
-## Success criteria to advance to Phase 3 (Product Hunt)
+Menubar issues may remain preview-specific, but any path that bypasses entitlement is P0.
 
-ALL must hold for the cohort:
+## Out of scope
 
-- ≥ 8/10 successful install rate
-- ≥ 8/10 time to first Workpoint under 5 min
-- ≥ 8/10 successful resume after handoff/compaction
-- ≥ 7/10 score on "value without operator" (≤ 2 on the 1–5 scale)
-- Zero P0/P1 install or runtime bugs reported in the cohort
+- broad public launch/Product Hunt;
+- production scale claims;
+- commercial hosted/multi-tenant use under Evaluation;
+- testing with real customer database dumps or production signing secrets;
+- claiming protected components are impossible to reverse engineer;
+- private anti-abuse policy disclosure;
+- using the preview to silently change purchased lifetime terms.
 
-If any criterion misses, we harden for another cohort, NOT advance.
+## Entry gates
+
+All must pass before inviting cohort members:
+
+- authority repository/live-server parity and rollback proof;
+- staging device-code and verified-email flow;
+- signed lease golden vectors across PHP/Rust/Go/Tauri where applicable;
+- Focusa Spec 150A lifecycle entitlement binding;
+- Bash/PowerShell installer parity and no production self-issued Evaluation;
+- UIAI authentication/entitlement separation and route coverage;
+- protected worker/capsule proof for included crown-jewel features;
+- test-root/fixture exclusion in release artifacts;
+- active-documentation consistency workflows green;
+- data-preserving expiry/revoke/refund/uninstall proof;
+- support, privacy, consent, and Evaluation terms published.
+
+## Success criteria to advance
+
+- ≥ 9/10 identity/license onboarding completion;
+- ≥ 8/10 entitled install and first Workpoint under five minutes after authorization;
+- ≥ 8/10 successful resume;
+- zero unauthorized execution from missing, wrong-product, expired, revoked, copied, local-token, loopback, or pairing-only state;
+- zero P0/P1 data-loss, secret-exposure, installer, authority, or entitlement defects;
+- all successful installs produce reconciled lifecycle receipts;
+- all failed/expired cases preserve recovery/data/uninstall;
+- value-understanding target met.
+
+If any criterion misses, run another controlled cohort rather than broadening launch.
 
 ## Risk register
 
 | Risk | Mitigation |
-|---|---|
-| Cohort member can't install | one-line installer, fallback to release binary tarball |
-| Cohort runs on AlmaLinux 8 (glibc 2.28) | musl artifact is default; documented in installer |
-| Cohort runs into license gate on `release prove` | the install + daemon + Workpoint flow is fully open-source; `release prove` is Operator-tier |
-| Cohort reports menubar issues | menubar is **preview**, not flagship; issues go into testing beads, do not block preview verdict |
-| Other agent in flight introduces regressions | hold the v0.9.74-dev re-cut until the cohort install path is validated end-to-end |
+| --- | --- |
+| evaluator cannot authorize | device-code recovery, resend/verification support, redacted request id |
+| authority outage | signed offline policy for existing lease; no fresh local Evaluation |
+| install fails after authorization | atomic staging/rollback; preserve lease and user state |
+| copied local files unlock product | signature/product/node/sequence validation; protected components absent/key-bound |
+| UIAI health is mistaken for license | independent UIAI product/child-token proof |
+| legacy docs lead to `--eval` | consistency workflows and supersession matrices |
+| refund/revoke not propagated | bounded refresh, sequence, webhook/idempotency tests |
+| Mac packaging warnings | truthful distribution mode and explicit operator instructions |
+| agent bypasses public check | protected workers/capsules and independent operation-token checks |
+| cohort data leaks | privacy-minimal authority records and redacted telemetry/evidence |
 
-## Status tracking
+## Tracking
 
-Update after each cohort member:
+Use one private/appropriately scoped issue or Beads work item per cohort member. Record only:
 
-- `bd` issue per cohort member, priority 1, label `phase2-cohort`
-- Close only after the debrief call is recorded
-- Open `phase2-followup` bead for any bug or gap surfaced
+- synthetic/opaque evaluator id;
+- platform/version;
+- milestone timestamps;
+- success/failure classes;
+- support interactions;
+- consent-safe survey/debrief results;
+- redacted receipt/evidence references.
+
+Never place evaluator email, raw license/token/code, project contents, visited URLs, prompts, screenshots, or customer data in public issues.
