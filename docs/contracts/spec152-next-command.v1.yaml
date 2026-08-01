@@ -1,0 +1,7 @@
+schema: focusa.spec152.next_command.v1
+next_action: >-
+  In WPUIAI/wpuiai, claim the local Beads issue and execute the read-only Phase 0
+  checklist from docs/LICENSE_AUTHORITY_START_HERE_2026-08-01.md. Do not mutate
+  production. Produce repository/live parity, route, database, commerce/refund,
+  email/consent, infrastructure, backup/restore, and operator-decision evidence.
+after_phase0: freeze lease v1 schema and cross-language golden vectors
