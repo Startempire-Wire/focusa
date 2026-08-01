@@ -1,6 +1,9 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+mod models;
+pub use models::*;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum LifecycleTransactionKind {
@@ -219,6 +222,9 @@ impl LifecycleReceipt {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod contract_tests;
 
 #[cfg(test)]
 mod tests {
