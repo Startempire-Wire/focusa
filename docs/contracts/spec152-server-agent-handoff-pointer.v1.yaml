@@ -1,0 +1,16 @@
+schema: focusa.spec152.server_agent_handoff_pointer.v1
+private_repository: WPUIAI/wpuiai
+primary_issue: 1
+start_document: docs/LICENSE_AUTHORITY_START_HERE_2026-08-01.md
+execution_runbook: docs/LICENSE_AUTHORITY_EXECUTION_RUNBOOK_2026-08-01.md
+phase0_checklist: docs/LICENSE_AUTHORITY_PHASE0_CHECKLIST_2026-08-01.md
+operator_decisions: docs/LICENSE_AUTHORITY_OPERATOR_DECISIONS_TEMPLATE_2026-08-01.md
+agent_prompt: docs/LICENSE_AUTHORITY_AGENT_PROMPT_2026-08-01.md
+public_client_issues:
+  focusa: Startempire-Wire/focusa#119
+  uiai_engine: WPUIAI/uiai-engine#5
+boundary: >-
+  This pointer contains no private host paths, admin URLs, customer data, caps,
+  anti-abuse logic, keys, or secrets. Agents with private repository/server access
+  must use the private documents rather than infer authority implementation from
+  public specs.
