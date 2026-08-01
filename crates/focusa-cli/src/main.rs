@@ -79,6 +79,18 @@ struct Cli {
     #[arg(long, global = true)]
     quiet: bool,
 
+    /// Inspect, preview, confirm, apply, or recover a lifecycle transaction.
+    #[arg(long, global = true, value_enum, value_name = "ACTION")]
+    lifecycle_action: Option<commands::lifecycle_guidance::GuidedAction>,
+
+    /// Confirm the mutation selected by --lifecycle-action.
+    #[arg(long, global = true, requires = "lifecycle_action")]
+    confirm: bool,
+
+    /// Separately confirm user-data deletion for a lifecycle purge.
+    #[arg(long, global = true, requires = "lifecycle_action")]
+    confirm_purge_data: bool,
+
     #[command(subcommand)]
     command: Commands,
 }
@@ -547,6 +559,26 @@ async fn async_main() -> anyhow::Result<()> {
 
     if let Err(err) = tracing::subscriber::set_global_default(subscriber) {
         eprintln!("[TRACING_INIT_WARNING] failed to set tracing subscriber: {err}");
+    }
+
+    let guided_flow = match &cli.command {
+        Commands::Install(_) => Some(commands::lifecycle_guidance::Flow::Install),
+        Commands::Update(_) => Some(commands::lifecycle_guidance::Flow::Update),
+        Commands::Uninstall(_) => Some(commands::lifecycle_guidance::Flow::Uninstall),
+        _ => None,
+    };
+    if cli.lifecycle_action.is_some() && guided_flow.is_none() {
+        anyhow::bail!("--lifecycle-action is supported by install, update, and uninstall");
+    }
+    if let Some(flow) = guided_flow {
+        let guided = commands::lifecycle_guidance::GuidedLifecycleArgs {
+            action: cli.lifecycle_action,
+            confirm: cli.confirm,
+            confirm_purge_data: cli.confirm_purge_data,
+        };
+        if commands::lifecycle_guidance::prepare(&guided, flow, cli.json)? {
+            return Ok(());
+        }
     }
 
     let result: anyhow::Result<()> = match cli.command {

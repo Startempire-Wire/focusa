@@ -35,6 +35,7 @@ pub mod init;
 pub mod install;
 pub mod intro;
 pub mod license;
+pub mod lifecycle_guidance;
 pub mod lineage;
 pub mod memory;
 pub mod metacognition;

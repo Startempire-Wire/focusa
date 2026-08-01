@@ -389,6 +389,26 @@ After code-compatible requirements and conformance evidence:
 5. include recovery commands and receipt interpretation;
 6. prevent user guides from leading implementation evidence.
 
+### 21.1 Guided CLI lifecycle contract (phase 4)
+
+The direct `focusa install`, `focusa update ...`, and `focusa uninstall` commands remain compatible. A guided transaction is selected with the global `--lifecycle-action` option:
+
+```text
+focusa install --lifecycle-action inspect
+focusa install --lifecycle-action preview
+focusa install --lifecycle-action apply --confirm
+focusa install --lifecycle-action resume --confirm
+focusa install --lifecycle-action repair --confirm
+focusa install --lifecycle-action rerun --confirm
+focusa update apply --lifecycle-action preview
+focusa update apply --lifecycle-action apply --confirm
+focusa update rollback --lifecycle-action rollback --confirm
+focusa uninstall --lifecycle-action uninstall --confirm
+focusa uninstall --lifecycle-action purge --confirm --confirm-purge-data
+```
+
+`inspect`, `preview`, and `confirm` do not mutate. A mutation without `--confirm` returns an `operator_required` receipt and an exact recovery command. Purge remains distinct from uninstall and requires the additional `--confirm-purge-data`; uninstall continues to preserve user data by default. `--json` emits `focusa.cli.lifecycle.receipt.v1`, including the typed operation, transaction transition, adapter contract, status, and recovery without credential values. The ordinary command's existing result and degraded/operator-required handling remain authoritative after a guided action starts applying; the guidance receipt never claims completion.
+
 ## 22. Planning acceptance criteria
 
 - [ ] every imported owner acknowledges its boundary;
