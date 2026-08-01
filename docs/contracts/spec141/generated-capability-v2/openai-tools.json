@@ -1,6 +1,6 @@
 {
   "schema": "focusa.openai_tool_projection.v2",
-  "registry_digest": "sha256:2f72bb14976765ed62aabfad5d553dd2a7df6eac0c71e8342d7d822dbbbc7bce",
+  "registry_digest": "sha256:7807319095458bfaa8baf3e3a86fdbb17e21dee595c447caca2b1099032629c8",
   "tools": [
     {
       "type": "function",
@@ -2170,6 +2170,118 @@
             "note": {
               "description": "Note (max 180 chars).",
               "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_ontology_scope_migration",
+        "description": "Dry-run, apply, inspect, or roll back granular legacy ontology scope migration. Apply/rollback require explicit confirmation and per-record evidence; ownership is never inferred. Use it when Dry-run, apply, inspect, and roll back granular evidence-backed migration of quarantined legacy ontology records into one verified workstream. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "action"
+          ],
+          "properties": {
+            "action": {
+              "anyOf": [
+                {
+                  "const": "dry_run",
+                  "type": "string"
+                },
+                {
+                  "const": "apply",
+                  "type": "string"
+                },
+                {
+                  "const": "status",
+                  "type": "string"
+                },
+                {
+                  "const": "rollback",
+                  "type": "string"
+                }
+              ]
+            },
+            "migration_id": {
+              "description": "Stable UUID for apply/retry or rollback target.",
+              "type": "string"
+            },
+            "rollback_id": {
+              "description": "Stable UUID for idempotent rollback/retry.",
+              "type": "string"
+            },
+            "selections": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "record_kind",
+                  "source_hash",
+                  "evidence_refs"
+                ],
+                "properties": {
+                  "record_kind": {
+                    "anyOf": [
+                      {
+                        "const": "object",
+                        "type": "string"
+                      },
+                      {
+                        "const": "link",
+                        "type": "string"
+                      },
+                      {
+                        "const": "proposal",
+                        "type": "string"
+                      },
+                      {
+                        "const": "verification",
+                        "type": "string"
+                      },
+                      {
+                        "const": "working_set_refresh",
+                        "type": "string"
+                      },
+                      {
+                        "const": "delta",
+                        "type": "string"
+                      },
+                      {
+                        "const": "pre_proposal",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "source_hash": {
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "evidence_refs": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "confirm": {
+              "description": "Required true for apply or rollback mutation.",
+              "type": "boolean"
             }
           },
           "additionalProperties": false

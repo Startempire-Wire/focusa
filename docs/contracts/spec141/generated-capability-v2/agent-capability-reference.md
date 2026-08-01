@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:2f72bb14976765ed62aabfad5d553dd2a7df6eac0c71e8342d7d822dbbbc7bce`
+Registry digest: `sha256:7807319095458bfaa8baf3e3a86fdbb17e21dee595c447caca2b1099032629c8`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -795,6 +795,17 @@ Miscellaneous note (max 180 chars). Bounded at 20, oldest decay first. Use it wh
 - Skills: `skill:focusa`, `skill:focusa-workpoint`
 - Dependencies/next: `focusa_project_identity`, `focusa_trajectory_view`, `focusa_workpoint_resume`
 - Documentation: `docs/focusa-tools/tools/focusa_note.md`
+
+## focusa_ontology_scope_migration
+
+Dry-run, apply, inspect, or roll back granular legacy ontology scope migration. Apply/rollback require explicit confirmation and per-record evidence; ownership is never inferred. Use it when Dry-run, apply, inspect, and roll back granular evidence-backed migration of quarantined legacy ontology records into one verified workstream. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+
+- Capability: `focusa.ontology.scope.migration`
+- Family: `diagnostics_hygiene`
+- Side effects: `confirmed_append_only_scope_migration`, `confirmed_append_only_scope_migration`
+- Skills: `skill:focusa`, `skill:focusa-troubleshooting`
+- Dependencies/next: `focusa_tool_doctor`, `focusa_resource_mode`, `focusa_workpoint_resume`
+- Documentation: `docs/151-focusa-emergency-cross-project-scope-isolation-locked-release-addendum.md`
 
 ## focusa_open_question
 

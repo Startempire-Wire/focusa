@@ -1,6 +1,6 @@
 {
   "schema": "focusa.cli_command_projection.v2",
-  "registry_digest": "sha256:2f72bb14976765ed62aabfad5d553dd2a7df6eac0c71e8342d7d822dbbbc7bce",
+  "registry_digest": "sha256:7807319095458bfaa8baf3e3a86fdbb17e21dee595c447caca2b1099032629c8",
   "commands": [
     {
       "command": "focusa workpoint resolve-object",
@@ -3331,6 +3331,502 @@
           },
           "human_invocation": "focusa focus update --note",
           "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_note.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa ontology scope-migration-dry-run",
+      "capability_id": "focusa.ontology.scope.migration",
+      "summary": "Dry-run, apply, inspect, and roll back granular evidence-backed migration of quarantined legacy ontology records into one verified workstream.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "const": "dry_run",
+                "type": "string"
+              },
+              {
+                "const": "apply",
+                "type": "string"
+              },
+              {
+                "const": "status",
+                "type": "string"
+              },
+              {
+                "const": "rollback",
+                "type": "string"
+              }
+            ]
+          },
+          "migration_id": {
+            "description": "Stable UUID for apply/retry or rollback target.",
+            "type": "string"
+          },
+          "rollback_id": {
+            "description": "Stable UUID for idempotent rollback/retry.",
+            "type": "string"
+          },
+          "selections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "record_kind",
+                "source_hash",
+                "evidence_refs"
+              ],
+              "properties": {
+                "record_kind": {
+                  "anyOf": [
+                    {
+                      "const": "object",
+                      "type": "string"
+                    },
+                    {
+                      "const": "link",
+                      "type": "string"
+                    },
+                    {
+                      "const": "proposal",
+                      "type": "string"
+                    },
+                    {
+                      "const": "verification",
+                      "type": "string"
+                    },
+                    {
+                      "const": "working_set_refresh",
+                      "type": "string"
+                    },
+                    {
+                      "const": "delta",
+                      "type": "string"
+                    },
+                    {
+                      "const": "pre_proposal",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "source_hash": {
+                  "type": "string"
+                },
+                "evidence_refs": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "evidence_refs": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confirm": {
+            "description": "Required true for apply or rollback mutation.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "confirmed_append_only_scope_migration",
+        "confirmed_append_only_scope_migration"
+      ],
+      "examples": [
+        {
+          "description": "Dry-run, apply, inspect, and roll back granular evidence-backed migration of quarantined legacy ontology records into one verified workstream.",
+          "arguments": {
+            "action": "dry_run"
+          },
+          "human_invocation": "focusa ontology scope-migration-dry-run",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/151-focusa-emergency-cross-project-scope-isolation-locked-release-addendum.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa ontology scope-migration-status",
+      "capability_id": "focusa.ontology.scope.migration",
+      "summary": "Dry-run, apply, inspect, and roll back granular evidence-backed migration of quarantined legacy ontology records into one verified workstream.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "const": "dry_run",
+                "type": "string"
+              },
+              {
+                "const": "apply",
+                "type": "string"
+              },
+              {
+                "const": "status",
+                "type": "string"
+              },
+              {
+                "const": "rollback",
+                "type": "string"
+              }
+            ]
+          },
+          "migration_id": {
+            "description": "Stable UUID for apply/retry or rollback target.",
+            "type": "string"
+          },
+          "rollback_id": {
+            "description": "Stable UUID for idempotent rollback/retry.",
+            "type": "string"
+          },
+          "selections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "record_kind",
+                "source_hash",
+                "evidence_refs"
+              ],
+              "properties": {
+                "record_kind": {
+                  "anyOf": [
+                    {
+                      "const": "object",
+                      "type": "string"
+                    },
+                    {
+                      "const": "link",
+                      "type": "string"
+                    },
+                    {
+                      "const": "proposal",
+                      "type": "string"
+                    },
+                    {
+                      "const": "verification",
+                      "type": "string"
+                    },
+                    {
+                      "const": "working_set_refresh",
+                      "type": "string"
+                    },
+                    {
+                      "const": "delta",
+                      "type": "string"
+                    },
+                    {
+                      "const": "pre_proposal",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "source_hash": {
+                  "type": "string"
+                },
+                "evidence_refs": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "evidence_refs": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confirm": {
+            "description": "Required true for apply or rollback mutation.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "confirmed_append_only_scope_migration",
+        "confirmed_append_only_scope_migration"
+      ],
+      "examples": [
+        {
+          "description": "Dry-run, apply, inspect, and roll back granular evidence-backed migration of quarantined legacy ontology records into one verified workstream.",
+          "arguments": {
+            "action": "dry_run"
+          },
+          "human_invocation": "focusa ontology scope-migration-dry-run",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/151-focusa-emergency-cross-project-scope-isolation-locked-release-addendum.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa ontology scope-migration-apply",
+      "capability_id": "focusa.ontology.scope.migration",
+      "summary": "Dry-run, apply, inspect, and roll back granular evidence-backed migration of quarantined legacy ontology records into one verified workstream.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "const": "dry_run",
+                "type": "string"
+              },
+              {
+                "const": "apply",
+                "type": "string"
+              },
+              {
+                "const": "status",
+                "type": "string"
+              },
+              {
+                "const": "rollback",
+                "type": "string"
+              }
+            ]
+          },
+          "migration_id": {
+            "description": "Stable UUID for apply/retry or rollback target.",
+            "type": "string"
+          },
+          "rollback_id": {
+            "description": "Stable UUID for idempotent rollback/retry.",
+            "type": "string"
+          },
+          "selections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "record_kind",
+                "source_hash",
+                "evidence_refs"
+              ],
+              "properties": {
+                "record_kind": {
+                  "anyOf": [
+                    {
+                      "const": "object",
+                      "type": "string"
+                    },
+                    {
+                      "const": "link",
+                      "type": "string"
+                    },
+                    {
+                      "const": "proposal",
+                      "type": "string"
+                    },
+                    {
+                      "const": "verification",
+                      "type": "string"
+                    },
+                    {
+                      "const": "working_set_refresh",
+                      "type": "string"
+                    },
+                    {
+                      "const": "delta",
+                      "type": "string"
+                    },
+                    {
+                      "const": "pre_proposal",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "source_hash": {
+                  "type": "string"
+                },
+                "evidence_refs": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "evidence_refs": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confirm": {
+            "description": "Required true for apply or rollback mutation.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "confirmed_append_only_scope_migration",
+        "confirmed_append_only_scope_migration"
+      ],
+      "examples": [
+        {
+          "description": "Dry-run, apply, inspect, and roll back granular evidence-backed migration of quarantined legacy ontology records into one verified workstream.",
+          "arguments": {
+            "action": "dry_run"
+          },
+          "human_invocation": "focusa ontology scope-migration-dry-run",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/151-focusa-emergency-cross-project-scope-isolation-locked-release-addendum.md"
+        }
+      ],
+      "deprecation": null
+    },
+    {
+      "command": "focusa ontology scope-migration-rollback",
+      "capability_id": "focusa.ontology.scope.migration",
+      "summary": "Dry-run, apply, inspect, and roll back granular evidence-backed migration of quarantined legacy ontology records into one verified workstream.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "const": "dry_run",
+                "type": "string"
+              },
+              {
+                "const": "apply",
+                "type": "string"
+              },
+              {
+                "const": "status",
+                "type": "string"
+              },
+              {
+                "const": "rollback",
+                "type": "string"
+              }
+            ]
+          },
+          "migration_id": {
+            "description": "Stable UUID for apply/retry or rollback target.",
+            "type": "string"
+          },
+          "rollback_id": {
+            "description": "Stable UUID for idempotent rollback/retry.",
+            "type": "string"
+          },
+          "selections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "record_kind",
+                "source_hash",
+                "evidence_refs"
+              ],
+              "properties": {
+                "record_kind": {
+                  "anyOf": [
+                    {
+                      "const": "object",
+                      "type": "string"
+                    },
+                    {
+                      "const": "link",
+                      "type": "string"
+                    },
+                    {
+                      "const": "proposal",
+                      "type": "string"
+                    },
+                    {
+                      "const": "verification",
+                      "type": "string"
+                    },
+                    {
+                      "const": "working_set_refresh",
+                      "type": "string"
+                    },
+                    {
+                      "const": "delta",
+                      "type": "string"
+                    },
+                    {
+                      "const": "pre_proposal",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "source_hash": {
+                  "type": "string"
+                },
+                "evidence_refs": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "evidence_refs": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confirm": {
+            "description": "Required true for apply or rollback mutation.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "side_effects": [
+        "confirmed_append_only_scope_migration",
+        "confirmed_append_only_scope_migration"
+      ],
+      "examples": [
+        {
+          "description": "Dry-run, apply, inspect, and roll back granular evidence-backed migration of quarantined legacy ontology records into one verified workstream.",
+          "arguments": {
+            "action": "dry_run"
+          },
+          "human_invocation": "focusa ontology scope-migration-dry-run",
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/151-focusa-emergency-cross-project-scope-isolation-locked-release-addendum.md"
         }
       ],
       "deprecation": null
