@@ -1,6 +1,6 @@
 {
   "schema": "focusa.cli_command_projection.v2",
-  "registry_digest": "sha256:7807319095458bfaa8baf3e3a86fdbb17e21dee595c447caca2b1099032629c8",
+  "registry_digest": "sha256:b7c49de0255807304cefe284498e83e4bd88e919e9d02e6aa44c3db63799c7f7",
   "commands": [
     {
       "command": "focusa workpoint resolve-object",
@@ -3454,7 +3454,7 @@
             "action": "dry_run"
           },
           "human_invocation": "focusa ontology scope-migration-dry-run",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/151-focusa-emergency-cross-project-scope-isolation-locked-release-addendum.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_ontology_scope_migration.md"
         }
       ],
       "deprecation": null
@@ -3578,7 +3578,7 @@
             "action": "dry_run"
           },
           "human_invocation": "focusa ontology scope-migration-dry-run",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/151-focusa-emergency-cross-project-scope-isolation-locked-release-addendum.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_ontology_scope_migration.md"
         }
       ],
       "deprecation": null
@@ -3702,7 +3702,7 @@
             "action": "dry_run"
           },
           "human_invocation": "focusa ontology scope-migration-dry-run",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/151-focusa-emergency-cross-project-scope-isolation-locked-release-addendum.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_ontology_scope_migration.md"
         }
       ],
       "deprecation": null
@@ -3826,7 +3826,7 @@
             "action": "dry_run"
           },
           "human_invocation": "focusa ontology scope-migration-dry-run",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/151-focusa-emergency-cross-project-scope-isolation-locked-release-addendum.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_ontology_scope_migration.md"
         }
       ],
       "deprecation": null

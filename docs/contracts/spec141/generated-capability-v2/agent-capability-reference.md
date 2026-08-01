@@ -1,6 +1,6 @@
 # Spec141 Focusa Agent Capability Reference
 
-Registry digest: `sha256:7807319095458bfaa8baf3e3a86fdbb17e21dee595c447caca2b1099032629c8`
+Registry digest: `sha256:b7c49de0255807304cefe284498e83e4bd88e919e9d02e6aa44c3db63799c7f7`
 
 This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.
 
@@ -804,8 +804,8 @@ Dry-run, apply, inspect, or roll back granular legacy ontology scope migration. 
 - Family: `diagnostics_hygiene`
 - Side effects: `confirmed_append_only_scope_migration`, `confirmed_append_only_scope_migration`
 - Skills: `skill:focusa`, `skill:focusa-troubleshooting`
-- Dependencies/next: `focusa_tool_doctor`, `focusa_resource_mode`, `focusa_workpoint_resume`
-- Documentation: `docs/151-focusa-emergency-cross-project-scope-isolation-locked-release-addendum.md`
+- Dependencies/next: `focusa_project_verify`, `focusa_evidence_capture`, `focusa_workpoint_link_evidence`
+- Documentation: `docs/focusa-tools/tools/focusa_ontology_scope_migration.md`
 
 ## focusa_open_question
 
