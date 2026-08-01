@@ -1,0 +1,46 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "focusa": "https://focusa.dev/ontology/v1#",
+    "prov": "http://www.w3.org/ns/prov#",
+    "dcterms": "http://purl.org/dc/terms/",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "artifact_id": "focusa:artifactId",
+    "artifact_version": {
+      "@id": "focusa:artifactVersion",
+      "@type": "xsd:nonNegativeInteger"
+    },
+    "owner_scope_ref": "focusa:ownerScopeRef",
+    "graph_iri": {
+      "@id": "focusa:graphIri",
+      "@type": "@id"
+    },
+    "epistemic_class": "focusa:epistemicClass",
+    "evidence_refs": {
+      "@id": "focusa:evidenceRef",
+      "@container": "@set"
+    },
+    "receipt_refs": {
+      "@id": "focusa:receiptRef",
+      "@container": "@set"
+    },
+    "action_plan": {
+      "@id": "focusa:actionPlan",
+      "@type": "@id"
+    },
+    "verification_plan": {
+      "@id": "focusa:verificationPlan",
+      "@type": "@id"
+    },
+    "validation_profiles": {
+      "@id": "focusa:usesValidationProfile",
+      "@type": "@id",
+      "@container": "@set"
+    },
+    "derived_from": {
+      "@id": "focusa:derivedFrom",
+      "@type": "@id",
+      "@container": "@set"
+    }
+  }
+}
