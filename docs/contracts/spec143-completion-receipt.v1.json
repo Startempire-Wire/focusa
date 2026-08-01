@@ -1,0 +1,44 @@
+{
+  "schema": "focusa.spec143_completion_receipt.v1",
+  "status": "passed",
+  "observed_at": "2026-08-01T02:27:17.364725Z",
+  "source_commit": "70095bc5002b77d1d8375d574c0c4a893425c0b6",
+  "gate_evidence": [
+    {
+      "path": "tests/spec143_cross_project_context_isolation_gate.py",
+      "sha256": "sha256:952df887ac6a5c925af50a05305751e91dcbc9a8da0435317b379302ee46c9da",
+      "result": "passed"
+    },
+    {
+      "path": "tests/spec143_ota_installability_release_gate_test.py",
+      "sha256": "sha256:42e0e14e4d1e0f6208704e1a3ce80a73fd4f4a18c6c6bcd79d279f59618bf0f8",
+      "result": "passed"
+    },
+    {
+      "path": "tests/spec143_project_binding_decision_release_gate_test.py",
+      "sha256": "sha256:193952b244f0bcd02623eb650bd9a8a226fc09bd311e6ce92db6fe5082e41f5e",
+      "result": "passed"
+    },
+    {
+      "path": "tests/spec143_project_bootstrap_release_gate_test.py",
+      "sha256": "sha256:facf091cf3a6a60b874e2bfca4f9e55de75f5a5d5d339039a6129238f61ebeb8",
+      "result": "passed"
+    },
+    {
+      "path": "tests/spec143_project_genesis_release_gate_test.py",
+      "sha256": "sha256:56c8cd7b07910ecfe96c68fcad95fef37325102a5ce890bc43757353a2b66e14",
+      "result": "passed"
+    },
+    {
+      "path": "tests/spec143_scoped_surface_refresh_gate.py",
+      "sha256": "sha256:7918af16ae279979d8425f66fc4c6ddc307f931f0d36f15ec1529faf520d3b1a",
+      "result": "passed"
+    },
+    {
+      "path": "tests/spec143_trajectory_ladder_integrity_static_test.py",
+      "sha256": "sha256:8bc940ee908620cf155ee917e76a7580f7c425fb7c26425faac362aa12ab2eb5",
+      "result": "passed"
+    }
+  ],
+  "receipt_ref": "docs/contracts/spec143-completion-receipt.v1.json"
+}

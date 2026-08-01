@@ -8,6 +8,8 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTRACTS = ROOT / "docs/contracts/spec144"
 REGISTRY_PATH = CONTRACTS / "semantic-artifact-registry-v1.json"
 REGISTRY = json.loads(REGISTRY_PATH.read_text())
+ACTIVATION = json.loads((ROOT / "docs/contracts/spec144-activation.v1.json").read_text())
+SPEC143_RECEIPT = json.loads((ROOT / "docs/contracts/spec143-completion-receipt.v1.json").read_text())
 INTEGRITY = (ROOT / "crates/focusa-core/src/semantic_integrity.rs").read_text()
 SEMANTIC_REGISTRY = (ROOT / "crates/focusa-core/src/semantic_registry.rs").read_text()
 
@@ -15,6 +17,23 @@ SEMANTIC_REGISTRY = (ROOT / "crates/focusa-core/src/semantic_registry.rs").read_
 def digest(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
+
+assert SPEC143_RECEIPT["status"] == "passed"
+assert len(SPEC143_RECEIPT["gate_evidence"]) == 7
+for gate in SPEC143_RECEIPT["gate_evidence"]:
+    assert digest(ROOT / gate["path"]) == gate["sha256"]
+    assert gate["result"] == "passed"
+assert ACTIVATION["schema"] == "focusa.spec144_activation.v1"
+assert ACTIVATION["status"] == "eligible"
+assert ACTIVATION["spec143_completion_receipt_ref"] == "docs/contracts/spec143-completion-receipt.v1.json"
+assert ACTIVATION["unknown_impact_refs"] == []
+assert ACTIVATION["blocking_conflict_refs"] == []
+for key in [
+    "normative_source_coverage_ref", "feature_ledger_ref", "delivery_dag_ref",
+    "ownership_matrix_ref", "client_parity_matrix_ref", "vertical_pack_matrix_ref",
+    "migration_matrix_ref", "proof_matrix_ref",
+]:
+    assert (ROOT / ACTIVATION[key]).is_file(), f"missing activation prerequisite: {key}"
 
 assert REGISTRY["schema"] == "focusa.semantic_artifact_registry.v1"
 assert REGISTRY["activation"] == "dormant_until_spec144_release_gates_pass"
