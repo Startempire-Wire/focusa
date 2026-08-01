@@ -1,7 +1,7 @@
 {
   "schema": "focusa.tool_contracts.v1",
   "version": "spec90.tool_contracts.v1",
-  "tool_count": 134,
+  "tool_count": 135,
   "contracts": [
     {
       "name": "focusa_agent_runtime_effective",
@@ -1005,6 +1005,43 @@
       },
       "authority_requirement": {
         "kind": "advisory_only"
+      }
+    },
+    {
+      "name": "focusa_ontology_scope_migration",
+      "label": "Ontology Scope Migration",
+      "purpose": "Dry-run, apply, inspect, and roll back granular evidence-backed migration of quarantined legacy ontology records into one verified workstream.",
+      "family": "diagnostics_hygiene",
+      "ontology_action": "ontology.scope_migration",
+      "ontology_objects": [
+        "WorkstreamKey",
+        "OntologyScopeMigrationReceipt",
+        "EvidenceRef"
+      ],
+      "api_routes": [
+        "POST /v1/ontology/scope-migrations"
+      ],
+      "cli_commands": [
+        "focusa ontology scope-migration-dry-run",
+        "focusa ontology scope-migration-status",
+        "focusa ontology scope-migration-apply",
+        "focusa ontology scope-migration-rollback"
+      ],
+      "core_surface": "Spec151 reducer-owned ontology scope migration ledger",
+      "doc_path": "docs/focusa-tools/tools/focusa_ontology_scope_migration.md",
+      "spec_path": "docs/151-focusa-emergency-cross-project-scope-isolation-locked-release-addendum.md",
+      "result_envelope": "tool_result_v1",
+      "side_effect_profile": "confirmed_append_only_scope_migration",
+      "parity_status": "full",
+      "exemptions": [],
+      "live_check": "Spec151 migration dry-run/apply/idempotency/status/rollback and duplicate-id fixtures",
+      "scope_requirement": {
+        "kind": "write",
+        "route_family": "ontology"
+      },
+      "authority_requirement": {
+        "kind": "canonical",
+        "path": "reducer event plus append-only receipt"
       }
     },
     {

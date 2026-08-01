@@ -29441,7 +29441,7 @@
             "action": "dry_run"
           },
           "human_invocation": "focusa ontology scope-migration-dry-run",
-          "expected": "Visible summary plus tool_result_v1 details; docs: docs/151-focusa-emergency-cross-project-scope-isolation-locked-release-addendum.md"
+          "expected": "Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_ontology_scope_migration.md"
         }
       ],
       "anti_examples": [
@@ -29472,22 +29472,22 @@
       ],
       "dependencies": [
         {
-          "capability": "focusa_tool_doctor",
+          "capability": "focusa_project_verify",
           "relation": "likely_next"
         },
         {
-          "capability": "focusa_resource_mode",
+          "capability": "focusa_evidence_capture",
           "relation": "likely_next"
         },
         {
-          "capability": "focusa_workpoint_resume",
+          "capability": "focusa_workpoint_link_evidence",
           "relation": "likely_next"
         }
       ],
       "likely_next_capabilities": [
-        "focusa_tool_doctor",
-        "focusa_resource_mode",
-        "focusa_workpoint_resume"
+        "focusa_project_verify",
+        "focusa_evidence_capture",
+        "focusa_workpoint_link_evidence"
       ],
       "skill_refs": [
         "skill:focusa",
@@ -29496,7 +29496,7 @@
       "runbook_refs": [
         "runbook:diagnostics_hygiene"
       ],
-      "docs_ref": "docs/151-focusa-emergency-cross-project-scope-isolation-locked-release-addendum.md",
+      "docs_ref": "docs/focusa-tools/tools/focusa_ontology_scope_migration.md",
       "spec_refs": [
         "docs/151-focusa-emergency-cross-project-scope-isolation-locked-release-addendum.md"
       ],
@@ -29525,7 +29525,7 @@
         "snippet": "Dry-run, apply, inspect, or roll back granular legacy ontology scope migration. Apply/rollback require explicit confirmation and per-record evidence; ownership is never inferred.",
         "guidelines": []
       },
-      "descriptor_digest": "sha256:625b3d1ce5a8a29c49469963ba330e553b3d5ae29da9b114fb467b2b42d7546e"
+      "descriptor_digest": "sha256:e8581dc0aa6b8270ad0ce446d0344607f862f9178219b329e6712a05e490e07c"
     },
     {
       "schema": "focusa.agent_capability_descriptor.v2",
@@ -56028,5 +56028,5 @@
       "descriptor_digest": "sha256:ab9c9bbe2ed5cd1be3c2be60126fbc6114de34d72116a188fdd0b734de5b3e68"
     }
   ],
-  "registry_digest": "sha256:7807319095458bfaa8baf3e3a86fdbb17e21dee595c447caca2b1099032629c8"
+  "registry_digest": "sha256:b7c49de0255807304cefe284498e83e4bd88e919e9d02e6aa44c3db63799c7f7"
 }

@@ -440,7 +440,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
       "focusa ontology scope-migration-rollback",
     ],
     core_surface: "Spec151 reducer-owned ontology scope migration ledger",
-    doc_path: "docs/151-focusa-emergency-cross-project-scope-isolation-locked-release-addendum.md",
+    doc_path: "docs/focusa-tools/tools/focusa_ontology_scope_migration.md",
     spec_path: "docs/151-focusa-emergency-cross-project-scope-isolation-locked-release-addendum.md",
     result_envelope: "tool_result_v1",
     side_effect_profile: "confirmed_append_only_scope_migration",
@@ -2755,6 +2755,11 @@ const TOOL_NEXT_TOOLS: Record<string, string[]> = {
   focusa_tool_bundle: ["focusa_tool_describe", "focusa_tool_graph", "focusa_tool_search"],
   focusa_agent_card: ["focusa_tool_search", "focusa_tool_bundle", "focusa_project_identity"],
   focusa_prediction_authority: ["focusa_predict_recent", "focusa_evidence_capture", "focusa_metacog_capture"],
+  focusa_ontology_scope_migration: [
+    "focusa_project_verify",
+    "focusa_evidence_capture",
+    "focusa_workpoint_link_evidence",
+  ],
   focusa_browser_capabilities_intake: [
     "focusa_browser_workflow_plan",
     "focusa_browser_diagnostics_intake",
