@@ -1956,6 +1956,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/prediction-authority/projection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Prediction authority projection */
+        get: operations["focusa.prediction_authority.projection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/prediction-authority/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Append canonical prediction authority event */
+        post: operations["focusa.prediction_authority.append"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -5350,6 +5384,44 @@ export interface components {
             next_action?: string;
         } & {
             [key: string]: unknown;
+        };
+        focusa_prediction_authority_projection_response_v1: {
+            status: string;
+            canonical: boolean;
+            durability?: string;
+            projection: {
+                [key: string]: unknown;
+            };
+            profile_conformance?: {
+                [key: string]: unknown;
+            };
+            event_count: number;
+            legacy_event_count?: number;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_prediction_authority_append_request_v1: {
+            scope: {
+                [key: string]: unknown;
+            };
+            event: {
+                [key: string]: unknown;
+            };
+        };
+        focusa_prediction_authority_append_response_v1: {
+            status: string;
+            canonical: boolean;
+            durability?: string;
+            event_id: string;
+            sequence: number;
+            receipt_ref: string;
+            warnings?: string[];
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_prediction_authority_projection_request_v1: {
+            project_root: string;
+            continuity_id: string;
         };
     };
     responses: never;
@@ -8849,6 +8921,53 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["focusa_temporal_preflight_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.prediction_authority.projection": {
+        parameters: {
+            query: {
+                project_root: string;
+                continuity_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Canonical projection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_prediction_authority_projection_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.prediction_authority.append": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_prediction_authority_append_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Durable append result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_prediction_authority_append_response_v1"];
                 };
             };
         };
