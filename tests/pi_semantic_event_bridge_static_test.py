@@ -7,6 +7,7 @@ wrap = (root / "crates/focusa-cli/src/commands/wrap.rs").read_text()
 polish = (root / "apps/pi-extension/src/polish.ts").read_text()
 telemetry = (root / "crates/focusa-api/src/routes/telemetry.rs").read_text()
 index = (root / "apps/pi-extension/src/index.ts").read_text()
+session = (root / "apps/pi-extension/src/session.ts").read_text()
 
 assert 'is_tui && harness_name == "pi"' in wrap
 assert "run_interactive(harness_path" in wrap
@@ -22,4 +23,8 @@ assert '"status": "duplicate"' in telemetry
 assert 'scope_kind: "host"' in index
 assert "verifiedScopeRefForRoot(projectRoot)" in index
 assert "if (!verifiedScopeRefForRoot(projectRoot)) return extensionKey" in index
+assert "Focusa project verify needs attention" not in session
+assert "Continue scope-limited with this project_root?" not in session
+assert "Conversation and diagnosis continue; project writes wait for canonical verification." in session
+assert "queueLifecycleAdvisory" in session
 print("Pi semantic event bridge and nonblocking bootstrap static gate: PASS")
