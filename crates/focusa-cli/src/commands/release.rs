@@ -9,7 +9,7 @@ use focusa_core::release_cycle::ReleaseTopology;
 use focusa_core::release_intelligence::ReleaseIntelligencePacket;
 use focusa_core::release_orchestrator::ReleaseInvocationSurface;
 use focusa_core::types::default_focusa_data_dir;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
@@ -20,6 +20,18 @@ pub enum ReleaseCmd {
     Cycle {
         #[command(subcommand)]
         action: ReleaseCycleCmd,
+    },
+    /// Backward-compatible alias for the canonical release workflow's page renderer.
+    RenderIntelligence {
+        /// Release intelligence packet JSON path.
+        #[arg(long)]
+        packet: PathBuf,
+        /// Markdown output path.
+        #[arg(long)]
+        output: PathBuf,
+        /// Require every check and artifact proof needed for publication.
+        #[arg(long)]
+        publishable: bool,
     },
     /// Prove the current checkout/release tag with the standard safe gate set.
     Prove {
@@ -211,6 +223,47 @@ fn run_gate(name: &str, command: &str) -> Value {
     }
 }
 
+fn render_intelligence(
+    packet: PathBuf,
+    output: PathBuf,
+    publishable: bool,
+    json_mode: bool,
+) -> anyhow::Result<()> {
+    let body = fs::read_to_string(&packet)?;
+    let intelligence: ReleaseIntelligencePacket = serde_json::from_str(&body)?;
+    intelligence.validate(publishable)?;
+    let markdown = intelligence.render_markdown()?;
+    anyhow::ensure!(
+        !output.exists(),
+        "release intelligence output already exists; immutable release pages are never overwritten"
+    );
+    let parent = output.parent().unwrap_or_else(|| std::path::Path::new("."));
+    anyhow::ensure!(
+        parent.is_dir(),
+        "release intelligence output parent does not exist"
+    );
+    let staged = parent.join(format!(".release-intelligence-{}.tmp", std::process::id()));
+    fs::write(&staged, markdown)?;
+    fs::rename(&staged, &output)?;
+    let result = json!({
+        "schema": "focusa.release_intelligence_render.v1",
+        "status": "completed",
+        "release_id": intelligence.release_id,
+        "version": intelligence.version,
+        "exact_sha": intelligence.exact_sha,
+        "publishable": publishable,
+        "output": output,
+        "artifact_count": intelligence.artifacts.len(),
+        "proof_count": intelligence.exact_proofs.len()
+    });
+    if json_mode {
+        println!("{}", serde_json::to_string_pretty(&result)?);
+    } else {
+        println!("release intelligence rendered: {}", result["output"]);
+    }
+    Ok(())
+}
+
 pub async fn run(cmd: ReleaseCmd, json_mode: bool) -> anyhow::Result<()> {
     match cmd {
         ReleaseCmd::Cycle { action } => match action {
@@ -292,42 +345,13 @@ pub async fn run(cmd: ReleaseCmd, json_mode: bool) -> anyhow::Result<()> {
                 packet,
                 output,
                 publishable,
-            } => {
-                let body = fs::read_to_string(&packet)?;
-                let intelligence: ReleaseIntelligencePacket = serde_json::from_str(&body)?;
-                intelligence.validate(publishable)?;
-                let markdown = intelligence.render_markdown()?;
-                anyhow::ensure!(
-                    !output.exists(),
-                    "release intelligence output already exists; immutable release pages are never overwritten"
-                );
-                let parent = output.parent().unwrap_or_else(|| std::path::Path::new("."));
-                anyhow::ensure!(
-                    parent.is_dir(),
-                    "release intelligence output parent does not exist"
-                );
-                let staged =
-                    parent.join(format!(".release-intelligence-{}.tmp", std::process::id()));
-                fs::write(&staged, markdown)?;
-                fs::rename(&staged, &output)?;
-                let result = json!({
-                    "schema": "focusa.release_intelligence_render.v1",
-                    "status": "completed",
-                    "release_id": intelligence.release_id,
-                    "version": intelligence.version,
-                    "exact_sha": intelligence.exact_sha,
-                    "publishable": publishable,
-                    "output": output,
-                    "artifact_count": intelligence.artifacts.len(),
-                    "proof_count": intelligence.exact_proofs.len()
-                });
-                if json_mode {
-                    println!("{}", serde_json::to_string_pretty(&result)?);
-                } else {
-                    println!("release intelligence rendered: {}", result["output"]);
-                }
-            }
+            } => render_intelligence(packet, output, publishable, json_mode)?,
         },
+        ReleaseCmd::RenderIntelligence {
+            packet,
+            output,
+            publishable,
+        } => render_intelligence(packet, output, publishable, json_mode)?,
         ReleaseCmd::Prove { tag, github, fast } => {
             // Spec §5.4: producing an official release bundle remains license-gated.
             if let Err(error) = require_feature("official_release_bundle") {
