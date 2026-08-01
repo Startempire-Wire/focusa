@@ -92,6 +92,37 @@ test("ECS handle trajectory summaries require exact verified project/workstream 
   );
   assert.equal(matches({ trajectory: scoped }), false, "missing trajectory identity fails closed");
 
+  for (const toolName of ["read", "bash"]) {
+    assert.equal(
+      matches({
+        label: `${toolName}-output`,
+        trajectory: {
+          scope: {
+            project_root: "/srv/wire-pitch",
+            continuity_id: "focusa-v0.9.135-locked-14",
+          },
+          trajectory_id: "trajectory:wire-pitch:foreign",
+        },
+      }),
+      false,
+      `${toolName} output must reject a foreign project even when continuity matches`
+    );
+    assert.equal(
+      matches({
+        label: `${toolName}-output`,
+        trajectory: {
+          scope: {
+            project_root: "/home/wirebot/focusa",
+            continuity_id: "rotated-continuity",
+          },
+          trajectory_id: "trajectory:focusa:canonical",
+        },
+      }),
+      false,
+      `${toolName} output must reject a rotated continuity`
+    );
+  }
+
   const ecs = block(turns, 'focusaFetch("/ecs/store"', "// §7.4 + §33.3: If Focusa unavailable");
   assert.match(ecs, /project_root: getSessionCwd\(\)/);
   assert.match(ecs, /continuity_id: getContinuityId\(\)/);
