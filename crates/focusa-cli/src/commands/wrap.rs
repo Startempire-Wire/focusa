@@ -18,6 +18,7 @@ use rand::random;
 use serde_json::{json, Value};
 use shlex::try_quote;
 use std::fs;
+use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::thread;
@@ -285,6 +286,8 @@ fn cleanup_stale_recordings(temp_dir: &std::path::Path) {
     let Ok(entries) = fs::read_dir(temp_dir) else {
         return;
     };
+    let mode = std::env::var("FOCUSA_PTY_SCAVENGE_MODE").unwrap_or_else(|_| "apply".to_string());
+    let mut actions = Vec::new();
     for entry in entries.flatten() {
         let path = entry.path();
         let Some(name) = path.file_name().and_then(|value| value.to_str()) else {
@@ -302,23 +305,161 @@ fn cleanup_stale_recordings(temp_dir: &std::path::Path) {
         if std::path::Path::new(&format!("/proc/{pid}")).exists() {
             continue;
         }
-        let old_enough = fs::metadata(&path)
+        let age_secs = fs::metadata(&path)
             .and_then(|metadata| metadata.modified())
             .ok()
             .and_then(|modified| modified.elapsed().ok())
-            .map(|age| age.as_secs() >= STALE_RECORDING_MIN_AGE_SECS)
-            .unwrap_or(false);
-        if old_enough {
-            if let Err(error) = fs::remove_file(&path) {
-                eprintln!(
-                    "[WARN] Failed to remove stale PTY recording {}: {}",
-                    path.display(),
-                    error
-                );
+            .map(|age| age.as_secs())
+            .unwrap_or(0);
+        if age_secs < STALE_RECORDING_MIN_AGE_SECS {
+            continue;
+        }
+        let status = if mode == "dry-run" {
+            "would_remove".to_string()
+        } else {
+            match fs::remove_file(&path) {
+                Ok(()) => "removed".to_string(),
+                Err(error) => {
+                    eprintln!(
+                        "[WARN] Failed to remove stale PTY recording {}: {}",
+                        path.display(),
+                        error
+                    );
+                    format!("remove_failed:{error}")
+                }
             }
+        };
+        actions.push(json!({
+            "path": path,
+            "pid": pid,
+            "age_secs": age_secs,
+            "status": status,
+        }));
+    }
+    if actions.is_empty() {
+        return;
+    }
+    let data_root = std::env::var("FOCUSA_DATA_DIR")
+        .map(PathBuf::from)
+        .or_else(|_| std::env::var("HOME").map(|home| PathBuf::from(home).join(".focusa")))
+        .unwrap_or_else(|_| PathBuf::from("/tmp/focusa"));
+    let receipt_dir = data_root.join("receipts");
+    if fs::create_dir_all(&receipt_dir).is_ok() {
+        let timestamp = Utc::now().timestamp_millis();
+        let receipt_path = receipt_dir.join(format!("pty-scavenge-{timestamp}.json"));
+        let temporary = receipt_dir.join(format!(".pty-scavenge-{timestamp}.tmp"));
+        let receipt = json!({
+            "schema": "focusa.pty_scavenge_receipt.v1",
+            "mode": mode,
+            "recorded_at": Utc::now().to_rfc3339(),
+            "actions": actions,
+        });
+        if fs::write(&temporary, format!("{}\n", receipt)).is_ok() {
+            let _ = fs::rename(temporary, receipt_path);
         }
     }
 }
+fn redact_diagnostic_transcript(transcript: &str) -> String {
+    let mut redacted = transcript.to_string();
+    for (key, value) in std::env::vars() {
+        let upper = key.to_ascii_uppercase();
+        if value.len() >= 4
+            && ["TOKEN", "SECRET", "PASSWORD", "API_KEY", "AUTH", "COOKIE"]
+                .iter()
+                .any(|marker| upper.contains(marker))
+        {
+            redacted = redacted.replace(&value, "[REDACTED]");
+        }
+    }
+    redacted
+        .lines()
+        .map(|line| {
+            let lower = line.to_ascii_lowercase();
+            if [
+                "authorization:",
+                "api_key=",
+                "apikey=",
+                "password=",
+                "secret=",
+            ]
+            .iter()
+            .any(|marker| lower.contains(marker))
+            {
+                "[REDACTED LINE]"
+            } else {
+                line
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn store_diagnostic_artifacts(client: &ApiClient, transcript: &str) -> Vec<String> {
+    const ECS_CHUNK_BYTES: usize = 512 * 1024;
+    let content = redact_diagnostic_transcript(transcript);
+    let url = format!("{}/v1/ecs/store", client.base_url().trim_end_matches('/'));
+    let timestamp = Utc::now().timestamp_millis();
+    content
+        .as_bytes()
+        .chunks(ECS_CHUNK_BYTES)
+        .take(16)
+        .enumerate()
+        .filter_map(|(index, chunk)| {
+            let body = json!({
+                "kind": "text",
+                "label": format!("bounded-pty-diagnostic-{timestamp}-part-{:02}", index + 1),
+                "content": String::from_utf8_lossy(chunk),
+            })
+            .to_string();
+            let mut child = Command::new("curl")
+                .args([
+                    "-fsS",
+                    "-X",
+                    "POST",
+                    "-H",
+                    "Content-Type: application/json",
+                    "--data-binary",
+                    "@-",
+                    "-m",
+                    "10",
+                    &url,
+                ])
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()
+                .ok()?;
+            child.stdin.as_mut()?.write_all(body.as_bytes()).ok()?;
+            let output = child.wait_with_output().ok()?;
+            if !output.status.success() {
+                eprintln!(
+                    "[WARN] ECS diagnostic chunk {} rejected: status={} error={}",
+                    index + 1,
+                    output.status,
+                    String::from_utf8_lossy(&output.stderr)
+                        .lines()
+                        .next()
+                        .unwrap_or("unknown")
+                );
+                return None;
+            }
+            serde_json::from_slice::<Value>(&output.stdout)
+                .map_err(|error| {
+                    eprintln!(
+                        "[WARN] ECS diagnostic chunk {} response invalid: {}",
+                        index + 1,
+                        error
+                    );
+                    error
+                })
+                .ok()?
+                .get("id")
+                .and_then(Value::as_str)
+                .map(ToString::to_string)
+        })
+        .collect()
+}
+
 fn run_with_recording(
     harness_path: &str,
     args: &[String],
@@ -636,7 +777,13 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
         (String::new(), transcript.clone())
     };
 
-    // 5. Turn complete - send everything to daemon
+    // 5. Turn complete - send bounded semantic output/handles to daemon.
+    let raw_pty_capture = is_tui && std::env::var("FOCUSA_RAW_PTY_CAPTURE").as_deref() == Ok("1");
+    let diagnostic_handles = if raw_pty_capture {
+        store_diagnostic_artifacts(&client, &transcript)
+    } else {
+        Vec::new()
+    };
     let errors = if let Some(failure) = semantic_failure {
         vec![failure]
     } else if exit_code != 0 {
@@ -645,10 +792,20 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
         vec![]
     };
 
-    // For TUI: use full transcript for assistant_output
-    // For CLI: use captured output
-    let final_output = if is_tui {
-        transcript
+    // Raw terminal bytes are never inlined. Explicit forensic capture is
+    // redacted and externalized to ECS, leaving only a stable handle.
+    let final_output = if raw_pty_capture {
+        if diagnostic_handles.is_empty() {
+            "Bounded PTY diagnostic was not persisted; raw content was discarded".to_string()
+        } else {
+            format!(
+                "Bounded PTY diagnostic stored as {} ECS handle(s): {}",
+                diagnostic_handles.len(),
+                diagnostic_handles.join(",")
+            )
+        }
+    } else if is_tui {
+        assistant_output.clone()
     } else {
         assistant_output.clone()
     };
@@ -667,7 +824,7 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
             "turn_id": turn_id,
             "raw_user_input": if final_user_input.is_empty() { None } else { Some(final_user_input) },
             "assistant_output": final_output,
-            "artifacts": [],
+            "artifacts": diagnostic_handles.iter().map(|handle| json!({"handle_id": handle, "kind": "bounded_pty_diagnostic"})).collect::<Vec<_>>(),
             "errors": errors
         }),
         2,

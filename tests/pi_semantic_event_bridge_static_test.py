@@ -14,6 +14,13 @@ assert "run_interactive(harness_path" in wrap
 assert "MAX_RECORDING_BYTES: u64 = 8 * 1024 * 1024" in wrap
 assert "FOCUSA_RAW_PTY_CAPTURE" in wrap
 assert "cleanup_stale_recordings" in wrap
+assert "FOCUSA_PTY_SCAVENGE_MODE" in wrap
+assert "focusa.pty_scavenge_receipt.v1" in wrap
+assert 'mode == "dry-run"' in wrap
+assert "redact_diagnostic_transcript" in wrap
+assert "store_diagnostic_artifact" in wrap
+assert '"{}/v1/ecs/store"' in wrap
+assert "raw terminal bytes are never inlined" in wrap.lower()
 assert 'format!("/proc/{pid}")' in wrap
 assert "String::from_utf8_lossy(&bytes[..limit])" in wrap
 assert 'schema: "focusa.pi_semantic_event.v1"' in polish
