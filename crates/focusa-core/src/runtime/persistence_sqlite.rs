@@ -3626,19 +3626,45 @@ impl SqlitePersistence {
         Ok(entries)
     }
 
-    /// Atomically append a validated suffix to a semantic pair stream.
-    /// Validation occurs before the transaction commits, so malformed batches
-    /// cannot leave a partial stream behind.
+    /// Atomically append a validated suffix to an unscoped semantic pair stream.
     pub fn append_semantic_pair_events(
         &self,
         pair_id: &str,
         events: &[SemanticEventEnvelope],
     ) -> anyhow::Result<()> {
+        if events.iter().any(|envelope| envelope.pair_id != pair_id) {
+            anyhow::bail!("semantic event pair id does not match append target");
+        }
+        self.append_scoped_semantic_pair_events(pair_id, events)
+    }
+
+    /// Atomically append a validated suffix under an opaque exact-scope storage
+    /// key while preserving the logical pair id inside signed event envelopes.
+    pub fn append_scoped_semantic_pair_events(
+        &self,
+        storage_key: &str,
+        events: &[SemanticEventEnvelope],
+    ) -> anyhow::Result<()> {
+        if storage_key.is_empty() {
+            anyhow::bail!("semantic scoped storage key is required");
+        }
         let mut conn = self
             .conn
             .lock()
             .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
-        let existing = load_semantic_events_from_connection(&conn, pair_id)?;
+        let existing = load_semantic_events_from_connection(&conn, storage_key)?;
+        let logical_pair_id = existing
+            .first()
+            .or_else(|| events.first())
+            .map(|event| event.pair_id.as_str());
+        if logical_pair_id.is_some_and(|pair_id| {
+            existing
+                .iter()
+                .chain(events)
+                .any(|event| event.pair_id != pair_id)
+        }) {
+            anyhow::bail!("semantic scoped stream contains mixed logical pair ids");
+        }
         let mut candidate = existing;
         candidate.extend_from_slice(events);
         replay_semantic_events(&candidate)
@@ -3646,13 +3672,10 @@ impl SqlitePersistence {
 
         let tx = conn.transaction()?;
         for envelope in events {
-            if envelope.pair_id != pair_id {
-                anyhow::bail!("semantic event pair id does not match append target");
-            }
             tx.execute(
                 "INSERT INTO semantic_pair_events(pair_id, sequence, event_id, envelope_json, event_hash) VALUES (?1, ?2, ?3, ?4, ?5)",
                 params![
-                    pair_id,
+                    storage_key,
                     envelope.sequence as i64,
                     envelope.event_id,
                     serde_json::to_string(envelope)?,

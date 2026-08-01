@@ -70,6 +70,7 @@ pub mod release;
 pub mod resource;
 pub mod rfm;
 pub mod semantic_integrity;
+mod semantic_integrity_executor;
 pub mod session;
 pub mod silent_sessions;
 pub mod silent_sessions_adopt;

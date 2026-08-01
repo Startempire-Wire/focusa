@@ -4,9 +4,10 @@
 //! integration. An operation is never reported as successful unless this daemon
 //! actually owns the implementation.
 
+use super::semantic_integrity_executor;
 use crate::server::AppState;
 use axum::{
-    extract::{Path, Query},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::{get, post},
@@ -17,7 +18,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::sync::Arc;
 
-const CONTRACT: &str = "focusa.semantic_integrity.operation.v1";
+pub(super) const CONTRACT: &str = "focusa.semantic_integrity.operation.v1";
 const MAX_PAGE: u16 = 100;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -235,9 +236,9 @@ async fn status(Query(q): Query<PageQuery>) -> Response {
     Json(OperationResult {
         contract: CONTRACT,
         operation_id: "semantic.integrity.status".into(), scope,
-        state: Availability::SchemaOnly, degraded: true,
-        message: "operation registry is available; semantic persistence and execution are not integrated in this daemon".into(),
-        data: json!({"registered_operations": OPERATIONS.len(), "executable_operations": 2}),
+        state: Availability::Supported, degraded: false,
+        message: "durable semantic event persistence, replay, migration, and settlement preview are integrated".into(),
+        data: json!({"registered_operations": OPERATIONS.len(), "executable_operations": OPERATIONS.iter().filter(|op| semantic_integrity_executor::operation_is_executable(op.operation_id)).count()}),
         evidence_refs: vec!["operation-registry:semantic-integrity:v1".into()], receipt_refs: vec![],
         observed_at: Utc::now().to_rfc3339(),
     }).into_response()
@@ -254,6 +255,12 @@ async fn registry(Query(q): Query<PageQuery>) -> Response {
         .iter()
         .filter(|op| q.family.as_deref().is_none_or(|f| op.family == f))
         .cloned()
+        .map(|mut op| {
+            if semantic_integrity_executor::operation_is_executable(op.operation_id) {
+                op.availability = Availability::Supported;
+            }
+            op
+        })
         .collect();
     let items = filtered
         .iter()
@@ -322,7 +329,11 @@ async fn artifact(Path(artifact_id): Path<String>, Query(q): Query<PageQuery>) -
         .into_response()
 }
 
-async fn invoke(Path(path_id): Path<String>, Json(req): Json<OperationRequest>) -> Response {
+async fn invoke(
+    State(state): State<Arc<AppState>>,
+    Path(path_id): Path<String>,
+    Json(req): Json<OperationRequest>,
+) -> Response {
     if path_id != req.operation_id {
         return problem(
             StatusCode::BAD_REQUEST,
@@ -354,6 +365,9 @@ async fn invoke(Path(path_id): Path<String>, Json(req): Json<OperationRequest>) 
             StatusCode::PRECONDITION_REQUIRED,
             "mutation requires confirmation=confirm",
         );
+    }
+    if let Some(response) = semantic_integrity_executor::execute(state, &req).await {
+        return response;
     }
     let message =
         "operation has a stable schema but no integrated executor; no mutation was performed";
