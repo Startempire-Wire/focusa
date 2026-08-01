@@ -44,6 +44,7 @@ pub struct ScoredProposal {
 }
 
 /// Resolution outcome.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone)]
 pub enum ResolutionOutcome {
     /// One proposal accepted.

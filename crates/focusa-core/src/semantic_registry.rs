@@ -1,8 +1,8 @@
 //! Spec 144 namespace/version registry and reproducible semantic build lifecycle.
 
 use crate::semantic_integrity::{
-    canonicalize_semantic_artifact, CanonicalSemanticArtifact, SemanticArtifact,
-    SemanticArtifactState, SemanticCanonicalizationError,
+    CanonicalSemanticArtifact, SemanticArtifact, SemanticArtifactState,
+    SemanticCanonicalizationError, canonicalize_semantic_artifact,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -64,6 +64,7 @@ pub struct NamespaceRegistration {
     pub evidence_refs: Vec<String>,
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "event", rename_all = "snake_case")]
 pub enum SemanticRegistryEvent {
@@ -146,10 +147,14 @@ impl SemanticRegistry {
                 {
                     return Err(SemanticRegistryError::InvalidRegistration);
                 }
-                if self.namespaces.get(&namespace.prefix).is_some_and(|current| {
-                    current.namespace_iri != namespace.namespace_iri
-                        || current.owner_ref != namespace.owner_ref
-                }) {
+                if self
+                    .namespaces
+                    .get(&namespace.prefix)
+                    .is_some_and(|current| {
+                        current.namespace_iri != namespace.namespace_iri
+                            || current.owner_ref != namespace.owner_ref
+                    })
+                {
                     return Err(SemanticRegistryError::NamespaceConflict);
                 }
                 if self.graphs.get(&graph.graph_iri).is_some_and(|current| {
@@ -158,8 +163,15 @@ impl SemanticRegistry {
                 }) {
                     return Err(SemanticRegistryError::GraphConflict);
                 }
-                let versions = self.artifacts.entry(artifact.artifact_id.clone()).or_default();
-                if versions.keys().next_back().is_some_and(|latest| artifact.version <= *latest) {
+                let versions = self
+                    .artifacts
+                    .entry(artifact.artifact_id.clone())
+                    .or_default();
+                if versions
+                    .keys()
+                    .next_back()
+                    .is_some_and(|latest| artifact.version <= *latest)
+                {
                     return Err(SemanticRegistryError::VersionNotMonotonic);
                 }
                 versions.insert(artifact.version, artifact.clone());

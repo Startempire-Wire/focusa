@@ -29,13 +29,21 @@ fn versions() -> Vec<ComponentVersion> {
 fn rollback(replacement_planned: bool) -> RollbackBoundary {
     RollbackBoundary {
         replacement_planned,
-        prior_version_set: replacement_planned.then(versions).unwrap_or_default(),
-        rollback_artifact_refs: replacement_planned
-            .then(|| vec!["artifact:prior".into()])
-            .unwrap_or_default(),
-        rollback_trust_refs: replacement_planned
-            .then(|| vec!["trust:prior".into()])
-            .unwrap_or_default(),
+        prior_version_set: if replacement_planned {
+            versions()
+        } else {
+            vec![]
+        },
+        rollback_artifact_refs: if replacement_planned {
+            vec!["artifact:prior".into()]
+        } else {
+            vec![]
+        },
+        rollback_trust_refs: if replacement_planned {
+            vec!["trust:prior".into()]
+        } else {
+            vec![]
+        },
         atomic_activation: true,
         preserves_user_data: true,
         preserves_project_data: true,

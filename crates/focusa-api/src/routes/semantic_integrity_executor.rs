@@ -1,21 +1,21 @@
 use super::semantic_integrity::{
-    Availability, ExactScope, OperationRequest, OperationResult, CONTRACT,
+    Availability, CONTRACT, ExactScope, OperationRequest, OperationResult,
 };
 use crate::server::AppState;
 use axum::{
+    Json,
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
 };
 use chrono::Utc;
 use focusa_core::{
     runtime::persistence_sqlite::SqlitePersistence,
     semantic_migration::{compatibility_read, inspect_version, plan_v1_migration},
     semantic_reflex::SHARED_SEMANTIC_REFLEXES,
-    semantic_replay::{replay, SemanticEventEnvelope, SemanticPairEvent},
-    semantic_settlement::{evaluate_settlement, SettlementInput},
+    semantic_replay::{SemanticEventEnvelope, SemanticPairEvent, replay},
+    semantic_settlement::{SettlementInput, evaluate_settlement},
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::sync::Arc;
 
@@ -116,7 +116,7 @@ fn append_event(persistence: &SqlitePersistence, request: &OperationRequest) -> 
     let replayed =
         replay(&events).map_err(|error| conflict("event_rejected", error.to_string()))?;
     persistence
-        .append_scoped_semantic_pair_events(&storage_key, &[event.clone()])
+        .append_scoped_semantic_pair_events(&storage_key, std::slice::from_ref(&event))
         .map_err(internal)?;
     Ok((
         "semantic event durably persisted and replayed".into(),
@@ -359,11 +359,13 @@ mod tests {
     use uuid::Uuid;
 
     fn persistence() -> SqlitePersistence {
-        let mut config = FocusaConfig::default();
-        config.data_dir = std::env::temp_dir()
-            .join(format!("focusa-semantic-api-{}", Uuid::now_v7()))
-            .to_string_lossy()
-            .to_string();
+        let config = FocusaConfig {
+            data_dir: std::env::temp_dir()
+                .join(format!("focusa-semantic-api-{}", Uuid::now_v7()))
+                .to_string_lossy()
+                .to_string(),
+            ..FocusaConfig::default()
+        };
         SqlitePersistence::new(&config).expect("semantic API persistence")
     }
 

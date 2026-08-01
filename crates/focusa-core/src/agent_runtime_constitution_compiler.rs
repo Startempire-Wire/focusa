@@ -64,7 +64,7 @@ pub fn compile_prompt(input: PromptCompileInput) -> Result<CompiledPromptLayers,
     input.constitution.validate()?;
     let mut errors = Vec::new();
     for required in REQUIRED_PROMPT_SECTIONS {
-        if !section_body(required, &input).is_some_and(|body| !body.trim().is_empty()) {
+        if section_body(required, &input).is_none_or(|body| body.trim().is_empty()) {
             errors.push(format!("missing_required_prompt_section:{required}"));
         }
     }

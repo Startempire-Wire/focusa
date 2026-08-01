@@ -93,8 +93,10 @@ fn duplicates_and_out_of_order_events_are_rejected() {
 #[test]
 fn sqlite_batch_append_is_atomic_on_invalid_suffix() {
     let root = std::env::temp_dir().join(format!("focusa-semantic-{}", uuid::Uuid::now_v7()));
-    let mut config = FocusaConfig::default();
-    config.data_dir = root.to_string_lossy().into_owned();
+    let config = FocusaConfig {
+        data_dir: root.to_string_lossy().into_owned(),
+        ..FocusaConfig::default()
+    };
     let persistence = SqlitePersistence::new(&config).unwrap();
     let events = stream();
     persistence
@@ -103,9 +105,11 @@ fn sqlite_batch_append_is_atomic_on_invalid_suffix() {
 
     let mut invalid = events[1].clone();
     invalid.sequence = 9;
-    assert!(persistence
-        .append_semantic_pair_events("pair-1", &[events[1].clone(), invalid])
-        .is_err());
+    assert!(
+        persistence
+            .append_semantic_pair_events("pair-1", &[events[1].clone(), invalid])
+            .is_err()
+    );
     assert_eq!(
         persistence
             .load_semantic_pair_events("pair-1")

@@ -451,6 +451,7 @@ pub struct TransferOutcome {
     pub receipt_ref: String,
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "record", rename_all = "snake_case")]
 pub enum PredictionAuthorityEvent {

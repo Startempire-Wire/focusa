@@ -7,15 +7,15 @@
 use super::semantic_integrity_executor;
 use crate::server::AppState;
 use axum::{
+    Json, Router,
     extract::{Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::{get, post},
-    Json, Router,
 };
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 
 pub(super) const CONTRACT: &str = "focusa.semantic_integrity.operation.v1";
@@ -215,6 +215,7 @@ pub fn router() -> Router<Arc<AppState>> {
         )
 }
 
+#[allow(clippy::result_large_err)]
 fn checked_scope(q: &PageQuery) -> Result<ExactScope, Response> {
     let scope = ExactScope {
         project_root: q.project_root.clone(),

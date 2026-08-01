@@ -33,8 +33,9 @@ test("session startup fails closed before durable project initialization", () =>
   const blocked = block.indexOf("if (!projectVerified)");
   const durableSession = block.indexOf("await ensureFocusaSession");
   assert.ok(verify >= 0 && blocked > verify && durableSession > blocked);
-  assert.match(block, /North-star gate blocked durable project startup/);
-  assert.match(block, /updateNorthStarCard\(ctx, "session_start_project_blocked"\)/);
+  assert.match(block, /pi_project_startup_waiting_for_binding/);
+  assert.match(block, /ctx\.ui\.setWidget\("focusa-north-star", undefined\)/);
+  assert.doesNotMatch(block, /North-star gate blocked durable project startup/);
 });
 
 test("north-star startup order is project then trajectory then Workpoint", () => {

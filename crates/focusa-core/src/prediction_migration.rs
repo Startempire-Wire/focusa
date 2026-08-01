@@ -184,6 +184,7 @@ pub struct LegacyScopeMigrationPlan {
     pub receipt_ref: String,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn plan_legacy_scope_migration(
     plan_id: impl Into<String>,
     source_record_ref: impl Into<String>,

@@ -184,6 +184,7 @@ pub fn resume_state(
         .unwrap_or(LifecycleState::Uninspected))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn finalize_lifecycle(
     request: &LifecycleOperationRequest,
     journal: &[LifecycleJournalEntry],

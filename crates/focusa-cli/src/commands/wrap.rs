@@ -15,7 +15,7 @@ use crate::api_client::ApiClient;
 use anyhow::{Context, Result};
 use chrono::Utc;
 use rand::random;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use shlex::try_quote;
 use std::fs;
 use std::io::Write;
@@ -804,8 +804,6 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
                 diagnostic_handles.join(",")
             )
         }
-    } else if is_tui {
-        assistant_output.clone()
     } else {
         assistant_output.clone()
     };
@@ -845,10 +843,12 @@ mod tests {
 
     #[test]
     fn semantic_harness_failure_rejects_invalid_model_warning() {
-        assert!(semantic_harness_failure(
-            "Warning: No models match pattern \"ovh-ai-llama-cpp/ovh-local-coder\""
-        )
-        .is_some());
+        assert!(
+            semantic_harness_failure(
+                "Warning: No models match pattern \"ovh-ai-llama-cpp/ovh-local-coder\""
+            )
+            .is_some()
+        );
     }
 
     #[test]

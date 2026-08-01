@@ -1070,6 +1070,7 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
 }
 
 /// Start the API server on the configured bind address.
+#[allow(clippy::too_many_arguments)]
 pub async fn run(
     focusa: Arc<RwLock<FocusaState>>,
     command_tx: mpsc::Sender<Action>,

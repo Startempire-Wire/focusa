@@ -1,8 +1,8 @@
 //! Version compatibility, migration planning, and rollback boundaries.
 
 use crate::semantic_pair::{
-    BuilderAttempt, BuilderContext, ImmutableSnapshot, SemanticPair, SemanticReceipt,
-    SEMANTIC_PAIR_SCHEMA_VERSION,
+    BuilderAttempt, BuilderContext, ImmutableSnapshot, SEMANTIC_PAIR_SCHEMA_VERSION, SemanticPair,
+    SemanticReceipt,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -97,6 +97,7 @@ pub fn compatibility_read(bytes: &[u8]) -> Result<CompatibilityRead, MigrationEr
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CompatibilityRead {
     Current(SemanticPair),

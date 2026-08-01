@@ -40,7 +40,7 @@ fn obligation_compilation_is_deterministic_and_model_additive_only() {
         criterion_ref: "criterion:model".into(),
         risk_class: "semantic_integrity".into(),
     };
-    let first = compile_obligations(&[requirement()], &[suggestion.clone()]);
+    let first = compile_obligations(&[requirement()], std::slice::from_ref(&suggestion));
     let second = compile_obligations(&[requirement()], &[suggestion]);
     assert_eq!(first, second);
     assert_eq!(first.requirement_coverage["REQ-1"].len(), 2);
@@ -79,13 +79,13 @@ fn settlement_fails_closed_on_stale_snapshot_writer_or_open_finding() {
         findings: vec![],
     };
     assert_eq!(
-        settle_verification(&plan, &[response.clone()], &mandatory),
+        settle_verification(&plan, std::slice::from_ref(&response), &mandatory),
         Ok(())
     );
 
     plan.assignments[0].writer_lease = true;
     assert_eq!(
-        settle_verification(&plan, &[response.clone()], &mandatory),
+        settle_verification(&plan, std::slice::from_ref(&response), &mandatory),
         Err(VerificationError::WriterLeaseConflict)
     );
     plan.assignments[0].writer_lease = false;
