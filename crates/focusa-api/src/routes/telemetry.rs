@@ -705,10 +705,32 @@ async fn record_operational_event(
         .and_then(|v| v.as_str())
         .unwrap_or("operational_event");
 
+    let semantic_id = body
+        .get("semantic_event")
+        .and_then(|event| event.get("event_id"))
+        .and_then(|id| id.as_str());
     let mut focusa = state.focusa.write().await;
+    if let Some(id) = semantic_id {
+        let duplicate = focusa.telemetry.trace_events.iter().any(|event| {
+            event.get("payload")
+                .and_then(|payload| payload.get("semantic_event"))
+                .and_then(|semantic| semantic.get("event_id"))
+                .and_then(|value| value.as_str())
+                == Some(id)
+        });
+        if duplicate {
+            return Json(serde_json::json!({
+                "status": "duplicate",
+                "channel": "ops",
+                "event": event_name,
+                "event_id": id,
+            }));
+        }
+    }
     focusa.telemetry.total_events += 1;
+    let event_id = Uuid::now_v7().to_string();
     focusa.telemetry.trace_events.push(serde_json::json!({
-        "event_id": Uuid::now_v7().to_string(),
+        "event_id": event_id,
         "channel": "ops",
         "event": event_name,
         "timestamp": Utc::now().to_rfc3339(),
@@ -722,6 +744,7 @@ async fn record_operational_event(
         "status": "recorded",
         "channel": "ops",
         "event": event_name,
+        "event_id": event_id,
     }))
 }
 
