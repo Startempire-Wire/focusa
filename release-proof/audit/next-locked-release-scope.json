@@ -14,7 +14,7 @@
   "relocked_at": "2026-07-31T17:40:00Z",
   "scope_state": "locked",
   "current_explicit_issue_count": 45,
-  "current_locked_bead_member_count": 274,
+  "current_locked_bead_member_count": 275,
   "execution_lock": {
     "schema": "focusa.locked_release_execution_lock.v1",
     "status": "sealed",
@@ -23,7 +23,7 @@
     "first_touch_issue_id": "focusa-627th.4.3",
     "terminal_member_ref": "focusa-vbcqu",
     "publication_gate": "focusa-vbcqu.9.7",
-    "member_count": 274,
+    "member_count": 275,
     "phase_count": 9,
     "phase_gates": [
       "focusa-o4gkd",
@@ -54,9 +54,10 @@
   "membership_reconciliation": {
     "scope_expansion": false,
     "previous_declared_member_count": 254,
-    "reconciled_member_count": 274,
-    "restored_descendant_count": 20,
+    "reconciled_member_count": 275,
+    "restored_descendant_count": 21,
     "restored_descendant_ids": [
+      "focusa-vbcqu.10",
       "focusa-vbcqu.6.1.1",
       "focusa-vbcqu.6.1.2",
       "focusa-vbcqu.6.1.3",
