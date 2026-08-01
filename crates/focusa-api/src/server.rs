@@ -601,6 +601,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::resource::router())
         .merge(routes::reflection::router())
         .merge(routes::reflex::router())
+        .merge(routes::semantic_integrity::router())
         .merge(routes::release::router())
         .merge(routes::update::router())
         .merge(routes::skills::router())

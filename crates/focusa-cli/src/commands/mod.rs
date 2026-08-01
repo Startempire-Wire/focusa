@@ -60,6 +60,7 @@ pub mod rfm;
 pub mod runtime;
 pub mod scope;
 pub mod scope_resolver;
+pub mod semantic_integrity;
 pub mod service;
 pub mod setup;
 pub mod silent;

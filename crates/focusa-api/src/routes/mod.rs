@@ -69,6 +69,7 @@ pub mod reflex;
 pub mod release;
 pub mod resource;
 pub mod rfm;
+pub mod semantic_integrity;
 pub mod session;
 pub mod silent_sessions;
 pub mod silent_sessions_adopt;

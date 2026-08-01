@@ -338,6 +338,10 @@ enum Commands {
     #[command(subcommand)]
     Ontology(commands::ontology::OntologyCmd),
 
+    /// Semantic-integrity operation registry and bounded execution surface.
+    #[command(subcommand, name = "semantic-integrity")]
+    SemanticIntegrity(commands::semantic_integrity::SemanticIntegrityCmd),
+
     /// Agent skills.
     #[command(subcommand)]
     Skills(commands::skills::SkillsCmd),
@@ -1082,6 +1086,7 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::Reflect(cmd) => commands::reflection::run(cmd, cli.json).await,
         Commands::Metacognition(cmd) => commands::metacognition::run(cmd, cli.json).await,
         Commands::Ontology(cmd) => commands::ontology::run(cmd, cli.json).await,
+        Commands::SemanticIntegrity(cmd) => commands::semantic_integrity::run(cmd, cli.json).await,
         Commands::Skills(cmd) => commands::skills::run(cmd, cli.json).await,
         Commands::Thread(cmd) => {
             commands::threads::run(cmd, cli.json, &api_client::ApiClient::new()).await
