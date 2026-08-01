@@ -1,0 +1,1 @@
+semantic-integrity-pack-v1:owl,shacl,temporal,causal,parity

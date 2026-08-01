@@ -1,0 +1,1 @@
+system: verify each normative criterion; fail closed on unknown impact; cite evidence.

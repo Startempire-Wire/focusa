@@ -1,0 +1,2225 @@
+{
+  "aggregates": [
+    {
+      "anchoring_rate": 0.18,
+      "calibration_ece": 0.3,
+      "cohort": "builder_only",
+      "criterion_coverage": 0.7,
+      "defect_escape_rate": 0.34,
+      "evidence_linkage_rate": 0.72,
+      "fn": 34,
+      "fp": 30,
+      "information_leakage_rate": 0.12,
+      "learning_promotion_reversal_rate": 0.1,
+      "mean_rounds": 3.0,
+      "negative_transfer_rate": 0.11,
+      "operator_interventions": 5,
+      "oscillation_rate": 0.2,
+      "overfitting_rate": 0.14,
+      "p95_latency_ms": 150,
+      "post_settlement_regressions": 4,
+      "repair_rate": 0.68,
+      "replay_equivalent": false,
+      "reproduction_rate": 0.7,
+      "requirements_covered": 18,
+      "requirements_total": 25,
+      "resolution_scoring_error_rate": 0.14,
+      "resource_units": 132,
+      "routing_eligibility_rate": 0.75,
+      "source_dependence_error_rate": 0.13,
+      "task_success": 0.68,
+      "temporal_error_rate": 0.15,
+      "tn": 70,
+      "tp": 66,
+      "unnecessary_verification_rate": 0.18,
+      "unsupported_estimate_rejection_rate": 0.76,
+      "unsupported_objection_rate": 0.16
+    },
+    {
+      "anchoring_rate": 0.15,
+      "calibration_ece": 0.2,
+      "cohort": "same_model_self_review",
+      "criterion_coverage": 0.78,
+      "defect_escape_rate": 0.25,
+      "evidence_linkage_rate": 0.776,
+      "fn": 25,
+      "fp": 20,
+      "information_leakage_rate": 0.098,
+      "learning_promotion_reversal_rate": 0.082,
+      "mean_rounds": 2.7,
+      "negative_transfer_rate": 0.09,
+      "operator_interventions": 4,
+      "oscillation_rate": 0.165,
+      "overfitting_rate": 0.115,
+      "p95_latency_ms": 160,
+      "post_settlement_regressions": 3,
+      "repair_rate": 0.744,
+      "replay_equivalent": false,
+      "reproduction_rate": 0.76,
+      "requirements_covered": 20,
+      "requirements_total": 25,
+      "resolution_scoring_error_rate": 0.114,
+      "resource_units": 145,
+      "routing_eligibility_rate": 0.8,
+      "source_dependence_error_rate": 0.106,
+      "task_success": 0.775,
+      "temporal_error_rate": 0.122,
+      "tn": 80,
+      "tp": 75,
+      "unnecessary_verification_rate": 0.15,
+      "unsupported_estimate_rejection_rate": 0.808,
+      "unsupported_objection_rate": 0.13
+    },
+    {
+      "anchoring_rate": 0.12,
+      "calibration_ece": 0.14,
+      "cohort": "same_model_separate_context",
+      "criterion_coverage": 0.84,
+      "defect_escape_rate": 0.18,
+      "evidence_linkage_rate": 0.832,
+      "fn": 18,
+      "fp": 14,
+      "information_leakage_rate": 0.076,
+      "learning_promotion_reversal_rate": 0.064,
+      "mean_rounds": 2.4,
+      "negative_transfer_rate": 0.07,
+      "operator_interventions": 3,
+      "oscillation_rate": 0.13,
+      "overfitting_rate": 0.09,
+      "p95_latency_ms": 175,
+      "post_settlement_regressions": 2,
+      "repair_rate": 0.808,
+      "replay_equivalent": false,
+      "reproduction_rate": 0.82,
+      "requirements_covered": 21,
+      "requirements_total": 25,
+      "resolution_scoring_error_rate": 0.088,
+      "resource_units": 160,
+      "routing_eligibility_rate": 0.85,
+      "source_dependence_error_rate": 0.082,
+      "task_success": 0.84,
+      "temporal_error_rate": 0.094,
+      "tn": 86,
+      "tp": 82,
+      "unnecessary_verification_rate": 0.12,
+      "unsupported_estimate_rejection_rate": 0.856,
+      "unsupported_objection_rate": 0.1
+    },
+    {
+      "anchoring_rate": 0.09,
+      "calibration_ece": 0.1,
+      "cohort": "cross_family_verification",
+      "criterion_coverage": 0.9,
+      "defect_escape_rate": 0.12,
+      "evidence_linkage_rate": 0.888,
+      "fn": 12,
+      "fp": 10,
+      "information_leakage_rate": 0.054,
+      "learning_promotion_reversal_rate": 0.046,
+      "mean_rounds": 2.1,
+      "negative_transfer_rate": 0.05,
+      "operator_interventions": 2,
+      "oscillation_rate": 0.095,
+      "overfitting_rate": 0.065,
+      "p95_latency_ms": 190,
+      "post_settlement_regressions": 1,
+      "repair_rate": 0.872,
+      "replay_equivalent": false,
+      "reproduction_rate": 0.88,
+      "requirements_covered": 22,
+      "requirements_total": 25,
+      "resolution_scoring_error_rate": 0.062,
+      "resource_units": 175,
+      "routing_eligibility_rate": 0.9,
+      "source_dependence_error_rate": 0.058,
+      "task_success": 0.89,
+      "temporal_error_rate": 0.066,
+      "tn": 90,
+      "tp": 88,
+      "unnecessary_verification_rate": 0.09,
+      "unsupported_estimate_rejection_rate": 0.904,
+      "unsupported_objection_rate": 0.07
+    },
+    {
+      "anchoring_rate": 0.06,
+      "calibration_ece": 0.06,
+      "cohort": "deterministic_model_verification",
+      "criterion_coverage": 0.96,
+      "defect_escape_rate": 0.06,
+      "evidence_linkage_rate": 0.944,
+      "fn": 6,
+      "fp": 6,
+      "information_leakage_rate": 0.032,
+      "learning_promotion_reversal_rate": 0.028,
+      "mean_rounds": 1.8,
+      "negative_transfer_rate": 0.03,
+      "operator_interventions": 1,
+      "oscillation_rate": 0.06,
+      "overfitting_rate": 0.04,
+      "p95_latency_ms": 110,
+      "post_settlement_regressions": 0,
+      "repair_rate": 0.936,
+      "replay_equivalent": false,
+      "reproduction_rate": 0.94,
+      "requirements_covered": 24,
+      "requirements_total": 25,
+      "resolution_scoring_error_rate": 0.036,
+      "resource_units": 96,
+      "routing_eligibility_rate": 0.95,
+      "source_dependence_error_rate": 0.034,
+      "task_success": 0.94,
+      "temporal_error_rate": 0.038,
+      "tn": 94,
+      "tp": 94,
+      "unnecessary_verification_rate": 0.06,
+      "unsupported_estimate_rejection_rate": 0.952,
+      "unsupported_objection_rate": 0.04
+    },
+    {
+      "anchoring_rate": 0.03,
+      "calibration_ece": 0.02,
+      "cohort": "multi_aspect_portfolio",
+      "criterion_coverage": 1.0,
+      "defect_escape_rate": 0.0,
+      "evidence_linkage_rate": 1.0,
+      "fn": 0,
+      "fp": 2,
+      "information_leakage_rate": 0.01,
+      "learning_promotion_reversal_rate": 0.01,
+      "mean_rounds": 1.5,
+      "negative_transfer_rate": 0.01,
+      "operator_interventions": 0,
+      "oscillation_rate": 0.025,
+      "overfitting_rate": 0.015,
+      "p95_latency_ms": 95,
+      "post_settlement_regressions": 0,
+      "repair_rate": 1.0,
+      "replay_equivalent": true,
+      "reproduction_rate": 1.0,
+      "requirements_covered": 25,
+      "requirements_total": 25,
+      "resolution_scoring_error_rate": 0.01,
+      "resource_units": 82,
+      "routing_eligibility_rate": 1.0,
+      "source_dependence_error_rate": 0.01,
+      "task_success": 0.99,
+      "temporal_error_rate": 0.01,
+      "tn": 98,
+      "tp": 100,
+      "unnecessary_verification_rate": 0.03,
+      "unsupported_estimate_rejection_rate": 1.0,
+      "unsupported_objection_rate": 0.01
+    }
+  ],
+  "artifact_hashes": {
+    "code": {
+      "path": "../../../crates/focusa-bench/spec144_evaluation.py",
+      "sha256": "d4a5c37a7587d282dc0f0cabaa176610150ee258feef8ed657908339ccbc52db"
+    },
+    "data": {
+      "path": "artifacts/data.txt",
+      "sha256": "645e12d9ad615830a921bb0d0f25d4f13ecd8fae978be691ebf94ae7689ce209"
+    },
+    "environment": {
+      "path": "artifacts/environment.json",
+      "sha256": "8c2919399ea4cc266f509a4f7cdc5582a3546f83e980b4995861dacee2d12e18"
+    },
+    "model": {
+      "path": "artifacts/model.txt",
+      "sha256": "85447ef70935c1c6a3546ab8ced830a2ded3c6df818f45da2cdb151be890fa46"
+    },
+    "pack": {
+      "path": "artifacts/pack.txt",
+      "sha256": "a138fd803e1ab174d58e06e89d17b9ec212feec1dfb6e18b62a933b952009dbc"
+    },
+    "policy": {
+      "path": "artifacts/policy.txt",
+      "sha256": "af02b56191933009ebc2e0980f7120727158132f770a7a50b339066e3fc74f87"
+    },
+    "prompt": {
+      "path": "artifacts/prompt.txt",
+      "sha256": "2edc6542fec48608503dcff0fa10e738f4d79e18576c6a5224e2884998c010d3"
+    },
+    "registry": {
+      "path": "artifacts/registry.txt",
+      "sha256": "993ecf3e2ebca1051f01a5a58aca63f597dd67b1d1b0947831f69d6a9e0d4993"
+    },
+    "shape": {
+      "path": "artifacts/shape.txt",
+      "sha256": "efaa094260deee494065361fa959de7f3b31f936ac600ac89db9ff46328f56ed"
+    },
+    "source_135_137_138": {
+      "path": "artifacts/source-135-137-138.txt",
+      "sha256": "a1ed319a40b567f6bc935e2604f3bf67988782361ef73fe4a9856df1a7aa847d"
+    },
+    "source_144": {
+      "path": "artifacts/source-144.txt",
+      "sha256": "e8faf2d8437d0f13c40f3a5517aa030e553f6d03403964ad31b6f5dec1016ad7"
+    }
+  },
+  "blocking_scenarios": [
+    "unknown_impact_blocks_promotion",
+    "unsupported_not_applicable_rejected",
+    "forbidden_placeholder_detection",
+    "runtime_variance_rejection",
+    "blocked_row_parent_closure",
+    "partial_client_parity_rejected"
+  ],
+  "cohorts": [
+    "builder_only",
+    "same_model_self_review",
+    "same_model_separate_context",
+    "cross_family_verification",
+    "deterministic_model_verification",
+    "multi_aspect_portfolio"
+  ],
+  "observations": [
+    {
+      "cohort": "builder_only",
+      "confidence": 0.62,
+      "expected": "finding",
+      "latency_ms": 150,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:55b74b59a9bc4bd874f5cf44faa43490981773c7d3686efd3886e8e9109454c0",
+      "replay_repeat_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "resource_units": 132,
+      "scenario": "domain_specific_defect_prevention"
+    },
+    {
+      "cohort": "builder_only",
+      "confidence": 0.58,
+      "expected": "clear",
+      "latency_ms": 151,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:0ad70d0c488c458f7cceefbb30bd161727c6240769fb7dff166d45e053eb39cc",
+      "replay_repeat_hash": "sha256:0ad70d0c488c458f7cceefbb30bd161727c6240769fb7dff166d45e053eb39cc",
+      "resource_units": 133,
+      "scenario": "false_finding_rejection"
+    },
+    {
+      "cohort": "builder_only",
+      "confidence": 0.62,
+      "expected": "finding",
+      "latency_ms": 152,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:07eafc35f6bd045007414c03801268281ee11b26ca2503dff93843efded735d4",
+      "replay_repeat_hash": "sha256:07eafc35f6bd045007414c03801268281ee11b26ca2503dff93843efded735d4",
+      "resource_units": 134,
+      "scenario": "repair_and_reverification"
+    },
+    {
+      "cohort": "builder_only",
+      "confidence": 0.62,
+      "expected": "finding",
+      "latency_ms": 153,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:a1c0a9fd20a426c3fd58a6780181d4e973f72d0a114c69dd38505475553d60b3",
+      "replay_repeat_hash": "sha256:a1c0a9fd20a426c3fd58a6780181d4e973f72d0a114c69dd38505475553d60b3",
+      "resource_units": 132,
+      "scenario": "fail_closed_outage"
+    },
+    {
+      "cohort": "builder_only",
+      "confidence": 0.58,
+      "expected": "finding",
+      "latency_ms": 150,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:5edaad6895739c90e7295df1fb45d4f1dc519a957a2d8bc4d9acd5faf67df03f",
+      "replay_repeat_hash": "sha256:5edaad6895739c90e7295df1fb45d4f1dc519a957a2d8bc4d9acd5faf67df03f",
+      "resource_units": 133,
+      "scenario": "operator_resolved_inconclusive"
+    },
+    {
+      "cohort": "builder_only",
+      "confidence": 0.58,
+      "expected": "finding",
+      "latency_ms": 151,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:e7691022e885e1ad4626f6a4d8dc7373e736b568d98f2cb5a85ef8aad23ccf3c",
+      "replay_repeat_hash": "sha256:e7691022e885e1ad4626f6a4d8dc7373e736b568d98f2cb5a85ef8aad23ccf3c",
+      "resource_units": 134,
+      "scenario": "cross_domain_obligation_compilation"
+    },
+    {
+      "cohort": "builder_only",
+      "confidence": 0.62,
+      "expected": "finding",
+      "latency_ms": 152,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:68904e714b0ace5bdb945838270715341b6831760c679fbc3299add8c54e0ede",
+      "replay_repeat_hash": "sha256:68904e714b0ace5bdb945838270715341b6831760c679fbc3299add8c54e0ede",
+      "resource_units": 132,
+      "scenario": "temporal_calendar_error_detection"
+    },
+    {
+      "cohort": "builder_only",
+      "confidence": 0.58,
+      "expected": "finding",
+      "latency_ms": 153,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:f22812316a229eeaaaeb488df35c641c66ba56a2f8113ad525f8ccb02b18a394",
+      "replay_repeat_hash": "sha256:f22812316a229eeaaaeb488df35c641c66ba56a2f8113ad525f8ccb02b18a394",
+      "resource_units": 133,
+      "scenario": "unsupported_estimate_refusal"
+    },
+    {
+      "cohort": "builder_only",
+      "confidence": 0.58,
+      "expected": "finding",
+      "latency_ms": 150,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:92b962051e7abd3155cbaf09ce6b779341d1ce44f1588fc42571562300ddf313",
+      "replay_repeat_hash": "sha256:92b962051e7abd3155cbaf09ce6b779341d1ce44f1588fc42571562300ddf313",
+      "resource_units": 134,
+      "scenario": "information_set_leakage_detection"
+    },
+    {
+      "cohort": "builder_only",
+      "confidence": 0.62,
+      "expected": "finding",
+      "latency_ms": 151,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:610f91b8db663cb83c957bbb0ff4c8ae9ac752e53a3e3db457b8060fd485a9d4",
+      "replay_repeat_hash": "sha256:610f91b8db663cb83c957bbb0ff4c8ae9ac752e53a3e3db457b8060fd485a9d4",
+      "resource_units": 132,
+      "scenario": "dependent_source_detection"
+    },
+    {
+      "cohort": "builder_only",
+      "confidence": 0.62,
+      "expected": "finding",
+      "latency_ms": 152,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:eb40d5392b15f94d03a116646a16f43cf04550d503f54e12f172b9551aa85844",
+      "replay_repeat_hash": "sha256:eb40d5392b15f94d03a116646a16f43cf04550d503f54e12f172b9551aa85844",
+      "resource_units": 133,
+      "scenario": "invalid_causal_learning_blocked"
+    },
+    {
+      "cohort": "builder_only",
+      "confidence": 0.58,
+      "expected": "finding",
+      "latency_ms": 153,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:46d675df042f329d8da809f9c098a4927ae270d08b049579eb2e79e4f1689571",
+      "replay_repeat_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "resource_units": 134,
+      "scenario": "negative_transfer_narrows_learning"
+    },
+    {
+      "cohort": "builder_only",
+      "confidence": 0.62,
+      "expected": "clear",
+      "latency_ms": 150,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:e7bed9bb369881d5c0139b96c9b6b6f86359402a80e8c73b79b958ae87012a53",
+      "replay_repeat_hash": "sha256:e7bed9bb369881d5c0139b96c9b6b6f86359402a80e8c73b79b958ae87012a53",
+      "resource_units": 132,
+      "scenario": "presentation_only_vertical_avoids_ontology"
+    },
+    {
+      "cohort": "builder_only",
+      "confidence": 0.62,
+      "expected": "finding",
+      "latency_ms": 151,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:e2f55297a88ed3da0e7072e74b934aa41d1c61d5cce151b4d24af97e0469c9d2",
+      "replay_repeat_hash": "sha256:e2f55297a88ed3da0e7072e74b934aa41d1c61d5cce151b4d24af97e0469c9d2",
+      "resource_units": 133,
+      "scenario": "semantic_vertical_activates_packs"
+    },
+    {
+      "cohort": "builder_only",
+      "confidence": 0.58,
+      "expected": "finding",
+      "latency_ms": 152,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:cee4268bcd0c99bbf2a995c70c1445f514126663f04c91ac3b20c3974f8ba998",
+      "replay_repeat_hash": "sha256:cee4268bcd0c99bbf2a995c70c1445f514126663f04c91ac3b20c3974f8ba998",
+      "resource_units": 134,
+      "scenario": "pack_conflict_blocks"
+    },
+    {
+      "cohort": "builder_only",
+      "confidence": 0.58,
+      "expected": "finding",
+      "latency_ms": 153,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:d9f1af126f9ff78dd6aa19b947b6487523bf1f426ccdfae52263537fd28681dc",
+      "replay_repeat_hash": "sha256:d9f1af126f9ff78dd6aa19b947b6487523bf1f426ccdfae52263537fd28681dc",
+      "resource_units": 132,
+      "scenario": "snapshot_change_invalidates_pass"
+    },
+    {
+      "cohort": "builder_only",
+      "confidence": 0.62,
+      "expected": "finding",
+      "latency_ms": 150,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:1fe82518e72e7d8aa0be3c8826dd54f734eb844b3c77dedb6972ed3488690674",
+      "replay_repeat_hash": "sha256:1fe82518e72e7d8aa0be3c8826dd54f734eb844b3c77dedb6972ed3488690674",
+      "resource_units": 133,
+      "scenario": "rerouting_after_new_risk"
+    },
+    {
+      "cohort": "builder_only",
+      "confidence": 0.58,
+      "expected": "finding",
+      "latency_ms": 151,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:8e7a8e7a2721681d2e8210da0a86a8402783627862f3772de8d6782d1c21bf02",
+      "replay_repeat_hash": "sha256:8e7a8e7a2721681d2e8210da0a86a8402783627862f3772de8d6782d1c21bf02",
+      "resource_units": 134,
+      "scenario": "full_replay_and_migration"
+    },
+    {
+      "cohort": "builder_only",
+      "confidence": 0.58,
+      "expected": "finding",
+      "latency_ms": 152,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:76081dcc12b192c3c7c5e38e892c5712cba930adf90b53aab952f05e3b36e7d0",
+      "replay_repeat_hash": "sha256:76081dcc12b192c3c7c5e38e892c5712cba930adf90b53aab952f05e3b36e7d0",
+      "resource_units": 132,
+      "scenario": "unmapped_normative_clause_blocks"
+    },
+    {
+      "cohort": "builder_only",
+      "confidence": 0.62,
+      "expected": "finding",
+      "latency_ms": 153,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:572c500c2bbf9c4288dc44a8cfbaca083d269321c3588e57270435e2953880bc",
+      "replay_repeat_hash": "sha256:572c500c2bbf9c4288dc44a8cfbaca083d269321c3588e57270435e2953880bc",
+      "resource_units": 133,
+      "scenario": "forbidden_placeholder_detection"
+    },
+    {
+      "cohort": "builder_only",
+      "confidence": 0.62,
+      "expected": "finding",
+      "latency_ms": 150,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:3533c24b05cba8db2146829b7022f0bfb94c05053ea73261e9bcd4dd48a45389",
+      "replay_repeat_hash": "sha256:3533c24b05cba8db2146829b7022f0bfb94c05053ea73261e9bcd4dd48a45389",
+      "resource_units": 134,
+      "scenario": "blocked_row_parent_closure"
+    },
+    {
+      "cohort": "builder_only",
+      "confidence": 0.58,
+      "expected": "finding",
+      "latency_ms": 151,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:778f3e70b7f56e74ac27f012d6b7c5d527164c69faba08d180015b41e4c82c05",
+      "replay_repeat_hash": "sha256:778f3e70b7f56e74ac27f012d6b7c5d527164c69faba08d180015b41e4c82c05",
+      "resource_units": 132,
+      "scenario": "unsupported_not_applicable_rejected"
+    },
+    {
+      "cohort": "builder_only",
+      "confidence": 0.62,
+      "expected": "finding",
+      "latency_ms": 152,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:d59e3a0b2e63a9d981b088b20e91b4cb7b978d5886bfcd5f405653d80e62a22c",
+      "replay_repeat_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "resource_units": 133,
+      "scenario": "partial_client_parity_rejected"
+    },
+    {
+      "cohort": "builder_only",
+      "confidence": 0.62,
+      "expected": "finding",
+      "latency_ms": 153,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:ca504a1a166bc2b2427bccc1cad5a897945d6a3dbdf9b5629d20a790143b6078",
+      "replay_repeat_hash": "sha256:ca504a1a166bc2b2427bccc1cad5a897945d6a3dbdf9b5629d20a790143b6078",
+      "resource_units": 134,
+      "scenario": "unknown_impact_blocks_promotion"
+    },
+    {
+      "cohort": "builder_only",
+      "confidence": 0.58,
+      "expected": "finding",
+      "latency_ms": 150,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:bbb56201a2ac252d76b9d2a999809bc4ebb063eb05a4ec8525f5c5e08e6b290c",
+      "replay_repeat_hash": "sha256:bbb56201a2ac252d76b9d2a999809bc4ebb063eb05a4ec8525f5c5e08e6b290c",
+      "resource_units": 132,
+      "scenario": "runtime_variance_rejection"
+    },
+    {
+      "cohort": "same_model_self_review",
+      "confidence": 0.675,
+      "expected": "finding",
+      "latency_ms": 160,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:55b74b59a9bc4bd874f5cf44faa43490981773c7d3686efd3886e8e9109454c0",
+      "replay_repeat_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "resource_units": 145,
+      "scenario": "domain_specific_defect_prevention"
+    },
+    {
+      "cohort": "same_model_self_review",
+      "confidence": 0.675,
+      "expected": "clear",
+      "latency_ms": 161,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:3d9468ae2d6024369eec62b0c9a9947813fc4135a8dbe578b46b6b44201f5b10",
+      "replay_repeat_hash": "sha256:3d9468ae2d6024369eec62b0c9a9947813fc4135a8dbe578b46b6b44201f5b10",
+      "resource_units": 146,
+      "scenario": "false_finding_rejection"
+    },
+    {
+      "cohort": "same_model_self_review",
+      "confidence": 0.55,
+      "expected": "finding",
+      "latency_ms": 162,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:0c03128191fb69f94b0c4d50b5e77fb0a67f618d647c28a326e38e9987710533",
+      "replay_repeat_hash": "sha256:0c03128191fb69f94b0c4d50b5e77fb0a67f618d647c28a326e38e9987710533",
+      "resource_units": 147,
+      "scenario": "repair_and_reverification"
+    },
+    {
+      "cohort": "same_model_self_review",
+      "confidence": 0.675,
+      "expected": "finding",
+      "latency_ms": 163,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:a1c0a9fd20a426c3fd58a6780181d4e973f72d0a114c69dd38505475553d60b3",
+      "replay_repeat_hash": "sha256:a1c0a9fd20a426c3fd58a6780181d4e973f72d0a114c69dd38505475553d60b3",
+      "resource_units": 145,
+      "scenario": "fail_closed_outage"
+    },
+    {
+      "cohort": "same_model_self_review",
+      "confidence": 0.675,
+      "expected": "finding",
+      "latency_ms": 160,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:e43d294781b5bdbaaf1c95cc1645fde771f43bb8d4169c466984d8d5bc277c20",
+      "replay_repeat_hash": "sha256:e43d294781b5bdbaaf1c95cc1645fde771f43bb8d4169c466984d8d5bc277c20",
+      "resource_units": 146,
+      "scenario": "operator_resolved_inconclusive"
+    },
+    {
+      "cohort": "same_model_self_review",
+      "confidence": 0.55,
+      "expected": "finding",
+      "latency_ms": 161,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:e7691022e885e1ad4626f6a4d8dc7373e736b568d98f2cb5a85ef8aad23ccf3c",
+      "replay_repeat_hash": "sha256:e7691022e885e1ad4626f6a4d8dc7373e736b568d98f2cb5a85ef8aad23ccf3c",
+      "resource_units": 147,
+      "scenario": "cross_domain_obligation_compilation"
+    },
+    {
+      "cohort": "same_model_self_review",
+      "confidence": 0.675,
+      "expected": "finding",
+      "latency_ms": 162,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:68904e714b0ace5bdb945838270715341b6831760c679fbc3299add8c54e0ede",
+      "replay_repeat_hash": "sha256:68904e714b0ace5bdb945838270715341b6831760c679fbc3299add8c54e0ede",
+      "resource_units": 145,
+      "scenario": "temporal_calendar_error_detection"
+    },
+    {
+      "cohort": "same_model_self_review",
+      "confidence": 0.675,
+      "expected": "finding",
+      "latency_ms": 163,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:c1c9927c739d894265f1891f4340db7826eb81d03607f3215972c4d00ff262ca",
+      "replay_repeat_hash": "sha256:c1c9927c739d894265f1891f4340db7826eb81d03607f3215972c4d00ff262ca",
+      "resource_units": 146,
+      "scenario": "unsupported_estimate_refusal"
+    },
+    {
+      "cohort": "same_model_self_review",
+      "confidence": 0.55,
+      "expected": "finding",
+      "latency_ms": 160,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:92b962051e7abd3155cbaf09ce6b779341d1ce44f1588fc42571562300ddf313",
+      "replay_repeat_hash": "sha256:92b962051e7abd3155cbaf09ce6b779341d1ce44f1588fc42571562300ddf313",
+      "resource_units": 147,
+      "scenario": "information_set_leakage_detection"
+    },
+    {
+      "cohort": "same_model_self_review",
+      "confidence": 0.55,
+      "expected": "finding",
+      "latency_ms": 161,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:dcd7c0b4a1b733ff5738b7ffc1481a0a7be04365f730ca0c3afe122c4cefddc6",
+      "replay_repeat_hash": "sha256:dcd7c0b4a1b733ff5738b7ffc1481a0a7be04365f730ca0c3afe122c4cefddc6",
+      "resource_units": 145,
+      "scenario": "dependent_source_detection"
+    },
+    {
+      "cohort": "same_model_self_review",
+      "confidence": 0.675,
+      "expected": "finding",
+      "latency_ms": 162,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:eb40d5392b15f94d03a116646a16f43cf04550d503f54e12f172b9551aa85844",
+      "replay_repeat_hash": "sha256:eb40d5392b15f94d03a116646a16f43cf04550d503f54e12f172b9551aa85844",
+      "resource_units": 146,
+      "scenario": "invalid_causal_learning_blocked"
+    },
+    {
+      "cohort": "same_model_self_review",
+      "confidence": 0.675,
+      "expected": "finding",
+      "latency_ms": 163,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:1109f28d2cac4b9c2d2cc491c7bf2860c6d484ea0d28c6de92debf3dcee730af",
+      "replay_repeat_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "resource_units": 147,
+      "scenario": "negative_transfer_narrows_learning"
+    },
+    {
+      "cohort": "same_model_self_review",
+      "confidence": 0.55,
+      "expected": "clear",
+      "latency_ms": 160,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:335d97862d45178c4f83fbce1a3e6ad965f61f456711766a9dff34f81db8659e",
+      "replay_repeat_hash": "sha256:335d97862d45178c4f83fbce1a3e6ad965f61f456711766a9dff34f81db8659e",
+      "resource_units": 145,
+      "scenario": "presentation_only_vertical_avoids_ontology"
+    },
+    {
+      "cohort": "same_model_self_review",
+      "confidence": 0.675,
+      "expected": "finding",
+      "latency_ms": 161,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:e2f55297a88ed3da0e7072e74b934aa41d1c61d5cce151b4d24af97e0469c9d2",
+      "replay_repeat_hash": "sha256:e2f55297a88ed3da0e7072e74b934aa41d1c61d5cce151b4d24af97e0469c9d2",
+      "resource_units": 146,
+      "scenario": "semantic_vertical_activates_packs"
+    },
+    {
+      "cohort": "same_model_self_review",
+      "confidence": 0.675,
+      "expected": "finding",
+      "latency_ms": 162,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:4d726e09649f002dfaf6bcdddae7026dfcf39a933bc67597ef099b414b776529",
+      "replay_repeat_hash": "sha256:4d726e09649f002dfaf6bcdddae7026dfcf39a933bc67597ef099b414b776529",
+      "resource_units": 147,
+      "scenario": "pack_conflict_blocks"
+    },
+    {
+      "cohort": "same_model_self_review",
+      "confidence": 0.55,
+      "expected": "finding",
+      "latency_ms": 163,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:d9f1af126f9ff78dd6aa19b947b6487523bf1f426ccdfae52263537fd28681dc",
+      "replay_repeat_hash": "sha256:d9f1af126f9ff78dd6aa19b947b6487523bf1f426ccdfae52263537fd28681dc",
+      "resource_units": 145,
+      "scenario": "snapshot_change_invalidates_pass"
+    },
+    {
+      "cohort": "same_model_self_review",
+      "confidence": 0.675,
+      "expected": "finding",
+      "latency_ms": 160,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:1fe82518e72e7d8aa0be3c8826dd54f734eb844b3c77dedb6972ed3488690674",
+      "replay_repeat_hash": "sha256:1fe82518e72e7d8aa0be3c8826dd54f734eb844b3c77dedb6972ed3488690674",
+      "resource_units": 146,
+      "scenario": "rerouting_after_new_risk"
+    },
+    {
+      "cohort": "same_model_self_review",
+      "confidence": 0.675,
+      "expected": "finding",
+      "latency_ms": 161,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:ea67c874600fe98ec171f57398f68ef4a942ee06fe15259147d475b26f4d6bb3",
+      "replay_repeat_hash": "sha256:ea67c874600fe98ec171f57398f68ef4a942ee06fe15259147d475b26f4d6bb3",
+      "resource_units": 147,
+      "scenario": "full_replay_and_migration"
+    },
+    {
+      "cohort": "same_model_self_review",
+      "confidence": 0.55,
+      "expected": "finding",
+      "latency_ms": 162,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:76081dcc12b192c3c7c5e38e892c5712cba930adf90b53aab952f05e3b36e7d0",
+      "replay_repeat_hash": "sha256:76081dcc12b192c3c7c5e38e892c5712cba930adf90b53aab952f05e3b36e7d0",
+      "resource_units": 145,
+      "scenario": "unmapped_normative_clause_blocks"
+    },
+    {
+      "cohort": "same_model_self_review",
+      "confidence": 0.55,
+      "expected": "finding",
+      "latency_ms": 163,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:fcc27515510e93b79ea5c04610b4691858f2b9a6e58c525be014b5ec40f3af25",
+      "replay_repeat_hash": "sha256:fcc27515510e93b79ea5c04610b4691858f2b9a6e58c525be014b5ec40f3af25",
+      "resource_units": 146,
+      "scenario": "forbidden_placeholder_detection"
+    },
+    {
+      "cohort": "same_model_self_review",
+      "confidence": 0.675,
+      "expected": "finding",
+      "latency_ms": 160,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:3533c24b05cba8db2146829b7022f0bfb94c05053ea73261e9bcd4dd48a45389",
+      "replay_repeat_hash": "sha256:3533c24b05cba8db2146829b7022f0bfb94c05053ea73261e9bcd4dd48a45389",
+      "resource_units": 147,
+      "scenario": "blocked_row_parent_closure"
+    },
+    {
+      "cohort": "same_model_self_review",
+      "confidence": 0.675,
+      "expected": "finding",
+      "latency_ms": 161,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:51627143be5ae6b62ad9a9bc5eedc21228a6b1e508bb7a32557765c8fc4326b7",
+      "replay_repeat_hash": "sha256:51627143be5ae6b62ad9a9bc5eedc21228a6b1e508bb7a32557765c8fc4326b7",
+      "resource_units": 145,
+      "scenario": "unsupported_not_applicable_rejected"
+    },
+    {
+      "cohort": "same_model_self_review",
+      "confidence": 0.55,
+      "expected": "finding",
+      "latency_ms": 162,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:d0871fd1baf1889861d4588bed051104b7277fb7a9dabcd268cacac6bcaa9612",
+      "replay_repeat_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "resource_units": 146,
+      "scenario": "partial_client_parity_rejected"
+    },
+    {
+      "cohort": "same_model_self_review",
+      "confidence": 0.675,
+      "expected": "finding",
+      "latency_ms": 163,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:ca504a1a166bc2b2427bccc1cad5a897945d6a3dbdf9b5629d20a790143b6078",
+      "replay_repeat_hash": "sha256:ca504a1a166bc2b2427bccc1cad5a897945d6a3dbdf9b5629d20a790143b6078",
+      "resource_units": 147,
+      "scenario": "unknown_impact_blocks_promotion"
+    },
+    {
+      "cohort": "same_model_self_review",
+      "confidence": 0.675,
+      "expected": "finding",
+      "latency_ms": 160,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:dcececc0337c4d131ccb84eb21e581dc86a2ae354cde8d6162c7f7bcc5d9dea0",
+      "replay_repeat_hash": "sha256:dcececc0337c4d131ccb84eb21e581dc86a2ae354cde8d6162c7f7bcc5d9dea0",
+      "resource_units": 145,
+      "scenario": "runtime_variance_rejection"
+    },
+    {
+      "cohort": "same_model_separate_context",
+      "confidence": 0.73,
+      "expected": "finding",
+      "latency_ms": 175,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:55b74b59a9bc4bd874f5cf44faa43490981773c7d3686efd3886e8e9109454c0",
+      "replay_repeat_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "resource_units": 160,
+      "scenario": "domain_specific_defect_prevention"
+    },
+    {
+      "cohort": "same_model_separate_context",
+      "confidence": 0.73,
+      "expected": "clear",
+      "latency_ms": 176,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:3d9468ae2d6024369eec62b0c9a9947813fc4135a8dbe578b46b6b44201f5b10",
+      "replay_repeat_hash": "sha256:3d9468ae2d6024369eec62b0c9a9947813fc4135a8dbe578b46b6b44201f5b10",
+      "resource_units": 161,
+      "scenario": "false_finding_rejection"
+    },
+    {
+      "cohort": "same_model_separate_context",
+      "confidence": 0.73,
+      "expected": "finding",
+      "latency_ms": 177,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:07eafc35f6bd045007414c03801268281ee11b26ca2503dff93843efded735d4",
+      "replay_repeat_hash": "sha256:07eafc35f6bd045007414c03801268281ee11b26ca2503dff93843efded735d4",
+      "resource_units": 162,
+      "scenario": "repair_and_reverification"
+    },
+    {
+      "cohort": "same_model_separate_context",
+      "confidence": 0.52,
+      "expected": "finding",
+      "latency_ms": 178,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:baa4497896e7670848acced87d45508dcb3c13bbbbf200e8318516610aa5dc08",
+      "replay_repeat_hash": "sha256:baa4497896e7670848acced87d45508dcb3c13bbbbf200e8318516610aa5dc08",
+      "resource_units": 160,
+      "scenario": "fail_closed_outage"
+    },
+    {
+      "cohort": "same_model_separate_context",
+      "confidence": 0.73,
+      "expected": "finding",
+      "latency_ms": 175,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:e43d294781b5bdbaaf1c95cc1645fde771f43bb8d4169c466984d8d5bc277c20",
+      "replay_repeat_hash": "sha256:e43d294781b5bdbaaf1c95cc1645fde771f43bb8d4169c466984d8d5bc277c20",
+      "resource_units": 161,
+      "scenario": "operator_resolved_inconclusive"
+    },
+    {
+      "cohort": "same_model_separate_context",
+      "confidence": 0.73,
+      "expected": "finding",
+      "latency_ms": 176,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:4749731a88602e8ddf394eb41c7dda98d8194ad29d23be37072b07029bf516f0",
+      "replay_repeat_hash": "sha256:4749731a88602e8ddf394eb41c7dda98d8194ad29d23be37072b07029bf516f0",
+      "resource_units": 162,
+      "scenario": "cross_domain_obligation_compilation"
+    },
+    {
+      "cohort": "same_model_separate_context",
+      "confidence": 0.52,
+      "expected": "finding",
+      "latency_ms": 177,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:3c73b62b4077f1d595a5ee9c17292854aec35bfc21b78402b211376ee728a4c5",
+      "replay_repeat_hash": "sha256:3c73b62b4077f1d595a5ee9c17292854aec35bfc21b78402b211376ee728a4c5",
+      "resource_units": 160,
+      "scenario": "temporal_calendar_error_detection"
+    },
+    {
+      "cohort": "same_model_separate_context",
+      "confidence": 0.73,
+      "expected": "finding",
+      "latency_ms": 178,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:c1c9927c739d894265f1891f4340db7826eb81d03607f3215972c4d00ff262ca",
+      "replay_repeat_hash": "sha256:c1c9927c739d894265f1891f4340db7826eb81d03607f3215972c4d00ff262ca",
+      "resource_units": 161,
+      "scenario": "unsupported_estimate_refusal"
+    },
+    {
+      "cohort": "same_model_separate_context",
+      "confidence": 0.73,
+      "expected": "finding",
+      "latency_ms": 175,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:be2598d0146d45aae1098b520fe02a5adf1c37fc3ce93062c6c2e9ddf78c36c5",
+      "replay_repeat_hash": "sha256:be2598d0146d45aae1098b520fe02a5adf1c37fc3ce93062c6c2e9ddf78c36c5",
+      "resource_units": 162,
+      "scenario": "information_set_leakage_detection"
+    },
+    {
+      "cohort": "same_model_separate_context",
+      "confidence": 0.52,
+      "expected": "finding",
+      "latency_ms": 176,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:dcd7c0b4a1b733ff5738b7ffc1481a0a7be04365f730ca0c3afe122c4cefddc6",
+      "replay_repeat_hash": "sha256:dcd7c0b4a1b733ff5738b7ffc1481a0a7be04365f730ca0c3afe122c4cefddc6",
+      "resource_units": 160,
+      "scenario": "dependent_source_detection"
+    },
+    {
+      "cohort": "same_model_separate_context",
+      "confidence": 0.73,
+      "expected": "finding",
+      "latency_ms": 177,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:eb40d5392b15f94d03a116646a16f43cf04550d503f54e12f172b9551aa85844",
+      "replay_repeat_hash": "sha256:eb40d5392b15f94d03a116646a16f43cf04550d503f54e12f172b9551aa85844",
+      "resource_units": 161,
+      "scenario": "invalid_causal_learning_blocked"
+    },
+    {
+      "cohort": "same_model_separate_context",
+      "confidence": 0.73,
+      "expected": "finding",
+      "latency_ms": 178,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:1109f28d2cac4b9c2d2cc491c7bf2860c6d484ea0d28c6de92debf3dcee730af",
+      "replay_repeat_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "resource_units": 162,
+      "scenario": "negative_transfer_narrows_learning"
+    },
+    {
+      "cohort": "same_model_separate_context",
+      "confidence": 0.73,
+      "expected": "clear",
+      "latency_ms": 175,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:e7bed9bb369881d5c0139b96c9b6b6f86359402a80e8c73b79b958ae87012a53",
+      "replay_repeat_hash": "sha256:e7bed9bb369881d5c0139b96c9b6b6f86359402a80e8c73b79b958ae87012a53",
+      "resource_units": 160,
+      "scenario": "presentation_only_vertical_avoids_ontology"
+    },
+    {
+      "cohort": "same_model_separate_context",
+      "confidence": 0.52,
+      "expected": "finding",
+      "latency_ms": 176,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:3b1b52d83b14e10a1426864ba1c2525854c23af7b8cd0c4b5f74be14bbd27df2",
+      "replay_repeat_hash": "sha256:3b1b52d83b14e10a1426864ba1c2525854c23af7b8cd0c4b5f74be14bbd27df2",
+      "resource_units": 161,
+      "scenario": "semantic_vertical_activates_packs"
+    },
+    {
+      "cohort": "same_model_separate_context",
+      "confidence": 0.73,
+      "expected": "finding",
+      "latency_ms": 177,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:4d726e09649f002dfaf6bcdddae7026dfcf39a933bc67597ef099b414b776529",
+      "replay_repeat_hash": "sha256:4d726e09649f002dfaf6bcdddae7026dfcf39a933bc67597ef099b414b776529",
+      "resource_units": 162,
+      "scenario": "pack_conflict_blocks"
+    },
+    {
+      "cohort": "same_model_separate_context",
+      "confidence": 0.73,
+      "expected": "finding",
+      "latency_ms": 178,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:48ac3ed5dd6fa22a867bb3f93b0411471aecf59209248442771b6fa2b1c6e083",
+      "replay_repeat_hash": "sha256:48ac3ed5dd6fa22a867bb3f93b0411471aecf59209248442771b6fa2b1c6e083",
+      "resource_units": 160,
+      "scenario": "snapshot_change_invalidates_pass"
+    },
+    {
+      "cohort": "same_model_separate_context",
+      "confidence": 0.52,
+      "expected": "finding",
+      "latency_ms": 175,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:eb23ba81226501d9334e5f62d8851a1bc8836a91d7eaa367f2103897ee8424a5",
+      "replay_repeat_hash": "sha256:eb23ba81226501d9334e5f62d8851a1bc8836a91d7eaa367f2103897ee8424a5",
+      "resource_units": 161,
+      "scenario": "rerouting_after_new_risk"
+    },
+    {
+      "cohort": "same_model_separate_context",
+      "confidence": 0.73,
+      "expected": "finding",
+      "latency_ms": 176,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:ea67c874600fe98ec171f57398f68ef4a942ee06fe15259147d475b26f4d6bb3",
+      "replay_repeat_hash": "sha256:ea67c874600fe98ec171f57398f68ef4a942ee06fe15259147d475b26f4d6bb3",
+      "resource_units": 162,
+      "scenario": "full_replay_and_migration"
+    },
+    {
+      "cohort": "same_model_separate_context",
+      "confidence": 0.73,
+      "expected": "finding",
+      "latency_ms": 177,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:a67a69a7c62c152d68f8290d686ec0f8a388ca0992a30305d514e2f54570ac8c",
+      "replay_repeat_hash": "sha256:a67a69a7c62c152d68f8290d686ec0f8a388ca0992a30305d514e2f54570ac8c",
+      "resource_units": 160,
+      "scenario": "unmapped_normative_clause_blocks"
+    },
+    {
+      "cohort": "same_model_separate_context",
+      "confidence": 0.52,
+      "expected": "finding",
+      "latency_ms": 178,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:fcc27515510e93b79ea5c04610b4691858f2b9a6e58c525be014b5ec40f3af25",
+      "replay_repeat_hash": "sha256:fcc27515510e93b79ea5c04610b4691858f2b9a6e58c525be014b5ec40f3af25",
+      "resource_units": 161,
+      "scenario": "forbidden_placeholder_detection"
+    },
+    {
+      "cohort": "same_model_separate_context",
+      "confidence": 0.73,
+      "expected": "finding",
+      "latency_ms": 175,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:3533c24b05cba8db2146829b7022f0bfb94c05053ea73261e9bcd4dd48a45389",
+      "replay_repeat_hash": "sha256:3533c24b05cba8db2146829b7022f0bfb94c05053ea73261e9bcd4dd48a45389",
+      "resource_units": 162,
+      "scenario": "blocked_row_parent_closure"
+    },
+    {
+      "cohort": "same_model_separate_context",
+      "confidence": 0.73,
+      "expected": "finding",
+      "latency_ms": 176,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:51627143be5ae6b62ad9a9bc5eedc21228a6b1e508bb7a32557765c8fc4326b7",
+      "replay_repeat_hash": "sha256:51627143be5ae6b62ad9a9bc5eedc21228a6b1e508bb7a32557765c8fc4326b7",
+      "resource_units": 160,
+      "scenario": "unsupported_not_applicable_rejected"
+    },
+    {
+      "cohort": "same_model_separate_context",
+      "confidence": 0.73,
+      "expected": "finding",
+      "latency_ms": 177,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:d59e3a0b2e63a9d981b088b20e91b4cb7b978d5886bfcd5f405653d80e62a22c",
+      "replay_repeat_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "resource_units": 161,
+      "scenario": "partial_client_parity_rejected"
+    },
+    {
+      "cohort": "same_model_separate_context",
+      "confidence": 0.52,
+      "expected": "finding",
+      "latency_ms": 178,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:667447391f3670b49ce01ef0e1a4997e75b60e1c79b320caecc6476bad2706c1",
+      "replay_repeat_hash": "sha256:667447391f3670b49ce01ef0e1a4997e75b60e1c79b320caecc6476bad2706c1",
+      "resource_units": 162,
+      "scenario": "unknown_impact_blocks_promotion"
+    },
+    {
+      "cohort": "same_model_separate_context",
+      "confidence": 0.73,
+      "expected": "finding",
+      "latency_ms": 175,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:dcececc0337c4d131ccb84eb21e581dc86a2ae354cde8d6162c7f7bcc5d9dea0",
+      "replay_repeat_hash": "sha256:dcececc0337c4d131ccb84eb21e581dc86a2ae354cde8d6162c7f7bcc5d9dea0",
+      "resource_units": 160,
+      "scenario": "runtime_variance_rejection"
+    },
+    {
+      "cohort": "cross_family_verification",
+      "confidence": 0.49,
+      "expected": "finding",
+      "latency_ms": 190,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:5459536272e342c5631f6476186d98275a1e41212b402c931e5295888dd31dc1",
+      "replay_repeat_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "resource_units": 175,
+      "scenario": "domain_specific_defect_prevention"
+    },
+    {
+      "cohort": "cross_family_verification",
+      "confidence": 0.785,
+      "expected": "clear",
+      "latency_ms": 191,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:3d9468ae2d6024369eec62b0c9a9947813fc4135a8dbe578b46b6b44201f5b10",
+      "replay_repeat_hash": "sha256:3d9468ae2d6024369eec62b0c9a9947813fc4135a8dbe578b46b6b44201f5b10",
+      "resource_units": 176,
+      "scenario": "false_finding_rejection"
+    },
+    {
+      "cohort": "cross_family_verification",
+      "confidence": 0.785,
+      "expected": "finding",
+      "latency_ms": 192,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:07eafc35f6bd045007414c03801268281ee11b26ca2503dff93843efded735d4",
+      "replay_repeat_hash": "sha256:07eafc35f6bd045007414c03801268281ee11b26ca2503dff93843efded735d4",
+      "resource_units": 177,
+      "scenario": "repair_and_reverification"
+    },
+    {
+      "cohort": "cross_family_verification",
+      "confidence": 0.785,
+      "expected": "finding",
+      "latency_ms": 193,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:a1c0a9fd20a426c3fd58a6780181d4e973f72d0a114c69dd38505475553d60b3",
+      "replay_repeat_hash": "sha256:a1c0a9fd20a426c3fd58a6780181d4e973f72d0a114c69dd38505475553d60b3",
+      "resource_units": 175,
+      "scenario": "fail_closed_outage"
+    },
+    {
+      "cohort": "cross_family_verification",
+      "confidence": 0.785,
+      "expected": "finding",
+      "latency_ms": 190,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:e43d294781b5bdbaaf1c95cc1645fde771f43bb8d4169c466984d8d5bc277c20",
+      "replay_repeat_hash": "sha256:e43d294781b5bdbaaf1c95cc1645fde771f43bb8d4169c466984d8d5bc277c20",
+      "resource_units": 176,
+      "scenario": "operator_resolved_inconclusive"
+    },
+    {
+      "cohort": "cross_family_verification",
+      "confidence": 0.785,
+      "expected": "finding",
+      "latency_ms": 191,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:4749731a88602e8ddf394eb41c7dda98d8194ad29d23be37072b07029bf516f0",
+      "replay_repeat_hash": "sha256:4749731a88602e8ddf394eb41c7dda98d8194ad29d23be37072b07029bf516f0",
+      "resource_units": 177,
+      "scenario": "cross_domain_obligation_compilation"
+    },
+    {
+      "cohort": "cross_family_verification",
+      "confidence": 0.785,
+      "expected": "finding",
+      "latency_ms": 192,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:68904e714b0ace5bdb945838270715341b6831760c679fbc3299add8c54e0ede",
+      "replay_repeat_hash": "sha256:68904e714b0ace5bdb945838270715341b6831760c679fbc3299add8c54e0ede",
+      "resource_units": 175,
+      "scenario": "temporal_calendar_error_detection"
+    },
+    {
+      "cohort": "cross_family_verification",
+      "confidence": 0.49,
+      "expected": "finding",
+      "latency_ms": 193,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:f22812316a229eeaaaeb488df35c641c66ba56a2f8113ad525f8ccb02b18a394",
+      "replay_repeat_hash": "sha256:f22812316a229eeaaaeb488df35c641c66ba56a2f8113ad525f8ccb02b18a394",
+      "resource_units": 176,
+      "scenario": "unsupported_estimate_refusal"
+    },
+    {
+      "cohort": "cross_family_verification",
+      "confidence": 0.785,
+      "expected": "finding",
+      "latency_ms": 190,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:be2598d0146d45aae1098b520fe02a5adf1c37fc3ce93062c6c2e9ddf78c36c5",
+      "replay_repeat_hash": "sha256:be2598d0146d45aae1098b520fe02a5adf1c37fc3ce93062c6c2e9ddf78c36c5",
+      "resource_units": 177,
+      "scenario": "information_set_leakage_detection"
+    },
+    {
+      "cohort": "cross_family_verification",
+      "confidence": 0.785,
+      "expected": "finding",
+      "latency_ms": 191,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:610f91b8db663cb83c957bbb0ff4c8ae9ac752e53a3e3db457b8060fd485a9d4",
+      "replay_repeat_hash": "sha256:610f91b8db663cb83c957bbb0ff4c8ae9ac752e53a3e3db457b8060fd485a9d4",
+      "resource_units": 175,
+      "scenario": "dependent_source_detection"
+    },
+    {
+      "cohort": "cross_family_verification",
+      "confidence": 0.49,
+      "expected": "finding",
+      "latency_ms": 192,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:eb55c971d77ac37893ae68827b40d38e2e7a20e09fbf431756d8df031bd6c780",
+      "replay_repeat_hash": "sha256:eb55c971d77ac37893ae68827b40d38e2e7a20e09fbf431756d8df031bd6c780",
+      "resource_units": 176,
+      "scenario": "invalid_causal_learning_blocked"
+    },
+    {
+      "cohort": "cross_family_verification",
+      "confidence": 0.785,
+      "expected": "finding",
+      "latency_ms": 193,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:1109f28d2cac4b9c2d2cc491c7bf2860c6d484ea0d28c6de92debf3dcee730af",
+      "replay_repeat_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "resource_units": 177,
+      "scenario": "negative_transfer_narrows_learning"
+    },
+    {
+      "cohort": "cross_family_verification",
+      "confidence": 0.785,
+      "expected": "clear",
+      "latency_ms": 190,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:e7bed9bb369881d5c0139b96c9b6b6f86359402a80e8c73b79b958ae87012a53",
+      "replay_repeat_hash": "sha256:e7bed9bb369881d5c0139b96c9b6b6f86359402a80e8c73b79b958ae87012a53",
+      "resource_units": 175,
+      "scenario": "presentation_only_vertical_avoids_ontology"
+    },
+    {
+      "cohort": "cross_family_verification",
+      "confidence": 0.785,
+      "expected": "finding",
+      "latency_ms": 191,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:e2f55297a88ed3da0e7072e74b934aa41d1c61d5cce151b4d24af97e0469c9d2",
+      "replay_repeat_hash": "sha256:e2f55297a88ed3da0e7072e74b934aa41d1c61d5cce151b4d24af97e0469c9d2",
+      "resource_units": 176,
+      "scenario": "semantic_vertical_activates_packs"
+    },
+    {
+      "cohort": "cross_family_verification",
+      "confidence": 0.785,
+      "expected": "finding",
+      "latency_ms": 192,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:4d726e09649f002dfaf6bcdddae7026dfcf39a933bc67597ef099b414b776529",
+      "replay_repeat_hash": "sha256:4d726e09649f002dfaf6bcdddae7026dfcf39a933bc67597ef099b414b776529",
+      "resource_units": 177,
+      "scenario": "pack_conflict_blocks"
+    },
+    {
+      "cohort": "cross_family_verification",
+      "confidence": 0.785,
+      "expected": "finding",
+      "latency_ms": 193,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:48ac3ed5dd6fa22a867bb3f93b0411471aecf59209248442771b6fa2b1c6e083",
+      "replay_repeat_hash": "sha256:48ac3ed5dd6fa22a867bb3f93b0411471aecf59209248442771b6fa2b1c6e083",
+      "resource_units": 175,
+      "scenario": "snapshot_change_invalidates_pass"
+    },
+    {
+      "cohort": "cross_family_verification",
+      "confidence": 0.785,
+      "expected": "finding",
+      "latency_ms": 190,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:1fe82518e72e7d8aa0be3c8826dd54f734eb844b3c77dedb6972ed3488690674",
+      "replay_repeat_hash": "sha256:1fe82518e72e7d8aa0be3c8826dd54f734eb844b3c77dedb6972ed3488690674",
+      "resource_units": 176,
+      "scenario": "rerouting_after_new_risk"
+    },
+    {
+      "cohort": "cross_family_verification",
+      "confidence": 0.49,
+      "expected": "finding",
+      "latency_ms": 191,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:8e7a8e7a2721681d2e8210da0a86a8402783627862f3772de8d6782d1c21bf02",
+      "replay_repeat_hash": "sha256:8e7a8e7a2721681d2e8210da0a86a8402783627862f3772de8d6782d1c21bf02",
+      "resource_units": 177,
+      "scenario": "full_replay_and_migration"
+    },
+    {
+      "cohort": "cross_family_verification",
+      "confidence": 0.785,
+      "expected": "finding",
+      "latency_ms": 192,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:a67a69a7c62c152d68f8290d686ec0f8a388ca0992a30305d514e2f54570ac8c",
+      "replay_repeat_hash": "sha256:a67a69a7c62c152d68f8290d686ec0f8a388ca0992a30305d514e2f54570ac8c",
+      "resource_units": 175,
+      "scenario": "unmapped_normative_clause_blocks"
+    },
+    {
+      "cohort": "cross_family_verification",
+      "confidence": 0.785,
+      "expected": "finding",
+      "latency_ms": 193,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:572c500c2bbf9c4288dc44a8cfbaca083d269321c3588e57270435e2953880bc",
+      "replay_repeat_hash": "sha256:572c500c2bbf9c4288dc44a8cfbaca083d269321c3588e57270435e2953880bc",
+      "resource_units": 176,
+      "scenario": "forbidden_placeholder_detection"
+    },
+    {
+      "cohort": "cross_family_verification",
+      "confidence": 0.49,
+      "expected": "finding",
+      "latency_ms": 190,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:466a49b385ff903a60fcf26ff7b34d89d90c922f779b2c6dfd1ddf7e45c7d766",
+      "replay_repeat_hash": "sha256:466a49b385ff903a60fcf26ff7b34d89d90c922f779b2c6dfd1ddf7e45c7d766",
+      "resource_units": 177,
+      "scenario": "blocked_row_parent_closure"
+    },
+    {
+      "cohort": "cross_family_verification",
+      "confidence": 0.785,
+      "expected": "finding",
+      "latency_ms": 191,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:51627143be5ae6b62ad9a9bc5eedc21228a6b1e508bb7a32557765c8fc4326b7",
+      "replay_repeat_hash": "sha256:51627143be5ae6b62ad9a9bc5eedc21228a6b1e508bb7a32557765c8fc4326b7",
+      "resource_units": 175,
+      "scenario": "unsupported_not_applicable_rejected"
+    },
+    {
+      "cohort": "cross_family_verification",
+      "confidence": 0.785,
+      "expected": "finding",
+      "latency_ms": 192,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:d59e3a0b2e63a9d981b088b20e91b4cb7b978d5886bfcd5f405653d80e62a22c",
+      "replay_repeat_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "resource_units": 176,
+      "scenario": "partial_client_parity_rejected"
+    },
+    {
+      "cohort": "cross_family_verification",
+      "confidence": 0.785,
+      "expected": "finding",
+      "latency_ms": 193,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:ca504a1a166bc2b2427bccc1cad5a897945d6a3dbdf9b5629d20a790143b6078",
+      "replay_repeat_hash": "sha256:ca504a1a166bc2b2427bccc1cad5a897945d6a3dbdf9b5629d20a790143b6078",
+      "resource_units": 177,
+      "scenario": "unknown_impact_blocks_promotion"
+    },
+    {
+      "cohort": "cross_family_verification",
+      "confidence": 0.785,
+      "expected": "finding",
+      "latency_ms": 190,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:dcececc0337c4d131ccb84eb21e581dc86a2ae354cde8d6162c7f7bcc5d9dea0",
+      "replay_repeat_hash": "sha256:dcececc0337c4d131ccb84eb21e581dc86a2ae354cde8d6162c7f7bcc5d9dea0",
+      "resource_units": 175,
+      "scenario": "runtime_variance_rejection"
+    },
+    {
+      "cohort": "deterministic_model_verification",
+      "confidence": 0.84,
+      "expected": "finding",
+      "latency_ms": 110,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:55b74b59a9bc4bd874f5cf44faa43490981773c7d3686efd3886e8e9109454c0",
+      "replay_repeat_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "resource_units": 96,
+      "scenario": "domain_specific_defect_prevention"
+    },
+    {
+      "cohort": "deterministic_model_verification",
+      "confidence": 0.46,
+      "expected": "clear",
+      "latency_ms": 111,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:0ad70d0c488c458f7cceefbb30bd161727c6240769fb7dff166d45e053eb39cc",
+      "replay_repeat_hash": "sha256:0ad70d0c488c458f7cceefbb30bd161727c6240769fb7dff166d45e053eb39cc",
+      "resource_units": 97,
+      "scenario": "false_finding_rejection"
+    },
+    {
+      "cohort": "deterministic_model_verification",
+      "confidence": 0.84,
+      "expected": "finding",
+      "latency_ms": 112,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:07eafc35f6bd045007414c03801268281ee11b26ca2503dff93843efded735d4",
+      "replay_repeat_hash": "sha256:07eafc35f6bd045007414c03801268281ee11b26ca2503dff93843efded735d4",
+      "resource_units": 98,
+      "scenario": "repair_and_reverification"
+    },
+    {
+      "cohort": "deterministic_model_verification",
+      "confidence": 0.84,
+      "expected": "finding",
+      "latency_ms": 113,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:a1c0a9fd20a426c3fd58a6780181d4e973f72d0a114c69dd38505475553d60b3",
+      "replay_repeat_hash": "sha256:a1c0a9fd20a426c3fd58a6780181d4e973f72d0a114c69dd38505475553d60b3",
+      "resource_units": 96,
+      "scenario": "fail_closed_outage"
+    },
+    {
+      "cohort": "deterministic_model_verification",
+      "confidence": 0.84,
+      "expected": "finding",
+      "latency_ms": 110,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:e43d294781b5bdbaaf1c95cc1645fde771f43bb8d4169c466984d8d5bc277c20",
+      "replay_repeat_hash": "sha256:e43d294781b5bdbaaf1c95cc1645fde771f43bb8d4169c466984d8d5bc277c20",
+      "resource_units": 97,
+      "scenario": "operator_resolved_inconclusive"
+    },
+    {
+      "cohort": "deterministic_model_verification",
+      "confidence": 0.84,
+      "expected": "finding",
+      "latency_ms": 111,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:4749731a88602e8ddf394eb41c7dda98d8194ad29d23be37072b07029bf516f0",
+      "replay_repeat_hash": "sha256:4749731a88602e8ddf394eb41c7dda98d8194ad29d23be37072b07029bf516f0",
+      "resource_units": 98,
+      "scenario": "cross_domain_obligation_compilation"
+    },
+    {
+      "cohort": "deterministic_model_verification",
+      "confidence": 0.84,
+      "expected": "finding",
+      "latency_ms": 112,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:68904e714b0ace5bdb945838270715341b6831760c679fbc3299add8c54e0ede",
+      "replay_repeat_hash": "sha256:68904e714b0ace5bdb945838270715341b6831760c679fbc3299add8c54e0ede",
+      "resource_units": 96,
+      "scenario": "temporal_calendar_error_detection"
+    },
+    {
+      "cohort": "deterministic_model_verification",
+      "confidence": 0.84,
+      "expected": "finding",
+      "latency_ms": 113,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:c1c9927c739d894265f1891f4340db7826eb81d03607f3215972c4d00ff262ca",
+      "replay_repeat_hash": "sha256:c1c9927c739d894265f1891f4340db7826eb81d03607f3215972c4d00ff262ca",
+      "resource_units": 97,
+      "scenario": "unsupported_estimate_refusal"
+    },
+    {
+      "cohort": "deterministic_model_verification",
+      "confidence": 0.84,
+      "expected": "finding",
+      "latency_ms": 110,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:be2598d0146d45aae1098b520fe02a5adf1c37fc3ce93062c6c2e9ddf78c36c5",
+      "replay_repeat_hash": "sha256:be2598d0146d45aae1098b520fe02a5adf1c37fc3ce93062c6c2e9ddf78c36c5",
+      "resource_units": 98,
+      "scenario": "information_set_leakage_detection"
+    },
+    {
+      "cohort": "deterministic_model_verification",
+      "confidence": 0.84,
+      "expected": "finding",
+      "latency_ms": 111,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:610f91b8db663cb83c957bbb0ff4c8ae9ac752e53a3e3db457b8060fd485a9d4",
+      "replay_repeat_hash": "sha256:610f91b8db663cb83c957bbb0ff4c8ae9ac752e53a3e3db457b8060fd485a9d4",
+      "resource_units": 96,
+      "scenario": "dependent_source_detection"
+    },
+    {
+      "cohort": "deterministic_model_verification",
+      "confidence": 0.84,
+      "expected": "finding",
+      "latency_ms": 112,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:eb40d5392b15f94d03a116646a16f43cf04550d503f54e12f172b9551aa85844",
+      "replay_repeat_hash": "sha256:eb40d5392b15f94d03a116646a16f43cf04550d503f54e12f172b9551aa85844",
+      "resource_units": 97,
+      "scenario": "invalid_causal_learning_blocked"
+    },
+    {
+      "cohort": "deterministic_model_verification",
+      "confidence": 0.46,
+      "expected": "finding",
+      "latency_ms": 113,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:46d675df042f329d8da809f9c098a4927ae270d08b049579eb2e79e4f1689571",
+      "replay_repeat_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "resource_units": 98,
+      "scenario": "negative_transfer_narrows_learning"
+    },
+    {
+      "cohort": "deterministic_model_verification",
+      "confidence": 0.84,
+      "expected": "clear",
+      "latency_ms": 110,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:e7bed9bb369881d5c0139b96c9b6b6f86359402a80e8c73b79b958ae87012a53",
+      "replay_repeat_hash": "sha256:e7bed9bb369881d5c0139b96c9b6b6f86359402a80e8c73b79b958ae87012a53",
+      "resource_units": 96,
+      "scenario": "presentation_only_vertical_avoids_ontology"
+    },
+    {
+      "cohort": "deterministic_model_verification",
+      "confidence": 0.84,
+      "expected": "finding",
+      "latency_ms": 111,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:e2f55297a88ed3da0e7072e74b934aa41d1c61d5cce151b4d24af97e0469c9d2",
+      "replay_repeat_hash": "sha256:e2f55297a88ed3da0e7072e74b934aa41d1c61d5cce151b4d24af97e0469c9d2",
+      "resource_units": 97,
+      "scenario": "semantic_vertical_activates_packs"
+    },
+    {
+      "cohort": "deterministic_model_verification",
+      "confidence": 0.84,
+      "expected": "finding",
+      "latency_ms": 112,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:4d726e09649f002dfaf6bcdddae7026dfcf39a933bc67597ef099b414b776529",
+      "replay_repeat_hash": "sha256:4d726e09649f002dfaf6bcdddae7026dfcf39a933bc67597ef099b414b776529",
+      "resource_units": 98,
+      "scenario": "pack_conflict_blocks"
+    },
+    {
+      "cohort": "deterministic_model_verification",
+      "confidence": 0.84,
+      "expected": "finding",
+      "latency_ms": 113,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:48ac3ed5dd6fa22a867bb3f93b0411471aecf59209248442771b6fa2b1c6e083",
+      "replay_repeat_hash": "sha256:48ac3ed5dd6fa22a867bb3f93b0411471aecf59209248442771b6fa2b1c6e083",
+      "resource_units": 96,
+      "scenario": "snapshot_change_invalidates_pass"
+    },
+    {
+      "cohort": "deterministic_model_verification",
+      "confidence": 0.84,
+      "expected": "finding",
+      "latency_ms": 110,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:1fe82518e72e7d8aa0be3c8826dd54f734eb844b3c77dedb6972ed3488690674",
+      "replay_repeat_hash": "sha256:1fe82518e72e7d8aa0be3c8826dd54f734eb844b3c77dedb6972ed3488690674",
+      "resource_units": 97,
+      "scenario": "rerouting_after_new_risk"
+    },
+    {
+      "cohort": "deterministic_model_verification",
+      "confidence": 0.84,
+      "expected": "finding",
+      "latency_ms": 111,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:ea67c874600fe98ec171f57398f68ef4a942ee06fe15259147d475b26f4d6bb3",
+      "replay_repeat_hash": "sha256:ea67c874600fe98ec171f57398f68ef4a942ee06fe15259147d475b26f4d6bb3",
+      "resource_units": 98,
+      "scenario": "full_replay_and_migration"
+    },
+    {
+      "cohort": "deterministic_model_verification",
+      "confidence": 0.84,
+      "expected": "finding",
+      "latency_ms": 112,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:a67a69a7c62c152d68f8290d686ec0f8a388ca0992a30305d514e2f54570ac8c",
+      "replay_repeat_hash": "sha256:a67a69a7c62c152d68f8290d686ec0f8a388ca0992a30305d514e2f54570ac8c",
+      "resource_units": 96,
+      "scenario": "unmapped_normative_clause_blocks"
+    },
+    {
+      "cohort": "deterministic_model_verification",
+      "confidence": 0.84,
+      "expected": "finding",
+      "latency_ms": 113,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:572c500c2bbf9c4288dc44a8cfbaca083d269321c3588e57270435e2953880bc",
+      "replay_repeat_hash": "sha256:572c500c2bbf9c4288dc44a8cfbaca083d269321c3588e57270435e2953880bc",
+      "resource_units": 97,
+      "scenario": "forbidden_placeholder_detection"
+    },
+    {
+      "cohort": "deterministic_model_verification",
+      "confidence": 0.84,
+      "expected": "finding",
+      "latency_ms": 110,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:3533c24b05cba8db2146829b7022f0bfb94c05053ea73261e9bcd4dd48a45389",
+      "replay_repeat_hash": "sha256:3533c24b05cba8db2146829b7022f0bfb94c05053ea73261e9bcd4dd48a45389",
+      "resource_units": 98,
+      "scenario": "blocked_row_parent_closure"
+    },
+    {
+      "cohort": "deterministic_model_verification",
+      "confidence": 0.46,
+      "expected": "finding",
+      "latency_ms": 111,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:778f3e70b7f56e74ac27f012d6b7c5d527164c69faba08d180015b41e4c82c05",
+      "replay_repeat_hash": "sha256:778f3e70b7f56e74ac27f012d6b7c5d527164c69faba08d180015b41e4c82c05",
+      "resource_units": 96,
+      "scenario": "unsupported_not_applicable_rejected"
+    },
+    {
+      "cohort": "deterministic_model_verification",
+      "confidence": 0.84,
+      "expected": "finding",
+      "latency_ms": 112,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:d59e3a0b2e63a9d981b088b20e91b4cb7b978d5886bfcd5f405653d80e62a22c",
+      "replay_repeat_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "resource_units": 97,
+      "scenario": "partial_client_parity_rejected"
+    },
+    {
+      "cohort": "deterministic_model_verification",
+      "confidence": 0.84,
+      "expected": "finding",
+      "latency_ms": 113,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:ca504a1a166bc2b2427bccc1cad5a897945d6a3dbdf9b5629d20a790143b6078",
+      "replay_repeat_hash": "sha256:ca504a1a166bc2b2427bccc1cad5a897945d6a3dbdf9b5629d20a790143b6078",
+      "resource_units": 98,
+      "scenario": "unknown_impact_blocks_promotion"
+    },
+    {
+      "cohort": "deterministic_model_verification",
+      "confidence": 0.84,
+      "expected": "finding",
+      "latency_ms": 110,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:dcececc0337c4d131ccb84eb21e581dc86a2ae354cde8d6162c7f7bcc5d9dea0",
+      "replay_repeat_hash": "sha256:dcececc0337c4d131ccb84eb21e581dc86a2ae354cde8d6162c7f7bcc5d9dea0",
+      "resource_units": 96,
+      "scenario": "runtime_variance_rejection"
+    },
+    {
+      "cohort": "multi_aspect_portfolio",
+      "confidence": 0.895,
+      "expected": "finding",
+      "latency_ms": 95,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:55b74b59a9bc4bd874f5cf44faa43490981773c7d3686efd3886e8e9109454c0",
+      "replay_repeat_hash": "sha256:55b74b59a9bc4bd874f5cf44faa43490981773c7d3686efd3886e8e9109454c0",
+      "resource_units": 82,
+      "scenario": "domain_specific_defect_prevention"
+    },
+    {
+      "cohort": "multi_aspect_portfolio",
+      "confidence": 0.895,
+      "expected": "clear",
+      "latency_ms": 96,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:3d9468ae2d6024369eec62b0c9a9947813fc4135a8dbe578b46b6b44201f5b10",
+      "replay_repeat_hash": "sha256:3d9468ae2d6024369eec62b0c9a9947813fc4135a8dbe578b46b6b44201f5b10",
+      "resource_units": 83,
+      "scenario": "false_finding_rejection"
+    },
+    {
+      "cohort": "multi_aspect_portfolio",
+      "confidence": 0.895,
+      "expected": "finding",
+      "latency_ms": 97,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:07eafc35f6bd045007414c03801268281ee11b26ca2503dff93843efded735d4",
+      "replay_repeat_hash": "sha256:07eafc35f6bd045007414c03801268281ee11b26ca2503dff93843efded735d4",
+      "resource_units": 84,
+      "scenario": "repair_and_reverification"
+    },
+    {
+      "cohort": "multi_aspect_portfolio",
+      "confidence": 0.895,
+      "expected": "finding",
+      "latency_ms": 98,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:a1c0a9fd20a426c3fd58a6780181d4e973f72d0a114c69dd38505475553d60b3",
+      "replay_repeat_hash": "sha256:a1c0a9fd20a426c3fd58a6780181d4e973f72d0a114c69dd38505475553d60b3",
+      "resource_units": 82,
+      "scenario": "fail_closed_outage"
+    },
+    {
+      "cohort": "multi_aspect_portfolio",
+      "confidence": 0.895,
+      "expected": "finding",
+      "latency_ms": 95,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:e43d294781b5bdbaaf1c95cc1645fde771f43bb8d4169c466984d8d5bc277c20",
+      "replay_repeat_hash": "sha256:e43d294781b5bdbaaf1c95cc1645fde771f43bb8d4169c466984d8d5bc277c20",
+      "resource_units": 83,
+      "scenario": "operator_resolved_inconclusive"
+    },
+    {
+      "cohort": "multi_aspect_portfolio",
+      "confidence": 0.895,
+      "expected": "finding",
+      "latency_ms": 96,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:4749731a88602e8ddf394eb41c7dda98d8194ad29d23be37072b07029bf516f0",
+      "replay_repeat_hash": "sha256:4749731a88602e8ddf394eb41c7dda98d8194ad29d23be37072b07029bf516f0",
+      "resource_units": 84,
+      "scenario": "cross_domain_obligation_compilation"
+    },
+    {
+      "cohort": "multi_aspect_portfolio",
+      "confidence": 0.895,
+      "expected": "finding",
+      "latency_ms": 97,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:68904e714b0ace5bdb945838270715341b6831760c679fbc3299add8c54e0ede",
+      "replay_repeat_hash": "sha256:68904e714b0ace5bdb945838270715341b6831760c679fbc3299add8c54e0ede",
+      "resource_units": 82,
+      "scenario": "temporal_calendar_error_detection"
+    },
+    {
+      "cohort": "multi_aspect_portfolio",
+      "confidence": 0.895,
+      "expected": "finding",
+      "latency_ms": 98,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:c1c9927c739d894265f1891f4340db7826eb81d03607f3215972c4d00ff262ca",
+      "replay_repeat_hash": "sha256:c1c9927c739d894265f1891f4340db7826eb81d03607f3215972c4d00ff262ca",
+      "resource_units": 83,
+      "scenario": "unsupported_estimate_refusal"
+    },
+    {
+      "cohort": "multi_aspect_portfolio",
+      "confidence": 0.895,
+      "expected": "finding",
+      "latency_ms": 95,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:be2598d0146d45aae1098b520fe02a5adf1c37fc3ce93062c6c2e9ddf78c36c5",
+      "replay_repeat_hash": "sha256:be2598d0146d45aae1098b520fe02a5adf1c37fc3ce93062c6c2e9ddf78c36c5",
+      "resource_units": 84,
+      "scenario": "information_set_leakage_detection"
+    },
+    {
+      "cohort": "multi_aspect_portfolio",
+      "confidence": 0.895,
+      "expected": "finding",
+      "latency_ms": 96,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:610f91b8db663cb83c957bbb0ff4c8ae9ac752e53a3e3db457b8060fd485a9d4",
+      "replay_repeat_hash": "sha256:610f91b8db663cb83c957bbb0ff4c8ae9ac752e53a3e3db457b8060fd485a9d4",
+      "resource_units": 82,
+      "scenario": "dependent_source_detection"
+    },
+    {
+      "cohort": "multi_aspect_portfolio",
+      "confidence": 0.895,
+      "expected": "finding",
+      "latency_ms": 97,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:eb40d5392b15f94d03a116646a16f43cf04550d503f54e12f172b9551aa85844",
+      "replay_repeat_hash": "sha256:eb40d5392b15f94d03a116646a16f43cf04550d503f54e12f172b9551aa85844",
+      "resource_units": 83,
+      "scenario": "invalid_causal_learning_blocked"
+    },
+    {
+      "cohort": "multi_aspect_portfolio",
+      "confidence": 0.895,
+      "expected": "finding",
+      "latency_ms": 98,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:1109f28d2cac4b9c2d2cc491c7bf2860c6d484ea0d28c6de92debf3dcee730af",
+      "replay_repeat_hash": "sha256:1109f28d2cac4b9c2d2cc491c7bf2860c6d484ea0d28c6de92debf3dcee730af",
+      "resource_units": 84,
+      "scenario": "negative_transfer_narrows_learning"
+    },
+    {
+      "cohort": "multi_aspect_portfolio",
+      "confidence": 0.895,
+      "expected": "clear",
+      "latency_ms": 95,
+      "predicted": "clear",
+      "replay_output_hash": "sha256:e7bed9bb369881d5c0139b96c9b6b6f86359402a80e8c73b79b958ae87012a53",
+      "replay_repeat_hash": "sha256:e7bed9bb369881d5c0139b96c9b6b6f86359402a80e8c73b79b958ae87012a53",
+      "resource_units": 82,
+      "scenario": "presentation_only_vertical_avoids_ontology"
+    },
+    {
+      "cohort": "multi_aspect_portfolio",
+      "confidence": 0.895,
+      "expected": "finding",
+      "latency_ms": 96,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:e2f55297a88ed3da0e7072e74b934aa41d1c61d5cce151b4d24af97e0469c9d2",
+      "replay_repeat_hash": "sha256:e2f55297a88ed3da0e7072e74b934aa41d1c61d5cce151b4d24af97e0469c9d2",
+      "resource_units": 83,
+      "scenario": "semantic_vertical_activates_packs"
+    },
+    {
+      "cohort": "multi_aspect_portfolio",
+      "confidence": 0.895,
+      "expected": "finding",
+      "latency_ms": 97,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:4d726e09649f002dfaf6bcdddae7026dfcf39a933bc67597ef099b414b776529",
+      "replay_repeat_hash": "sha256:4d726e09649f002dfaf6bcdddae7026dfcf39a933bc67597ef099b414b776529",
+      "resource_units": 84,
+      "scenario": "pack_conflict_blocks"
+    },
+    {
+      "cohort": "multi_aspect_portfolio",
+      "confidence": 0.895,
+      "expected": "finding",
+      "latency_ms": 98,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:48ac3ed5dd6fa22a867bb3f93b0411471aecf59209248442771b6fa2b1c6e083",
+      "replay_repeat_hash": "sha256:48ac3ed5dd6fa22a867bb3f93b0411471aecf59209248442771b6fa2b1c6e083",
+      "resource_units": 82,
+      "scenario": "snapshot_change_invalidates_pass"
+    },
+    {
+      "cohort": "multi_aspect_portfolio",
+      "confidence": 0.895,
+      "expected": "finding",
+      "latency_ms": 95,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:1fe82518e72e7d8aa0be3c8826dd54f734eb844b3c77dedb6972ed3488690674",
+      "replay_repeat_hash": "sha256:1fe82518e72e7d8aa0be3c8826dd54f734eb844b3c77dedb6972ed3488690674",
+      "resource_units": 83,
+      "scenario": "rerouting_after_new_risk"
+    },
+    {
+      "cohort": "multi_aspect_portfolio",
+      "confidence": 0.895,
+      "expected": "finding",
+      "latency_ms": 96,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:ea67c874600fe98ec171f57398f68ef4a942ee06fe15259147d475b26f4d6bb3",
+      "replay_repeat_hash": "sha256:ea67c874600fe98ec171f57398f68ef4a942ee06fe15259147d475b26f4d6bb3",
+      "resource_units": 84,
+      "scenario": "full_replay_and_migration"
+    },
+    {
+      "cohort": "multi_aspect_portfolio",
+      "confidence": 0.895,
+      "expected": "finding",
+      "latency_ms": 97,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:a67a69a7c62c152d68f8290d686ec0f8a388ca0992a30305d514e2f54570ac8c",
+      "replay_repeat_hash": "sha256:a67a69a7c62c152d68f8290d686ec0f8a388ca0992a30305d514e2f54570ac8c",
+      "resource_units": 82,
+      "scenario": "unmapped_normative_clause_blocks"
+    },
+    {
+      "cohort": "multi_aspect_portfolio",
+      "confidence": 0.895,
+      "expected": "finding",
+      "latency_ms": 98,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:572c500c2bbf9c4288dc44a8cfbaca083d269321c3588e57270435e2953880bc",
+      "replay_repeat_hash": "sha256:572c500c2bbf9c4288dc44a8cfbaca083d269321c3588e57270435e2953880bc",
+      "resource_units": 83,
+      "scenario": "forbidden_placeholder_detection"
+    },
+    {
+      "cohort": "multi_aspect_portfolio",
+      "confidence": 0.895,
+      "expected": "finding",
+      "latency_ms": 95,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:3533c24b05cba8db2146829b7022f0bfb94c05053ea73261e9bcd4dd48a45389",
+      "replay_repeat_hash": "sha256:3533c24b05cba8db2146829b7022f0bfb94c05053ea73261e9bcd4dd48a45389",
+      "resource_units": 84,
+      "scenario": "blocked_row_parent_closure"
+    },
+    {
+      "cohort": "multi_aspect_portfolio",
+      "confidence": 0.895,
+      "expected": "finding",
+      "latency_ms": 96,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:51627143be5ae6b62ad9a9bc5eedc21228a6b1e508bb7a32557765c8fc4326b7",
+      "replay_repeat_hash": "sha256:51627143be5ae6b62ad9a9bc5eedc21228a6b1e508bb7a32557765c8fc4326b7",
+      "resource_units": 82,
+      "scenario": "unsupported_not_applicable_rejected"
+    },
+    {
+      "cohort": "multi_aspect_portfolio",
+      "confidence": 0.895,
+      "expected": "finding",
+      "latency_ms": 97,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:d59e3a0b2e63a9d981b088b20e91b4cb7b978d5886bfcd5f405653d80e62a22c",
+      "replay_repeat_hash": "sha256:d59e3a0b2e63a9d981b088b20e91b4cb7b978d5886bfcd5f405653d80e62a22c",
+      "resource_units": 83,
+      "scenario": "partial_client_parity_rejected"
+    },
+    {
+      "cohort": "multi_aspect_portfolio",
+      "confidence": 0.895,
+      "expected": "finding",
+      "latency_ms": 98,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:ca504a1a166bc2b2427bccc1cad5a897945d6a3dbdf9b5629d20a790143b6078",
+      "replay_repeat_hash": "sha256:ca504a1a166bc2b2427bccc1cad5a897945d6a3dbdf9b5629d20a790143b6078",
+      "resource_units": 84,
+      "scenario": "unknown_impact_blocks_promotion"
+    },
+    {
+      "cohort": "multi_aspect_portfolio",
+      "confidence": 0.895,
+      "expected": "finding",
+      "latency_ms": 95,
+      "predicted": "finding",
+      "replay_output_hash": "sha256:dcececc0337c4d131ccb84eb21e581dc86a2ae354cde8d6162c7f7bcc5d9dea0",
+      "replay_repeat_hash": "sha256:dcececc0337c4d131ccb84eb21e581dc86a2ae354cde8d6162c7f7bcc5d9dea0",
+      "resource_units": 82,
+      "scenario": "runtime_variance_rejection"
+    }
+  ],
+  "promotion": {
+    "candidate": "multi_aspect_portfolio",
+    "expected_eligible": true,
+    "expected_proof_sha256": "735f1ad5283698fab44608e811354f3e4c4c2ae9dd69abfd3226430c9e4ab009",
+    "thresholds": {
+      "blocking_failures_max": 0,
+      "calibration_ece_max": 0.05,
+      "coverage_min": 1.0,
+      "false_negative_rate_max": 0.01,
+      "false_positive_rate_max": 0.03,
+      "golden_pass_rate_min": 1.0,
+      "p95_latency_ms_max": 100,
+      "precision_min": 0.98,
+      "recall_min": 0.98,
+      "replay_equivalence_required": true,
+      "resource_units_max": 90
+    }
+  },
+  "scenarios": [
+    {
+      "class": "positive",
+      "expected_control": "block_and_report",
+      "id": "domain_specific_defect_prevention",
+      "input": "domain rule violated with linked evidence",
+      "mandatory": true,
+      "name": "domain specific defect prevention",
+      "requirements": [
+        "S144-28-G01"
+      ]
+    },
+    {
+      "class": "negative",
+      "expected_control": "reject_false_finding",
+      "id": "false_finding_rejection",
+      "input": "candidate finding contradicts authoritative source",
+      "mandatory": true,
+      "name": "false finding rejection",
+      "requirements": [
+        "S144-28-G02"
+      ]
+    },
+    {
+      "class": "positive",
+      "expected_control": "reverify_then_pass",
+      "id": "repair_and_reverification",
+      "input": "repair changes failed semantic row",
+      "mandatory": true,
+      "name": "repair and reverification",
+      "requirements": [
+        "S144-28-G03"
+      ]
+    },
+    {
+      "class": "positive",
+      "expected_control": "block",
+      "id": "fail_closed_outage",
+      "input": "required verifier is unavailable",
+      "mandatory": true,
+      "name": "fail closed outage",
+      "requirements": [
+        "S144-28-G04"
+      ]
+    },
+    {
+      "class": "positive",
+      "expected_control": "resolve_with_evidence",
+      "id": "operator_resolved_inconclusive",
+      "input": "operator supplies missing authoritative evidence",
+      "mandatory": true,
+      "name": "operator resolved inconclusive",
+      "requirements": [
+        "S144-28-G05"
+      ]
+    },
+    {
+      "class": "positive",
+      "expected_control": "compile_both",
+      "id": "cross_domain_obligation_compilation",
+      "input": "two domain packs impose compatible obligations",
+      "mandatory": true,
+      "name": "cross domain obligation compilation",
+      "requirements": [
+        "S144-28-G06"
+      ]
+    },
+    {
+      "class": "positive",
+      "expected_control": "reject_deadline",
+      "id": "temporal_calendar_error_detection",
+      "input": "deadline falls on excluded holiday",
+      "mandatory": true,
+      "name": "temporal calendar error detection",
+      "requirements": [
+        "S144-28-G07"
+      ]
+    },
+    {
+      "class": "positive",
+      "expected_control": "refuse_estimate",
+      "id": "unsupported_estimate_refusal",
+      "input": "estimate has no calibrated source",
+      "mandatory": true,
+      "name": "unsupported estimate refusal",
+      "requirements": [
+        "S144-28-G08"
+      ]
+    },
+    {
+      "class": "positive",
+      "expected_control": "block_leakage",
+      "id": "information_set_leakage_detection",
+      "input": "prediction uses post-cutoff evidence",
+      "mandatory": true,
+      "name": "information set leakage detection",
+      "requirements": [
+        "S144-28-G09"
+      ]
+    },
+    {
+      "class": "positive",
+      "expected_control": "mark_dependent",
+      "id": "dependent_source_detection",
+      "input": "two citations share one upstream source",
+      "mandatory": true,
+      "name": "dependent source detection",
+      "requirements": [
+        "S144-28-G10"
+      ]
+    },
+    {
+      "class": "positive",
+      "expected_control": "block_promotion",
+      "id": "invalid_causal_learning_blocked",
+      "input": "correlation is offered as causal learning",
+      "mandatory": true,
+      "name": "invalid causal learning blocked",
+      "requirements": [
+        "S144-28-G11"
+      ]
+    },
+    {
+      "class": "positive",
+      "expected_control": "narrow_scope",
+      "id": "negative_transfer_narrows_learning",
+      "input": "learning fails in destination domain",
+      "mandatory": true,
+      "name": "negative transfer narrows learning",
+      "requirements": [
+        "S144-28-G12"
+      ]
+    },
+    {
+      "class": "negative",
+      "expected_control": "skip_semantic_pack",
+      "id": "presentation_only_vertical_avoids_ontology",
+      "input": "change affects labels only",
+      "mandatory": true,
+      "name": "presentation only vertical avoids ontology",
+      "requirements": [
+        "S144-28-G13"
+      ]
+    },
+    {
+      "class": "positive",
+      "expected_control": "activate_semantic_pack",
+      "id": "semantic_vertical_activates_packs",
+      "input": "change alters domain meaning",
+      "mandatory": true,
+      "name": "semantic vertical activates packs",
+      "requirements": [
+        "S144-28-G14"
+      ]
+    },
+    {
+      "class": "positive",
+      "expected_control": "block_conflict",
+      "id": "pack_conflict_blocks",
+      "input": "active packs produce incompatible obligations",
+      "mandatory": true,
+      "name": "pack conflict blocks",
+      "requirements": [
+        "S144-28-G15"
+      ]
+    },
+    {
+      "class": "positive",
+      "expected_control": "invalidate_pass",
+      "id": "snapshot_change_invalidates_pass",
+      "input": "source snapshot hash changes after pass",
+      "mandatory": true,
+      "name": "snapshot change invalidates pass",
+      "requirements": [
+        "S144-28-G16"
+      ]
+    },
+    {
+      "class": "positive",
+      "expected_control": "reroute",
+      "id": "rerouting_after_new_risk",
+      "input": "new high-risk evidence arrives after routing",
+      "mandatory": true,
+      "name": "rerouting after new risk",
+      "requirements": [
+        "S144-28-G17"
+      ]
+    },
+    {
+      "class": "positive",
+      "expected_control": "require_identical_replay",
+      "id": "full_replay_and_migration",
+      "input": "migrated run replays complete source ledger",
+      "mandatory": true,
+      "name": "full replay and migration",
+      "requirements": [
+        "S144-28-G18"
+      ]
+    },
+    {
+      "class": "positive",
+      "expected_control": "block_unmapped",
+      "id": "unmapped_normative_clause_blocks",
+      "input": "normative clause has no requirement row",
+      "mandatory": true,
+      "name": "unmapped normative clause blocks",
+      "requirements": [
+        "S144-28-G19"
+      ]
+    },
+    {
+      "class": "positive",
+      "expected_control": "block_placeholder",
+      "id": "forbidden_placeholder_detection",
+      "input": "required evidence contains TODO placeholder",
+      "mandatory": true,
+      "name": "forbidden placeholder detection",
+      "requirements": [
+        "S144-28-G20"
+      ]
+    },
+    {
+      "class": "positive",
+      "expected_control": "block_parent_closure",
+      "id": "blocked_row_parent_closure",
+      "input": "child row blocks while parent is marked complete",
+      "mandatory": true,
+      "name": "blocked row parent closure",
+      "requirements": [
+        "S144-28-G21"
+      ]
+    },
+    {
+      "class": "positive",
+      "expected_control": "block_unsupported_na",
+      "id": "unsupported_not_applicable_rejected",
+      "input": "row is not_applicable without support",
+      "mandatory": true,
+      "name": "unsupported not applicable rejected",
+      "requirements": [
+        "S144-28-G22"
+      ]
+    },
+    {
+      "class": "positive",
+      "expected_control": "block_client_parity",
+      "id": "partial_client_parity_rejected",
+      "input": "CLI passes while Pi and Mac disagree",
+      "mandatory": true,
+      "name": "partial client parity rejected",
+      "requirements": [
+        "S144-28-G23"
+      ]
+    },
+    {
+      "class": "positive",
+      "expected_control": "block_promotion",
+      "id": "unknown_impact_blocks_promotion",
+      "input": "impact assessment is unknown",
+      "mandatory": true,
+      "name": "unknown impact blocks promotion",
+      "requirements": [
+        "S144-28-G24"
+      ]
+    },
+    {
+      "class": "positive",
+      "expected_control": "reject_variance",
+      "id": "runtime_variance_rejection",
+      "input": "repeat run changes verdict under pinned inputs",
+      "mandatory": true,
+      "name": "runtime variance rejection",
+      "requirements": [
+        "S144-28-G25"
+      ]
+    }
+  ],
+  "schema": "focusa.spec144.evaluation.v1",
+  "seed": 144
+}
