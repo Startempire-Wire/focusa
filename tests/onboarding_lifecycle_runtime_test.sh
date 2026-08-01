@@ -67,11 +67,18 @@ EOF
 
   local package="$TMP/agent-package/focusa-agent-context"
   rm -rf "$TMP/agent-package"
-  mkdir -p "$package/skills/getting-started"
+  mkdir -p "$package/skills/focusa-getting-started"
   printf '# Focusa fixture context\n' >"$package/AGENTS.md"
-  printf '# Getting started fixture\n' >"$package/skills/getting-started/SKILL.md"
+  printf '# Getting started fixture\n' >"$package/skills/focusa-getting-started/SKILL.md"
   tar -czf "$RELEASE_DIR/focusa-agent-context-${tag}.tar.gz" \
     -C "$TMP/agent-package" focusa-agent-context
+
+  local pi_package="$TMP/pi-package/pi-extension"
+  rm -rf "$TMP/pi-package"
+  mkdir -p "$pi_package"
+  printf '{"name":"focusa-pi-bridge","version":"%s"}\n' "$version" >"$pi_package/package.json"
+  tar -czf "$RELEASE_DIR/focusa-pi-extension-${tag}.tar.gz" \
+    -C "$TMP/pi-package" pi-extension
 
   (
     cd "$RELEASE_DIR"
@@ -100,7 +107,32 @@ for _ in $(seq 1 50); do
 done
 [[ -s "$PORT_FILE" ]] || { echo 'FAIL: fixture release server did not start' >&2; exit 1; }
 BASE_URL="http://127.0.0.1:$(cat "$PORT_FILE")"
-TEST_PATH='/usr/bin:/bin'
+# This lifecycle fixture validates Focusa transitions, not third-party package
+# installation. Provide deterministic capability shims so dependency preflight
+# remains truthful without touching the host or network.
+mkdir -p "$TMP/bin"
+for dependency in node npm pi; do
+  case "$dependency" in
+    node) version='v22.0.0' ;;
+    npm) version='10.0.0' ;;
+    pi) version='pi 1.0.0' ;;
+  esac
+  cat >"$TMP/bin/$dependency" <<SH
+#!/bin/sh
+if [ "\${1:-}" = "--version" ]; then printf '%s\n' '$version'; fi
+exit 0
+SH
+  chmod +x "$TMP/bin/$dependency"
+done
+cat >"$TMP/bin/npm" <<'SH'
+#!/bin/sh
+if [ "${1:-}" = "--version" ]; then printf '%s\n' '10.0.0'; exit 0; fi
+mkdir -p node_modules
+printf '%s\n' fixture >node_modules/.focusa-smoke
+exit 0
+SH
+chmod +x "$TMP/bin/npm"
+TEST_PATH="$TMP/bin:/usr/bin:/bin"
 
 install_release() {
   local tag="$1" output="$2"
