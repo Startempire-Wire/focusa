@@ -11,7 +11,10 @@ session = (root / "apps/pi-extension/src/session.ts").read_text()
 
 assert 'is_tui && harness_name == "pi"' in wrap
 assert "run_interactive(harness_path" in wrap
-assert "MAX_RECORDING_BYTES" in wrap
+assert "MAX_RECORDING_BYTES: u64 = 8 * 1024 * 1024" in wrap
+assert "FOCUSA_RAW_PTY_CAPTURE" in wrap
+assert "cleanup_stale_recordings" in wrap
+assert 'format!("/proc/{pid}")' in wrap
 assert "String::from_utf8_lossy(&bytes[..limit])" in wrap
 assert 'schema: "focusa.pi_semantic_event.v1"' in polish
 assert "MAX_OFFLINE_SPOOL = 64" in polish

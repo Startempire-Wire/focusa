@@ -15,7 +15,7 @@ use crate::api_client::ApiClient;
 use anyhow::{Context, Result};
 use chrono::Utc;
 use rand::random;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use shlex::try_quote;
 use std::fs;
 use std::path::PathBuf;
@@ -278,7 +278,47 @@ fn parse_transcript(transcript: &str) -> (String, String) {
 /// The recorder is monitored while the harness runs. It is terminated when the
 /// bounded capture budget is reached, preventing runaway PTY files and memory.
 /// Arguments are properly shell-quoted using shlex to prevent injection.
-const MAX_RECORDING_BYTES: u64 = 64 * 1024 * 1024;
+const MAX_RECORDING_BYTES: u64 = 8 * 1024 * 1024;
+const STALE_RECORDING_MIN_AGE_SECS: u64 = 60 * 60;
+
+fn cleanup_stale_recordings(temp_dir: &std::path::Path) {
+    let Ok(entries) = fs::read_dir(temp_dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let Some(name) = path.file_name().and_then(|value| value.to_str()) else {
+            continue;
+        };
+        let Some(rest) = name.strip_prefix("focusa-session-") else {
+            continue;
+        };
+        let Some(pid_text) = rest.split('-').next() else {
+            continue;
+        };
+        let Ok(pid) = pid_text.parse::<u32>() else {
+            continue;
+        };
+        if std::path::Path::new(&format!("/proc/{pid}")).exists() {
+            continue;
+        }
+        let old_enough = fs::metadata(&path)
+            .and_then(|metadata| metadata.modified())
+            .ok()
+            .and_then(|modified| modified.elapsed().ok())
+            .map(|age| age.as_secs() >= STALE_RECORDING_MIN_AGE_SECS)
+            .unwrap_or(false);
+        if old_enough {
+            if let Err(error) = fs::remove_file(&path) {
+                eprintln!(
+                    "[WARN] Failed to remove stale PTY recording {}: {}",
+                    path.display(),
+                    error
+                );
+            }
+        }
+    }
+}
 fn run_with_recording(
     harness_path: &str,
     args: &[String],
@@ -286,8 +326,13 @@ fn run_with_recording(
 ) -> Result<(i32, String)> {
     // Create temp directory for recording
     let temp_dir = PathBuf::from("/tmp");
+    cleanup_stale_recordings(&temp_dir);
     let timestamp = Utc::now().timestamp_millis();
-    let session_file = temp_dir.join(format!("focusa-session-{}.txt", timestamp));
+    let session_file = temp_dir.join(format!(
+        "focusa-session-{}-{}.txt",
+        std::process::id(),
+        timestamp
+    ));
 
     // Properly quote each argument to prevent shell injection
     let harness_args: Vec<String> = args
@@ -313,13 +358,25 @@ fn run_with_recording(
 
     let mut capped = false;
     loop {
-        if child.try_wait().context("Failed waiting for script command")?.is_some() {
+        if child
+            .try_wait()
+            .context("Failed waiting for script command")?
+            .is_some()
+        {
             break;
         }
-        if fs::metadata(&session_file).map(|m| m.len() > MAX_RECORDING_BYTES).unwrap_or(false) {
+        if fs::metadata(&session_file)
+            .map(|m| m.len() > MAX_RECORDING_BYTES)
+            .unwrap_or(false)
+        {
             capped = true;
-            eprintln!("[WARN] PTY recording exceeded {} bytes; stopping capture", MAX_RECORDING_BYTES);
-            child.kill().context("Failed stopping oversized script recording")?;
+            eprintln!(
+                "[WARN] PTY recording exceeded {} bytes; stopping capture",
+                MAX_RECORDING_BYTES
+            );
+            child
+                .kill()
+                .context("Failed stopping oversized script recording")?;
             break;
         }
         thread::sleep(Duration::from_millis(50));
@@ -338,17 +395,17 @@ fn run_with_recording(
         eprintln!("[DEBUG] Failed to remove session file: {}", e);
     }
 
-    let exit_code = if capped { 124 } else { status.code().unwrap_or(1) };
+    let exit_code = if capped {
+        124
+    } else {
+        status.code().unwrap_or(1)
+    };
     Ok((exit_code, transcript))
 }
 
 /// Run an interactive harness with its native terminal semantics.
 /// No PTY transcript is collected; Pi's semantic extension/RPC surfaces own events.
-fn run_interactive(
-    harness_path: &str,
-    args: &[String],
-    env_vars: &[(&str, &str)],
-) -> Result<i32> {
+fn run_interactive(harness_path: &str, args: &[String], env_vars: &[(&str, &str)]) -> Result<i32> {
     let status = Command::new(harness_path)
         .args(args)
         .stdin(Stdio::inherit())
@@ -513,8 +570,8 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
                 (1, String::new())
             }
         }
-    } else if is_tui {
-        // Non-Pi adapters retain bounded, explicit diagnostic capture.
+    } else if is_tui && std::env::var("FOCUSA_RAW_PTY_CAPTURE").as_deref() == Ok("1") {
+        // Non-Pi forensic capture is explicit opt-in and bounded to 8 MiB.
         match run_with_recording(harness_path, &final_args, &env_vars) {
             Ok(result) => result,
             Err(e) => {
@@ -526,6 +583,15 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
                         (1, String::new())
                     }
                 }
+            }
+        }
+    } else if is_tui {
+        // Native interactive mode: preserve the terminal and collect no raw PTY.
+        match run_interactive(harness_path, &final_args, &env_vars) {
+            Ok(code) => (code, String::new()),
+            Err(e) => {
+                eprintln!("[ERROR] Interactive harness failed: {}", e);
+                (1, String::new())
             }
         }
     } else {
@@ -541,7 +607,9 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
 
     eprintln!("[DEBUG] Harness exited with code: {}", exit_code);
     eprintln!("[DEBUG] Transcript length: {} chars", transcript.len());
-    let semantic_failure = (exit_code == 0)
+    let semantic_output_expected =
+        !is_tui || std::env::var("FOCUSA_RAW_PTY_CAPTURE").as_deref() == Ok("1");
+    let semantic_failure = (exit_code == 0 && semantic_output_expected)
         .then(|| semantic_harness_failure(&transcript))
         .flatten();
     let effective_exit_code = if semantic_failure.is_some() {
@@ -620,12 +688,10 @@ mod tests {
 
     #[test]
     fn semantic_harness_failure_rejects_invalid_model_warning() {
-        assert!(
-            semantic_harness_failure(
-                "Warning: No models match pattern \"ovh-ai-llama-cpp/ovh-local-coder\""
-            )
-            .is_some()
-        );
+        assert!(semantic_harness_failure(
+            "Warning: No models match pattern \"ovh-ai-llama-cpp/ovh-local-coder\""
+        )
+        .is_some());
     }
 
     #[test]
