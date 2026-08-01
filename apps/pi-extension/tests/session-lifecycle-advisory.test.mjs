@@ -154,6 +154,30 @@ function input() {
   assert.equal(notices.length, 1);
 }
 
+{
+  const entries = [];
+  const status = queueStartupReceptionistTurn(
+    {
+      sendMessage() {
+        throw new Error("must not send through stale context");
+      },
+      appendEntry: (customType, data) => entries.push({ customType, data }),
+    },
+    {
+      hasUI: true,
+      isIdle() {
+        throw new Error("This extension ctx is stale after session replacement or reload");
+      },
+      ui: { setWidget() {}, notify() {} },
+    },
+    { ...input(), advisoryKey: "startup-receptionist:stale", advisoryKind: "startup_receptionist" }
+  );
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(status, "queued");
+  assert.equal(entries.at(-1).data.status, "failed");
+}
+
 const sessionSource = fs.readFileSync(sessionPath, "utf8");
 assert.doesNotMatch(sessionSource, /\.sendUserMessage\s*\(/);
 assert.equal((sessionSource.match(/queueLifecycleAdvisory\s*\(/g) || []).length, 3);

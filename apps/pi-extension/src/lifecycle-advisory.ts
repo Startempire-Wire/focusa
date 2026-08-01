@@ -172,16 +172,16 @@ export function queueStartupReceptionistTurn(
 
   let attempts = 0;
   const startWhenIdle = async () => {
-    attempts += 1;
-    if (typeof ctx.isIdle === "function" && !ctx.isIdle()) {
-      if (attempts < 40) {
-        setTimeout(startWhenIdle, 250);
-      } else {
-        appendOutcome(pi, input, "failed", "startup_idle_timeout");
-      }
-      return;
-    }
     try {
+      attempts += 1;
+      if (typeof ctx.isIdle === "function" && !ctx.isIdle()) {
+        if (attempts < 40) {
+          setTimeout(() => void startWhenIdle(), 250);
+        } else {
+          appendOutcome(pi, input, "failed", "startup_idle_timeout");
+        }
+        return;
+      }
       const operator = await operatorContextPromise;
       const resolvedGreeting = receptionistGreeting(operator);
       ctx?.ui?.setWidget?.(
@@ -218,6 +218,6 @@ export function queueStartupReceptionistTurn(
       );
     }
   };
-  setTimeout(startWhenIdle, 0);
+  setTimeout(() => void startWhenIdle(), 0);
   return "queued";
 }
