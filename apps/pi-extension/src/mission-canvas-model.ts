@@ -64,6 +64,16 @@ function count(item: unknown): number {
   return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : 0;
 }
 
+function asRecord(item: unknown): Record<string, any> {
+  return item !== null && typeof item === "object" && !Array.isArray(item)
+    ? item as Record<string, any>
+    : {};
+}
+
+function text(item: unknown): string {
+  return value(item);
+}
+
 export function projectWorkSurfaces(payload: any): WorkSurfaceProjection[] {
   const rows = Array.isArray(payload?.surfaces)
     ? payload.surfaces
@@ -178,7 +188,7 @@ export function normalizeSemanticPairActions(payload: unknown, canMutate = true)
   const rows = Array.isArray(root.operations) ? root.operations : Array.isArray(root.items) ? root.items : [];
   return rows.map((raw) => {
     const row = asRecord(raw);
-    const kind = row.kind === "mutation" ? "mutation" : "read";
+    const kind: SemanticPairAction["kind"] = row.kind === "mutation" ? "mutation" : "read";
     const state = normalizeSemanticPairState(row.state ?? root.state);
     const writerBlocked = row.availability === "writer_blocked" || state === "writer_blocked";
     const surfaceBlocked = kind === "mutation" && !canMutate;
