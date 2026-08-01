@@ -133,6 +133,16 @@ fn clock_ns(clock_id: libc::clockid_t) -> Option<u128> {
     Some((sample.tv_sec as u128) * 1_000_000_000 + sample.tv_nsec as u128)
 }
 
+#[cfg(target_os = "linux")]
+fn suspend_aware_clock_ns() -> Option<u128> {
+    clock_ns(libc::CLOCK_BOOTTIME)
+}
+
+#[cfg(not(target_os = "linux"))]
+fn suspend_aware_clock_ns() -> Option<u128> {
+    None
+}
+
 fn clock_resolution_ns(clock_id: libc::clockid_t) -> Option<u64> {
     let mut resolution = libc::timespec {
         tv_sec: 0,
@@ -238,7 +248,7 @@ pub fn capture_temporal_action_envelope(
             domain: TemporalClockDomain::WallUtc,
             wall_utc: captured_at_utc,
             monotonic_ns: Some(monotonic_ns),
-            suspend_aware_ns: clock_ns(libc::CLOCK_BOOTTIME),
+            suspend_aware_ns: suspend_aware_clock_ns(),
             boot_id: current_boot_id(),
             timezone: operator_timezone.to_string(),
             tzdb_version: None,
