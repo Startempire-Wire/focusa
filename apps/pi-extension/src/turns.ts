@@ -11,6 +11,7 @@ import path from "node:path";
 import type { PiGoverningPriorKind } from "./state.js";
 import {
   getAttachmentRuntime,
+  currentProjectBindingDecision,
   nativeSessionAllowsNonessentialPersistence,
   focusaFetch,
   focusaPost,
@@ -2716,7 +2717,10 @@ export function registerTurns(pi: ExtensionAPI) {
     const asciiWorkRail = process.env.FOCUSA_ASCII_UI === "1" || process.env.TERM === "dumb";
     // Pi ExtensionContext exposes hasUI, not a runtime mode discriminator.
     // Keep widgets out of print/RPC surfaces while remaining compatible across Pi builds.
-    if (ctx.hasUI) {
+    const projectBinding = currentProjectBindingDecision();
+    if (!projectBinding || projectBinding.state !== "BOUND") {
+      ctx.ui.setWidget("focusa", undefined);
+    } else if (ctx.hasUI) {
       ctx.ui.setWidget("focusa", (_tui, theme) => ({
         render(width: number) {
           return renderWorkRailWidget(
