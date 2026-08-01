@@ -1,0 +1,22 @@
+schema: focusa.spec152.implementation_owners.v1
+workstreams:
+  authority:
+    repository: WPUIAI/wpuiai
+    issue: 1
+    owns: account consent license product feature limits node lease refresh revoke refund email capsule envelopes
+  focusa:
+    repository: Startempire-Wire/focusa
+    issue: 119
+    owns: verifier recovery daemon installer lifecycle menubar Pi TUI CLI REST UIAI broker migration
+  uiai:
+    repository: WPUIAI/uiai-engine
+    issue: 5
+    owns: verifier auth separation route gates limits standalone onboarding child token protected worker migration
+shared:
+  - lease schema and golden vectors
+  - feature namespace and product grants
+  - stable errors and idempotency
+  - node/time/sequence/offline policy
+  - release and recovery receipts
+  - test trust and fixture exclusion
+  - canary and rollback
