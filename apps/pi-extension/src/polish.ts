@@ -1,4 +1,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
 import {
   getAttachmentRuntime,
   focusaFetch,
@@ -12,7 +15,32 @@ const MAX_RECORDS = 80;
 const MAX_TEXT = 500;
 let semanticSequence = 0;
 const MAX_OFFLINE_SPOOL = 64;
-const offlineSemanticSpool: Array<Record<string, unknown>> = [];
+const SPOOL_PATH = join(
+  String(process.env.FOCUSA_DATA_DIR || "").trim() || join(homedir(), ".focusa"),
+  "pi-semantic-spool.json"
+);
+const offlineSemanticSpool: Array<Record<string, unknown>> = loadSemanticSpool();
+
+function loadSemanticSpool(): Array<Record<string, unknown>> {
+  if (!existsSync(SPOOL_PATH)) return [];
+  try {
+    const parsed = JSON.parse(readFileSync(SPOOL_PATH, "utf8"));
+    return Array.isArray(parsed) ? parsed.slice(-MAX_OFFLINE_SPOOL) : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistSemanticSpool(): void {
+  try {
+    mkdirSync(dirname(SPOOL_PATH), { recursive: true, mode: 0o700 });
+    const temporary = `${SPOOL_PATH}.tmp`;
+    writeFileSync(temporary, `${JSON.stringify(offlineSemanticSpool)}\n`, { mode: 0o600 });
+    renameSync(temporary, SPOOL_PATH);
+  } catch {
+    // Best effort only: semantic telemetry must never block Pi.
+  }
+}
 
 type PiSemanticEventEnvelope = {
   schema: "focusa.pi_semantic_event.v1";
@@ -82,6 +110,7 @@ function recordTokenTelemetry(record: Record<string, unknown>): void {
 
 async function postSemanticTelemetry(body: Record<string, unknown>): Promise<void> {
   const pending = offlineSemanticSpool.splice(0, offlineSemanticSpool.length);
+  persistSemanticSpool();
   const batch = [...pending, body];
   for (const item of batch) {
     let outbound = item;
@@ -121,6 +150,7 @@ async function postSemanticTelemetry(body: Record<string, unknown>): Promise<voi
       if (offlineSemanticSpool.length > MAX_OFFLINE_SPOOL) {
         offlineSemanticSpool.splice(0, offlineSemanticSpool.length - MAX_OFFLINE_SPOOL);
       }
+      persistSemanticSpool();
       break;
     }
   }
