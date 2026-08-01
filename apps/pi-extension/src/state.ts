@@ -230,6 +230,7 @@ function createAttachmentRuntime() {
     modelId: "" as string,
     providerUsagePercent: null as number | null,
     providerRenewalAt: "" as string,
+    providerUsageObservedAt: 0 as number,
     wbmEnabled: false,
     wbmDeep: false,
     wbmNoCatalogue: false, // §29 --no-catalogue flag

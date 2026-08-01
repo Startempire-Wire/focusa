@@ -3,9 +3,16 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { otaActivationPaths } from "./ota-activation.js";
+import { saveConfigOverrides } from "./config.js";
+import {
+  createOperatorWidgetRegistry,
+  migrateOperatorStatusSettings,
+  operatorStatusRollbackPatch,
+  renderOperatorStatusBar,
+  type OperatorWidgetId,
+} from "./operator-status-widgets.js";
 import {
   getAttachmentRuntime,
-  currentProjectBindingDecision,
   focusaFetch,
   focusaPost,
   getFocusaAvailable,
@@ -229,12 +236,6 @@ function payloadSummary(payload: any): Record<string, unknown> {
   };
 }
 
-function compactStatusText(value: unknown, fallback: string, max = 72): string {
-  const text = String(value ?? "").replace(/\s+/g, " ").trim();
-  if (!text) return fallback;
-  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
-}
-
 function otaStatus(): string {
   try {
     const paths = otaActivationPaths();
@@ -245,43 +246,6 @@ function otaStatus(): string {
     return "unknown";
   }
   return "idle";
-}
-
-function humanTimeClaim(value: unknown, fallback: string): string {
-  const text = String(value ?? "").trim();
-  if (!text) return fallback;
-  const numeric = Number(text);
-  const date = Number.isFinite(numeric)
-    ? new Date(numeric > 10_000_000_000 ? numeric : numeric * 1_000)
-    : new Date(text);
-  if (!Number.isNaN(date.getTime())) {
-    try {
-      return new Intl.DateTimeFormat("en-US", {
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-        timeZoneName: "short",
-        timeZone: String(process.env.TZ || "").trim() || undefined,
-      }).format(date);
-    } catch {
-      return date.toISOString();
-    }
-  }
-  return compactStatusText(text, fallback, 28);
-}
-
-function localClock(): string {
-  try {
-    return new Intl.DateTimeFormat("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      timeZoneName: "short",
-      timeZone: String(process.env.TZ || "").trim() || undefined,
-    }).format(new Date());
-  } catch {
-    return new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  }
 }
 
 function headerValue(event: any, name: string): string {
@@ -302,60 +266,68 @@ function updateProviderUsageFromHeaders(event: any): void {
     if (Number.isFinite(remaining) && Number.isFinite(limit) && limit > 0)
       used = ((limit - remaining) / limit) * 100;
   }
-  if (Number.isFinite(used))
+  if (Number.isFinite(used)) {
     getAttachmentRuntime().providerUsagePercent = Math.max(0, Math.min(100, used));
+    getAttachmentRuntime().providerUsageObservedAt = Date.now();
+  }
   const renewal =
     headerValue(event, "x-codex-primary-reset-at") ||
     headerValue(event, "x-ratelimit-reset-tokens") ||
     headerValue(event, "x-ratelimit-reset");
-  if (renewal) getAttachmentRuntime().providerRenewalAt = renewal;
+  if (renewal) {
+    getAttachmentRuntime().providerRenewalAt = renewal;
+    getAttachmentRuntime().providerUsageObservedAt = Date.now();
+  }
+}
+
+const operatorWidgetRegistry = createOperatorWidgetRegistry();
+
+function operatorWidgetSettings(cfg: any) {
+  return migrateOperatorStatusSettings(cfg?.operatorStatusWidgets, {
+    time: Boolean(cfg?.operatorStatusTimeEnabled || cfg?.operatorStatusDeadlineEnabled),
+    prediction: cfg?.operatorStatusPredictionEnabled,
+    version: cfg?.operatorStatusVersionEnabled,
+    ota: cfg?.operatorStatusOtaEnabled,
+    "provider-usage": cfg?.operatorStatusModelUsageEnabled,
+  }, operatorWidgetRegistry);
+}
+
+function parseObservedAt(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const parsed = Date.parse(String(value ?? ""));
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 function renderOperatorStatus(ctx: any): void {
   const runtime = getAttachmentRuntime();
-  const contextUsage = ctx?.getContextUsage?.();
-  if (
-    Number.isFinite(contextUsage?.tokens) &&
-    Number.isFinite(contextUsage?.contextWindow) &&
-    contextUsage.contextWindow > 0
-  )
-    runtime.currentContextPct = (contextUsage.tokens / contextUsage.contextWindow) * 100;
   const cfg = runtime.cfg;
   if (!cfg?.operatorStatusBarEnabled) {
     ctx?.ui?.setStatus?.("focusa-operator-status", undefined);
     ctx?.ui?.setWidget?.("focusa-next-prediction", undefined);
     return;
   }
-  const segments: string[] = [];
-  if (cfg.operatorStatusVersionEnabled)
-    segments.push(`Focusa ${compactStatusText(cfg.focusaExtensionBuild, "unknown").replace(/^focusa-pi-bridge@/, "")}`);
-  if (cfg.operatorStatusOtaEnabled) segments.push(`OTA ${otaStatus()}`);
-  if (cfg.operatorStatusModelUsageEnabled) {
-    const provider = compactStatusText(runtime.modelProvider, "provider unknown", 24);
-    const model = compactStatusText(runtime.modelId, "model unknown", 28);
-    const usage = runtime.providerUsagePercent === null
-      ? runtime.currentContextPct === null
-        ? "usage unavailable"
-        : `context ${Math.round(runtime.currentContextPct)}%`
-      : `usage ${Math.round(runtime.providerUsagePercent)}%`;
-    const renewal = humanTimeClaim(runtime.providerRenewalAt, "renewal unavailable");
-    segments.push(`${provider}/${model} · ${usage} · renew ${renewal}`);
-  }
-  if (cfg.operatorStatusTimeEnabled) segments.push(localClock());
-  ctx?.ui?.setStatus?.("focusa-operator-status", segments.join(" · "));
-
-  const lines: string[] = [];
-  if (cfg.operatorStatusDeadlineEnabled)
-    lines.push(`Deadline: ${humanTimeClaim(process.env.FOCUSA_CONFIRMED_DEADLINE, "none confirmed")}`);
-  if (cfg.operatorStatusPredictionEnabled) {
-    const packet: any = getActiveWorkpointPacket();
-    const binding = currentProjectBindingDecision();
-    const prediction = runtime.startupReceptionistActive || !binding || binding.state !== "BOUND"
-      ? "choose an existing project, a new location, a direct task, or an optional guided setup"
-      : packet?.next_action || packet?.next_slice || "continue from the next verified project action";
-    lines.push(`Next likely: ${compactStatusText(prediction, "waiting for your direction", 120)}`);
-  }
-  ctx?.ui?.setWidget?.("focusa-next-prediction", lines, { placement: "belowEditor" });
+  const packet: any = getActiveWorkpointPacket();
+  const prediction = packet?.next_action || packet?.next_slice;
+  const ota = otaStatus();
+  const result = renderOperatorStatusBar({
+    now: Date.now(),
+    timezone: String(process.env.TZ || "").trim() || undefined,
+    deadline: process.env.FOCUSA_CONFIRMED_DEADLINE,
+    prediction,
+    predictionLoading: runtime.startupReceptionistActive,
+    predictionObservedAt: parseObservedAt(packet?.updated_at || packet?.observed_at),
+    version: cfg.focusaExtensionBuild,
+    ota,
+    otaState: ota === "unknown" ? "degraded" : "ready",
+    otaObservedAt: Date.now(),
+    provider: runtime.modelProvider,
+    model: runtime.modelId,
+    usagePercent: runtime.providerUsagePercent,
+    renewalAt: runtime.providerRenewalAt,
+    providerObservedAt: runtime.providerUsageObservedAt || undefined,
+  }, operatorWidgetSettings(cfg), Math.max(24, Number(process.stdout.columns || 120)), operatorWidgetRegistry);
+  ctx?.ui?.setStatus?.("focusa-operator-status", result.text || undefined);
+  ctx?.ui?.setWidget?.("focusa-next-prediction", undefined);
 }
 
 function receptionistProgressGreeting(): string {
@@ -396,6 +368,48 @@ function receptionistToolProgress(toolName: string): string {
 
 export function registerPolishHooks(pi: ExtensionAPI) {
   const hookApi = pi as any;
+  pi.registerCommand("focusa-bar", {
+    description: "Show or change Focusa operator status widgets",
+    handler: async (args: string, ctx: any) => {
+      const runtime = getAttachmentRuntime();
+      const settings = operatorWidgetSettings(runtime.cfg);
+      const tokens = String(args || "").trim().split(/\s+/).filter(Boolean);
+      if (tokens[0] === "list") {
+        const summary = operatorWidgetRegistry.map((widget) => `${settings.enabled[widget.id] ? "on" : "off"} ${widget.id}`).join(" · ");
+        ctx.ui.notify(`Focusa bar: ${summary}`, "info");
+        return;
+      }
+      let widgetId: string | undefined = tokens[0];
+      if (!widgetId) {
+        const choice = await ctx.ui.select("Focusa bar widgets", operatorWidgetRegistry.map((widget) =>
+          `${settings.enabled[widget.id] ? "✓" : "○"} ${widget.label} (${widget.id})`
+        ));
+        widgetId = operatorWidgetRegistry.find((widget) => choice?.endsWith(`(${widget.id})`))?.id;
+      }
+      const widget = operatorWidgetRegistry.find((candidate) => candidate.id === widgetId);
+      if (!widget) {
+        ctx.ui.notify("Usage: /focusa-bar <time|prediction|version|ota|provider-usage> <on|off|toggle>, or /focusa-bar list", "warning");
+        return;
+      }
+      const requested = tokens[1];
+      if (requested && !["on", "off", "toggle"].includes(requested)) {
+        ctx.ui.notify("Widget state must be on, off, or toggle; no setting was changed.", "warning");
+        return;
+      }
+      settings.enabled[widget.id as OperatorWidgetId] = requested === "on" ? true : requested === "off" ? false : !settings.enabled[widget.id];
+      try {
+        const saved = saveConfigOverrides(ctx.cwd, {
+          operatorStatusWidgets: settings,
+          ...operatorStatusRollbackPatch(settings),
+        });
+        runtime.cfg = saved.config;
+        renderOperatorStatus(ctx);
+        ctx.ui.notify(`${widget.label} ${settings.enabled[widget.id] ? "enabled" : "disabled"}; saved in ${saved.path}.`, "info");
+      } catch (error) {
+        ctx.ui.notify(`Focusa bar setting not saved: ${String(error).slice(0, 180)}`, "error");
+      }
+    },
+  });
   hookApi.on("resources_discover", async (_event: any, _ctx: any) => {
     // Pi settings/package installation is the single skill-path authority.
     // Dynamically injecting cwd, package, and legacy home paths caused noisy

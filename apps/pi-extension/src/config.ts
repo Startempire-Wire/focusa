@@ -98,6 +98,10 @@ export interface FocusaConfig {
   operatorStatusTimeEnabled: boolean;
   operatorStatusDeadlineEnabled: boolean;
   operatorStatusPredictionEnabled: boolean;
+  operatorStatusWidgets: {
+    version: number;
+    enabled: Record<string, boolean>;
+  } | Record<string, boolean>;
   workLoopAllowDestructiveActions: boolean;
   workLoopRequireOperatorForGovernance: boolean;
   workLoopRequireOperatorForScopeChange: boolean;
@@ -206,6 +210,7 @@ const DEFAULTS: FocusaConfig = {
   operatorStatusTimeEnabled: true,
   operatorStatusDeadlineEnabled: true,
   operatorStatusPredictionEnabled: true,
+  operatorStatusWidgets: { version: 1, enabled: {} },
   workLoopAllowDestructiveActions: false,
   workLoopRequireOperatorForGovernance: true,
   workLoopRequireOperatorForScopeChange: true,
