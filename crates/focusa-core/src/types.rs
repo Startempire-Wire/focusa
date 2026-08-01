@@ -12,6 +12,7 @@ use crate::work_item::{EvidenceCitation, WorkItemProvider};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
 // ─── Identifiers ────────────────────────────────────────────────────────────
@@ -611,6 +612,50 @@ pub struct OntologyDeltaRecord {
     pub timestamp: Option<DateTime<Utc>>,
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[serde(rename_all = "snake_case")]
+pub enum OntologyScopeMigrationRecordKind {
+    Object,
+    Link,
+    Proposal,
+    Verification,
+    WorkingSetRefresh,
+    Delta,
+    PreProposal,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct OntologyScopeMigrationSelection {
+    pub record_kind: OntologyScopeMigrationRecordKind,
+    pub source_hash: String,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct OntologyScopeMigrationEntry {
+    pub record_kind: OntologyScopeMigrationRecordKind,
+    pub source_hash: String,
+    pub clone_hash: String,
+    pub evidence_refs: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OntologyScopeMigrationReceipt {
+    pub receipt_id: Uuid,
+    pub migration_id: Uuid,
+    pub operation: String,
+    pub target_workstream: WorkstreamKey,
+    pub entries: Vec<OntologyScopeMigrationEntry>,
+    pub evidence_refs: Vec<String>,
+    pub recorded_at: DateTime<Utc>,
+}
+
+pub fn ontology_scope_record_hash<T: Serialize>(record: &T) -> String {
+    let encoded = serde_json::to_vec(record).unwrap_or_default();
+    format!("sha256:{}", hex::encode(Sha256::digest(encoded)))
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct OntologyState {
     #[serde(default)]
@@ -625,6 +670,8 @@ pub struct OntologyState {
     pub working_set_refreshes: Vec<OntologyWorkingSetRefreshRecord>,
     #[serde(default)]
     pub delta_log: Vec<OntologyDeltaRecord>,
+    #[serde(default)]
+    pub scope_migration_receipts: Vec<OntologyScopeMigrationReceipt>,
 }
 
 // ─── Workpoint Continuity (Spec88) ─────────────────────────────────────────
@@ -4465,6 +4512,21 @@ pub enum FocusaEvent {
         workstream: Option<WorkstreamKey>,
         scope: String,
         reason: String,
+    },
+    #[serde(rename = "ontology_scope_migration_applied")]
+    OntologyScopeMigrationApplied {
+        migration_id: Uuid,
+        target_workstream: WorkstreamKey,
+        selections: Vec<OntologyScopeMigrationSelection>,
+        #[serde(default)]
+        evidence_refs: Vec<String>,
+    },
+    #[serde(rename = "ontology_scope_migration_rolled_back")]
+    OntologyScopeMigrationRolledBack {
+        rollback_id: Uuid,
+        migration_id: Uuid,
+        #[serde(default)]
+        evidence_refs: Vec<String>,
     },
 
     // ─── Workpoint Continuity (Spec88) ─────────────────────────────────

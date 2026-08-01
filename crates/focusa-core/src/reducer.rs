@@ -38,6 +38,170 @@ fn ontology_value_matches_workstream(
     }
 }
 
+fn apply_ontology_scope_migration_selection(
+    state: &mut FocusaState,
+    target: &WorkstreamKey,
+    selection: &OntologyScopeMigrationSelection,
+) -> Result<OntologyScopeMigrationEntry, ReducerError> {
+    if selection.evidence_refs.is_empty()
+        || selection
+            .evidence_refs
+            .iter()
+            .any(|value| value.trim().is_empty())
+    {
+        return Err(ReducerError::InvalidEvent(
+            "ontology scope migration requires non-empty evidence per record".to_string(),
+        ));
+    }
+
+    macro_rules! clone_typed_record {
+        ($records:expr) => {{
+            let matches = $records
+                .iter()
+                .filter(|record| {
+                    record.workstream.is_none()
+                        && ontology_scope_record_hash(*record) == selection.source_hash
+                })
+                .cloned()
+                .collect::<Vec<_>>();
+            if matches.len() != 1 {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "ontology migration source hash must identify exactly one unowned record: {} matches={}",
+                    selection.source_hash,
+                    matches.len()
+                )));
+            }
+            let mut cloned = matches.into_iter().next().expect("one migration match");
+            cloned.workstream = Some(target.clone());
+            let clone_hash = ontology_scope_record_hash(&cloned);
+            $records.push(cloned);
+            clone_hash
+        }};
+    }
+
+    let clone_hash = match selection.record_kind {
+        OntologyScopeMigrationRecordKind::Object | OntologyScopeMigrationRecordKind::Link => {
+            let records = if matches!(
+                selection.record_kind,
+                OntologyScopeMigrationRecordKind::Object
+            ) {
+                &mut state.ontology.objects
+            } else {
+                &mut state.ontology.links
+            };
+            let matches = records
+                .iter()
+                .filter(|record| {
+                    record
+                        .get("workstream")
+                        .is_none_or(serde_json::Value::is_null)
+                        && ontology_scope_record_hash(*record) == selection.source_hash
+                })
+                .cloned()
+                .collect::<Vec<_>>();
+            if matches.len() != 1 {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "ontology migration source hash must identify exactly one unowned JSON record: {} matches={}",
+                    selection.source_hash,
+                    matches.len()
+                )));
+            }
+            let mut cloned = matches.into_iter().next().expect("one migration match");
+            cloned["workstream"] = serde_json::json!(target);
+            let clone_hash = ontology_scope_record_hash(&cloned);
+            records.push(cloned);
+            clone_hash
+        }
+        OntologyScopeMigrationRecordKind::Proposal => {
+            clone_typed_record!(&mut state.ontology.proposals)
+        }
+        OntologyScopeMigrationRecordKind::Verification => {
+            clone_typed_record!(&mut state.ontology.verifications)
+        }
+        OntologyScopeMigrationRecordKind::WorkingSetRefresh => {
+            clone_typed_record!(&mut state.ontology.working_set_refreshes)
+        }
+        OntologyScopeMigrationRecordKind::Delta => {
+            clone_typed_record!(&mut state.ontology.delta_log)
+        }
+        OntologyScopeMigrationRecordKind::PreProposal => {
+            clone_typed_record!(&mut state.pre.proposals)
+        }
+    };
+
+    Ok(OntologyScopeMigrationEntry {
+        record_kind: selection.record_kind,
+        source_hash: selection.source_hash.clone(),
+        clone_hash,
+        evidence_refs: selection.evidence_refs.clone(),
+    })
+}
+
+fn rollback_ontology_scope_migration_entry(
+    state: &mut FocusaState,
+    target: &WorkstreamKey,
+    entry: &OntologyScopeMigrationEntry,
+) -> Result<(), ReducerError> {
+    macro_rules! remove_typed_clone {
+        ($records:expr) => {{
+            let matches = $records
+                .iter()
+                .filter(|record| {
+                    record.workstream.as_ref() == Some(target)
+                        && ontology_scope_record_hash(*record) == entry.clone_hash
+                })
+                .count();
+            if matches != 1 {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "ontology migration rollback requires one unchanged clone: {} matches={}",
+                    entry.clone_hash, matches
+                )));
+            }
+            $records.retain(|record| ontology_scope_record_hash(record) != entry.clone_hash);
+        }};
+    }
+
+    match entry.record_kind {
+        OntologyScopeMigrationRecordKind::Object | OntologyScopeMigrationRecordKind::Link => {
+            let records = if matches!(entry.record_kind, OntologyScopeMigrationRecordKind::Object) {
+                &mut state.ontology.objects
+            } else {
+                &mut state.ontology.links
+            };
+            let matches = records
+                .iter()
+                .filter(|record| {
+                    ontology_value_matches_workstream(record, &Some(target.clone()))
+                        && ontology_scope_record_hash(*record) == entry.clone_hash
+                })
+                .count();
+            if matches != 1 {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "ontology migration rollback requires one unchanged JSON clone: {} matches={}",
+                    entry.clone_hash, matches
+                )));
+            }
+            records.retain(|record| ontology_scope_record_hash(record) != entry.clone_hash);
+        }
+        OntologyScopeMigrationRecordKind::Proposal => {
+            remove_typed_clone!(&mut state.ontology.proposals)
+        }
+        OntologyScopeMigrationRecordKind::Verification => {
+            remove_typed_clone!(&mut state.ontology.verifications)
+        }
+        OntologyScopeMigrationRecordKind::WorkingSetRefresh => {
+            remove_typed_clone!(&mut state.ontology.working_set_refreshes)
+        }
+        OntologyScopeMigrationRecordKind::Delta => {
+            remove_typed_clone!(&mut state.ontology.delta_log)
+        }
+        OntologyScopeMigrationRecordKind::PreProposal => {
+            remove_typed_clone!(&mut state.pre.proposals)
+        }
+    }
+    Ok(())
+}
+
 fn upsert_context_claim(
     state: &mut FocusaState,
     claim: ContextClaimRecord,
@@ -4089,6 +4253,129 @@ pub fn reduce_with_meta(
         }
 
         // ─── Workpoint Continuity (Spec88) ──────────────────────────────
+        FocusaEvent::OntologyScopeMigrationApplied {
+            migration_id,
+            target_workstream,
+            selections,
+            evidence_refs,
+        } => {
+            target_workstream.validate().map_err(|error| {
+                ReducerError::InvalidEvent(format!("invalid migration target workstream: {error}"))
+            })?;
+            if selections.is_empty() || evidence_refs.is_empty() {
+                return Err(ReducerError::InvalidEvent(
+                    "ontology scope migration requires selections and migration evidence"
+                        .to_string(),
+                ));
+            }
+            if state
+                .ontology
+                .scope_migration_receipts
+                .iter()
+                .any(|receipt| receipt.migration_id == migration_id)
+            {
+                return Ok(ReductionResult {
+                    new_state: state,
+                    emitted_events: vec![emitted_event],
+                });
+            }
+            let unique = selections
+                .iter()
+                .map(|selection| (selection.record_kind, selection.source_hash.as_str()))
+                .collect::<std::collections::BTreeSet<_>>();
+            if unique.len() != selections.len() {
+                return Err(ReducerError::InvalidEvent(
+                    "ontology scope migration contains duplicate selections".to_string(),
+                ));
+            }
+            let mut entries = Vec::with_capacity(selections.len());
+            for selection in &selections {
+                entries.push(apply_ontology_scope_migration_selection(
+                    &mut state,
+                    &target_workstream,
+                    selection,
+                )?);
+            }
+            state
+                .ontology
+                .scope_migration_receipts
+                .push(OntologyScopeMigrationReceipt {
+                    receipt_id: migration_id,
+                    migration_id,
+                    operation: "apply".to_string(),
+                    target_workstream,
+                    entries,
+                    evidence_refs,
+                    recorded_at: Utc::now(),
+                });
+        }
+        FocusaEvent::OntologyScopeMigrationRolledBack {
+            rollback_id,
+            migration_id,
+            evidence_refs,
+        } => {
+            if evidence_refs.is_empty() {
+                return Err(ReducerError::InvalidEvent(
+                    "ontology scope migration rollback requires evidence".to_string(),
+                ));
+            }
+            if state
+                .ontology
+                .scope_migration_receipts
+                .iter()
+                .any(|receipt| receipt.receipt_id == rollback_id)
+            {
+                return Ok(ReductionResult {
+                    new_state: state,
+                    emitted_events: vec![emitted_event],
+                });
+            }
+            if state
+                .ontology
+                .scope_migration_receipts
+                .iter()
+                .any(|receipt| {
+                    receipt.migration_id == migration_id && receipt.operation == "rollback"
+                })
+            {
+                return Err(ReducerError::InvalidEvent(format!(
+                    "ontology scope migration already rolled back: {migration_id}"
+                )));
+            }
+            let applied = state
+                .ontology
+                .scope_migration_receipts
+                .iter()
+                .find(|receipt| {
+                    receipt.migration_id == migration_id && receipt.operation == "apply"
+                })
+                .cloned()
+                .ok_or_else(|| {
+                    ReducerError::InvalidEvent(format!(
+                        "ontology scope migration apply receipt not found: {migration_id}"
+                    ))
+                })?;
+            for entry in &applied.entries {
+                rollback_ontology_scope_migration_entry(
+                    &mut state,
+                    &applied.target_workstream,
+                    entry,
+                )?;
+            }
+            state
+                .ontology
+                .scope_migration_receipts
+                .push(OntologyScopeMigrationReceipt {
+                    receipt_id: rollback_id,
+                    migration_id,
+                    operation: "rollback".to_string(),
+                    target_workstream: applied.target_workstream,
+                    entries: applied.entries,
+                    evidence_refs,
+                    recorded_at: Utc::now(),
+                });
+        }
+
         FocusaEvent::WorkpointCheckpointProposed { workpoint } => {
             let now = Utc::now();
             upsert_workpoint_record(&mut state, workpoint, now);
@@ -6077,6 +6364,105 @@ mod tests {
         }))
         .expect("legacy proposal remains replayable");
         assert!(record.workstream.is_none());
+    }
+
+    #[test]
+    fn ontology_scope_migration_clones_and_rolls_back_with_append_only_receipts() {
+        let target = ontology_test_workstream("migration", "/tmp/focusa-migration");
+        let mut state = fresh_state();
+        let source = OntologyProposalRecord {
+            proposal_id: Uuid::now_v7(),
+            proposal_kind: "object_upsert".into(),
+            target_class: "decision".into(),
+            status: "proposed".into(),
+            ..OntologyProposalRecord::default()
+        };
+        let source_hash = ontology_scope_record_hash(&source);
+        state.ontology.proposals.push(source);
+        let migration_id = Uuid::now_v7();
+        let selection = OntologyScopeMigrationSelection {
+            record_kind: OntologyScopeMigrationRecordKind::Proposal,
+            source_hash,
+            evidence_refs: vec!["evidence:operator-confirmed-owner".into()],
+        };
+
+        let apply = || FocusaEvent::OntologyScopeMigrationApplied {
+            migration_id,
+            target_workstream: target.clone(),
+            selections: vec![selection.clone()],
+            evidence_refs: vec!["evidence:migration-plan".into()],
+        };
+        state = reduce(state, apply()).unwrap().new_state;
+        assert_eq!(state.ontology.proposals.len(), 2);
+        assert_eq!(
+            state
+                .ontology
+                .proposals
+                .iter()
+                .filter(|record| record.workstream.as_ref() == Some(&target))
+                .count(),
+            1
+        );
+        assert!(
+            state
+                .ontology
+                .proposals
+                .iter()
+                .any(|record| record.workstream.is_none())
+        );
+        assert_eq!(state.ontology.scope_migration_receipts.len(), 1);
+
+        state = reduce(state, apply()).unwrap().new_state;
+        assert_eq!(state.ontology.proposals.len(), 2);
+        assert_eq!(state.ontology.scope_migration_receipts.len(), 1);
+
+        let rollback_id = Uuid::now_v7();
+        let rollback = || FocusaEvent::OntologyScopeMigrationRolledBack {
+            rollback_id,
+            migration_id,
+            evidence_refs: vec!["evidence:rollback-request".into()],
+        };
+        state = reduce(state, rollback()).unwrap().new_state;
+        assert_eq!(state.ontology.proposals.len(), 1);
+        assert!(state.ontology.proposals[0].workstream.is_none());
+        assert_eq!(state.ontology.scope_migration_receipts.len(), 2);
+        assert_eq!(
+            state.ontology.scope_migration_receipts[1].operation,
+            "rollback"
+        );
+
+        state = reduce(state, rollback()).unwrap().new_state;
+        assert_eq!(state.ontology.proposals.len(), 1);
+        assert_eq!(state.ontology.scope_migration_receipts.len(), 2);
+    }
+
+    #[test]
+    fn ontology_scope_migration_rejects_records_without_evidence() {
+        let target = ontology_test_workstream("migration", "/tmp/focusa-migration");
+        let mut state = fresh_state();
+        let source = OntologyProposalRecord {
+            proposal_id: Uuid::now_v7(),
+            proposal_kind: "object_upsert".into(),
+            target_class: "decision".into(),
+            status: "proposed".into(),
+            ..OntologyProposalRecord::default()
+        };
+        let source_hash = ontology_scope_record_hash(&source);
+        state.ontology.proposals.push(source);
+        let result = reduce(
+            state,
+            FocusaEvent::OntologyScopeMigrationApplied {
+                migration_id: Uuid::now_v7(),
+                target_workstream: target,
+                selections: vec![OntologyScopeMigrationSelection {
+                    record_kind: OntologyScopeMigrationRecordKind::Proposal,
+                    source_hash,
+                    evidence_refs: vec![],
+                }],
+                evidence_refs: vec!["evidence:migration-plan".into()],
+            },
+        );
+        assert!(result.is_err());
     }
 
     #[test]
