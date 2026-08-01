@@ -110,6 +110,8 @@ pub mod rfm;
 pub mod runtime;
 pub mod scope_safety;
 pub mod scoped_state;
+pub mod semantic_integrity;
+pub mod semantic_registry;
 pub mod silent_session;
 pub mod silent_session_authority;
 pub mod silent_session_authorization;
