@@ -3,11 +3,13 @@
 **Status: preview / not flagship.** Svelte + Tauri menubar app for macOS that
 shows live focus, workpoint, and trajectory state from a paired Focusa daemon.
 
-## What works in v0.9.74-dev (preview)
+## What works in v0.9.142 (preview)
 
-- SvelteKit web build with type-checked pairing, project, and runtime surfaces
-- OAuth-like device pairing with the Focusa daemon (CLI / QR + phone / QR + VPS)
+- SvelteKit/Tauri build with type-checked Settings, pairing, project, Mission Canvas, Work Rail, and runtime surfaces
+- OAuth-like device pairing with the Focusa daemon (CLI / QR + phone / QR + VPS), including revocation-aware device state
 - HTTP/WebSocket binding to a paired daemon over loopback or Tailscale
+- Scope-aware status surfaces for project identity, Trajectory, Workpoint, evidence, predictions, and bounded live refresh
+- Release packaging and static runtime gates remain covered; this app is still a preview surface, not the flagship deployment path
 
 ### macOS incoming-network prompt
 

@@ -1,8 +1,16 @@
 # Focusa Tool Choreography Map
 
-Current contract registry: **79 Focusa tools** across project identity, trajectory, Workpoint, evidence, traversal/reflexes, Focus State, work-loop, diagnostics, lineage, prediction, and metacognition.
+Current v0.9.142 contract registry: **135 Focusa tools** across project identity, trajectory, Workpoint, evidence, traversal/reflexes, Focus State, work-loop, diagnostics, lineage, prediction, metacognition, context cognition, browser interoperability, preload, silent sessions, temporal authority, and tool discovery.
 
-Machine-readable registry: [`focusa-tool-choreography.json`](focusa-tool-choreography.json), also embedded at `GET /v1/ontology/tool-choreography`. It contains 231 weighted per-tool edges and exact `per_tool_next_tools` for all 79 tools. The live API also exposes `runtime_weight_adjustments` from evaluated predictions that cite `tool_edge:from->to`, so route ordering can improve from measured outcomes without overriding operator steering or safety gates.
+Machine-readable registry: [`focusa-tool-choreography.json`](focusa-tool-choreography.json), also embedded at `GET /v1/ontology/tool-choreography`. It contains 381 weighted per-tool edges and exact `per_tool_next_tools` for all 135 tools. The live API also exposes `runtime_weight_adjustments` from evaluated predictions that cite `tool_edge:from->to`, so route ordering can improve from measured outcomes without overriding operator steering or safety gates.
+
+## v0.9.142 capability additions
+
+- **Bounded context cognition:** build, render, curate, prove, and optimize project context under an explicit token budget.
+- **Typed project lifecycle:** project identity/card, Genesis/bootstrap, temporal authority, and session transfer remain scope-bound and evidence-backed.
+- **Recovery and proof:** Workpoint checkpoint/resume, evidence capture/linking, prediction evaluation, metacognition, work-loop controls, and Spec97 reflex suggestions compose into one no-deadend route.
+- **Interoperability:** UIAI/WebMCP capability intake/workflow planning, preload packets, silent sessions, device pairing, and cross-harness Agent Card/tool discovery preserve the same authority boundary.
+- **Freshness contract:** runtime tools, contracts, Pi/MCP/OpenAI/CLI/REST projections, per-tool docs, skills, and this map must agree before release.
 
 This map links tools by **model intent** so agents get compounding project results instead of using only basic note tools.
 

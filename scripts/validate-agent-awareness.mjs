@@ -37,7 +37,7 @@ for (const needle of [
 
 must('turns', 'buildFocusaUtilityCard("system")');
 must('turns', 'customType: "focusa-utility-card"');
-must('turns', 'S.seenFirstBeforeAgentStart');
+must('turns', 'getAttachmentRuntime().seenFirstBeforeAgentStart');
 
 for (const file of ['quickstart', 'card']) {
   for (const needle of ['Workpoint', 'doctor', 'evidence', 'prediction', 'compaction', 'operator', 'Attentive and awaiting operator direction']) must(file, needle);
@@ -52,6 +52,7 @@ must('docsIndex', 'FOCUSA_TOOL_CHOREOGRAPHY_MAP.md');
 must('readme', 'Agent Awareness Quickstart');
 must('readme', 'Friendly Focusa Onboarding Q');
 must('readme', 'Focusa Tool Choreography Map');
+
 
 if (failures.length) {
   console.error('Agent awareness validation: failed');

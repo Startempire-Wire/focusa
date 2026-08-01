@@ -18,9 +18,11 @@ STAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
   echo
   echo '## Current shipped functionality'
   echo
-  echo '- evaluations persist as first-class records for prediction/metacog readback and promotion.'
-  echo '- /v1/work-loop/health exposes dispatch readiness for work-loop diagnostics.'
-  echo '- ontology memory-pipeline promotions are documented and auditable.'
+  echo '- typed project identity, Project Card, Genesis/bootstrap, Trajectory, Workpoint, evidence, and continuity recovery preserve project_root + continuity_id authority.'
+  echo '- Context Cognition builds bounded project context, curation, proof, and optimization packets without overriding Workpoint or operator steering.'
+  echo '- prediction authority, temporal authority, metacognition, work-loop health, and Spec97 reflex suggestions provide evidence-backed routing and learning.'
+  echo '- UIAI/WebMCP capability intake, browser workflow planning, preload packets, Silent Sessions, device pairing, and progressive Tool Discovery are cross-harness surfaces.'
+  echo '- runtime tools, contracts, Pi/MCP/OpenAI/CLI/REST projections, per-tool docs, Agent Card, and 29 generated skills are parity-gated.'
   echo
   echo '## Release invariant inputs'
   echo

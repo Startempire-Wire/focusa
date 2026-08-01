@@ -19,7 +19,10 @@
         "focusa_project_identity",
         "focusa_workpoint_resume",
         "focusa_trajectory_view",
-        "focusa_tool_search"
+        "focusa_tool_search",
+        "focusa_preload_build",
+        "focusa_context_cognition",
+        "focusa_project_card"
       ],
       "recovery": [
         "focusa_tool_doctor",
@@ -29,7 +32,8 @@
       "runbook_notes": [
         "Call `focusa_agent_card` and verify workspace version, registry digest, all-Pi-tool count, installed skills, and runbooks.",
         "Use `focusa_tool_search` and `focusa_tool_describe`; never hot-load or invent the complete tool schema set.",
-        "Follow `docs/agent/01-focusa-agent-docs-index.md` for current architecture, lifecycle, and recovery routes."
+        "Follow `docs/agent/01-focusa-agent-docs-index.md` for current architecture, lifecycle, and recovery routes.",
+        "For v0.9.142, build the scoped preload packet and Context Cognition view before loading broad schemas; Project Card is advisory orientation."
       ],
       "done": "Agent has verified scope, current Workpoint/Trajectory orientation, and only the schemas needed for the next action."
     },
@@ -287,7 +291,11 @@
         "focusa_evidence_capture",
         "focusa_workpoint_link_evidence",
         "focusa_predict_stats",
-        "focusa_metacog_doctor"
+        "focusa_metacog_doctor",
+        "focusa_project_card_outcome",
+        "focusa_temporal_authority",
+        "focusa_context_cognition_proof",
+        "focusa_preload_verify"
       ],
       "recovery": [
         "focusa_tool_doctor",
@@ -297,7 +305,8 @@
       "runbook_notes": [
         "Audit AGENTS, public docs, onboarding, every Pi tool projection/doc, complete skill/runbook parity, and recent architecture before release.",
         "Run generated drift, Spec141 conformance, version-surface, Markdown, lifecycle, Mission Canvas, and final release gap gates.",
-        "Publish only after one green final CI; verify release assets, checksums, deployment health, updater rollback, and customer lifecycle evidence."
+        "Publish only after one green final CI; verify release assets, checksums, deployment health, updater rollback, and customer lifecycle evidence.",
+        "Confirm 135-tool/29-skill parity, generated public/machine docs freshness, and cross-platform terminal proof before tag creation."
       ],
       "done": "Every acceptance criterion, issue, changelog entry, platform boundary, and evidence ref is verified before authorized release action."
     },
@@ -653,16 +662,22 @@
     },
     {
       "name": "focusa-docs-maintenance",
-      "description": "Use for docs maintenance workflows with bounded Focusa authority.",
+      "description": "Use for public, machine-readable, generated tool, Agent Card, and agent-skill documentation freshness with bounded Focusa authority.",
       "triggers": [
-        "docs maintenance workflows with bounded Focusa authority"
+        "docs maintenance",
+        "public surface refresh",
+        "generated tool docs drift",
+        "agent skill parity"
       ],
       "non_triggers": [
         "unrelated implementation work",
         "a narrower skill owns the selected capability"
       ],
       "tools": [
-        "focusa_tool_search"
+        "focusa_tool_search",
+        "focusa_context_cognition",
+        "focusa_project_card",
+        "focusa_evidence_capture"
       ],
       "recovery": [
         "focusa_tool_doctor",
@@ -671,9 +686,10 @@
       ],
       "runbook_notes": [
         "Verify typed project/workstream scope before durable mutation.",
-        "Return bounded evidence and executable recovery."
+        "Refresh generated tool/operation/descriptor docs, public README/status surfaces, and all 29 skill copies together.",
+        "Run version, docs-runtime, Agent Card, skill hygiene, and public-surface gates; capture bounded evidence."
       ],
-      "done": "The scoped operation is verified, evidenced, and handed to the next owning skill."
+      "done": "All public, machine, generated, and agent-skill surfaces agree with the current registry/version and are evidenced."
     },
     {
       "name": "focusa-metacognition",

@@ -5,7 +5,7 @@
 **Source registry:** `docs/current/focusa-tool-contracts.json`
 **Generated:** `2026-06-15T21:08:06.778Z`
 **Source commit:** `cae911c`
-**Current version:** `0.9.137-dev`
+**Current version:** `0.9.142`
 
 ## Counts
 

@@ -1,5 +1,17 @@
 # Pi Extension and Skills Guide
 
+## v0.9.142 runtime surface
+
+The release surface is a 135-tool, scope-bound runtime. New/expanded routes include Context Cognition curation/proof/optimization, Project Card and Genesis/bootstrap, Temporal Authority, session transfer/rollover, UIAI/WebMCP capability intake, preload packets, Silent Sessions, device pairing, prediction authority, and progressive Tool Discovery. Every route preserves `project_root + continuity_id`, Workpoint authority, evidence refs, and operator steering precedence.
+
+The generated skill copies below are the same 29 manifests in `.pi/skills/`, `apps/pi-extension/skills/`, and `${PI_SKILLS_DIR:-$HOME/.pi/skills}/`. Regenerate and validate before release:
+
+```bash
+python3 scripts/generate-agent-skills.py --check
+node scripts/validate-skill-hygiene.mjs
+python3 scripts/audit-agent-first-tool-surfaces.py --json /tmp/focusa-agent-first.json
+```
+
 ## Current locations
 
 - Pi extension source: `apps/pi-extension/`

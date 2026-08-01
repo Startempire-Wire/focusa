@@ -1,6 +1,11 @@
 use chrono::{DateTime, Offset, SecondsFormat, Utc};
 use chrono_tz::Tz;
 use serde::{Deserialize, Serialize};
+#[cfg(not(unix))]
+use std::{
+    sync::OnceLock,
+    time::{Instant, SystemTime, UNIX_EPOCH},
+};
 use uuid::Uuid;
 
 use crate::temporal::{TemporalClockDomain, TemporalClockSample, TemporalConfidence};
@@ -119,13 +124,40 @@ pub fn capture_operator_temporal_action_envelope() -> TemporalActionEnvelope {
     }
 }
 
-fn clock_ns(clock_id: libc::clockid_t) -> Option<u128> {
+#[derive(Clone, Copy)]
+enum ClockKind {
+    Monotonic,
+    Realtime,
+    SuspendAware,
+}
+
+#[cfg(target_os = "linux")]
+fn clock_ns(kind: ClockKind) -> Option<u128> {
+    let clock_id = match kind {
+        ClockKind::Monotonic => libc::CLOCK_MONOTONIC,
+        ClockKind::Realtime => libc::CLOCK_REALTIME,
+        ClockKind::SuspendAware => libc::CLOCK_BOOTTIME,
+    };
+    unix_clock_ns(clock_id)
+}
+
+#[cfg(all(unix, not(target_os = "linux")))]
+fn clock_ns(kind: ClockKind) -> Option<u128> {
+    let clock_id = match kind {
+        ClockKind::Monotonic => libc::CLOCK_MONOTONIC,
+        ClockKind::Realtime => libc::CLOCK_REALTIME,
+        ClockKind::SuspendAware => return None,
+    };
+    unix_clock_ns(clock_id)
+}
+
+#[cfg(unix)]
+fn unix_clock_ns(clock_id: libc::clockid_t) -> Option<u128> {
     let mut sample = libc::timespec {
         tv_sec: 0,
         tv_nsec: 0,
     };
-    // SAFETY: `sample` is a valid writable timespec and `clock_id` is supplied
-    // only from libc clock constants in this module.
+    // SAFETY: `sample` is valid writable storage and clock_id is a platform constant.
     let result = unsafe { libc::clock_gettime(clock_id, &mut sample) };
     if result != 0 || sample.tv_sec < 0 || sample.tv_nsec < 0 {
         return None;
@@ -133,19 +165,67 @@ fn clock_ns(clock_id: libc::clockid_t) -> Option<u128> {
     Some((sample.tv_sec as u128) * 1_000_000_000 + sample.tv_nsec as u128)
 }
 
-fn clock_resolution_ns(clock_id: libc::clockid_t) -> Option<u64> {
+#[cfg(not(unix))]
+fn clock_ns(kind: ClockKind) -> Option<u128> {
+    static MONOTONIC_ORIGIN: OnceLock<Instant> = OnceLock::new();
+    match kind {
+        ClockKind::Monotonic => Some(
+            MONOTONIC_ORIGIN
+                .get_or_init(Instant::now)
+                .elapsed()
+                .as_nanos(),
+        ),
+        ClockKind::Realtime => Some(
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .ok()?
+                .as_nanos(),
+        ),
+        ClockKind::SuspendAware => None,
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn clock_resolution_ns(kind: ClockKind) -> Option<u64> {
+    let clock_id = match kind {
+        ClockKind::Monotonic => libc::CLOCK_MONOTONIC,
+        ClockKind::Realtime => libc::CLOCK_REALTIME,
+        ClockKind::SuspendAware => libc::CLOCK_BOOTTIME,
+    };
+    unix_clock_resolution_ns(clock_id)
+}
+
+#[cfg(all(unix, not(target_os = "linux")))]
+fn clock_resolution_ns(kind: ClockKind) -> Option<u64> {
+    let clock_id = match kind {
+        ClockKind::Monotonic => libc::CLOCK_MONOTONIC,
+        ClockKind::Realtime => libc::CLOCK_REALTIME,
+        ClockKind::SuspendAware => return None,
+    };
+    unix_clock_resolution_ns(clock_id)
+}
+
+#[cfg(unix)]
+fn unix_clock_resolution_ns(clock_id: libc::clockid_t) -> Option<u64> {
     let mut resolution = libc::timespec {
         tv_sec: 0,
         tv_nsec: 0,
     };
-    // SAFETY: `resolution` is a valid writable timespec and `clock_id` is
-    // supplied only from libc clock constants in this module.
+    // SAFETY: `resolution` is valid writable storage and clock_id is a platform constant.
     let result = unsafe { libc::clock_getres(clock_id, &mut resolution) };
     if result != 0 || resolution.tv_sec < 0 || resolution.tv_nsec < 0 {
         return None;
     }
     let nanos = (resolution.tv_sec as u128) * 1_000_000_000 + resolution.tv_nsec as u128;
     u64::try_from(nanos.max(1)).ok()
+}
+
+#[cfg(not(unix))]
+fn clock_resolution_ns(kind: ClockKind) -> Option<u64> {
+    match kind {
+        ClockKind::Monotonic | ClockKind::Realtime => Some(1_000_000),
+        ClockKind::SuspendAware => None,
+    }
 }
 
 fn current_boot_id() -> Option<String> {
@@ -162,20 +242,20 @@ pub fn capture_temporal_action_envelope(
     let timezone = operator_timezone.parse::<Tz>().map_err(|_| {
         TemporalActionCaptureError::InvalidOperatorTimezone(operator_timezone.into())
     })?;
-    let monotonic_before = clock_ns(libc::CLOCK_MONOTONIC)
+    let monotonic_before = clock_ns(ClockKind::Monotonic)
         .ok_or(TemporalActionCaptureError::MonotonicClockUnavailable)?;
-    let realtime_ns = clock_ns(libc::CLOCK_REALTIME)
+    let realtime_ns = clock_ns(ClockKind::Realtime)
         .ok_or(TemporalActionCaptureError::RealtimeClockUnavailable)?;
     let captured_at_utc = DateTime::<Utc>::from_timestamp(
         (realtime_ns / 1_000_000_000) as i64,
         (realtime_ns % 1_000_000_000) as u32,
     )
     .ok_or(TemporalActionCaptureError::InvalidRealtimeSample)?;
-    let monotonic_after = clock_ns(libc::CLOCK_MONOTONIC)
+    let monotonic_after = clock_ns(ClockKind::Monotonic)
         .ok_or(TemporalActionCaptureError::MonotonicClockUnavailable)?;
-    let realtime_resolution_ns = clock_resolution_ns(libc::CLOCK_REALTIME)
+    let realtime_resolution_ns = clock_resolution_ns(ClockKind::Realtime)
         .ok_or(TemporalActionCaptureError::RealtimeResolutionUnavailable)?;
-    let monotonic_resolution_ns = clock_resolution_ns(libc::CLOCK_MONOTONIC)
+    let monotonic_resolution_ns = clock_resolution_ns(ClockKind::Monotonic)
         .ok_or(TemporalActionCaptureError::MonotonicResolutionUnavailable)?;
     let capture_latency_ns = monotonic_after.saturating_sub(monotonic_before);
     let capture_uncertainty_ns = (capture_latency_ns / 2)
@@ -238,7 +318,7 @@ pub fn capture_temporal_action_envelope(
             domain: TemporalClockDomain::WallUtc,
             wall_utc: captured_at_utc,
             monotonic_ns: Some(monotonic_ns),
-            suspend_aware_ns: clock_ns(libc::CLOCK_BOOTTIME),
+            suspend_aware_ns: clock_ns(ClockKind::SuspendAware),
             boot_id: current_boot_id(),
             timezone: operator_timezone.to_string(),
             tzdb_version: None,

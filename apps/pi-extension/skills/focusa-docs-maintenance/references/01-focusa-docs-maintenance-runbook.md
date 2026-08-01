@@ -13,17 +13,23 @@
 ## Dependency graph
 
 ```text
-
+focusa_tool_search -> focusa_context_cognition
+focusa_context_cognition -> focusa_project_card
+focusa_project_card -> focusa_evidence_capture
 ```
 
 ## Minimal path
 
 1. Call `focusa_tool_search` with only required bounded inputs.
+2. Call `focusa_context_cognition` with only required bounded inputs.
+3. Call `focusa_project_card` with only required bounded inputs.
+4. Call `focusa_evidence_capture` with only required bounded inputs.
 
 ## Current domain procedure
 
 1. Verify typed project/workstream scope before durable mutation.
-2. Return bounded evidence and executable recovery.
+2. Refresh generated tool/operation/descriptor docs, public README/status surfaces, and all 29 skill copies together.
+3. Run version, docs-runtime, Agent Card, skill hygiene, and public-surface gates; capture bounded evidence.
 
 ## Branches
 
@@ -39,7 +45,7 @@
 - Capture stable file/test/API/browser/receipt refs.
 - Link proof to the active Workpoint.
 - Evaluate relevant predictions and reusable learning only after outcome is known.
-- Done: The scoped operation is verified, evidenced, and handed to the next owning skill.
+- Done: All public, machine, generated, and agent-skill surfaces agree with the current registry/version and are evidenced.
 
 ## Cross-harness mapping
 

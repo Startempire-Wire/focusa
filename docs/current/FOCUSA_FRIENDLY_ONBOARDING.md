@@ -4,6 +4,10 @@
 
 The **Friendly Focusa Q** should feel like navigation help, not a nag. The goal is a short orientation that helps the model choose the right tool route before it falls back to only `focusa_scratch` / `focusa_decide`.
 
+## v0.9.142 surface
+
+Friendly onboarding now covers the 135-tool cross-harness surface: Context Cognition, Project Card/Genesis, Temporal Authority, preload, Silent Sessions, browser/UIAI workflows, device pairing, Mission Canvas, progressive Tool Discovery, and the existing Trajectory/Workpoint/evidence/prediction/metacognition/work-loop route. Scope and operator-steering rules remain unchanged.
+
 ## Tone contract
 
 - Use **suggested route**, **quick orientation**, and **next useful move** language.

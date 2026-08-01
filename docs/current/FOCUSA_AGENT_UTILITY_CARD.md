@@ -1,5 +1,9 @@
 # Focusa Agent Utility Card
 
+## v0.9.142 capability surface
+
+The Utility Card routes 135 typed tools and 29 generated skills through project/workstream scope. Alongside Workpoint, Trajectory, evidence, prediction, metacognition, and recovery, the current surface includes Context Cognition, Project Card/Genesis, Temporal Authority, preload, Silent Sessions, UIAI/WebMCP workflows, device pairing, Mission Canvas, and progressive Tool Discovery.
+
 This card is injected by the Pi extension at startup/reload and included in the system prompt so agents are aware of Focusa as a friendly project navigation utility without reading the repository first.
 
 ## Runtime card content requirements

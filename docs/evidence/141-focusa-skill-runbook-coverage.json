@@ -17,10 +17,13 @@
         "focusa_project_identity",
         "focusa_workpoint_resume",
         "focusa_trajectory_view",
-        "focusa_tool_search"
+        "focusa_tool_search",
+        "focusa_preload_build",
+        "focusa_context_cognition",
+        "focusa_project_card"
       ],
       "runbook": ".pi/skills/focusa-agent-bootstrap/references/01-focusa-agent-bootstrap-runbook.md",
-      "sha256": "35aa1cd2163c52a90fb47121c4a8d3013d18e790b486c0979866df85d0866f83"
+      "sha256": "40bc7d170080322722e33427768b49f8d4a4bb7fa8a083efb49d06c24241d3d8"
     },
     {
       "name": "focusa-tool-discovery",
@@ -120,10 +123,14 @@
         "focusa_evidence_capture",
         "focusa_workpoint_link_evidence",
         "focusa_predict_stats",
-        "focusa_metacog_doctor"
+        "focusa_metacog_doctor",
+        "focusa_project_card_outcome",
+        "focusa_temporal_authority",
+        "focusa_context_cognition_proof",
+        "focusa_preload_verify"
       ],
       "runbook": ".pi/skills/focusa-release-proof/references/01-focusa-release-proof-runbook.md",
-      "sha256": "c00a0455ac595ff806519497002db9066fd70cc12149446d9b40fae3b4e84744"
+      "sha256": "dcddcbf641a8033b25ebc6132c389a1821577f05243c2e408ef31a2a28d1a726"
     },
     {
       "name": "focusa-temporal-authority",
@@ -289,10 +296,13 @@
     {
       "name": "focusa-docs-maintenance",
       "tools": [
-        "focusa_tool_search"
+        "focusa_tool_search",
+        "focusa_context_cognition",
+        "focusa_project_card",
+        "focusa_evidence_capture"
       ],
       "runbook": ".pi/skills/focusa-docs-maintenance/references/01-focusa-docs-maintenance-runbook.md",
-      "sha256": "6d01b7ce23fc3f82949c86d11d0bd930c9461ee185b9b3177403eaacf53719e9"
+      "sha256": "510de81e2ae081a7b8fd28a4bef0971ec79757e2e468d4b46faf178dd089c49a"
     },
     {
       "name": "focusa-metacognition",
@@ -403,7 +413,10 @@
         "focusa_project_identity",
         "focusa_workpoint_resume",
         "focusa_trajectory_view",
-        "focusa_tool_search"
+        "focusa_tool_search",
+        "focusa_preload_build",
+        "focusa_context_cognition",
+        "focusa_project_card"
       ],
       "generated": true
     },
@@ -477,7 +490,10 @@
         ".pi/skills/focusa-docs-maintenance/references/01-focusa-docs-maintenance-runbook.md"
       ],
       "declared_tools": [
-        "focusa_tool_search"
+        "focusa_tool_search",
+        "focusa_context_cognition",
+        "focusa_project_card",
+        "focusa_evidence_capture"
       ],
       "generated": true
     },
@@ -643,7 +659,11 @@
         "focusa_evidence_capture",
         "focusa_workpoint_link_evidence",
         "focusa_predict_stats",
-        "focusa_metacog_doctor"
+        "focusa_metacog_doctor",
+        "focusa_project_card_outcome",
+        "focusa_temporal_authority",
+        "focusa_context_cognition_proof",
+        "focusa_preload_verify"
       ],
       "generated": true
     },

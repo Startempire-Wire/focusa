@@ -2,6 +2,8 @@
 
 Focusa is an agent utility layer: working memory, continuation contracts, evidence links, prediction records, recovery guidance, Spec97 reflex affordances, and governance for long-running AI sessions.
 
+For v0.9.142, the same utility layer spans 135 typed tools and 29 generated skills: Context Cognition, Project Card/Genesis, Temporal Authority, preload, Silent Sessions, browser/UIAI workflows, device pairing, Tool Discovery, Mission Canvas, and the Workpoint/evidence/prediction/metacognition/work-loop route. All durable actions remain bounded by `project_root + continuity_id`; operator steering remains authoritative.
+
 ## Friendly Focusa Q
 
 Use this as internal orientation, not a blocker:

@@ -9,7 +9,7 @@
 
 ## Generated coverage
 
-- `focusa-agent-bootstrap` → `.pi/skills/focusa-agent-bootstrap/references/01-focusa-agent-bootstrap-runbook.md` → 5 declared tools
+- `focusa-agent-bootstrap` → `.pi/skills/focusa-agent-bootstrap/references/01-focusa-agent-bootstrap-runbook.md` → 8 declared tools
 - `focusa-tool-discovery` → `.pi/skills/focusa-tool-discovery/references/01-focusa-tool-discovery-runbook.md` → 5 declared tools
 - `focusa-project-scope` → `.pi/skills/focusa-project-scope/references/01-focusa-project-scope-runbook.md` → 4 declared tools
 - `focusa-session-recovery` → `.pi/skills/focusa-session-recovery/references/01-focusa-session-recovery-runbook.md` → 5 declared tools
@@ -18,7 +18,7 @@
 - `focusa-security-auth-licensing` → `.pi/skills/focusa-security-auth-licensing/references/01-focusa-security-auth-licensing-runbook.md` → 5 declared tools
 - `focusa-resource-performance` → `.pi/skills/focusa-resource-performance/references/01-focusa-resource-performance-runbook.md` → 5 declared tools
 - `focusa-mission-canvas` → `.pi/skills/focusa-mission-canvas/references/01-focusa-mission-canvas-runbook.md` → 4 declared tools
-- `focusa-release-proof` → `.pi/skills/focusa-release-proof/references/01-focusa-release-proof-runbook.md` → 4 declared tools
+- `focusa-release-proof` → `.pi/skills/focusa-release-proof/references/01-focusa-release-proof-runbook.md` → 8 declared tools
 - `focusa-temporal-authority` → `.pi/skills/focusa-temporal-authority/references/01-focusa-temporal-authority-runbook.md` → 5 declared tools
 - `focusa-spec-implementation` → `.pi/skills/focusa-spec-implementation/references/01-focusa-spec-implementation-runbook.md` → 5 declared tools
 - `focusa-evidence-outcomes` → `.pi/skills/focusa-evidence-outcomes/references/01-focusa-evidence-outcomes-runbook.md` → 5 declared tools
@@ -31,7 +31,7 @@
 - `focusa-dxux-recovery` → `.pi/skills/focusa-dxux-recovery/references/01-focusa-dxux-recovery-runbook.md` → 5 declared tools
 - `focusa` → `.pi/skills/focusa/references/01-focusa-runbook.md` → 15 declared tools
 - `focusa-cli-api` → `.pi/skills/focusa-cli-api/references/01-focusa-cli-api-runbook.md` → 1 declared tools
-- `focusa-docs-maintenance` → `.pi/skills/focusa-docs-maintenance/references/01-focusa-docs-maintenance-runbook.md` → 1 declared tools
+- `focusa-docs-maintenance` → `.pi/skills/focusa-docs-maintenance/references/01-focusa-docs-maintenance-runbook.md` → 4 declared tools
 - `focusa-metacognition` → `.pi/skills/focusa-metacognition/references/01-focusa-metacognition-runbook.md` → 9 declared tools
 - `focusa-silent-sessions` → `.pi/skills/focusa-silent-sessions/references/01-focusa-silent-sessions-runbook.md` → 1 declared tools
 - `focusa-troubleshooting` → `.pi/skills/focusa-troubleshooting/references/01-focusa-troubleshooting-runbook.md` → 1 declared tools

@@ -2,6 +2,10 @@
 
 Focusa Pi Bridge is the Pi coding-agent extension that registers Focusa tools, lifecycle hooks, compaction/session handling, and Focusa skills used by Pi sessions.
 
+## v0.9.142 surface
+
+The extension exposes the 135-tool parity surface through typed project/workstream scope. Startup/reload now renders the Focusa Utility Card; recovery composes `focusa_tool_doctor`, project identity, Trajectory, Workpoint checkpoint/resume, evidence capture/linking, prediction evaluation, metacognition, and work-loop routes. Context Cognition, Project Card/Genesis, Temporal Authority, preload, Silent Sessions, browser/UIAI workflows, device pairing, and Tool Discovery remain available through the same scope and operator-steering boundary.
+
 ## Loading model
 
 Pi has separate resource types:
