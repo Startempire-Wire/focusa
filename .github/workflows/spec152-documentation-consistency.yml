@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'README.md'
+      - 'LICENSE-FAQ.md'
       - 'docs/**'
       - '.pi/skills/focusa-install-lifecycle/**'
       - 'apps/pi-extension/skills/focusa-install-lifecycle/**'
@@ -14,6 +15,7 @@ on:
     branches: [main]
     paths:
       - 'README.md'
+      - 'LICENSE-FAQ.md'
       - 'docs/**'
       - '.pi/skills/focusa-install-lifecycle/**'
       - 'apps/pi-extension/skills/focusa-install-lifecycle/**'
