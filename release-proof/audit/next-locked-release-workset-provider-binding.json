@@ -5,8 +5,8 @@
   "provider_revision_ref": "git:e28e7337+spec150-r7-admission",
   "query_semantics": "explicit_ids",
   "query": {
-    "member_count": 274,
-    "member_ids_digest": "sha256:87a3c98f5e39fd6b8450c91c6aef66612bfc30ad84e4cf4d7d2713b1e751e2bf"
+    "member_count": 275,
+    "member_ids_digest": "sha256:86f183cfee4b1c84583be6a34665a7b9ee238c79a08e35ac23e0be458cfd7243"
   },
   "cursor": null,
   "ordering_key": "workset_phase_then_provider_dependency",
