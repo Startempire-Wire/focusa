@@ -13,8 +13,8 @@ PREDICTIONS = (ROOT / "crates/focusa-api/src/routes/predictions.rs").read_text()
 
 for token in [
     "handleTrajectoryMatchesCurrentScope",
-    "candidateRoot !== currentRoot",
-    "candidateContinuity === currentContinuity",
+    "candidateRoot !== current.projectRoot",
+    "candidateContinuity !== current.continuityId",
     "project_root: getSessionCwd()",
     "continuity_id: getContinuityId()",
 ]:

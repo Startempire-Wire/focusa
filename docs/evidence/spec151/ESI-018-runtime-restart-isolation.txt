@@ -17,3 +17,13 @@ Restart/reconnect assertions using the same temporary data directory:
 
 Default Tokio worker stack was used for the passing run.
 The earlier special PRE full-snapshot path caused a stack overflow; proposal submission was converted to canonical ProposalSubmitted reducer events before this proof passed.
+
+Pi augmentation acceptance (2026-08-01 UTC):
+- Candidate fix lineage: 9626ac53, f8a7cbf0, 5dafaa34, ed5340ea.
+- Candidate extension version: focusa-pi-bridge 0.9.137-dev.
+- apps/pi-extension/tests/cross-project-context-isolation.test.mjs: 7/7 PASS.
+- Explicit read and bash cases reject a foreign project with matching continuity and reject rotated continuity for the correct project.
+- Raw ECS storage is bound to current project_root + continuity_id; rendered TRAJECTORY_CONTEXT is emitted only after exact verified project/workstream matching.
+- Full Pi extension test suite: PASS.
+- Client disposition: CLI and Pi own confirmed migration actions; Canvas, TUI, menubar, browser, and silent-session surfaces expose no ontology scope-migration mutation path and therefore remain fail-closed/read-only for this operation.
+- Mac inventory was read-only: Pi 0.83.0, Focusa CLI 0.9.138, managed extension 0.9.141. The 0.9.137-dev candidate was not installed because that would be a downgrade; final Mac installation and activation proof remains owned by the existing final release decision tasks.
