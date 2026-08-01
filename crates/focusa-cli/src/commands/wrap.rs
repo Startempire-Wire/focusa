@@ -342,6 +342,24 @@ fn run_with_recording(
     Ok((exit_code, transcript))
 }
 
+/// Run an interactive harness with its native terminal semantics.
+/// No PTY transcript is collected; Pi's semantic extension/RPC surfaces own events.
+fn run_interactive(
+    harness_path: &str,
+    args: &[String],
+    env_vars: &[(&str, &str)],
+) -> Result<i32> {
+    let status = Command::new(harness_path)
+        .args(args)
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .envs(env_vars.iter().copied())
+        .status()
+        .context("Failed to run interactive harness")?;
+    Ok(status.code().unwrap_or(1))
+}
+
 /// Simple harness runner (non-PTY) for command-line only mode.
 /// Returns exit code and combined stdout+stderr.
 fn run_simple(
@@ -485,8 +503,18 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
 
     eprintln!("[DEBUG] Running: {} {}", harness_path, final_args.join(" "));
 
-    let (exit_code, transcript) = if is_tui {
-        // TUI mode: use script to record full session
+    let (exit_code, transcript) = if is_tui && harness_name == "pi" {
+        // Interactive Pi: preserve native TTY behavior; semantic events come from
+        // the Focusa extension/RPC stream rather than ANSI screen scraping.
+        match run_interactive(harness_path, &final_args, &env_vars) {
+            Ok(code) => (code, String::new()),
+            Err(e) => {
+                eprintln!("[ERROR] Interactive Pi harness failed: {}", e);
+                (1, String::new())
+            }
+        }
+    } else if is_tui {
+        // Non-Pi adapters retain bounded, explicit diagnostic capture.
         match run_with_recording(harness_path, &final_args, &env_vars) {
             Ok(result) => result,
             Err(e) => {
