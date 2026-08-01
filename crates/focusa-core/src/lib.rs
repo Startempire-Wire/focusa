@@ -113,6 +113,7 @@ pub mod scoped_state;
 pub mod semantic_integrity;
 pub mod semantic_registry;
 pub mod semantic_verification;
+pub mod semantic_vertical;
 pub mod silent_session;
 pub mod silent_session_authority;
 pub mod silent_session_authorization;
