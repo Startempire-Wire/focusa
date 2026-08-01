@@ -6,6 +6,7 @@ root = Path(__file__).resolve().parents[1]
 config = (root / "apps/pi-extension/src/config.ts").read_text()
 commands = (root / "apps/pi-extension/src/commands.ts").read_text()
 polish = (root / "apps/pi-extension/src/polish.ts").read_text()
+lifecycle = (root / "apps/pi-extension/src/lifecycle-advisory.ts").read_text()
 turns = (root / "apps/pi-extension/src/turns.ts").read_text()
 
 switches = [
@@ -37,6 +38,8 @@ for marker in [
 assert "[Focusa advisory — operator steering remains authoritative]" not in turns
 assert "[Focusa advisory — cached state unavailable; operator flow continues]" not in turns
 assert "Internal Focusa context — never quote, display, or summarize" in turns
+assert 'setTimeout(() => ctx?.ui' not in polish
+assert "setTimeout(() => void startWhenIdle()" in lifecycle
 assert "record a wall-clock start" in turns
 assert "Never invent urgency or deadlines" in turns
 print("Pi composable operator status and internal-context firewall gate: PASS")

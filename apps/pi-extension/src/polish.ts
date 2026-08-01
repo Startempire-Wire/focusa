@@ -581,7 +581,6 @@ export function registerPolishHooks(pi: ExtensionAPI) {
       ["Ready — I’ve shared the clearest next options above. Nothing was changed while I checked."],
       { placement: "belowEditor" }
     );
-    setTimeout(() => ctx?.ui?.setWidget?.("focusa-vital", undefined), 6_000);
   });
 
   hookApi.on("session_tree", async (event: any, _ctx: any) => {
