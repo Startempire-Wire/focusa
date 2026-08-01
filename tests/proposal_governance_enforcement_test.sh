@@ -5,6 +5,8 @@
 set -euo pipefail
 
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+SCOPE_CONTINUITY="proposal-governance-test"
 FAILED=0
 PASSED=0
 
@@ -35,6 +37,8 @@ run_source="spec-governance-test-$(date +%s%N)"
 log_info "Submit autonomy_adjustment proposal"
 auto_submit=$(curl -sS -X POST "${BASE_URL}/v1/proposals" \
   -H "Content-Type: application/json" \
+  -H "x-scope-project-root: ${PROJECT_ROOT}" \
+  -H "x-scope-continuity-id: ${SCOPE_CONTINUITY}" \
   -d "{\"kind\":\"autonomy_adjustment\",\"source\":\"${run_source}\",\"score\":0.98,\"deadline_ms\":60000,\"payload\":{\"level\":\"AL2\",\"scope\":\"spec-governance-scope\",\"ttl_seconds\":3600,\"reason\":\"strict proposal governance test\"}}")
 if echo "$auto_submit" | jq -e '.status == "accepted"' >/dev/null 2>&1; then
   log_pass "autonomy_adjustment proposal accepted"
@@ -44,7 +48,9 @@ fi
 
 auto_visible=0
 for _ in 1 2 3 4 5 6 7 8 9 10; do
-  if curl -sS "${BASE_URL}/v1/proposals" | jq -e --arg source "$run_source" '.proposals | any(.source == $source and .kind == "autonomy_adjustment" and .status == "pending")' >/dev/null 2>&1; then
+  if curl -sS "${BASE_URL}/v1/proposals" \
+    -H "x-scope-project-root: ${PROJECT_ROOT}" \
+    -H "x-scope-continuity-id: ${SCOPE_CONTINUITY}" | jq -e --arg source "$run_source" '.proposals | any(.source == $source and .kind == "autonomy_adjustment" and .status == "pending")' >/dev/null 2>&1; then
     auto_visible=1
     break
   fi
@@ -56,6 +62,8 @@ fi
 
 auto_resolve=$(curl -sS -X POST "${BASE_URL}/v1/proposals/resolve" \
   -H "Content-Type: application/json" \
+  -H "x-scope-project-root: ${PROJECT_ROOT}" \
+  -H "x-scope-continuity-id: ${SCOPE_CONTINUITY}" \
   -d "{\"kind\":\"autonomy_adjustment\",\"source\":\"${run_source}\"}")
 if echo "$auto_resolve" | jq -e '.status == "accepted" and (.applied_kind == "autonomy_adjusted" or .applied_kind == "autonomy_level_granted")' >/dev/null 2>&1; then
   log_pass "autonomy_adjustment applied canonically"
@@ -73,6 +81,8 @@ version="proposal-governance-$(date +%s%N)"
 log_info "Submit constitution_revision proposal"
 const_submit=$(curl -sS -X POST "${BASE_URL}/v1/proposals" \
   -H "Content-Type: application/json" \
+  -H "x-scope-project-root: ${PROJECT_ROOT}" \
+  -H "x-scope-continuity-id: ${SCOPE_CONTINUITY}" \
   -d "{\"kind\":\"constitution_revision\",\"source\":\"${run_source}\",\"score\":0.99,\"deadline_ms\":60000,\"payload\":{\"version\":\"${version}\",\"agent_id\":\"wirebot\",\"principles\":[\"Protect operator intent\",\"Prefer verified state transitions\"],\"safety_rules\":[\"No silent mutation\"],\"expression_rules\":[\"Be direct\"]}}")
 if echo "$const_submit" | jq -e '.status == "accepted"' >/dev/null 2>&1; then
   log_pass "constitution_revision proposal accepted"
@@ -82,7 +92,9 @@ fi
 
 const_visible=0
 for _ in 1 2 3 4 5 6 7 8 9 10; do
-  if curl -sS "${BASE_URL}/v1/proposals" | jq -e --arg source "$run_source" '.proposals | any(.source == $source and .kind == "constitution_revision" and .status == "pending")' >/dev/null 2>&1; then
+  if curl -sS "${BASE_URL}/v1/proposals" \
+    -H "x-scope-project-root: ${PROJECT_ROOT}" \
+    -H "x-scope-continuity-id: ${SCOPE_CONTINUITY}" | jq -e --arg source "$run_source" '.proposals | any(.source == $source and .kind == "constitution_revision" and .status == "pending")' >/dev/null 2>&1; then
     const_visible=1
     break
   fi
@@ -94,6 +106,8 @@ fi
 
 const_resolve=$(curl -sS -X POST "${BASE_URL}/v1/proposals/resolve" \
   -H "Content-Type: application/json" \
+  -H "x-scope-project-root: ${PROJECT_ROOT}" \
+  -H "x-scope-continuity-id: ${SCOPE_CONTINUITY}" \
   -d "{\"kind\":\"constitution_revision\",\"source\":\"${run_source}\"}")
 if echo "$const_resolve" | jq -e '.status == "accepted" and (.applied_kind == "constitution_loaded" or .applied_kind == "constitution_version_activated")' >/dev/null 2>&1; then
   log_pass "constitution_revision applied canonically"

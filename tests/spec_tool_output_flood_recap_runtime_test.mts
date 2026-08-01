@@ -1,3 +1,4 @@
+import { registerVerifiedScopeRef } from "../apps/pi-extension/src/scoped-state.ts";
 import {
   TOOL_OUTPUT_FLOOD_BYTES_THRESHOLD,
   TOOL_OUTPUT_FLOOD_RESULT_THRESHOLD,
@@ -16,6 +17,13 @@ function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
 
+registerVerifiedScopeRef({
+  scope_kind: "project",
+  scope_id: "focusa-tool-flood-runtime",
+  root_path: "/home/wirebot/focusa",
+  canonical_name: "Focusa",
+  fingerprint: "sha256:focusa-tool-flood-runtime",
+});
 const key = makeAttachmentKey({
   projectRoot: "/home/wirebot/focusa",
   continuityId: "cont-tool-flood-runtime",

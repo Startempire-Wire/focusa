@@ -138,7 +138,7 @@
       "symbol": "GUARD",
       "classification": "infra_allowlist",
       "authority_bearing": false,
-      "status": "infra_allowed",
+      "status": "eliminated",
       "target": "Immutable initialized license guard",
       "acceptance_test": "guard cannot supply or mutate scope"
     },
@@ -631,7 +631,7 @@
       "symbol": "PROCESS_MONOTONIC_ORIGIN",
       "classification": "infra_allowlist",
       "authority_bearing": false,
-      "status": "infra_allowed",
+      "status": "eliminated",
       "target": "Process-local immutable monotonic clock origin; carries no project, workstream, deadline, urgency, or instruction authority",
       "acceptance_test": "temporal_platform monotonic uptime tests plus Spec104 singleton inventory gate"
     }

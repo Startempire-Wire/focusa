@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import http from "node:http";
 import { registerTools } from "../apps/pi-extension/src/tools.ts";
+import { registerVerifiedScopeRef } from "../apps/pi-extension/src/scoped-state.ts";
 import {
   getAttachmentRuntime,
   makeAttachmentKey,
@@ -15,6 +16,13 @@ type ToolDef = {
 };
 
 async function main() {
+registerVerifiedScopeRef({
+  scope_kind: "project",
+  scope_id: "focusa-spec80-runtime",
+  root_path: "/tmp/focusa-spec80-runtime",
+  canonical_name: "Focusa Spec80 Fixture",
+  fingerprint: "sha256:focusa-spec80-runtime",
+});
 const attachmentKey = makeAttachmentKey({
   projectRoot: "/tmp/focusa-spec80-runtime",
   continuityId: "spec80-runtime",

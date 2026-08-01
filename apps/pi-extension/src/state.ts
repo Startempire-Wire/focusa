@@ -3662,6 +3662,7 @@ export function adoptWorkpointScopeForFrameRecovery(packet: any, source: string)
     return null;
   if (currentSessionKey && !packetPiSessionKey && !packetSessionId) return null;
   getAttachmentRuntime().continuityId = packetContinuityId;
+  getAttachmentRuntime().sessionCwd = packetProjectRoot;
   setActiveWorkpointPacket(stampWorkpointPacketForCurrentPiSession(workpoint));
   getAttachmentRuntime().lastWorkpointUpdate = Date.now();
   return packetProjectRoot;

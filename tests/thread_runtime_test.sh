@@ -19,6 +19,8 @@ log_info() { echo -e "${YELLOW}INFO${NC}: $1"; }
 
 THREAD_NAME="audit-thread-$(date +%s%N)"
 THREAD_INTENT="verify thread runtime"
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+SCOPE_CONTINUITY="thread-runtime-test"
 
 log_info "Create thread"
 resp=$(curl -sS -X POST "${BASE_URL}/v1/threads" \
@@ -67,6 +69,8 @@ fi
 log_info "Proposal submit/list/resolve basics"
 submit=$(curl -sS -X POST "${BASE_URL}/v1/proposals" \
   -H "Content-Type: application/json" \
+  -H "x-scope-project-root: ${PROJECT_ROOT}" \
+  -H "x-scope-continuity-id: ${SCOPE_CONTINUITY}" \
   -d '{"kind":"focus_change","source":"thread-runtime-test","payload":{},"deadline_ms":5000}')
 if echo "$submit" | jq -e '.status == "accepted"' >/dev/null 2>&1; then
   log_pass "Proposal submit accepted"
@@ -76,7 +80,9 @@ fi
 
 pending_visible=0
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
-  if curl -sS "${BASE_URL}/v1/proposals" | jq -e '.pending >= 1' >/dev/null 2>&1; then
+  if curl -sS "${BASE_URL}/v1/proposals" \
+    -H "x-scope-project-root: ${PROJECT_ROOT}" \
+    -H "x-scope-continuity-id: ${SCOPE_CONTINUITY}" | jq -e '.pending >= 1' >/dev/null 2>&1; then
     pending_visible=1
     break
   fi
@@ -90,6 +96,8 @@ fi
 
 resolve=$(curl -sS -X POST "${BASE_URL}/v1/proposals/resolve" \
   -H "Content-Type: application/json" \
+  -H "x-scope-project-root: ${PROJECT_ROOT}" \
+  -H "x-scope-continuity-id: ${SCOPE_CONTINUITY}" \
   -d '{}')
 if echo "$resolve" | jq -e '.status != null' >/dev/null 2>&1; then
   log_pass "Proposal resolution returned structured status"
