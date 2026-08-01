@@ -238,7 +238,7 @@ Final distribution additionally requires signed-lease golden vectors, authority 
 - [Current CLI reference](docs/current/CLI_REFERENCE_CURRENT.md)
 - [Troubleshooting](docs/current/TROUBLESHOOTING_CURRENT.md)
 - [Agent architecture and discovery](docs/agent/01-focusa-agent-docs-index.md)
-- [Friendly onboarding](docs/current/FOCUSA_FRIENDLY_ONBOARDING.md)
+- [Friendly Focusa Onboarding Q](docs/current/FOCUSA_FRIENDLY_ONBOARDING.md)
 - [Agent Awareness Quickstart](docs/current/AGENT_AWARENESS_QUICKSTART.md)
 - [Focusa Utility Card](docs/current/FOCUSA_AGENT_UTILITY_CARD.md)
 - [Focusa Tool Choreography Map](docs/current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md)
