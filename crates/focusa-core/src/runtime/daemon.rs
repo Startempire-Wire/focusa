@@ -3440,24 +3440,15 @@ Return:
                 payload,
                 deadline_ms,
                 score,
-            } => {
-                let proposal_id = crate::pre::submit_scoped(
-                    &mut self.state.pre,
-                    workstream,
-                    kind,
-                    &source,
-                    payload,
-                    deadline_ms,
-                );
-                if let Some(score) = score {
-                    let _ = crate::pre::score_proposal(&mut self.state.pre, proposal_id, score);
-                }
-                // Proposals don't produce reducer events — they live in PRE state.
-                // Persist so proposals survive a daemon restart.
-                self.persist_reducer_batch(Vec::new(), true).await?;
-                self.sync_shared_state().await;
-                Ok(vec![])
-            }
+            } => Ok(vec![FocusaEvent::ProposalSubmitted {
+                workstream,
+                proposal_id: Uuid::now_v7(),
+                kind,
+                source,
+                payload,
+                deadline_ms,
+                score,
+            }]),
 
             Action::LogConfidence {
                 prediction_type,
