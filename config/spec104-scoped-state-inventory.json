@@ -634,6 +634,16 @@
       "status": "eliminated",
       "target": "Process-local immutable monotonic clock origin; carries no project, workstream, deadline, urgency, or instruction authority",
       "acceptance_test": "temporal_platform monotonic uptime tests plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-11",
+      "path": "crates/focusa-core/src/temporal_clock.rs",
+      "symbol": "MONOTONIC_ORIGIN",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "infra_allowed",
+      "target": "Process-local immutable monotonic origin used only by non-Unix temporal fallback sampling",
+      "acceptance_test": "cross-platform temporal clock compilation plus Spec104 singleton inventory gate"
     }
   ]
 }
