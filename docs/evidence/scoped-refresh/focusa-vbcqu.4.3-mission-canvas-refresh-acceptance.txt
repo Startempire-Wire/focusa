@@ -1,0 +1,32 @@
+focusa-vbcqu.4.3 / GitHub #45 — scoped surface refresh acceptance
+Observed: 2026-07-31
+Source authority: commit containing this evidence on locked-release-all-open-spec137-138-140
+
+Implemented:
+- ScopedStateChangeReceiptV1 keyed by project_root plus continuity_id.
+- Successful project-aware Pi tool mutations publish exact-scope refresh receipts.
+- Exact-scope SSE events publish refresh receipts; foreign events are ignored.
+- Mission Canvas Work Rail subscribes independently of turn_end.
+- Bounded polling fallback runs only when the latest scoped receipt is at least 60 seconds stale.
+- Poll refreshes scoped Trajectory and Workpoint projections and reports stale age/status.
+- Truthful mixed state independently renders project, selected scope, startup cwd, trajectory, bead, Workpoint, proof, and refresh state.
+- A persisted Trajectory remains visible while project binding recovers or Workpoint/bead are absent.
+- Zero proof renders as proof missing, never as a checkmark/success.
+- Bootstrap/Genesis and project-binding authority remain separate; no scope promotion is synthesized.
+
+Canonical OVH proof:
+- tests/spec143_scoped_surface_refresh_gate.py: PASS.
+- npm run test:surface-refresh: static 4/4 plus headless runtime 4/4 PASS.
+- Headless mixed-state scenario: startup /root, selected /root/release-cycle, project recovering, persisted Trajectory visible, Workpoint/bead absent, proof missing: PASS.
+- Exact-scope mutation receipt updates one subscriber and exposes 30-second stale age: PASS.
+- Foreign receipt ignored: PASS.
+- Blocked Workpoint with zero proof remains blocked/missing: PASS.
+- npm run test:mission-canvas: all component/mode/session/performance gates PASS; render p95 under 2 ms in observed run.
+- npm run test:work-rail-width: PASS including proof-zero regression.
+- npm run check: PASS.
+- npm run lint: PASS.
+- Menu audit regenerated; test:menu-audit PASS with 52 entries.
+- OVH disk remained approximately 65 GiB free; no KH compiler/package-manager target used.
+
+Release-matrix note:
+- The unrelated OVH pi-security fixture still lacks approved brace-expansion 5.0.8 and remains tracked as a release-gate environment item; no package was fetched or installed.

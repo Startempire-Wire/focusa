@@ -1,0 +1,427 @@
+openapi: 3.1.0
+info:
+  title: Focusa Spec149 Workset API
+  version: 1.0.0-next
+  description: Next-release-only API contract; not admitted into the current locked release.
+servers:
+  - url: http://127.0.0.1:8787
+security:
+  - bearerAuth: []
+paths:
+  /v1/worksets:
+    get:
+      operationId: worksetList
+      x-focusa-operation: workset.read
+      x-focusa-permission: workset:read
+      parameters:
+        - $ref: '#/components/parameters/Status'
+        - $ref: '#/components/parameters/Mode'
+        - $ref: '#/components/parameters/TrajectoryRef'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200': { $ref: '#/components/responses/ReadResult' }
+        default: { $ref: '#/components/responses/Failure' }
+    post:
+      operationId: worksetCreate
+      x-focusa-operation: workset.define.commit
+      x-focusa-permission: workset:write
+      x-focusa-confirmation: explicit
+      requestBody: { $ref: '#/components/requestBodies/Mutation' }
+      responses:
+        '201': { $ref: '#/components/responses/MutationResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/preview:
+    post:
+      operationId: worksetCreatePreview
+      x-focusa-operation: workset.define.preview
+      x-focusa-permission: workset:propose
+      requestBody: { $ref: '#/components/requestBodies/Preview' }
+      responses:
+        '200': { $ref: '#/components/responses/PreviewResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }]
+    get:
+      operationId: worksetGet
+      x-focusa-operation: workset.read
+      x-focusa-permission: workset:read
+      responses:
+        '200': { $ref: '#/components/responses/ReadResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/projection:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }]
+    get:
+      operationId: worksetProjection
+      x-focusa-operation: workset.read
+      x-focusa-permission: workset:read
+      responses:
+        '200': { $ref: '#/components/responses/ReadResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/members:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }]
+    get:
+      operationId: worksetMembers
+      x-focusa-operation: workset.read
+      x-focusa-permission: workset:read
+      parameters: [{ $ref: '#/components/parameters/Cursor' }, { $ref: '#/components/parameters/Limit' }]
+      responses:
+        '200': { $ref: '#/components/responses/ReadResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/graph:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }]
+    get:
+      operationId: worksetGraph
+      x-focusa-operation: workset.read
+      x-focusa-permission: workset:read
+      parameters: [{ $ref: '#/components/parameters/Anchor' }, { $ref: '#/components/parameters/Depth' }, { $ref: '#/components/parameters/Cursor' }]
+      responses:
+        '200': { $ref: '#/components/responses/ReadResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/events:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }]
+    get:
+      operationId: worksetEvents
+      x-focusa-operation: workset.history.read
+      x-focusa-permission: workset:read
+      parameters: [{ $ref: '#/components/parameters/After' }, { $ref: '#/components/parameters/Limit' }]
+      responses:
+        '200': { $ref: '#/components/responses/ReadResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/history:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }]
+    get:
+      operationId: worksetHistory
+      x-focusa-operation: workset.history.read
+      x-focusa-permission: workset:read
+      parameters: [{ $ref: '#/components/parameters/Cursor' }, { $ref: '#/components/parameters/Limit' }]
+      responses:
+        '200': { $ref: '#/components/responses/ReadResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/diff:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }]
+    get:
+      operationId: worksetDiff
+      x-focusa-operation: workset.history.read
+      x-focusa-permission: workset:read
+      parameters: [{ $ref: '#/components/parameters/FromRevision' }, { $ref: '#/components/parameters/ToRevision' }]
+      responses:
+        '200': { $ref: '#/components/responses/ReadResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/export:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }]
+    get:
+      operationId: worksetExport
+      x-focusa-operation: workset.export.read
+      x-focusa-permission: workset:read
+      parameters: [{ $ref: '#/components/parameters/Revision' }, { $ref: '#/components/parameters/Format' }]
+      responses:
+        '200': { $ref: '#/components/responses/ReadResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/revise/{action}:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }, { $ref: '#/components/parameters/PreviewCommitAction' }]
+    post:
+      operationId: worksetRevise
+      x-focusa-operation-by-action: { preview: workset.revise.preview, commit: workset.revise.commit }
+      x-focusa-permission-by-action: { preview: workset:propose, commit: workset:write }
+      requestBody: { $ref: '#/components/requestBodies/Mutation' }
+      responses:
+        '200': { $ref: '#/components/responses/MutationResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/pause:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }]
+    post:
+      operationId: worksetPause
+      x-focusa-operation: workset.pause
+      x-focusa-permission: workset:write
+      requestBody: { $ref: '#/components/requestBodies/Mutation' }
+      responses:
+        '200': { $ref: '#/components/responses/MutationResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/resume:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }]
+    post:
+      operationId: worksetResume
+      x-focusa-operation: workset.resume
+      x-focusa-permission: workset:write
+      requestBody: { $ref: '#/components/requestBodies/Mutation' }
+      responses:
+        '200': { $ref: '#/components/responses/MutationResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/repair/{action}:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }, { $ref: '#/components/parameters/PreviewCommitAction' }]
+    post:
+      operationId: worksetRepair
+      x-focusa-operation-by-action: { preview: workset.repair.preview, commit: workset.repair.commit }
+      x-focusa-permission-by-action: { preview: workset:propose, commit: workset:repair }
+      requestBody: { $ref: '#/components/requestBodies/Mutation' }
+      responses:
+        '200': { $ref: '#/components/responses/MutationResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/relationships:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }]
+    get:
+      operationId: worksetRelationships
+      x-focusa-operation: workset.read
+      x-focusa-permission: workset:read
+      responses:
+        '200': { $ref: '#/components/responses/ReadResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/relationships/{action}:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }, { $ref: '#/components/parameters/PreviewCommitAction' }]
+    post:
+      operationId: worksetRelationshipMutation
+      x-focusa-operation-by-action: { preview: workset.relationship.preview, commit: workset.relationship.commit }
+      x-focusa-permission-by-action: { preview: workset:propose, commit: workset:write }
+      requestBody: { $ref: '#/components/requestBodies/Mutation' }
+      responses:
+        '200': { $ref: '#/components/responses/MutationResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/admissions/{action}:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }, { $ref: '#/components/parameters/PreviewCommitAction' }]
+    post:
+      operationId: worksetAdmission
+      x-focusa-operation-by-action: { preview: workset.admit.preview, commit: workset.admit.commit }
+      x-focusa-permission-by-action: { preview: workset:propose, commit: workset:admit }
+      requestBody: { $ref: '#/components/requestBodies/Mutation' }
+      responses:
+        '200': { $ref: '#/components/responses/MutationResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/reconcile:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }]
+    post:
+      operationId: worksetReconcile
+      x-focusa-operation: workset.reconcile
+      x-focusa-permission: workset:write
+      requestBody: { $ref: '#/components/requestBodies/Mutation' }
+      responses:
+        '200': { $ref: '#/components/responses/MutationResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/epochs/open:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }]
+    post:
+      operationId: worksetEpochOpen
+      x-focusa-operation: workset.epoch.open
+      x-focusa-permission: workset:write
+      requestBody: { $ref: '#/components/requestBodies/Mutation' }
+      responses:
+        '200': { $ref: '#/components/responses/MutationResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/epochs/{epoch_id}/seal/{action}:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }, { $ref: '#/components/parameters/EpochId' }, { $ref: '#/components/parameters/PreviewCommitAction' }]
+    post:
+      operationId: worksetEpochSeal
+      x-focusa-operation-by-action: { preview: workset.epoch.seal.preview, commit: workset.epoch.seal.commit }
+      x-focusa-permission-by-action: { preview: workset:propose, commit: workset:seal }
+      requestBody: { $ref: '#/components/requestBodies/Mutation' }
+      responses:
+        '200': { $ref: '#/components/responses/MutationResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/seal/{action}:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }, { $ref: '#/components/parameters/PreviewCommitAction' }]
+    post:
+      operationId: worksetSeal
+      x-focusa-operation-by-action: { preview: workset.seal.preview, commit: workset.seal.commit }
+      x-focusa-permission-by-action: { preview: workset:propose, commit: workset:seal }
+      requestBody: { $ref: '#/components/requestBodies/Mutation' }
+      responses:
+        '200': { $ref: '#/components/responses/MutationResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/reopen/{action}:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }, { $ref: '#/components/parameters/PreviewCommitAction' }]
+    post:
+      operationId: worksetReopen
+      x-focusa-operation-by-action: { preview: workset.reopen.preview, commit: workset.reopen.commit }
+      x-focusa-permission-by-action: { preview: workset:propose, commit: workset:seal }
+      requestBody: { $ref: '#/components/requestBodies/Mutation' }
+      responses:
+        '200': { $ref: '#/components/responses/MutationResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/checkpoints/{flow_id}/{action}:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }, { $ref: '#/components/parameters/FlowId' }, { $ref: '#/components/parameters/PreviewRunAction' }]
+    post:
+      operationId: worksetCheckpoint
+      x-focusa-operation-by-action: { preview: workset.checkpoint.preview, run: workset.checkpoint.run }
+      x-focusa-permission-by-action: { preview: workset:propose, run: workset:execute }
+      requestBody: { $ref: '#/components/requestBodies/Mutation' }
+      responses:
+        '200': { $ref: '#/components/responses/MutationResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/completion/{action}:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }, { $ref: '#/components/parameters/PreviewExecuteStatusAction' }]
+    post:
+      operationId: worksetCompletion
+      x-focusa-operation-by-action: { preview: workset.completion.preview, execute: workset.completion.execute }
+      x-focusa-permission-by-action: { preview: workset:propose, execute: workset:complete }
+      requestBody: { $ref: '#/components/requestBodies/Mutation' }
+      responses:
+        '200': { $ref: '#/components/responses/MutationResult' }
+        default: { $ref: '#/components/responses/Failure' }
+    get:
+      operationId: worksetCompletionStatus
+      x-focusa-operation: workset.read
+      x-focusa-permission: workset:read
+      responses:
+        '200': { $ref: '#/components/responses/ReadResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/cancel/{action}:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }, { $ref: '#/components/parameters/PreviewCommitAction' }]
+    post:
+      operationId: worksetCancel
+      x-focusa-operation-by-action: { preview: workset.cancel.preview, commit: workset.cancel.commit }
+      x-focusa-permission-by-action: { preview: workset:propose, commit: workset:write }
+      requestBody: { $ref: '#/components/requestBodies/Mutation' }
+      responses:
+        '200': { $ref: '#/components/responses/MutationResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/preload:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }]
+    get:
+      operationId: worksetPreload
+      x-focusa-operation: workset.read
+      x-focusa-permission: workset:read
+      parameters: [{ $ref: '#/components/parameters/Profile' }, { $ref: '#/components/parameters/TokenBudget' }]
+      responses:
+        '200': { $ref: '#/components/responses/PreloadResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/a2ui:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }]
+    get:
+      operationId: worksetA2ui
+      x-focusa-operation: workset.read
+      x-focusa-permission: workset:read
+      responses:
+        '200': { $ref: '#/components/responses/ReadResult' }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/stream:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }]
+    get:
+      operationId: worksetStream
+      x-focusa-operation: workset.history.read
+      x-focusa-permission: workset:read
+      parameters: [{ $ref: '#/components/parameters/After' }]
+      responses:
+        '200':
+          description: Durable replay and live-tail stream
+          content:
+            text/event-stream:
+              schema: { type: string }
+        default: { $ref: '#/components/responses/Failure' }
+  /v1/worksets/{workset_id}/workpoint/propose:
+    parameters: [{ $ref: '#/components/parameters/WorksetId' }]
+    post:
+      operationId: worksetWorkpointPropose
+      x-focusa-operation: workset.workpoint.propose
+      x-focusa-permission: workset:execute
+      requestBody: { $ref: '#/components/requestBodies/Preview' }
+      responses:
+        '200': { $ref: '#/components/responses/PreviewResult' }
+        default: { $ref: '#/components/responses/Failure' }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer }
+  parameters:
+    WorksetId: { name: workset_id, in: path, required: true, schema: { type: string, pattern: '^[A-Za-z0-9._:-]+$' } }
+    EpochId: { name: epoch_id, in: path, required: true, schema: { type: string, pattern: '^[A-Za-z0-9._:-]+$' } }
+    FlowId: { name: flow_id, in: path, required: true, schema: { type: string, pattern: '^[A-Za-z0-9._:-]+$' } }
+    PreviewCommitAction: { name: action, in: path, required: true, schema: { enum: [preview, commit] } }
+    PreviewRunAction: { name: action, in: path, required: true, schema: { enum: [preview, run] } }
+    PreviewExecuteStatusAction: { name: action, in: path, required: true, schema: { enum: [preview, execute, status] } }
+    Cursor: { name: cursor, in: query, schema: { type: string, maxLength: 4096 } }
+    After: { name: after, in: query, schema: { type: string, maxLength: 4096 } }
+    Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 100 } }
+    Depth: { name: depth, in: query, schema: { type: integer, minimum: 1, maximum: 8, default: 2 } }
+    Anchor: { name: anchor, in: query, schema: { type: string, maxLength: 256 } }
+    Status: { name: status, in: query, schema: { type: string, maxLength: 64 } }
+    Mode: { name: mode, in: query, schema: { enum: [fixed, rolling, provider_stream] } }
+    TrajectoryRef: { name: trajectory_ref, in: query, schema: { type: string, maxLength: 4096 } }
+    Revision: { name: revision, in: query, schema: { type: integer, minimum: 1 } }
+    FromRevision: { name: from_revision, in: query, required: true, schema: { type: integer, minimum: 1 } }
+    ToRevision: { name: to_revision, in: query, required: true, schema: { type: integer, minimum: 1 } }
+    Format: { name: format, in: query, schema: { enum: [json, yaml, markdown], default: json } }
+    Profile: { name: profile, in: query, schema: { enum: [rules_only, rules_and_context, budget_light, budget_deep], default: rules_and_context } }
+    TokenBudget: { name: token_budget, in: query, schema: { type: integer, minimum: 1, maximum: 20000 } }
+  schemas:
+    Scope:
+      type: object
+      additionalProperties: false
+      required: [project_root, continuity_id]
+      properties:
+        project_root: { type: string, minLength: 1, maxLength: 4096 }
+        continuity_id: { type: string, minLength: 1, maxLength: 256 }
+    PreviewRequest:
+      type: object
+      additionalProperties: false
+      required: [scope, idempotency_key, payload]
+      properties:
+        scope: { $ref: '#/components/schemas/Scope' }
+        expected_revision: { type: [integer, 'null'], minimum: 1 }
+        idempotency_key: { type: string, minLength: 1, maxLength: 256 }
+        payload: { type: object }
+    MutationRequest:
+      type: object
+      additionalProperties: false
+      required: [scope, expected_revision, idempotency_key, confirmation_ref, payload]
+      properties:
+        scope: { $ref: '#/components/schemas/Scope' }
+        expected_revision: { type: integer, minimum: 1 }
+        idempotency_key: { type: string, minLength: 1, maxLength: 256 }
+        confirmation_ref: { type: string, minLength: 1, maxLength: 4096 }
+        payload: { type: object }
+    ResultEnvelope:
+      type: object
+      additionalProperties: false
+      required: [schema, status, canonical, scope, side_effects, evidence_refs, receipt_refs, next_tools]
+      properties:
+        schema: { type: string }
+        status: { enum: [completed, preview, blocked, failed, degraded, pending] }
+        canonical: { type: boolean }
+        scope: { $ref: '#/components/schemas/Scope' }
+        workset_id: { type: [string, 'null'] }
+        effective_revision: { type: [integer, 'null'], minimum: 1 }
+        payload: { type: [object, 'null'] }
+        side_effects: { type: array, items: { type: string } }
+        evidence_refs: { type: array, items: { type: string } }
+        receipt_refs: { type: array, items: { type: string } }
+        next_tools: { type: array, items: { type: string } }
+    FailureEnvelope:
+      $ref: ./spec149-workset.schema.v1.json#/$defs/WorksetFailureEnvelope
+    PreloadSlice:
+      $ref: ./spec149-workset.schema.v1.json#/$defs/WorksetPreloadSlice
+  requestBodies:
+    Preview:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/PreviewRequest' }
+    Mutation:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/MutationRequest' }
+  responses:
+    ReadResult:
+      description: Bounded canonical read projection
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ResultEnvelope' }
+    PreviewResult:
+      description: Read-only preview
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ResultEnvelope' }
+    MutationResult:
+      description: Idempotent governed mutation result
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ResultEnvelope' }
+    PreloadResult:
+      description: Advisory bounded preload slice
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/PreloadSlice' }
+    Failure:
+      description: Stable fail-closed Workset failure
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/FailureEnvelope' }

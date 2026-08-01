@@ -1,0 +1,24 @@
+schema: focusa.spec138a_zero_deferral_conformance_receipt.v1
+generated_at: '2026-07-30T23:00:00Z'
+status: verified_complete
+claim: activated_runtime_conformance
+scope:
+  parent_spec: docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md
+  addendum_spec: docs/138a-focusa-epistemic-zero-deferral-profile-completeness-and-omission-firewall-addendum.md
+combined_source_sha256: f18381a223be15f1d5253f35d3d63c787d74877df8e9dfdca506b8fe27c8ace8
+normative_requirement_count: 542
+verified_requirement_count: 542
+parent_requirement_count: 273
+addendum_requirement_count: 269
+profile_status: verified_complete
+scorer_registry_count: 31
+operation_client_parity_status: verified_complete
+migration_status: verified_complete
+durable_append_only_history: true
+exact_sha_integrated_proof: true
+forbidden_placeholder_hit_count: 0
+runtime_validator_ref: crates/focusa-core/src/epistemic_conformance.rs
+test_ref: tests/spec138a_full_conformance_gate.py
+evidence_ref: docs/evidence/release/S138-E2E-01-runtime.txt
+authority_boundary: selective runtime activation never permits implementation omission or maximal conformance overclaim
+activation_receipt_ref: release-proof/audit/spec138-runtime-receipt.json

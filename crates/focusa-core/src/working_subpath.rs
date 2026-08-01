@@ -245,6 +245,10 @@ pub struct ProjectBindingCandidate {
     pub project_root: String,
     pub active_worktree_root: Option<String>,
     pub canonical_parent_root: Option<String>,
+    #[serde(default)]
+    pub repo_fingerprint: Option<String>,
+    #[serde(default)]
+    pub project_fingerprint: Option<String>,
     pub score: u16,
     pub sources: Vec<String>,
     pub markers: Vec<String>,
@@ -254,13 +258,81 @@ pub struct ProjectBindingCandidate {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ProjectBindingDecision {
     pub status: String,
+    #[serde(default)]
+    pub schema: String,
+    #[serde(default)]
+    pub decision_id: String,
+    #[serde(default)]
+    pub state: String,
     pub selected_project_root: Option<String>,
     pub selected_active_worktree_root: Option<String>,
+    #[serde(default)]
+    pub selected_worktree_root: Option<String>,
     pub canonical_parent_root: Option<String>,
+    #[serde(default)]
+    pub continuity_id: Option<String>,
     pub ambiguous: bool,
     pub requires_confirmation: bool,
     pub reason: String,
     pub candidates: Vec<ProjectBindingCandidate>,
+    #[serde(default)]
+    pub evidence_sources: Vec<String>,
+    #[serde(default)]
+    pub evidence_revision: String,
+    #[serde(default)]
+    pub evidence_freshness: String,
+    #[serde(default)]
+    pub rejection_reasons: Vec<String>,
+    #[serde(default)]
+    pub scope_safety_policy_version: String,
+    #[serde(default)]
+    pub repo_fingerprint: Option<String>,
+    #[serde(default)]
+    pub project_fingerprint: Option<String>,
+    #[serde(default)]
+    pub confidence: String,
+    #[serde(default)]
+    pub verification_status: String,
+    #[serde(default)]
+    pub permitted_capability_tier: String,
+    #[serde(default)]
+    pub recovery_packet_ref: Option<String>,
+    #[serde(default)]
+    pub operator_decision_ref: Option<String>,
+    #[serde(default)]
+    pub effective_at: Option<String>,
+    #[serde(default)]
+    pub supersedes_decision_id: Option<String>,
+    #[serde(default)]
+    pub binding_receipt_id: Option<String>,
+}
+
+impl ProjectBindingDecision {
+    pub fn mark_verified(mut self) -> Self {
+        if self.ambiguous || self.selected_project_root.is_none() {
+            return self;
+        }
+        self.state = "BOUND".to_string();
+        self.status = "verified".to_string();
+        self.verification_status = "verified".to_string();
+        self.permitted_capability_tier = "scoped".to_string();
+        self.requires_confirmation = false;
+        self.rejection_reasons.clear();
+        self.evidence_freshness = "current".to_string();
+        self.evidence_revision = stable_id(
+            "project-binding-evidence",
+            &["BOUND".to_string(), self.evidence_revision.clone()],
+        );
+        self.decision_id = stable_id(
+            "project-binding",
+            std::slice::from_ref(&self.evidence_revision),
+        );
+        self.binding_receipt_id = Some(stable_id(
+            "binding-receipt",
+            std::slice::from_ref(&self.evidence_revision),
+        ));
+        self
+    }
 }
 
 fn binding_markers(path: &Path) -> Vec<String> {
@@ -275,6 +347,20 @@ fn binding_markers(path: &Path) -> Vec<String> {
         markers.push("beads".to_string());
     }
     markers
+}
+
+fn project_marker_fingerprint(path: &Path) -> Option<String> {
+    let content = std::fs::read_to_string(path.join(".focusa-project.json")).ok()?;
+    let normalized = serde_json::from_str::<serde_json::Value>(&content)
+        .ok()
+        .and_then(|value| {
+            value
+                .get("project_id")
+                .and_then(serde_json::Value::as_str)
+                .map(str::to_string)
+        })
+        .unwrap_or(content);
+    Some(stable_id("project-marker", &[normalized]))
 }
 
 fn insert_binding_candidate(
@@ -299,6 +385,10 @@ fn insert_binding_candidate(
     let authoritative_root = active_worktree_root
         .clone()
         .unwrap_or_else(|| root_text.clone());
+    let repo_fingerprint = git
+        .as_ref()
+        .map(|context| context.working_subpath.git_common_dir_id.clone());
+    let project_fingerprint = project_marker_fingerprint(&root);
     let markers = binding_markers(&root);
     let entry = candidates
         .entry(authoritative_root.clone())
@@ -306,6 +396,8 @@ fn insert_binding_candidate(
             project_root: authoritative_root,
             active_worktree_root,
             canonical_parent_root,
+            repo_fingerprint,
+            project_fingerprint,
             score,
             sources: Vec::new(),
             markers: Vec::new(),
@@ -453,6 +545,46 @@ pub fn resolve_project_binding_candidates(
         && ranked[0].score == ranked[1].score
         && ranked[0].project_root != ranked[1].project_root;
     let selected = (!ambiguous).then(|| ranked.first()).flatten();
+    let selected_missing = selected.is_none();
+    let state = if ambiguous {
+        "QUARANTINED"
+    } else if selected.is_some() {
+        "VERIFY"
+    } else {
+        "RECOVERING"
+    };
+    let selected_score = selected
+        .map(|candidate| candidate.score)
+        .unwrap_or_default();
+    let confidence = if selected_score >= 900 {
+        "high"
+    } else if selected_score >= 700 {
+        "medium"
+    } else if selected.is_some() {
+        "low"
+    } else {
+        "none"
+    };
+    let mut evidence_sources = ranked
+        .iter()
+        .flat_map(|candidate| candidate.sources.iter().cloned())
+        .collect::<Vec<_>>();
+    evidence_sources.sort();
+    evidence_sources.dedup();
+    let evidence_revision = stable_id(
+        "project-binding-evidence",
+        &[
+            state.to_string(),
+            selected
+                .map(|candidate| candidate.project_root.clone())
+                .unwrap_or_default(),
+            ranked
+                .iter()
+                .map(|candidate| format!("{}:{}", candidate.project_root, candidate.score))
+                .collect::<Vec<_>>()
+                .join("|"),
+        ],
+    );
     ProjectBindingDecision {
         status: if ambiguous {
             "ambiguous"
@@ -462,24 +594,56 @@ pub fn resolve_project_binding_candidates(
             "unbound"
         }
         .to_string(),
+        schema: "focusa.project_binding_decision.v1".to_string(),
+        decision_id: stable_id("project-binding", std::slice::from_ref(&evidence_revision)),
+        state: state.to_string(),
         selected_project_root: selected.map(|candidate| candidate.project_root.clone()),
         selected_active_worktree_root: selected
             .and_then(|candidate| candidate.active_worktree_root.clone()),
+        selected_worktree_root: selected
+            .and_then(|candidate| candidate.active_worktree_root.clone()),
         canonical_parent_root: selected
             .and_then(|candidate| candidate.canonical_parent_root.clone()),
+        continuity_id: None,
         ambiguous,
         requires_confirmation: ambiguous
             || selected.is_none()
             || selected.is_some_and(|value| value.score < 800),
         reason: if ambiguous {
-            "multiple equally ranked project roots; explicit confirmation required"
+            "multiple equally ranked project roots; mutation-bound selection required"
         } else if selected.is_some() {
-            "highest-ranked evidence-backed project/worktree candidate selected"
+            "highest-ranked evidence-backed project/worktree candidate selected for verification"
         } else {
-            "no marked project binding candidate found"
+            "no marked project binding candidate found; recovery remains non-modal"
         }
         .to_string(),
         candidates: ranked,
+        evidence_sources,
+        evidence_revision,
+        evidence_freshness: "unknown".to_string(),
+        rejection_reasons: if ambiguous {
+            vec!["conflicting_strong_candidates".to_string()]
+        } else if selected_missing {
+            vec!["no_safe_selected_project_root".to_string()]
+        } else {
+            vec!["canonical_project_verification_required".to_string()]
+        },
+        scope_safety_policy_version: "focusa.scope_safety.v1".to_string(),
+        repo_fingerprint: None,
+        project_fingerprint: None,
+        confidence: confidence.to_string(),
+        verification_status: "pending".to_string(),
+        permitted_capability_tier: if ambiguous {
+            "unbound_read_only"
+        } else {
+            "recovery_read_plan"
+        }
+        .to_string(),
+        recovery_packet_ref: None,
+        operator_decision_ref: None,
+        effective_at: None,
+        supersedes_decision_id: None,
+        binding_receipt_id: None,
     }
 }
 
@@ -588,6 +752,14 @@ mod tests {
             Some(expected.as_str())
         );
         assert!(!decision.requires_confirmation);
+        assert_eq!(decision.schema, "focusa.project_binding_decision.v1");
+        assert_eq!(decision.state, "VERIFY");
+        assert_eq!(decision.permitted_capability_tier, "recovery_read_plan");
+        let verified = decision.mark_verified();
+        assert_eq!(verified.state, "BOUND");
+        assert_eq!(verified.permitted_capability_tier, "scoped");
+        assert!(verified.binding_receipt_id.is_some());
+        assert!(verified.rejection_reasons.is_empty());
         std::fs::remove_dir_all(base).unwrap();
     }
 
@@ -606,6 +778,64 @@ mod tests {
         assert!(decision.ambiguous);
         assert!(decision.selected_project_root.is_none());
         assert!(decision.requires_confirmation);
+        assert_eq!(decision.state, "QUARANTINED");
+        assert_eq!(decision.permitted_capability_tier, "unbound_read_only");
+        std::fs::remove_dir_all(base).unwrap();
+    }
+
+    #[test]
+    fn macos_volumes_user_home_is_never_promoted_as_project() {
+        let base = std::env::temp_dir().join(format!(
+            "focusa-binding-macos-volumes-{}",
+            uuid::Uuid::now_v7()
+        ));
+        let user_home = base.join("Volumes/Macintosh HD/Users/vsmith");
+        let project = user_home.join("Projects/focusa");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::write(project.join(".focusa-project.json"), b"{}\n").unwrap();
+
+        let decision = resolve_project_binding_candidates(&user_home, None, None);
+        let expected_project = path_text(&canonical(&project));
+        let forbidden_home = path_text(&canonical(&user_home));
+        assert_eq!(
+            decision.selected_project_root.as_deref(),
+            Some(expected_project.as_str())
+        );
+        assert!(
+            decision
+                .candidates
+                .iter()
+                .all(|candidate| candidate.project_root != forbidden_home)
+        );
+        assert_eq!(decision.state, "VERIFY");
+        std::fs::remove_dir_all(base).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn binding_candidates_canonicalize_temp_space_unicode_and_symlink_roots() {
+        use std::os::unix::fs::symlink;
+
+        let base =
+            std::env::temp_dir().join(format!("focusa binding unicode {}", uuid::Uuid::now_v7()));
+        let project = base.join("π project");
+        let alias = base.join("project-link");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::write(
+            project.join(".focusa-project.json"),
+            br#"{"project_id":"unicode-project"}"#,
+        )
+        .unwrap();
+        symlink(&project, &alias).unwrap();
+
+        let decision = resolve_project_binding_candidates(&base, Some(&alias), Some(&project));
+        let expected = path_text(&canonical(&project));
+        assert_eq!(
+            decision.selected_project_root.as_deref(),
+            Some(expected.as_str())
+        );
+        assert!(!decision.ambiguous);
+        assert_eq!(decision.state, "VERIFY");
         std::fs::remove_dir_all(base).unwrap();
     }
 
@@ -627,6 +857,10 @@ mod tests {
             Some(expected.as_str())
         );
         assert_eq!(decision.candidates[0].sources[0], "explicit_project_root");
+        assert_eq!(
+            decision.candidates[0].project_fingerprint,
+            decision.candidates[1].project_fingerprint
+        );
         std::fs::remove_dir_all(base).unwrap();
     }
 

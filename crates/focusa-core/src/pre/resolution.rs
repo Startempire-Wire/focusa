@@ -44,6 +44,7 @@ pub struct ScoredProposal {
 }
 
 /// Resolution outcome.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone)]
 pub enum ResolutionOutcome {
     /// One proposal accepted.
@@ -416,6 +417,7 @@ mod tests {
         // Create proposals with clear score gaps.
         let mut proposals: Vec<Proposal> = (0..50)
             .map(|i| Proposal {
+                workstream: None,
                 id: Uuid::now_v7(),
                 kind: ProposalKind::FocusChange,
                 source: "test".into(),
@@ -429,6 +431,7 @@ mod tests {
 
         // Add a clear winner with much higher score.
         proposals.push(Proposal {
+            workstream: None,
             id: Uuid::now_v7(),
             kind: ProposalKind::FocusChange,
             source: "test".into(),
@@ -468,6 +471,7 @@ mod tests {
         let config = test_config();
 
         let proposal = Proposal {
+            workstream: None,
             id: Uuid::now_v7(),
             kind: ProposalKind::FocusChange,
             source: "test".into(),
@@ -509,6 +513,7 @@ mod tests {
 
         // Early proposal.
         let early = Proposal {
+            workstream: None,
             id: Uuid::now_v7(),
             kind: ProposalKind::FocusChange,
             source: "test".into(),
@@ -521,6 +526,7 @@ mod tests {
 
         // Late proposal.
         let late = Proposal {
+            workstream: None,
             id: Uuid::now_v7(),
             kind: ProposalKind::FocusChange,
             source: "test".into(),

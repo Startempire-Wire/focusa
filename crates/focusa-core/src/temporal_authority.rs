@@ -59,6 +59,89 @@ pub struct ClockTrustProfile {
     pub on_disagreement: ClockDisagreementAction,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ClockSourceStatus {
+    Healthy,
+    Quarantined,
+    Recovering,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ClockSourceObservation {
+    pub source_id: String,
+    pub diversity_class: String,
+    pub authenticated: bool,
+    pub replay_protected: bool,
+    pub request_response_bound: bool,
+    pub observed_at: DateTime<Utc>,
+    pub synchronization_age_ms: u64,
+    pub offset_ns: i128,
+    pub delay_ns: u128,
+    pub jitter_ns: u128,
+    pub dispersion_ns: u128,
+    pub root_distance_ns: u128,
+    pub frequency_error_ppb: i64,
+    pub status: ClockSourceStatus,
+    pub quarantine_reason: Option<String>,
+    pub recovery_evidence_refs: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ClockSourceTrustError {
+    InsufficientHealthySources,
+    InsufficientDiversity,
+    AuthenticationMissing,
+    ReplayProtectionMissing,
+    RequestResponseBindingMissing,
+    StaleSource,
+    SourceQuarantineUnsettled,
+}
+
+pub fn evaluate_clock_sources(
+    profile: &ClockTrustProfile,
+    sources: &[ClockSourceObservation],
+) -> Result<(), ClockSourceTrustError> {
+    let healthy = sources
+        .iter()
+        .filter(|source| source.status == ClockSourceStatus::Healthy)
+        .collect::<Vec<_>>();
+    if healthy.len() < profile.required_source_count as usize {
+        return Err(ClockSourceTrustError::InsufficientHealthySources);
+    }
+    let diversity = healthy
+        .iter()
+        .map(|source| source.diversity_class.as_str())
+        .collect::<std::collections::BTreeSet<_>>();
+    if diversity.len() < profile.required_independent_source_count as usize {
+        return Err(ClockSourceTrustError::InsufficientDiversity);
+    }
+    if profile.required_authentication != ClockAuthenticationPolicy::NotRequiredByProfile
+        && healthy.iter().any(|source| !source.authenticated)
+    {
+        return Err(ClockSourceTrustError::AuthenticationMissing);
+    }
+    if healthy.iter().any(|source| !source.replay_protected) {
+        return Err(ClockSourceTrustError::ReplayProtectionMissing);
+    }
+    if healthy.iter().any(|source| !source.request_response_bound) {
+        return Err(ClockSourceTrustError::RequestResponseBindingMissing);
+    }
+    if healthy
+        .iter()
+        .any(|source| source.synchronization_age_ms > profile.max_sync_age_ms)
+    {
+        return Err(ClockSourceTrustError::StaleSource);
+    }
+    if sources.iter().any(|source| {
+        source.status != ClockSourceStatus::Healthy
+            && (source.quarantine_reason.is_none() || source.recovery_evidence_refs.is_empty())
+    }) {
+        return Err(ClockSourceTrustError::SourceQuarantineUnsettled);
+    }
+    Ok(())
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TemporalAuthority {
     pub authority_id: String,
@@ -254,5 +337,53 @@ mod tests {
             evaluate_clock_sample(&authority, &profile, &domain, &sample, sample.wall_utc),
             Err(ClockAuthorityError::HoldoverExpired)
         );
+    }
+
+    fn source(id: &str, diversity: &str, status: ClockSourceStatus) -> ClockSourceObservation {
+        ClockSourceObservation {
+            source_id: id.into(),
+            diversity_class: diversity.into(),
+            authenticated: true,
+            replay_protected: true,
+            request_response_bound: true,
+            observed_at: Utc::now(),
+            synchronization_age_ms: 10,
+            offset_ns: 1,
+            delay_ns: 2,
+            jitter_ns: 1,
+            dispersion_ns: 1,
+            root_distance_ns: 4,
+            frequency_error_ppb: 1,
+            status,
+            quarantine_reason: None,
+            recovery_evidence_refs: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn independent_authenticated_replay_protected_sources_are_trusted() {
+        let (_, profile, _, _) = fixture();
+        let sources = vec![
+            source("nts-a", "provider-a", ClockSourceStatus::Healthy),
+            source("nts-b", "provider-b", ClockSourceStatus::Healthy),
+        ];
+        assert_eq!(evaluate_clock_sources(&profile, &sources), Ok(()));
+    }
+
+    #[test]
+    fn quarantine_and_recovery_require_explicit_evidence() {
+        let (_, profile, _, _) = fixture();
+        let mut sources = vec![
+            source("nts-a", "provider-a", ClockSourceStatus::Healthy),
+            source("nts-b", "provider-b", ClockSourceStatus::Healthy),
+            source("nts-c", "provider-c", ClockSourceStatus::Quarantined),
+        ];
+        assert_eq!(
+            evaluate_clock_sources(&profile, &sources),
+            Err(ClockSourceTrustError::SourceQuarantineUnsettled)
+        );
+        sources[2].quarantine_reason = Some("offset disagreement".into());
+        sources[2].recovery_evidence_refs = vec!["receipt:clock-source-quarantine".into()];
+        assert_eq!(evaluate_clock_sources(&profile, &sources), Ok(()));
     }
 }

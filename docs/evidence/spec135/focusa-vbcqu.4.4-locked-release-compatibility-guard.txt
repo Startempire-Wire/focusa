@@ -1,0 +1,20 @@
+focusa-vbcqu.4.4 — Spec135–135K locked-release compatibility guard
+Observed: 2026-07-31
+Source authority: commit containing this evidence on locked-release-all-open-spec137-138-140
+
+Result:
+- The frozen series remains terminal at Spec135K; no Spec135L exists.
+- docs/contracts/135-locked-release-compatibility-delta.v1.yaml now declares nine admitted locked-release change groups with zero unknown impacts.
+- Every change declares spec135_impact, affected specs/primitives/docs/contracts/surfaces, compatibility, migration, rollback, agent handoff, tests, and evidence.
+- Startup binding, cross-project context isolation, scoped Mission Canvas refresh, and advisory-scope poisoning prevention are included explicitly.
+- Existing primitive ownership is preserved; additions reuse Project Binding, WorkingSubpath, Mission Canvas, Workpoint, Trajectory, Operation Registry, and durable event substrates.
+- Pi, Mission Canvas, and API are required parity surfaces in the machine gate.
+- UNKNOWN remains release-blocking because only none/indirect/direct classifications pass and unknown_impact_count must equal zero.
+
+Canonical OVH proof:
+- python3 tests/spec135_locked_release_compatibility_gate.py: PASS.
+- python3 scripts/audit-spec149-contracts.py: verified, zero errors, zero unresolved blockers, 80 requirements, 31 operations, 29 OpenAPI paths, 44 events, 12 Spec135 impacts, 5 call stacks.
+- python3 tests/spec143_scoped_surface_refresh_gate.py: PASS.
+- npm run test:surface-refresh: static 4/4 plus headless runtime 4/4 PASS.
+- All referenced affected docs/contracts/tests/evidence resolve on disk.
+- No new runtime, framework, dependency, or Spec135 companion was created.

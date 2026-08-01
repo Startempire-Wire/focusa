@@ -2133,6 +2133,13 @@ fn candidate_payload(
             "active_worktree_root": candidate.working_context.get("active_worktree_root").cloned().unwrap_or(Value::Null),
             "project_summary": project_summary.clone(),
             "fingerprint": candidate.fingerprint,
+            "scope_ref": if canonical { json!({
+                "scope_kind": "project",
+                "scope_id": format!("project:{}", candidate.project_id),
+                "root_path": candidate.project_root,
+                "canonical_name": candidate.canonical_name,
+                "fingerprint": candidate.fingerprint,
+            }) } else { Value::Null },
             "confidence": candidate.confidence,
             "signals": candidate.signals.iter().map(signal_json).collect::<Vec<_>>(),
             "mismatches": mismatches,
@@ -2905,11 +2912,18 @@ async fn verify(
         .is_none()
     {
         let start = resolve_start(body.cwd.as_deref(), body.project_root.as_deref());
-        let decision = resolve_project_binding_candidates(
+        let mut decision = resolve_project_binding_candidates(
             &start,
             body.project_root.as_deref().map(Path::new),
             body.persisted_project_root.as_deref().map(Path::new),
         );
+        if payload
+            .pointer("/verification/verified")
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+        {
+            decision = decision.mark_verified();
+        }
         if let Some(object) = payload.as_object_mut() {
             object.insert(
                 "binding_candidates".to_string(),
@@ -4078,6 +4092,25 @@ async fn card(
         "prediction_feed": {"elapsed_tokens_waypoints_feed_future_predictions": true, "algorithm_run_records_efficiency": true, "outcome_records_efficiency": true},
         "known_external_gap": "A running Pi session may need reload to pick up newly registered tools; API/static/live contracts are authoritative."
     });
+    let temporal_context = project
+        .get("project_root")
+        .and_then(Value::as_str)
+        .zip(request_scope.continuity_id.as_deref())
+        .and_then(|(project_root, continuity_id)| {
+            let scope = focusa_core::temporal::TemporalScope::project(project_root, continuity_id);
+            focusa_core::temporal::TemporalLedger::for_project(scope.clone())
+                .and_then(|ledger| ledger.read_all())
+                .ok()
+                .and_then(|events| {
+                    serde_json::to_value(focusa_core::temporal::project_temporal(
+                        scope,
+                        &events,
+                        Utc::now(),
+                    ))
+                    .ok()
+                })
+        })
+        .unwrap_or_else(|| json!({"status":"degraded","authority":"advisory_only"}));
     let prior_session_context = json!({
         "schema": "focusa.project_prior_context.v1",
         "advisory_only": true,
@@ -4111,6 +4144,7 @@ async fn card(
         "ask_to_workpoint_bridge": ask_to_workpoint_bridge,
         "efficiency_summary": efficiency_summary,
         "trajectory_report_card": trajectory_report_card,
+        "temporal_context": temporal_context,
         "crosswire_health": crosswire_health,
         "prior_session_context": prior_session_context,
         "metacognition": {
@@ -5194,6 +5228,31 @@ mod tests {
         assert_eq!(candidate.status, "verified");
         assert_eq!(candidate.confidence, "high");
         assert!(candidate.mismatches.is_empty());
+        let payload = project_identity_payload_for_scope(root.to_str(), root.to_str(), None);
+        assert_eq!(
+            payload
+                .pointer("/project_identity/scope_ref/scope_kind")
+                .and_then(Value::as_str),
+            Some("project")
+        );
+        assert_eq!(
+            payload
+                .pointer("/project_identity/scope_ref/scope_id")
+                .and_then(Value::as_str),
+            Some("project:quorum")
+        );
+        assert_eq!(
+            payload
+                .pointer("/project_identity/scope_ref/root_path")
+                .and_then(Value::as_str),
+            root.to_str()
+        );
+        assert!(
+            payload
+                .pointer("/project_identity/scope_ref/fingerprint")
+                .and_then(Value::as_str)
+                .is_some()
+        );
         let _ = fs::remove_dir_all(root);
     }
 
@@ -5869,6 +5928,11 @@ mod tests {
                 .pointer("/details/tool_result_v1/failure_class")
                 .and_then(Value::as_str),
             Some("scope_mismatch")
+        );
+        assert!(
+            payload
+                .pointer("/project_identity/scope_ref")
+                .is_some_and(Value::is_null)
         );
     }
 }

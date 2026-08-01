@@ -26,6 +26,16 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 
 Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_preload_receipt_preview.md
 
+## Operator alignment
+
+- refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps
+- treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker
+- consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation
+- use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested
+- never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range
+- for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons
+- use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation
+
 ## Anti-examples
 
 - writing outside allowlisted paths
@@ -63,4 +73,4 @@ Likely next: `focusa_preload_receipt_commit`, `focusa_preload_verify`.
 - CLI: `focusa preload receipt-preview`.
 - REST: `POST /v1/preload/receipt-preview`.
 - Specification: `docs/111-agent-context-bootstrap-and-delivery-spec.md`.
-- Descriptor digest: `sha256:3456fbfbad63c2f7d5da503ca8e7b8eef5a5097311c91495dcdf9386d06d1bc0`.
+- Descriptor digest: `sha256:fc3293a2141c97093613fd058c06905961103d064c3b2164615c43bd9148170b`.

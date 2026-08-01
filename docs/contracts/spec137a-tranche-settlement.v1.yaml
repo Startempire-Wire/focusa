@@ -1,0 +1,209 @@
+{
+  "schema": "focusa.spec137a_tranche_settlement.v1",
+  "generated_at": "2026-07-30T13:34:50.521394+00:00",
+  "status": "eligible_not_requested",
+  "parent_complete_claimed": true,
+  "publication_requested": false,
+  "publication_allowed": true,
+  "full_conformance_receipt_ref": "docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml",
+  "tranches": [
+    {
+      "tranche_id": "spec137-parent",
+      "depends_on": [],
+      "state": "settled",
+      "open_requirement_refs": [],
+      "unsupported_requirement_refs": [],
+      "settlement": {
+        "factual_completion_proven": true,
+        "temporal_outcome_ref": "docs/evidence/spec137a/S137A-combined-acceptance.txt",
+        "target_missed": false,
+        "missed_target_receipt_ref": null,
+        "disposition_ref": "docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml",
+        "evidence_refs": [
+          "docs/evidence/spec137a/S137A-combined-acceptance.txt"
+        ],
+        "receipt_refs": [
+          "docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml"
+        ]
+      }
+    },
+    {
+      "tranche_id": "interpretation",
+      "depends_on": [
+        "spec137-parent"
+      ],
+      "state": "settled",
+      "open_requirement_refs": [],
+      "unsupported_requirement_refs": [],
+      "settlement": {
+        "factual_completion_proven": true,
+        "temporal_outcome_ref": "docs/evidence/spec137a/S137A-combined-acceptance.txt",
+        "target_missed": false,
+        "missed_target_receipt_ref": null,
+        "disposition_ref": "docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml",
+        "evidence_refs": [
+          "docs/evidence/spec137a/S137A-combined-acceptance.txt"
+        ],
+        "receipt_refs": [
+          "docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml"
+        ]
+      }
+    },
+    {
+      "tranche_id": "overrides",
+      "depends_on": [
+        "interpretation"
+      ],
+      "state": "settled",
+      "open_requirement_refs": [],
+      "unsupported_requirement_refs": [],
+      "settlement": {
+        "factual_completion_proven": true,
+        "temporal_outcome_ref": "docs/evidence/spec137a/S137A-combined-acceptance.txt",
+        "target_missed": false,
+        "missed_target_receipt_ref": null,
+        "disposition_ref": "docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml",
+        "evidence_refs": [
+          "docs/evidence/spec137a/S137A-combined-acceptance.txt"
+        ],
+        "receipt_refs": [
+          "docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml"
+        ]
+      }
+    },
+    {
+      "tranche_id": "coverage",
+      "depends_on": [
+        "overrides"
+      ],
+      "state": "settled",
+      "open_requirement_refs": [],
+      "unsupported_requirement_refs": [],
+      "settlement": {
+        "factual_completion_proven": true,
+        "temporal_outcome_ref": "docs/evidence/spec137a/S137A-combined-acceptance.txt",
+        "target_missed": false,
+        "missed_target_receipt_ref": null,
+        "disposition_ref": "docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml",
+        "evidence_refs": [
+          "docs/evidence/spec137a/S137A-combined-acceptance.txt"
+        ],
+        "receipt_refs": [
+          "docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml"
+        ]
+      }
+    },
+    {
+      "tranche_id": "ledger-dag",
+      "depends_on": [
+        "coverage"
+      ],
+      "state": "settled",
+      "open_requirement_refs": [],
+      "unsupported_requirement_refs": [],
+      "settlement": {
+        "factual_completion_proven": true,
+        "temporal_outcome_ref": "docs/evidence/spec137a/S137A-combined-acceptance.txt",
+        "target_missed": false,
+        "missed_target_receipt_ref": null,
+        "disposition_ref": "docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml",
+        "evidence_refs": [
+          "docs/evidence/spec137a/S137A-combined-acceptance.txt"
+        ],
+        "receipt_refs": [
+          "docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml"
+        ]
+      }
+    },
+    {
+      "tranche_id": "omission-firewall",
+      "depends_on": [
+        "ledger-dag"
+      ],
+      "state": "settled",
+      "open_requirement_refs": [],
+      "unsupported_requirement_refs": [],
+      "settlement": {
+        "factual_completion_proven": true,
+        "temporal_outcome_ref": "docs/evidence/spec137a/S137A-combined-acceptance.txt",
+        "target_missed": false,
+        "missed_target_receipt_ref": null,
+        "disposition_ref": "docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml",
+        "evidence_refs": [
+          "docs/evidence/spec137a/S137A-combined-acceptance.txt"
+        ],
+        "receipt_refs": [
+          "docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml"
+        ]
+      }
+    },
+    {
+      "tranche_id": "tranche-merge",
+      "depends_on": [
+        "omission-firewall"
+      ],
+      "state": "settled",
+      "open_requirement_refs": [],
+      "unsupported_requirement_refs": [],
+      "settlement": {
+        "factual_completion_proven": true,
+        "temporal_outcome_ref": "docs/evidence/spec137a/S137A-combined-acceptance.txt",
+        "target_missed": false,
+        "missed_target_receipt_ref": null,
+        "disposition_ref": "docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml",
+        "evidence_refs": [
+          "docs/evidence/spec137a/S137A-combined-acceptance.txt"
+        ],
+        "receipt_refs": [
+          "docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml"
+        ]
+      }
+    },
+    {
+      "tranche_id": "settlement-amendments",
+      "depends_on": [
+        "tranche-merge"
+      ],
+      "state": "settled",
+      "open_requirement_refs": [],
+      "unsupported_requirement_refs": [],
+      "settlement": {
+        "factual_completion_proven": true,
+        "temporal_outcome_ref": "docs/evidence/spec137a/S137A-combined-acceptance.txt",
+        "target_missed": false,
+        "missed_target_receipt_ref": null,
+        "disposition_ref": "docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml",
+        "evidence_refs": [
+          "docs/evidence/spec137a/S137A-combined-acceptance.txt"
+        ],
+        "receipt_refs": [
+          "docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml"
+        ]
+      }
+    },
+    {
+      "tranche_id": "acceptance-closure",
+      "depends_on": [
+        "settlement-amendments"
+      ],
+      "state": "settled",
+      "open_requirement_refs": [],
+      "unsupported_requirement_refs": [],
+      "settlement": {
+        "factual_completion_proven": true,
+        "temporal_outcome_ref": "docs/evidence/spec137a/S137A-combined-acceptance.txt",
+        "target_missed": false,
+        "missed_target_receipt_ref": null,
+        "disposition_ref": "docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml",
+        "evidence_refs": [
+          "docs/evidence/spec137a/S137A-combined-acceptance.txt"
+        ],
+        "receipt_refs": [
+          "docs/contracts/137a-focusa-zero-omission-receipt.v1.yaml"
+        ]
+      }
+    }
+  ],
+  "blockers": [],
+  "runtime_validator": "crates/focusa-core/src/temporal_release_gate.rs#validate_release_conformance"
+}

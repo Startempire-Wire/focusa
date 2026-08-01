@@ -1,0 +1,30 @@
+focusa-gkwt / GitHub #109 — cross-project context isolation proof
+Observed: 2026-07-31
+Source authority: commit containing this evidence on locked-release-all-open-spec137-138-140
+
+Implemented:
+- ECS store requests carry project_root plus continuity_id.
+- FocusaState exposes trajectory_ladder_context_for_scope and returns no context for missing/mismatched project or continuity.
+- API ECS, visual workflow, and direct daemon artifact paths use exact-scope trajectory attachment.
+- Pi ECS handle TRAJECTORY_CONTEXT rendering requires exact current project/workstream scope.
+- Pi trajectory view rejects foreign response scope and only merges exact-scope cached clarity.
+- Pi prediction recent validates returned ScopedResultEnvelope with sameWorkstream before exposing records.
+- Prediction API already requires request_scope_matches and queries prediction_store.recent by exact WorkstreamKey.
+
+Canonical OVH proof:
+- tests/spec143_cross_project_context_isolation_gate.py: PASS.
+- npm run test:scope-isolation: 4 passed, 0 failed.
+- npm run check: PASS.
+- npm run lint: PASS.
+- cargo test -p focusa-core trajectory_ladder_context_prefers_active_record --lib: 1 passed, 0 failed.
+- cargo check -p focusa-api: PASS.
+- cargo fmt --all -- --check: PASS.
+- Menu audit regenerated after session-source change; test:menu-audit PASS with 52 entries.
+- OVH source/build script full-run lock proof: concurrent commands serialized; backup at /usr/local/bin/focusa-ovh-build.pre-full-run-lock.
+- OVH disk remained 65 GiB free; no KH compiler/package-manager target used.
+
+Full Pi matrix observation:
+- cache-safe-context, compaction-lifecycle, interaction-mode, menu-audit, mission-canvas, north-star-gate, and ota-activation passed.
+- test:pi-security is blocked by the pre-existing OVH fixture carrying nested brace-expansion 5.0.7 while the gate requires 5.0.8.
+- The approved postinstall repair refused to run because the safe 5.0.8 payload is absent; no package was fetched or installed.
+- This fixture gap is unrelated to the scope-isolation implementation and remains a release-gate environment item.

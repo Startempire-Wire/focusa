@@ -1,6 +1,7 @@
 //! Spec143 §6-7 Project Genesis transaction.
 //! Identity, Trajectory, task path, first Workpoint, and coordination become ready together.
 
+use crate::routes::project::project_identity_payload_for_scope;
 use crate::routes::workpoint::materialize_workpoint_events;
 use crate::scope::{ScopeContext, ScopeSource};
 use crate::server::AppState;
@@ -11,6 +12,7 @@ use axum::{
     routing::{get, post},
 };
 use chrono::Utc;
+use focusa_core::scoped_state::ScopeRef;
 use focusa_core::types::{
     FocusaEvent, HltStatus, TrajectoryConfidence, TrajectoryDefinitionStatus,
     TrajectoryGoalProvenanceRecord, TrajectoryProjectionRecord, TrajectoryRootGoalStability,
@@ -259,8 +261,25 @@ pub(super) async fn commit(
     let waypoint_titles = packet["waypoints"].as_array().cloned().unwrap_or_default();
     let first_task = packet["first_workpoint_candidate"].clone();
     let now = Utc::now();
+    let project_identity = project_identity_payload_for_scope(
+        Some(root.to_string_lossy().as_ref()),
+        Some(root.to_string_lossy().as_ref()),
+        None,
+    );
+    let scope_ref: ScopeRef = project_identity
+        .pointer("/project_identity/scope_ref")
+        .cloned()
+        .and_then(|value| serde_json::from_value(value).ok())
+        .ok_or_else(|| {
+            reject(
+                StatusCode::PRECONDITION_FAILED,
+                "verified_project_scope_required",
+                "Project Genesis requires a verified typed ProjectIdentity ScopeRef",
+            )
+        })?;
     let trajectory = TrajectoryProjectionRecord {
         trajectory_id: trajectory_id.clone(),
+        scope_ref: Some(scope_ref),
         project_root: Some(root.to_string_lossy().to_string()),
         continuity_id: Some(req.continuity_id.clone()),
         root_long_term_goal: hlt.clone(),

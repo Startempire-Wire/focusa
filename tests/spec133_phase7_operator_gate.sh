@@ -4,6 +4,8 @@ set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$ROOT"
 export CARGO_INCREMENTAL=${CARGO_INCREMENTAL:-0}
+export FOCUSA_PROJECT_ROOT=${FOCUSA_PROJECT_ROOT:-$ROOT}
+export FOCUSA_CONTINUITY_ID=${FOCUSA_CONTINUITY_ID:-spec133-phase7-operator-gate}
 
 required_evidence=(
   docs/evidence/spec133-phase7-1-dashboard-proof-2026-07-23.md
@@ -25,7 +27,8 @@ cargo test -q -p focusa-api silent_sessions
 cargo test -q -p focusa-cli commands::silent
 pnpm --dir apps/menubar check
 pnpm --dir apps/menubar test
-pnpm --dir apps/pi-extension typecheck
-pnpm --dir apps/pi-extension test
+npm --prefix apps/pi-extension run typecheck
+npm --prefix apps/pi-extension run test:menu-audit
+npm --prefix apps/pi-extension run test:interaction-mode
 
 printf '%s\n' 'PASS: Spec133 Phase 7 dashboard, views, controls, notifications, wizard, Pi, menubar, and bounded-context matrix'

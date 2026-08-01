@@ -1,5 +1,6 @@
 import { mkdirSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
+import { registerVerifiedScopeRef } from "../apps/pi-extension/src/scoped-state.ts";
 import {
   adoptPiProjectRoot,
   ensurePiFrame,
@@ -17,6 +18,13 @@ function assert(cond: any, msg: string) {
 }
 
 const expectedRepoRoot = process.cwd();
+registerVerifiedScopeRef({
+  scope_kind: "project",
+  scope_id: "focusa-project-root-inference",
+  root_path: expectedRepoRoot,
+  canonical_name: "Focusa Runtime Fixture",
+  fingerprint: "sha256:focusa-project-root-inference",
+});
 const key = makeAttachmentKey({
   projectRoot: expectedRepoRoot,
   continuityId: "focusa-cont-project-root-inference",

@@ -17,7 +17,8 @@ use crate::{middleware::principal::ApiRequestPrincipal, server::AppState};
 use super::{
     silent_sessions::{
         ApiResponse, authorized_projection, disclose_principal_side_effect,
-        durable_request_principal, failure, persistence_failure,
+        durable_request_principal, ensure_silent_session_temporal_guard, failure,
+        persistence_failure,
     },
     silent_sessions_authorize::authorize_mutation,
     silent_sessions_contract::{
@@ -261,6 +262,10 @@ async fn control(
         vec![kind.side_effect().into()],
         approval,
     ) {
+        return after_principal(*response, &principal);
+    }
+    if let Err(response) = ensure_silent_session_temporal_guard(&session, "silent-session:control")
+    {
         return after_principal(*response, &principal);
     }
     let Some(target) = kind.target(session.lifecycle) else {

@@ -11,6 +11,7 @@
   import FirstRunWizard from '$lib/components/FirstRunWizard.svelte';
   import MissionCanvasView from '$lib/components/MissionCanvasView.svelte';
   import TrajectoryPeek from '$lib/components/TrajectoryPeek.svelte';
+  import TemporalAuthorityPeek from '$lib/components/TemporalAuthorityPeek.svelte';
   import WorkpointPeek from '$lib/components/WorkpointPeek.svelte';
   import ProofPeek from '$lib/components/ProofPeek.svelte';
   import WorkLoopPeek from '$lib/components/WorkLoopPeek.svelte';
@@ -71,7 +72,15 @@
         metacogEvaluations: projectScopedPath('/v1/metacognition/evaluations/recent?limit=5', projectRoot, continuityId),
         snapshotsRecent: projectScopedPath('/v1/focus/snapshots/recent?limit=5', projectRoot, continuityId),
       };
-      const [health, doctor, contracts, focusFrame, trajectory, workpoint, workpointResume, workLoop, workLoopHealth, workLoopCheckpoints, memoryTelemetry, events, tokenBudget, cacheMetadata, predictionsRecent, predictionsStats, metacogStatus, metacogEvaluations, snapshotsRecent, lineageHead, releaseProof, updateNotifications, silentSessionDashboard] = await Promise.all([
+      const temporalPath = projectRoot && continuityId
+        ? projectScopedPath('/v1/temporal/status', projectRoot, continuityId)
+        : null;
+      const predictionAuthorityPath = predictionScopedPath(
+        '/v1/prediction-authority/projection',
+        projectIdentityRecord,
+        continuityId,
+      );
+      const [health, doctor, contracts, focusFrame, trajectory, workpoint, workpointResume, workLoop, workLoopHealth, workLoopCheckpoints, memoryTelemetry, events, tokenBudget, cacheMetadata, predictionsRecent, predictionsStats, metacogStatus, metacogEvaluations, snapshotsRecent, lineageHead, releaseProof, updateNotifications, silentSessionDashboard, temporal, predictionAuthority, instructionIntegrity] = await Promise.all([
         safe(() => fetchJson('/v1/health')),
         safe(() => fetchJson('/v1/doctor', 5000)),
         safe(() => fetchJson('/v1/ontology/tool-contracts')),
@@ -95,6 +104,9 @@
         safe(() => fetchJson('/v1/release/proof/status')),
         safe(() => fetchJson('/v1/update/notifications')),
         safe(() => fetchJson('/v1/silent-sessions?limit=20')),
+        safe(() => temporalPath ? fetchJson(temporalPath) : Promise.resolve(null)),
+        safe(() => predictionAuthorityPath ? fetchJson(predictionAuthorityPath) : Promise.resolve(null)),
+        safe(() => fetchJson('/v1/agent-runtime/instruction-integrity/status')),
       ]);
       const workpointPacket = workpointResume?.resume_packet ?? workpointResume?.packet ?? null;
       const normalizedWorkpointResume = workpointPacket
@@ -148,6 +160,9 @@
         },
         updateNotifications,
         silentSessionDashboard,
+        temporal,
+        predictionAuthority,
+        instructionIntegrity,
       });
     } catch (e: any) {
       const msg = e?.message || 'Failed to connect';
@@ -237,6 +252,7 @@
     <MissionCanvasView />
   {:else if activeTab === 'trajectory'}
     <TrajectoryPeek />
+    <TemporalAuthorityPeek />
   {:else if activeTab === 'workpoint'}
     <WorkpointPeek />
   {:else if activeTab === 'proof'}

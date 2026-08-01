@@ -1,3 +1,4 @@
+import { registerVerifiedScopeRef } from "../apps/pi-extension/src/scoped-state.ts";
 import {
   buildCurrentAskScopeVerdict,
   formatCurrentAskScopeVerdictLines,
@@ -11,6 +12,19 @@ import {
 
 function assert(cond: any, msg: string) {
   if (!cond) throw new Error(msg);
+}
+
+for (const [scope_id, root_path, canonical_name] of [
+  ["focusa", "/home/wirebot/focusa", "Focusa"],
+  ["diagnostic-root", "/root", "Diagnostic Root"],
+]) {
+  registerVerifiedScopeRef({
+    scope_kind: "project",
+    scope_id,
+    root_path,
+    canonical_name,
+    fingerprint: `sha256:${scope_id}`,
+  });
 }
 
 const key = makeAttachmentKey({

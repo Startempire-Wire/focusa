@@ -1,4 +1,11 @@
 pub mod agent_capabilities;
+pub mod agent_runtime;
+pub mod agent_runtime_delivery;
+pub mod agent_runtime_integrity;
+pub mod agent_runtime_migration;
+pub mod agent_runtime_studio;
+#[cfg(test)]
+mod agent_runtime_tests;
 pub mod ascc;
 pub mod attachments;
 pub mod autonomy;
@@ -63,6 +70,8 @@ pub mod reflex;
 pub mod release;
 pub mod resource;
 pub mod rfm;
+pub mod semantic_integrity;
+mod semantic_integrity_executor;
 pub mod session;
 pub mod silent_sessions;
 pub mod silent_sessions_adopt;
@@ -88,6 +97,7 @@ pub mod subagent;
 pub mod task_plans;
 pub mod telemetry;
 pub mod temporal;
+mod temporal_advanced;
 pub mod threads;
 pub mod tokens;
 pub mod training;

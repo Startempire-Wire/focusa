@@ -1,3 +1,4 @@
+import { registerVerifiedScopeRef } from "../apps/pi-extension/src/scoped-state.ts";
 import {
   buildAttentionRecallVerdict,
   getAttachmentRuntime,
@@ -9,6 +10,13 @@ function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
 
+registerVerifiedScopeRef({
+  scope_kind: "project",
+  scope_id: "focusa-r4n9",
+  root_path: "/home/wirebot/focusa",
+  canonical_name: "Focusa",
+  fingerprint: "sha256:focusa-r4n9",
+});
 const key = makeAttachmentKey({
   projectRoot: "/home/wirebot/focusa",
   continuityId: "focusa-cont-r4n9",

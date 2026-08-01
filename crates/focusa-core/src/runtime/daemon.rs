@@ -46,6 +46,7 @@ use crate::reference::store::ReferenceStore;
 use crate::runtime::events::create_entry;
 use crate::runtime::persistence_actor::PersistenceActor;
 use crate::runtime::persistence_sqlite::SqlitePersistence as Persistence;
+use crate::semantic_migration::SemanticStoreState;
 use crate::types::*;
 use crate::work_item::{
     BdAdapter, ClosureAuthorityContext, ClosureBlock, ClosureClaim, ClosureKind, EvidenceCitation,
@@ -102,6 +103,31 @@ fn beads_issue_exists(project_root: &str, beads_issue_id: &str) -> bool {
                 == Some(issue_id)
         })
     })
+}
+
+/// Operator-visible semantic persistence health. `Ready` is reported only
+/// after version and replay integrity checks succeed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SemanticPersistenceHealth {
+    Ready,
+    Degraded(String),
+    MigrationRequired { found: u32, supported: u32 },
+    QuarantinedFutureVersion { found: u32, supported: u32 },
+}
+
+impl From<SemanticStoreState> for SemanticPersistenceHealth {
+    fn from(state: SemanticStoreState) -> Self {
+        match state {
+            SemanticStoreState::Ready => Self::Ready,
+            SemanticStoreState::Degraded { reason } => Self::Degraded(reason),
+            SemanticStoreState::MigrationRequired { found, supported } => {
+                Self::MigrationRequired { found, supported }
+            }
+            SemanticStoreState::QuarantinedFutureVersion { found, supported } => {
+                Self::QuarantinedFutureVersion { found, supported }
+            }
+        }
+    }
 }
 
 /// The main daemon handle.
@@ -435,7 +461,19 @@ impl Daemon {
     /// Translate an Action to event(s), reduce, persist, observe.
     async fn process_action(&mut self, action: Action) -> anyhow::Result<()> {
         let write_serial_lock = Arc::clone(&self.write_serial_lock);
+        {
+            let _reconcile_guard = write_serial_lock.lock().await;
+            self.reconcile_external_state().await;
+        }
+
+        // Translation can perform bounded provider/tool I/O. Never hold the
+        // canonical write lock across that I/O: direct API writers such as
+        // Workpoint checkpoint and Work Loop context must remain responsive.
+        let events = self.translate_action(action.clone()).await?;
+
         let _write_guard = write_serial_lock.lock().await;
+        // Direct API writes may have landed while translation was in flight.
+        // Reconcile again so reducer application uses the latest canonical state.
         self.reconcile_external_state().await;
 
         // Recovery/checkpoint boundaries acknowledge durable persistence; ordinary
@@ -456,8 +494,6 @@ impl Daemon {
             action,
             Action::PushFrame { .. } | Action::PopFrame { .. } | Action::SetActiveFrame { .. }
         );
-
-        let events = self.translate_action(action).await?;
 
         for event in events {
             // Determine thread_id for ownership enforcement.
@@ -3024,6 +3060,7 @@ Return:
         }
     }
 
+    #[allow(clippy::result_large_err)]
     async fn complete_work_item_via_lifecycle(
         &self,
         task: &SpecLinkedTaskPacket,
@@ -3423,23 +3460,21 @@ Return:
             }]),
 
             Action::SubmitProposal {
+                workstream,
                 kind,
                 source,
                 payload,
                 deadline_ms,
                 score,
-            } => {
-                let proposal_id =
-                    crate::pre::submit(&mut self.state.pre, kind, &source, payload, deadline_ms);
-                if let Some(score) = score {
-                    let _ = crate::pre::score_proposal(&mut self.state.pre, proposal_id, score);
-                }
-                // Proposals don't produce reducer events — they live in PRE state.
-                // Persist so proposals survive a daemon restart.
-                self.persist_reducer_batch(Vec::new(), true).await?;
-                self.sync_shared_state().await;
-                Ok(vec![])
-            }
+            } => Ok(vec![FocusaEvent::ProposalSubmitted {
+                workstream,
+                proposal_id: Uuid::now_v7(),
+                kind,
+                source,
+                payload,
+                deadline_ms,
+                score,
+            }]),
 
             Action::LogConfidence {
                 prediction_type,
@@ -3728,9 +3763,16 @@ Return:
                     ));
                 }
 
-                let packet = self
-                    .next_ready_packet_for_parent(&parent_work_item_id)
-                    .await?
+                let packet = tokio::time::timeout(
+                    std::time::Duration::from_millis(750),
+                    self.next_ready_packet_for_parent(&parent_work_item_id),
+                )
+                .await
+                .map_err(|_| {
+                    anyhow::anyhow!(
+                        "work-item provider selection exceeded 750ms; defer selection and keep the daemon command loop responsive"
+                    )
+                })??
                     .ok_or_else(|| {
                         anyhow::anyhow!(
                             "no safe open or in_progress dependents under {}",
@@ -4808,7 +4850,10 @@ Return:
                     project_root,
                     continuity_id,
                 )?;
-                handle.trajectory = self.state.trajectory_ladder_context();
+                handle.trajectory = self.state.trajectory_ladder_context_for_scope(
+                    handle.project_root.as_deref(),
+                    handle.continuity_id.as_deref(),
+                );
                 Ok(vec![FocusaEvent::ArtifactRegistered {
                     handle: handle.clone(),
                     storage_uri: format!("ecs://{}", handle.sha256),
@@ -5675,6 +5720,7 @@ mod tests {
             stats: FrameStats::default(),
             constraints: vec![],
             focus_state,
+            temporal_context: None,
             completed_at: None,
             completion_reason: None,
         }

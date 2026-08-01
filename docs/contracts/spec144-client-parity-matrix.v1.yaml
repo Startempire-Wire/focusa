@@ -1,8 +1,8 @@
 {
   "serialization": "JSON-compatible YAML 1.2",
-  "generated_at": "2026-07-27T00:47:15+00:00",
-  "runtime_claim": "none",
-  "runtime_status": "implementation_open",
+  "generated_at": "2026-07-31T17:03:56+00:00",
+  "runtime_claim": "activated",
+  "runtime_status": "verified_complete",
   "schema": "focusa.spec144_client_parity_matrix.v1",
   "clients": [
     "api",
@@ -34,5 +34,6 @@
     "revalidation",
     "recovery"
   ],
-  "status": "runtime_implementation_not_activated"
+  "status": "runtime_verified_complete",
+  "activation_receipt_ref": "release-proof/audit/spec144-spec150-double-e2e-receipt.json"
 }

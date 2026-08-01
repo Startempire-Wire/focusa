@@ -1,0 +1,23 @@
+{
+  "schema": "focusa.spec144_activation.v1",
+  "activation_id": "spec144-activation-2026-08-01",
+  "spec_path": "docs/144-focusa-semantic-integrity-rdf-owl-shacl-build-verify-routing-and-vertical-intelligence-spec.md",
+  "spec_content_sha256": "sha256:4d28318dd3df2c71ca154ba7225cb9933cf6791859d66b51bc48aabd68a1a567",
+  "spec_commit_sha": "bbce4742882b8600c11f3bc91d8f987d54655f9b",
+  "spec143_completion_receipt_ref": "docs/contracts/spec143-completion-receipt.v1.json",
+  "operator_activation_ref": "operator-directive:2026-07-31:complete-release-remove-blockers",
+  "unknown_impact_refs": [],
+  "blocking_conflict_refs": [],
+  "status": "activated",
+  "activated_at": "2026-08-01T15:05:20Z",
+  "eligibility_receipt_ref": "workpoint:019fbb20-49c7-7792-9fdd-cdff02b23cee",
+  "activation_receipt_ref": "release-proof/audit/spec144-spec150-double-e2e-receipt.json",
+  "normative_source_coverage_ref": "docs/contracts/spec144-normative-source-coverage.v1.yaml",
+  "feature_ledger_ref": "docs/contracts/spec144-complete-feature-ledger.v1.yaml",
+  "delivery_dag_ref": "docs/contracts/spec144-delivery-dag.v1.yaml",
+  "ownership_matrix_ref": "docs/contracts/spec144-primitive-ownership-matrix.v1.yaml",
+  "client_parity_matrix_ref": "docs/contracts/spec144-client-parity-matrix.v1.yaml",
+  "vertical_pack_matrix_ref": "docs/contracts/spec144-vertical-pack-matrix.v1.yaml",
+  "migration_matrix_ref": "docs/contracts/spec144-migration-matrix.v1.yaml",
+  "proof_matrix_ref": "docs/contracts/spec144-proof-matrix.v1.yaml"
+}

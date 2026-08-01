@@ -1,0 +1,37 @@
+{
+  "schema": "focusa.public_benchmark_snapshot.v1",
+  "snapshot_id": "preview-no-public-runs",
+  "snapshot_state": "draft_public_preview",
+  "publish_allowed": false,
+  "redaction_status": "not_required_no_raw_payload",
+  "secret_scan_status": "not_required_no_raw_payload",
+  "suite": "focusa-agent-bench-v1",
+  "primary_comparison": "full_focusa_vs_no_focusa",
+  "comparison": {
+    "resolved": null,
+    "uplift_score": null,
+    "cost_per_resolved_delta": null,
+    "grounded_claim_delta": null,
+    "operator_burden_delta": null
+  },
+  "trend": [],
+  "failure_to_fix": [],
+  "replays": [],
+  "evidence": {
+    "run_ids": null,
+    "raw_ledger_hash": null,
+    "scoring_commit": null,
+    "environment_digest": null,
+    "proof_snapshot": null
+  },
+  "honesty": {
+    "claim_state": "hypothesis_only_no_public_measurement",
+    "data_split": "no_public_split",
+    "known_limitations": "No public-safe benchmark run has passed publication gates.",
+    "model_version": null,
+    "pricing_snapshot": null,
+    "scoring_commit": null,
+    "environment_digest": null
+  },
+  "empty_state_message": "Observatory UI is operational. No performance claim is published until a benchmark run, redaction gate, secret scan, immutable ledger hash, and evidence bundle all pass."
+}

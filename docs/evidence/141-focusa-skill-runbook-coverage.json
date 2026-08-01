@@ -20,7 +20,7 @@
         "focusa_tool_search"
       ],
       "runbook": ".pi/skills/focusa-agent-bootstrap/references/01-focusa-agent-bootstrap-runbook.md",
-      "sha256": "039c97b0c7641e668d77b1f8c18cecdbad66c53a93c2b0d8dff0791e56a8aa32"
+      "sha256": "35aa1cd2163c52a90fb47121c4a8d3013d18e790b486c0979866df85d0866f83"
     },
     {
       "name": "focusa-tool-discovery",
@@ -32,7 +32,7 @@
         "focusa_agent_card"
       ],
       "runbook": ".pi/skills/focusa-tool-discovery/references/01-focusa-tool-discovery-runbook.md",
-      "sha256": "fba9aeb70cd0d0b9b241f82643154abc0d37ebe17a0d7a9d5734925c2de81f14"
+      "sha256": "aad1e608f3d7398a30a1832296697a7e6fe5d53f989aa2051126954763771d3c"
     },
     {
       "name": "focusa-project-scope",
@@ -43,7 +43,7 @@
         "focusa_workpoint_resume"
       ],
       "runbook": ".pi/skills/focusa-project-scope/references/01-focusa-project-scope-runbook.md",
-      "sha256": "25f569e851612e84d18570985d49edd5b8280279e870da175aec8868ef518d65"
+      "sha256": "5e4a18c5c35c3bce71b590444aa66894715ae66eb7b0c528fc9517f6b832c8ac"
     },
     {
       "name": "focusa-session-recovery",
@@ -55,7 +55,7 @@
         "focusa_tree_restore_state"
       ],
       "runbook": ".pi/skills/focusa-session-recovery/references/01-focusa-session-recovery-runbook.md",
-      "sha256": "32ed6b689f39f88e7587e7f9dff2ba346468c50c3fbc574bbebe906288382911"
+      "sha256": "80c477012ef1f55a3e87ca1102e2d424841f5ce65ab85b4fd6e329b2b349d9bd"
     },
     {
       "name": "focusa-browser-uiai",
@@ -66,7 +66,7 @@
         "focusa_evidence_capture"
       ],
       "runbook": ".pi/skills/focusa-browser-uiai/references/01-focusa-browser-uiai-runbook.md",
-      "sha256": "605ed6d6208385ac95e8c3ae00eb66ff8e0778ac3e21a41a3a0fffbb40b54d7e"
+      "sha256": "18c76f359e68787366502acaedbff012e886cd73cec7d062050b23a3124f56db"
     },
     {
       "name": "focusa-install-lifecycle",
@@ -77,7 +77,7 @@
         "focusa_tool_doctor"
       ],
       "runbook": ".pi/skills/focusa-install-lifecycle/references/01-focusa-install-lifecycle-runbook.md",
-      "sha256": "c9f3a28cfeba8bff121ed67bd370aa0e70b4eaccc07dd631f0865d73e2896b24"
+      "sha256": "4c24e925b507fd014bf42295a05f627bc494e18b356e5e363145a55cc2b2c159"
     },
     {
       "name": "focusa-security-auth-licensing",
@@ -89,7 +89,7 @@
         "focusa_tool_describe"
       ],
       "runbook": ".pi/skills/focusa-security-auth-licensing/references/01-focusa-security-auth-licensing-runbook.md",
-      "sha256": "a1515be7e9c821772355ff1793b4943a6215bdf63109d7769502ade7ae9574fe"
+      "sha256": "3d8c60ec720c8be6b5b3ec3a26e238b4bb7d16e3788886a60d3b60f511e63bc9"
     },
     {
       "name": "focusa-resource-performance",
@@ -101,7 +101,7 @@
         "focusa_tool_bundle"
       ],
       "runbook": ".pi/skills/focusa-resource-performance/references/01-focusa-resource-performance-runbook.md",
-      "sha256": "92462681ab35b461d437202bb1fa0ea3780c639435982876a2eecb7f83c575f1"
+      "sha256": "aac8d4f7412b04b1fe2153dd0504fb776735999294d223bea7c06ffc94aa280d"
     },
     {
       "name": "focusa-mission-canvas",
@@ -112,7 +112,7 @@
         "focusa_active_object_resolve"
       ],
       "runbook": ".pi/skills/focusa-mission-canvas/references/01-focusa-mission-canvas-runbook.md",
-      "sha256": "8ab2f102d5158cdf4e3d6c03ecf648ff6cd9dbc037f31d88846b003a3d59f0be"
+      "sha256": "d96b94b7bdda6eebe04b0d292693b6a8831ddb1b7db3288e0db0c1c7c2337143"
     },
     {
       "name": "focusa-release-proof",
@@ -123,7 +123,7 @@
         "focusa_metacog_doctor"
       ],
       "runbook": ".pi/skills/focusa-release-proof/references/01-focusa-release-proof-runbook.md",
-      "sha256": "017ec634947fcc280353596519f0af27c33d3ddf44d5bd0b37fab18e6cd16222"
+      "sha256": "c00a0455ac595ff806519497002db9066fd70cc12149446d9b40fae3b4e84744"
     },
     {
       "name": "focusa-temporal-authority",
@@ -135,7 +135,7 @@
         "focusa_evidence_capture"
       ],
       "runbook": ".pi/skills/focusa-temporal-authority/references/01-focusa-temporal-authority-runbook.md",
-      "sha256": "d061a9559b95cacb67dd533b460cc8e6438c347157166a85aedcc8c1bf1168c7"
+      "sha256": "484550d03a3b0bb27972d4156fbb18cc372c22fa7192253ffad5e557c29ef8de"
     },
     {
       "name": "focusa-spec-implementation",
@@ -147,7 +147,7 @@
         "focusa_evidence_capture"
       ],
       "runbook": ".pi/skills/focusa-spec-implementation/references/01-focusa-spec-implementation-runbook.md",
-      "sha256": "219dfc28303548cbbe072fc15bce5f83550b6bb80ced41c4bba1f396f75143ea"
+      "sha256": "70896c6dbed8f2906253634283ac590a282244a0cb3c883e63fa27c9fff951fc"
     },
     {
       "name": "focusa-evidence-outcomes",
@@ -159,7 +159,7 @@
         "focusa_metacog_capture"
       ],
       "runbook": ".pi/skills/focusa-evidence-outcomes/references/01-focusa-evidence-outcomes-runbook.md",
-      "sha256": "f5d3cfcf486c7bffc837fd6fe5c1adb5d00e76392de5275ce0ec0fccb2379a19"
+      "sha256": "0a2f0d2f7f49bd8eb43302d3ac43b37420c18ac31919835c7e1f7b048bae1d1a"
     },
     {
       "name": "focusa-trajectory",
@@ -173,7 +173,7 @@
         "focusa_trajectory_resume"
       ],
       "runbook": ".pi/skills/focusa-trajectory/references/01-focusa-trajectory-runbook.md",
-      "sha256": "1b75549208bc540e43ea65afe4c20367638bec1da92e67c0e9eeb49f001cd41e"
+      "sha256": "ff1873ba29780e55820accf39f5426658144a6e2fe799cc703aa51c6d8581467"
     },
     {
       "name": "focusa-context-cognition",
@@ -187,7 +187,7 @@
         "focusa_context_cognition_optimizer_artifacts"
       ],
       "runbook": ".pi/skills/focusa-context-cognition/references/01-focusa-context-cognition-runbook.md",
-      "sha256": "b6b2eb299800c3a368d66f3d754db3cdb6cc28469a229e113254eda5d0d13d04"
+      "sha256": "b2d36997f495f49ddfc1a0f5c0c73fd8b9335a9139fbb13716d7d851cf9dc85c"
     },
     {
       "name": "focusa-focus-state",
@@ -204,7 +204,7 @@
         "focusa_state_hygiene_doctor"
       ],
       "runbook": ".pi/skills/focusa-focus-state/references/01-focusa-focus-state-runbook.md",
-      "sha256": "c46830a7c3d5291f5d6e705c63953bac343f02249c4525acfa941bbf58206926"
+      "sha256": "63b822b8678c6396fd42baa8ef9e3e81f32f6d51e126ebaf81c993eaefcf4881"
     },
     {
       "name": "focusa-device-pairing",
@@ -217,7 +217,7 @@
         "focusa_device_pair_revoke"
       ],
       "runbook": ".pi/skills/focusa-device-pairing/references/01-focusa-device-pairing-runbook.md",
-      "sha256": "d97448f892bf8478850fb5777c41f94f5e97a9652d57792ab8425b416c3154e1"
+      "sha256": "600b02190ca815fcfbbfbaff3cb28394515579c786224f63d34cf7b1ccf629fb"
     },
     {
       "name": "focusa-lineage",
@@ -231,7 +231,7 @@
         "focusa_li_tree_extract"
       ],
       "runbook": ".pi/skills/focusa-lineage/references/01-focusa-lineage-runbook.md",
-      "sha256": "13b9b93074b0aec240a9f25969538c9e1ca0de71a9ba2b2e7732c6a13ac62204"
+      "sha256": "fac74ae3aa0c5154cc0c918b675789dae9453528813bf11bdec792437c6defb6"
     },
     {
       "name": "focusa-project-card",
@@ -242,7 +242,7 @@
         "focusa_workpoint_checkpoint"
       ],
       "runbook": ".pi/skills/focusa-project-card/references/01-focusa-project-card-runbook.md",
-      "sha256": "a02b2d9810d838b9379a00ff1728f36985b18c55bea8880f91990fbfb92d002f"
+      "sha256": "46102e84c19c119dd8f435ec993f0fe1fed4da38d7191afd3b1eb8e8ce664275"
     },
     {
       "name": "focusa-dxux-recovery",
@@ -254,7 +254,7 @@
         "focusa_tool_doctor"
       ],
       "runbook": ".pi/skills/focusa-dxux-recovery/references/01-focusa-dxux-recovery-runbook.md",
-      "sha256": "15ae87cd57a24ca0ac17becc0e33dd38c446e3a77f25c450dea8b1d9e4aec04b"
+      "sha256": "2d298a653cd04cbc7823e16333b6dd275ff9a31283cf922e8a436bf16267ade7"
     },
     {
       "name": "focusa",
@@ -276,7 +276,7 @@
         "focusa_utility_card"
       ],
       "runbook": ".pi/skills/focusa/references/01-focusa-runbook.md",
-      "sha256": "63cfe9ff3ac676462e1cfe77a87cff79e562a1cb62aadb8e4a5e683d15ea07a8"
+      "sha256": "f922918b080e3d8690eaf0dc2d1eda997867d8437b314779b0ecd7e28af3fb17"
     },
     {
       "name": "focusa-cli-api",
@@ -284,7 +284,7 @@
         "focusa_tool_search"
       ],
       "runbook": ".pi/skills/focusa-cli-api/references/01-focusa-cli-api-runbook.md",
-      "sha256": "89a1b5bc606b50422049830395c69852ed654a78ed8cc06c9aab9202ca3df583"
+      "sha256": "af7b7bfd54945745d8860ccca0fa323537e37f5a1caec223b8404ace4e364a08"
     },
     {
       "name": "focusa-docs-maintenance",
@@ -292,7 +292,7 @@
         "focusa_tool_search"
       ],
       "runbook": ".pi/skills/focusa-docs-maintenance/references/01-focusa-docs-maintenance-runbook.md",
-      "sha256": "a1875d39b9cab1bb9d80725ecd4014b220c89bc2cd837a05d8c9b08d094f1775"
+      "sha256": "6d01b7ce23fc3f82949c86d11d0bd930c9461ee185b9b3177403eaacf53719e9"
     },
     {
       "name": "focusa-metacognition",
@@ -308,7 +308,7 @@
         "focusa_metacog_retrieve"
       ],
       "runbook": ".pi/skills/focusa-metacognition/references/01-focusa-metacognition-runbook.md",
-      "sha256": "5aaaffe527ec2bb6d15e3d7b581b3837c1bc22e4aedc796bcf2f204aaf6a9810"
+      "sha256": "5b72b3de8aadb135363856af09ead2dbb3b4361676a946583ca4ab17c9e14f1e"
     },
     {
       "name": "focusa-silent-sessions",
@@ -316,7 +316,7 @@
         "focusa_silent_sessions"
       ],
       "runbook": ".pi/skills/focusa-silent-sessions/references/01-focusa-silent-sessions-runbook.md",
-      "sha256": "78842dd9e820f9679417048a323fd343672d86b63328bff7ce9eb76ab9bbb0b8"
+      "sha256": "d87541b5b839ac3156a755ddddffc96b664f3a4ec0c9c58aac4db23245a4fba6"
     },
     {
       "name": "focusa-troubleshooting",
@@ -324,7 +324,7 @@
         "focusa_tool_search"
       ],
       "runbook": ".pi/skills/focusa-troubleshooting/references/01-focusa-troubleshooting-runbook.md",
-      "sha256": "1af44f07061e41f1590444bdc66b1df1c9361d6fb8f3c41a89751fe781c780d9"
+      "sha256": "da58aa6ced2bfae1d121476fe3bc599afc941fcfceaf7cbd8f04903e6a293685"
     },
     {
       "name": "focusa-work-loop",
@@ -337,7 +337,7 @@
         "focusa_work_loop_writer_status"
       ],
       "runbook": ".pi/skills/focusa-work-loop/references/01-focusa-work-loop-runbook.md",
-      "sha256": "a178f792913d8eace1b06d43fff0ce2287999423207b2974aa884051930acd51"
+      "sha256": "5409e1604b0f1a895a36a0f46522a97d1444a262ce7e991f916d62fb2125d373"
     },
     {
       "name": "focusa-workpoint",
@@ -348,7 +348,7 @@
         "focusa_workpoint_resume"
       ],
       "runbook": ".pi/skills/focusa-workpoint/references/01-focusa-workpoint-runbook.md",
-      "sha256": "3649cae1441c1c45fa47c167bc630187a742c3eb2e2416f06d4e631f16879b87"
+      "sha256": "c4b05da7d5abb96361a5115fd252ecb5f419e21c02adcd4badbeb19d3d41a6cf"
     },
     {
       "name": "predictive-power",
@@ -360,7 +360,7 @@
         "focusa_prediction_authority"
       ],
       "runbook": ".pi/skills/predictive-power/references/01-predictive-power-runbook.md",
-      "sha256": "71a5f3c62997316197a7a6baf6287b8972309851499745787c7caf5e2985cdcc"
+      "sha256": "84a616dff35cac28c5368a3efe6b8e298cf2e4086b6ae803c198348ea9009660"
     }
   ],
   "installed_skill_inventory": [

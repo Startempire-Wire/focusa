@@ -1,15 +1,15 @@
 {
   "serialization": "JSON-compatible YAML 1.2",
-  "generated_at": "2026-07-27T00:47:15+00:00",
+  "generated_at": "2026-07-31T17:03:56+00:00",
   "runtime_claim": "none",
   "runtime_status": "implementation_open",
   "schema": "focusa.spec137a_normative_source_coverage.v2",
   "sources": [
     {
       "path": "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md",
-      "sha256": "02649a026ab0731a090d9b265652d6aaaf787b5756946db4a5a3b01a52454a09",
-      "line_count": 2360,
-      "nonempty_source_atom_count": 1968,
+      "sha256": "35f78d1d2d25786dc230bfac10f54eab353ba287d12b6cc8a8525898fb864ae6",
+      "line_count": 2375,
+      "nonempty_source_atom_count": 1979,
       "normative_requirement_count": 1001
     },
     {
@@ -20,8 +20,8 @@
       "normative_requirement_count": 172
     }
   ],
-  "combined_normative_source_hash": "c4195171721cde8821a9c54a2e83d819afe226a20937930af2d4db770916978f",
-  "source_atom_count": 2390,
+  "combined_normative_source_hash": "915bed65583e8c80ad5b2d741fa1c9d0b7d1a87f3c66786832570f3c4ec70e5b",
+  "source_atom_count": 2401,
   "normative_requirement_count": 1173,
   "unmapped_source_atom_refs": [],
   "unmapped_normative_requirement_refs": [],
@@ -19707,6 +19707,116 @@
       "classification": "contextual",
       "text": "The existing temporal implementation and release gate are classified as verified implementation slices until the combined closure system proves otherwise.",
       "text_hash": "d21e7f478666f5593edf150c824dd78ebaa405445122648ac3281b904bd05720",
+      "coverage_status": "mapped"
+    },
+    {
+      "source_atom_id": "S137-A-2362-d37cf61eb227",
+      "source_path": "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md",
+      "source_line": 2362,
+      "section": "Current implementation snapshot",
+      "classification": "section_heading",
+      "text": "## Current implementation snapshot",
+      "text_hash": "677e729915fdb6c91d887e70feebcb69fcbfd623faf543723217476de79a75c1",
+      "coverage_status": "mapped"
+    },
+    {
+      "source_atom_id": "S137-A-2364-e2b6f06ebb6b",
+      "source_path": "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md",
+      "source_line": 2364,
+      "section": "Current implementation snapshot",
+      "classification": "contextual",
+      "text": "The Spec 137 implementation slice now includes:",
+      "text_hash": "5ae45430d866b65e7186ab310ac48374f12bd6fa11bbf8f5d70ffc765ce6286a",
+      "coverage_status": "mapped"
+    },
+    {
+      "source_atom_id": "S137-A-2366-8656a98358cf",
+      "source_path": "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md",
+      "source_line": 2366,
+      "section": "Current implementation snapshot",
+      "classification": "contextual",
+      "text": "- signed append-only temporal ledgers with predecessor digests, fsync, idempotent replay, restart recovery, signature verification, and legacy-signature migration;",
+      "text_hash": "d4c87d6ff5a6cddae46ed6a7b69b8a454103b72229069f60d058aa45e4edcc48",
+      "coverage_status": "mapped"
+    },
+    {
+      "source_atom_id": "S137-A-2367-e7dd20b5967b",
+      "source_path": "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md",
+      "source_line": 2367,
+      "section": "Current implementation snapshot",
+      "classification": "contextual",
+      "text": "- explicit `HumanCalendarContext`, `TemporalPriorityFrame`, and `TemporalExecutionGuard` packets bound to project scope, operator-ask digest, expiry, evidence, and authorized action refs;",
+      "text_hash": "5ad31df4e65c426fd4da179893ab3418be4ecfa51ebc6a7779f4020f2e6e0ecb",
+      "coverage_status": "mapped"
+    },
+    {
+      "source_atom_id": "S137-A-2368-189a72032851",
+      "source_path": "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md",
+      "source_line": 2368,
+      "section": "Current implementation snapshot",
+      "classification": "contextual",
+      "text": "- IANA civil-time resolution with explicit DST fold/gap policy and versioned resolution evidence;",
+      "text_hash": "5a3d8f4f7ecbc48cb2a66964b4a520f8be27c8713a322b711979ae069f83fe2a",
+      "coverage_status": "mapped"
+    },
+    {
+      "source_atom_id": "S137-A-2369-b133b68d0210",
+      "source_path": "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md",
+      "source_line": 2369,
+      "section": "Current implementation snapshot",
+      "classification": "contextual",
+      "text": "- wall, monotonic, suspend-inclusive, uncertainty, and unsupported/degraded platform-clock reporting without synthesized capabilities;",
+      "text_hash": "1b024398e180d59791c30e0f3355ce3bca8104620818c463eff4eb6b88b376fd",
+      "coverage_status": "mapped"
+    },
+    {
+      "source_atom_id": "S137-A-2370-be9034218e02",
+      "source_path": "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md",
+      "source_line": 2370,
+      "section": "Current implementation snapshot",
+      "classification": "contextual",
+      "text": "- external commitment, internal target, estimate, forecast, urgency, and presentation separation plus reconciliation, slack, due-soon, overdue, conflict, breach, revision, and receipt state;",
+      "text_hash": "6796a589d1bd353994cbdbc692b692121a94ee8e2a334003e37f63f1269853a1",
+      "coverage_status": "mapped"
+    },
+    {
+      "source_atom_id": "S137-A-2371-9eb60d18fe1a",
+      "source_path": "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md",
+      "source_line": 2371,
+      "section": "Current implementation snapshot",
+      "classification": "contextual",
+      "text": "- empirical p50/p80/p95 forecasting with authority metadata, censoring/correlation fields, reliability, bias, coverage, sharpness, proper score, skill, decision value, error bounds, cohort drift, exact-target evaluation, and invalidation fingerprints;",
+      "text_hash": "26c9b0fd564889b8223e20be04cf34164e53444a7774f0681af603289877f6ca",
+      "coverage_status": "mapped"
+    },
+    {
+      "source_atom_id": "S137-A-2372-0c75ab01a2a3",
+      "source_path": "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md",
+      "source_line": 2372,
+      "section": "Current implementation snapshot",
+      "classification": "contextual",
+      "text": "- `/v1/temporal/*`, CLI, Pi tool, Work Loop, Silent Session, Project Card, Mission Canvas, resume/compaction, and reconnect projections;",
+      "text_hash": "7b6d8e96eb85752be88cdc7884c2769d8dc4d67474b8bdc75027e2bcd639bed8",
+      "coverage_status": "mapped"
+    },
+    {
+      "source_atom_id": "S137-A-2373-47c54d5064d8",
+      "source_path": "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md",
+      "source_line": 2373,
+      "section": "Current implementation snapshot",
+      "classification": "contextual",
+      "text": "- fail-closed high-consequence activation/dispatch preflight, signed event evidence, and explicit recovery paths.",
+      "text_hash": "0fc128efa2ba7a314684ed191ed8efff24fcab0b28fcf3ad943a86f5a842a85d",
+      "coverage_status": "mapped"
+    },
+    {
+      "source_atom_id": "S137-A-2375-4d1463db715f",
+      "source_path": "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md",
+      "source_line": 2375,
+      "section": "Current implementation snapshot",
+      "classification": "contextual",
+      "text": "This snapshot is not a combined-source closure claim; Spec 137A applicability, proof, parity, migration, and zero-omission receipts remain independently mandatory.",
+      "text_hash": "92297247e03c2a55e7bb5bfafc044611fb80867cb454e48c3c0d61c892477e39",
       "coverage_status": "mapped"
     },
     {

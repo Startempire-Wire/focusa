@@ -1,0 +1,20 @@
+focusa-vbcqu.6.2 / .6.2.1 / .6.2.1.1 — release incident settlement
+Observed: 2026-07-31
+
+Durable upstream proof:
+- GitHub issue #55 is CLOSED and explicitly superseded by the verified v0.9.129-dev cycle.
+- Final issue proof names tag commit b97ad16c652e497c5190ebaceea55d875d695ec9, successful CI 30239380676, successful Spec132 30239380662, successful Release 30239381932 with 60 assets, and successful live deployment/updater trust evidence.
+- PR #61 is MERGED at 4da49841bd3f92f4e767a3c77ea22d5c99bc8515.
+- PR #61 has no failed or pending checks; CI and CodeQL checks are successful.
+- PR #61 documents the manual-compaction steering root cause and commit b182cb49: hidden context uses triggerTurn=false, Pi exclusively owns queued steering/native continuation, retries remain visible, and long blocking watch policy is rejected.
+
+Current locked-release proof:
+- Exact OVH SHA e9ebaeb35c03f310ad50691b199e28455b4a4a45 passes cargo test --workspace --all-targets after the required daemon fixture build.
+- Exact OVH SHA passes Pi generator parity, check, lint, format, all 17 test targets, and final_release_gap_gate.
+- Compaction lifecycle, rollover, cache-safe context, project binding, and scope-isolation tests pass.
+- This operator session crossed repeated native compaction/resume boundaries while preserving current steering and canonical Workpoint continuation; the reproduced post-compaction stall did not recur.
+
+Settlement:
+- v0.9.121/v0.9.122 remain immutable failed chronology and are not rewritten.
+- v0.9.129-dev is the verified superseding incident cycle.
+- No trust, migration, deployment, or hidden-failure gate is waived.

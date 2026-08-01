@@ -35,6 +35,7 @@ pub fn utility_card() -> UtilityCard {
             "Every card must let the next agent act without transcript-tail authority.".to_string(),
         ],
         scope_gate: vec![
+            "If the current repository is unbound, run focusa init --quickstart --project-root <repo> --json and verify .focusa-project.json before HLT or Workpoint guidance.".to_string(),
             "Resolve project identity before trusting Workpoint or Trajectory authority.".to_string(),
             "Compare canonical parent, working-subpath, and continuity_id before durable writes.".to_string(),
             "If scope conflicts, verify project then checkpoint before durable writes.".to_string(),
@@ -127,6 +128,14 @@ mod tests {
             card.usefulness_bar
                 .iter()
                 .any(|line| line.contains("exact next action"))
+        );
+        assert!(
+            card.scope_gate.iter().any(|line| {
+                line.contains("focusa init --quickstart")
+                    && line.contains(".focusa-project.json")
+                    && line.contains("before HLT or Workpoint")
+            }),
+            "unbound repositories must receive marker-first guidance"
         );
         assert!(
             card.exact_next_actions

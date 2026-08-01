@@ -10,6 +10,7 @@
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
+import { registerAgentRuntimeTools } from "./agent-runtime-tools.js";
 import {
   getAttachmentRuntime,
   checkFocusa,
@@ -52,6 +53,8 @@ import {
   getLastProjectVerify,
   getLatestReportSummary,
   setLastProjectVerify,
+  currentProjectBindingDecision,
+  setCurrentProjectBindingDecision,
   getToolUsageBatch,
   getCurrentTaskTurnStart,
   currentAttachmentKey,
@@ -65,9 +68,14 @@ import {
   buildProjectWorkstreamKey,
   renderScopedResultHuman,
   scopedQueryParams,
+  isWorkstreamKey,
+  sameWorkstream,
   type ScopedResultEnvelope,
   type WorkstreamKey,
 } from "./scoped-state.js";
+import { buildNorthStarSnapshot, renderNorthStarCard } from "./north-star.js";
+import { projectBindingAllowsDurableWrites, reconcileProjectBindingDecision } from "./project-binding.js";
+import { publishScopedStateChange } from "./scoped-surface-refresh.js";
 
 const SCRATCHPAD_DIR = "/tmp/pi-scratch";
 
@@ -2176,6 +2184,37 @@ export function registerTools(pi: ExtensionAPI) {
     }
     return registerTool(normalized);
   }) as typeof pi.registerTool;
+  registerAgentRuntimeTools(pi);
+
+  pi.registerTool({
+    name: "focusa_north_star_gate",
+    label: "North Star Gate",
+    description:
+      "Inspect the current verified Project → HLT → MLG → STG → waypoint → gap → Workpoint → frontier chain before meaningful action. Read-only and fail-closed.",
+    promptSnippet:
+      "Use before meaningful work and after session/compaction/model/project/provider/writer transitions; stale authority remains advisory.",
+    parameters: Type.Object({
+      trigger: Type.Optional(Type.String({ description: "Lifecycle or operator trigger being checked." })),
+    }),
+    async execute(params: any) {
+      const snapshot = buildNorthStarSnapshot(String(params?.trigger || "manual_gate"));
+      return {
+        content: [{ type: "text", text: renderNorthStarCard(snapshot).join("\n") }],
+        details: {
+          ok: snapshot.status === "ready",
+          status: snapshot.status,
+          canonical: false,
+          advisory: true,
+          snapshot,
+          next_tools:
+            snapshot.status === "ready"
+              ? ["focusa_workpoint_resume"]
+              : ["focusa_project_identity", "focusa_trajectory_view", "focusa_workpoint_resume"],
+        },
+      } as any;
+    },
+  });
+
   // ── focusa_scratch ──────────────────────────────────────────────────────
   // Agent's working notebook. Lives at /tmp/pi-scratch/. No Focus State write.
   // ALL working notes welcome: reasoning, task lists, hypotheses, dead ends,
@@ -2960,11 +2999,83 @@ export function registerTools(pi: ExtensionAPI) {
     );
   }
 
+  function typedTrajectoryScopeMatches(value: any, projectRoot: string, continuityId: string): boolean {
+    const responseRoot = normalizeProjectRoot(
+      value?.project_identity?.project_root ||
+        value?.trajectory?.project_root ||
+        value?.scope?.project_root ||
+        value?.project_root
+    );
+    if (!responseRoot || responseRoot !== normalizeProjectRoot(projectRoot)) return false;
+    const responseContinuity = String(
+      value?.trajectory?.continuity_id || value?.scope?.continuity_id || value?.continuity_id || ""
+    ).trim();
+    return !responseContinuity || !continuityId || responseContinuity === continuityId;
+  }
+
+  function cachedTrajectoryForScope(projectRoot: string, continuityId: string): Record<string, any> | null {
+    const cached = getLastTrajectoryClarity();
+    if (!cached) return null;
+    const cachedRoot = normalizeProjectRoot(cached.project_root);
+    const cachedContinuity = String(cached.continuity_id || "").trim();
+    if (!cachedRoot || cachedRoot !== normalizeProjectRoot(projectRoot)) return null;
+    if (cachedContinuity && continuityId && cachedContinuity !== continuityId) return null;
+    return cached;
+  }
+
   async function focusaFetchDetailed(
     path: string,
     opts: RequestInit = {}
   ): Promise<{ ok: boolean; status: number; body: any | null }> {
-    const timeout = timeoutBudgetForRoute(path, String(opts.method || "GET"));
+    const method = String(opts.method || "GET").toUpperCase();
+    const timeout = timeoutBudgetForRoute(path, method);
+    const bindingDecision = currentProjectBindingDecision();
+    const bindingRecoveryRoute =
+      path.startsWith("/project/identity") ||
+      path.startsWith("/project/verify") ||
+      path.startsWith("/workpoint/resume");
+    if (
+      !["GET", "HEAD", "OPTIONS"].includes(method) &&
+      !bindingRecoveryRoute &&
+      !projectBindingAllowsDurableWrites(bindingDecision)
+    ) {
+      const blockedReason = `project_binding_${String(bindingDecision?.state || "unknown").toLowerCase()}`;
+      const selectionKey = `project_binding_mutation_selection:${bindingDecision?.evidence_revision || "unknown"}`;
+      const firstMutationSelection =
+        bindingDecision?.state === "QUARANTINED" && !getAttachmentRuntime().vitalInfoPrompted[selectionKey];
+      if (firstMutationSelection) {
+        getAttachmentRuntime().vitalInfoPrompted[selectionKey] = Date.now();
+        getAttachmentRuntime().projectBindingTelemetry.operator_interruption_count += 1;
+      }
+      getAttachmentRuntime().projectBindingTelemetry.blocked_write_reasons[blockedReason] =
+        (getAttachmentRuntime().projectBindingTelemetry.blocked_write_reasons[blockedReason] || 0) + 1;
+      persistState();
+      return {
+        ok: false,
+        status: 409,
+        body: {
+          status: "blocked",
+          canonical: true,
+          degraded: true,
+          failure_class: "scope_recovery_required",
+          error: "durable project mutation is fenced until ProjectBindingDecisionV1 state is BOUND",
+          binding_state: bindingDecision?.state || "unknown",
+          capability_tier: bindingDecision?.permitted_capability_tier || "recovery_read_plan",
+          operator_selection_required: firstMutationSelection,
+          duplicate_selection_suppressed: bindingDecision?.state === "QUARANTINED" && !firstMutationSelection,
+          candidates: firstMutationSelection
+            ? (bindingDecision?.candidates || []).slice(0, 4).map((candidate) => ({
+                project_root: candidate.project_root,
+                score: candidate.score,
+                sources: candidate.sources,
+                markers: candidate.markers,
+              }))
+            : [],
+          next_tools: ["focusa_project_identity", "focusa_project_verify", "focusa_workpoint_resume"],
+          retry: { safe: true, posture: "verify_scope_first" },
+        },
+      };
+    }
     const base = getAttachmentRuntime().cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
     const token = getAttachmentRuntime().cfg?.focusaToken || "";
     const attachmentKey = currentAttachmentKey();
@@ -2996,10 +3107,34 @@ export function registerTools(pi: ExtensionAPI) {
       } catch {
         body = null;
       }
+      if (r.ok && !["GET", "HEAD", "OPTIONS"].includes(method)) {
+        const responseRoot = normalizeProjectRoot(
+          body?.scope?.root_scope?.root_path || body?.project_root || body?.project_identity?.project_root
+        );
+        const responseContinuity = String(body?.scope?.continuity_id || body?.continuity_id || "").trim();
+        const requestedRoot = normalizeProjectRoot(attachmentKey.workstream.root_scope.root_path);
+        const requestedContinuity = attachmentKey.workstream.continuity_id;
+        if (
+          (!responseRoot || responseRoot === requestedRoot) &&
+          (!responseContinuity || responseContinuity === requestedContinuity)
+        ) {
+          publishScopedStateChange({
+            source: "tool",
+            mutation_kind: path.split("?")[0] || path,
+            project_root: requestedRoot,
+            continuity_id: requestedContinuity,
+            status: body?.degraded === true ? "degraded" : "accepted",
+            evidence_revision:
+              String(
+                body?.revision || body?.event_id || body?.receipt_id || body?.workpoint_id || ""
+              ).trim() || undefined,
+            effective_at: new Date().toISOString(),
+          });
+        }
+      }
       return { ok: r.ok, status: r.status, body };
     } catch (err: any) {
       const aborted = err?.name === "AbortError";
-      const method = String(opts.method || "GET");
       const routeTier = focusaRouteTier(path, method);
       const failureClass = aborted ? timeoutFailureClassForRoute(path, method) : "daemon_unavailable";
       return {
@@ -4103,7 +4238,7 @@ export function registerTools(pi: ExtensionAPI) {
     name: "focusa_silent_sessions",
     label: "Focusa Silent Sessions (daemon facade)",
     description:
-      "Daemon-native Spec133 Silent Session client for status, observation, steering, controls, config, receipts, capabilities, and legacy action compatibility.",
+      "Daemon-native Spec133 Silent Session client for status, observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery.",
     promptSnippet:
       "Use as a thin daemon API client. Supply exact session_id/run_id/generation and durable approval/idempotency fields for mutations; the daemon remains canonical authority.",
     parameters: Type.Object({
@@ -4984,6 +5119,19 @@ export function registerTools(pi: ExtensionAPI) {
       const result = await focusaFetchDetailed(`/project/card?${query.toString()}`, { method: "GET" });
       const body = result.body || {};
       const project = body.project_identity || {};
+      const temporalProjectRoot = project.project_root || project.canonical_parent_root || p.project_root;
+      const temporalContinuityId = getContinuityId();
+      if (temporalProjectRoot && temporalContinuityId) {
+        const temporalQuery = new URLSearchParams({
+          project_root: String(temporalProjectRoot),
+          continuity_id: String(temporalContinuityId),
+        });
+        const temporalResult = await focusaFetchDetailed(`/temporal/status?${temporalQuery.toString()}`);
+        body.temporal_context = temporalResult.body || {
+          status: "degraded",
+          failure_class: "temporal_projection_unavailable",
+        };
+      }
       const bootstrap = body.bootstrap || {};
       const prediction = body.prediction || {};
       const ontology = body.ontology || {};
@@ -5041,6 +5189,7 @@ export function registerTools(pi: ExtensionAPI) {
           safe_after_identity_verification: askToWorkpointBridge.safe_after_identity_verification,
         },
         trajectory_report_card: trajectoryReport,
+        temporal_context: body.temporal_context || { status: "unavailable" },
         efficiency_summary: efficiency,
         crosswire_health: crosswire,
         recommended_first_event: sequence.recommended_first_event,
@@ -5064,6 +5213,7 @@ export function registerTools(pi: ExtensionAPI) {
           inferred_workpoint_candidate: inferredWorkpoint,
           ask_to_workpoint_bridge: askToWorkpointBridge,
           trajectory_report_card: trajectoryReport,
+          temporal_context: body.temporal_context || { status: "unavailable" },
           efficiency_summary: efficiency,
           crosswire_health: crosswire,
           prior_session_context: prior,
@@ -5791,19 +5941,40 @@ export function registerTools(pi: ExtensionAPI) {
       }
       const identity = body.project_identity || {};
       const verified = body.verification?.verified === true;
-      if (identity && Object.keys(identity).length) setLastProjectVerify(body);
-      const verifiedRoot = normalizeProjectRoot(identity.project_root);
-      if (
-        verified &&
-        verifiedRoot &&
-        body.binding_decision?.ambiguous !== true &&
-        body.status !== "ambiguous_project_binding" &&
-        isProjectRootAuthoritySafe(verifiedRoot)
-      ) {
+      const verifiedRoot = normalizeProjectRoot(identity.project_root || p.project_root || p.cwd);
+      const bindingCandidates = Array.isArray(body.binding_candidates) ? body.binding_candidates : [];
+      const selectedCandidate = bindingCandidates.find(
+        (candidate: any) => normalizeProjectRoot(candidate?.project_root) === verifiedRoot
+      );
+      const previousBinding = currentProjectBindingDecision();
+      const bindingDecisionV1 = reconcileProjectBindingDecision({
+        selectedProjectRoot: verifiedRoot || undefined,
+        selectedWorktreeRoot: selectedCandidate?.active_worktree_root,
+        canonicalParentRoot: selectedCandidate?.canonical_parent_root,
+        continuityId: verifiedRoot ? ensureContinuityId(verifiedRoot) : getContinuityId(),
+        candidates: bindingCandidates,
+        ambiguous: body.binding_decision?.ambiguous === true || body.status === "ambiguous_project_binding",
+        selectedRootSafe: !!verifiedRoot && isProjectRootAuthoritySafe(verifiedRoot),
+        verificationCanonical: verified,
+        verificationStatus: String(identity.status || body.status || "unknown"),
+        daemonAvailable: result.ok,
+        evidenceFreshness: verified ? "current" : "unknown",
+        repoFingerprint: selectedCandidate?.repo_fingerprint,
+        projectFingerprint: selectedCandidate?.project_fingerprint,
+        rejectionReasons: verified
+          ? []
+          : [String(body.verification?.required_recovery || "project_verify_not_canonical")],
+        recoveryPacketRef: `project-scope-recovery:${getSessionFrameKey() || "no-session"}`,
+        previousDecision: previousBinding,
+      });
+      setCurrentProjectBindingDecision(bindingDecisionV1);
+      if (identity && Object.keys(identity).length)
+        setLastProjectVerify({ ...body, binding_decision_v1: bindingDecisionV1 });
+      if (bindingDecisionV1.state === "BOUND" && verifiedRoot) {
         confirmPiProjectRoot(verifiedRoot, "focusa_project_verify_verified");
         ensureContinuityId(verifiedRoot);
-        persistState();
       }
+      persistState();
       const text = result.ok
         ? `project verify → verified=${verified} status=${String(identity.status || body.status || "unknown")} confidence=${String(identity.confidence || "unknown")} root=${String(identity.project_root || "unknown")}`
         : `project verify blocked → ${explainWorkLoopResult(result, "project verify unavailable")}`;
@@ -5832,6 +6003,7 @@ export function registerTools(pi: ExtensionAPI) {
           degraded: body.degraded === true,
           project_identity: identity,
           verification: body.verification,
+          binding_decision_v1: bindingDecisionV1,
           tool_result_v1: toolResult,
           failure_class: toolResult.failure_class || body.failure_class || null,
           next_tools: toolResult.next_tools ||
@@ -6129,16 +6301,51 @@ export function registerTools(pi: ExtensionAPI) {
             Type.Literal("observe"),
             Type.Literal("forecast"),
             Type.Literal("preflight"),
+            Type.Literal("migrate-signatures"),
+            Type.Literal("high-consequence-preflight"),
+            Type.Literal("capture-clock"),
+            Type.Literal("resolve-civil-time"),
+            Type.Literal("commit-priority"),
           ],
           { description: "Temporal operation; defaults to status." }
         )
       ),
       project_root: Type.Optional(Type.String()),
       continuity_id: Type.Optional(Type.String()),
+      host_id: Type.Optional(Type.String()),
+      operator_id: Type.Optional(Type.String()),
+      workpoint_id: Type.Optional(Type.String()),
+      item_id: Type.Optional(Type.String()),
+      task_id: Type.Optional(Type.String()),
       idempotency_key: Type.Optional(Type.String()),
       confirm: Type.Optional(Type.Boolean()),
       as_of: Type.Optional(Type.String()),
       phase: Type.Optional(Type.String()),
+      timezone: Type.Optional(Type.String()),
+      tzdb_version: Type.Optional(Type.String()),
+      forecast_authority: Type.Optional(
+        Type.Object({
+          claim_kind: Type.Literal("forecast"),
+          target_state: Type.String(),
+          scope_revision: Type.String(),
+          expires_at: Type.String(),
+          estimator_version: Type.String(),
+          cohort: Type.String(),
+          evidence_basis: Type.Array(Type.String()),
+          comparable_sample_count: Type.Number(),
+          all_attempt_sample_count: Type.Number(),
+          censoring_method: Type.String(),
+          correlation_method: Type.String(),
+          calibration_profile: Type.String(),
+          grounding_status: Type.Literal("grounded"),
+          baseline_ref: Type.String(),
+          drift_policy_ref: Type.String(),
+        })
+      ),
+      forecast_evaluation: Type.Optional(Type.Any()),
+      high_consequence_packet: Type.Optional(Type.Any()),
+      civil_time_packet: Type.Optional(Type.Any()),
+      temporal_priority_packet: Type.Optional(Type.Any()),
       duration_ms: Type.Optional(Type.Number()),
       outcome: Type.Optional(Type.String()),
       actual_ms: Type.Optional(Type.Number()),
@@ -6147,7 +6354,15 @@ export function registerTools(pi: ExtensionAPI) {
         Type.Object({
           claim_id: Type.String(),
           revision: Type.Number(),
-          scope: Type.Object({ project_root: Type.String(), continuity_id: Type.String() }),
+          scope: Type.Object({
+            project_root: Type.String(),
+            continuity_id: Type.String(),
+            host_id: Type.Optional(Type.String()),
+            operator_id: Type.Optional(Type.String()),
+            workpoint_id: Type.Optional(Type.String()),
+            item_id: Type.Optional(Type.String()),
+            task_id: Type.Optional(Type.String()),
+          }),
           kind: Type.String(),
           status: Type.String(),
           subject_ref: Type.String(),
@@ -6191,17 +6406,98 @@ export function registerTools(pi: ExtensionAPI) {
         } as any;
       }
       const continuityId = params.continuity_id || getContinuityId() || ensureContinuityId(projectRoot);
+      if (action === "commit-priority" && !params.temporal_priority_packet) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "temporal priority commit → blocked: calendar, priority frame, guard, ask and action packet required",
+            },
+          ],
+          details: {
+            status: "blocked",
+            failure_class: "temporal_priority_packet_required",
+            canonical: false,
+          },
+        } as any;
+      }
+      if (action === "resolve-civil-time" && !params.civil_time_packet) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "temporal civil-time resolution → blocked: complete versioned intent packet required",
+            },
+          ],
+          details: { status: "blocked", failure_class: "civil_time_packet_required", canonical: false },
+        } as any;
+      }
+      if (action === "capture-clock" && !params.timezone) {
+        return {
+          content: [{ type: "text", text: "temporal clock capture → blocked: explicit timezone required" }],
+          details: { status: "blocked", failure_class: "timezone_required", canonical: false },
+        } as any;
+      }
+      if (action === "high-consequence-preflight" && !params.high_consequence_packet) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "temporal high-consequence preflight → blocked: complete control packet required",
+            },
+          ],
+          details: { status: "blocked", failure_class: "high_consequence_packet_required", canonical: false },
+        } as any;
+      }
+      if (action === "forecast" && !params.forecast_authority) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "temporal forecast → blocked: complete forecast authority metadata is required",
+            },
+          ],
+          details: { status: "blocked", failure_class: "forecast_authority_required", canonical: false },
+        } as any;
+      }
+      if (params.forecast_authority) {
+        params.authority = params.forecast_authority;
+        params.forecast_authority = undefined;
+      }
+      if (params.forecast_evaluation) {
+        params.evaluation = params.forecast_evaluation;
+        params.forecast_evaluation = undefined;
+      }
       let result: any;
       if (action === "status") {
-        const suffix = params.as_of ? `&as_of=${encodeURIComponent(params.as_of)}` : "";
-        result = await focusaFetchDetailed(
-          `/temporal/status?project_root=${encodeURIComponent(projectRoot)}&continuity_id=${encodeURIComponent(continuityId)}${suffix}`
-        );
+        const query = new URLSearchParams({ project_root: projectRoot, continuity_id: continuityId });
+        for (const key of ["host_id", "operator_id", "workpoint_id", "item_id", "task_id", "as_of"]) {
+          if (params[key]) query.set(key, String(params[key]));
+        }
+        result = await focusaFetchDetailed(`/temporal/status?${query.toString()}`);
       } else {
-        result = await focusaFetchDetailed(`/temporal/${encodeURIComponent(action)}`, {
+        const actionPath =
+          action === "high-consequence-preflight"
+            ? "/temporal/high-consequence/preflight"
+            : action === "capture-clock"
+              ? "/temporal/clock/capture"
+              : action === "resolve-civil-time"
+                ? "/temporal/civil/resolve"
+                : action === "commit-priority"
+                  ? "/temporal/priority/commit"
+                  : `/temporal/${encodeURIComponent(action)}`;
+        const actionBody =
+          action === "high-consequence-preflight"
+            ? params.high_consequence_packet || {}
+            : action === "resolve-civil-time"
+              ? params.civil_time_packet || {}
+              : action === "commit-priority"
+                ? params.temporal_priority_packet || {}
+                : params;
+        result = await focusaFetchDetailed(actionPath, {
           method: "POST",
           body: JSON.stringify({
-            ...params,
+            ...actionBody,
             action: undefined,
             project_root: projectRoot,
             continuity_id: continuityId,
@@ -6272,8 +6568,8 @@ export function registerTools(pi: ExtensionAPI) {
       query.set("project_root", projectRoot);
       if (p.session_id || getAttachmentRuntime().sessionFrameKey)
         query.set("session_id", String(p.session_id || getAttachmentRuntime().sessionFrameKey));
-      if (p.continuity_id || getContinuityId())
-        query.set("continuity_id", String(p.continuity_id || getContinuityId()));
+      const requestedContinuity = String(p.continuity_id || getContinuityId() || "").trim();
+      if (requestedContinuity) query.set("continuity_id", requestedContinuity);
       const viewMode = String(p.mode || "summary");
       query.set("mode", viewMode);
       if (p.allow_prior_project_trajectory === true) query.set("allow_prior_project_trajectory", "true");
@@ -6281,7 +6577,7 @@ export function registerTools(pi: ExtensionAPI) {
       const body = result.body || {};
       if (!result.ok && body.failure_class === "hot_path_timeout") {
         const fallback = {
-          ...(getLastTrajectoryClarity() || {}),
+          ...(cachedTrajectoryForScope(projectRoot, requestedContinuity) || {}),
           status: "timeout_preserved",
           canonical: false,
           degraded: true,
@@ -6324,6 +6620,31 @@ export function registerTools(pi: ExtensionAPI) {
       }
       const project = body.project_identity || {};
       const trajectory = body.trajectory || {};
+      if (!typedTrajectoryScopeMatches(body, projectRoot, requestedContinuity)) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "trajectory view blocked: response scope does not match the requested project/workstream",
+            },
+          ],
+          details: {
+            ok: false,
+            status: "blocked",
+            canonical: true,
+            degraded: true,
+            failure_class: "scope_mismatch",
+            endpoint: "/v1/trajectory/view",
+            requested_scope: { project_root: projectRoot, continuity_id: requestedContinuity || null },
+            response_scope: {
+              project_root: project.project_root || trajectory.project_root || body.project_root || null,
+              continuity_id:
+                trajectory.continuity_id || body.scope?.continuity_id || body.continuity_id || null,
+            },
+            next_tools: ["focusa_project_identity", "focusa_project_verify", "focusa_trajectory_view"],
+          },
+        } as any;
+      }
       if (trajectory.short_term_goal && !body.intelligence_view?.focus_trajectory_sync?.current_focus) {
         body.intelligence_view = {
           ...(body.intelligence_view || {}),
@@ -6347,7 +6668,7 @@ export function registerTools(pi: ExtensionAPI) {
         trajectory.active_gap
       ) {
         setLastTrajectoryClarity({
-          ...(getLastTrajectoryClarity() || {}),
+          ...(cachedTrajectoryForScope(projectRoot, requestedContinuity) || {}),
           reason: "trajectory_view_tool",
           refreshed_at: Date.now(),
           status: String(
@@ -7798,9 +8119,12 @@ export function registerTools(pi: ExtensionAPI) {
         blockers: blockers.map((reason: string) => ({ reason, severity: "medium", status: "open" })),
       };
       // First checkpoint bootstraps Workpoint authority before a Work Loop lease exists.
+      // Sending a writer id without a fencing token makes the daemon classify
+      // bootstrap as an expired/missing lease and creates a circular deadlock.
+      const checkpointLease = await currentWorkLoopLease();
       const res = await focusaFetchDetailed("/workpoint/checkpoint", {
         method: "POST",
-        headers: writerLeaseHeaders(localWriterId, await currentWorkLoopLease()),
+        headers: checkpointLease ? writerLeaseHeaders(localWriterId, checkpointLease) : {},
         body: JSON.stringify(payload),
       });
       if (!res.ok && res.body?.failure_class === "hot_path_timeout") {
@@ -13533,6 +13857,16 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
             : ["focusa_tool_doctor"]
         );
       }
+      if (!isWorkstreamKey(body.scope) || !sameWorkstream(body.scope, scope)) {
+        return blockedToolResponse(
+          "focusa_predict_recent",
+          "prediction",
+          "predictions recent blocked → response scope differs from requested project/workstream",
+          "scope_mismatch",
+          body,
+          ["focusa_project_identity", "focusa_workpoint_resume"]
+        );
+      }
       const legacyBody = body as any;
       const predictions = Array.isArray(body.data?.predictions)
         ? body.data.predictions
@@ -14268,6 +14602,87 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
           {
             type: "text",
             text: `browser capability intake → accepted=${body.capability_count || 0} session=${body.session_binding?.session_id || "unknown"} advisory_only=true`,
+          },
+        ],
+        details: body,
+      } as any;
+    },
+  });
+
+  pi.registerTool({
+    name: "focusa_ontology_scope_migration",
+    label: "Ontology Scope Migration",
+    description:
+      "Dry-run, apply, inspect, or roll back granular legacy ontology scope migration. Apply/rollback require explicit confirmation and per-record evidence; ownership is never inferred.",
+    parameters: Type.Object({
+      action: Type.Union([
+        Type.Literal("dry_run"),
+        Type.Literal("apply"),
+        Type.Literal("status"),
+        Type.Literal("rollback"),
+      ]),
+      migration_id: Type.Optional(Type.String({ description: "Stable UUID for apply/retry or rollback target." })),
+      rollback_id: Type.Optional(Type.String({ description: "Stable UUID for idempotent rollback/retry." })),
+      selections: Type.Optional(
+        Type.Array(
+          Type.Object({
+            record_kind: Type.Union([
+              Type.Literal("object"),
+              Type.Literal("link"),
+              Type.Literal("proposal"),
+              Type.Literal("verification"),
+              Type.Literal("working_set_refresh"),
+              Type.Literal("delta"),
+              Type.Literal("pre_proposal"),
+            ]),
+            source_hash: Type.String(),
+            evidence_refs: Type.Array(Type.String(), { minItems: 1 }),
+          })
+        )
+      ),
+      evidence_refs: Type.Optional(Type.Array(Type.String(), { minItems: 1 })),
+      confirm: Type.Optional(
+        Type.Boolean({ description: "Required true for apply or rollback mutation." })
+      ),
+    }),
+    async execute(_id, params) {
+      const mutation = params.action === "apply" || params.action === "rollback";
+      if (mutation && params.confirm !== true) {
+        return blockedToolResponse(
+          "focusa_ontology_scope_migration",
+          "ontology",
+          `ontology scope migration ${params.action} blocked → explicit confirm=true required`,
+          "approval_required",
+          { action: params.action, canonical: false, mutation: true },
+          ["focusa_ontology_scope_migration", "focusa_project_verify"]
+        );
+      }
+      const res = await focusaFetchDetailed("/ontology/scope-migrations", {
+        method: "POST",
+        body: JSON.stringify({
+          action: params.action,
+          migration_id: params.migration_id,
+          rollback_id: params.rollback_id,
+          selections: params.selections || [],
+          evidence_refs: params.evidence_refs || [],
+        }),
+      });
+      const body = res.body || {};
+      if (!res.ok) {
+        return blockedToolResponse(
+          "focusa_ontology_scope_migration",
+          "ontology",
+          `ontology scope migration blocked → ${scopedResponseHuman(body, "request rejected")}`,
+          (body.failure_class || "validation_rejected") as FocusaFailureClass,
+          body,
+          ["focusa_project_verify", "focusa_tool_doctor"]
+        );
+      }
+      return {
+        content: [
+          {
+            type: "text",
+            text: `ontology scope migration → action=${params.action} status=${body.status || "unknown"} candidates=${body.candidate_count || 0} receipts=${body.receipts?.length || 0}`,
           },
         ],
         details: body,

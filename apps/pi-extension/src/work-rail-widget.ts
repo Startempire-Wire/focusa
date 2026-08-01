@@ -142,7 +142,14 @@ export function renderWorkRailWidget(
   ascii = false
 ): string[] {
   const active = ascii ? ">" : "▶";
-  const proof = ascii ? "proof" : "✓";
+  const proof =
+    snapshot.proofCount > 0
+      ? ascii
+        ? `proof ${snapshot.proofCount}`
+        : `✓ proof ${snapshot.proofCount}`
+      : ascii
+        ? "proof missing"
+        : "○ proof missing";
   const next = ascii ? "next" : "→";
   const item = bounded(snapshot.providerItemId, width < 48 ? 16 : 32);
   const workpoint = bounded(snapshot.workpointId, 22);
@@ -152,15 +159,13 @@ export function renderWorkRailWidget(
   const capability = snapshot.providerCapability ?? "adapter-unavailable";
   if (width < 48) {
     return fitToWidth(
-      [
-        `${palette.accent(active)} ${item} · ${proof} ${snapshot.proofCount} · ${next} ${bounded(nextAction, 18)}`,
-      ],
+      [`${palette.accent(active)} ${item} · ${proof} · ${next} ${bounded(nextAction, 18)}`],
       width
     );
   }
   const lines = [
     `${palette.accent(active)} ${palette.good(item)}  ${palette.dim(`[${state}]`)}  WP ${workpoint}  P${snapshot.priority}/${snapshot.rank}`,
-    `${palette.dim(`${proof} proof ${snapshot.proofCount} · ${snapshot.dependencies?.length ?? 0} deps · ${snapshot.blockers?.length ?? 0} blockers · ${snapshot.artifactRefs?.length ?? 0} artifacts · ${mode} · ${capability}`)}  ${next} ${nextAction}`,
+    `${palette.dim(`${proof} · ${snapshot.dependencies?.length ?? 0} deps · ${snapshot.blockers?.length ?? 0} blockers · ${snapshot.artifactRefs?.length ?? 0} artifacts · ${mode} · ${capability}`)}  ${next} ${nextAction}`,
   ];
   if (width >= 76 && snapshot.badges?.length) lines.push(palette.dim(snapshot.badges.join(" · ")));
   return fitToWidth(lines, width);

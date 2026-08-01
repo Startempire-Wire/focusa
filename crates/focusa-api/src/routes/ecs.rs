@@ -265,7 +265,11 @@ async fn store_artifact(
         })?;
     let _guard = state.write_serial_lock.lock().await;
     let mut focusa = state.focusa.write().await;
-    handle.trajectory = focusa.trajectory_ladder_context();
+    let trajectory = focusa.trajectory_ladder_context_for_scope(
+        handle.project_root.as_deref(),
+        handle.continuity_id.as_deref(),
+    );
+    handle.trajectory = trajectory.clone();
     if !focusa
         .reference_index
         .handles
@@ -275,7 +279,6 @@ async fn store_artifact(
         focusa.reference_index.handles.push(handle.clone());
         state.mark_external_mutation();
     }
-    let trajectory = focusa.trajectory_ladder_context();
     drop(focusa);
     Ok(Json(json!({
         "id": handle.id,

@@ -1,343 +1,929 @@
-schema: focusa.complete_feature_ledger.v1
-spec_id: "140A"
-spec_title: "Foundational Instruction Integrity, Temporal Adaptation, Canonical Amendment, and Headless Enforcement Addendum"
-source_path: docs/140a-foundational-instruction-integrity-temporal-adaptation-canonical-amendment-and-headless-enforcement-addendum.md
-source_blob_sha: e2606975e23d79b9ad32b2112704097cb31ac4c0
-parent_spec_id: "140"
-parent_source_path: docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md
-parent_source_blob_sha: c2ad7276df9773d2977e667d3076f32cf4dd5237
-created_at: 2026-07-27
-normalization_status: initial_acceptance_criteria_mapping
-completeness_status: clause_level_source_coverage_required_before_implementation_closure
-status_values:
-  - not_started
-  - active
-  - blocked
-  - missing
-  - partial
-  - implemented_unverified
-  - verified
-  - disputed
-  - not_applicable_verified
-requirements:
-  - requirement_id: S140A-REQ-001
-    spec_section: "19.1"
-    requirement_text: "Treat Spec 140 and Spec 140A as one combined normative instruction-integrity source."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140a.combined_normative_source
-    implementation_slice: source_coverage
-    blocking_dependencies: [spec140.runtime_constitution]
-    generated_contracts: [spec140a-normative-source-coverage.v1]
-    positive_tests: [s140a_parent_addendum_combined_source]
-    negative_tests: [s140_parent_only_full_conformance]
-    status: not_started
-
-  - requirement_id: S140A-REQ-002
-    spec_section: "19.2"
-    requirement_text: "Preserve strict instruction meaning while permitting execution adaptation through Spec 137-owned temporal posture."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140a.instruction_integrity
-    implementation_slice: foundation
-    blocking_dependencies: [spec137.temporal_authority, spec140.instruction_claims]
-    core_types: [InstructionAdaptabilityProfile, InstructionTemporalAdaptationEnvelope]
-    positive_tests: [s140a_semantic_strict_execution_adaptive]
-    negative_tests: [s140a_urgency_weakens_semantics, s140a_fixed_procedure_ignores_temporal_posture]
-    status: not_started
-
-  - requirement_id: S140A-REQ-003
-    spec_section: "19.3"
-    requirement_text: "Do not compute or duplicate urgency, deadlines, readiness targets, critical-path slack, or temporal posture in Spec 140A."
-    requirement_class: must_not
-    applicability: required
-    primitive_owner: spec137.temporal_authority
-    implementation_slice: ownership_boundary
-    blocking_dependencies: [spec137.temporal_authority]
-    negative_tests: [s140a_duplicate_urgency_engine, s140a_duplicate_deadline_state]
-    status: not_started
-
-  - requirement_id: S140A-REQ-004
-    spec_section: "19.4"
-    requirement_text: "Classify every material instruction claim through a governed adaptability profile."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140a.instruction_adaptability
-    implementation_slice: instruction_graph
-    blocking_dependencies: [spec140.instruction_claims]
-    core_types: [InstructionAdaptabilityProfile]
-    reducer_events: [instruction.adaptability_classified]
-    persistence: [instruction_adaptability_profiles]
-    generated_contracts: [focusa.instruction_adaptability_profile.v1]
-    positive_tests: [s140a_material_claim_classification]
-    negative_tests: [s140a_unclassified_material_claim_admitted]
-    status: not_started
-
-  - requirement_id: S140A-REQ-005
-    spec_section: "19.5"
-    requirement_text: "Permit Spec 137 to select only adaptations present in an approved InstructionTemporalAdaptationEnvelope."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140a.temporal_adaptation_envelope
-    implementation_slice: temporal_interlock
-    blocking_dependencies: [S140A-REQ-004, spec137.temporal_authority]
-    core_types: [InstructionTemporalAdaptationEnvelope]
-    reducer_events: [instruction.adaptation_envelope_approved]
-    persistence: [instruction_temporal_adaptation_envelopes]
-    generated_contracts: [focusa.instruction_temporal_adaptation_envelope.v1]
-    positive_tests: [s140a_spec137_selects_allowed_adaptation]
-    negative_tests: [s140a_spec137_selects_unapproved_adaptation]
-    status: not_started
-
-  - requirement_id: S140A-REQ-006
-    spec_section: "19.6"
-    requirement_text: "Prevent runtime actors from inventing reduced targets or erasing remaining accepted obligations."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140a.runtime_target_binding
-    implementation_slice: target_integrity
-    blocking_dependencies: [spec120.target_state, spec135b.project_genesis, spec144.zero_omission]
-    core_types: [RuntimeTargetProfileBinding]
-    persistence: [runtime_target_profile_bindings]
-    generated_contracts: [focusa.runtime_target_profile_binding.v1]
-    positive_tests: [s140a_approved_target_profile_selection]
-    negative_tests: [s140a_runtime_invents_deadline_safe_target, s140a_partial_target_claims_full_completion]
-    status: not_started
-
-  - requirement_id: S140A-REQ-007
-    spec_section: "19.7"
-    requirement_text: "Keep operator steering, deadline revision, approved target selection, and canonical amendment as distinct operations and authority paths."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140a.operator_action_taxonomy
-    implementation_slice: authority_model
-    blocking_dependencies: [spec137.deadline_revision, spec140.instruction_authority_graph]
-    core_types: [OperatorActionClass]
-    positive_tests: [s140a_operator_action_taxonomy]
-    negative_tests: [s140a_steering_mints_amendment, s140a_deadline_change_rewrites_target]
-    status: not_started
-
-  - requirement_id: S140A-REQ-008
-    spec_section: "19.8"
-    requirement_text: "Require detailed operator amendment authorization and separate post-sweep canonical confirmation before a canonical amendment becomes effective."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140a.canonical_amendment
-    implementation_slice: amendment_authority
-    blocking_dependencies: [S140A-REQ-007]
-    core_types: [CanonicalInstructionAmendment, OfficialDocumentationSweepManifest]
-    reducer_events: [instruction.amendment_authorized, instruction.amendment_confirmed, instruction.amendment_activated]
-    persistence: [canonical_instruction_amendments, official_documentation_sweep_manifests]
-    generated_contracts: [focusa.canonical_instruction_amendment.v1, focusa.official_documentation_sweep_manifest.v1]
-    positive_tests: [s140a_two_stage_operator_amendment]
-    negative_tests: [s140a_authorization_alone_changes_canon, s140a_sweep_without_confirmation_changes_canon]
-    status: not_started
-
-  - requirement_id: S140A-REQ-009
-    spec_section: "19.9"
-    requirement_text: "Keep the previous canon effective until the completed documentation sweep is confirmed and a new immutable Runtime Constitution revision is activated."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140a.amendment_effectivity
-    implementation_slice: amendment_authority
-    blocking_dependencies: [S140A-REQ-008, spec140.runtime_constitution_versioning]
-    reducer_events: [instruction.amendment_activated]
-    positive_tests: [s140a_prior_canon_active_until_confirmation]
-    negative_tests: [s140a_proposed_text_governs_runtime, s140a_in_progress_sweep_governs_runtime]
-    status: not_started
-
-  - requirement_id: S140A-REQ-010
-    spec_section: "19.10"
-    requirement_text: "Invalidate and reassess affected forecasts, plans, target bindings, validation assumptions, and critical-path state after canonical amendment activation."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140a.canonical_temporal_interlock
-    implementation_slice: temporal_interlock
-    blocking_dependencies: [S140A-REQ-009, spec137.forecasting, spec144.verification_routing]
-    reducer_events: [instruction.rebind_required]
-    positive_tests: [s140a_amendment_invalidates_stale_forecast_and_plan]
-    negative_tests: [s140a_old_estimate_survives_material_amendment]
-    status: not_started
-
-  - requirement_id: S140A-REQ-011
-    spec_section: "19.11"
-    requirement_text: "Apply ordinary urgency changes through fresh runtime guards without stable-prompt mutation or mandatory session restart."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec137.temporal_authority
-    implementation_slice: session_interlock
-    blocking_dependencies: [S140A-REQ-005, spec140.prompt_session_pinning]
-    positive_tests: [s140a_urgency_change_dynamic_guard_only]
-    negative_tests: [s140a_urgency_change_mutates_stable_prompt]
-    status: not_started
-
-  - requirement_id: S140A-REQ-012
-    spec_section: "19.12"
-    requirement_text: "Require affected sessions to rebind, fork, or restart before consequential continuation after a material canonical amendment."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140a.session_rebind
-    implementation_slice: session_interlock
-    blocking_dependencies: [S140A-REQ-009]
-    reducer_events: [instruction.rebind_required]
-    persistence: [instruction_rebind_requirements]
-    positive_tests: [s140a_material_amendment_requires_rebind]
-    negative_tests: [s140a_stale_session_continues_consequential_work]
-    status: not_started
-
-  - requirement_id: S140A-REQ-013
-    spec_section: "19.13"
-    requirement_text: "Own InstructionIntegrityGuard in core/reducer/daemon and check it at consequential operation boundaries."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140a.instruction_integrity_guard
-    implementation_slice: runtime_admission
-    blocking_dependencies: [S140A-REQ-004, S140A-REQ-005, spec139.execution_admission]
-    core_types: [InstructionIntegrityGuard]
-    reducer_events: [instruction.integrity_guard_issued, instruction.integrity_guard_blocked, instruction.integrity_guard_stale]
-    persistence: [instruction_integrity_guards]
-    generated_contracts: [focusa.instruction_integrity_guard.v1]
-    positive_tests: [s140a_guard_at_consequential_boundaries]
-    negative_tests: [s140a_prompt_only_integrity_enforcement, s140a_stale_guard_admitted]
-    status: not_started
-
-  - requirement_id: S140A-REQ-014
-    spec_section: "19.14"
-    requirement_text: "Bind consequential operations to exact constitution, instruction, target, scope, deadline, environment, presence, actor, session, and Workpoint revisions."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140a.revision_binding
-    implementation_slice: runtime_admission
-    blocking_dependencies: [S140A-REQ-013, spec137.temporal_guard, spec139.presence_environment_guard]
-    core_types: [ConsequentialInstructionBinding]
-    positive_tests: [s140a_consequential_operation_revision_binding]
-    negative_tests: [s140a_unbound_consequential_operation, s140a_mismatched_revision_admitted]
-    status: not_started
-
-  - requirement_id: S140A-REQ-015
-    spec_section: "19.15"
-    requirement_text: "Preserve equivalent canonical behavior with Mission Canvas enabled, disabled, unavailable, or absent."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140a.headless_foundation
-    implementation_slice: surface_independence
-    blocking_dependencies: [S140A-REQ-013, spec135a.projection_semantics]
-    positive_tests: [s140a_mission_canvas_on_off_absent_parity]
-    negative_tests: [s140a_mission_canvas_state_changes_authority]
-    status: not_started
-
-  - requirement_id: S140A-REQ-016
-    spec_section: "19.16"
-    requirement_text: "Provide supported headless API, CLI, and Pi inspection, mutation, approval, guard, and verification routes."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140a.headless_capability_parity
-    implementation_slice: headless_surfaces
-    blocking_dependencies: [S140A-REQ-015, spec135j.operation_registry]
-    core_types: [InstructionIntegritySurfaceParity]
-    persistence: [instruction_integrity_surface_parity]
-    generated_contracts: [focusa.instruction_integrity_surface_parity.v1]
-    api_operations: [instruction_integrity.*, instruction_amendment.*, runtime_target.*]
-    cli_commands: [focusa_instruction_integrity, focusa_instruction_amendment, focusa_runtime_target]
-    pi_tools: [focusa_instruction_integrity, focusa_instruction_amendment, focusa_runtime_target]
-    positive_tests: [s140a_api_cli_pi_behavior_parity]
-    negative_tests: [s140a_visual_only_canonical_operation]
-    status: not_started
-
-  - requirement_id: S140A-REQ-017
-    spec_section: "19.17"
-    requirement_text: "Keep UI, Mission Canvas, prompt, AGENTS.md, skill, and harness artifacts as projections that cannot independently grant authority or completion."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.runtime_artifact_projection
-    implementation_slice: projection_integrity
-    blocking_dependencies: [spec140.runtime_artifact_projection, S140A-REQ-013]
-    positive_tests: [s140a_projection_reads_core_authority]
-    negative_tests: [s140a_ui_grants_authority, s140a_prompt_mints_completion]
-    status: not_started
-
-  - requirement_id: S140A-REQ-018
-    spec_section: "19.18"
-    requirement_text: "Reject or safely re-evaluate stale or incompatible instruction states across agents and daemons."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140a.multi_actor_consistency
-    implementation_slice: distributed_consistency
-    blocking_dependencies: [S140A-REQ-014, spec139.multi_daemon_coordination]
-    positive_tests: [s140a_multi_agent_current_revision_consistency]
-    negative_tests: [s140a_stale_agent_mints_completion, s140a_partitioned_absence_assumed]
-    status: not_started
-
-  - requirement_id: S140A-REQ-019
-    spec_section: "19.19"
-    requirement_text: "Use bounded unknown posture rather than stale full authority when dynamic temporal, environment, presence, or admission authority is unavailable."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140a.degraded_authority_posture
-    implementation_slice: degraded_recovery
-    blocking_dependencies: [spec137.temporal_guard, spec139.execution_admission]
-    positive_tests: [s140a_dynamic_authority_outage_safe_fallback]
-    negative_tests: [s140a_stale_dynamic_authority_masquerades_current]
-    status: not_started
-
-  - requirement_id: S140A-REQ-020
-    spec_section: "19.20"
-    requirement_text: "Block only the affected slice for ambiguity or feasibility conflicts when broader safety, semantic, or dependency impact does not require a wider stop, and continue compliant unblocked work."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140a.conflict_feasibility_behavior
-    implementation_slice: conflict_resolution
-    blocking_dependencies: [spec140.instruction_conflicts, spec137.critical_path]
-    positive_tests: [s140a_affected_slice_block_other_work_continues]
-    negative_tests: [s140a_ambiguity_authorizes_improvisation, s140a_minor_conflict_freezes_entire_mission]
-    status: not_started
-
-  - requirement_id: S140A-REQ-021
-    spec_section: "19.21"
-    requirement_text: "Verify instruction fidelity against active requirements, primitive ownership, route, surfaces, target, adaptation, guards, validation, Evidence, and closure obligations."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140a.instruction_fidelity_verifier
-    implementation_slice: verification
-    blocking_dependencies: [S140A-REQ-004, S140A-REQ-006, S140A-REQ-013, spec144.semantic_integrity]
-    core_types: [InstructionFidelityVerification]
-    reducer_events: [instruction.fidelity_verification_failed]
-    positive_tests: [s140a_instruction_fidelity_verification]
-    negative_tests: [s140a_required_surface_omitted, s140a_unauthorized_route_passes]
-    status: not_started
-
-  - requirement_id: S140A-REQ-022
-    spec_section: "19.22"
-    requirement_text: "Block completion for unauthorized deviation, premature amendment adoption, stale authority, or Mission Canvas-dependent canonical behavior."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140a.completion_integrity
-    implementation_slice: closure
-    blocking_dependencies: [S140A-REQ-021, spec119.receipts, spec144.zero_omission]
-    negative_tests: [s140a_unauthorized_deviation_completion, s140a_premature_amendment_completion, s140a_canvas_dependent_completion]
-    status: not_started
-
-  - requirement_id: S140A-REQ-023
-    spec_section: "19.23"
-    requirement_text: "Require Evidence and Receipts for classification, envelope approval, amendment authorization, sweep completion, confirmation, activation, guard admission, rebind, verification, and rollback."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec119.evidence_receipts
-    implementation_slice: evidence_receipts
-    blocking_dependencies: [spec119.receipts]
-    receipt_refs: [instruction_integrity_receipt_family]
-    positive_tests: [s140a_consequential_transition_receipts]
-    negative_tests: [s140a_unreceipted_amendment_activation, s140a_unreceipted_guard_admission]
-    status: not_started
-
-  - requirement_id: S140A-REQ-024
-    spec_section: "19.24"
-    requirement_text: "Prevent full Spec 140 conformance while any applicable Spec 140A requirement is missing, partial, blocked, disputed, or implemented-unverified."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140a.parent_closure_gate
-    implementation_slice: conformance
-    blocking_dependencies: [S140A-REQ-001, S140A-REQ-023]
-    positive_tests: [s140a_all_active_rows_verified_allows_parent_closure]
-    negative_tests: [s140a_open_addendum_row_allows_parent_closure]
-    status: not_started
+{
+  "schema": "focusa.complete_feature_ledger.v1",
+  "spec_id": "140A",
+  "spec_title": "Foundational Instruction Integrity, Temporal Adaptation, Canonical Amendment, and Headless Enforcement Addendum",
+  "source_path": "docs/140a-foundational-instruction-integrity-temporal-adaptation-canonical-amendment-and-headless-enforcement-addendum.md",
+  "source_blob_sha": "e2606975e23d79b9ad32b2112704097cb31ac4c0",
+  "parent_spec_id": "140",
+  "parent_source_path": "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md",
+  "parent_source_blob_sha": "c2ad7276df9773d2977e667d3076f32cf4dd5237",
+  "created_at": "2026-07-27",
+  "normalization_status": "initial_acceptance_criteria_mapping",
+  "completeness_status": "clause_level_source_coverage_required_before_implementation_closure",
+  "status_values": [
+    "not_started",
+    "active",
+    "blocked",
+    "missing",
+    "partial",
+    "implemented_unverified",
+    "verified",
+    "disputed",
+    "not_applicable_verified"
+  ],
+  "requirements": [
+    {
+      "requirement_id": "S140A-REQ-001",
+      "spec_section": "19.1",
+      "requirement_text": "Treat Spec 140 and Spec 140A as one combined normative instruction-integrity source.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140a.combined_normative_source",
+      "implementation_slice": "source_coverage",
+      "blocking_dependencies": [
+        "spec140.runtime_constitution"
+      ],
+      "generated_contracts": [
+        "spec140a-normative-source-coverage.v1"
+      ],
+      "positive_tests": [
+        "s140a_parent_addendum_combined_source"
+      ],
+      "negative_tests": [
+        "s140_parent_only_full_conformance"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-002",
+      "spec_section": "19.2",
+      "requirement_text": "Preserve strict instruction meaning while permitting execution adaptation through Spec 137-owned temporal posture.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140a.instruction_integrity",
+      "implementation_slice": "foundation",
+      "blocking_dependencies": [
+        "spec137.temporal_authority",
+        "spec140.instruction_claims"
+      ],
+      "core_types": [
+        "InstructionAdaptabilityProfile",
+        "InstructionTemporalAdaptationEnvelope"
+      ],
+      "positive_tests": [
+        "s140a_semantic_strict_execution_adaptive"
+      ],
+      "negative_tests": [
+        "s140a_urgency_weakens_semantics",
+        "s140a_fixed_procedure_ignores_temporal_posture"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-003",
+      "spec_section": "19.3",
+      "requirement_text": "Do not compute or duplicate urgency, deadlines, readiness targets, critical-path slack, or temporal posture in Spec 140A.",
+      "requirement_class": "must_not",
+      "applicability": "required",
+      "primitive_owner": "spec137.temporal_authority",
+      "implementation_slice": "ownership_boundary",
+      "blocking_dependencies": [
+        "spec137.temporal_authority"
+      ],
+      "negative_tests": [
+        "s140a_duplicate_urgency_engine",
+        "s140a_duplicate_deadline_state"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-004",
+      "spec_section": "19.4",
+      "requirement_text": "Classify every material instruction claim through a governed adaptability profile.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140a.instruction_adaptability",
+      "implementation_slice": "instruction_graph",
+      "blocking_dependencies": [
+        "spec140.instruction_claims"
+      ],
+      "core_types": [
+        "InstructionAdaptabilityProfile"
+      ],
+      "reducer_events": [
+        "instruction.adaptability_classified"
+      ],
+      "persistence": [
+        "instruction_adaptability_profiles"
+      ],
+      "generated_contracts": [
+        "focusa.instruction_adaptability_profile.v1"
+      ],
+      "positive_tests": [
+        "s140a_material_claim_classification"
+      ],
+      "negative_tests": [
+        "s140a_unclassified_material_claim_admitted"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-005",
+      "spec_section": "19.5",
+      "requirement_text": "Permit Spec 137 to select only adaptations present in an approved InstructionTemporalAdaptationEnvelope.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140a.temporal_adaptation_envelope",
+      "implementation_slice": "temporal_interlock",
+      "blocking_dependencies": [
+        "S140A-REQ-004",
+        "spec137.temporal_authority"
+      ],
+      "core_types": [
+        "InstructionTemporalAdaptationEnvelope"
+      ],
+      "reducer_events": [
+        "instruction.adaptation_envelope_approved"
+      ],
+      "persistence": [
+        "instruction_temporal_adaptation_envelopes"
+      ],
+      "generated_contracts": [
+        "focusa.instruction_temporal_adaptation_envelope.v1"
+      ],
+      "positive_tests": [
+        "s140a_spec137_selects_allowed_adaptation"
+      ],
+      "negative_tests": [
+        "s140a_spec137_selects_unapproved_adaptation"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-006",
+      "spec_section": "19.6",
+      "requirement_text": "Prevent runtime actors from inventing reduced targets or erasing remaining accepted obligations.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140a.runtime_target_binding",
+      "implementation_slice": "target_integrity",
+      "blocking_dependencies": [
+        "spec120.target_state",
+        "spec135b.project_genesis",
+        "spec144.zero_omission"
+      ],
+      "core_types": [
+        "RuntimeTargetProfileBinding"
+      ],
+      "persistence": [
+        "runtime_target_profile_bindings"
+      ],
+      "generated_contracts": [
+        "focusa.runtime_target_profile_binding.v1"
+      ],
+      "positive_tests": [
+        "s140a_approved_target_profile_selection"
+      ],
+      "negative_tests": [
+        "s140a_runtime_invents_deadline_safe_target",
+        "s140a_partial_target_claims_full_completion"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-007",
+      "spec_section": "19.7",
+      "requirement_text": "Keep operator steering, deadline revision, approved target selection, and canonical amendment as distinct operations and authority paths.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140a.operator_action_taxonomy",
+      "implementation_slice": "authority_model",
+      "blocking_dependencies": [
+        "spec137.deadline_revision",
+        "spec140.instruction_authority_graph"
+      ],
+      "core_types": [
+        "OperatorActionClass"
+      ],
+      "positive_tests": [
+        "s140a_operator_action_taxonomy"
+      ],
+      "negative_tests": [
+        "s140a_steering_mints_amendment",
+        "s140a_deadline_change_rewrites_target"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-008",
+      "spec_section": "19.8",
+      "requirement_text": "Require detailed operator amendment authorization and separate post-sweep canonical confirmation before a canonical amendment becomes effective.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140a.canonical_amendment",
+      "implementation_slice": "amendment_authority",
+      "blocking_dependencies": [
+        "S140A-REQ-007"
+      ],
+      "core_types": [
+        "CanonicalInstructionAmendment",
+        "OfficialDocumentationSweepManifest"
+      ],
+      "reducer_events": [
+        "instruction.amendment_authorized",
+        "instruction.amendment_confirmed",
+        "instruction.amendment_activated"
+      ],
+      "persistence": [
+        "canonical_instruction_amendments",
+        "official_documentation_sweep_manifests"
+      ],
+      "generated_contracts": [
+        "focusa.canonical_instruction_amendment.v1",
+        "focusa.official_documentation_sweep_manifest.v1"
+      ],
+      "positive_tests": [
+        "s140a_two_stage_operator_amendment"
+      ],
+      "negative_tests": [
+        "s140a_authorization_alone_changes_canon",
+        "s140a_sweep_without_confirmation_changes_canon"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-009",
+      "spec_section": "19.9",
+      "requirement_text": "Keep the previous canon effective until the completed documentation sweep is confirmed and a new immutable Runtime Constitution revision is activated.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140a.amendment_effectivity",
+      "implementation_slice": "amendment_authority",
+      "blocking_dependencies": [
+        "S140A-REQ-008",
+        "spec140.runtime_constitution_versioning"
+      ],
+      "reducer_events": [
+        "instruction.amendment_activated"
+      ],
+      "positive_tests": [
+        "s140a_prior_canon_active_until_confirmation"
+      ],
+      "negative_tests": [
+        "s140a_proposed_text_governs_runtime",
+        "s140a_in_progress_sweep_governs_runtime"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-010",
+      "spec_section": "19.10",
+      "requirement_text": "Invalidate and reassess affected forecasts, plans, target bindings, validation assumptions, and critical-path state after canonical amendment activation.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140a.canonical_temporal_interlock",
+      "implementation_slice": "temporal_interlock",
+      "blocking_dependencies": [
+        "S140A-REQ-009",
+        "spec137.forecasting",
+        "spec144.verification_routing"
+      ],
+      "reducer_events": [
+        "instruction.rebind_required"
+      ],
+      "positive_tests": [
+        "s140a_amendment_invalidates_stale_forecast_and_plan"
+      ],
+      "negative_tests": [
+        "s140a_old_estimate_survives_material_amendment"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-011",
+      "spec_section": "19.11",
+      "requirement_text": "Apply ordinary urgency changes through fresh runtime guards without stable-prompt mutation or mandatory session restart.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec137.temporal_authority",
+      "implementation_slice": "session_interlock",
+      "blocking_dependencies": [
+        "S140A-REQ-005",
+        "spec140.prompt_session_pinning"
+      ],
+      "positive_tests": [
+        "s140a_urgency_change_dynamic_guard_only"
+      ],
+      "negative_tests": [
+        "s140a_urgency_change_mutates_stable_prompt"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-012",
+      "spec_section": "19.12",
+      "requirement_text": "Require affected sessions to rebind, fork, or restart before consequential continuation after a material canonical amendment.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140a.session_rebind",
+      "implementation_slice": "session_interlock",
+      "blocking_dependencies": [
+        "S140A-REQ-009"
+      ],
+      "reducer_events": [
+        "instruction.rebind_required"
+      ],
+      "persistence": [
+        "instruction_rebind_requirements"
+      ],
+      "positive_tests": [
+        "s140a_material_amendment_requires_rebind"
+      ],
+      "negative_tests": [
+        "s140a_stale_session_continues_consequential_work"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-013",
+      "spec_section": "19.13",
+      "requirement_text": "Own InstructionIntegrityGuard in core/reducer/daemon and check it at consequential operation boundaries.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140a.instruction_integrity_guard",
+      "implementation_slice": "runtime_admission",
+      "blocking_dependencies": [
+        "S140A-REQ-004",
+        "S140A-REQ-005",
+        "spec139.execution_admission"
+      ],
+      "core_types": [
+        "InstructionIntegrityGuard"
+      ],
+      "reducer_events": [
+        "instruction.integrity_guard_issued",
+        "instruction.integrity_guard_blocked",
+        "instruction.integrity_guard_stale"
+      ],
+      "persistence": [
+        "instruction_integrity_guards"
+      ],
+      "generated_contracts": [
+        "focusa.instruction_integrity_guard.v1"
+      ],
+      "positive_tests": [
+        "s140a_guard_at_consequential_boundaries"
+      ],
+      "negative_tests": [
+        "s140a_prompt_only_integrity_enforcement",
+        "s140a_stale_guard_admitted"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-014",
+      "spec_section": "19.14",
+      "requirement_text": "Bind consequential operations to exact constitution, instruction, target, scope, deadline, environment, presence, actor, session, and Workpoint revisions.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140a.revision_binding",
+      "implementation_slice": "runtime_admission",
+      "blocking_dependencies": [
+        "S140A-REQ-013",
+        "spec137.temporal_guard",
+        "spec139.presence_environment_guard"
+      ],
+      "core_types": [
+        "ConsequentialInstructionBinding"
+      ],
+      "positive_tests": [
+        "s140a_consequential_operation_revision_binding"
+      ],
+      "negative_tests": [
+        "s140a_unbound_consequential_operation",
+        "s140a_mismatched_revision_admitted"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-015",
+      "spec_section": "19.15",
+      "requirement_text": "Preserve equivalent canonical behavior with Mission Canvas enabled, disabled, unavailable, or absent.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140a.headless_foundation",
+      "implementation_slice": "surface_independence",
+      "blocking_dependencies": [
+        "S140A-REQ-013",
+        "spec135a.projection_semantics"
+      ],
+      "positive_tests": [
+        "s140a_mission_canvas_on_off_absent_parity"
+      ],
+      "negative_tests": [
+        "s140a_mission_canvas_state_changes_authority"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-016",
+      "spec_section": "19.16",
+      "requirement_text": "Provide supported headless API, CLI, and Pi inspection, mutation, approval, guard, and verification routes.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140a.headless_capability_parity",
+      "implementation_slice": "headless_surfaces",
+      "blocking_dependencies": [
+        "S140A-REQ-015",
+        "spec135j.operation_registry"
+      ],
+      "core_types": [
+        "InstructionIntegritySurfaceParity"
+      ],
+      "persistence": [
+        "instruction_integrity_surface_parity"
+      ],
+      "generated_contracts": [
+        "focusa.instruction_integrity_surface_parity.v1"
+      ],
+      "api_operations": [
+        "instruction_integrity.*",
+        "instruction_amendment.*",
+        "runtime_target.*"
+      ],
+      "cli_commands": [
+        "focusa_instruction_integrity",
+        "focusa_instruction_amendment",
+        "focusa_runtime_target"
+      ],
+      "pi_tools": [
+        "focusa_instruction_integrity",
+        "focusa_instruction_amendment",
+        "focusa_runtime_target"
+      ],
+      "positive_tests": [
+        "s140a_api_cli_pi_behavior_parity"
+      ],
+      "negative_tests": [
+        "s140a_visual_only_canonical_operation"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-017",
+      "spec_section": "19.17",
+      "requirement_text": "Keep UI, Mission Canvas, prompt, AGENTS.md, skill, and harness artifacts as projections that cannot independently grant authority or completion.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.runtime_artifact_projection",
+      "implementation_slice": "projection_integrity",
+      "blocking_dependencies": [
+        "spec140.runtime_artifact_projection",
+        "S140A-REQ-013"
+      ],
+      "positive_tests": [
+        "s140a_projection_reads_core_authority"
+      ],
+      "negative_tests": [
+        "s140a_ui_grants_authority",
+        "s140a_prompt_mints_completion"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-018",
+      "spec_section": "19.18",
+      "requirement_text": "Reject or safely re-evaluate stale or incompatible instruction states across agents and daemons.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140a.multi_actor_consistency",
+      "implementation_slice": "distributed_consistency",
+      "blocking_dependencies": [
+        "S140A-REQ-014",
+        "spec139.multi_daemon_coordination"
+      ],
+      "positive_tests": [
+        "s140a_multi_agent_current_revision_consistency"
+      ],
+      "negative_tests": [
+        "s140a_stale_agent_mints_completion",
+        "s140a_partitioned_absence_assumed"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-019",
+      "spec_section": "19.19",
+      "requirement_text": "Use bounded unknown posture rather than stale full authority when dynamic temporal, environment, presence, or admission authority is unavailable.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140a.degraded_authority_posture",
+      "implementation_slice": "degraded_recovery",
+      "blocking_dependencies": [
+        "spec137.temporal_guard",
+        "spec139.execution_admission"
+      ],
+      "positive_tests": [
+        "s140a_dynamic_authority_outage_safe_fallback"
+      ],
+      "negative_tests": [
+        "s140a_stale_dynamic_authority_masquerades_current"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-020",
+      "spec_section": "19.20",
+      "requirement_text": "Block only the affected slice for ambiguity or feasibility conflicts when broader safety, semantic, or dependency impact does not require a wider stop, and continue compliant unblocked work.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140a.conflict_feasibility_behavior",
+      "implementation_slice": "conflict_resolution",
+      "blocking_dependencies": [
+        "spec140.instruction_conflicts",
+        "spec137.critical_path"
+      ],
+      "positive_tests": [
+        "s140a_affected_slice_block_other_work_continues"
+      ],
+      "negative_tests": [
+        "s140a_ambiguity_authorizes_improvisation",
+        "s140a_minor_conflict_freezes_entire_mission"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-021",
+      "spec_section": "19.21",
+      "requirement_text": "Verify instruction fidelity against active requirements, primitive ownership, route, surfaces, target, adaptation, guards, validation, Evidence, and closure obligations.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140a.instruction_fidelity_verifier",
+      "implementation_slice": "verification",
+      "blocking_dependencies": [
+        "S140A-REQ-004",
+        "S140A-REQ-006",
+        "S140A-REQ-013",
+        "spec144.semantic_integrity"
+      ],
+      "core_types": [
+        "InstructionFidelityVerification"
+      ],
+      "reducer_events": [
+        "instruction.fidelity_verification_failed"
+      ],
+      "positive_tests": [
+        "s140a_instruction_fidelity_verification"
+      ],
+      "negative_tests": [
+        "s140a_required_surface_omitted",
+        "s140a_unauthorized_route_passes"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-022",
+      "spec_section": "19.22",
+      "requirement_text": "Block completion for unauthorized deviation, premature amendment adoption, stale authority, or Mission Canvas-dependent canonical behavior.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140a.completion_integrity",
+      "implementation_slice": "closure",
+      "blocking_dependencies": [
+        "S140A-REQ-021",
+        "spec119.receipts",
+        "spec144.zero_omission"
+      ],
+      "negative_tests": [
+        "s140a_unauthorized_deviation_completion",
+        "s140a_premature_amendment_completion",
+        "s140a_canvas_dependent_completion"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-023",
+      "spec_section": "19.23",
+      "requirement_text": "Require Evidence and Receipts for classification, envelope approval, amendment authorization, sweep completion, confirmation, activation, guard admission, rebind, verification, and rollback.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec119.evidence_receipts",
+      "implementation_slice": "evidence_receipts",
+      "blocking_dependencies": [
+        "spec119.receipts"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ],
+      "positive_tests": [
+        "s140a_consequential_transition_receipts"
+      ],
+      "negative_tests": [
+        "s140a_unreceipted_amendment_activation",
+        "s140a_unreceipted_guard_admission"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-024",
+      "spec_section": "19.24",
+      "requirement_text": "Prevent full Spec 140 conformance while any applicable Spec 140A requirement is missing, partial, blocked, disputed, or implemented-unverified.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140a.parent_closure_gate",
+      "implementation_slice": "conformance",
+      "blocking_dependencies": [
+        "S140A-REQ-001",
+        "S140A-REQ-023"
+      ],
+      "positive_tests": [
+        "s140a_all_active_rows_verified_allows_parent_closure"
+      ],
+      "negative_tests": [
+        "s140a_open_addendum_row_allows_parent_closure"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    }
+  ],
+  "generated_at": "2026-07-31T00:30:00Z",
+  "runtime_claim": "combined_spec140_spec140a_full_conformance",
+  "runtime_status": "verified_complete",
+  "full_conformance_status": "verified_complete",
+  "verified_requirement_count": 24,
+  "receipt_ref": "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+}

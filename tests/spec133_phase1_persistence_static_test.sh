@@ -10,10 +10,12 @@ pass() { echo "✓ PASS: $*"; }
 
 test -f "$STORE" || fail "Silent Session SQLite persistence module missing"
 
-for table in silent_sessions silent_session_runs silent_session_config_revisions silent_session_events silent_session_stream_indexes silent_session_checkpoints silent_session_leases silent_session_notifications silent_session_completion_evaluations silent_session_backend_bindings; do
+# Spec 133 §11 permits equivalent projections. The control-plane prefix keeps
+# daemon-native tables disjoint from imported legacy runtime tables.
+for table in silent_session_controls silent_session_daemon_runs silent_session_control_config_revisions silent_session_control_events silent_session_control_stream_indexes silent_session_control_checkpoints silent_session_control_leases silent_session_control_notifications silent_session_control_completion_evaluations silent_session_control_backend_bindings; do
   rg -n "CREATE TABLE IF NOT EXISTS $table" "$STORE" >/dev/null || fail "missing required table: $table"
 done
-pass "all Spec133 §11 canonical tables are migrated"
+pass "all Spec133 §11 canonical equivalent projections are migrated without legacy collisions"
 
 for marker in 'UNIQUE(silent_session_id, sequence)' 'UNIQUE(silent_session_id, idempotency_key)' previous_event_hash event_hash 'connection.transaction' 'transaction.commit' 'transaction.rollback'; do
   rg -n -F "$marker" "$STORE" >/dev/null || fail "missing atomic event-chain marker: $marker"

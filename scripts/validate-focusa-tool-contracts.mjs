@@ -6,6 +6,7 @@ import { parseJsonLikeTsLiteral } from './lib/json-like-ts.mjs';
 
 const root = process.cwd();
 const toolsPath = path.join(root, 'apps/pi-extension/src/tools.ts');
+const agentRuntimeToolsPath = path.join(root, 'apps/pi-extension/src/agent-runtime-tools.ts');
 const contractsPath = path.join(root, 'apps/pi-extension/src/tool-contracts.ts');
 const readmePath = path.join(root, 'README.md');
 const toolDocsIndexPath = path.join(root, 'docs/focusa-tools/README.md');
@@ -23,6 +24,7 @@ function fail(message, detail = undefined) {
 
 const failures = [];
 const toolsSrc = read(toolsPath);
+const agentRuntimeToolsSrc = read(agentRuntimeToolsPath);
 const contractsSrc = read(contractsPath);
 const readme = read(readmePath);
 
@@ -33,11 +35,16 @@ if (wrapperInstallIndex === -1 || !wrapperInstallBlock.includes('withToolResultE
 }
 
 const toolMatches = [...toolsSrc.matchAll(/name: "(focusa_[^"]+)"/g)];
+const agentRuntimeToolMatches = [...agentRuntimeToolsSrc.matchAll(/name: "(focusa_[^"]+)"/g)];
 const dynamicPreloadMatch = toolsSrc.match(/const preloadReadTools:[^=]+ = (\[[\s\S]*?\n  \]);/);
 const dynamicPreloadNames = dynamicPreloadMatch
   ? parseJsonLikeTsLiteral(dynamicPreloadMatch[1]).map(([name]) => name)
   : [];
-const toolNames = [...toolMatches.map((m) => m[1]), ...dynamicPreloadNames];
+const toolNames = [
+  ...toolMatches.map((m) => m[1]),
+  ...agentRuntimeToolMatches.map((m) => m[1]),
+  ...dynamicPreloadNames,
+];
 for (const match of toolMatches) {
   if (wrapperInstallIndex !== -1 && match.index < wrapperInstallIndex) {
     fail('tool registered before tool_result_v1 wrapper install', match[1]);
@@ -49,16 +56,20 @@ if (toolNames.length !== uniqueToolNames.length) {
 }
 
 const preloadMatch = contractsSrc.match(/const PRELOAD_TOOL_CONTRACTS: FocusaToolContract\[] = (\[[\s\S]*?\])\.map/);
+const agentRuntimeMatch = contractsSrc.match(/const AGENT_RUNTIME_TOOL_CONTRACTS: FocusaToolContract\[] = (\[[\s\S]*?\])\.map/);
 const jsonMatch = contractsSrc.match(/export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract\[] = ([\s\S]*?)\n\];/);
 if (!preloadMatch) {
   fail('could not parse PRELOAD_TOOL_CONTRACTS registry');
+}
+if (!agentRuntimeMatch) {
+  fail('could not parse AGENT_RUNTIME_TOOL_CONTRACTS registry');
 }
 if (!jsonMatch) {
   fail('could not parse FOCUSA_TOOL_CONTRACTS registry');
 }
 
 let contracts = [];
-if (preloadMatch && jsonMatch) {
+if (preloadMatch && agentRuntimeMatch && jsonMatch) {
   const preloadRows = parseJsonLikeTsLiteral(preloadMatch[1]);
   const preloadContracts = preloadRows.map(([suffix, label, purpose, sideEffect, method]) => {
     const action = suffix.replace('_', '-');
@@ -86,9 +97,34 @@ if (preloadMatch && jsonMatch) {
         : { kind: 'advisory_only' },
     };
   });
-  const baseContractsLiteral = jsonMatch[1].replace(/\.\.\.PRELOAD_TOOL_CONTRACTS\s*,?/, '');
+  const agentRuntimeRows = parseJsonLikeTsLiteral(agentRuntimeMatch[1]);
+  const agentRuntimeContracts = agentRuntimeRows.map(([name, label, action, route, command, write]) => ({
+    name: String(name),
+    family: 'agent_runtime',
+    label: String(label),
+    purpose: `Operate the Spec 140 ${String(label).toLowerCase()} surface with typed scope and evidence.`,
+    ontology_action: String(action),
+    ontology_objects: ['ProjectAgentRuntimeConstitution', 'InstructionClaim', 'RuntimeArtifactProjection'],
+    api_routes: route === 'local' ? [] : [String(route)],
+    cli_commands: [String(command)],
+    core_surface: 'Spec140 project-agent Runtime Constitution compiler and delivery',
+    doc_path: `docs/focusa-tools/tools/${String(name)}.md`,
+    spec_path: 'docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md',
+    result_envelope: 'tool_result_v1',
+    side_effect_profile: write ? 'confirmed_receipted_artifact_delivery' : 'read_or_preview_only',
+    parity_status: route === 'local' ? 'pi_only' : 'full',
+    exemptions: route === 'local' ? ['pi_only'] : [],
+    live_check: 'contract_static plus typed /v1/agent-runtime route verification',
+    scope_requirement: { kind: write ? 'write' : 'read', route_family: 'agent-runtime' },
+    authority_requirement: write
+      ? { kind: 'canonical', path: '/v1/agent-runtime/delivery/commit' }
+      : { kind: 'advisory_only' },
+  }));
+  const baseContractsLiteral = jsonMatch[1]
+    .replace(/\.\.\.PRELOAD_TOOL_CONTRACTS\s*,?/, '')
+    .replace(/\.\.\.AGENT_RUNTIME_TOOL_CONTRACTS\s*,?/, '');
   const baseContracts = parseJsonLikeTsLiteral(`${baseContractsLiteral}\n]`);
-  contracts = [...preloadContracts, ...baseContracts];
+  contracts = [...agentRuntimeContracts, ...preloadContracts, ...baseContracts];
 }
 
 const registryProjection = {
@@ -138,7 +174,7 @@ const extraContracts = contractNames.filter((name) => !toolSet.has(name));
 if (missingContracts.length) fail('tools missing contracts', missingContracts);
 if (extraContracts.length) fail('contracts without registered tools', extraContracts);
 
-const validFamilies = new Set(['focus_state', 'workpoint', 'work_loop', 'metacognition', 'tree_lineage', 'diagnostics_hygiene', 'trajectory', 'project_identity', 'traversal', 'session_transfer', 'awareness', 'preload']);
+const validFamilies = new Set(['focus_state', 'workpoint', 'work_loop', 'metacognition', 'tree_lineage', 'diagnostics_hygiene', 'trajectory', 'project_identity', 'traversal', 'session_transfer', 'awareness', 'preload', 'agent_runtime']);
 const validParity = new Set(['full', 'domain', 'pi_only', 'local_only', 'degraded_known', 'api_only']);
 const validExemptions = new Set(['local_scratchpad_only', 'pi_session_only', 'doctor_composition_only', 'domain_cli_only', 'api_domain_only', 'pi_session_snapshot_only', 'pi_only', 'api_only']);
 

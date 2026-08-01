@@ -28,6 +28,16 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 
 Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_tree_path.md
 
+## Operator alignment
+
+- refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps
+- treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker
+- consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation
+- use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested
+- never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range
+- for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons
+- use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation
+
 ## Anti-examples
 
 - treating lineage as current project authority
@@ -66,4 +76,4 @@ Likely next: `focusa_tree_snapshot_state`, `focusa_tree_diff_context`, `focusa_t
 - CLI: `focusa lineage path`.
 - REST: `GET /v1/lineage/path/{clt_node_id}`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:e921e8af9ec64d697d6851fc568f5fbdcb528775bb6d698e54da586a0a8f24e0`.
+- Descriptor digest: `sha256:ecd8b012253993a5b7da30f2dab24b38a99ce977bb96e7fdba1e6a3e3494f64c`.

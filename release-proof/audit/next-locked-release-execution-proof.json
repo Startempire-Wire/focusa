@@ -1,0 +1,200 @@
+{
+  "schema": "focusa.locked_release_execution_proof.v1",
+  "status": "verified",
+  "lock_revision": 7,
+  "workset_id": "workset:focusa-next-locked-release:r7",
+  "scope_member_count": 275,
+  "execution_edge_count": 706,
+  "phase_count": 9,
+  "phase_counts": {
+    "6": 163,
+    "0": 7,
+    "2": 14,
+    "8": 4,
+    "1": 42,
+    "3": 5,
+    "4": 8,
+    "5": 10,
+    "7": 22
+  },
+  "phase_gates": {
+    "0": "focusa-o4gkd",
+    "1": "focusa-vbcqu.2",
+    "2": "focusa-vbcqu.3",
+    "3": "focusa-vbcqu.4",
+    "4": "focusa-vbcqu.5",
+    "5": "focusa-vbcqu.6",
+    "6": "focusa-vbcqu.7",
+    "7": "focusa-vbcqu.8",
+    "8": "focusa-vbcqu"
+  },
+  "unique_ready_frontier": [
+    "focusa-vbcqu.8.2"
+  ],
+  "terminal_member_ref": "focusa-vbcqu",
+  "terminal_coverage_count": 275,
+  "dependency_cycles": 0,
+  "unresolved_external_blockers": 0,
+  "external_closed_blockers": [
+    {
+      "member": "focusa-a6yq6.10.4",
+      "blocker": "focusa-a6yq6.10.3",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-a6yq6.10.4",
+      "blocker": "focusa-a6yq6.9.6",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-a6yq6.10.5",
+      "blocker": "focusa-a6yq6.9.6",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-a6yq6.10.7",
+      "blocker": "focusa-a6yq6.10.6",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-a6yq6.10.7",
+      "blocker": "focusa-a6yq6.9.6",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-a6yq6.10.8",
+      "blocker": "focusa-a6yq6.9.6",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-a6yq6.10.9",
+      "blocker": "focusa-a6yq6.10.1",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-a6yq6.10.9",
+      "blocker": "focusa-a6yq6.10.2",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-a6yq6.10.9",
+      "blocker": "focusa-a6yq6.10.3",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-a6yq6.10.9",
+      "blocker": "focusa-a6yq6.10.6",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-a6yq6.10.9",
+      "blocker": "focusa-fsrc",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-n68k",
+      "blocker": "focusa-fsrc",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-pskm",
+      "blocker": "focusa-k2mi",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-pskm",
+      "blocker": "focusa-mlbp",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.3.5",
+      "blocker": "focusa-w26jj.9.3.4",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.4.6",
+      "blocker": "focusa-w26jj.9.4.5",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.6.1",
+      "blocker": "focusa-w26jj.9.2.4",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.6.1",
+      "blocker": "focusa-w26jj.9.5.8",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.6.2",
+      "blocker": "focusa-w26jj.9.2.4",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.6.2",
+      "blocker": "focusa-w26jj.9.5.8",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.6.3",
+      "blocker": "focusa-w26jj.9.2.4",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.6.3",
+      "blocker": "focusa-w26jj.9.5.8",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.6.4",
+      "blocker": "focusa-w26jj.9.2.4",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.6.4",
+      "blocker": "focusa-w26jj.9.5.8",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.7.4",
+      "blocker": "focusa-slxpz",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.7.4",
+      "blocker": "focusa-w26jj.5",
+      "status": "closed"
+    },
+    {
+      "member": "focusa-w26jj.9.7.4",
+      "blocker": "focusa-wefzg",
+      "status": "closed"
+    }
+  ],
+  "provider_missing_members": 0,
+  "membership_digest": "sha256:03e384bbf5728df135f36838451098413701f4ee09430fc31797fe2d5e1379f0",
+  "graph_digest": "sha256:d1d095bf0e9f8b8d6f5e41fef14711369bdffd523b6cdc01005a932807214b70",
+  "sealed_at": "2026-07-29T23:35:32Z",
+  "out_of_order_in_progress": [],
+  "scope_expansion": true,
+  "authorized_scope_expansion_count": 3,
+  "final_scope_addition": "focusa-vbcqu.8.4",
+  "further_scope_additions_allowed": false,
+  "phase0_sequence": [
+    "focusa-627th.4.3",
+    "focusa-o4gkd"
+  ],
+  "evidence_refs": [
+    "https://github.com/Startempire-Wire/focusa/issues/111#issuecomment-5124731380",
+    "bead:focusa-o4gkd"
+  ],
+  "completed_member_count": 3,
+  "phase0_completed_sequence": [
+    "focusa-627th.4.3",
+    "focusa-o4gkd"
+  ],
+  "phase0_next_member": null,
+  "active_phase": 7,
+  "generated_at": "2026-07-31T02:30:00Z"
+}

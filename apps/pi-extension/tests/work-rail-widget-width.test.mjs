@@ -54,6 +54,9 @@ try {
 
   const crashCase = renderWorkRailWidget(snapshot, 166, palette, false);
   assert.equal(Math.max(...crashCase.map(visibleWidth)), 166);
+  const zeroProof = renderWorkRailWidget({ ...snapshot, proofCount: 0 }, 120, palette, false).join("\n");
+  assert.match(zeroProof, /proof missing/);
+  assert.doesNotMatch(zeroProof, /✓ proof 0/);
   console.log("work rail width test passed");
 } finally {
   await unlink(compiledPath).catch(() => {});

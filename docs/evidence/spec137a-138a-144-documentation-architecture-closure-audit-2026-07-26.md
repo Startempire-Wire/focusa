@@ -1,6 +1,6 @@
 # Specs 137A, 138A, and 144 Documentation Architecture Closure Audit
 
-Generated: `2026-07-27T00:47:15+00:00`
+Generated: `2026-07-31T17:03:56+00:00`
 
 ## Verdict
 
@@ -18,7 +18,7 @@ This audit does **not** claim runtime implementation, activation, or full confor
 
 ## Coverage counts
 
-- Spec 137 + 137A source atoms: `2390`; normative requirements: `1173`
+- Spec 137 + 137A source atoms: `2401`; normative requirements: `1173`
 - Spec 138 + 138A source atoms: `2738`; normative requirements: `542`
 - Spec 144 source atoms: `1439`; normative requirements: `677`
 

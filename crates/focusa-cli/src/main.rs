@@ -79,6 +79,18 @@ struct Cli {
     #[arg(long, global = true)]
     quiet: bool,
 
+    /// Inspect, preview, confirm, apply, or recover a lifecycle transaction.
+    #[arg(long, global = true, value_enum, value_name = "ACTION")]
+    lifecycle_action: Option<commands::lifecycle_guidance::GuidedAction>,
+
+    /// Confirm the mutation selected by --lifecycle-action.
+    #[arg(long, global = true, requires = "lifecycle_action")]
+    confirm: bool,
+
+    /// Separately confirm user-data deletion for a lifecycle purge.
+    #[arg(long, global = true, requires = "lifecycle_action")]
+    confirm_purge_data: bool,
+
     #[command(subcommand)]
     command: Commands,
 }
@@ -302,6 +314,10 @@ enum Commands {
     #[command(subcommand)]
     Constitution(commands::constitution::ConstitutionCmd),
 
+    /// Project Agent Runtime Constitution compiler and delivery.
+    #[command(subcommand)]
+    AgentRuntime(commands::agent_runtime::AgentRuntimeCmd),
+
     /// Cognitive telemetry.
     #[command(subcommand)]
     Telemetry(commands::telemetry::TelemetryCmd),
@@ -333,6 +349,10 @@ enum Commands {
     /// Ontology projections and vocab surfaces.
     #[command(subcommand)]
     Ontology(commands::ontology::OntologyCmd),
+
+    /// Semantic-integrity operation registry and bounded execution surface.
+    #[command(subcommand, name = "semantic-integrity")]
+    SemanticIntegrity(commands::semantic_integrity::SemanticIntegrityCmd),
 
     /// Agent skills.
     #[command(subcommand)]
@@ -539,6 +559,26 @@ async fn async_main() -> anyhow::Result<()> {
 
     if let Err(err) = tracing::subscriber::set_global_default(subscriber) {
         eprintln!("[TRACING_INIT_WARNING] failed to set tracing subscriber: {err}");
+    }
+
+    let guided_flow = match &cli.command {
+        Commands::Install(_) => Some(commands::lifecycle_guidance::Flow::Install),
+        Commands::Update(_) => Some(commands::lifecycle_guidance::Flow::Update),
+        Commands::Uninstall(_) => Some(commands::lifecycle_guidance::Flow::Uninstall),
+        _ => None,
+    };
+    if cli.lifecycle_action.is_some() && guided_flow.is_none() {
+        anyhow::bail!("--lifecycle-action is supported by install, update, and uninstall");
+    }
+    if let Some(flow) = guided_flow {
+        let guided = commands::lifecycle_guidance::GuidedLifecycleArgs {
+            action: cli.lifecycle_action,
+            confirm: cli.confirm,
+            confirm_purge_data: cli.confirm_purge_data,
+        };
+        if commands::lifecycle_guidance::prepare(&guided, flow, cli.json)? {
+            return Ok(());
+        }
     }
 
     let result: anyhow::Result<()> = match cli.command {
@@ -1012,10 +1052,7 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::Cleanup(args) => commands::cleanup::run(args, cli.json).await,
         Commands::Continue(args) => commands::continue_work::run(args, cli.json).await,
         Commands::Tui(args) => commands::tui::run(args, cli.json).await,
-        Commands::Init(args) => {
-            commands::help::warn_alias("focusa init", "focusa project new / focusa setup init");
-            commands::init::run(args, cli.json).await
-        }
+        Commands::Init(args) => commands::init::run(args, cli.json).await,
         Commands::Walkthrough(args) => {
             commands::help::warn_alias("focusa walkthrough", "focusa setup walkthrough");
             commands::walkthrough::run(args, cli.json).await
@@ -1072,6 +1109,7 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::Autonomy(cmd) => commands::autonomy::run(cmd, cli.json).await,
         Commands::Awareness(cmd) => commands::awareness::run(cmd, cli.json).await,
         Commands::Constitution(cmd) => commands::constitution::run(cmd, cli.json).await,
+        Commands::AgentRuntime(cmd) => commands::agent_runtime::run(cmd, cli.json).await,
         Commands::Telemetry(cmd) => commands::telemetry::run(cmd, cli.json).await,
         Commands::Rfm(cmd) => commands::rfm::run(cmd, cli.json).await,
         Commands::Release(cmd) => commands::release::run(cmd, cli.json).await,
@@ -1080,6 +1118,7 @@ async fn async_main() -> anyhow::Result<()> {
         Commands::Reflect(cmd) => commands::reflection::run(cmd, cli.json).await,
         Commands::Metacognition(cmd) => commands::metacognition::run(cmd, cli.json).await,
         Commands::Ontology(cmd) => commands::ontology::run(cmd, cli.json).await,
+        Commands::SemanticIntegrity(cmd) => commands::semantic_integrity::run(cmd, cli.json).await,
         Commands::Skills(cmd) => commands::skills::run(cmd, cli.json).await,
         Commands::Thread(cmd) => {
             commands::threads::run(cmd, cli.json, &api_client::ApiClient::new()).await

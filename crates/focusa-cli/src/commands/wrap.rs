@@ -18,8 +18,11 @@ use rand::random;
 use serde_json::{Value, json};
 use shlex::try_quote;
 use std::fs;
+use std::io::Write;
 use std::path::PathBuf;
-use std::process::{Command, Stdio};
+use std::process::{Child, Command, Stdio};
+use std::thread;
+use std::time::Duration;
 
 /// Fire-and-forget POST - doesn't block on daemon response.
 async fn fire_and_forget(client: &ApiClient, path: &str, body: Value) {
@@ -271,10 +274,192 @@ fn parse_transcript(transcript: &str) -> (String, String) {
     (user_input, assistant_output)
 }
 
-/// Run harness with full session recording using `script` command.
+/// Run harness with bounded session recording using `script` command.
 ///
-/// Uses `script -q -c "command"` to record full terminal session including TUI.
+/// The recorder is monitored while the harness runs. It is terminated when the
+/// bounded capture budget is reached, preventing runaway PTY files and memory.
 /// Arguments are properly shell-quoted using shlex to prevent injection.
+const MAX_RECORDING_BYTES: u64 = 8 * 1024 * 1024;
+const STALE_RECORDING_MIN_AGE_SECS: u64 = 60 * 60;
+
+fn cleanup_stale_recordings(temp_dir: &std::path::Path) {
+    let Ok(entries) = fs::read_dir(temp_dir) else {
+        return;
+    };
+    let mode = std::env::var("FOCUSA_PTY_SCAVENGE_MODE").unwrap_or_else(|_| "apply".to_string());
+    let mut actions = Vec::new();
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let Some(name) = path.file_name().and_then(|value| value.to_str()) else {
+            continue;
+        };
+        let Some(rest) = name.strip_prefix("focusa-session-") else {
+            continue;
+        };
+        let Some(pid_text) = rest.split('-').next() else {
+            continue;
+        };
+        let Ok(pid) = pid_text.parse::<u32>() else {
+            continue;
+        };
+        if std::path::Path::new(&format!("/proc/{pid}")).exists() {
+            continue;
+        }
+        let age_secs = fs::metadata(&path)
+            .and_then(|metadata| metadata.modified())
+            .ok()
+            .and_then(|modified| modified.elapsed().ok())
+            .map(|age| age.as_secs())
+            .unwrap_or(0);
+        if age_secs < STALE_RECORDING_MIN_AGE_SECS {
+            continue;
+        }
+        let status = if mode == "dry-run" {
+            "would_remove".to_string()
+        } else {
+            match fs::remove_file(&path) {
+                Ok(()) => "removed".to_string(),
+                Err(error) => {
+                    eprintln!(
+                        "[WARN] Failed to remove stale PTY recording {}: {}",
+                        path.display(),
+                        error
+                    );
+                    format!("remove_failed:{error}")
+                }
+            }
+        };
+        actions.push(json!({
+            "path": path,
+            "pid": pid,
+            "age_secs": age_secs,
+            "status": status,
+        }));
+    }
+    if actions.is_empty() {
+        return;
+    }
+    let data_root = std::env::var("FOCUSA_DATA_DIR")
+        .map(PathBuf::from)
+        .or_else(|_| std::env::var("HOME").map(|home| PathBuf::from(home).join(".focusa")))
+        .unwrap_or_else(|_| PathBuf::from("/tmp/focusa"));
+    let receipt_dir = data_root.join("receipts");
+    if fs::create_dir_all(&receipt_dir).is_ok() {
+        let timestamp = Utc::now().timestamp_millis();
+        let receipt_path = receipt_dir.join(format!("pty-scavenge-{timestamp}.json"));
+        let temporary = receipt_dir.join(format!(".pty-scavenge-{timestamp}.tmp"));
+        let receipt = json!({
+            "schema": "focusa.pty_scavenge_receipt.v1",
+            "mode": mode,
+            "recorded_at": Utc::now().to_rfc3339(),
+            "actions": actions,
+        });
+        if fs::write(&temporary, format!("{}\n", receipt)).is_ok() {
+            let _ = fs::rename(temporary, receipt_path);
+        }
+    }
+}
+fn redact_diagnostic_transcript(transcript: &str) -> String {
+    let mut redacted = transcript.to_string();
+    for (key, value) in std::env::vars() {
+        let upper = key.to_ascii_uppercase();
+        if value.len() >= 4
+            && ["TOKEN", "SECRET", "PASSWORD", "API_KEY", "AUTH", "COOKIE"]
+                .iter()
+                .any(|marker| upper.contains(marker))
+        {
+            redacted = redacted.replace(&value, "[REDACTED]");
+        }
+    }
+    redacted
+        .lines()
+        .map(|line| {
+            let lower = line.to_ascii_lowercase();
+            if [
+                "authorization:",
+                "api_key=",
+                "apikey=",
+                "password=",
+                "secret=",
+            ]
+            .iter()
+            .any(|marker| lower.contains(marker))
+            {
+                "[REDACTED LINE]"
+            } else {
+                line
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn store_diagnostic_artifacts(client: &ApiClient, transcript: &str) -> Vec<String> {
+    const ECS_CHUNK_BYTES: usize = 512 * 1024;
+    let content = redact_diagnostic_transcript(transcript);
+    let url = format!("{}/v1/ecs/store", client.base_url().trim_end_matches('/'));
+    let timestamp = Utc::now().timestamp_millis();
+    content
+        .as_bytes()
+        .chunks(ECS_CHUNK_BYTES)
+        .take(16)
+        .enumerate()
+        .filter_map(|(index, chunk)| {
+            let body = json!({
+                "kind": "text",
+                "label": format!("bounded-pty-diagnostic-{timestamp}-part-{:02}", index + 1),
+                "content": String::from_utf8_lossy(chunk),
+            })
+            .to_string();
+            let mut child = Command::new("curl")
+                .args([
+                    "-fsS",
+                    "-X",
+                    "POST",
+                    "-H",
+                    "Content-Type: application/json",
+                    "--data-binary",
+                    "@-",
+                    "-m",
+                    "10",
+                    &url,
+                ])
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()
+                .ok()?;
+            child.stdin.as_mut()?.write_all(body.as_bytes()).ok()?;
+            let output = child.wait_with_output().ok()?;
+            if !output.status.success() {
+                eprintln!(
+                    "[WARN] ECS diagnostic chunk {} rejected: status={} error={}",
+                    index + 1,
+                    output.status,
+                    String::from_utf8_lossy(&output.stderr)
+                        .lines()
+                        .next()
+                        .unwrap_or("unknown")
+                );
+                return None;
+            }
+            serde_json::from_slice::<Value>(&output.stdout)
+                .map_err(|error| {
+                    eprintln!(
+                        "[WARN] ECS diagnostic chunk {} response invalid: {}",
+                        index + 1,
+                        error
+                    );
+                    error
+                })
+                .ok()?
+                .get("id")
+                .and_then(Value::as_str)
+                .map(ToString::to_string)
+        })
+        .collect()
+}
+
 fn run_with_recording(
     harness_path: &str,
     args: &[String],
@@ -282,8 +467,13 @@ fn run_with_recording(
 ) -> Result<(i32, String)> {
     // Create temp directory for recording
     let temp_dir = PathBuf::from("/tmp");
+    cleanup_stale_recordings(&temp_dir);
     let timestamp = Utc::now().timestamp_millis();
-    let session_file = temp_dir.join(format!("focusa-session-{}.txt", timestamp));
+    let session_file = temp_dir.join(format!(
+        "focusa-session-{}-{}.txt",
+        std::process::id(),
+        timestamp
+    ));
 
     // Properly quote each argument to prevent shell injection
     let harness_args: Vec<String> = args
@@ -296,7 +486,7 @@ fn run_with_recording(
         .collect();
     let harness_cmd = format!("{} {}", harness_path, harness_args.join(" "));
 
-    let status = Command::new("script")
+    let mut child: Child = Command::new("script")
         .args(["-q", "-c", &harness_cmd])
         .arg("-a")
         .arg(&session_file)
@@ -304,24 +494,68 @@ fn run_with_recording(
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
         .envs(env_vars.iter().copied())
-        .status()
+        .spawn()
         .context("Failed to run script command")?;
 
-    // Read the recording (script writes to session_file, not stdout)
+    let mut capped = false;
+    loop {
+        if child
+            .try_wait()
+            .context("Failed waiting for script command")?
+            .is_some()
+        {
+            break;
+        }
+        if fs::metadata(&session_file)
+            .map(|m| m.len() > MAX_RECORDING_BYTES)
+            .unwrap_or(false)
+        {
+            capped = true;
+            eprintln!(
+                "[WARN] PTY recording exceeded {} bytes; stopping capture",
+                MAX_RECORDING_BYTES
+            );
+            child
+                .kill()
+                .context("Failed stopping oversized script recording")?;
+            break;
+        }
+        thread::sleep(Duration::from_millis(50));
+    }
+    let status = child.wait().context("Failed to reap script command")?;
+
     let transcript = if session_file.exists() {
-        fs::read_to_string(&session_file)?
+        let bytes = fs::read(&session_file)?;
+        let limit = bytes.len().min(MAX_RECORDING_BYTES as usize);
+        String::from_utf8_lossy(&bytes[..limit]).into_owned()
     } else {
         String::new()
     };
 
-    // Clean up temp file (log error if fails)
     if let Err(e) = fs::remove_file(&session_file) {
         eprintln!("[DEBUG] Failed to remove session file: {}", e);
     }
 
-    let exit_code = status.code().unwrap_or(1);
-
+    let exit_code = if capped {
+        124
+    } else {
+        status.code().unwrap_or(1)
+    };
     Ok((exit_code, transcript))
+}
+
+/// Run an interactive harness with its native terminal semantics.
+/// No PTY transcript is collected; Pi's semantic extension/RPC surfaces own events.
+fn run_interactive(harness_path: &str, args: &[String], env_vars: &[(&str, &str)]) -> Result<i32> {
+    let status = Command::new(harness_path)
+        .args(args)
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .envs(env_vars.iter().copied())
+        .status()
+        .context("Failed to run interactive harness")?;
+    Ok(status.code().unwrap_or(1))
 }
 
 /// Simple harness runner (non-PTY) for command-line only mode.
@@ -467,8 +701,18 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
 
     eprintln!("[DEBUG] Running: {} {}", harness_path, final_args.join(" "));
 
-    let (exit_code, transcript) = if is_tui {
-        // TUI mode: use script to record full session
+    let (exit_code, transcript) = if is_tui && harness_name == "pi" {
+        // Interactive Pi: preserve native TTY behavior; semantic events come from
+        // the Focusa extension/RPC stream rather than ANSI screen scraping.
+        match run_interactive(harness_path, &final_args, &env_vars) {
+            Ok(code) => (code, String::new()),
+            Err(e) => {
+                eprintln!("[ERROR] Interactive Pi harness failed: {}", e);
+                (1, String::new())
+            }
+        }
+    } else if is_tui && std::env::var("FOCUSA_RAW_PTY_CAPTURE").as_deref() == Ok("1") {
+        // Non-Pi forensic capture is explicit opt-in and bounded to 8 MiB.
         match run_with_recording(harness_path, &final_args, &env_vars) {
             Ok(result) => result,
             Err(e) => {
@@ -480,6 +724,15 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
                         (1, String::new())
                     }
                 }
+            }
+        }
+    } else if is_tui {
+        // Native interactive mode: preserve the terminal and collect no raw PTY.
+        match run_interactive(harness_path, &final_args, &env_vars) {
+            Ok(code) => (code, String::new()),
+            Err(e) => {
+                eprintln!("[ERROR] Interactive harness failed: {}", e);
+                (1, String::new())
             }
         }
     } else {
@@ -495,7 +748,9 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
 
     eprintln!("[DEBUG] Harness exited with code: {}", exit_code);
     eprintln!("[DEBUG] Transcript length: {} chars", transcript.len());
-    let semantic_failure = (exit_code == 0)
+    let semantic_output_expected =
+        !is_tui || std::env::var("FOCUSA_RAW_PTY_CAPTURE").as_deref() == Ok("1");
+    let semantic_failure = (exit_code == 0 && semantic_output_expected)
         .then(|| semantic_harness_failure(&transcript))
         .flatten();
     let effective_exit_code = if semantic_failure.is_some() {
@@ -522,7 +777,13 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
         (String::new(), transcript.clone())
     };
 
-    // 5. Turn complete - send everything to daemon
+    // 5. Turn complete - send bounded semantic output/handles to daemon.
+    let raw_pty_capture = is_tui && std::env::var("FOCUSA_RAW_PTY_CAPTURE").as_deref() == Ok("1");
+    let diagnostic_handles = if raw_pty_capture {
+        store_diagnostic_artifacts(&client, &transcript)
+    } else {
+        Vec::new()
+    };
     let errors = if let Some(failure) = semantic_failure {
         vec![failure]
     } else if exit_code != 0 {
@@ -531,10 +792,18 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
         vec![]
     };
 
-    // For TUI: use full transcript for assistant_output
-    // For CLI: use captured output
-    let final_output = if is_tui {
-        transcript
+    // Raw terminal bytes are never inlined. Explicit forensic capture is
+    // redacted and externalized to ECS, leaving only a stable handle.
+    let final_output = if raw_pty_capture {
+        if diagnostic_handles.is_empty() {
+            "Bounded PTY diagnostic was not persisted; raw content was discarded".to_string()
+        } else {
+            format!(
+                "Bounded PTY diagnostic stored as {} ECS handle(s): {}",
+                diagnostic_handles.len(),
+                diagnostic_handles.join(",")
+            )
+        }
     } else {
         assistant_output.clone()
     };
@@ -553,7 +822,7 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
             "turn_id": turn_id,
             "raw_user_input": if final_user_input.is_empty() { None } else { Some(final_user_input) },
             "assistant_output": final_output,
-            "artifacts": [],
+            "artifacts": diagnostic_handles.iter().map(|handle| json!({"handle_id": handle, "kind": "bounded_pty_diagnostic"})).collect::<Vec<_>>(),
             "errors": errors
         }),
         2,

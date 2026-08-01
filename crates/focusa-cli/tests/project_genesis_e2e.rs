@@ -94,6 +94,11 @@ fn start_isolated_daemon(repo_root: &Path) -> (IsolatedDaemon, String) {
         .unwrap(),
     )
     .unwrap();
+    // Project Genesis requires two matching independent identity signals before
+    // it may mint a typed ScopeRef. The marker plus project-local Beads root
+    // model the real bootstrap discipline without depending on a remote.
+    std::fs::create_dir_all(project_root.join(".beads")).unwrap();
+    std::fs::write(project_root.join(".beads/issues.jsonl"), b"").unwrap();
     let fake_bin = data_dir.join("bin");
     std::fs::create_dir_all(&fake_bin).unwrap();
     let fake_bd = fake_bin.join("bd");
@@ -535,8 +540,36 @@ fn temporal_authority_preserves_no_deadline_and_forecasts_from_observed_history(
             &root,
             "--continuity-id",
             continuity,
+            "--idempotency-key",
+            "temporal-e2e-forecast-1",
             "--phase",
             "build",
+            "--target-state",
+            "build-complete",
+            "--scope-revision",
+            "temporal-e2e-v1",
+            "--expires-at",
+            "2099-01-01T00:00:00Z",
+            "--estimator-version",
+            "empirical-nearest-rank-v1",
+            "--cohort",
+            "temporal-e2e-build",
+            "--evidence-basis",
+            "temporal-e2e-observations",
+            "--comparable-sample-count",
+            "3",
+            "--all-attempt-sample-count",
+            "3",
+            "--censoring-method",
+            "all-attempts",
+            "--correlation-method",
+            "independent-e2e-fixtures",
+            "--calibration-profile",
+            "temporal-e2e-v1",
+            "--baseline-ref",
+            "temporal-e2e-baseline-v1",
+            "--drift-policy-ref",
+            "temporal-e2e-drift-v1",
             "--json",
         ],
     ));

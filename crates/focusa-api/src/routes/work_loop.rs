@@ -23,6 +23,7 @@ use focusa_core::work_item::{
     BdAdapter, EvidenceCitation, NoneAdapter, ProviderAdapter, WorkItemProvider, WorkItemQuery,
     WorkItemReadiness, WorkItemRef, evaluate_readiness,
 };
+use focusa_core::working_subpath::resolve_git_working_context;
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
@@ -53,6 +54,19 @@ const WORK_LOOP_TYPED_STATES: [&str; 8] = [
 
 #[derive(Clone)]
 struct WorkLoopScope(WorkstreamKey);
+
+fn stale_scope_rebind_allowed(
+    enabled: bool,
+    status: WorkLoopStatus,
+    has_current_task: bool,
+) -> bool {
+    !enabled
+        || matches!(
+            status,
+            WorkLoopStatus::Idle | WorkLoopStatus::Completed | WorkLoopStatus::Aborted
+        )
+        || (status == WorkLoopStatus::Blocked && !has_current_task)
+}
 
 struct WorkLoopScopeRejection {
     status: StatusCode,
@@ -154,6 +168,21 @@ impl FromRequestParts<Arc<AppState>> for WorkLoopScope {
             .as_ref()
             .is_some_and(|active| active != &key)
         {
+            let approved = parts
+                .headers
+                .get("x-focusa-approval")
+                .and_then(|value| value.to_str().ok())
+                .is_some_and(|value| value == "approved");
+            let stale_enable_rebind = parts.uri.path() == "/v1/work-loop/enable"
+                && approved
+                && stale_scope_rebind_allowed(
+                    focusa.work_loop.enabled,
+                    focusa.work_loop.status,
+                    focusa.work_loop.current_task.is_some(),
+                );
+            if stale_enable_rebind {
+                return Ok(Self(key));
+            }
             return Err(WorkLoopScopeRejection {
                 status: StatusCode::CONFLICT,
                 body: json!({
@@ -3247,18 +3276,13 @@ async fn set_decision_context(
         )
     })?;
     let new_state = result.new_state;
-    let entry = EventLogEntry {
-        id: Uuid::now_v7(),
-        timestamp: Utc::now(),
+    let mut entry = EventLogEntry::captured(
         event,
-        correlation_id: Some("api:work_loop_context".to_string()),
-        origin: SignalOrigin::Cli,
-        machine_id,
-        instance_id: None,
-        session_id: new_state.session.as_ref().map(|session| session.session_id),
-        thread_id: None,
-        is_observation: false,
-    };
+        SignalOrigin::Cli,
+        Some("api:work_loop_context".to_string()),
+    );
+    entry.machine_id = machine_id;
+    entry.session_id = new_state.session.as_ref().map(|session| session.session_id);
     let _ = state
         .persist_events_checkpoint(vec![entry.clone()], new_state.clone())
         .await;
@@ -3373,18 +3397,32 @@ async fn start_pi_driver(
         .kill_on_drop(true);
     configure_pi_rpc_process_group(&mut cmd);
     configure_pi_rpc_invocation(&mut cmd, &payload);
-    if payload.cwd.as_deref().is_some_and(|cwd| {
-        Path::new(cwd).components().collect::<PathBuf>()
-            != work_loop_root.components().collect::<PathBuf>()
-    }) {
+    let driver_root = payload
+        .cwd
+        .as_deref()
+        .map(PathBuf::from)
+        .unwrap_or_else(|| work_loop_root.clone());
+    let exact_root = driver_root.components().collect::<PathBuf>()
+        == work_loop_root.components().collect::<PathBuf>();
+    let verified_working_subpath = resolve_git_working_context(&driver_root)
+        .ok()
+        .flatten()
+        .is_some_and(|context| {
+            Path::new(&context.canonical_parent_root)
+                .components()
+                .collect::<PathBuf>()
+                == work_loop_root.components().collect::<PathBuf>()
+        });
+    if !exact_root && !verified_working_subpath {
         return Err(work_loop_failure(
             StatusCode::CONFLICT,
             "pi_driver_start",
             "scope_mismatch",
-            "driver cwd must match the request WorkstreamKey project root".into(),
+            "driver cwd must be the canonical project root or its verified Git working subpath"
+                .into(),
         ));
     }
-    cmd.current_dir(&work_loop_root);
+    cmd.current_dir(&driver_root);
 
     let mut child = cmd.spawn().map_err(work_loop_pi_spawn_failed)?;
     let child_pid = child
@@ -3815,18 +3853,13 @@ async fn attach_session(
         )
     })?;
     let new_state = result.new_state;
-    let entry = EventLogEntry {
-        id: Uuid::now_v7(),
-        timestamp: Utc::now(),
+    let mut entry = EventLogEntry::captured(
         event,
-        correlation_id: Some("api:work_loop_attach_session".to_string()),
-        origin: SignalOrigin::Cli,
-        machine_id,
-        instance_id: None,
-        session_id: new_state.session.as_ref().map(|session| session.session_id),
-        thread_id: None,
-        is_observation: false,
-    };
+        SignalOrigin::Cli,
+        Some("api:work_loop_attach_session".to_string()),
+    );
+    entry.machine_id = machine_id;
+    entry.session_id = new_state.session.as_ref().map(|session| session.session_id);
     let _ = state
         .persist_events_checkpoint(vec![entry.clone()], new_state.clone())
         .await;
@@ -3879,18 +3912,13 @@ async fn abort_session(
         )
     })?;
     let new_state = result.new_state;
-    let entry = EventLogEntry {
-        id: Uuid::now_v7(),
-        timestamp: Utc::now(),
+    let mut entry = EventLogEntry::captured(
         event,
-        correlation_id: Some("api:work_loop_abort_session".to_string()),
-        origin: SignalOrigin::Cli,
-        machine_id,
-        instance_id: None,
-        session_id: new_state.session.as_ref().map(|session| session.session_id),
-        thread_id: None,
-        is_observation: false,
-    };
+        SignalOrigin::Cli,
+        Some("api:work_loop_abort_session".to_string()),
+    );
+    entry.machine_id = machine_id;
+    entry.session_id = new_state.session.as_ref().map(|session| session.session_id);
     let _ = state
         .persist_events_checkpoint(vec![entry.clone()], new_state.clone())
         .await;
@@ -3988,18 +4016,13 @@ async fn set_pause_flags(
                 Some("governance decision pending".to_string());
         }
     }
-    let entry = EventLogEntry {
-        id: Uuid::now_v7(),
-        timestamp: Utc::now(),
+    let mut entry = EventLogEntry::captured(
         event,
-        correlation_id: Some("api:work_loop_pause_flags".to_string()),
-        origin: SignalOrigin::Cli,
-        machine_id,
-        instance_id: None,
-        session_id: new_state.session.as_ref().map(|session| session.session_id),
-        thread_id: None,
-        is_observation: false,
-    };
+        SignalOrigin::Cli,
+        Some("api:work_loop_pause_flags".to_string()),
+    );
+    entry.machine_id = machine_id;
+    entry.session_id = new_state.session.as_ref().map(|session| session.session_id);
     let _ = state
         .persist_events_checkpoint(vec![entry.clone()], new_state.clone())
         .await;
@@ -4122,6 +4145,14 @@ async fn checkpoints(
     })))
 }
 
+fn temporal_guard_failure(
+    status: StatusCode,
+    code: &str,
+    message: impl Into<String>,
+) -> (StatusCode, Json<Value>) {
+    work_loop_failure(status, "heartbeat", code, message.into())
+}
+
 async fn heartbeat(
     scope: WorkLoopScope,
     State(state): State<Arc<AppState>>,
@@ -4133,11 +4164,151 @@ async fn heartbeat(
     }
 
     let writer_lease = ensure_writer_claim(&scope, &state, &headers).await?;
+    let temporal_scope = focusa_core::temporal::TemporalScope::project(
+        scope.0.root_scope.root_path.to_string_lossy().to_string(),
+        scope.0.continuity_id.clone(),
+    );
+    let temporal_ledger = focusa_core::temporal::TemporalLedger::for_project(
+        temporal_scope.clone(),
+    )
+    .map_err(|error| {
+        temporal_guard_failure(
+            StatusCode::PRECONDITION_FAILED,
+            "temporal_priority_unavailable",
+            format!("temporal authority unavailable: {error:?}"),
+        )
+    })?;
+    let temporal_events = temporal_ledger.read_all().map_err(|error| {
+        temporal_guard_failure(
+            StatusCode::PRECONDITION_FAILED,
+            "temporal_priority_stale",
+            format!("temporal authority unreadable: {error:?}"),
+        )
+    })?;
+    let now = Utc::now();
+    let projection =
+        focusa_core::temporal::project_temporal(temporal_scope.clone(), &temporal_events, now);
+    let calendar = projection.human_calendar_context.as_ref().ok_or_else(|| {
+        temporal_guard_failure(
+            StatusCode::PRECONDITION_FAILED,
+            "temporal_priority_missing",
+            "HumanCalendarContext is required before Work Loop dispatch",
+        )
+    })?;
+    let priority_frame = projection.temporal_priority_frame.as_ref().ok_or_else(|| {
+        temporal_guard_failure(
+            StatusCode::PRECONDITION_FAILED,
+            "temporal_priority_missing",
+            "TemporalPriorityFrame is required before Work Loop dispatch",
+        )
+    })?;
+    let execution_guard = projection
+        .temporal_execution_guard
+        .as_ref()
+        .ok_or_else(|| {
+            temporal_guard_failure(
+                StatusCode::PRECONDITION_FAILED,
+                "temporal_guard_missing",
+                "TemporalExecutionGuard is required before Work Loop dispatch",
+            )
+        })?;
+    focusa_core::temporal_operations::authorize_temporal_action(
+        calendar,
+        priority_frame,
+        Some(execution_guard),
+        &temporal_scope,
+        &priority_frame.operator_ask_digest,
+        "work-loop:heartbeat",
+        now,
+    )
+    .map_err(|error| {
+        temporal_guard_failure(
+            StatusCode::PRECONDITION_FAILED,
+            "temporal_guard_rejected",
+            format!("Work Loop temporal guard rejected: {error:?}"),
+        )
+    })?;
+    let last_pulse = temporal_events.iter().rev().find(|event| {
+        event.event_kind == focusa_core::temporal::TemporalEventKind::TemporalPulseEvaluated
+    });
+    let pulse_state = focusa_core::temporal_progress::TemporalPulseState {
+        last_transition_at: last_pulse.map(|event| event.recorded_at),
+        last_notification_at: last_pulse.and_then(|event| {
+            event
+                .metadata
+                .get("notified")
+                .and_then(Value::as_bool)
+                .and_then(|notified| notified.then_some(event.recorded_at))
+        }),
+        notifications_this_hour: temporal_events
+            .iter()
+            .filter(|event| {
+                event.event_kind == focusa_core::temporal::TemporalEventKind::TemporalPulseEvaluated
+                    && event.recorded_at >= now - chrono::Duration::hours(1)
+                    && event.metadata.get("notified").and_then(Value::as_bool) == Some(true)
+            })
+            .count() as u32,
+        pending_notifications: 0,
+        urgency_level: match projection.deadline_status {
+            focusa_core::temporal::DeadlineStatus::Breached => 4,
+            focusa_core::temporal::DeadlineStatus::Committed => 2,
+            _ => 0,
+        },
+        backpressure_active: false,
+    };
+    let pulse_policy = focusa_core::temporal_progress::TemporalPulsePolicy {
+        policy_id: "work-loop-temporal-pulse.v1".into(),
+        minimum_dwell_ms: 30_000,
+        debounce_ms: 5_000,
+        hysteresis_ms: 10_000,
+        maximum_notifications_per_hour: 4,
+        maximum_pending_notifications: 1,
+        protected_focus: pulse_state.urgency_level < 3,
+        safety_authority_immutable: true,
+    };
+    let pulse_decision =
+        focusa_core::temporal_progress::temporal_pulse_decision(&pulse_policy, &pulse_state, now);
+    let notified = pulse_decision == focusa_core::temporal_progress::PulseDecision::NotifyCalmly;
+    let mut metadata = std::collections::BTreeMap::new();
+    metadata.insert("decision".into(), json!(pulse_decision));
+    metadata.insert("notified".into(), json!(notified));
+    metadata.insert("deadline_status".into(), json!(projection.deadline_status));
+    let pulse_event = focusa_core::temporal::TemporalEvent {
+        event_id: Uuid::now_v7().to_string(),
+        sequence: 0,
+        event_kind: focusa_core::temporal::TemporalEventKind::TemporalPulseEvaluated,
+        scope: temporal_scope,
+        claim: projection.urgency.clone(),
+        clock_sample: None,
+        metadata,
+        signature: None,
+        predecessor_digest: None,
+        recorded_at: now,
+        idempotency_key: String::new(),
+        digest: String::new(),
+    };
+    let (key_id, signing_key) = super::temporal::temporal_signing_key()?;
+    temporal_ledger
+        .append_signed_batch(
+            &format!("work-loop-pulse:{}", now.timestamp_millis()),
+            vec![pulse_event],
+            &key_id,
+            &signing_key,
+        )
+        .map_err(|error| {
+            temporal_guard_failure(
+                StatusCode::PRECONDITION_FAILED,
+                "temporal_pulse_persistence_failed",
+                format!("temporal pulse persistence failed: {error:?}"),
+            )
+        })?;
     let dispatched =
         maybe_dispatch_continuous_turn_prompt(&state, "daemon heartbeat supervisor tick").await?;
 
     Ok(Json(json!({
         "ok": true,
+        "temporal_pulse_decision": pulse_decision,
+        "temporal_notification_emitted": notified,
         "writer_id": writer_lease.writer_id,
         "fencing_token": writer_lease.fencing_token,
         "lease_expires_at": writer_lease.expires_at,
@@ -4206,22 +4377,18 @@ async fn checkpoint(
         )
     })?;
     let new_state = result.new_state;
-    let entry = EventLogEntry {
-        id: checkpoint_id,
-        timestamp: Utc::now(),
+    let mut entry = EventLogEntry::captured(
         event,
-        correlation_id: Some(format!(
+        SignalOrigin::Cli,
+        Some(format!(
             "work_loop_checkpoint|project_root={}|continuity_id={}",
             scope.0.root_scope.root_path.display(),
             scope.0.continuity_id
         )),
-        origin: SignalOrigin::Cli,
-        machine_id,
-        instance_id: None,
-        session_id: new_state.session.as_ref().map(|session| session.session_id),
-        thread_id: None,
-        is_observation: false,
-    };
+    );
+    entry.id = checkpoint_id;
+    entry.machine_id = machine_id;
+    entry.session_id = new_state.session.as_ref().map(|session| session.session_id);
     state
         .persist_events_checkpoint(vec![entry.clone()], new_state.clone())
         .await
@@ -4625,6 +4792,50 @@ mod tests {
         .unwrap_err();
         assert_eq!(rejected.0, StatusCode::CONFLICT);
         assert_eq!(claims.len(), 3);
+    }
+
+    #[test]
+    fn stale_inert_scope_can_rebind_only_at_safe_terminal_boundaries() {
+        assert!(stale_scope_rebind_allowed(
+            false,
+            WorkLoopStatus::Blocked,
+            false
+        ));
+        assert!(stale_scope_rebind_allowed(
+            true,
+            WorkLoopStatus::Idle,
+            false
+        ));
+        assert!(stale_scope_rebind_allowed(
+            true,
+            WorkLoopStatus::Completed,
+            false
+        ));
+        assert!(stale_scope_rebind_allowed(
+            true,
+            WorkLoopStatus::Aborted,
+            false
+        ));
+        assert!(stale_scope_rebind_allowed(
+            true,
+            WorkLoopStatus::Blocked,
+            false
+        ));
+        assert!(!stale_scope_rebind_allowed(
+            true,
+            WorkLoopStatus::Blocked,
+            true
+        ));
+        assert!(!stale_scope_rebind_allowed(
+            true,
+            WorkLoopStatus::Paused,
+            false
+        ));
+        assert!(!stale_scope_rebind_allowed(
+            true,
+            WorkLoopStatus::AwaitingHarnessTurn,
+            false
+        ));
     }
 
     #[test]

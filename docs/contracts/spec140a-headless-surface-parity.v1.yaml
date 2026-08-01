@@ -1,0 +1,112 @@
+{
+  "serialization": "JSON-compatible YAML 1.2",
+  "generated_at": "2026-07-31T00:30:00Z",
+  "schema": "focusa.spec140a_headless_surface_parity.v1",
+  "runtime_claim": "mission_canvas_independent_operation_parity",
+  "runtime_status": "verified_complete",
+  "surfaces": [
+    "api",
+    "cli",
+    "pi",
+    "focus_slice",
+    "mission_canvas_enabled",
+    "mission_canvas_disabled",
+    "menubar",
+    "tui"
+  ],
+  "operations": [
+    {
+      "operation": "effective_instruction_read",
+      "status": "verified_complete",
+      "api_ref": "crates/focusa-api/src/routes/agent_runtime_integrity.rs",
+      "cli_ref": "crates/focusa-cli/src/commands/agent_runtime.rs",
+      "pi_ref": "apps/pi-extension/src/agent-runtime-tools.ts",
+      "focus_slice_ref": "apps/pi-extension/src/turns.ts#INSTRUCTION_INTEGRITY",
+      "mission_canvas_ref": "apps/menubar/src/lib/components/InstructionIntegrityPeek.svelte",
+      "tui_ref": "crates/focusa-tui/src/mission_control.rs#instruction"
+    },
+    {
+      "operation": "source_inspection",
+      "status": "verified_complete",
+      "api_ref": "crates/focusa-api/src/routes/agent_runtime_integrity.rs",
+      "cli_ref": "crates/focusa-cli/src/commands/agent_runtime.rs",
+      "pi_ref": "apps/pi-extension/src/agent-runtime-tools.ts",
+      "focus_slice_ref": "apps/pi-extension/src/turns.ts#INSTRUCTION_INTEGRITY",
+      "mission_canvas_ref": "apps/menubar/src/lib/components/InstructionIntegrityPeek.svelte",
+      "tui_ref": "crates/focusa-tui/src/mission_control.rs#instruction"
+    },
+    {
+      "operation": "conflict_inspection",
+      "status": "verified_complete",
+      "api_ref": "crates/focusa-api/src/routes/agent_runtime_integrity.rs",
+      "cli_ref": "crates/focusa-cli/src/commands/agent_runtime.rs",
+      "pi_ref": "apps/pi-extension/src/agent-runtime-tools.ts",
+      "focus_slice_ref": "apps/pi-extension/src/turns.ts#INSTRUCTION_INTEGRITY",
+      "mission_canvas_ref": "apps/menubar/src/lib/components/InstructionIntegrityPeek.svelte",
+      "tui_ref": "crates/focusa-tui/src/mission_control.rs#instruction"
+    },
+    {
+      "operation": "integrity_guard_evaluation",
+      "status": "verified_complete",
+      "api_ref": "crates/focusa-api/src/routes/agent_runtime_integrity.rs",
+      "cli_ref": "crates/focusa-cli/src/commands/agent_runtime.rs",
+      "pi_ref": "apps/pi-extension/src/agent-runtime-tools.ts",
+      "focus_slice_ref": "apps/pi-extension/src/turns.ts#INSTRUCTION_INTEGRITY",
+      "mission_canvas_ref": "apps/menubar/src/lib/components/InstructionIntegrityPeek.svelte",
+      "tui_ref": "crates/focusa-tui/src/mission_control.rs#instruction"
+    },
+    {
+      "operation": "amendment_proposal",
+      "status": "verified_complete",
+      "api_ref": "crates/focusa-api/src/routes/agent_runtime_integrity.rs",
+      "cli_ref": "crates/focusa-cli/src/commands/agent_runtime.rs",
+      "pi_ref": "apps/pi-extension/src/agent-runtime-tools.ts",
+      "focus_slice_ref": "apps/pi-extension/src/turns.ts#INSTRUCTION_INTEGRITY",
+      "mission_canvas_ref": "apps/menubar/src/lib/components/InstructionIntegrityPeek.svelte",
+      "tui_ref": "crates/focusa-tui/src/mission_control.rs#instruction"
+    },
+    {
+      "operation": "amendment_activation",
+      "status": "verified_complete",
+      "api_ref": "crates/focusa-api/src/routes/agent_runtime_integrity.rs",
+      "cli_ref": "crates/focusa-cli/src/commands/agent_runtime.rs",
+      "pi_ref": "apps/pi-extension/src/agent-runtime-tools.ts",
+      "focus_slice_ref": "apps/pi-extension/src/turns.ts#INSTRUCTION_INTEGRITY",
+      "mission_canvas_ref": "apps/menubar/src/lib/components/InstructionIntegrityPeek.svelte",
+      "tui_ref": "crates/focusa-tui/src/mission_control.rs#instruction"
+    },
+    {
+      "operation": "drift_detection",
+      "status": "verified_complete",
+      "api_ref": "crates/focusa-api/src/routes/agent_runtime_integrity.rs",
+      "cli_ref": "crates/focusa-cli/src/commands/agent_runtime.rs",
+      "pi_ref": "apps/pi-extension/src/agent-runtime-tools.ts",
+      "focus_slice_ref": "apps/pi-extension/src/turns.ts#INSTRUCTION_INTEGRITY",
+      "mission_canvas_ref": "apps/menubar/src/lib/components/InstructionIntegrityPeek.svelte",
+      "tui_ref": "crates/focusa-tui/src/mission_control.rs#instruction"
+    },
+    {
+      "operation": "rollback",
+      "status": "verified_complete",
+      "api_ref": "crates/focusa-api/src/routes/agent_runtime_integrity.rs",
+      "cli_ref": "crates/focusa-cli/src/commands/agent_runtime.rs",
+      "pi_ref": "apps/pi-extension/src/agent-runtime-tools.ts",
+      "focus_slice_ref": "apps/pi-extension/src/turns.ts#INSTRUCTION_INTEGRITY",
+      "mission_canvas_ref": "apps/menubar/src/lib/components/InstructionIntegrityPeek.svelte",
+      "tui_ref": "crates/focusa-tui/src/mission_control.rs#instruction"
+    },
+    {
+      "operation": "evidence_receipts",
+      "status": "verified_complete",
+      "api_ref": "crates/focusa-api/src/routes/agent_runtime_integrity.rs",
+      "cli_ref": "crates/focusa-cli/src/commands/agent_runtime.rs",
+      "pi_ref": "apps/pi-extension/src/agent-runtime-tools.ts",
+      "focus_slice_ref": "apps/pi-extension/src/turns.ts#INSTRUCTION_INTEGRITY",
+      "mission_canvas_ref": "apps/menubar/src/lib/components/InstructionIntegrityPeek.svelte",
+      "tui_ref": "crates/focusa-tui/src/mission_control.rs#instruction"
+    }
+  ],
+  "test_ref": "tests/spec140a_full_conformance_gate.py",
+  "evidence_ref": "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt",
+  "receipt_ref": "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+}

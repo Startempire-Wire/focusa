@@ -1,6 +1,6 @@
 {
   "schema": "focusa.openai_tool_projection.v2",
-  "registry_digest": "sha256:d7bb4c8fb927058bd546672f85ab3a3b9e6ffbbaf3a113d51f6671d8ecf4ba95",
+  "registry_digest": "sha256:4231361362502c49a10c5ca1ff570e54f8e296e1e1356ac72cd0ad7e09c10915",
   "tools": [
     {
       "type": "function",
@@ -14,6 +14,71 @@
             "hint": {
               "description": "Optional file/object/endpoint/work item hint.",
               "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_agent_artifact_delivery",
+        "description": "Commit verified agent artifacts with explicit operator confirmation and a durable Receipt reference. Use it when Operate the Spec 140 agent artifact delivery surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "request",
+            "confirmed"
+          ],
+          "properties": {
+            "request": {
+              "description": "Typed delivery request."
+            },
+            "confirmed": {
+              "description": "Explicit operator confirmation.",
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_agent_artifact_preview",
+        "description": "Preview a Spec 140 artifact delivery manifest; never writes files. Use it when Operate the Spec 140 agent artifact preview surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "request"
+          ],
+          "properties": {
+            "request": {
+              "description": "Typed delivery preview request."
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_agent_artifact_verify",
+        "description": "Verify content hashes and evidence for a Runtime Constitution delivery manifest. Use it when Operate the Spec 140 agent artifact verify surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "request"
+          ],
+          "properties": {
+            "request": {
+              "description": "Typed delivery verification request."
             }
           },
           "additionalProperties": false
@@ -47,6 +112,64 @@
         "parameters": {
           "type": "object",
           "properties": {},
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_agent_runtime_doctor",
+        "description": "Diagnose Runtime Constitution compiler defaults, replacement gates, and delivery readiness. Use it when Operate the Spec 140 agent runtime doctor surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_agent_runtime_effective",
+        "description": "Read effective project instruction claims and unresolved conflicts under Spec 140. Use it when Operate the Spec 140 agent runtime effective surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "project_root"
+          ],
+          "properties": {
+            "project_root": {
+              "description": "Verified absolute project root.",
+              "type": "string"
+            },
+            "max_source_bytes": {
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_agent_runtime_headless_verify",
+        "description": "Verify foundational runtime capability parity without Mission Canvas or generated UI availability. Use it when Operate the Spec 140 agent runtime headless verify surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "request"
+          ],
+          "properties": {
+            "request": {
+              "description": "Typed headless parity envelope."
+            }
+          },
           "additionalProperties": false
         }
       }
@@ -607,6 +730,51 @@
               "maxLength": 120,
               "description": "Entry name to verify when design_id is omitted.",
               "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_canonical_instruction_amendment_activate",
+        "description": "Activate a separately operator-approved amendment only after its official documentation sweep is complete. Use it when Operate the Spec 140 canonical instruction amendment activate surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "request",
+            "confirmed"
+          ],
+          "properties": {
+            "request": {
+              "description": "Typed approved amendment activation envelope."
+            },
+            "confirmed": {
+              "description": "Explicit operator confirmation for activation.",
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_canonical_instruction_amendment_propose",
+        "description": "Record an operator-originated canonical instruction amendment proposal without activating it. Use it when Operate the Spec 140 canonical instruction amendment propose surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "request"
+          ],
+          "properties": {
+            "request": {
+              "description": "Typed amendment proposal envelope."
             }
           },
           "additionalProperties": false
@@ -1392,6 +1560,148 @@
     {
       "type": "function",
       "function": {
+        "name": "focusa_instruction_conflicts",
+        "description": "Read deterministic instruction conflicts; unresolved equal-authority claims remain blocked. Use it when Operate the Spec 140 instruction conflicts surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "project_root"
+          ],
+          "properties": {
+            "project_root": {
+              "type": "string"
+            },
+            "max_source_bytes": {
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_instruction_explain",
+        "description": "Explain one instruction claim from the current bounded source inventory. Use it when Operate the Spec 140 instruction explain surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "project_root",
+            "claim_id"
+          ],
+          "properties": {
+            "project_root": {
+              "type": "string"
+            },
+            "claim_id": {
+              "type": "string"
+            },
+            "max_source_bytes": {
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_instruction_integrity_evaluate",
+        "description": "Evaluate the foundational headless InstructionIntegrityGuard and durably record its fail-closed decision. Use it when Operate the Spec 140 instruction integrity evaluate surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "request"
+          ],
+          "properties": {
+            "request": {
+              "description": "Typed integrity event envelope."
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_instruction_integrity_status",
+        "description": "Read foundational guard availability, amendment authority, and outage posture. Use it when Operate the Spec 140 instruction integrity status surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_instruction_simulate",
+        "description": "Preview path/profile/target-specific instruction behavior without committing changes. Use it when Operate the Spec 140 instruction simulate surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "project_root"
+          ],
+          "properties": {
+            "project_root": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            },
+            "profile": {
+              "type": "string"
+            },
+            "target": {
+              "type": "string"
+            },
+            "max_source_bytes": {
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_instruction_sources",
+        "description": "Discover bounded, registered project instruction sources with trust and authority metadata. Use it when Operate the Spec 140 instruction sources surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "project_root"
+          ],
+          "properties": {
+            "project_root": {
+              "type": "string"
+            },
+            "max_source_bytes": {
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
         "name": "focusa_intent",
         "description": "Set the frame intent — what this session is trying to achieve (1-3 sentences, max 500 chars). Use it when Set the frame intent — what this session is trying to achieve (1-3 sentences, max 500 chars). It returns a typed Focusa result with bounded recovery and likely next capabilities.",
         "strict": true,
@@ -1860,6 +2170,118 @@
             "note": {
               "description": "Note (max 180 chars).",
               "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_ontology_scope_migration",
+        "description": "Dry-run, apply, inspect, or roll back granular legacy ontology scope migration. Apply/rollback require explicit confirmation and per-record evidence; ownership is never inferred. Use it when Dry-run, apply, inspect, and roll back granular evidence-backed migration of quarantined legacy ontology records into one verified workstream. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "action"
+          ],
+          "properties": {
+            "action": {
+              "anyOf": [
+                {
+                  "const": "dry_run",
+                  "type": "string"
+                },
+                {
+                  "const": "apply",
+                  "type": "string"
+                },
+                {
+                  "const": "status",
+                  "type": "string"
+                },
+                {
+                  "const": "rollback",
+                  "type": "string"
+                }
+              ]
+            },
+            "migration_id": {
+              "description": "Stable UUID for apply/retry or rollback target.",
+              "type": "string"
+            },
+            "rollback_id": {
+              "description": "Stable UUID for idempotent rollback/retry.",
+              "type": "string"
+            },
+            "selections": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "record_kind",
+                  "source_hash",
+                  "evidence_refs"
+                ],
+                "properties": {
+                  "record_kind": {
+                    "anyOf": [
+                      {
+                        "const": "object",
+                        "type": "string"
+                      },
+                      {
+                        "const": "link",
+                        "type": "string"
+                      },
+                      {
+                        "const": "proposal",
+                        "type": "string"
+                      },
+                      {
+                        "const": "verification",
+                        "type": "string"
+                      },
+                      {
+                        "const": "working_set_refresh",
+                        "type": "string"
+                      },
+                      {
+                        "const": "delta",
+                        "type": "string"
+                      },
+                      {
+                        "const": "pre_proposal",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "source_hash": {
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "evidence_refs": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "confirm": {
+              "description": "Required true for apply or rollback mutation.",
+              "type": "boolean"
             }
           },
           "additionalProperties": false
@@ -2811,6 +3233,26 @@
     {
       "type": "function",
       "function": {
+        "name": "focusa_prompt_variant_preview",
+        "description": "Compile and preview a target prompt variant without activation. Use it when Operate the Spec 140 prompt variant preview surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "request"
+          ],
+          "properties": {
+            "request": {
+              "description": "Typed PromptCompileInput request."
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
         "name": "focusa_recent_result",
         "description": "Record a completed result, output, or reference (max 180 chars). Use it when Record a completed result, output, or reference (max 180 chars). It returns a typed Focusa result with bounded recovery and likely next capabilities.",
         "strict": true,
@@ -2935,6 +3377,30 @@
             "preflight": {
               "description": "If true, only read current mode and report intended change.",
               "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "focusa_runtime_constitution_preview",
+        "description": "Preview a compiled Runtime Constitution without activation or artifact delivery. Use it when Operate the Spec 140 runtime constitution preview surface with typed scope and evidence. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "strict": true,
+        "parameters": {
+          "type": "object",
+          "required": [
+            "constitution_id",
+            "request"
+          ],
+          "properties": {
+            "constitution_id": {
+              "type": "string"
+            },
+            "request": {
+              "description": "Typed PromptCompileInput request."
             }
           },
           "additionalProperties": false
@@ -3201,7 +3667,7 @@
       "type": "function",
       "function": {
         "name": "focusa_silent_sessions",
-        "description": "Daemon-native Spec133 Silent Session client for status, observation, steering, controls, config, receipts, capabilities, and legacy action compatibility. Use it when Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
+        "description": "Daemon-native Spec133 Silent Session client for status, observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery. Use it when Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery. It returns a typed Focusa result with bounded recovery and likely next capabilities.",
         "strict": true,
         "parameters": {
           "type": "object",
@@ -3390,6 +3856,26 @@
                 {
                   "const": "preflight",
                   "type": "string"
+                },
+                {
+                  "const": "migrate-signatures",
+                  "type": "string"
+                },
+                {
+                  "const": "high-consequence-preflight",
+                  "type": "string"
+                },
+                {
+                  "const": "capture-clock",
+                  "type": "string"
+                },
+                {
+                  "const": "resolve-civil-time",
+                  "type": "string"
+                },
+                {
+                  "const": "commit-priority",
+                  "type": "string"
                 }
               ]
             },
@@ -3397,6 +3883,21 @@
               "type": "string"
             },
             "continuity_id": {
+              "type": "string"
+            },
+            "host_id": {
+              "type": "string"
+            },
+            "operator_id": {
+              "type": "string"
+            },
+            "workpoint_id": {
+              "type": "string"
+            },
+            "item_id": {
+              "type": "string"
+            },
+            "task_id": {
               "type": "string"
             },
             "idempotency_key": {
@@ -3411,6 +3912,89 @@
             "phase": {
               "type": "string"
             },
+            "timezone": {
+              "type": "string"
+            },
+            "tzdb_version": {
+              "type": "string"
+            },
+            "forecast_authority": {
+              "type": "object",
+              "required": [
+                "claim_kind",
+                "target_state",
+                "scope_revision",
+                "expires_at",
+                "estimator_version",
+                "cohort",
+                "evidence_basis",
+                "comparable_sample_count",
+                "all_attempt_sample_count",
+                "censoring_method",
+                "correlation_method",
+                "calibration_profile",
+                "grounding_status",
+                "baseline_ref",
+                "drift_policy_ref"
+              ],
+              "properties": {
+                "claim_kind": {
+                  "const": "forecast",
+                  "type": "string"
+                },
+                "target_state": {
+                  "type": "string"
+                },
+                "scope_revision": {
+                  "type": "string"
+                },
+                "expires_at": {
+                  "type": "string"
+                },
+                "estimator_version": {
+                  "type": "string"
+                },
+                "cohort": {
+                  "type": "string"
+                },
+                "evidence_basis": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "comparable_sample_count": {
+                  "type": "number"
+                },
+                "all_attempt_sample_count": {
+                  "type": "number"
+                },
+                "censoring_method": {
+                  "type": "string"
+                },
+                "correlation_method": {
+                  "type": "string"
+                },
+                "calibration_profile": {
+                  "type": "string"
+                },
+                "grounding_status": {
+                  "const": "grounded",
+                  "type": "string"
+                },
+                "baseline_ref": {
+                  "type": "string"
+                },
+                "drift_policy_ref": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "forecast_evaluation": {},
+            "high_consequence_packet": {},
+            "civil_time_packet": {},
+            "temporal_priority_packet": {},
             "duration_ms": {
               "type": "number"
             },
@@ -3461,6 +4045,21 @@
                       "type": "string"
                     },
                     "continuity_id": {
+                      "type": "string"
+                    },
+                    "host_id": {
+                      "type": "string"
+                    },
+                    "operator_id": {
+                      "type": "string"
+                    },
+                    "workpoint_id": {
+                      "type": "string"
+                    },
+                    "item_id": {
+                      "type": "string"
+                    },
+                    "task_id": {
                       "type": "string"
                     }
                   },

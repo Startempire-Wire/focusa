@@ -38,6 +38,9 @@
   let predictionStats = $derived(s.predictionsStats ?? {});
   let metacogStatus = $derived(s.metacogStatus ?? {});
   let lineage = $derived(s.lineageHead ?? {});
+  let semanticPair = $derived(packet.semantic_pair ?? packet.semantic_integrity ?? {});
+  let semanticObligations = $derived(records(semanticPair.obligations, ['items']));
+  let semanticFindings = $derived(records(semanticPair.findings, ['items']));
 </script>
 
 <section class="proof-peek" aria-label="Proof peek">
@@ -91,6 +94,14 @@
       {:else}
         <p class="muted">No recent snapshots surfaced.</p>
       {/if}
+    </article>
+
+    <article class="panel">
+      <div class="label">Semantic Pair proof</div>
+      <div class="metric">{semanticFindings.length}</div>
+      <p>{text(semanticPair.state, 'schema_only')} · {semanticObligations.length} obligations</p>
+      <p>settlement:{text(semanticPair.settlement?.status, 'unsettled')} · replay:{text(semanticPair.replay?.status, 'not_requested')}</p>
+      <p class="muted">read-only · mutations unsupported on Proof Peek</p>
     </article>
   </div>
 

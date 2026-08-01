@@ -3,10 +3,24 @@
 
 import { mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 
 const RESERVED_PI_KEYS = new Set(["extensions", "skills", "prompts", "themes", "packages"]);
 
 export const DEFAULT_DAEMON_RESTART_COMMAND = "systemctl restart focusa-daemon";
+
+function detectedExtensionBuild(): string {
+  const explicit = String(process.env.FOCUSA_PI_EXTENSION_BUILD || "").trim();
+  if (explicit) return explicit;
+  try {
+    const packagePath = join(dirname(fileURLToPath(import.meta.url)), "..", "package.json");
+    const packageJson = JSON.parse(readFileSync(packagePath, "utf8"));
+    if (packageJson?.version) return `focusa-pi-bridge@${packageJson.version}`;
+  } catch {
+    // Installed runtimes without package metadata remain explicitly unknown.
+  }
+  return "focusa-pi-bridge@unknown";
+}
 
 function isPlainObject(value: unknown): value is Record<string, any> {
   return !!value && typeof value === "object" && !Array.isArray(value);
@@ -77,6 +91,17 @@ export interface FocusaConfig {
   workLoopMaxRetries: number;
   workLoopCooldownMs: number;
   focusaExtensionBuild?: string;
+  operatorStatusBarEnabled: boolean;
+  operatorStatusVersionEnabled: boolean;
+  operatorStatusOtaEnabled: boolean;
+  operatorStatusModelUsageEnabled: boolean;
+  operatorStatusTimeEnabled: boolean;
+  operatorStatusDeadlineEnabled: boolean;
+  operatorStatusPredictionEnabled: boolean;
+  operatorStatusWidgets: {
+    version: number;
+    enabled: Record<string, boolean>;
+  } | Record<string, boolean>;
   workLoopAllowDestructiveActions: boolean;
   workLoopRequireOperatorForGovernance: boolean;
   workLoopRequireOperatorForScopeChange: boolean;
@@ -177,6 +202,15 @@ const DEFAULTS: FocusaConfig = {
   workLoopMaxWallClockMs: 1_800_000,
   workLoopMaxRetries: 3,
   workLoopCooldownMs: 1_000,
+  focusaExtensionBuild: detectedExtensionBuild(),
+  operatorStatusBarEnabled: true,
+  operatorStatusVersionEnabled: true,
+  operatorStatusOtaEnabled: true,
+  operatorStatusModelUsageEnabled: true,
+  operatorStatusTimeEnabled: true,
+  operatorStatusDeadlineEnabled: true,
+  operatorStatusPredictionEnabled: true,
+  operatorStatusWidgets: { version: 1, enabled: {} },
   workLoopAllowDestructiveActions: false,
   workLoopRequireOperatorForGovernance: true,
   workLoopRequireOperatorForScopeChange: true,
@@ -220,6 +254,14 @@ const ENV_MAP: Record<string, keyof FocusaConfig> = {
   FOCUSA_PI_AGENT_REMINDER_USE_EMOJI: "agentReminderUseEmoji",
   FOCUSA_PI_VITAL_INFO_PROMPT_MODE: "vitalInfoPromptMode",
   FOCUSA_PI_VITAL_INFO_PROMPT_SURFACES: "vitalInfoPromptSurfaces",
+  FOCUSA_PI_EXTENSION_BUILD: "focusaExtensionBuild",
+  FOCUSA_PI_OPERATOR_STATUS_BAR_ENABLED: "operatorStatusBarEnabled",
+  FOCUSA_PI_OPERATOR_STATUS_VERSION_ENABLED: "operatorStatusVersionEnabled",
+  FOCUSA_PI_OPERATOR_STATUS_OTA_ENABLED: "operatorStatusOtaEnabled",
+  FOCUSA_PI_OPERATOR_STATUS_MODEL_USAGE_ENABLED: "operatorStatusModelUsageEnabled",
+  FOCUSA_PI_OPERATOR_STATUS_TIME_ENABLED: "operatorStatusTimeEnabled",
+  FOCUSA_PI_OPERATOR_STATUS_DEADLINE_ENABLED: "operatorStatusDeadlineEnabled",
+  FOCUSA_PI_OPERATOR_STATUS_PREDICTION_ENABLED: "operatorStatusPredictionEnabled",
   FOCUSA_PI_COOLDOWN_MS: "cooldownMs",
   FOCUSA_PI_MAX_COMPACTIONS_PER_HOUR: "maxCompactionsPerHour",
   FOCUSA_PI_MIN_TURNS_BETWEEN_COMPACTIONS: "minTurnsBetweenCompactions",

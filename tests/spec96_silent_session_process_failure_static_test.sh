@@ -11,10 +11,14 @@ else
   exit 1
 fi
 
-if rg -n 'tmux (restart kill phase|interrupt|send-keys|kill-session) failed' "$TOOLS" >/dev/null && ! rg -n 'tmux (restart kill phase|interrupt|send-keys|kill-session) failed[\s\S]{0,160}unknown_ambiguous_completion' "$TOOLS" >/dev/null; then
-  echo "✓ PASS: tmux process-control failures are not classified as ambiguous completion"
+if ! rg -n 'tmux (restart kill phase|interrupt|send-keys|kill-session)' "$TOOLS" >/dev/null \
+  && rg -n 'case "process_control_failed"' "$TOOLS" >/dev/null; then
+  echo "✓ PASS: daemon-native process-control failures are typed without legacy tmux ambiguity"
+elif rg -n 'tmux (restart kill phase|interrupt|send-keys|kill-session) failed' "$TOOLS" >/dev/null \
+  && ! rg -n 'tmux (restart kill phase|interrupt|send-keys|kill-session) failed[\s\S]{0,160}unknown_ambiguous_completion' "$TOOLS" >/dev/null; then
+  echo "✓ PASS: legacy tmux process-control failures are not classified as ambiguous completion"
 else
-  echo "✗ FAIL: tmux process-control failures still classify ambiguously" >&2
+  echo "✗ FAIL: process-control failures still classify ambiguously" >&2
   exit 1
 fi
 

@@ -29,6 +29,16 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 
 Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_metacog_evaluate_outcome.md
 
+## Operator alignment
+
+- refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps
+- treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker
+- consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation
+- use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested
+- never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range
+- for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons
+- use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation
+
 ## Anti-examples
 
 - journaling raw logs
@@ -67,4 +77,4 @@ Likely next: `focusa_metacog_capture`, `focusa_predict_stats`, `focusa_decide`.
 - CLI: `focusa metacognition evaluate`.
 - REST: `POST /v1/metacognition/evaluate`, `GET /v1/metacognition/evaluations/recent`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:dc81f2700f3cd52f51c2c548c32ca060a76fbe769bc3f60c7e7c06efce28c90e`.
+- Descriptor digest: `sha256:3f696358493d40aa48bef60e24381c7cb38efea966d9d3d6c70f63afa0de43b8`.

@@ -9,11 +9,18 @@ V1="${BASE_URL%/}/v1"
 PROJECT_ROOT="${FOCUSA_DOGFOOD_PROJECT_ROOT:-$ROOT_DIR}"
 CONTINUITY_ID="${FOCUSA_DOGFOOD_CONTINUITY_ID:-focusa-dogfood-$(date +%s)-$$}"
 WRITER_ID="${FOCUSA_DOGFOOD_WRITER_ID:-focusa-dogfood-$$}"
+WORKING_SUBPATH_ID="${FOCUSA_DOGFOOD_WORKING_SUBPATH_ID:-primary}"
 RUN_SLOW="${FOCUSA_DOGFOOD_SLOW:-0}"
 RUN_MUTATING_LOOP="${FOCUSA_DOGFOOD_MUTATING_LOOP:-0}"
 TMP_DIR="$(mktemp -d /tmp/focusa-dogfood.XXXXXX)"
 LATEST_SUMMARY_PATH="${FOCUSA_DOGFOOD_LATEST_SUMMARY:-/tmp/focusa-dogfood-latest.json}"
 LATEST_REPORT_PATH="${FOCUSA_DOGFOOD_LATEST_REPORT:-/tmp/focusa-dogfood-latest.md}"
+IDENTITY_JSON="$(curl -fsS --max-time 10 "$V1/project/identity" 2>/dev/null || printf '{}')"
+SCOPE_KIND="${FOCUSA_DOGFOOD_SCOPE_KIND:-project}"
+SCOPE_ID="${FOCUSA_DOGFOOD_SCOPE_ID:-$(jq -r '.project_identity.project_id // "focusa"' <<<"$IDENTITY_JSON")}"
+SCOPE_ROOT_PATH="${FOCUSA_DOGFOOD_SCOPE_ROOT_PATH:-$(jq -r '.project_identity.project_root // empty' <<<"$IDENTITY_JSON")}"
+SCOPE_CANONICAL_NAME="${FOCUSA_DOGFOOD_SCOPE_CANONICAL_NAME:-$(jq -r '.project_identity.canonical_name // "Focusa"' <<<"$IDENTITY_JSON")}"
+SCOPE_FINGERPRINT="${FOCUSA_DOGFOOD_SCOPE_FINGERPRINT:-$(jq -r '.project_identity.fingerprint // empty' <<<"$IDENTITY_JSON")}"
 PASSED=0
 FAILED=0
 PASS_NAMES=()
@@ -102,11 +109,15 @@ request() {
     code="$(curl -sS --max-time "$timeout" -o "$out" -w '%{http_code}' -X "$method" "$V1$path" \
       -H 'content-type: application/json' \
       -H "x-focusa-writer-id: $WRITER_ID" \
+      -H "x-scope-project-root: $PROJECT_ROOT" \
+      -H "x-scope-continuity-id: $CONTINUITY_ID" \
       -H 'x-focusa-permissions: admin:*' \
       --data "$body" || true)"
   else
     code="$(curl -sS --max-time "$timeout" -o "$out" -w '%{http_code}' -X "$method" "$V1$path" \
       -H "x-focusa-writer-id: $WRITER_ID" \
+      -H "x-scope-project-root: $PROJECT_ROOT" \
+      -H "x-scope-continuity-id: $CONTINUITY_ID" \
       -H 'x-focusa-permissions: admin:*' || true)"
   fi
   [[ "$code" =~ ^2 ]] && jq empty "$out" >/dev/null 2>&1
@@ -179,7 +190,8 @@ CHECKPOINT_BODY="$(jq -nc \
   --arg root "$PROJECT_ROOT" \
   --arg cont "$CONTINUITY_ID" \
   --arg key "$KEY" \
-  '{project_root:$root, continuity_id:$cont, session_id:$cont, checkpoint_reason:"manual", canonical:true, promote:true, idempotency_key:$key, mission:"Focusa dogfood validation", next_slice:"Prove Focusa-native agent UX loops", active_object_refs:["tests/focusa_dogfood_test.sh","docs/current/FOCUSA_DOGFOOD.md"], action_intent:{action_type:"dogfood_validate", target_ref:"FocusaToolSuite", verification_hooks:["health","trajectory","workpoint","evidence","metacog","resource"], status:"ready"}}')"
+  --arg subpath "$WORKING_SUBPATH_ID" \
+  '{project_root:$root, continuity_id:$cont, session_id:$cont, working_subpath_id:$subpath, checkpoint_reason:"manual", canonical:true, promote:true, idempotency_key:$key, mission:"Focusa dogfood validation", next_slice:"Prove Focusa-native agent UX loops", active_object_refs:["tests/focusa_dogfood_test.sh","docs/current/FOCUSA_DOGFOOD.md"], action_intent:{action_type:"dogfood_validate", target_ref:"FocusaToolSuite", verification_hooks:["health","trajectory","workpoint","evidence","metacog","resource"], status:"ready"}}')"
 WP_OUT="$TMP_DIR/workpoint_checkpoint.json"
 if request POST /workpoint/checkpoint "$CHECKPOINT_BODY" "$WP_OUT" 15 && WID="$(jq -r '.workpoint_id // empty' "$WP_OUT")" && [[ -n "$WID" ]]; then
   pass "workpoint_checkpoint"
@@ -192,18 +204,18 @@ if [[ -n "$WID" ]]; then
   CURRENT_OUT="$TMP_DIR/workpoint_current.json"
   visible=0
   for _ in $(seq 1 30); do
-    if request GET "/workpoint/current?project_root=$PROJECT_ROOT&continuity_id=$CONTINUITY_ID" '' "$CURRENT_OUT" 5 && jq -e --arg wid "$WID" '.workpoint_id == $wid or .active_workpoint_id == $wid' "$CURRENT_OUT" >/dev/null 2>&1; then
+    if request GET "/workpoint/current?project_root=$PROJECT_ROOT&continuity_id=$CONTINUITY_ID&working_subpath_id=$WORKING_SUBPATH_ID" '' "$CURRENT_OUT" 5 && jq -e --arg wid "$WID" '.workpoint_id == $wid or .active_workpoint_id == $wid' "$CURRENT_OUT" >/dev/null 2>&1; then
       visible=1; break
     fi
     sleep 0.25
   done
   [[ "$visible" == "1" ]] && pass "workpoint_current_visibility" || fail "workpoint_current_visibility" "$(cat "$CURRENT_OUT" 2>/dev/null || true)"
 
-  EVIDENCE_BODY="$(jq -nc --arg wid "$WID" '{workpoint_id:$wid,target_ref:"tests/focusa_dogfood_test.sh",result:"Focusa dogfood evidence link exercised",evidence_ref:"tests/focusa_dogfood_test.sh:dogfood"}')"
+  EVIDENCE_BODY="$(jq -nc --arg wid "$WID" --arg subpath "$WORKING_SUBPATH_ID" '{workpoint_id:$wid,working_subpath_id:$subpath,target_ref:"tests/focusa_dogfood_test.sh",result:"Focusa dogfood evidence link exercised",evidence_ref:"tests/focusa_dogfood_test.sh:dogfood"}')"
   assert_req "workpoint_evidence_link" POST /workpoint/evidence/link "$EVIDENCE_BODY" '(.status == "accepted") or (.status == "pending")' 10
 fi
 
-RESUME_BODY="$(jq -nc --arg root "$PROJECT_ROOT" --arg cont "$CONTINUITY_ID" '{mode:"operator_summary", project_root:$root, continuity_id:$cont}')"
+RESUME_BODY="$(jq -nc --arg root "$PROJECT_ROOT" --arg cont "$CONTINUITY_ID" --arg subpath "$WORKING_SUBPATH_ID" '{mode:"operator_summary", project_root:$root, continuity_id:$cont, working_subpath_id:$subpath}')"
 assert_req "workpoint_resume" POST /workpoint/resume "$RESUME_BODY" '.canonical == true or .resume_packet != null or .resume_packet_v2 != null or .status == "completed" or (.status == "pending" and .failure_class == "resource_exhausted" and .retry_posture == "safe_retry")' 15
 
 # 5. Evidence/traverse UX: proof should be recoverable without transcript memory.
@@ -211,7 +223,7 @@ assert_req "traverse_recent_evidence" POST /traverse '{"surface":"evidence","sel
 assert_req "active_object_context" POST /ontology/context '{"current_ask":"Focusa dogfood: identify active object and next proof","budget_tokens":320,"view_profile":"pi_operator_view","slice_type":"active_mission"}' '. != null' 10
 
 # 6. Metacognition + prediction loop: learning surfaces should accept bounded signals.
-PRED_BODY="$(jq -nc '{prediction_type:"dogfood_gate_success",predicted_outcome:"Focusa dogfood gates identify actionable subsystem health",confidence:0.74,recommended_action:"Run focusa_dogfood_test before release claims",why:"Dogfood composes health, trajectory, workpoint, evidence, metacog, and resource gates"}')"
+PRED_BODY="$(jq -nc --argjson scope "$(jq -nc --arg kind "$SCOPE_KIND" --arg id "$SCOPE_ID" --arg root "$SCOPE_ROOT_PATH" --arg name "$SCOPE_CANONICAL_NAME" --arg fp "$SCOPE_FINGERPRINT" --arg cont "$CONTINUITY_ID" '{root_scope:{scope_kind:$kind,scope_id:$id,root_path:$root,canonical_name:$name,fingerprint:$fp},continuity_id:$cont}')" '{scope:$scope,prediction_type:"dogfood_gate_success",predicted_outcome:"Focusa dogfood gates identify actionable subsystem health",confidence:0.74,recommended_action:"Run focusa_dogfood_test before release claims",why:"Dogfood composes health, trajectory, workpoint, evidence, metacog, and resource gates"}')"
 PRED_OUT="$TMP_DIR/predict_record.json"
 if request POST /predictions "$PRED_BODY" "$PRED_OUT" 10; then
   PID="$(jq -r '.prediction.prediction_id // .prediction_id // .id // empty' "$PRED_OUT")"
@@ -224,7 +236,7 @@ CAPTURE_BODY="$(jq -nc '{kind:"dogfood_signal",content:"Focusa dogfood composes 
 assert_req "metacog_capture" POST /metacognition/capture "$CAPTURE_BODY" '.capture_id != null or .id != null or .status == "accepted"' 10
 assert_req "metacog_retrieve" POST /metacognition/retrieve '{"current_ask":"Focusa dogfood agent UX validation","scope_tags":["focusa_dogfood"],"k":5}' '.candidates != null or .results != null' 10
 if [[ -n "$PID" ]]; then
-  EVAL_BODY="$(jq -nc --arg pid "$PID" '{prediction_id:$pid, actual_outcome:"Dogfood script executed prediction record path", score:0.8}')"
+  EVAL_BODY="$(jq -nc --arg pid "$PID" --argjson scope "$(jq -nc --arg kind "$SCOPE_KIND" --arg id "$SCOPE_ID" --arg root "$SCOPE_ROOT_PATH" --arg name "$SCOPE_CANONICAL_NAME" --arg fp "$SCOPE_FINGERPRINT" --arg cont "$CONTINUITY_ID" '{root_scope:{scope_kind:$kind,scope_id:$id,root_path:$root,canonical_name:$name,fingerprint:$fp},continuity_id:$cont}')" '{prediction_id:$pid,scope:$scope,actual_outcome:"Dogfood script executed prediction record path",score:0.8}')"
   assert_req "predict_evaluate" POST "/predictions/$PID/evaluate" "$EVAL_BODY" '. != null' 10
 fi
 

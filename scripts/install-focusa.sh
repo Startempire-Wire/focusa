@@ -382,14 +382,42 @@ if [ "$TARGET" = "auto" ]; then
     Darwin-arm64|Darwin-aarch64) TRIPLE="aarch64-apple-darwin" ;;
     *) err "unsupported host: $HOST_OS-$HOST_ARCH"; exit 66 ;;
   esac
-  TARGET="$TRIPLE"
   # Map host OS to Rust InstallTarget enum variant.
   case "$HOST_OS" in
     Linux)   RUST_TARGET="linux" ;;
     Darwin)  RUST_TARGET="darwin" ;;
     Windows) RUST_TARGET="windows-x64" ;;
   esac
+else
+  # Public --target values are installer aliases, not release asset suffixes.
+  # Resolve both the immutable release triple and the Rust orchestrator enum.
+  case "$TARGET" in
+    linux)
+      RUST_TARGET="linux"
+      case "$HOST_ARCH" in
+        x86_64) TRIPLE="x86_64-unknown-linux-musl" ;;
+        aarch64|arm64) TRIPLE="aarch64-unknown-linux-gnu" ;;
+      esac
+      ;;
+    darwin)
+      RUST_TARGET="darwin"
+      case "$HOST_ARCH" in
+        x86_64) TRIPLE="x86_64-apple-darwin" ;;
+        aarch64|arm64) TRIPLE="aarch64-apple-darwin" ;;
+      esac
+      ;;
+    windows-x64)
+      RUST_TARGET="windows-x64"
+      TRIPLE="x86_64-pc-windows-msvc"
+      ;;
+    windows-arm64)
+      RUST_TARGET="windows-arm64"
+      TRIPLE="aarch64-pc-windows-msvc"
+      ;;
+    *) err "unsupported explicit target alias: $TARGET"; exit 66 ;;
+  esac
 fi
+TARGET="$TRIPLE"
 
 # ----------------------------------------------------------------------------
 # Channel → release-tag pattern.
@@ -600,18 +628,26 @@ if [ -n "$LICENSE_KEY" ]; then
   RESP_EMAIL="$(printf '%s' "$VALIDATE_RESP" | json_get customer_email)"
   CUSTOMER_EMAIL="${RESP_EMAIL:-${LICENSE_EMAIL:-}}"
   log "license valid: tier=${TIER}"
-  write_license_authority
-  write_license_json "$KH" "$KP" "$PRODUCT" "$TIER" "$STATUS" "$COMMERCIAL" \
-                     "$FEATURES" "$EXPIRES" "$ACTIVATED" "false"
-  write_license_receipt "$TIER" "$STATUS" "$EXPIRES" "$CUSTOMER_EMAIL" "false"
+  if [ "$DRY_RUN" = 1 ]; then
+    log "DRY RUN: would write commercial license authority, state, and receipt"
+  else
+    write_license_authority
+    write_license_json "$KH" "$KP" "$PRODUCT" "$TIER" "$STATUS" "$COMMERCIAL" \
+                       "$FEATURES" "$EXPIRES" "$ACTIVATED" "false"
+    write_license_receipt "$TIER" "$STATUS" "$EXPIRES" "$CUSTOMER_EMAIL" "false"
+  fi
 elif [ "$EVAL" = 1 ]; then
-  log "eval mode: writing self-signed license.json with 7-day offline grace"
   KH="eval"
   KP="eval-$(date -u +%Y%m%d)"
-  write_license_authority
-  write_license_json "$KH" "$KP" "focusa" "evaluation" "active" "false" \
-                     '["daemon","tui","cli"]' "" "" "true"
-  write_license_receipt "evaluation" "active" "" "" "true"
+  if [ "$DRY_RUN" = 1 ]; then
+    log "DRY RUN: would write evaluation license authority, state, and receipt"
+  else
+    log "eval mode: writing self-signed license.json with 7-day offline grace"
+    write_license_authority
+    write_license_json "$KH" "$KP" "focusa" "evaluation" "active" "false" \
+                       '["daemon","tui","cli"]' "" "" "true"
+    write_license_receipt "evaluation" "active" "" "" "true"
+  fi
 else
   # Should be unreachable (BSL gate above). Surface a clear error.
   err "no license key provided and --eval not set. pass --eval or --license-key."
@@ -622,7 +658,9 @@ fi
 # Migrate any pre-existing legacy license.json (customer_email: null shape)
 # so the daemon parser accepts it.
 # ----------------------------------------------------------------------------
-migrate_legacy_license
+if [ "$DRY_RUN" = 0 ]; then
+  migrate_legacy_license
+fi
 
 # ----------------------------------------------------------------------------
 # Download focusa bootstrapper binary for this target triple.
@@ -731,7 +769,9 @@ fi
 # ----------------------------------------------------------------------------
 # Place the bootstrapper binary and hand off to the Rust orchestrator.
 # ----------------------------------------------------------------------------
-mkdir -p "$BIN_DIR" "$STATE_DIR" "$CONFIG_DIR" "$LIBEXEC_DIR"
+if [ "$DRY_RUN" = 0 ]; then
+  mkdir -p "$BIN_DIR" "$STATE_DIR" "$CONFIG_DIR" "$LIBEXEC_DIR"
+fi
 
 # Anti-rollback: refuse to downgrade an existing install unless --force.
 INSTALLED_VERSION_FILE="${STATE_DIR}/installed_version"

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Focusa public benchmark observatory: measured agent-runtime outcomes, failures, replays, and evidence.">
+  <title>Focusa Agent Performance Observatory</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="hero">
+    <nav><a class="brand" href="./">FOCUSA / BENCH</a><a href="./methodology.html">Methodology</a></nav>
+    <div class="hero-copy">
+      <p class="eyebrow">PUBLIC AGENT-RUNTIME OBSERVATORY</p>
+      <h1>Same agent. Same task.<br><span>One run keeps the mission.</span></h1>
+      <p class="lede">Focusa measures the difference between a baseline agent and the same agent operating with Focusa—without hiding regressions or uncertainty.</p>
+      <div id="snapshot-badge" class="badge">Loading verified snapshot…</div>
+    </div>
+  </header>
+
+  <main>
+    <section aria-labelledby="headline-title" class="panel headline">
+      <div><p class="eyebrow">LATEST SNAPSHOT</p><h2 id="headline-title">Focusa-vs-No-Focusa</h2></div>
+      <div id="headline-metrics" class="metric-grid" aria-live="polite"></div>
+      <p id="empty-state" class="empty" hidden></p>
+    </section>
+
+    <section aria-labelledby="trend-title" class="panel">
+      <div class="section-heading"><div><p class="eyebrow">MEASURED OVER TIME</p><h2 id="trend-title">Outcome trend</h2></div><span id="trend-label" class="muted"></span></div>
+      <div id="trend-chart" class="trend-chart" role="img" aria-label="No measured trend loaded"></div>
+    </section>
+
+    <section aria-labelledby="failure-title" class="panel">
+      <div class="section-heading"><div><p class="eyebrow">FAILURE → FIX → RERUN</p><h2 id="failure-title">Improvement board</h2></div><span class="muted">Failures remain visible</span></div>
+      <div id="failure-board" class="card-grid"></div>
+    </section>
+
+    <section aria-labelledby="replay-title" class="panel split">
+      <div><p class="eyebrow">TASK REPLAY THEATER</p><h2 id="replay-title">Evidence, not transcript theater</h2><p>Public-safe timelines show tool calls, drift events, judge results, and redaction state. Private prompts and raw transcripts never render.</p></div>
+      <div id="replay-list" class="replay-list"></div>
+    </section>
+
+    <section aria-labelledby="evidence-title" class="panel">
+      <div class="section-heading"><div><p class="eyebrow">VERIFY THE CLAIM</p><h2 id="evidence-title">Evidence bundle</h2></div><a href="./methodology.html">Scoring method →</a></div>
+      <dl id="evidence-bundle" class="evidence-grid"></dl>
+    </section>
+  </main>
+
+  <aside class="honesty" aria-labelledby="honesty-title">
+    <h2 id="honesty-title">Honesty rail</h2>
+    <dl id="honesty-rail"></dl>
+  </aside>
+
+  <footer><span>bench.focusa.dev static preview</span><span>Immutable public-safe artifacts only</span></footer>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

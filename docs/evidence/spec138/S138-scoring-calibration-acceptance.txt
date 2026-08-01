@@ -1,0 +1,17 @@
+Spec138 Scoring and Calibration Acceptance Evidence
+Generated: 2026-07-30
+Status: PASS (verified scoring slice; full Spec138/138A remains open)
+
+Coverage:
+- 31 required versioned scorers with explicit shape, direction, assumptions, fixtures, and evidence
+- binary/multiclass proper scores, CRPS, numeric, quantile, interval, ranking, survival, calibration, skill, utility, and regret algorithms
+- custom scorer registration with version/range/assumption/fixture/evidence/implementation authority
+- 19 calibration dimensions, scorer/cohort binding, ECE/MCE/ACE, Brier, bias, sharpness, buckets, sample threshold, evidence, and receipt
+- evaluation authority binds information set, resolver, scorer, scoring policy, commitment time, and resolution time; post-outcome policy choice is rejected
+
+Proof:
+- cargo test -p focusa-core prediction_scoring
+- cargo test -p focusa-core prediction_calibration
+- tests/spec138_scoring_calibration_gate.py
+
+Boundary: learning, transfer, lifecycle, surfaces, profile closure, and full conformance remain open.

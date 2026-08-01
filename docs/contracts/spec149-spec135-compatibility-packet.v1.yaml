@@ -1,0 +1,155 @@
+schema: focusa.spec135_compatibility_packet.v1
+packet_id: spec149-workset-spec135-impact-v1
+spec_ref: docs/149-focusa-workset-flow-ledger-and-release-completion-spec.md
+status: specified_next_release
+current_release_admitted: false
+baseline:
+  manifest_ref: docs/135-series-current-manifest.md
+  frozen_at: 135K
+  implementation_sha: cf65f34c
+  generated_schema_ref: packages/generated/spec135/typescript/schema.d.ts
+  a2ui_catalog_ref: packages/a2ui-renderer/src/focusa-catalog.ts
+authority_laws:
+  - No Spec135L is created.
+  - Frozen semantics are amended only through Spec135D and Spec135E procedures.
+  - Mission Canvas remains projection-only and binds canonical Operation Registry entries.
+  - Existing A2UI renderer, durable stream, Work Rail, Work Surface, task-plan, and generated-client substrates are reused.
+  - Unknown impact blocks decomposition, implementation promotion, and release.
+impacts:
+  - spec: "135"
+    impact: direct
+    affected_clauses: [workspace authority, CRIST task lifecycle, closure contract, professional workspace projection]
+    compatibility_behavior: Workset binds existing workspace and CRIST records without replacing them.
+    migration_behavior: Add Workset refs through additive schemas and events.
+    required_amendments: [Workset vocabulary, authority table, terminal closure binding]
+  - spec: 135A
+    impact: direct
+    affected_clauses: [Mission Canvas, Work Rail, vertical UX, responsive projection]
+    compatibility_behavior: Add generated Workset surfaces inside existing Canvas and Rail.
+    migration_behavior: Existing layouts remain valid; new cards are capability-gated.
+    required_amendments: [Workset header, frontier, checkpoint timeline, release progress, narrow-width behavior]
+  - spec: 135B
+    impact: direct
+    affected_clauses: [CRIST Tasks, provider-neutral task plans, materialization, Project Genesis]
+    compatibility_behavior: Approved materialized tasks feed Workset admission preview.
+    migration_behavior: Existing task-plan revisions remain unchanged and link by stable refs.
+    required_amendments: [task-plan-to-Workset admission handoff, first Workset creation after Genesis]
+  - spec: 135C
+    impact: indirect
+    affected_clauses: [UIAI artifacts, live refresh, browser identity, FPV]
+    compatibility_behavior: Workset artifacts use existing live-refresh and browser identity boundaries.
+    migration_behavior: No browser state is imported implicitly.
+    required_amendments: [Workset artifact invalidation refs]
+  - spec: 135D
+    impact: direct
+    affected_clauses: [implementation order, no deferral, performance, framework reuse]
+    compatibility_behavior: Spec149 phases and budgets become an additional protected implementation DAG.
+    migration_behavior: No existing stage is reordered for the current release.
+    required_amendments: [Spec149 dependency DAG, quantitative budgets, zero-deferral gate]
+  - spec: 135E
+    impact: direct
+    affected_clauses: [cross-spec amendments, migration, compatibility, closure]
+    compatibility_behavior: This packet is the controlling impact input.
+    migration_behavior: Exact affected clauses and generated artifacts are recorded before coding.
+    required_amendments: [Spec149 row in compatibility and closure matrix]
+  - spec: 135F
+    impact: indirect
+    affected_clauses: [ontology objects, semantic graph, reactive context]
+    compatibility_behavior: Workset/member/flow/evidence relations are ontology projections, not task authority.
+    migration_behavior: Additive object and relation types only.
+    required_amendments: [Workset ontology types, membership and flow relations]
+  - spec: 135G
+    impact: direct
+    affected_clauses: [Work Surfaces, sessions, attachments, browser context isolation, restoration]
+    compatibility_behavior: Workset state remains bound to owning surface/session/origin/attachments.
+    migration_behavior: Existing restoration packets gain optional Workset refs.
+    required_amendments: [Workset restoration state, cross-surface link operation]
+  - spec: 135H
+    impact: indirect
+    affected_clauses: [Grill Interview, Cross-Functional Alpha, implementation acceleration]
+    compatibility_behavior: Interview output may propose task plans and admissions but cannot commit.
+    migration_behavior: Existing interview records remain proposal-only.
+    required_amendments: [Workset admission proposal output]
+  - spec: 135I
+    impact: direct
+    affected_clauses: [generated CRIST UI, nontechnical onboarding, A2UI action surfaces]
+    compatibility_behavior: Workset UI is server-generated through existing A2UI catalog.
+    migration_behavior: Add generated component contracts; no hand-coded authority route.
+    required_amendments: [finite/streaming Workset surfaces, explanation and confirmation UX]
+  - spec: 135J
+    impact: direct
+    affected_clauses: [Core API Operation Registry, durable stream, envelopes, runtime reuse]
+    compatibility_behavior: All Workset actions and events use existing operation and stream contracts.
+    migration_behavior: Register additive operation families and event types.
+    required_amendments: [operation entries, permissions, failures, replay invalidations]
+  - spec: 135K
+    impact: direct
+    affected_clauses: [UXP, UFI, adaptive generated UI, friction learning, usability]
+    compatibility_behavior: Adaptation changes presentation only; authority and graph semantics remain fixed.
+    migration_behavior: Add Workset friction events and explanations without hidden mutation.
+    required_amendments: [Workset usability metrics, adaptive-boundary tests]
+affected_primitives:
+  - ProjectIdentity
+  - Trajectory
+  - Workpoint
+  - ProviderNeutralTaskPlanRecord
+  - WorkItemRef
+  - MissionCanvasProjection
+  - WorkRailProjection
+  - WorkSurface
+  - OperationRegistryEntry
+  - DurableStreamEvent
+  - A2UIComponent
+  - UXP
+  - UFI
+affected_schemas_apis_events_storage:
+  schemas:
+    - docs/contracts/spec149-workset.schema.v1.json
+    - packages/generated/spec135/typescript/schema.d.ts
+  apis:
+    - /v1/worksets
+    - /v1/worksets/:workset_id/a2ui
+    - /v1/worksets/:workset_id/stream
+  events:
+    - workset.*
+  storage:
+    - Workset event and projection tables specified by Spec149 section 21
+affected_pi_canvas_agent_surfaces:
+  - apps/menubar/src/lib/components/MissionCanvasView.svelte
+  - crates/focusa-api/src/routes/mission_canvas_surfaces.rs
+  - crates/focusa-api/src/routes/work_rail.rs
+  - apps/pi-extension/src/mission-canvas-view.ts
+  - apps/pi-extension/src/mission-canvas-widget.ts
+  - packages/a2ui-renderer/src/focusa-catalog.ts
+  - packages/generated/spec135/typescript/schema.d.ts
+required_generated_artifacts:
+  - OpenAPI Workset paths and components
+  - TypeScript Workset schemas and client methods
+  - A2UI Workset component catalog entries
+  - Operation Registry descriptors and agent capability projections
+required_tests:
+  - generated contract and runtime drift
+  - Mission Canvas/Pi Work Rail semantic parity
+  - durable replay and restoration
+  - finite and provider-stream virtualization
+  - keyboard, screen-reader, reduced-motion and narrow-width
+  - attachment/session/origin isolation
+  - adaptive UI authority non-mutation
+  - provider task-plan to Workset admission
+  - operation confirmation and permission parity
+implementation_order:
+  - current locked release terminal completion
+  - final Spec149 and packet approval
+  - shared schema and Operation Registry freeze
+  - additive backend events and projections
+  - generated contracts
+  - Mission Canvas and Work Rail projection
+  - cross-surface tests and migration proof
+operator_gates:
+  current_release_admission: denied_by_operator
+  next_release_spec_hardening: approved
+  final_spec_approval: pending
+  implementation_start: pending
+  generated_contract_write: pending
+unknown_impacts: []
+blockers: []

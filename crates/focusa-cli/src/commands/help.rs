@@ -26,11 +26,6 @@ pub enum HelpTopic {
 }
 
 const MIGRATIONS: &[(&str, &str, &str)] = &[
-    (
-        "focusa init",
-        "focusa project new / focusa setup init",
-        "deprecated alias",
-    ),
     ("focusa onboard", "focusa setup wizard", "deprecated alias"),
     (
         "focusa preflight",

@@ -2,7 +2,7 @@
   "schema": "focusa.agent_card.v1",
   "name": "Focusa",
   "description": "Agent-first cognitive infrastructure with scoped Workpoints, Trajectory, evidence, recovery, browser interoperability, and cross-harness capability contracts.",
-  "version": "0.9.141",
+  "version": "0.9.142",
   "interfaces": [
     "pi",
     "mcp",
@@ -22,9 +22,28 @@
     "device_pairing",
     "local_trusted"
   ],
-  "registry_digest": "sha256:d7bb4c8fb927058bd546672f85ab3a3b9e6ffbbaf3a113d51f6671d8ecf4ba95",
-  "pi_tool_count": 116,
-  "pi_tool_docs_count": 116,
+  "operator_alignment": {
+    "schema": "focusa.operator_alignment.v1",
+    "authority": "operator_intent_constraints_and_confirmed_timeline_lead",
+    "requirements": [
+      "refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps",
+      "treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker",
+      "consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation",
+      "use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested",
+      "never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range",
+      "for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons",
+      "use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation"
+    ],
+    "project_reception": {
+      "candidate_scan_depth_min": 2,
+      "candidate_limit": 20,
+      "mutation_before_confirmation": false,
+      "guided_orientation_optional": true
+    }
+  },
+  "registry_digest": "sha256:4231361362502c49a10c5ca1ff570e54f8e296e1e1356ac72cd0ad7e09c10915",
+  "pi_tool_count": 135,
+  "pi_tool_docs_count": 135,
   "pi_tool_registry_path": "docs/contracts/spec141/generated-capability-v2/pi-tools.json",
   "pi_tool_docs_path": "docs/focusa-tools/tools/",
   "skill_count": 29,
@@ -349,6 +368,7 @@
     ".pi/skills/predictive-power/references/01-predictive-power-runbook.md"
   ],
   "capability_families": [
+    "agent_runtime",
     "awareness",
     "diagnostics_hygiene",
     "focus_state",
@@ -363,5 +383,5 @@
     "workpoint"
   ],
   "extended_card_path": "/v1/agent/card",
-  "card_digest": "sha256:3438fffe30a53643ef9d35015fae931064604d183bdcbf261195018a4fc05551"
+  "card_digest": "sha256:5d96339b13c59b2556c69fc743e9765c5915ed6475a4474ed3263efb42be1e3c"
 }

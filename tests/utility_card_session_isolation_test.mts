@@ -1,4 +1,5 @@
 import { buildFocusaUtilityCard } from "../apps/pi-extension/src/awareness.ts";
+import { registerVerifiedScopeRef } from "../apps/pi-extension/src/scoped-state.ts";
 import {
   adoptPersistedContinuityForSession,
   getActiveWorkpointPacket,
@@ -13,6 +14,14 @@ import {
 function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
 }
+
+registerVerifiedScopeRef({
+  scope_kind: "project",
+  scope_id: "project-a",
+  root_path: "/tmp/project-a",
+  canonical_name: "Project A",
+  fingerprint: "sha256:project-a",
+});
 
 const attachmentKey = makeAttachmentKey({
   projectRoot: "/tmp/project-a",

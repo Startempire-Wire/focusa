@@ -44,6 +44,16 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 
 Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_traverse.md
 
+## Operator alignment
+
+- refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps
+- treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker
+- consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation
+- use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested
+- never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range
+- for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons
+- use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation
+
 ## Anti-examples
 
 - full payloads by default
@@ -82,4 +92,4 @@ Likely next: `focusa_active_object_resolve`, `focusa_evidence_capture`, `focusa_
 - CLI: none.
 - REST: `POST /v1/traverse`, `POST /v1/traverse/verify-tags`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:fcece7431d6a7dae27897dba541a95329b387ba4c7191937eeb63f992bb00bea`.
+- Descriptor digest: `sha256:4523b6aae77e1668b1aff6008163e39dae1bc985a8eafdc9f076b398e7f4bd1a`.

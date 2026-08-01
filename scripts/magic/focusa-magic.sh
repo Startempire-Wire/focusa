@@ -60,8 +60,18 @@ if [[ "${FOCUSA_MAGIC_DISABLE:-}" == "1" ]]; then
     exec "$real_harness" "$@"
 fi
 
-# Handle interactive mode (no args) - still route through focusa wrap
-# This enables Focusa to intercept interactive TUI sessions
+# Pi is integrated by the Focusa extension's typed lifecycle events in every
+# mode (new, continue, resume picker, print, JSON, and RPC). Always bypass the
+# legacy PTY wrapper to avoid capture, debug leakage, stale-context layers, and
+# resume crashes. Explicit `focusa wrap -- pi ...` remains available for a
+# deliberately requested adapter diagnostic.
+if [[ "$harness_name" == "pi" ]]; then
+    real_harness="$(PATH="$path_sans_shim" command -v "$harness_name" 2>/dev/null || true)"
+    if [[ -n "$real_harness" && -x "$real_harness" ]]; then
+        exec "$real_harness" "$@"
+    fi
+fi
+
 focusa_bin="${FOCUSA_BIN:-focusa}"
 
 # Check if focusa binary exists and is executable

@@ -1,0 +1,353 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://focusa.dev/schemas/spec149-workset.v1.json",
+  "title": "Focusa Spec149 Workset Contracts v1",
+  "oneOf": [
+    { "$ref": "#/$defs/WorksetDefinition" },
+    { "$ref": "#/$defs/WorksetProjection" },
+    { "$ref": "#/$defs/WorksetEventEnvelope" },
+    { "$ref": "#/$defs/WorksetPreloadSlice" },
+    { "$ref": "#/$defs/WorksetFailureEnvelope" }
+  ],
+  "$defs": {
+    "NonEmptyString": { "type": "string", "minLength": 1, "maxLength": 4096 },
+    "StableId": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9._:-]+$" },
+    "Sha256": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "UtcTimestamp": { "type": "string", "format": "date-time" },
+    "StringRefs": { "type": "array", "items": { "$ref": "#/$defs/NonEmptyString" }, "uniqueItems": true },
+    "WorksetScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["project_root", "continuity_id"],
+      "properties": {
+        "project_root": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "continuity_id": { "$ref": "#/$defs/StableId" },
+        "working_subpath_id": { "type": ["string", "null"], "maxLength": 256 }
+      }
+    },
+    "WorksetProviderBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["binding_id", "provider", "provider_scope_ref", "query_semantics", "freshness"],
+      "properties": {
+        "binding_id": { "$ref": "#/$defs/StableId" },
+        "provider": { "enum": ["bd", "github", "linear", "jira", "imported", "none"] },
+        "provider_scope_ref": { "$ref": "#/$defs/NonEmptyString" },
+        "provider_revision_ref": { "type": ["string", "null"], "maxLength": 4096 },
+        "query_semantics": { "enum": ["open_only", "all_nonterminal", "explicit_ids", "provider_query", "event_stream"] },
+        "query": { "type": ["object", "null"] },
+        "cursor": { "type": ["string", "null"], "maxLength": 4096 },
+        "ordering_key": { "type": ["string", "null"], "maxLength": 256 },
+        "cursor_expires_at": { "anyOf": [{ "$ref": "#/$defs/UtcTimestamp" }, { "type": "null" }] },
+        "retention_horizon_ms": { "type": ["integer", "null"], "minimum": 0 },
+        "tombstone_horizon_ms": { "type": ["integer", "null"], "minimum": 0 },
+        "deduplication_window_ms": { "type": ["integer", "null"], "minimum": 0 },
+        "lag_limit_ms": { "type": ["integer", "null"], "minimum": 0 },
+        "backpressure_mode": { "enum": ["pause_admission", "bounded_buffer", "not_applicable"] },
+        "last_verified_at": { "anyOf": [{ "$ref": "#/$defs/UtcTimestamp" }, { "type": "null" }] },
+        "freshness": { "enum": ["current", "stale", "unavailable"] },
+        "capabilities_ref": { "type": ["string", "null"], "maxLength": 4096 }
+      }
+    },
+    "WorksetMember": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["member_id", "work_item_ref", "provider_binding_ref", "mandatory", "status_at_admission", "admission_event_ref", "disposition"],
+      "properties": {
+        "member_id": { "$ref": "#/$defs/StableId" },
+        "work_item_ref": { "$ref": "#/$defs/NonEmptyString" },
+        "provider_binding_ref": { "$ref": "#/$defs/StableId" },
+        "task_plan_ref": { "type": ["string", "null"], "maxLength": 4096 },
+        "requirement_refs": { "$ref": "#/$defs/StringRefs" },
+        "spec_refs": { "$ref": "#/$defs/StringRefs" },
+        "mandatory": { "type": "boolean" },
+        "status_at_admission": { "$ref": "#/$defs/NonEmptyString" },
+        "provider_revision_at_admission": { "type": ["string", "null"], "maxLength": 4096 },
+        "admission_event_ref": { "$ref": "#/$defs/NonEmptyString" },
+        "admission_reason": { "type": ["string", "null"], "maxLength": 2048 },
+        "parent_member_ref": { "type": ["string", "null"], "maxLength": 256 },
+        "epoch_id": { "type": ["string", "null"], "maxLength": 256 },
+        "current_status_projection": { "type": ["string", "null"], "maxLength": 128 },
+        "current_status_freshness": { "enum": ["current", "stale", "unavailable", "unknown"] },
+        "disposition": { "enum": ["pending", "completed", "excluded", "superseded", "cancelled", "blocked"] },
+        "supersedes_member_ref": { "type": ["string", "null"], "maxLength": 256 },
+        "evidence_refs": { "$ref": "#/$defs/StringRefs" },
+        "receipt_refs": { "$ref": "#/$defs/StringRefs" }
+      }
+    },
+    "WorksetEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["edge_id", "from_member_ref", "to_member_ref", "edge_type", "source", "source_ref", "created_event_ref"],
+      "properties": {
+        "edge_id": { "$ref": "#/$defs/StableId" },
+        "from_member_ref": { "$ref": "#/$defs/StableId" },
+        "to_member_ref": { "$ref": "#/$defs/StableId" },
+        "edge_type": { "enum": ["blocks", "parent_child", "evidence_requires", "checkpoint_requires", "release_requires"] },
+        "source": { "enum": ["provider", "workset", "specification", "operator"] },
+        "source_ref": { "$ref": "#/$defs/NonEmptyString" },
+        "created_event_ref": { "$ref": "#/$defs/NonEmptyString" }
+      }
+    },
+    "ExternalDependencyRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["external_dependency_id", "work_item_ref", "provider_binding_ref", "required_by_member_refs", "policy", "freshness"],
+      "properties": {
+        "external_dependency_id": { "$ref": "#/$defs/StableId" },
+        "work_item_ref": { "$ref": "#/$defs/NonEmptyString" },
+        "provider_binding_ref": { "$ref": "#/$defs/StableId" },
+        "required_by_member_refs": { "$ref": "#/$defs/StringRefs" },
+        "policy": { "enum": ["observe", "block", "admit_by_preview", "evidence_only"] },
+        "freshness": { "enum": ["current", "stale", "unavailable", "unknown"] },
+        "status_projection": { "type": ["string", "null"], "maxLength": 128 },
+        "resolution_ref": { "type": ["string", "null"], "maxLength": 4096 }
+      }
+    },
+    "WorksetRelationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relationship_id", "source_workset_ref", "target_workset_ref", "relationship", "membership_policy"],
+      "properties": {
+        "relationship_id": { "$ref": "#/$defs/StableId" },
+        "source_workset_ref": { "$ref": "#/$defs/StableId" },
+        "target_workset_ref": { "$ref": "#/$defs/StableId" },
+        "relationship": { "enum": ["parent", "child", "successor", "recurring_template", "imports_evidence_from"] },
+        "membership_policy": { "enum": ["exclusive", "shared_read", "shared_closure"] },
+        "created_event_ref": { "$ref": "#/$defs/NonEmptyString" }
+      }
+    },
+    "WorksetEpoch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["epoch_id", "ordinal", "state", "cursor_start", "membership_digest"],
+      "properties": {
+        "epoch_id": { "$ref": "#/$defs/StableId" },
+        "ordinal": { "type": "integer", "minimum": 0 },
+        "state": { "enum": ["open", "sealing", "sealed", "completed", "failed", "cancelled"] },
+        "cursor_start": { "type": ["string", "null"], "maxLength": 4096 },
+        "cursor_end": { "type": ["string", "null"], "maxLength": 4096 },
+        "membership_digest": { "$ref": "#/$defs/Sha256" },
+        "graph_digest": { "anyOf": [{ "$ref": "#/$defs/Sha256" }, { "type": "null" }] },
+        "opened_at": { "anyOf": [{ "$ref": "#/$defs/UtcTimestamp" }, { "type": "null" }] },
+        "sealed_at": { "anyOf": [{ "$ref": "#/$defs/UtcTimestamp" }, { "type": "null" }] }
+      }
+    },
+    "WorksetCheckpointFlow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["flow_id", "flow_revision", "workset_ref", "trigger", "mode", "operation_ref", "operation_version", "input_digest", "environment_identity_ref", "acceptance_contract_revision", "proof_reuse_policy"],
+      "properties": {
+        "flow_id": { "$ref": "#/$defs/StableId" },
+        "flow_revision": { "type": "integer", "minimum": 1 },
+        "workset_ref": { "$ref": "#/$defs/StableId" },
+        "trigger": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {
+            "kind": { "enum": ["after_members", "before_member", "epoch_seal", "milestone", "risk_change", "manual", "periodic"] },
+            "member_refs": { "$ref": "#/$defs/StringRefs" },
+            "epoch_ref": { "type": ["string", "null"], "maxLength": 256 },
+            "temporal_claim_ref": { "type": ["string", "null"], "maxLength": 4096 }
+          }
+        },
+        "mode": { "enum": ["blocking", "advisory"] },
+        "operation_ref": { "$ref": "#/$defs/NonEmptyString" },
+        "operation_version": { "$ref": "#/$defs/NonEmptyString" },
+        "constitution_ref": { "type": ["string", "null"], "maxLength": 4096 },
+        "input_template_ref": { "type": ["string", "null"], "maxLength": 4096 },
+        "input_digest": { "$ref": "#/$defs/Sha256" },
+        "environment_identity_ref": { "$ref": "#/$defs/NonEmptyString" },
+        "source_revision_refs": { "$ref": "#/$defs/StringRefs" },
+        "validation_matrix_ref": { "type": ["string", "null"], "maxLength": 4096 },
+        "acceptance_contract_revision": { "$ref": "#/$defs/NonEmptyString" },
+        "acceptance_criteria": { "$ref": "#/$defs/StringRefs" },
+        "required_evidence_kinds": { "$ref": "#/$defs/StringRefs" },
+        "required_receipt_types": { "$ref": "#/$defs/StringRefs" },
+        "proof_reuse_policy": { "enum": ["exact_identity_only", "forbidden"] },
+        "timeout_ms": { "type": "integer", "minimum": 1 },
+        "retry_policy": { "type": ["object", "null"] },
+        "rollback_ref": { "type": ["string", "null"], "maxLength": 4096 },
+        "on_pass": { "$ref": "#/$defs/StringRefs" },
+        "on_fail": { "$ref": "#/$defs/StringRefs" },
+        "on_indeterminate": { "$ref": "#/$defs/StringRefs" }
+      }
+    },
+    "WorksetCompletionContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["require_sealed_revision", "require_all_mandatory_dispositions", "allowed_terminal_dispositions", "require_zero_dependency_cycles", "require_zero_unresolved_blockers", "require_zero_unknown_impacts"],
+      "properties": {
+        "require_sealed_revision": { "const": true },
+        "require_all_mandatory_dispositions": { "const": true },
+        "allowed_terminal_dispositions": { "type": "array", "items": { "enum": ["completed", "excluded", "superseded", "cancelled"] }, "uniqueItems": true },
+        "require_zero_dependency_cycles": { "const": true },
+        "require_zero_unresolved_blockers": { "const": true },
+        "require_zero_unknown_impacts": { "const": true },
+        "required_checkpoint_refs": { "$ref": "#/$defs/StringRefs" },
+        "required_evidence_refs": { "$ref": "#/$defs/StringRefs" },
+        "required_receipt_types": { "$ref": "#/$defs/StringRefs" },
+        "provider_freshness_max_age_ms": { "type": "integer", "minimum": 0 },
+        "temporal_claim_ref": { "type": ["string", "null"], "maxLength": 4096 }
+      }
+    },
+    "WorksetCompletionTransition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transition_id", "transition_revision", "trigger", "depends_on_transition_refs", "operation_ref", "operation_version", "mode", "confirmation_required", "exactly_once_identity"],
+      "properties": {
+        "transition_id": { "$ref": "#/$defs/StableId" },
+        "transition_revision": { "type": "integer", "minimum": 1 },
+        "trigger": { "enum": ["epoch_complete", "workset_complete"] },
+        "depends_on_transition_refs": { "$ref": "#/$defs/StringRefs" },
+        "operation_ref": { "$ref": "#/$defs/NonEmptyString" },
+        "operation_version": { "$ref": "#/$defs/NonEmptyString" },
+        "mode": { "enum": ["blocking", "advisory"] },
+        "input_binding_ref": { "type": ["string", "null"], "maxLength": 4096 },
+        "authority_requirement": { "type": ["string", "null"], "maxLength": 256 },
+        "confirmation_required": { "type": "boolean" },
+        "required_constitution_ref": { "type": ["string", "null"], "maxLength": 4096 },
+        "required_receipt_types": { "$ref": "#/$defs/StringRefs" },
+        "exactly_once_identity": { "$ref": "#/$defs/StableId" },
+        "on_success": { "type": ["string", "null"], "maxLength": 4096 },
+        "on_failure": { "type": ["string", "null"], "maxLength": 4096 },
+        "compensation_operation_ref": { "type": ["string", "null"], "maxLength": 4096 },
+        "rollback_ref": { "type": ["string", "null"], "maxLength": 4096 }
+      }
+    },
+    "WorksetDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "workset_id", "scope", "title", "mission", "cardinality_mode", "admission_state", "lifecycle_state", "revision", "relationship", "membership_policy", "membership_digest", "graph_digest", "digest_algorithm", "created_at", "created_by", "updated_at", "event_ledger_ref", "member_ledger_ref", "edge_ledger_ref"],
+      "properties": {
+        "schema_version": { "const": "focusa.workset.v1" },
+        "workset_id": { "$ref": "#/$defs/StableId" },
+        "scope": { "$ref": "#/$defs/WorksetScope" },
+        "trajectory_ref": { "type": ["string", "null"], "maxLength": 4096 },
+        "specification_refs": { "$ref": "#/$defs/StringRefs" },
+        "title": { "$ref": "#/$defs/NonEmptyString" },
+        "mission": { "$ref": "#/$defs/NonEmptyString" },
+        "cardinality_mode": { "enum": ["fixed", "rolling", "provider_stream"] },
+        "admission_state": { "enum": ["draft", "active", "sealing", "sealed"] },
+        "lifecycle_state": { "enum": ["planned", "running", "paused", "blocked", "completing", "completed", "failed", "cancelled"] },
+        "revision": { "type": "integer", "minimum": 1 },
+        "parent_workset_ref": { "type": ["string", "null"], "maxLength": 256 },
+        "relationship": { "enum": ["root", "child", "successor", "recurring_template", "imported"] },
+        "membership_policy": { "enum": ["exclusive", "shared_read", "shared_closure"] },
+        "membership_digest": { "$ref": "#/$defs/Sha256" },
+        "graph_digest": { "$ref": "#/$defs/Sha256" },
+        "digest_algorithm": { "const": "sha256-jcs-v1" },
+        "constitution_ref": { "type": ["string", "null"], "maxLength": 4096 },
+        "created_at": { "$ref": "#/$defs/UtcTimestamp" },
+        "created_by": { "$ref": "#/$defs/NonEmptyString" },
+        "updated_at": { "$ref": "#/$defs/UtcTimestamp" },
+        "event_ledger_ref": { "$ref": "#/$defs/NonEmptyString" },
+        "provider_binding_refs": { "$ref": "#/$defs/StringRefs" },
+        "admission_policy_ref": { "type": ["string", "null"], "maxLength": 4096 },
+        "member_ledger_ref": { "$ref": "#/$defs/NonEmptyString" },
+        "edge_ledger_ref": { "$ref": "#/$defs/NonEmptyString" },
+        "epoch_ledger_ref": { "type": ["string", "null"], "maxLength": 4096 },
+        "checkpoint_flow_refs": { "$ref": "#/$defs/StringRefs" },
+        "completion_contract_ref": { "type": ["string", "null"], "maxLength": 4096 },
+        "completion_transition_refs": { "$ref": "#/$defs/StringRefs" },
+        "evidence_refs": { "$ref": "#/$defs/StringRefs" },
+        "receipt_refs": { "$ref": "#/$defs/StringRefs" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "lifecycle_state": { "const": "completed" } } },
+          "then": { "properties": { "admission_state": { "const": "sealed" } } }
+        }
+      ]
+    },
+    "WorksetProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "scope", "workset_id", "workset_revision", "event_version", "computed_at", "freshness", "ready_frontier", "blocked_summary", "rehydrate_refs"],
+      "properties": {
+        "schema_version": { "const": "focusa.workset_projection.v1" },
+        "scope": { "$ref": "#/$defs/WorksetScope" },
+        "workset_id": { "$ref": "#/$defs/StableId" },
+        "workset_revision": { "type": "integer", "minimum": 1 },
+        "event_version": { "type": "integer", "minimum": 0 },
+        "provider_revision": { "type": ["string", "null"], "maxLength": 4096 },
+        "computed_at": { "$ref": "#/$defs/UtcTimestamp" },
+        "freshness": { "enum": ["current", "stale", "unavailable"] },
+        "stale_reason": { "type": ["string", "null"], "maxLength": 1024 },
+        "ready_frontier": { "$ref": "#/$defs/StringRefs" },
+        "blocked_summary": { "$ref": "#/$defs/StringRefs" },
+        "next_checkpoint_refs": { "$ref": "#/$defs/StringRefs" },
+        "next_completion_transition_ref": { "type": ["string", "null"], "maxLength": 256 },
+        "rehydrate_refs": { "$ref": "#/$defs/StringRefs" }
+      }
+    },
+    "WorksetEventEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [{ "$ref": "./spec149-event-payloads.schema.v1.json" }],
+      "required": ["schema_version", "event_id", "event_type", "scope", "workset_id", "workset_revision", "occurred_at", "actor_ref", "idempotency_key", "payload", "previous_event_hash", "event_hash", "evidence_refs", "receipt_refs"],
+      "properties": {
+        "schema_version": { "const": "focusa.workset_event.v1" },
+        "event_id": { "$ref": "#/$defs/StableId" },
+        "event_type": { "type": "string", "pattern": "^workset\\.[a-z0-9_]+$" },
+        "scope": { "$ref": "#/$defs/WorksetScope" },
+        "workset_id": { "$ref": "#/$defs/StableId" },
+        "workset_revision": { "type": "integer", "minimum": 1 },
+        "occurred_at": { "$ref": "#/$defs/UtcTimestamp" },
+        "actor_ref": { "$ref": "#/$defs/NonEmptyString" },
+        "idempotency_key": { "$ref": "#/$defs/StableId" },
+        "payload": { "type": "object" },
+        "previous_event_hash": { "anyOf": [{ "$ref": "#/$defs/Sha256" }, { "type": "null" }] },
+        "event_hash": { "$ref": "#/$defs/Sha256" },
+        "evidence_refs": { "$ref": "#/$defs/StringRefs" },
+        "receipt_refs": { "$ref": "#/$defs/StringRefs" }
+      }
+    },
+    "WorksetPreloadSlice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "workset_id", "workset_revision", "membership_digest", "graph_digest", "freshness", "admission_state", "lifecycle_state", "cardinality_mode", "known_count_complete", "ready_frontier", "blocked_summary", "upcoming_checkpoint_flows", "omitted_counts", "rehydrate_refs", "proof_gaps"],
+      "properties": {
+        "schema_version": { "const": "focusa.workset_preload_slice.v1" },
+        "workset_id": { "$ref": "#/$defs/StableId" },
+        "workset_revision": { "type": "integer", "minimum": 1 },
+        "membership_digest": { "$ref": "#/$defs/Sha256" },
+        "graph_digest": { "$ref": "#/$defs/Sha256" },
+        "freshness": { "enum": ["current", "stale", "unavailable"] },
+        "admission_state": { "enum": ["draft", "active", "sealing", "sealed"] },
+        "lifecycle_state": { "enum": ["planned", "running", "paused", "blocked", "completing", "completed", "failed", "cancelled"] },
+        "active_epoch_ref": { "type": ["string", "null"], "maxLength": 256 },
+        "cardinality_mode": { "enum": ["fixed", "rolling", "provider_stream"] },
+        "loaded_member_count": { "type": "integer", "minimum": 0 },
+        "known_member_count": { "type": ["integer", "null"], "minimum": 0 },
+        "known_count_complete": { "type": "boolean" },
+        "ready_frontier": { "$ref": "#/$defs/StringRefs" },
+        "active_workpoint_ref": { "type": ["string", "null"], "maxLength": 4096 },
+        "blocked_summary": { "$ref": "#/$defs/StringRefs" },
+        "upcoming_checkpoint_flows": { "$ref": "#/$defs/StringRefs" },
+        "completion_contract_summary": { "type": ["object", "null"] },
+        "next_completion_transition": { "type": ["string", "null"], "maxLength": 256 },
+        "omitted_counts": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } },
+        "rehydrate_refs": { "$ref": "#/$defs/StringRefs" },
+        "evidence_refs": { "$ref": "#/$defs/StringRefs" },
+        "proof_gaps": { "$ref": "#/$defs/StringRefs" }
+      }
+    },
+    "WorksetFailureEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "code", "message", "scope", "retry_posture", "evidence_refs", "recovery_tools", "next_safe_action"],
+      "properties": {
+        "schema_version": { "const": "focusa.workset_failure.v1" },
+        "code": { "type": "string", "pattern": "^workset_[a-z0-9_]+$" },
+        "message": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "scope": { "$ref": "#/$defs/WorksetScope" },
+        "retry_posture": { "enum": ["safe_retry", "retry_after_reconcile", "operator_action_required", "not_retryable"] },
+        "evidence_refs": { "$ref": "#/$defs/StringRefs" },
+        "recovery_tools": { "$ref": "#/$defs/StringRefs" },
+        "next_safe_action": { "$ref": "#/$defs/NonEmptyString" }
+      }
+    }
+  }
+}

@@ -1,3 +1,4 @@
+import { registerVerifiedScopeRef } from "../apps/pi-extension/src/scoped-state.ts";
 import {
   adoptWorkpointScopeForFrameRecovery,
   getActiveWorkpointPacket,
@@ -23,6 +24,13 @@ mkdirSync(join(projectA, ".beads"), { recursive: true });
 mkdirSync(join(projectB, ".git"), { recursive: true });
 mkdirSync(join(projectB, ".beads"), { recursive: true });
 
+registerVerifiedScopeRef({
+  scope_kind: "project",
+  scope_id: "focusa-decide-scope-project-a",
+  root_path: projectA,
+  canonical_name: "Focusa Decide Scope Fixture",
+  fingerprint: "sha256:focusa-decide-scope-project-a",
+});
 const attachmentKey = makeAttachmentKey({
   projectRoot: projectA,
   continuityId: "continuity-scope-test",

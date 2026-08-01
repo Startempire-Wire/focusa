@@ -912,7 +912,7 @@ fn embed_texts(texts: Vec<String>) -> anyhow::Result<Vec<Vec<f32>>> {
     let model = model
         .lock()
         .map_err(|_| anyhow!("fastembed model lock poisoned"))?;
-    model.embed(texts, Some(32)).map_err(Into::into)
+    model.embed(texts, Some(32))
 }
 
 #[cfg(not(feature = "context-vector-fastembed"))]

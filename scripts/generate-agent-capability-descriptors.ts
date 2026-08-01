@@ -6,6 +6,7 @@ import { dirname, join, relative, resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { registerTools } from "../apps/pi-extension/src/tools.ts";
+import { registerAgentRuntimeTools } from "../apps/pi-extension/src/agent-runtime-tools.ts";
 import {
   FOCUSA_TOOL_CONTRACTS,
   buildFocusaToolAffordanceCatalog,
@@ -24,6 +25,26 @@ const WORKSPACE_VERSION = (() => {
   if (!version) throw new Error("workspace package version missing from Cargo.toml");
   return version;
 })();
+
+const OPERATOR_ALIGNMENT_CONTRACT = {
+  schema: "focusa.operator_alignment.v1",
+  authority: "operator_intent_constraints_and_confirmed_timeline_lead",
+  requirements: [
+    "refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps",
+    "treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker",
+    "consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation",
+    "use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested",
+    "never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range",
+    "for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons",
+    "use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation",
+  ],
+  project_reception: {
+    candidate_scan_depth_min: 2,
+    candidate_limit: 20,
+    mutation_before_confirmation: false,
+    guided_orientation_optional: true,
+  },
+};
 
 interface RegisteredTool {
   name: string;
@@ -138,6 +159,7 @@ function skillRefs(contract: FocusaToolContract): string[] {
     session_transfer: "skill:focusa-session-recovery",
     awareness: "skill:focusa-agent-bootstrap",
     preload: "skill:focusa-agent-bootstrap",
+    agent_runtime: "skill:focusa-spec-implementation",
   };
   if (byFamily[contract.family]) refs.add(byFamily[contract.family]);
   if (contract.name.includes("silent_sessions")) refs.add("skill:focusa-silent-sessions");
@@ -148,6 +170,9 @@ function skillRefs(contract: FocusaToolContract): string[] {
   if (contract.name.includes("context_cognition")) refs.add("skill:focusa-agent-bootstrap");
   if (contract.name.includes("device_pair")) refs.add("skill:focusa-security-auth-licensing");
   if (contract.name.includes("call_stack")) refs.add("skill:focusa-spec-implementation");
+  if (contract.name.includes("instruction_integrity") || contract.name.includes("amendment")) {
+    refs.add("skill:focusa-security-auth-licensing");
+  }
   return [...refs];
 }
 
@@ -157,12 +182,19 @@ const pi = {
   on() {},
 } as any;
 registerTools(pi);
+registerAgentRuntimeTools(pi);
 
 const tools = new Map(captured.filter((tool) => tool.name.startsWith("focusa_")).map((tool) => [tool.name, tool]));
 const affordances = new Map<string, FocusaToolAffordance>(buildFocusaToolAffordanceCatalog().map((item) => [item.name, item]));
 const contracts = new Map(FOCUSA_TOOL_CONTRACTS.map((item) => [item.name, item]));
 
-if (tools.size !== contracts.size) throw new Error(`tool/contract count mismatch: ${tools.size}/${contracts.size}`);
+if (tools.size !== contracts.size) {
+  const missingContracts = [...tools.keys()].filter((name) => !contracts.has(name));
+  const staleContracts = [...contracts.keys()].filter((name) => !tools.has(name));
+  throw new Error(
+    `tool/contract count mismatch: ${tools.size}/${contracts.size}; missing=${missingContracts.join(",") || "none"}; stale=${staleContracts.join(",") || "none"}`
+  );
+}
 for (const name of tools.keys()) if (!contracts.has(name)) throw new Error(`registered tool lacks contract: ${name}`);
 
 const errorSchema = {
@@ -194,6 +226,7 @@ const descriptors = [...tools.values()].sort((a, b) => a.name.localeCompare(b.na
   });
   const descriptor = {
     schema: "focusa.agent_capability_descriptor.v2",
+    operator_alignment: OPERATOR_ALIGNMENT_CONTRACT,
     capability_id: tool.name.replace(/^focusa_/, "focusa.").replaceAll("_", "."),
     tool_names: {
       pi: tool.name,
@@ -255,6 +288,7 @@ const registryBase = {
   version: "2.0.0",
   source_authority: ["apps/pi-extension/src/tools.ts", "apps/pi-extension/src/tool-contracts.ts"],
   capability_count: descriptors.length,
+  operator_alignment: OPERATOR_ALIGNMENT_CONTRACT,
   descriptors,
 };
 const registry = { ...registryBase, registry_digest: digest(registryBase) };
@@ -331,6 +365,7 @@ const agentCardBase = {
   interfaces: ["pi", "mcp", "openai-functions", "cli", "rest"],
   capabilities: { streaming: true, durable_tasks: true, list_changed: true, progressive_discovery: true, structured_output: true },
   authentication: ["bearer", "device_pairing", "local_trusted"],
+  operator_alignment: OPERATOR_ALIGNMENT_CONTRACT,
   registry_digest: registry.registry_digest,
   pi_tool_count: descriptors.length,
   pi_tool_docs_count: piToolDocCount,
@@ -354,6 +389,10 @@ const markdown = [
   `Registry digest: \`${registry.registry_digest}\``,
   "",
   "This file is generated. Use the descriptor registry for complete strict schemas and machine metadata.",
+  "",
+  "## Operator alignment contract",
+  "",
+  ...OPERATOR_ALIGNMENT_CONTRACT.requirements.map((requirement) => `- ${requirement}`),
   "",
   ...descriptors.flatMap((d) => [
     `## ${d.tool_names.pi}`,

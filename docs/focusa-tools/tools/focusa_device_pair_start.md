@@ -29,6 +29,16 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 
 Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_device_pair_start.md
 
+## Operator alignment
+
+- refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps
+- treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker
+- consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation
+- use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested
+- never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range
+- for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons
+- use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation
+
 ## Anti-examples
 
 - raw localStorage as canonical
@@ -67,4 +77,4 @@ Likely next: `focusa_device_pair_status`, `focusa_device_pair_list`, `focusa_dev
 - CLI: `focusa device pair-start`, `focusa device pair-qr`.
 - REST: `POST /v1/device/pair/start`.
 - Specification: `docs/53-focusa-device-pairing-spec.md`.
-- Descriptor digest: `sha256:8ce387830383659dc736e6a829181e75588fde43ff4e3c13090700c55f588954`.
+- Descriptor digest: `sha256:04fe6b303481f7da9a26fa0220fd299a187beb148420ff12dab349e435b820cb`.

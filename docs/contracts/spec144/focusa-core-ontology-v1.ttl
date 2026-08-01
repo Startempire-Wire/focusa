@@ -1,0 +1,69 @@
+@prefix focusa: <https://focusa.dev/ontology/v1#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+<https://focusa.dev/ontology/v1> a owl:Ontology ;
+  owl:versionIRI <https://focusa.dev/ontology/v1.0.0> ;
+  owl:imports <http://www.w3.org/ns/prov-o> ;
+  dcterms:title "Focusa semantic integrity core ontology" ;
+  dcterms:source <https://focusa.dev/spec/144> .
+
+focusa:SemanticArtifact a owl:Class .
+focusa:SemanticWorkContract a owl:Class ; rdfs:subClassOf focusa:SemanticArtifact .
+focusa:VerificationContract a owl:Class ; rdfs:subClassOf focusa:SemanticArtifact .
+focusa:SemanticValidationReceipt a owl:Class .
+focusa:Evidence a owl:Class ; rdfs:subClassOf prov:Entity .
+focusa:Receipt a owl:Class ; rdfs:subClassOf prov:Entity .
+focusa:NamedGraphRegistration a owl:Class .
+focusa:ValidationProfile a owl:Class .
+focusa:ActionPlan a owl:Class ; rdfs:subClassOf prov:Plan .
+focusa:VerificationPlan a owl:Class ; rdfs:subClassOf prov:Plan .
+
+focusa:artifactId a owl:DatatypeProperty ;
+  rdfs:domain focusa:SemanticArtifact ; rdfs:range xsd:string .
+focusa:artifactVersion a owl:DatatypeProperty ;
+  rdfs:domain focusa:SemanticArtifact ; rdfs:range xsd:nonNegativeInteger .
+focusa:ownerScopeRef a owl:DatatypeProperty ; rdfs:range xsd:string .
+focusa:graphIri a owl:DatatypeProperty ; rdfs:range xsd:anyURI .
+focusa:epistemicClass a owl:DatatypeProperty ; rdfs:range xsd:string .
+focusa:evidenceRef a owl:DatatypeProperty ; rdfs:range xsd:string .
+focusa:receiptRef a owl:DatatypeProperty ; rdfs:range xsd:string .
+focusa:actionPlan a owl:ObjectProperty ;
+  rdfs:domain focusa:SemanticWorkContract ; rdfs:range focusa:ActionPlan .
+focusa:verificationPlan a owl:ObjectProperty ;
+  rdfs:domain focusa:SemanticWorkContract ; rdfs:range focusa:VerificationPlan .
+focusa:usesValidationProfile a owl:ObjectProperty ;
+  rdfs:domain focusa:SemanticWorkContract ; rdfs:range focusa:ValidationProfile .
+focusa:generatedBy a owl:ObjectProperty ; rdfs:range prov:Agent .
+focusa:derivedFrom a owl:ObjectProperty ; rdfs:subPropertyOf prov:wasDerivedFrom .
+
+focusa:operator_asserted a focusa:EpistemicClass .
+focusa:user_asserted a focusa:EpistemicClass .
+focusa:deterministic_asserted a focusa:EpistemicClass .
+focusa:tool_observed a focusa:EpistemicClass .
+focusa:runtime_observed a focusa:EpistemicClass .
+focusa:reducer_asserted a focusa:EpistemicClass .
+focusa:model_proposed a focusa:EpistemicClass .
+focusa:model_inferred a focusa:EpistemicClass .
+focusa:reasoner_inferred a focusa:EpistemicClass .
+focusa:verification_confirmed a focusa:EpistemicClass .
+focusa:legacy_assumed a focusa:EpistemicClass .
+focusa:contradicted a focusa:EpistemicClass .
+focusa:invalid a focusa:EpistemicClass .
+focusa:quarantined a focusa:EpistemicClass .
+focusa:unsupported_opaque a focusa:EpistemicClass .
+
+focusa:graph_registry a focusa:NamedGraphKind .
+focusa:graph_shapes a focusa:NamedGraphKind .
+focusa:graph_contract a focusa:NamedGraphKind .
+focusa:graph_builder a focusa:NamedGraphKind .
+focusa:graph_observations a focusa:NamedGraphKind .
+focusa:graph_inference a focusa:NamedGraphKind .
+focusa:graph_verifier a focusa:NamedGraphKind .
+focusa:graph_response a focusa:NamedGraphKind .
+focusa:graph_settlement a focusa:NamedGraphKind .
+focusa:graph_quarantine a focusa:NamedGraphKind .

@@ -43,6 +43,10 @@ require 'latest\.json|updater' .github/workflows/release.yml 'release publishes 
 require 'focusa-daemon' .github/workflows/release.yml 'release packages daemon/API surface'
 require 'focusa-tui' .github/workflows/release.yml 'release packages TUI surface'
 bash tests/spec132_public_uninstall_preservation_test.sh
+bash tests/spec132_public_bootstrap_dry_run_static_test.sh
+bash tests/installer_explicit_target_alias_test.sh
+bash tests/spec114_public_benchmark_flywheel_static_test.sh
+python3 tests/spec114_observatory_ui_static_test.py
 pass 'public uninstall preserves user data unless purge is explicit'
 
 # Every Focusa Pi tool, skill, runbook, machine projection, and public agent
@@ -68,6 +72,7 @@ pass 'worktree and authority gates'
   npm run test:cache-safe-context
   npm run test:ota-activation
   npm run test:spec104-attachment
+  npm run test:unbound-project
 )
 pass 'cache miss mitigation and Pi OTA activation gates'
 
@@ -80,6 +85,10 @@ npx --yes tsx tests/spec130a_release_stress_runtime_test.mts
 pass 'compaction and session-recovery gates'
 
 python3 tests/spec145_canonical_release_cycle_static_test.py
-pass 'canonical release kernel, OTA truth, topology, speed, and architecture gates'
+python3 tests/spec146_release_intelligence_workflow_gate.py
+python3 scripts/generate-spec150-complete-feature-ledger.py --check
+python3 scripts/generate-cross-spec-tool-grounding-matrix.py --check
+python3 scripts/audit-cross-spec-reality-grounding.py
+pass 'canonical release kernel, cross-spec reality grounding, tool/runbook awareness, and architecture gates'
 
 printf 'FINAL RELEASE GAP GATE: PASS\n'

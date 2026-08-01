@@ -1,0 +1,54 @@
+{
+  "serialization": "JSON-compatible YAML 1.2",
+  "generated_at": "2026-07-31T00:30:00Z",
+  "schema": "focusa.spec140a_generated_contracts.v1",
+  "runtime_claim": "typed_instruction_integrity_contracts",
+  "runtime_status": "verified_complete",
+  "contracts": [
+    {
+      "contract": "focusa.canonical_instruction_amendment.v1",
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/agent_runtime_instruction_integrity.rs",
+      "serde_roundtrip": true
+    },
+    {
+      "contract": "focusa.instruction_adaptability_profile.v1",
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/agent_runtime_instruction_integrity.rs",
+      "serde_roundtrip": true
+    },
+    {
+      "contract": "focusa.instruction_integrity_guard.v1",
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/agent_runtime_instruction_integrity.rs",
+      "serde_roundtrip": true
+    },
+    {
+      "contract": "focusa.instruction_integrity_surface_parity.v1",
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/agent_runtime_instruction_integrity.rs",
+      "serde_roundtrip": true
+    },
+    {
+      "contract": "focusa.instruction_temporal_adaptation_envelope.v1",
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/agent_runtime_instruction_integrity.rs",
+      "serde_roundtrip": true
+    },
+    {
+      "contract": "focusa.official_documentation_sweep_manifest.v1",
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/agent_runtime_instruction_integrity.rs",
+      "serde_roundtrip": true
+    },
+    {
+      "contract": "focusa.runtime_target_profile_binding.v1",
+      "status": "verified_complete",
+      "runtime_ref": "crates/focusa-core/src/agent_runtime_instruction_integrity.rs",
+      "serde_roundtrip": true
+    }
+  ],
+  "api_ref": "crates/focusa-api/src/routes/agent_runtime_integrity.rs",
+  "evidence_ref": "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt",
+  "receipt_ref": "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+}

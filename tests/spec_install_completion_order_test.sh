@@ -6,7 +6,7 @@ python3 - "$INSTALL" <<'PY'
 import pathlib, sys
 text = pathlib.Path(sys.argv[1]).read_text()
 start = text.index('pub async fn run(args: InstallArgs)')
-end = text.index('// ----- Phase 1:', start)
+end = text.index('async fn phase_license(', start)
 run = text[start:end]
 
 def once(token):
@@ -14,7 +14,7 @@ def once(token):
     assert count == 1, f'{token} appears {count} times in install run'
     return run.index(token)
 
-smoke = run.index('phase_smoke_test(&bin_dir).await')
+smoke = run.index('phase_smoke_test(target, &bin_dir).await')
 cleanup = run.index('phase_atomic_cleanup(&stash_path)')
 finished = once('InstallEvent::InstallFinished')
 summary = run.index('summary.render_human()')

@@ -1,5 +1,6 @@
 //! PRE (Proposal Resolution Engine) routes.
 
+use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::State;
 use axum::http::StatusCode;
@@ -7,18 +8,39 @@ use axum::{
     Json, Router,
     routing::{get, post},
 };
+use focusa_core::scoped_state::WorkstreamKey;
 use focusa_core::types::{Action, FocusaEvent, ProposalKind, ProposalStatus};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::sync::Arc;
 use uuid::Uuid;
 
-/// GET /v1/proposals — list pending proposals.
-async fn list_proposals(State(state): State<Arc<AppState>>) -> Json<Value> {
+pub(crate) fn verified_workstream_key(scope: &ScopeContext) -> Option<WorkstreamKey> {
+    scope.require_workstream_key().ok()
+}
+
+/// GET /v1/proposals — list pending proposals for one verified workstream.
+async fn list_proposals(State(state): State<Arc<AppState>>, scope: ScopeContext) -> Json<Value> {
+    let Some(workstream) = verified_workstream_key(&scope) else {
+        return Json(json!({"status": "scope_mismatch", "proposals": [], "pending": 0}));
+    };
     let s = state.focusa.read().await;
+    let proposals = s
+        .pre
+        .proposals
+        .iter()
+        .filter(|proposal| proposal.workstream.as_ref() == Some(&workstream))
+        .cloned()
+        .collect::<Vec<_>>();
+    let pending = proposals
+        .iter()
+        .filter(|proposal| matches!(proposal.status, ProposalStatus::Pending))
+        .count();
     Json(json!({
-        "proposals": s.pre.proposals,
-        "pending": focusa_core::pre::pending_count(&s.pre),
+        "status": "ok",
+        "scope": workstream,
+        "proposals": proposals,
+        "pending": pending,
     }))
 }
 
@@ -43,8 +65,15 @@ struct FocusFrameProposalRequest {
 /// later be resolved/promoted through the guarded proposal path.
 async fn submit_focus_frame_proposal(
     State(state): State<Arc<AppState>>,
+    scope: ScopeContext,
     Json(body): Json<FocusFrameProposalRequest>,
 ) -> (StatusCode, Json<Value>) {
+    let Some(workstream) = verified_workstream_key(&scope) else {
+        return (
+            StatusCode::CONFLICT,
+            Json(json!({"status": "scope_mismatch", "canonical": false})),
+        );
+    };
     let source = body
         .source
         .clone()
@@ -69,6 +98,7 @@ async fn submit_focus_frame_proposal(
     let _ = state
         .command_tx
         .send(Action::SubmitProposal {
+            workstream: Some(workstream.clone()),
             kind,
             source: source.clone(),
             payload: payload.clone(),
@@ -86,7 +116,11 @@ async fn submit_focus_frame_proposal(
                 .proposals
                 .iter()
                 .rev()
-                .find(|p| p.kind == kind && p.source == source)
+                .find(|p| {
+                    p.kind == kind
+                        && p.source == source
+                        && p.workstream.as_ref() == Some(&workstream)
+                })
                 .map(|p| p.id);
         }
         if proposal_id.is_some() {
@@ -129,8 +163,12 @@ async fn submit_focus_frame_proposal(
 /// POST /v1/proposals — submit a proposal via daemon command channel.
 async fn submit_proposal(
     State(state): State<Arc<AppState>>,
+    scope: ScopeContext,
     Json(body): Json<Value>,
 ) -> Json<Value> {
+    let Some(workstream) = verified_workstream_key(&scope) else {
+        return Json(json!({"status": "scope_mismatch", "canonical": false}));
+    };
     let kind_str = body
         .get("kind")
         .and_then(|v| v.as_str())
@@ -150,6 +188,7 @@ async fn submit_proposal(
     let _ = state
         .command_tx
         .send(Action::SubmitProposal {
+            workstream: Some(workstream.clone()),
             kind,
             source: submit_source.clone(),
             payload,
@@ -171,6 +210,7 @@ async fn submit_proposal(
                     proposal.kind == kind
                         && proposal.source == submit_source
                         && proposal.payload == payload_for_audit
+                        && proposal.workstream.as_ref() == Some(&workstream)
                 })
                 .map(|proposal| proposal.id);
         }
@@ -184,7 +224,13 @@ async fn submit_proposal(
         let _ = state
             .command_tx
             .send(Action::EmitEvent {
-                event: submission_audit_event(proposal_id, kind, source, &payload_for_audit),
+                event: submission_audit_event(
+                    proposal_id,
+                    kind,
+                    source,
+                    &payload_for_audit,
+                    &workstream,
+                ),
             })
             .await;
     }
@@ -655,6 +701,7 @@ fn submission_audit_event(
     kind: ProposalKind,
     source: &str,
     payload: &Value,
+    workstream: &WorkstreamKey,
 ) -> FocusaEvent {
     if let (Some(link_type), Some(source_id), Some(target_id)) = (
         payload.get("link_type").and_then(|v| v.as_str()),
@@ -662,6 +709,7 @@ fn submission_audit_event(
         payload.get("target_id").and_then(|v| v.as_str()),
     ) {
         return FocusaEvent::OntologyLinkUpsertProposed {
+            workstream: Some(workstream.clone()),
             proposal_id,
             link_type: link_type.to_string(),
             source_id: source_id.to_string(),
@@ -672,6 +720,7 @@ fn submission_audit_event(
 
     match kind {
         ProposalKind::FocusChange => FocusaEvent::OntologyWorkingSetMembershipProposed {
+            workstream: Some(workstream.clone()),
             proposal_id,
             subject: payload
                 .get("title")
@@ -682,6 +731,7 @@ fn submission_audit_event(
             source: source.to_string(),
         },
         ProposalKind::AutonomyAdjustment => FocusaEvent::OntologyStatusChangeProposed {
+            workstream: Some(workstream.clone()),
             proposal_id,
             subject: "autonomy.level".to_string(),
             from_status: None,
@@ -693,6 +743,7 @@ fn submission_audit_event(
             source: source.to_string(),
         },
         ProposalKind::ThesisUpdate => FocusaEvent::OntologyObjectUpsertProposed {
+            workstream: Some(workstream.clone()),
             proposal_id,
             object_type: "thread_thesis".to_string(),
             object_id: payload
@@ -702,6 +753,7 @@ fn submission_audit_event(
             source: source.to_string(),
         },
         ProposalKind::ConstitutionRevision => FocusaEvent::OntologyObjectUpsertProposed {
+            workstream: Some(workstream.clone()),
             proposal_id,
             object_type: "constitution".to_string(),
             object_id: payload
@@ -711,6 +763,7 @@ fn submission_audit_event(
             source: source.to_string(),
         },
         ProposalKind::MemoryWrite => FocusaEvent::OntologyObjectUpsertProposed {
+            workstream: Some(workstream.clone()),
             proposal_id,
             object_type: "semantic_memory_entry".to_string(),
             object_id: payload
@@ -726,6 +779,7 @@ fn submission_audit_event(
         | ProposalKind::OntologyGovernanceMutation
         | ProposalKind::IdentityModelMutation
         | ProposalKind::VisualModelMutation => FocusaEvent::OntologyObjectUpsertProposed {
+            workstream: Some(workstream.clone()),
             proposal_id,
             object_type: payload
                 .get("object_type")
@@ -820,8 +874,12 @@ fn proposal_payload_rejected(err: impl Into<String>) -> (StatusCode, Json<Value>
 
 async fn resolve_proposals(
     State(state): State<Arc<AppState>>,
+    scope: ScopeContext,
     Json(body): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let workstream = verified_workstream_key(&scope).ok_or_else(|| {
+        proposal_payload_rejected("verified project and continuity scope required")
+    })?;
     let snapshot = state.focusa.read().await.clone();
 
     let kind_filter = body
@@ -837,6 +895,7 @@ async fn resolve_proposals(
         .pre
         .proposals
         .iter()
+        .filter(|p| p.workstream.as_ref() == Some(&workstream))
         .filter(|p| matches!(p.status, ProposalStatus::Pending))
         .filter(|p| kind_filter.map(|k| p.kind == k).unwrap_or(true))
         .filter(|p| {
@@ -934,11 +993,13 @@ async fn resolve_proposals(
                     ProposalStatus::Rejected
                 };
                 events_to_emit.push(FocusaEvent::ProposalStatusChanged {
+                    workstream: Some(workstream.clone()),
                     proposal_id: proposal.id,
                     status,
                 });
                 if proposal.id != winner.id {
                     events_to_emit.push(FocusaEvent::OntologyProposalRejected {
+                        workstream: Some(workstream.clone()),
                         proposal_id: proposal.id,
                         target_class: proposal_target_class(proposal.kind).to_string(),
                         reason: reason.clone(),
@@ -946,17 +1007,20 @@ async fn resolve_proposals(
                 }
             }
             events_to_emit.push(FocusaEvent::OntologyVerificationApplied {
+                workstream: Some(workstream.clone()),
                 proposal_id: Some(winner.id),
                 verification: "pre_resolution".to_string(),
                 outcome: "accepted".to_string(),
             });
             events_to_emit.push(FocusaEvent::OntologyProposalPromoted {
+                workstream: Some(workstream.clone()),
                 proposal_id: winner.id,
                 target_class: proposal_target_class(winner.kind).to_string(),
                 applied_kind: applied_kind.clone(),
             });
             if winner.kind == ProposalKind::FocusChange {
                 events_to_emit.push(FocusaEvent::OntologyWorkingSetRefreshed {
+                    workstream: Some(workstream.clone()),
                     scope: "focus".to_string(),
                     reason: "focus_change accepted".to_string(),
                 });
@@ -972,16 +1036,19 @@ async fn resolve_proposals(
         focusa_core::pre::resolution::ResolutionOutcome::RejectedAll { reason } => {
             for proposal in &pending {
                 events_to_emit.push(FocusaEvent::ProposalStatusChanged {
+                    workstream: Some(workstream.clone()),
                     proposal_id: proposal.id,
                     status: ProposalStatus::Rejected,
                 });
                 events_to_emit.push(FocusaEvent::OntologyProposalRejected {
+                    workstream: Some(workstream.clone()),
                     proposal_id: proposal.id,
                     target_class: proposal_target_class(proposal.kind).to_string(),
                     reason: reason.clone(),
                 });
             }
             events_to_emit.push(FocusaEvent::OntologyVerificationApplied {
+                workstream: Some(workstream.clone()),
                 proposal_id: None,
                 verification: "pre_resolution".to_string(),
                 outcome: "rejected_all".to_string(),
@@ -996,6 +1063,7 @@ async fn resolve_proposals(
             reason,
         } => {
             events_to_emit.push(FocusaEvent::OntologyVerificationApplied {
+                workstream: Some(workstream.clone()),
                 proposal_id: None,
                 verification: "pre_resolution".to_string(),
                 outcome: "clarification_required".to_string(),

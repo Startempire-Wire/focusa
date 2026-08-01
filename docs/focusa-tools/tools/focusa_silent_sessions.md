@@ -1,10 +1,10 @@
 # `focusa_silent_sessions`
 
-Daemon-native Spec133 Silent Session client for status, observation, steering, controls, config, receipts, capabilities, and legacy action compatibility. Use it when Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility. It returns a typed Focusa result with bounded recovery and likely next capabilities.
+Daemon-native Spec133 Silent Session client for status, observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery. Use it when Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery. It returns a typed Focusa result with bounded recovery and likely next capabilities.
 
 ## When to use
 
-- Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility.
+- Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery.
 - Capability family: `work_loop`; namespace: `focusa.work_loop`.
 - Load this full contract after metadata search when exact invocation or recovery semantics are needed.
 
@@ -38,6 +38,16 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 ```
 
 Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_silent_sessions.md
+
+## Operator alignment
+
+- refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps
+- treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker
+- consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation
+- use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested
+- never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range
+- for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons
+- use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation
 
 ## Anti-examples
 
@@ -77,4 +87,4 @@ Likely next: `focusa_work_loop_status`, `focusa_work_loop_checkpoint`, `focusa_r
 - CLI: `focusa silent`.
 - REST: `GET /v1/silent-sessions`, `POST /v1/silent-sessions/preflight`, `GET /v1/silent-sessions/{session_id}`, `GET /v1/silent-sessions/{session_id}/output`, `POST /v1/silent-sessions/{session_id}/input`, `POST /v1/silent-sessions/{session_id}/start`, `POST /v1/silent-sessions/{session_id}/pause`, `POST /v1/silent-sessions/{session_id}/resume`, `POST /v1/silent-sessions/{session_id}/interrupt`, `POST /v1/silent-sessions/{session_id}/cancel`, `POST /v1/silent-sessions/{session_id}/restart`, `POST /v1/silent-sessions/{session_id}/config/preview`, `GET /v1/silent-sessions/{session_id}/receipts`, `GET /v1/silent-sessions/capabilities`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:fd20968ae33d9849337b1d6c7900b6edc736af138183c641dc564cff5acbebde`.
+- Descriptor digest: `sha256:60f47e54e3db2b8fadeb7700579238f8db29c5029ef9d65528f8b81f84ab2448`.

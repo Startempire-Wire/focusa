@@ -1,0 +1,82 @@
+   Compiling focusa-core v0.9.142 (/tmp/focusa-next-locked-release/crates/focusa-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 40s
+     Running unittests src/lib.rs (/tmp/focusa-next-locked-release/target/debug/deps/focusa_core-0b7bc9eb2a0afbba)
+
+running 32 tests
+test prediction_advanced::tests::negative_transfer_rolls_back_and_uncertain_transfer_stays_bounded ... ok
+test prediction_advanced::tests::global_or_unproven_self_model_is_prohibited ... ok
+test prediction_advanced::tests::transfer_outcome_preserves_negative_transfer ... ok
+test prediction::tests::partial_ontology_context_defaults_omitted_reference_families ... ok
+test prediction_advanced::tests::scenario_mass_and_causal_evidence_are_enforced ... ok
+test prediction_authority_storage::tests::durable_ledger_requires_exact_scope_sequence_evidence_and_receipt ... ok
+test prediction_authority_tests::action_prediction_and_actual_delta_lifecycle_is_temporally_ordered ... ok
+test prediction_advanced::tests::typed_prediction_storage_and_legacy_scanner_remain_scope_isolated ... ok
+test prediction_authority_tests::evaluation_requires_frozen_policy_and_preserves_confidence_semantics ... ok
+test prediction_authority_tests::frozen_scorer_registry_is_versioned_and_immutable ... ok
+test prediction_authority_tests::high_confidence_miss_creates_structured_learning_candidate ... ok
+test prediction_authority_tests::negative_effect_blocks_promotion ... ok
+test prediction_authority_tests::append_only_recovery_and_scope_isolation_are_deterministic ... ok
+test prediction_authority_tests::prose_only_metrics_cannot_promote_learning ... ok
+test prediction_authority_tests::recurring_action_delta_pattern_requires_unique_evidence_backed_samples ... ok
+test prediction_calibration::tests::calibration_rejects_small_or_mismatched_cohorts ... ok
+test prediction_authority_tests::singleton_migration_requires_converged_authoritative_typed_scope_evidence ... ok
+test prediction_calibration::tests::calibration_report_is_cohort_and_scorer_bound ... ok
+test prediction_calibration::tests::evaluation_authority_blocks_post_outcome_policy_choice ... ok
+test prediction_migration::tests::complete_legacy_record_preserves_hash_lineage_and_advisory_status ... ok
+test prediction_migration::tests::all_legacy_sources_migrate_as_advisory_or_quarantined_never_canonical ... ok
+test prediction_profiles::tests::profile_subsets_require_truthful_labels ... ok
+test prediction_profiles::tests::full_conformance_requires_all_eight_profiles_and_cross_cutting_gates ... ok
+test prediction_scoring::tests::interval_ranking_calibration_and_utility_fixtures_are_bounded ... ok
+test prediction_scoring::tests::malformed_shapes_probabilities_and_custom_scorers_fail_closed ... ok
+test prediction_scoring::tests::custom_scorer_registration_is_versioned_and_proven ... ok
+test prediction_scoring::tests::proper_binary_and_multiclass_scores_match_fixtures ... ok
+test prediction_scoring::tests::registry_contains_all_required_scorers ... ok
+test silent_session_continuation::tests::prediction_cannot_be_recorded_after_action_or_evaluated_without_evidence ... ok
+test silent_session_continuation::tests::prediction_precedes_action_evaluation_follows_and_learning_is_advisory ... ok
+test prediction_authority_storage::tests::legacy_envelope_migrates_forward_without_rewriting_history ... ok
+test prediction_authority_storage::tests::durable_ledger_restarts_projects_and_rejects_tamper ... ok
+
+test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 759 filtered out; finished in 0.01s
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.73s
+     Running unittests src/lib.rs (/tmp/focusa-next-locked-release/target/debug/deps/focusa_core-0b7bc9eb2a0afbba)
+
+running 14 tests
+test agent_runtime_constitution_lifecycle_test::spec138_outcome_binding_preserves_epistemic_refs_and_forbids_self_activation ... ok
+test epistemic_fusion::tests::contradiction_and_independence_fail_closed ... ok
+test epistemic_conformance::tests::non_applicability_and_removal_require_explicit_authority ... ok
+test epistemic_fusion::tests::shared_upstream_cannot_masquerade_as_independent_confirmation ... ok
+test epistemic_conformance::tests::full_combined_source_conformance_accepts_exact_complete_proof ... ok
+test epistemic_fusion::tests::missingness_is_not_zero_and_correlated_sources_are_discounted ... ok
+test epistemic_memory_lifecycle::tests::consolidation_preserves_exceptions_conflicts_and_provenance ... ok
+test epistemic_memory_lifecycle::tests::legal_hold_blocks_deletion_and_reactivation_requires_new_proof ... ok
+test epistemic_security::tests::adversarial_sources_quarantine_or_reject_high_consequence_use ... ok
+test epistemic_conformance::tests::zero_deferral_and_profile_firewalls_fail_closed ... ok
+test epistemic_security::tests::audit_exports_require_encryption_scope_evidence_and_receipt ... ok
+test epistemic_security::tests::public_summary_and_private_encryption_boundaries_fail_closed ... ok
+test epistemic_primitives::tests::primitive_validation_rejects_unknown_and_unproven_records ... ok
+test epistemic_primitives::tests::generated_registry_is_complete_and_family_qualified ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 777 filtered out; finished in 0.01s
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.27s
+     Running unittests src/lib.rs (/tmp/focusa-next-locked-release/target/debug/deps/focusa_core-0b7bc9eb2a0afbba)
+
+running 3 tests
+test metacognitive_learning::tests::unsupported_causal_reflection_and_negative_outcome_rollback ... ok
+test metacognitive_learning::tests::single_event_and_high_consequence_promotion_fail_closed ... ok
+test metacognitive_learning::tests::promotion_requires_holdout_independence_and_authority ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 788 filtered out; finished in 0.00s
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.30s
+     Running unittests src/lib.rs (/tmp/focusa-next-locked-release/target/debug/deps/focusa_core-0b7bc9eb2a0afbba)
+
+running 2 tests
+test outcome_resolution::tests::policy_changes_bad_corrections_and_unresolved_scoring_fail_closed ... ok
+test outcome_resolution::tests::claim_dispute_resolution_and_correction_are_append_only ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 789 filtered out; finished in 0.00s
+
+Spec138 foundation gate: PASS (542 source rows; 42 foundation rows; 629 primitives; durable causal storage)
+spec138_runtime_e2e=PASS

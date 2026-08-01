@@ -32,6 +32,15 @@ Use for workpoint workflows with bounded Focusa authority.
 
 Current operator steering, verified project scope, and canonical Workpoint authority remain higher priority than this default sequence.
 
+## Operator alignment
+
+- Refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps.
+- Treat cwd as launch location only; missing trajectory or project markers do not imply a new user or new project.
+- Use plain language and progressive disclosure; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested.
+- Never invent deadlines or urgency; use temporal authority and express forecast uncertainty as a range.
+- Measure meaningful tasks in wall-clock operator time: predict delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons.
+- Apply Focusa tools to accomplish the operator's desired outcome within operator constraints, rather than making Focusa mechanics the center of conversation.
+
 ## Failure recovery
 
 - `focusa_tool_doctor`
@@ -41,6 +50,7 @@ Current operator steering, verified project scope, and canonical Workpoint autho
 Treat `blocked`, `pending`, `degraded`, `canonical=false`, validation rejection, and ambiguous side effects as recovery states—not completion.
 
 ## Routing metadata
+
 - prerequisites: verified project identity and typed continuity when durable scope matters
 - use_instead_when: use the narrower owner in `docs/contracts/65-focusa-skill-ownership-manifest.json`
 - next_skills: `focusa-workpoint`, `focusa-evidence-outcomes`, `focusa-metacognition`

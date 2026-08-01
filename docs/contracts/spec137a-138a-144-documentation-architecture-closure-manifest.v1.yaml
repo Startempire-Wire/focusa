@@ -1,6 +1,6 @@
 {
   "serialization": "JSON-compatible YAML 1.2",
-  "generated_at": "2026-07-27T00:47:15+00:00",
+  "generated_at": "2026-07-31T17:03:56+00:00",
   "runtime_claim": "none",
   "runtime_status": "implementation_open",
   "schema": "focusa.spec137a_138a_144_documentation_architecture_closure_manifest.v1",
@@ -88,7 +88,7 @@
     },
     {
       "path": "docs/130-hlt-aware-compaction-mission-packet-and-bloatgaurd-context-firewall-spec.md",
-      "sha256": "fcb0b683f299d38f9245b690a97afabbf4d3b4edf8214c40c67e9cdf45a71240"
+      "sha256": "f2957b9cf416bf8f8c7cbaf8c200116f5fc084da7730837c14dc542867d6e4cf"
     },
     {
       "path": "docs/131-focusa-workpoint-item-timing-velocity-and-closure-authority-spec.md",
@@ -108,7 +108,7 @@
     },
     {
       "path": "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md",
-      "sha256": "02649a026ab0731a090d9b265652d6aaaf787b5756946db4a5a3b01a52454a09"
+      "sha256": "35f78d1d2d25786dc230bfac10f54eab353ba287d12b6cc8a8525898fb864ae6"
     },
     {
       "path": "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md",
@@ -128,7 +128,7 @@
     },
     {
       "path": "docs/142-focusa-release-requirement-trace-matrix.md",
-      "sha256": "0aec053b2ef3197af9983063e493e4b9f24a2d6ffad2dbfc1dbf7d7bb07e8866"
+      "sha256": "779ffc485b6d82f7615d60d60af3fdd2d8aed57c258ade8667d4130a36e62e64"
     },
     {
       "path": "docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md",
@@ -166,6 +166,10 @@
     "spec137a-forbidden-placeholder-audit.v1.yaml",
     "spec137a-normative-source-coverage.v1.yaml",
     "spec137a-parent-override-map.v1.yaml",
+    "spec137a-root-delivery-dag.v1.yaml",
+    "spec137a-runtime-proof-map.v1.yaml",
+    "spec137a-surface-parity.v1.yaml",
+    "spec137a-tranche-settlement.v1.yaml",
     "spec138-complete-feature-ledger.v1.yaml",
     "spec138-delivery-dag.v1.yaml",
     "spec138-forbidden-placeholder-audit.v1.yaml",
@@ -176,6 +180,7 @@
     "spec138-primitive-ownership-matrix.v1.yaml",
     "spec138-profile-activation-and-conformance-matrix.v1.yaml",
     "spec138-proof-matrix.v1.yaml",
+    "spec138-runtime-proof-map.v1.yaml",
     "spec138-scorer-and-calibration-matrix.v1.yaml",
     "spec138-security-privacy-retention-matrix.v1.yaml",
     "spec138-source-independence-and-triangulation-matrix.v1.yaml",

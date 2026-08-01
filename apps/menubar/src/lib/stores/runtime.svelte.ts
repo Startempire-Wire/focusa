@@ -25,6 +25,9 @@ export interface RuntimeSnapshot {
   releaseProof: any | null;
   updateNotifications: any | null;
   silentSessionDashboard: any | null;
+  temporal: any | null;
+  predictionAuthority: any | null;
+  instructionIntegrity: any | null;
 }
 
 function createRuntimeStore() {
@@ -55,6 +58,9 @@ function createRuntimeStore() {
     releaseProof: null,
     updateNotifications: null,
     silentSessionDashboard: null,
+    temporal: null,
+    predictionAuthority: null,
+    instructionIntegrity: null,
   });
   let errorMsg = $state<string | null>(null);
 

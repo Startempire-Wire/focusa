@@ -1,0 +1,31 @@
+focusa-ux2qx.17 — live bootstrapper parity and public clean-install proof
+Observed: 2026-07-31
+Operator authorization: explicit pre-approval to complete the locked release
+
+Mutation discipline:
+- Read server safety/procedure/DevOps policy before mutation.
+- Operated exclusively as cPanel owner focusadev; no root-owned file was created under /home.
+- Bounded user-owned backups:
+  - backups/focusa-bootstrapper-20260731T150859Z
+  - backups/focusa-bootstrapper-20260731T151326Z
+  - backups/focusa-bootstrapper-20260731T151557Z
+- Rollback is exact cp -p from the corresponding `.before` file to the live relative path.
+
+Live parity:
+- Bash source/live/public SHA-256: 14ec99e099796395ba3efddc21564dc7fa41edf839e563db9ff8f352d40891d7.
+- PowerShell source/live/public SHA-256: 99c136d7d5bff75c6ceb9051b23491c8292807cd9ba2a9d27816630226ac04df.
+- Live installer, installers/install-focusa.ps1, focusa.ps1, and install.ps1 aliases are byte-identical to canonical repository sources.
+- UIAI read before/after: uiai-browser:session=fkAdeKbk:read:1 and :read:2.
+- Public curl/cmp parity: PASS for Bash and PowerShell.
+
+Public clean-install proof:
+- Live Bash bootstrapper executed on OVH with isolated HOME/XDG directories, `--dry-run --eval --target=linux --channel=preview --accept-license --no-install-dependencies --no-service --assume-yes`.
+- Release v0.9.136-dev selected, artifact downloaded, SHA-256 verified, and Rust handoff plan rendered.
+- HOME/XDG directories remained empty after completion.
+- The canonical bootstrapper now fences commercial/evaluation license writes, legacy migration, and install-root directory creation behind DRY_RUN=0.
+- tests/spec132_public_bootstrap_dry_run_static_test.sh: PASS.
+- tests/final_release_gap_gate.sh: PASS with the new dry-run gate.
+
+Result:
+- Canonical Bash/PowerShell sources, live cPanel paths, public endpoints, and dry-run behavior are synchronized and proven.
+- No daemon release, tag, or production binary deploy occurred during bootstrapper parity repair.

@@ -1,8 +1,8 @@
 {
   "serialization": "JSON-compatible YAML 1.2",
-  "generated_at": "2026-07-27T00:47:15+00:00",
-  "runtime_claim": "none",
-  "runtime_status": "not_activated",
+  "generated_at": "2026-07-31T17:03:56+00:00",
+  "runtime_claim": "activated",
+  "runtime_status": "verified_complete",
   "schema": "focusa.spec144_proof_matrix.v1",
   "proof_families": [
     "source_coverage",
@@ -28,5 +28,6 @@
     "accessibility",
     "performance",
     "adversarial"
-  ]
+  ],
+  "activation_receipt_ref": "release-proof/audit/spec144-spec150-double-e2e-receipt.json"
 }

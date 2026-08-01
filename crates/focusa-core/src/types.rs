@@ -12,6 +12,7 @@ use crate::work_item::{EvidenceCitation, WorkItemProvider};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
 // ─── Identifiers ────────────────────────────────────────────────────────────
@@ -557,12 +558,18 @@ pub struct WorkLoopState {
     pub current_autonomy_level: Option<AutonomyLevel>,
     pub delegated_authorship: Option<DelegatedAuthorshipState>,
     pub active_worker: Option<WorkerCapabilityProfile>,
+    #[serde(default)]
+    pub temporal_priority_frame_ref: Option<String>,
+    #[serde(default)]
+    pub temporal_pulse_state: Option<crate::temporal_progress::TemporalPulseState>,
 }
 
 // ─── Canonical State (from core-reducer.md) ─────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct OntologyProposalRecord {
+    #[serde(default)]
+    pub workstream: Option<WorkstreamKey>,
     pub proposal_id: Uuid,
     pub proposal_kind: String,
     pub target_class: String,
@@ -579,6 +586,8 @@ pub struct OntologyProposalRecord {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct OntologyVerificationRecord {
+    #[serde(default)]
+    pub workstream: Option<WorkstreamKey>,
     pub proposal_id: Option<Uuid>,
     pub verification: String,
     pub outcome: String,
@@ -587,6 +596,8 @@ pub struct OntologyVerificationRecord {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct OntologyWorkingSetRefreshRecord {
+    #[serde(default)]
+    pub workstream: Option<WorkstreamKey>,
     pub scope: String,
     pub reason: String,
     pub timestamp: Option<DateTime<Utc>>,
@@ -594,9 +605,55 @@ pub struct OntologyWorkingSetRefreshRecord {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct OntologyDeltaRecord {
+    #[serde(default)]
+    pub workstream: Option<WorkstreamKey>,
     pub delta_kind: String,
     pub payload: serde_json::Value,
     pub timestamp: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[serde(rename_all = "snake_case")]
+pub enum OntologyScopeMigrationRecordKind {
+    Object,
+    Link,
+    Proposal,
+    Verification,
+    WorkingSetRefresh,
+    Delta,
+    PreProposal,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct OntologyScopeMigrationSelection {
+    pub record_kind: OntologyScopeMigrationRecordKind,
+    pub source_hash: String,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct OntologyScopeMigrationEntry {
+    pub record_kind: OntologyScopeMigrationRecordKind,
+    pub source_hash: String,
+    pub clone_hash: String,
+    pub evidence_refs: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OntologyScopeMigrationReceipt {
+    pub receipt_id: Uuid,
+    pub migration_id: Uuid,
+    pub operation: String,
+    pub target_workstream: WorkstreamKey,
+    pub entries: Vec<OntologyScopeMigrationEntry>,
+    pub evidence_refs: Vec<String>,
+    pub recorded_at: DateTime<Utc>,
+}
+
+pub fn ontology_scope_record_hash<T: Serialize>(record: &T) -> String {
+    let encoded = serde_json::to_vec(record).unwrap_or_default();
+    format!("sha256:{}", hex::encode(Sha256::digest(encoded)))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -613,6 +670,8 @@ pub struct OntologyState {
     pub working_set_refreshes: Vec<OntologyWorkingSetRefreshRecord>,
     #[serde(default)]
     pub delta_log: Vec<OntologyDeltaRecord>,
+    #[serde(default)]
+    pub scope_migration_receipts: Vec<OntologyScopeMigrationReceipt>,
 }
 
 // ─── Workpoint Continuity (Spec88) ─────────────────────────────────────────
@@ -989,6 +1048,8 @@ pub struct TrajectoryDefinitionOfDoneRecord {
 #[derive(Debug, Clone, Serialize)]
 pub struct TrajectoryProjectionRecord {
     pub trajectory_id: String,
+    #[serde(default)]
+    pub scope_ref: Option<crate::scoped_state::ScopeRef>,
     pub session_identity: Option<FocusaSessionIdentity>,
     pub project_root: Option<String>,
     pub continuity_id: Option<String>,
@@ -1029,6 +1090,8 @@ pub struct TrajectoryProjectionRecord {
 struct TrajectoryProjectionWireRecord {
     #[serde(default)]
     trajectory_id: String,
+    #[serde(default)]
+    scope_ref: Option<crate::scoped_state::ScopeRef>,
     session_identity: Option<FocusaSessionIdentity>,
     project_root: Option<String>,
     continuity_id: Option<String>,
@@ -1150,6 +1213,7 @@ impl<'de> Deserialize<'de> for TrajectoryProjectionRecord {
         }
         Ok(Self {
             trajectory_id: wire.trajectory_id,
+            scope_ref: wire.scope_ref,
             session_identity: wire.session_identity,
             project_root: wire.project_root,
             continuity_id: wire.continuity_id,
@@ -1185,6 +1249,7 @@ impl Default for TrajectoryProjectionRecord {
     fn default() -> Self {
         Self {
             trajectory_id: String::new(),
+            scope_ref: None,
             session_identity: None,
             project_root: None,
             continuity_id: None,
@@ -3319,6 +3384,38 @@ impl FocusaState {
         })
     }
 
+    /// Return trajectory context only when it belongs to the exact requested project/workstream.
+    pub fn trajectory_ladder_context_for_scope(
+        &self,
+        project_root: Option<&str>,
+        continuity_id: Option<&str>,
+    ) -> Option<TrajectoryLadderContext> {
+        let requested_root = project_root.unwrap_or_default().trim_end_matches('/');
+        if requested_root.is_empty() {
+            return None;
+        }
+        let context = self.trajectory_ladder_context()?;
+        let context_root = context
+            .project_root
+            .as_deref()
+            .unwrap_or_default()
+            .trim_end_matches('/');
+        if context_root != requested_root {
+            return None;
+        }
+        if let (Some(requested), Some(actual)) = (
+            continuity_id.filter(|value| !value.is_empty()),
+            context
+                .continuity_id
+                .as_deref()
+                .filter(|value| !value.is_empty()),
+        ) && requested != actual
+        {
+            return None;
+        }
+        Some(context)
+    }
+
     /// Create a new empty state for a fresh session.
     pub fn new() -> Self {
         Self {
@@ -3409,6 +3506,26 @@ mod focusa_state_tests {
         assert_eq!(context.mlg.as_deref(), Some("Active MLG"));
         assert_eq!(context.stg.as_deref(), Some("Active STG"));
         assert_eq!(context.waypoints.len(), 8);
+        assert!(
+            state
+                .trajectory_ladder_context_for_scope(Some("/tmp/project"), Some("cont"))
+                .is_some()
+        );
+        assert!(
+            state
+                .trajectory_ladder_context_for_scope(Some("/tmp/other"), Some("cont"))
+                .is_none()
+        );
+        assert!(
+            state
+                .trajectory_ladder_context_for_scope(Some("/tmp/project"), Some("other-cont"))
+                .is_none()
+        );
+        assert!(
+            state
+                .trajectory_ladder_context_for_scope(None, None)
+                .is_none()
+        );
     }
 
     #[test]
@@ -3626,12 +3743,23 @@ pub struct FrameRecord {
     pub constraints: Vec<String>,
     /// The frame's current cognitive state (updated incrementally via deltas).
     pub focus_state: FocusState,
+    /// Replayable projection of the canonical temporal event ledger for this exact frame scope.
+    /// This is presentation/context state, never a competing temporal authority.
+    #[serde(default)]
+    pub temporal_context: Option<TemporalFrameContext>,
     /// When the frame was completed (G1-detail-05 UPDATE §Completion Semantics).
     #[serde(default)]
     pub completed_at: Option<DateTime<Utc>>,
     /// Why the frame was completed (G1-detail-05 UPDATE §Completion Semantics).
     #[serde(default)]
     pub completion_reason: Option<CompletionReason>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TemporalFrameContext {
+    pub projection: crate::temporal::TemporalProjection,
+    pub source_event_count: usize,
+    pub projected_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -4319,6 +4447,11 @@ pub enum FocusaEvent {
         frame_id: FrameId,
         delta: FocusStateDelta,
     },
+    /// Replay a typed temporal-ledger projection into the exact scoped Focus Stack frame.
+    TemporalFrameContextProjected {
+        frame_id: FrameId,
+        context: TemporalFrameContext,
+    },
 
     // Intuition → Gate
     IntuitionSignalObserved {
@@ -4412,6 +4545,8 @@ pub enum FocusaEvent {
 
     // PRE / governance
     ProposalSubmitted {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Uuid,
         kind: ProposalKind,
         source: String,
@@ -4420,6 +4555,8 @@ pub enum FocusaEvent {
         score: Option<f64>,
     },
     ProposalStatusChanged {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Uuid,
         status: ProposalStatus,
     },
@@ -4454,6 +4591,8 @@ pub enum FocusaEvent {
     // ─── Ontology Classification / Reducer (docs/50) ─────────────────
     #[serde(rename = "ontology_object_upsert_proposed")]
     OntologyObjectUpsertProposed {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Uuid,
         object_type: String,
         object_id: Option<String>,
@@ -4461,6 +4600,8 @@ pub enum FocusaEvent {
     },
     #[serde(rename = "ontology_link_upsert_proposed")]
     OntologyLinkUpsertProposed {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Uuid,
         link_type: String,
         source_id: String,
@@ -4469,6 +4610,8 @@ pub enum FocusaEvent {
     },
     #[serde(rename = "ontology_status_change_proposed")]
     OntologyStatusChangeProposed {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Uuid,
         subject: String,
         from_status: Option<String>,
@@ -4477,6 +4620,8 @@ pub enum FocusaEvent {
     },
     #[serde(rename = "ontology_working_set_membership_proposed")]
     OntologyWorkingSetMembershipProposed {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Uuid,
         subject: String,
         operation: String,
@@ -4484,26 +4629,49 @@ pub enum FocusaEvent {
     },
     #[serde(rename = "ontology_proposal_promoted")]
     OntologyProposalPromoted {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Uuid,
         target_class: String,
         applied_kind: String,
     },
     #[serde(rename = "ontology_proposal_rejected")]
     OntologyProposalRejected {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Uuid,
         target_class: String,
         reason: String,
     },
     #[serde(rename = "ontology_verification_applied")]
     OntologyVerificationApplied {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         proposal_id: Option<Uuid>,
         verification: String,
         outcome: String,
     },
     #[serde(rename = "ontology_working_set_refreshed")]
     OntologyWorkingSetRefreshed {
+        #[serde(default)]
+        workstream: Option<WorkstreamKey>,
         scope: String,
         reason: String,
+    },
+    #[serde(rename = "ontology_scope_migration_applied")]
+    OntologyScopeMigrationApplied {
+        migration_id: Uuid,
+        target_workstream: WorkstreamKey,
+        selections: Vec<OntologyScopeMigrationSelection>,
+        #[serde(default)]
+        evidence_refs: Vec<String>,
+    },
+    #[serde(rename = "ontology_scope_migration_rolled_back")]
+    OntologyScopeMigrationRolledBack {
+        rollback_id: Uuid,
+        migration_id: Uuid,
+        #[serde(default)]
+        evidence_refs: Vec<String>,
     },
 
     // ─── Workpoint Continuity (Spec88) ─────────────────────────────────
@@ -4647,6 +4815,10 @@ pub struct ReductionResult {
 pub struct EventLogEntry {
     pub id: Uuid,
     pub timestamp: DateTime<Utc>,
+    /// Universal evidence-backed wall-clock and causal-time context captured once at action ingress.
+    /// Legacy entries deserialize to an explicit unavailable sentinel; replay never recaptures time.
+    #[serde(default)]
+    pub temporal: crate::temporal_clock::TemporalActionEnvelope,
     #[serde(flatten)]
     pub event: FocusaEvent,
     pub correlation_id: Option<String>,
@@ -4668,6 +4840,38 @@ pub struct EventLogEntry {
     /// Observations are recorded but do not mutate canonical Focus Stack/State.
     #[serde(default)]
     pub is_observation: bool,
+}
+
+impl EventLogEntry {
+    pub fn captured(
+        event: FocusaEvent,
+        origin: SignalOrigin,
+        correlation_id: Option<String>,
+    ) -> Self {
+        let temporal = crate::temporal_clock::capture_operator_temporal_action_envelope();
+        Self::with_temporal(event, origin, correlation_id, temporal)
+    }
+
+    pub fn with_temporal(
+        event: FocusaEvent,
+        origin: SignalOrigin,
+        correlation_id: Option<String>,
+        temporal: crate::temporal_clock::TemporalActionEnvelope,
+    ) -> Self {
+        Self {
+            id: Uuid::now_v7(),
+            timestamp: temporal.captured_at_utc,
+            temporal,
+            event,
+            correlation_id,
+            origin,
+            machine_id: None,
+            instance_id: None,
+            session_id: None,
+            thread_id: None,
+            is_observation: false,
+        }
+    }
 }
 
 // ─── Workers (from G1-10-workers.md) ────────────────────────────────────────
@@ -4838,6 +5042,7 @@ pub enum Action {
 
     // Proposals
     SubmitProposal {
+        workstream: Option<WorkstreamKey>,
         kind: ProposalKind,
         source: String,
         payload: serde_json::Value,
@@ -5437,6 +5642,8 @@ pub enum AttachmentRole {
 /// Proposal — timestamped async request for state change.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Proposal {
+    #[serde(default)]
+    pub workstream: Option<WorkstreamKey>,
     pub id: Uuid,
     pub kind: ProposalKind,
     pub source: String,

@@ -218,9 +218,75 @@ fn render_proof_scope_blocks(app: &App, frame: &mut ratatui::Frame, area: Rect) 
         .title(" Scope Badge ")
         .borders(Borders::ALL)
         .border_style(theme::border());
+    let temporal = app
+        .extra_data
+        .get("workpoint_resume")
+        .and_then(|value| value.as_ref())
+        .and_then(|value| value.get("temporal_context"))
+        .or_else(|| {
+            app.extra_data
+                .get("temporal")
+                .and_then(|value| value.as_ref())
+        });
+    let deadline = temporal
+        .and_then(|value| value.get("deadline_status"))
+        .and_then(|value| value.as_str())
+        .unwrap_or("unavailable");
+    let conflict = temporal
+        .and_then(|value| value.get("deadline_conflict_state"))
+        .and_then(|value| value.as_str())
+        .unwrap_or("unknown");
+    let urgency = temporal
+        .and_then(|value| value.get("urgency"))
+        .and_then(|value| {
+            value
+                .get("subject_ref")
+                .or_else(|| value.get("reason_code"))
+        })
+        .and_then(|value| value.as_str())
+        .unwrap_or("none");
+    let conformance = temporal
+        .and_then(|value| value.get("conformance"))
+        .and_then(|value| value.get("full_conformance_status"))
+        .and_then(|value| value.as_str())
+        .unwrap_or("unknown");
+    let prediction_authority = app
+        .extra_data
+        .get("prediction_authority")
+        .and_then(|value| value.as_ref());
+    let epistemic_conformance = prediction_authority
+        .and_then(|value| value.get("profile_conformance"))
+        .and_then(|value| value.get("full_conformance_status"))
+        .and_then(|value| value.as_str())
+        .unwrap_or("unknown");
+    let epistemic_events = prediction_authority
+        .and_then(|value| value.get("event_count"))
+        .and_then(|value| value.as_u64())
+        .unwrap_or(0);
+    let instruction_integrity = app
+        .extra_data
+        .get("instruction_integrity")
+        .and_then(|value| value.as_ref());
+    let instruction_status = instruction_integrity
+        .and_then(|value| value.get("status"))
+        .and_then(|value| value.as_str())
+        .unwrap_or("unavailable");
+    let instruction_outage = instruction_integrity
+        .and_then(|value| value.get("dynamic_authority_outage_posture"))
+        .and_then(|value| value.as_str())
+        .unwrap_or("unknown");
     let scope_lines = vec![
         Line::from(format!("{}  {}", scope.visual, scope.label)),
         Line::from(format!("precedence  {}", scope.precedence_frame)),
+        Line::from(format!(
+            "time  deadline={deadline} conflict={conflict} urgency={urgency} conformance={conformance}"
+        )),
+        Line::from(format!(
+            "epistemic  events={epistemic_events} conformance={epistemic_conformance}"
+        )),
+        Line::from(format!(
+            "instruction  guard={instruction_status} outage={instruction_outage} canvas_authority=false"
+        )),
     ];
     frame.render_widget(
         Paragraph::new(scope_lines)

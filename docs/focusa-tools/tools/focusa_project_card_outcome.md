@@ -36,6 +36,16 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 
 Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_project_card_outcome.md
 
+## Operator alignment
+
+- refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps
+- treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker
+- consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation
+- use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested
+- never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range
+- for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons
+- use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation
+
 ## Anti-examples
 
 - assuming unsafe broad cwd is canonical
@@ -74,4 +84,4 @@ Likely next: `focusa_project_card`, `focusa_predict_record`, `focusa_metacog_cap
 - CLI: `focusa project card-outcome`.
 - REST: `POST /v1/project/card/outcome`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:3cb8f527e693d1fc8da65c79f3ed92a1a022a3d3c859d7d78d81cbd42656001b`.
+- Descriptor digest: `sha256:dc0f5dbc25d4f3e93a8386fc83584d4aae23c9bbbd5847ed20ebb99bc23f9448`.

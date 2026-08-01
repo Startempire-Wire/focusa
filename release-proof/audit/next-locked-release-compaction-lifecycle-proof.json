@@ -1,0 +1,153 @@
+{
+  "schema": "focusa.locked_release_compaction_lifecycle_proof.v1",
+  "status": "verified",
+  "locked_issue": "focusa-627th.4.3",
+  "github_issue": "https://github.com/Startempire-Wire/focusa/issues/14",
+  "pi_version": "0.82.1",
+  "implementation": {
+    "native_compaction_owner": "pi",
+    "prepare_rpc_budget": 1,
+    "verify_rpc_budget": 1,
+    "session_compact_network_free": true,
+    "resume_delivery": {
+      "deliver_as": "nextTurn",
+      "trigger_turn": false,
+      "void_api_outcome": "unknown_completion",
+      "blind_retry": false
+    },
+    "daemon_routes": [
+      "POST /v1/compaction/prepare",
+      "POST /v1/compaction/verify"
+    ]
+  },
+  "proof": {
+    "extension_typecheck": "verified",
+    "extension_lint": "verified",
+    "extension_tests": "27/27 passed",
+    "compaction_regression_tests": "7/7 passed",
+    "rust_check": "verified with installed nightly toolchain; default stable cargo component unavailable",
+    "rust_format": "verified",
+    "fallback_guard": "verified",
+    "prepare_verify_http": {
+      "prepare_status": "prepared",
+      "persistence": "persisted",
+      "native_owner_instruction": true,
+      "verify_status": "verified",
+      "context_release_ratio": 0.6,
+      "required_fields_preserved": true,
+      "recommended_next": "defer"
+    },
+    "pi_rpc_manual_compaction": {
+      "status": "verified",
+      "model": "openai-codex/gpt-5.6-sol",
+      "tokens_before": 137949,
+      "native_compaction_entries": 1,
+      "pending_marker_entries": 1,
+      "resume_projection_entries": 1,
+      "post_compaction_prompt_accepted": true,
+      "final_idle": true,
+      "busy_or_websocket_errors": 0,
+      "reload_required": false
+    },
+    "rpc_prompt_during_compaction_baseline": {
+      "focusa_loaded": false,
+      "compact_success": true,
+      "prompt_command_accepted": true,
+      "prompt_resumed": false,
+      "user_entry_count": 0,
+      "finding": "Pi RPC does not model TUI queued operator input during compact; this behavior reproduced with all extensions disabled and is not attributed to Focusa."
+    },
+    "pi_tui_queued_input_race": {
+      "status": "verified",
+      "queued_user_entries": 1,
+      "assistant_deliveries": 1,
+      "native_compactions": 1,
+      "pending_markers": 1,
+      "superseded_by_operator_outcomes": 1,
+      "competing_resume_projection_entries": 0,
+      "reload_required": false
+    },
+    "daemon_failure_matrix": {
+      "offline": {
+        "status": "verified",
+        "native_compactions": 1,
+        "recovery_user_entries": 1,
+        "recovery_assistant_deliveries": 1,
+        "reload_required": false
+      },
+      "slow_prepare": {
+        "status": "native_compaction_and_recovery_verified",
+        "daemon_delay_seconds": 10,
+        "client_epoch_deadline_seconds": 2.5,
+        "recovery_user_entries": 1,
+        "recovery_assistant_deliveries": 1,
+        "reload_required": false,
+        "finding": "Total wall time was provider-summary dominated and is not used as prepare-deadline evidence; source and regression tests verify signal-bound 2.5-second cancellation."
+      },
+      "scope_mismatch": "verified_degraded_without_blocking_in_isolated_tui_runs",
+      "saturated": {
+        "status": "verified",
+        "prepare_status": 503,
+        "native_compactions": 1,
+        "recovery_user_entries": 1,
+        "recovery_assistant_deliveries": 1,
+        "reload_required": false
+      }
+    },
+    "post_compaction_transition_matrix": {
+      "reload": {
+        "status": "verified",
+        "reload_indicator_cleared": true,
+        "recovery_user_entries": 1,
+        "recovery_assistant_deliveries": 1,
+        "duplicate_resume_entries": 0
+      },
+      "model_switch": {
+        "status": "verified",
+        "target_model": "openai-codex/gpt-5.4-mini",
+        "prompt_accepted": true,
+        "assistant_deliveries": 1
+      }
+    },
+    "cancellation_observation": {
+      "rpc_abort_command_accepted": true,
+      "tui_escape_presses": 1,
+      "post_escape_recovery_user_entries": 1,
+      "post_escape_recovery_assistant_deliveries": 1,
+      "second_escape_required": false,
+      "reload_required": false,
+      "native_compaction_cancelled": "verified_by_pi_source_and_focusa_signal_composition; automated tmux key transport did not expose a physical abort event",
+      "pi_source_mapping": "interactive-mode.js compaction_start installs defaultEditor.onEscape = session.abortCompaction; agent-session.js abortCompaction aborts manual and automatic compaction controllers",
+      "focusa_signal_mapping": "session_before_compact event.signal is passed through withCompactionDeadline to the sole prepare fetch",
+      "finding": "Pi directly binds TUI Esc to abortCompaction and Focusa propagates the same signal to its sole prepare fetch. Live one-Esc recovery required no second Esc or reload; tmux key automation could not observe a physical abort before native settlement."
+    }
+  },
+  "acceptance_matrix": {
+    "manual_idle_returns_control_without_triggered_turn": "verified",
+    "post_compaction_operator_prompt_delivered_once": "verified",
+    "session_compact_returns_without_network_await": "verified",
+    "resume_projection_explicit_next_turn_once": "verified",
+    "pi_native_summary_preserved": "verified",
+    "prepare_verify_call_budget": "verified",
+    "daemon_prepare_verify_isolated_runtime": "verified",
+    "duplicate_extension_suppression": "verified_by_existing_runtime_test",
+    "threshold_overflow_paths": "verified_by_existing_runtime_test",
+    "operator_prompt_submitted_during_tui_compaction": "verified_one_user_one_assistant_no_competing_resume",
+    "single_esc_cancellation": "verified_composite: Pi Esc-to-abortCompaction source mapping, Focusa event.signal propagation, one-Esc live recovery, no second Esc/reload",
+    "daemon_offline_slow_scope_mismatch": "verified_live_tui",
+    "daemon_saturated": "verified_live_tui_503_recovery",
+    "reload": "verified_live_tui_one_user_one_assistant_no_duplicate_resume",
+    "model_switch": "verified_live_rpc_openai_codex_gpt_5_4_mini"
+  },
+  "completion_gate": {
+    "ready_to_close_issue": true,
+    "remaining": []
+  },
+  "evidence_refs": [
+    "apps/pi-extension/tests/compaction-native-lifecycle.test.mjs",
+    "tests/compaction_resume_retry_wiring_test.sh",
+    "tests/spec130_compaction_mission_packet_static_test.sh",
+    "docs/130a-zero-waste-compaction-performance-addendum.md",
+    "docs/142-focusa-seamless-pi-continuation-and-workflow-dependency-onboarding-spec.md"
+  ]
+}

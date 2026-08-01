@@ -1,0 +1,93 @@
+{
+  "schema": "focusa.locked_release_north_star_staleness_proof.v1",
+  "status": "verified",
+  "locked_issue": "focusa-o4gkd",
+  "github_issue": "https://github.com/Startempire-Wire/focusa/issues/111",
+  "call_stack_design": "019fb115-95c5-7af3-b474-06167b8067fa",
+  "implementation": {
+    "mandatory_chain": "ProjectIdentity → WorkingSubpath → HLT → MLG → STG → waypoint → gap → Workpoint → writer/frontier",
+    "project_verify_fail_closed": true,
+    "prompt_mode_can_disable_gate": false,
+    "trajectory_before_workpoint": true,
+    "current_ask_bound_to_workpoint_resume": true,
+    "ask_change_demotes_saved_workpoint": true,
+    "pi_session_id_is_temporal_metadata": true,
+    "writerless_first_checkpoint": true,
+    "approved_stale_inert_scope_rebind": true,
+    "active_or_paused_scope_takeover": false,
+    "read_only_gate_tool": "focusa_north_star_gate",
+    "visible_card": "PROJECT → HLT → MLG → STG → WP → FRONTIER"
+  },
+  "continuous_refresh_triggers": [
+    "session_start_or_resume",
+    "operator_input",
+    "post_compaction",
+    "model_switch",
+    "project_or_working_subpath_switch_via_session_start",
+    "workpoint_resume_or_checkpoint",
+    "provider_or_workset_frontier_projection"
+  ],
+  "proof": {
+    "extension_typecheck": "verified",
+    "extension_lint": "verified",
+    "extension_tests": "28/28 passed",
+    "north_star_tests": "9/9 passed",
+    "rust_check": "verified",
+    "rust_stale_scope_rebind_test": "1/1 passed; 426 filtered",
+    "blocked_startup_live_tui": {
+      "status": "verified",
+      "prompt_mode": "off",
+      "north_star_blocked_visible": true,
+      "assistant_turns": 0,
+      "durable_startup_continued": false
+    },
+    "writerless_checkpoint_live": {
+      "status": "accepted",
+      "workpoint_id": "019fb12c-5126-7171-96dd-a040580d8eb5",
+      "work_item_id": "focusa-o4gkd",
+      "continuity_id": "focusa-v0.9.135-locked-14",
+      "preexisting_writer_lease": false
+    },
+    "stale_foreign_execution_scope_observed": {
+      "active_scope": "/root/focusa-pi-e2e-135",
+      "continuity_id": "issue64-release-e2e-2",
+      "status": "blocked",
+      "active_writer": null,
+      "current_task": null,
+      "recovery": "approved /work-loop/enable may rebind only when scope is inert; active, paused, or blocked-with-task scopes still fail closed"
+    },
+    "workpoint_resume_current_ask": {
+      "status": "completed",
+      "canonical": true,
+      "workpoint_id": "019fb12c-5126-7171-96dd-a040580d8eb5"
+    }
+  },
+  "acceptance_matrix": {
+    "new_session_cannot_mutate_before_verified_binding": "verified",
+    "saved_workpoint_mismatch_is_advisory": "verified",
+    "canonical_true_cannot_bypass_current_ask_gate": "verified",
+    "resume_refreshes_ladder_in_order": "verified",
+    "compaction_refreshes_visible_gate": "verified",
+    "project_switch_invalidates_prior_scope": "verified_by_existing_isolation_tests",
+    "model_switch_refreshes_visible_gate": "verified",
+    "workset_frontier_remains_exclusive": "verified_by_revision_6_execution_audit",
+    "missing_writer_allows_first_checkpoint": "verified_live",
+    "stale_inert_foreign_scope_rebind_is_approval_gated": "verified_unit_and_scope_observation",
+    "active_foreign_scope_rebind_fails_closed": "verified_unit",
+    "cross_project_prompt_visible_context_rejected": "verified_by_existing_scope_tests",
+    "interactive_and_headless_gate_equivalence": "verified_static_plus_live_tui",
+    "fresh_gate_has_bounded_non_modal_card": "verified"
+  },
+  "completion_gate": {
+    "ready_to_close_issue": true,
+    "remaining": []
+  },
+  "evidence_refs": [
+    "apps/pi-extension/src/north-star.ts",
+    "apps/pi-extension/tests/north-star-gate.test.mjs",
+    "crates/focusa-api/src/routes/work_loop.rs",
+    "git:c052c096",
+    "git:1b983f25",
+    "https://github.com/Startempire-Wire/focusa/issues/111"
+  ]
+}

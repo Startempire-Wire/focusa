@@ -1,0 +1,23 @@
+focusa-vbcqu.8.1 — exact-SHA integrated acceptance matrix
+Status: PASS; no publication, tag, or deployment performed
+Observed: 2026-07-31
+Tested revision before evidence-only commit: 0fee478b4faf73727f8af95a51c2d44df82ce0e6
+Branch: locked-release-all-open-spec137-138-140
+Build authority: exact candidate checkout; existing Bun route and dependency tree only; no runtime installation
+
+PASS:
+- tests/final_release_gap_gate.sh: PASS using existing /usr/local/bin/bun and temporary symlink to /home/wirebot/focusa-w1/apps/pi-extension/node_modules; symlink removed after run.
+- cargo test --workspace --all-targets (OVH exact checkout): PASS.
+- Pi check, lint, format, and all declared targeted Pi suites: PASS under Node 22.23.1.
+- Spec135 compatibility, Spec137/137A, Spec138/138A, Spec140A, Spec142, Spec143, Spec146, and Spec149 gates: PASS.
+- Spec149 contract audit: 80 requirements, 31 operations, 29 OpenAPI paths, 44 events, zero errors.
+- Locked-release decomposition audit: PASS; 43 explicit issues, 258 locked members, zero unmapped.
+- Workset schema audit: PASS; 258 members, 640 edges, six event envelopes, zero errors.
+- Execution audit: PASS; 258/258 terminal coverage, zero cycles, zero unresolved external blockers, frontier focusa-vbcqu.8.1.
+- Legacy release audit: PASS; digest sha256:097d8a22dcf436bdbd9147cb260640fc4f6fcbccc185ad1572245ee63401cfd8.
+- Release resource gate: PASS; KH and OVH below disk threshold, free space above minimum, replication pending zero.
+
+DECISION:
+- focusa-vbcqu.8.1 integrated acceptance: PASS.
+- No gate was weakened; no runtime was installed; no publication action was taken.
+- Next locked scope remains dogfood/final release decision; tag/publication/deploy require separate authorization and gates.

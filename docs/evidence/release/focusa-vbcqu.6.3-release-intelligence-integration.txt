@@ -1,0 +1,27 @@
+focusa-vbcqu.6.3 — evidence-backed release page integration
+Observed: 2026-07-31
+Source authority: commit containing this evidence on locked-release-all-open-spec137-138-140
+
+Implemented:
+- Release creation is private/draft until artifact and trust proof exists.
+- The checksums job checks out full history, downloads every completed release asset, derives the previous tag, and generates focusa.release_intelligence.v1 from exact Git/artifact truth.
+- scripts/generate-release-intelligence-packet.py owns deterministic packet assembly; the existing Rust ReleaseIntelligencePacket remains validation/render authority.
+- The released x86_64 Linux CLI renders release-intelligence.md with `release render-intelligence --publishable`; no duplicate Markdown renderer was added.
+- release-intelligence.json and release-intelligence.md enter release-trust-metadata.py before signing, so both receive checksums, Ed25519 signatures, provenance coverage, and release-manifest inclusion.
+- The signed packet/page are uploaded as release assets.
+- Only after trusted metadata uploads does `gh release edit --notes-file ... --draft=false` publish the evidence-backed release page.
+- Production deploy dispatch remains downstream of this completed checksums/intelligence job.
+
+Proof:
+- python3 tests/spec146_release_intelligence_workflow_gate.py: PASS.
+- Workflow YAML parse: PASS.
+- tests/release_gate_static_test.sh: PASS.
+- cargo test -p focusa-core release_intelligence --lib: PASS.
+- cargo test -p focusa-cli release: PASS.
+- tests/final_release_gap_gate.sh: PASS with Spec146 included.
+- Generator runtime fixture proves exact SHA, nonempty changes/proofs/traceability, artifact SHA-256, and future signature refs.
+- Existing Spec145 provider-neutral release evidence remains authoritative at docs/evidence/spec145/spec145-master-cycle-conformance.txt.
+
+Safety:
+- No release, tag, deploy, or production mutation occurred during implementation.
+- The workflow fails closed on missing CLI artifact, empty packet/page, publishability rejection, signing failure, or release-edit failure.

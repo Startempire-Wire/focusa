@@ -12,7 +12,8 @@ export type FocusaToolFamily =
   | "traversal"
   | "session_transfer"
   | "awareness"
-  | "preload";
+  | "preload"
+  | "agent_runtime";
 
 export type FocusaToolParityStatus =
   "full" | "domain" | "pi_only" | "local_only" | "degraded_known" | "api_only";
@@ -139,7 +140,189 @@ const PRELOAD_TOOL_CONTRACTS: FocusaToolContract[] = [
   } as FocusaToolContract;
 });
 
+const AGENT_RUNTIME_TOOL_CONTRACTS: FocusaToolContract[] = [
+  [
+    "focusa_agent_runtime_effective",
+    "Agent Runtime Effective",
+    "instruction.effective",
+    "GET /v1/agent-runtime/instructions/effective",
+    "focusa agent-runtime effective",
+    false,
+  ],
+  [
+    "focusa_instruction_sources",
+    "Instruction Sources",
+    "instruction.sources",
+    "GET /v1/agent-runtime/instructions/sources",
+    "focusa agent-runtime sources",
+    false,
+  ],
+  [
+    "focusa_instruction_conflicts",
+    "Instruction Conflicts",
+    "instruction.conflicts",
+    "GET /v1/agent-runtime/instructions/conflicts",
+    "focusa agent-runtime conflicts",
+    false,
+  ],
+  [
+    "focusa_instruction_explain",
+    "Instruction Explain",
+    "instruction.explain",
+    "GET /v1/agent-runtime/instructions/claims",
+    "focusa agent-runtime claims",
+    false,
+  ],
+  [
+    "focusa_instruction_simulate",
+    "Instruction Simulate",
+    "instruction.simulate",
+    "POST /v1/agent-runtime/instructions/simulate",
+    "focusa agent-runtime simulate",
+    false,
+  ],
+  [
+    "focusa_runtime_constitution_preview",
+    "Runtime Constitution Preview",
+    "runtime_constitution.preview",
+    "POST /v1/agent-runtime/constitutions/{id}/preview",
+    "focusa agent-runtime constitution preview",
+    false,
+  ],
+  [
+    "focusa_prompt_variant_preview",
+    "Prompt Variant Preview",
+    "prompt_variant.preview",
+    "POST /v1/agent-runtime/compile/system-prompt",
+    "focusa agent-runtime prompt preview",
+    false,
+  ],
+  [
+    "focusa_prompt_variant_diff",
+    "Prompt Variant Diff",
+    "prompt_variant.diff",
+    "local",
+    "focusa agent-runtime prompt diff",
+    false,
+  ],
+  [
+    "focusa_agent_artifact_preview",
+    "Agent Artifact Preview",
+    "artifact.preview",
+    "POST /v1/agent-runtime/delivery/preview",
+    "focusa agent-runtime artifacts preview",
+    false,
+  ],
+  [
+    "focusa_agent_artifact_delivery",
+    "Agent Artifact Delivery",
+    "artifact.delivery",
+    "POST /v1/agent-runtime/delivery/commit",
+    "focusa agent-runtime artifacts apply",
+    true,
+  ],
+  [
+    "focusa_agent_artifact_verify",
+    "Agent Artifact Verify",
+    "artifact.verify",
+    "POST /v1/agent-runtime/delivery/verify",
+    "focusa agent-runtime artifacts verify",
+    false,
+  ],
+  [
+    "focusa_instruction_integrity_evaluate",
+    "Instruction Integrity Evaluate",
+    "instruction.integrity_evaluate",
+    "POST /v1/agent-runtime/instruction-integrity/evaluate",
+    "focusa agent-runtime integrity-evaluate",
+    true,
+  ],
+  [
+    "focusa_instruction_integrity_status",
+    "Instruction Integrity Status",
+    "instruction.integrity_status",
+    "GET /v1/agent-runtime/instruction-integrity/status",
+    "focusa agent-runtime integrity-status",
+    false,
+  ],
+  [
+    "focusa_canonical_instruction_amendment_propose",
+    "Canonical Instruction Amendment Propose",
+    "instruction.amendment_propose",
+    "POST /v1/agent-runtime/amendments/propose",
+    "focusa agent-runtime amendment-propose",
+    true,
+  ],
+  [
+    "focusa_canonical_instruction_amendment_activate",
+    "Canonical Instruction Amendment Activate",
+    "instruction.amendment_activate",
+    "POST /v1/agent-runtime/amendments/activate",
+    "focusa agent-runtime amendment-activate",
+    true,
+  ],
+  [
+    "focusa_agent_runtime_headless_verify",
+    "Agent Runtime Headless Verify",
+    "instruction.headless_verify",
+    "POST /v1/agent-runtime/headless/verify",
+    "focusa agent-runtime headless-verify",
+    true,
+  ],
+  [
+    "focusa_agent_runtime_doctor",
+    "Agent Runtime Doctor",
+    "runtime_constitution.doctor",
+    "GET /v1/agent-runtime/doctor",
+    "focusa agent-runtime doctor",
+    false,
+  ],
+].map(([name, label, action, route, command, write]) => ({
+  name: String(name),
+  label: String(label),
+  purpose: `Operate the Spec 140 ${String(label).toLowerCase()} surface with typed scope and evidence.`,
+  family: "agent_runtime" as const,
+  ontology_action: String(action),
+  ontology_objects: ["ProjectAgentRuntimeConstitution", "InstructionClaim", "RuntimeArtifactProjection"],
+  api_routes: route === "local" ? [] : [String(route)],
+  cli_commands: [String(command)],
+  core_surface: "Spec140 project-agent Runtime Constitution compiler and delivery",
+  doc_path: `docs/focusa-tools/tools/${String(name)}.md`,
+  spec_path:
+    "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md",
+  result_envelope: "tool_result_v1" as const,
+  side_effect_profile: write ? "confirmed_receipted_artifact_delivery" : "read_or_preview_only",
+  parity_status: route === "local" ? ("pi_only" as const) : ("full" as const),
+  exemptions: route === "local" ? ["pi_only"] : [],
+  live_check: "contract_static plus typed /v1/agent-runtime route verification",
+  scope_requirement: { kind: write ? ("write" as const) : ("read" as const), route_family: "agent-runtime" },
+  authority_requirement: write
+    ? { kind: "canonical" as const, path: "/v1/agent-runtime/delivery/commit" }
+    : { kind: "advisory_only" as const },
+}));
+
 export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
+  ...AGENT_RUNTIME_TOOL_CONTRACTS,
+  {
+    name: "focusa_north_star_gate",
+    label: "North Star Gate",
+    purpose: "Inspect the fail-closed Project → HLT → MLG → STG → Workpoint → frontier authority chain.",
+    family: "trajectory",
+    ontology_action: "north_star.inspect",
+    ontology_objects: ["ProjectIdentity", "Trajectory", "Workpoint"],
+    api_routes: [],
+    cli_commands: [],
+    core_surface: "Continuous north-star authority gate",
+    doc_path: "docs/focusa-tools/tools/focusa_north_star_gate.md",
+    spec_path: "docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md",
+    result_envelope: "tool_result_v1",
+    side_effect_profile: "read_state",
+    parity_status: "pi_only",
+    exemptions: ["pi_only"],
+    live_check: "north-star gate tests plus lifecycle transition projection",
+    scope_requirement: { kind: "read", route_family: "trajectory" },
+    authority_requirement: { kind: "advisory_only" },
+  },
   {
     name: "focusa_tool_search",
     label: "Focusa Tool Search",
@@ -240,6 +423,32 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     live_check: "Spec141 Agent Card interface, auth, count, and discovery fixture",
     scope_requirement: { kind: "read", route_family: "agent" },
     authority_requirement: { kind: "advisory_only" },
+  },
+  {
+    name: "focusa_ontology_scope_migration",
+    label: "Ontology Scope Migration",
+    purpose:
+      "Dry-run, apply, inspect, and roll back granular evidence-backed migration of quarantined legacy ontology records into one verified workstream.",
+    family: "diagnostics_hygiene",
+    ontology_action: "ontology.scope_migration",
+    ontology_objects: ["WorkstreamKey", "OntologyScopeMigrationReceipt", "EvidenceRef"],
+    api_routes: ["POST /v1/ontology/scope-migrations"],
+    cli_commands: [
+      "focusa ontology scope-migration-dry-run",
+      "focusa ontology scope-migration-status",
+      "focusa ontology scope-migration-apply",
+      "focusa ontology scope-migration-rollback",
+    ],
+    core_surface: "Spec151 reducer-owned ontology scope migration ledger",
+    doc_path: "docs/focusa-tools/tools/focusa_ontology_scope_migration.md",
+    spec_path: "docs/151-focusa-emergency-cross-project-scope-isolation-locked-release-addendum.md",
+    result_envelope: "tool_result_v1",
+    side_effect_profile: "confirmed_append_only_scope_migration",
+    parity_status: "full",
+    exemptions: [],
+    live_check: "Spec151 migration dry-run/apply/idempotency/status/rollback and duplicate-id fixtures",
+    scope_requirement: { kind: "write", route_family: "ontology" },
+    authority_requirement: { kind: "canonical", path: "reducer event plus append-only receipt" },
   },
   {
     name: "focusa_browser_capabilities_intake",
@@ -1172,7 +1381,7 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     name: "focusa_silent_sessions",
     label: "Focusa Silent Sessions (daemon facade)",
     purpose:
-      "Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility.",
+      "Thin daemon-native Spec133 API client for exact session/run status, bounded observation, steering, controls, config, receipts, capabilities, and legacy action compatibility; process-control failures return failure_class=process_control_failed with receipt-backed recovery.",
     family: "work_loop",
     ontology_action: "work_loop.silent_session.control",
     ontology_objects: ["SilentSession", "SilentSessionRun", "ResourceMode"],
@@ -2437,7 +2646,11 @@ export const FOCUSA_TOOL_CONTRACTS: FocusaToolContract[] = [
     family: "metacognition",
     ontology_action: "prediction.authority",
     ontology_objects: ["ScopedCapabilityRecord"],
-    api_routes: ["POST /v1/prediction-authority/events", "POST /v1/prediction-authority/projection"],
+    api_routes: [
+      "POST /v1/prediction-authority/events",
+      "POST /v1/prediction-authority/projection",
+      "GET /v1/prediction-authority/projection",
+    ],
     cli_commands: ["focusa predict authority-append", "focusa predict authority-projection"],
     core_surface: "Scoped Focusa authority",
     doc_path: "docs/focusa-tools/tools/focusa_prediction_authority.md",
@@ -2480,15 +2693,73 @@ const FAMILY_NEXT_TOOLS: Record<FocusaToolFamily, string[]> = {
   session_transfer: ["focusa_workpoint_resume", "focusa_device_pair_status", "focusa_trajectory_view"],
   awareness: ["focusa_workpoint_resume", "focusa_trajectory_view", "focusa_tool_doctor"],
   preload: ["focusa_preload_build", "focusa_preload_verify", "focusa_preload_doctor"],
+  agent_runtime: [
+    "focusa_agent_runtime_effective",
+    "focusa_runtime_constitution_preview",
+    "focusa_agent_runtime_doctor",
+  ],
 };
 
 const TOOL_NEXT_TOOLS: Record<string, string[]> = {
+  focusa_agent_runtime_effective: [
+    "focusa_instruction_sources",
+    "focusa_instruction_conflicts",
+    "focusa_instruction_integrity_status",
+  ],
+  focusa_instruction_sources: [
+    "focusa_instruction_conflicts",
+    "focusa_instruction_explain",
+    "focusa_agent_runtime_effective",
+  ],
+  focusa_instruction_conflicts: [
+    "focusa_instruction_explain",
+    "focusa_instruction_simulate",
+    "focusa_instruction_integrity_evaluate",
+  ],
+  focusa_instruction_explain: ["focusa_instruction_simulate", "focusa_agent_runtime_effective"],
+  focusa_instruction_simulate: [
+    "focusa_runtime_constitution_preview",
+    "focusa_instruction_integrity_evaluate",
+  ],
+  focusa_runtime_constitution_preview: ["focusa_prompt_variant_preview", "focusa_agent_artifact_preview"],
+  focusa_prompt_variant_preview: ["focusa_prompt_variant_diff", "focusa_agent_artifact_preview"],
+  focusa_prompt_variant_diff: ["focusa_prompt_variant_preview", "focusa_agent_runtime_doctor"],
+  focusa_agent_artifact_preview: ["focusa_agent_artifact_delivery", "focusa_agent_artifact_verify"],
+  focusa_agent_artifact_delivery: ["focusa_agent_artifact_verify", "focusa_instruction_integrity_status"],
+  focusa_agent_artifact_verify: ["focusa_agent_runtime_effective", "focusa_agent_runtime_doctor"],
+  focusa_instruction_integrity_evaluate: [
+    "focusa_instruction_integrity_status",
+    "focusa_agent_runtime_headless_verify",
+  ],
+  focusa_instruction_integrity_status: [
+    "focusa_instruction_integrity_evaluate",
+    "focusa_agent_runtime_doctor",
+  ],
+  focusa_canonical_instruction_amendment_propose: [
+    "focusa_canonical_instruction_amendment_activate",
+    "focusa_instruction_integrity_evaluate",
+  ],
+  focusa_canonical_instruction_amendment_activate: [
+    "focusa_instruction_integrity_evaluate",
+    "focusa_agent_runtime_effective",
+  ],
+  focusa_agent_runtime_headless_verify: [
+    "focusa_instruction_integrity_status",
+    "focusa_agent_runtime_doctor",
+  ],
+  focusa_agent_runtime_doctor: ["focusa_agent_runtime_effective", "focusa_instruction_integrity_status"],
+  focusa_north_star_gate: ["focusa_project_identity", "focusa_trajectory_view", "focusa_workpoint_resume"],
   focusa_tool_search: ["focusa_tool_describe", "focusa_tool_bundle", "focusa_tool_graph"],
   focusa_tool_describe: ["focusa_tool_graph", "focusa_agent_card", "focusa_tool_search"],
   focusa_tool_graph: ["focusa_tool_describe", "focusa_tool_bundle", "focusa_tool_search"],
   focusa_tool_bundle: ["focusa_tool_describe", "focusa_tool_graph", "focusa_tool_search"],
   focusa_agent_card: ["focusa_tool_search", "focusa_tool_bundle", "focusa_project_identity"],
   focusa_prediction_authority: ["focusa_predict_recent", "focusa_evidence_capture", "focusa_metacog_capture"],
+  focusa_ontology_scope_migration: [
+    "focusa_project_verify",
+    "focusa_evidence_capture",
+    "focusa_workpoint_link_evidence",
+  ],
   focusa_browser_capabilities_intake: [
     "focusa_browser_workflow_plan",
     "focusa_browser_diagnostics_intake",
@@ -2828,6 +3099,11 @@ const FAMILY_DEFAULT_INPUTS: Record<FocusaToolFamily, string[]> = {
     "mode=minimal|standard|rich|onboarding",
   ],
   preload: ["profile", "project_root and continuity_id when scoped", "idempotency_key for writes"],
+  agent_runtime: [
+    "verified project_root",
+    "constitution or instruction target",
+    "Receipt and confirmation for delivery",
+  ],
 };
 
 const FAMILY_WHEN_NOT_TO_USE: Record<FocusaToolFamily, string[]> = {
@@ -2849,6 +3125,11 @@ const FAMILY_WHEN_NOT_TO_USE: Record<FocusaToolFamily, string[]> = {
     "ignoring suppressed lines when debugging degraded awareness",
   ],
   preload: ["writing outside allowlisted paths", "committing receipts without an idempotency key"],
+  agent_runtime: [
+    "unverified prompt sources",
+    "silent prompt replacement",
+    "artifact delivery without a Receipt",
+  ],
 };
 
 function invocationFor(contract: FocusaToolContract): string {

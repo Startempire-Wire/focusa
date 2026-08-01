@@ -488,6 +488,7 @@ mod tests {
                 failures: vec!["Proxy still used full assembly".into()],
                 notes: vec!["internal note should not leak".into()],
             },
+            temporal_context: None,
             completed_at: None,
             completion_reason: None,
         });

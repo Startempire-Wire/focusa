@@ -145,14 +145,7 @@ const AUTO_COMPACTION_RESERVE_PCT_OPTIONS = ["5", "10", "15", "20", "25"];
 const AUTO_COMPACTION_COOLDOWN_OPTIONS = ["30000", "60000", "120000", "180000", "300000"];
 const WORK_LOOP_PRESET_OPTIONS = ["conservative", "balanced", "push", "audit"];
 const WORK_LOOP_TURN_OPTIONS = ["6", "10", "12", "16", "24", "60", "120", "200"];
-const WORK_LOOP_WALL_CLOCK_OPTIONS = [
-  "900000",
-  "1200000",
-  "1800000",
-  "3600000",
-  "7200000",
-  "14400000",
-];
+const WORK_LOOP_WALL_CLOCK_OPTIONS = ["900000", "1200000", "1800000", "3600000", "7200000", "14400000"];
 const WORK_LOOP_RETRY_OPTIONS = ["1", "2", "3", "4", "8"];
 const WORK_LOOP_COOLDOWN_OPTIONS = ["500", "800", "1000", "1500", "2000"];
 const WORK_LOOP_LOW_PRODUCTIVITY_OPTIONS = ["2", "3", "4"];
@@ -765,6 +758,13 @@ export function registerCommands(pi: ExtensionAPI) {
         vitalInfoPromptMode: settingsRuntime.cfg?.vitalInfoPromptMode || "prompt",
         vitalInfoPromptSurfaces:
           settingsRuntime.cfg?.vitalInfoPromptSurfaces || "project_root,project_verify,workpoint,trajectory",
+        operatorStatusBarEnabled: settingsRuntime.cfg?.operatorStatusBarEnabled ?? true,
+        operatorStatusVersionEnabled: settingsRuntime.cfg?.operatorStatusVersionEnabled ?? true,
+        operatorStatusOtaEnabled: settingsRuntime.cfg?.operatorStatusOtaEnabled ?? true,
+        operatorStatusModelUsageEnabled: settingsRuntime.cfg?.operatorStatusModelUsageEnabled ?? true,
+        operatorStatusTimeEnabled: settingsRuntime.cfg?.operatorStatusTimeEnabled ?? true,
+        operatorStatusDeadlineEnabled: settingsRuntime.cfg?.operatorStatusDeadlineEnabled ?? true,
+        operatorStatusPredictionEnabled: settingsRuntime.cfg?.operatorStatusPredictionEnabled ?? true,
         warnPct: settingsRuntime.cfg?.warnPct || 50,
         compactPct: settingsRuntime.cfg?.compactPct || 70,
         hardPct: settingsRuntime.cfg?.hardPct || 85,
@@ -979,6 +979,12 @@ export function registerCommands(pi: ExtensionAPI) {
           values: ["off", "actionable", "all"],
         },
         {
+          id: "operatorStatusBarEnabled",
+          label: "Operator status bar",
+          currentValue: String(draft.operatorStatusBarEnabled),
+          values: BOOLEAN_OPTIONS,
+        },
+        {
           id: "vitalInfoPromptMode",
           label: "Vital project info prompt",
           currentValue: draft.vitalInfoPromptMode,
@@ -1017,6 +1023,20 @@ export function registerCommands(pi: ExtensionAPI) {
           currentValue: draft.contextStatusMode,
           values: ["off", "actionable", "all"],
         },
+        ...([
+          ["operatorStatusBarEnabled", "Operator status bar"],
+          ["operatorStatusVersionEnabled", "Status: Focusa version"],
+          ["operatorStatusOtaEnabled", "Status: OTA state"],
+          ["operatorStatusModelUsageEnabled", "Status: model/provider usage"],
+          ["operatorStatusTimeEnabled", "Status: local time"],
+          ["operatorStatusDeadlineEnabled", "Status: deadline"],
+          ["operatorStatusPredictionEnabled", "Status: next prediction"],
+        ] as const).map(([id, label]) => ({
+          id,
+          label,
+          currentValue: String(draft[id]),
+          values: BOOLEAN_OPTIONS,
+        })),
         {
           id: "vitalInfoPromptMode",
           label: "Vital project info prompt",
@@ -1205,9 +1225,7 @@ export function registerCommands(pi: ExtensionAPI) {
         const syncDisplayedItems = () => {
           simpleProfile = inferSimpleProfile();
           const refreshedItems = advancedMode ? buildAdvancedItems() : buildSimpleItems();
-          const currentValues = new Map(
-            refreshedItems.map((item) => [item.id, item.currentValue] as const)
-          );
+          const currentValues = new Map(refreshedItems.map((item) => [item.id, item.currentValue] as const));
           for (const item of displayedItems) {
             const currentValue = currentValues.get(item.id);
             if (currentValue !== undefined) item.currentValue = currentValue;
@@ -1258,6 +1276,13 @@ export function registerCommands(pi: ExtensionAPI) {
             if (id === "contextStatusMode") draft.contextStatusMode = String(newValue) as any;
             if (id === "vitalInfoPromptMode") draft.vitalInfoPromptMode = String(newValue) as any;
             if (id === "vitalInfoPromptSurfaces") draft.vitalInfoPromptSurfaces = String(newValue);
+            if (id === "operatorStatusBarEnabled") draft.operatorStatusBarEnabled = newValue === "true";
+            if (id === "operatorStatusVersionEnabled") draft.operatorStatusVersionEnabled = newValue === "true";
+            if (id === "operatorStatusOtaEnabled") draft.operatorStatusOtaEnabled = newValue === "true";
+            if (id === "operatorStatusModelUsageEnabled") draft.operatorStatusModelUsageEnabled = newValue === "true";
+            if (id === "operatorStatusTimeEnabled") draft.operatorStatusTimeEnabled = newValue === "true";
+            if (id === "operatorStatusDeadlineEnabled") draft.operatorStatusDeadlineEnabled = newValue === "true";
+            if (id === "operatorStatusPredictionEnabled") draft.operatorStatusPredictionEnabled = newValue === "true";
             if (id === "warnPct") draft.warnPct = Number(newValue);
             if (id === "compactPct") draft.compactPct = Number(newValue);
             if (id === "hardPct") draft.hardPct = Number(newValue);

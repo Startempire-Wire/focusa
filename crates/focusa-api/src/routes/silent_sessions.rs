@@ -305,11 +305,96 @@ async fn status(
     } else {
         json!(run)
     };
+    let mut temporal_scope = focusa_core::temporal::TemporalScope::project(
+        session.authority.project_root.clone(),
+        session.authority.continuity_id.clone(),
+    );
+    temporal_scope.item_id = session.work_item_ref.clone();
+    let temporal_context =
+        focusa_core::temporal::TemporalLedger::for_project(temporal_scope.clone())
+            .and_then(|ledger| ledger.read_all())
+            .ok()
+            .and_then(|events| {
+                serde_json::to_value(focusa_core::temporal::project_temporal(
+                    temporal_scope,
+                    &events,
+                    Utc::now(),
+                ))
+                .ok()
+            })
+            .unwrap_or_else(|| json!({"status":"degraded","authority":"advisory_only"}));
     success_with_principal(
         "status",
-        json!({"session": session_projection, "run": run_projection}),
+        json!({"session": session_projection, "run": run_projection, "temporal_context": temporal_context}),
         &principal,
     )
+}
+
+pub(super) fn ensure_silent_session_temporal_guard(
+    session: &SilentSession,
+    action_ref: &str,
+) -> Result<Value, Box<ApiResponse>> {
+    let mut scope = focusa_core::temporal::TemporalScope::project(
+        session.authority.project_root.clone(),
+        session.authority.continuity_id.clone(),
+    );
+    scope.item_id = session.work_item_ref.clone();
+    let events = focusa_core::temporal::TemporalLedger::for_project(scope.clone())
+        .and_then(|ledger| ledger.read_all())
+        .map_err(|error| {
+            Box::new(failure(
+                StatusCode::PRECONDITION_FAILED,
+                "temporal_priority_unavailable",
+                "temporal_priority_unavailable",
+                "Check the scoped temporal ledger and retry with a fresh priority packet.",
+            ))
+        })?;
+    let projection = focusa_core::temporal::project_temporal(scope.clone(), &events, Utc::now());
+    let calendar = projection.human_calendar_context.as_ref().ok_or_else(|| {
+        Box::new(failure(
+            StatusCode::PRECONDITION_FAILED,
+            "temporal_priority_missing",
+            "temporal_priority_missing",
+            "HumanCalendarContext is required for Silent Session mutation.",
+        ))
+    })?;
+    let frame = projection.temporal_priority_frame.as_ref().ok_or_else(|| {
+        Box::new(failure(
+            StatusCode::PRECONDITION_FAILED,
+            "temporal_priority_missing",
+            "temporal_priority_missing",
+            "TemporalPriorityFrame is required for Silent Session mutation.",
+        ))
+    })?;
+    let guard = projection
+        .temporal_execution_guard
+        .as_ref()
+        .ok_or_else(|| {
+            Box::new(failure(
+                StatusCode::PRECONDITION_FAILED,
+                "temporal_guard_missing",
+                "temporal_guard_missing",
+                "TemporalExecutionGuard is required for Silent Session mutation.",
+            ))
+        })?;
+    focusa_core::temporal_operations::authorize_temporal_action(
+        calendar,
+        frame,
+        Some(guard),
+        &scope,
+        &frame.operator_ask_digest,
+        action_ref,
+        Utc::now(),
+    )
+    .map_err(|error| {
+        Box::new(failure(
+            StatusCode::PRECONDITION_FAILED,
+            "temporal_guard_rejected",
+            "temporal_guard_rejected",
+            "Refresh the scoped priority frame and execution guard before retrying.",
+        ))
+    })?;
+    Ok(serde_json::to_value(projection).unwrap_or(Value::Null))
 }
 
 pub(super) async fn durable_request_principal(

@@ -1,0 +1,1 @@
+promotion requires every mandatory threshold and zero blocking violations.

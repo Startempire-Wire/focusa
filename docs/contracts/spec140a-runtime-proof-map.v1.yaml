@@ -1,0 +1,1169 @@
+{
+  "serialization": "JSON-compatible YAML 1.2",
+  "generated_at": "2026-07-31T00:30:00Z",
+  "schema": "focusa.spec140a_runtime_proof_map.v1",
+  "runtime_claim": "combined_spec140_spec140a_runtime_proof",
+  "runtime_status": "verified_complete",
+  "full_conformance_status": "verified_complete",
+  "combined_normative_source_hash": "3458c3b37ec5dd16f952042f5a126159a1bc583d1b9e6cb13c1e2cd582683341",
+  "row_count": 62,
+  "verified_row_count": 62,
+  "rows": [
+    {
+      "requirement_id": "S140-REQ-001",
+      "spec_id": "140",
+      "spec_section": "0",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-002",
+      "spec_id": "140",
+      "spec_section": "3.1-3.2",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-003",
+      "spec_id": "140",
+      "spec_section": "3.3",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-004",
+      "spec_id": "140",
+      "spec_section": "4",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-005",
+      "spec_id": "140",
+      "spec_section": "4",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-006",
+      "spec_id": "140",
+      "spec_section": "5",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-007",
+      "spec_id": "140",
+      "spec_section": "6",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-008",
+      "spec_id": "140",
+      "spec_section": "7.1",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-009",
+      "spec_id": "140",
+      "spec_section": "7.2",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-010",
+      "spec_id": "140",
+      "spec_section": "7.4",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-011",
+      "spec_id": "140",
+      "spec_section": "8",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-012",
+      "spec_id": "140",
+      "spec_section": "9.1-9.3",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-013",
+      "spec_id": "140",
+      "spec_section": "9.4-9.5",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-014",
+      "spec_id": "140",
+      "spec_section": "10",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-015",
+      "spec_id": "140",
+      "spec_section": "11",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-016",
+      "spec_id": "140",
+      "spec_section": "12",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-017",
+      "spec_id": "140",
+      "spec_section": "13",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-018",
+      "spec_id": "140",
+      "spec_section": "14.1",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-019",
+      "spec_id": "140",
+      "spec_section": "14.1",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-020",
+      "spec_id": "140",
+      "spec_section": "14.1",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-021",
+      "spec_id": "140",
+      "spec_section": "14.2",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-022",
+      "spec_id": "140",
+      "spec_section": "15",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-023",
+      "spec_id": "140",
+      "spec_section": "16",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-024",
+      "spec_id": "140",
+      "spec_section": "17",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-025",
+      "spec_id": "140",
+      "spec_section": "18",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-026",
+      "spec_id": "140",
+      "spec_section": "19",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-027",
+      "spec_id": "140",
+      "spec_section": "20",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-028",
+      "spec_id": "140",
+      "spec_section": "21",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-029",
+      "spec_id": "140",
+      "spec_section": "22",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-030",
+      "spec_id": "140",
+      "spec_section": "23",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-031",
+      "spec_id": "140",
+      "spec_section": "24",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-032",
+      "spec_id": "140",
+      "spec_section": "25",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-033",
+      "spec_id": "140",
+      "spec_section": "26",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-034",
+      "spec_id": "140",
+      "spec_section": "26.4-26.5",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-035",
+      "spec_id": "140",
+      "spec_section": "27",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-036",
+      "spec_id": "140",
+      "spec_section": "28-32",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-037",
+      "spec_id": "140",
+      "spec_section": "33",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-038",
+      "spec_id": "140",
+      "spec_section": "34-35",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-001",
+      "spec_id": "140A",
+      "spec_section": "19.1",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-002",
+      "spec_id": "140A",
+      "spec_section": "19.2",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-003",
+      "spec_id": "140A",
+      "spec_section": "19.3",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-004",
+      "spec_id": "140A",
+      "spec_section": "19.4",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-005",
+      "spec_id": "140A",
+      "spec_section": "19.5",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-006",
+      "spec_id": "140A",
+      "spec_section": "19.6",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-007",
+      "spec_id": "140A",
+      "spec_section": "19.7",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-008",
+      "spec_id": "140A",
+      "spec_section": "19.8",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-009",
+      "spec_id": "140A",
+      "spec_section": "19.9",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-010",
+      "spec_id": "140A",
+      "spec_section": "19.10",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-011",
+      "spec_id": "140A",
+      "spec_section": "19.11",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-012",
+      "spec_id": "140A",
+      "spec_section": "19.12",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-013",
+      "spec_id": "140A",
+      "spec_section": "19.13",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-014",
+      "spec_id": "140A",
+      "spec_section": "19.14",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-015",
+      "spec_id": "140A",
+      "spec_section": "19.15",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-016",
+      "spec_id": "140A",
+      "spec_section": "19.16",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-017",
+      "spec_id": "140A",
+      "spec_section": "19.17",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-018",
+      "spec_id": "140A",
+      "spec_section": "19.18",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-019",
+      "spec_id": "140A",
+      "spec_section": "19.19",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-020",
+      "spec_id": "140A",
+      "spec_section": "19.20",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-021",
+      "spec_id": "140A",
+      "spec_section": "19.21",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-022",
+      "spec_id": "140A",
+      "spec_section": "19.22",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-023",
+      "spec_id": "140A",
+      "spec_section": "19.23",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140A-REQ-024",
+      "spec_id": "140A",
+      "spec_section": "19.24",
+      "status": "verified_complete",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_instruction_integrity.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    }
+  ],
+  "evidence_ref": "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt",
+  "receipt_ref": "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+}

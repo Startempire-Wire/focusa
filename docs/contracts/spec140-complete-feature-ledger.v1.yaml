@@ -1,546 +1,1711 @@
-schema: focusa.complete_feature_ledger.v1
-spec_id: "140"
-spec_title: "Project Agent Runtime Constitution, Instruction Authority Graph, System-Prompt, and Cross-Harness Compiler"
-source_path: docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md
-source_blob_sha: 66e5e6487de3b50ccb65028d0c5eca07529b4706
-created_at: 2026-07-22
-normalization_status: initial_grouped_draft
-completeness_status: clause_level_normalization_required_before_implementation_closure
-status_values:
-  - not_started
-  - active
-  - blocked
-  - implemented_unverified
-  - verified
-  - variance_approved
-  - not_applicable_verified
-requirements:
-  - requirement_id: S140-REQ-001
-    spec_section: "0"
-    requirement_text: "Transform approved C.R.I.S.T. Project Genesis knowledge into a governed, versioned, testable, target-specific Project Agent Runtime Constitution."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.runtime_constitution
-    implementation_slice: foundation
-    blocking_dependencies: [spec135b.project_genesis, spec16.agent_constitution, spec72.agent_identity]
-    core_types: [ProjectAgentRuntimeConstitution]
-    reducer_events: [runtime_constitution.drafted, runtime_constitution.approved, runtime_constitution.activated]
-    persistence: [runtime_constitutions]
-    api_operations: [agent_runtime.constitution_draft, agent_runtime.constitution_approve]
-    cli_commands: [focusa_agent_runtime_constitution_draft]
-    ui_surfaces: [agent_runtime_studio]
-    positive_tests: [s140_crist_to_runtime_constitution]
-    negative_tests: [s140_unapproved_crist_input]
-    status: not_started
-
-  - requirement_id: S140-REQ-002
-    spec_section: "3.1-3.2"
-    requirement_text: "Preserve Spec 16 Agent Constitution and Spec 16B Constitution Synthesizer ownership; compile approved versions without mutating them."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec16.agent_constitution
-    implementation_slice: foundation
-    blocking_dependencies: [spec16.agent_constitution, spec16b.constitution_synthesizer]
-    core_types: [ConstitutionalKernelReference]
-    positive_tests: [s140_constitution_reference_only]
-    negative_tests: [s140_project_analysis_mutates_spec16]
-    status: not_started
-
-  - requirement_id: S140-REQ-003
-    spec_section: "3.3"
-    requirement_text: "Keep AgentIdentity, RoleProfile, CapabilityProfile, PermissionProfile, Responsibility, HandoffBoundary, and SessionContinuity distinct and referenced from the Runtime Constitution."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec72.agent_identity_role
-    implementation_slice: foundation
-    blocking_dependencies: [spec72.agent_identity_role]
-    core_types: [AgentIdentityReference, RoleProfileReference, CapabilityProfileReference, PermissionProfileReference]
-    positive_tests: [s140_identity_role_permission_separation]
-    negative_tests: [s140_role_grants_permission]
-    status: not_started
-
-  - requirement_id: S140-REQ-004
-    spec_section: "4"
-    requirement_text: "Treat the Runtime Constitution as canonical and every generated prompt, instruction file, skill, setting, and hook as a versioned projection."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.runtime_constitution
-    implementation_slice: foundation
-    blocking_dependencies: [S140-REQ-001]
-    core_types: [RuntimeArtifactProjection]
-    positive_tests: [s140_projection_not_second_store]
-    status: not_started
-
-  - requirement_id: S140-REQ-005
-    spec_section: "4"
-    requirement_text: "Require approved source-linked C.R.I.S.T. inputs and prevent raw or unapproved context from entering compiled instructions or prompts."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.prompt_grounding
-    implementation_slice: security_grounding
-    blocking_dependencies: [spec135b.context_claims]
-    core_types: [PromptGroundingManifest]
-    security_tests: [s140_unapproved_context_excluded, s140_raw_document_instruction_blocked]
-    status: not_started
-
-  - requirement_id: S140-REQ-006
-    spec_section: "5"
-    requirement_text: "Compose the Runtime Constitution from Constitutional Kernel, approved role/mission, Operating Contract, instruction graph, prompt plan, skill plan, tool routing, validation, enforcement, runtime-awareness obligation, delivery, and evaluation references."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.runtime_constitution
-    implementation_slice: foundation
-    blocking_dependencies: [S140-REQ-001, S140-REQ-002, S140-REQ-003]
-    core_types: [ProjectAgentRuntimeConstitution, AgentOperatingContract, SystemPromptAssemblyPlan, SkillActivationPlan, ToolRoutingPlan, ValidationMatrix, AgentEnforcementPlan, AgentRuntimeDeliveryManifest]
-    generated_contracts: [focusa.project_agent_runtime_constitution.v1]
-    positive_tests: [s140_constitution_composition]
-    status: not_started
-
-  - requirement_id: S140-REQ-007
-    spec_section: "6"
-    requirement_text: "Extend the C.R.I.S.T. lifecycle with source scanning, claim extraction, conflict resolution, Runtime Constitution drafting, compilation, evaluation, approval, delivery, and verification stages."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.lifecycle
-    implementation_slice: crist_integration
-    blocking_dependencies: [spec135b.tasks_materialized]
-    core_types: [RuntimeConstitutionLifecycleState]
-    reducer_events: [instruction.source_scan_started, runtime_constitution.drafted, artifact.delivery_verified]
-    persistence: [runtime_constitutions, delivery_manifests]
-    ui_surfaces: [crist_runtime_constitution_stage]
-    positive_tests: [s140_crist_extended_state_machine]
-    restart_recovery_tests: [s140_crist_runtime_stage_resume]
-    status: not_started
-
-  - requirement_id: S140-REQ-008
-    spec_section: "7.1"
-    requirement_text: "Discover registered project instruction, system-prompt, harness-rule, skill, package/task, CI, runbook, and Focusa policy sources across the verified project scope."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.instruction_discovery
-    implementation_slice: instruction_graph
-    blocking_dependencies: [spec104.scope_ref]
-    core_types: [InstructionSource]
-    reducer_events: [instruction.source_discovered, instruction.source_changed]
-    persistence: [instruction_sources]
-    api_operations: [agent_runtime.instructions_scan, agent_runtime.instructions_sources]
-    cli_commands: [focusa_agent_runtime_scan, focusa_agent_runtime_sources]
-    positive_tests: [s140_source_discovery_matrix]
-    negative_tests: [s140_out_of_scope_source_ingestion]
-    status: not_started
-
-  - requirement_id: S140-REQ-009
-    spec_section: "7.2"
-    requirement_text: "Inventory authorized machine/user/managed overlays without silently committing or broadening them into project artifacts."
-    requirement_class: must
-    applicability: conditional
-    applicability_condition_ref: authorized_overlay_discovery
-    primitive_owner: spec140.instruction_discovery
-    implementation_slice: instruction_graph
-    blocking_dependencies: [S140-REQ-008]
-    core_types: [InstructionOverlay]
-    security_tests: [s140_machine_overlay_not_committed]
-    status: not_started
-
-  - requirement_id: S140-REQ-010
-    spec_section: "7.4"
-    requirement_text: "Classify every source by authority, enforcement, trust, freshness, scope, target, task, environment, and generation origin."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.instruction_source_classification
-    implementation_slice: instruction_graph
-    blocking_dependencies: [S140-REQ-008]
-    core_types: [InstructionSourceAuthority, InstructionTrustClass, InstructionFreshness]
-    positive_tests: [s140_source_classification]
-    status: not_started
-
-  - requirement_id: S140-REQ-011
-    spec_section: "8"
-    requirement_text: "Parse source content into atomic typed InstructionClaims with subject, action, object, modality, conditions, exceptions, rationale, verification, enforcement, authority, trust, and provenance."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.instruction_claims
-    implementation_slice: instruction_graph
-    blocking_dependencies: [S140-REQ-010]
-    core_types: [InstructionClaim]
-    reducer_events: [instruction.claim_extracted]
-    persistence: [instruction_claims]
-    generated_contracts: [focusa.instruction_claim.v1]
-    positive_tests: [s140_atomic_claim_extraction]
-    negative_tests: [s140_paragraph_as_authority_unit]
-    status: not_started
-
-  - requirement_id: S140-REQ-012
-    spec_section: "9.1-9.3"
-    requirement_text: "Implement an explicit internal authority/applicability graph and allow lower rules to specialize but not silently weaken higher authority."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.instruction_authority_graph
-    implementation_slice: instruction_graph
-    blocking_dependencies: [S140-REQ-011]
-    core_types: [InstructionAuthorityGraph, InstructionApplicability]
-    positive_tests: [s140_precedence_and_specialization]
-    negative_tests: [s140_nested_rule_weakens_hard_prohibition]
-    status: not_started
-
-  - requirement_id: S140-REQ-013
-    spec_section: "9.4-9.5"
-    requirement_text: "Create durable InstructionConflict records and operator-governed resolution dispositions."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.instruction_conflicts
-    implementation_slice: instruction_graph
-    blocking_dependencies: [S140-REQ-012]
-    core_types: [InstructionConflict, InstructionResolution]
-    reducer_events: [instruction.conflict_detected, instruction.conflict_resolved]
-    persistence: [instruction_conflicts, instruction_resolutions]
-    api_operations: [agent_runtime.instructions_conflicts, agent_runtime.instructions_reconcile]
-    ui_surfaces: [instruction_conflict_workbench]
-    positive_tests: [s140_conflict_resolution_lifecycle]
-    status: not_started
-
-  - requirement_id: S140-REQ-014
-    spec_section: "10"
-    requirement_text: "Detect direct/conditional contradictions, scope errors, route conflicts, stale commands, blind references, context bloat, skill/lint leakage, init fossilization, universalization, unverifiable language, authority confusion, instruction injection, duplication, and unsupported target semantics."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.instruction_analysis
-    implementation_slice: instruction_graph
-    blocking_dependencies: [S140-REQ-011]
-    core_types: [InstructionSmell, InstructionAnalysisFinding]
-    positive_tests: [s140_instruction_smell_matrix]
-    security_tests: [s140_instruction_injection_detection]
-    status: not_started
-
-  - requirement_id: S140-REQ-015
-    spec_section: "11"
-    requirement_text: "Represent project-specific procedural rules in AgentOperatingContract instead of mutating the declarative Spec 16 Constitution."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.operating_contract
-    implementation_slice: foundation
-    blocking_dependencies: [S140-REQ-002, S140-REQ-013]
-    core_types: [AgentOperatingContract]
-    persistence: [operating_contracts]
-    generated_contracts: [focusa.agent_operating_contract.v1]
-    positive_tests: [s140_procedure_constitution_separation]
-    status: not_started
-
-  - requirement_id: S140-REQ-016
-    spec_section: "12"
-    requirement_text: "Implement SystemPromptAssemblyPlan with ordered sections, source refs, token budgets, mutability classes, omission/conflict policies, tool/skill contracts, and integrity hashes."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.system_prompt_compiler
-    implementation_slice: prompt_compiler
-    blocking_dependencies: [S140-REQ-006, S140-REQ-015]
-    core_types: [SystemPromptAssemblyPlan]
-    persistence: [prompt_assembly_plans]
-    generated_contracts: [focusa.system_prompt_assembly_plan.v1]
-    positive_tests: [s140_prompt_plan_roundtrip]
-    status: not_started
-
-  - requirement_id: S140-REQ-017
-    spec_section: "13"
-    requirement_text: "Separate stable constitutional prompt, session-stable environment binding, and turn-dynamic operational context."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.prompt_layers
-    implementation_slice: prompt_compiler
-    blocking_dependencies: [S140-REQ-016, spec139.environment_identity, spec137.temporal_guard]
-    core_types: [PromptLayer, SessionEnvironmentBinding]
-    positive_tests: [s140_three_layer_prompt]
-    negative_tests: [s140_dynamic_presence_in_stable_prefix]
-    performance_tests: [s140_prompt_cache_stability]
-    status: not_started
-
-  - requirement_id: S140-REQ-018
-    spec_section: "14.1"
-    requirement_text: "Compile Pi append mode while preserving Pi's default prompt and adding approved Focusa sections."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.pi_prompt_compiler
-    implementation_slice: pi_prompt
-    blocking_dependencies: [S140-REQ-016]
-    target_compilers: [pi_append]
-    positive_tests: [s140_pi_append_preserves_default]
-    status: not_started
-
-  - requirement_id: S140-REQ-019
-    spec_section: "14.1"
-    requirement_text: "Compile Pi full-replacement mode only after explicit approval and evaluation against baseline."
-    requirement_class: must
-    applicability: conditional
-    applicability_condition_ref: full_prompt_replacement_enabled
-    primitive_owner: spec140.pi_prompt_compiler
-    implementation_slice: pi_prompt
-    blocking_dependencies: [S140-REQ-016, S140-REQ-035]
-    target_compilers: [pi_system_replace]
-    positive_tests: [s140_pi_full_replacement]
-    negative_tests: [s140_unevaluated_replacement_activation]
-    status: not_started
-
-  - requirement_id: S140-REQ-020
-    spec_section: "14.1"
-    requirement_text: "Compile a session-stable Pi prompt at runtime from approved constitution, environment profile, actual tools, skill metadata, context files, and compiler/source hashes."
-    requirement_class: must
-    applicability: conditional
-    applicability_condition_ref: pi_runtime_compiler_enabled
-    primitive_owner: spec140.pi_runtime_prompt
-    implementation_slice: pi_prompt
-    blocking_dependencies: [S140-REQ-016, S140-REQ-017, spec139.environment_resolution]
-    core_types: [PiPromptVariant]
-    reducer_events: [prompt.variant_compiled]
-    persistence: [prompt_variants]
-    target_compilers: [pi_runtime_compiled]
-    positive_tests: [s140_pi_runtime_compiled_stable]
-    status: not_started
-
-  - requirement_id: S140-REQ-021
-    spec_section: "14.2"
-    requirement_text: "Use a safe Pi fallback that preserves default behavior plus minimal verified Focusa doctrine and explicit unknown posture without stale machine authority."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.pi_prompt_fallback
-    implementation_slice: pi_prompt
-    blocking_dependencies: [S140-REQ-018]
-    positive_tests: [s140_pi_focusa_outage_fallback]
-    negative_tests: [s140_stale_profile_fallback]
-    status: not_started
-
-  - requirement_id: S140-REQ-022
-    spec_section: "15"
-    requirement_text: "Support the complete logical Pi prompt section architecture for identity, mission, authority, doctrine, placement, coordination, tools, skills, work lifecycle, proof, time, presence, epistemics, communication, recovery, and non-negotiables."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.pi_prompt_sections
-    implementation_slice: pi_prompt
-    blocking_dependencies: [S140-REQ-018]
-    positive_tests: [s140_required_prompt_sections]
-    negative_tests: [s140_missing_authority_or_recovery_section]
-    status: not_started
-
-  - requirement_id: S140-REQ-023
-    spec_section: "16"
-    requirement_text: "Compile a concise root AGENTS.md and nested delta-only AGENTS.md files from canonical universal and path policies."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.agents_compiler
-    implementation_slice: artifact_compilers
-    blocking_dependencies: [S140-REQ-012, S140-REQ-015]
-    core_types: [PathInstructionPolicy]
-    target_compilers: [agents_md_root, agents_md_nested]
-    positive_tests: [s140_agents_root_budget, s140_nested_deltas]
-    negative_tests: [s140_nested_repeats_or_weakens_root]
-    performance_tests: [s140_agents_context_budget]
-    status: not_started
-
-  - requirement_id: S140-REQ-024
-    spec_section: "17"
-    requirement_text: "Implement versioned target capability profiles and truthful compilers for Pi, Claude, Gemini, GitHub Copilot, and registered generic harnesses."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.cross_harness_compiler
-    implementation_slice: artifact_compilers
-    blocking_dependencies: [S140-REQ-023]
-    core_types: [TargetCapabilityProfile]
-    target_compilers: [pi, claude, gemini, github_copilot, generic]
-    positive_tests: [s140_cross_harness_equivalent_intent]
-    negative_tests: [s140_claims_unsupported_target_feature]
-    status: not_started
-
-  - requirement_id: S140-REQ-025
-    spec_section: "18"
-    requirement_text: "Implement SkillActivationPlan with progressive disclosure, applicability, tool/capability dependencies, side-effect class, invocation mode, guards, and target adapters."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.skill_activation
-    implementation_slice: skills_tools
-    blocking_dependencies: [spec34.agent_skills, S140-REQ-015]
-    core_types: [SkillActivationPlan, SkillBinding]
-    persistence: [skill_activation_plans]
-    target_compilers: [pi_skills, claude_skills, cross_agent_skills]
-    positive_tests: [s140_skill_progressive_disclosure]
-    negative_tests: [s140_side_effect_skill_auto_invoked]
-    status: not_started
-
-  - requirement_id: S140-REQ-026
-    spec_section: "19"
-    requirement_text: "Implement ToolRoutingPlan that maps operation classes to preferred typed interfaces, fallbacks, preview/approval, guard requirements, result schemas, and prohibited interfaces."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.tool_routing
-    implementation_slice: skills_tools
-    blocking_dependencies: [spec135j.operation_registry]
-    core_types: [ToolRoutingPlan]
-    persistence: [tool_routing_plans]
-    generated_contracts: [focusa.tool_routing_plan.v1]
-    positive_tests: [s140_tool_interface_routing]
-    negative_tests: [s140_prompt_mentions_unavailable_tool]
-    status: not_started
-
-  - requirement_id: S140-REQ-027
-    spec_section: "20"
-    requirement_text: "Replace vague quality-gate prose with a typed ValidationMatrix by change class, path, required/forbidden checks, execution profile, delegation, deduplication, evidence, and completion effect."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.validation_matrix
-    implementation_slice: skills_tools
-    blocking_dependencies: [spec139.execution_placement]
-    core_types: [ValidationMatrix, ValidationRule]
-    persistence: [validation_matrices]
-    positive_tests: [s140_change_class_validation]
-    negative_tests: [s140_unscoped_run_tests_linters_builds]
-    status: not_started
-
-  - requirement_id: S140-REQ-028
-    spec_section: "21"
-    requirement_text: "Compile hard claims into deterministic daemon policy, Operation Registry, permissions, hooks, shell guards, CI, or branch protection and require variance for advisory-only hard rules."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.enforcement_plan
-    implementation_slice: enforcement
-    blocking_dependencies: [S140-REQ-012, spec139.execution_admission]
-    core_types: [AgentEnforcementPlan, EnforcementControl]
-    persistence: [enforcement_plans]
-    enforcement_outputs: [daemon_policy, operation_registry, permissions, hooks, shell_guard, ci, branch_protection]
-    positive_tests: [s140_hard_rule_enforcement_mapping]
-    negative_tests: [s140_hard_rule_prose_only]
-    status: not_started
-
-  - requirement_id: S140-REQ-029
-    spec_section: "22"
-    requirement_text: "Provide A2UI Agent Runtime Studio surfaces for role/grounding, source inventory, conflict workbench, prompt composition, modes, environment variants, tools/skills, boundaries, targets, delivery, and rollback."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.runtime_studio
-    implementation_slice: ui
-    blocking_dependencies: [spec135i.generated_ui, S140-REQ-013, S140-REQ-016]
-    ui_surfaces: [agent_runtime_studio, instruction_conflict_workbench, prompt_composer, target_delivery]
-    generated_contracts: [a2ui_catalog, ui_action_bindings]
-    positive_tests: [s140_runtime_studio_end_to_end]
-    accessibility_tests: [s140_runtime_studio_accessibility]
-    status: not_started
-
-  - requirement_id: S140-REQ-030
-    spec_section: "23"
-    requirement_text: "Allow only approved/source-linked prompt inputs; quarantine prompt injection; exclude secrets, raw private data, terminal output, unresolved contradictions, and volatile presence/time facts."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.prompt_security
-    implementation_slice: security_grounding
-    blocking_dependencies: [S140-REQ-005, S140-REQ-014]
-    core_types: [InstructionInjectionRecord, PromptIntegrityManifest]
-    security_tests: [s140_prompt_injection, s140_secret_exclusion, s140_dynamic_fact_exclusion]
-    status: not_started
-
-  - requirement_id: S140-REQ-031
-    spec_section: "24"
-    requirement_text: "Version and immutably activate Runtime Constitutions and PromptVariants, pin stable versions per session, require governed restart for material changes, and support revocation/rollback."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.version_activation
-    implementation_slice: lifecycle_delivery
-    blocking_dependencies: [S140-REQ-006, S140-REQ-020]
-    core_types: [RuntimeConstitutionVersion, SessionPromptPin, PromptRevocation]
-    reducer_events: [runtime_constitution.activated, runtime_constitution.revoked, contract.rollback_activated]
-    persistence: [runtime_constitutions, prompt_variants]
-    restart_recovery_tests: [s140_session_pinning, s140_revocation_restart, s140_rollback]
-    status: not_started
-
-  - requirement_id: S140-REQ-032
-    spec_section: "25"
-    requirement_text: "Compile stable obligations to consult Specs 137/139 while keeping changing time, presence, topology, placement, branch, and operation facts outside stable prompts."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.runtime_awareness_contract
-    implementation_slice: cross_spec
-    blocking_dependencies: [spec137.temporal_authority, spec139.presence_authority]
-    core_types: [RuntimeAwarenessContractReference]
-    positive_tests: [s140_temporal_presence_obligation]
-    negative_tests: [s140_volatile_topology_in_system_prompt]
-    status: not_started
-
-  - requirement_id: S140-REQ-033
-    spec_section: "26"
-    requirement_text: "Evaluate default, append, full replacement, and runtime-compiled prompt variants across role, safety, tools, skills, awareness, placement, coordination, proof, injection resistance, efficiency, cache, compaction, and transfer."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.prompt_evaluation
-    implementation_slice: evaluation
-    blocking_dependencies: [spec113.agent_benchmark, spec138.prediction_learning, S140-REQ-018]
-    core_types: [PromptEvaluation]
-    reducer_events: [prompt.variant_evaluated]
-    persistence: [prompt_evaluations]
-    evaluation_scenarios: [role_fidelity, authority, tool_selection, skill_loading, presence, time, placement, duplicate_work, proof, security, cache, compaction, transfer]
-    positive_tests: [s140_champion_challenger_suite]
-    status: not_started
-
-  - requirement_id: S140-REQ-034
-    spec_section: "26.4-26.5"
-    requirement_text: "Record prompt identity/version/environment/outcome/transfer in Spec 138 and forbid the runtime agent from editing or activating its own stable prompt."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec138.epistemic_governance
-    implementation_slice: evaluation
-    blocking_dependencies: [S140-REQ-033]
-    positive_tests: [s140_prompt_provenance_spec138]
-    negative_tests: [s140_agent_self_activates_prompt]
-    status: not_started
-
-  - requirement_id: S140-REQ-035
-    spec_section: "27"
-    requirement_text: "Detect instruction/tool/skill/profile/spec/compiler drift, create impact assessments, and require review rather than silent regeneration."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.drift
-    implementation_slice: lifecycle_delivery
-    blocking_dependencies: [S140-REQ-008, S140-REQ-006]
-    core_types: [AgentContractImpactAssessment]
-    reducer_events: [contract.drift_detected]
-    persistence: [contract_impact_assessments]
-    api_operations: [agent_runtime.instructions_drift]
-    positive_tests: [s140_drift_impact_assessment]
-    negative_tests: [s140_silent_regeneration]
-    status: not_started
-
-  - requirement_id: S140-REQ-036
-    spec_section: "28-32"
-    requirement_text: "Implement durable events/persistence, typed API/CLI/Pi surfaces, delivery manifests, preview/commit/verify, and Spec 111/119 Receipt integration."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.persistence_surfaces_delivery
-    implementation_slice: lifecycle_delivery
-    blocking_dependencies: [S140-REQ-006, spec111.bootstrap_delivery, spec119.receipts]
-    core_types: [AgentRuntimeDeliveryManifest]
-    persistence: [delivery_manifests]
-    api_operations: [agent_runtime.delivery_preview, agent_runtime.delivery_commit, agent_runtime.delivery_verify]
-    cli_commands: [focusa_agent_runtime_artifacts_preview, focusa_agent_runtime_artifacts_apply, focusa_agent_runtime_artifacts_verify]
-    pi_tools: [focusa_agent_artifact_preview, focusa_agent_artifact_delivery, focusa_agent_artifact_verify]
-    receipt_refs: [agent_runtime_approval, prompt_activation, artifact_delivery, artifact_verification, rollback]
-    positive_tests: [s140_api_cli_pi_parity, s140_target_loader_verification]
-    status: not_started
-
-  - requirement_id: S140-REQ-037
-    spec_section: "33"
-    requirement_text: "Migrate by inventorying/quarantining current sources, implementing canonical contracts, integrating C.R.I.S.T., compiling artifacts/prompts, adding enforcement, and completing UI/evaluation without hidden behavior changes."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.migration
-    implementation_slice: migration
-    migrations: [s140_phase0_inventory, s140_phase1_contracts, s140_phase2_crist, s140_phase3_artifacts, s140_phase4_pi_prompt, s140_phase5_enforcement, s140_phase6_ui_evaluation]
-    positive_tests: [s140_migration_compatibility]
-    status: not_started
-
-  - requirement_id: S140-REQ-038
-    spec_section: "34-35"
-    requirement_text: "Pass the full discovery, authority, prompt, AGENTS, cross-harness, skill/tool, C.R.I.S.T., evaluation, incident-prevention, security, and delivery-verification test matrix before conformance."
-    requirement_class: must
-    applicability: required
-    primitive_owner: spec140.conformance
-    implementation_slice: closure
-    blocking_dependencies: [S140-REQ-001, S140-REQ-037]
-    positive_tests: [spec140_required_test_matrix]
-    evidence_refs: [spec140_conformance_bundle]
-    receipt_refs: [spec140_closure_receipt]
-    status: not_started
+{
+  "schema": "focusa.complete_feature_ledger.v1",
+  "spec_id": "140",
+  "spec_title": "Project Agent Runtime Constitution, Instruction Authority Graph, System-Prompt, and Cross-Harness Compiler",
+  "source_path": "docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md",
+  "source_blob_sha": "66e5e6487de3b50ccb65028d0c5eca07529b4706",
+  "created_at": "2026-07-22",
+  "normalization_status": "initial_grouped_draft",
+  "completeness_status": "clause_level_normalization_required_before_implementation_closure",
+  "status_values": [
+    "not_started",
+    "active",
+    "blocked",
+    "implemented_unverified",
+    "verified",
+    "variance_approved",
+    "not_applicable_verified"
+  ],
+  "requirements": [
+    {
+      "requirement_id": "S140-REQ-001",
+      "spec_section": "0",
+      "requirement_text": "Transform approved C.R.I.S.T. Project Genesis knowledge into a governed, versioned, testable, target-specific Project Agent Runtime Constitution.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.runtime_constitution",
+      "implementation_slice": "foundation",
+      "blocking_dependencies": [
+        "spec135b.project_genesis",
+        "spec16.agent_constitution",
+        "spec72.agent_identity"
+      ],
+      "core_types": [
+        "ProjectAgentRuntimeConstitution"
+      ],
+      "reducer_events": [
+        "runtime_constitution.drafted",
+        "runtime_constitution.approved",
+        "runtime_constitution.activated"
+      ],
+      "persistence": [
+        "runtime_constitutions"
+      ],
+      "api_operations": [
+        "agent_runtime.constitution_draft",
+        "agent_runtime.constitution_approve"
+      ],
+      "cli_commands": [
+        "focusa_agent_runtime_constitution_draft"
+      ],
+      "ui_surfaces": [
+        "agent_runtime_studio"
+      ],
+      "positive_tests": [
+        "s140_crist_to_runtime_constitution"
+      ],
+      "negative_tests": [
+        "s140_unapproved_crist_input"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-002",
+      "spec_section": "3.1-3.2",
+      "requirement_text": "Preserve Spec 16 Agent Constitution and Spec 16B Constitution Synthesizer ownership; compile approved versions without mutating them.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec16.agent_constitution",
+      "implementation_slice": "foundation",
+      "blocking_dependencies": [
+        "spec16.agent_constitution",
+        "spec16b.constitution_synthesizer"
+      ],
+      "core_types": [
+        "ConstitutionalKernelReference"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_store_test::migration_creates_every_spec140_persistence_surface",
+        "agent_runtime_constitution_test::valid_constitution_round_trips",
+        "s140_constitution_reference_only"
+      ],
+      "negative_tests": [
+        "s140_project_analysis_mutates_spec16"
+      ],
+      "status": "verified",
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-003",
+      "spec_section": "3.3",
+      "requirement_text": "Keep AgentIdentity, RoleProfile, CapabilityProfile, PermissionProfile, Responsibility, HandoffBoundary, and SessionContinuity distinct and referenced from the Runtime Constitution.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec72.agent_identity_role",
+      "implementation_slice": "foundation",
+      "blocking_dependencies": [
+        "spec72.agent_identity_role"
+      ],
+      "core_types": [
+        "AgentIdentityReference",
+        "RoleProfileReference",
+        "CapabilityProfileReference",
+        "PermissionProfileReference"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_store_test::migration_creates_every_spec140_persistence_surface",
+        "agent_runtime_constitution_test::valid_constitution_round_trips",
+        "s140_identity_role_permission_separation"
+      ],
+      "negative_tests": [
+        "s140_role_grants_permission"
+      ],
+      "status": "verified",
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-004",
+      "spec_section": "4",
+      "requirement_text": "Treat the Runtime Constitution as canonical and every generated prompt, instruction file, skill, setting, and hook as a versioned projection.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.runtime_constitution",
+      "implementation_slice": "foundation",
+      "blocking_dependencies": [
+        "S140-REQ-001"
+      ],
+      "core_types": [
+        "RuntimeArtifactProjection"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_store_test::migration_creates_every_spec140_persistence_surface",
+        "agent_runtime_constitution_test::valid_constitution_round_trips",
+        "s140_projection_not_second_store"
+      ],
+      "status": "verified",
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-005",
+      "spec_section": "4",
+      "requirement_text": "Require approved source-linked C.R.I.S.T. inputs and prevent raw or unapproved context from entering compiled instructions or prompts.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.prompt_grounding",
+      "implementation_slice": "security_grounding",
+      "blocking_dependencies": [
+        "spec135b.context_claims"
+      ],
+      "core_types": [
+        "PromptGroundingManifest"
+      ],
+      "security_tests": [
+        "s140_unapproved_context_excluded",
+        "s140_raw_document_instruction_blocked"
+      ],
+      "status": "verified",
+      "positive_tests": [
+        "agent_runtime_constitution_authority_test::bounded_paths_reject_escape_and_denied_paths",
+        "agent_runtime_constitution_authority_test::higher_authority_wins_without_last_write_inference"
+      ],
+      "negative_tests": [
+        "agent_runtime_constitution_authority_test::equal_authority_requires_operator_resolution",
+        "agent_runtime_constitution_authority_test::untrusted_injection_is_quarantined"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-006",
+      "spec_section": "5",
+      "requirement_text": "Compose the Runtime Constitution from Constitutional Kernel, approved role/mission, Operating Contract, instruction graph, prompt plan, skill plan, tool routing, validation, enforcement, runtime-awareness obligation, delivery, and evaluation references.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.runtime_constitution",
+      "implementation_slice": "foundation",
+      "blocking_dependencies": [
+        "S140-REQ-001",
+        "S140-REQ-002",
+        "S140-REQ-003"
+      ],
+      "core_types": [
+        "ProjectAgentRuntimeConstitution",
+        "AgentOperatingContract",
+        "SystemPromptAssemblyPlan",
+        "SkillActivationPlan",
+        "ToolRoutingPlan",
+        "ValidationMatrix",
+        "AgentEnforcementPlan",
+        "AgentRuntimeDeliveryManifest"
+      ],
+      "generated_contracts": [
+        "focusa.project_agent_runtime_constitution.v1"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_orchestrator_test::crist_composition_is_operator_gated_and_complete",
+        "s140_constitution_composition"
+      ],
+      "status": "verified",
+      "negative_tests": [
+        "agent_runtime_constitution_orchestrator_test::incomplete_operating_contract_fails_closed"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-007",
+      "spec_section": "6",
+      "requirement_text": "Extend the C.R.I.S.T. lifecycle with source scanning, claim extraction, conflict resolution, Runtime Constitution drafting, compilation, evaluation, approval, delivery, and verification stages.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.lifecycle",
+      "implementation_slice": "crist_integration",
+      "blocking_dependencies": [
+        "spec135b.tasks_materialized"
+      ],
+      "core_types": [
+        "RuntimeConstitutionLifecycleState"
+      ],
+      "reducer_events": [
+        "instruction.source_scan_started",
+        "runtime_constitution.drafted",
+        "artifact.delivery_verified"
+      ],
+      "persistence": [
+        "runtime_constitutions",
+        "delivery_manifests"
+      ],
+      "ui_surfaces": [
+        "crist_runtime_constitution_stage"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_authority_test::scanner_discovers_registered_sources_and_extracts_atomic_claims",
+        "agent_runtime_constitution_lifecycle_test::impact_assessment_escalates_permission_and_release_drift",
+        "s140_crist_extended_state_machine"
+      ],
+      "restart_recovery_tests": [
+        "s140_crist_runtime_stage_resume"
+      ],
+      "status": "verified",
+      "negative_tests": [
+        "agent_runtime_constitution_authority_test::bounded_paths_reject_escape_and_denied_paths",
+        "agent_runtime_constitution_authority_test::untrusted_injection_is_quarantined"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-008",
+      "spec_section": "7.1",
+      "requirement_text": "Discover registered project instruction, system-prompt, harness-rule, skill, package/task, CI, runbook, and Focusa policy sources across the verified project scope.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.instruction_discovery",
+      "implementation_slice": "instruction_graph",
+      "blocking_dependencies": [
+        "spec104.scope_ref"
+      ],
+      "core_types": [
+        "InstructionSource"
+      ],
+      "reducer_events": [
+        "instruction.source_discovered",
+        "instruction.source_changed"
+      ],
+      "persistence": [
+        "instruction_sources"
+      ],
+      "api_operations": [
+        "agent_runtime.instructions_scan",
+        "agent_runtime.instructions_sources"
+      ],
+      "cli_commands": [
+        "focusa_agent_runtime_scan",
+        "focusa_agent_runtime_sources"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_authority_test::scanner_discovers_registered_sources_and_extracts_atomic_claims",
+        "agent_runtime_constitution_lifecycle_test::impact_assessment_escalates_permission_and_release_drift",
+        "s140_source_discovery_matrix"
+      ],
+      "negative_tests": [
+        "agent_runtime_constitution_authority_test::bounded_paths_reject_escape_and_denied_paths",
+        "agent_runtime_constitution_authority_test::untrusted_injection_is_quarantined",
+        "s140_out_of_scope_source_ingestion"
+      ],
+      "status": "verified",
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-009",
+      "spec_section": "7.2",
+      "requirement_text": "Inventory authorized machine/user/managed overlays without silently committing or broadening them into project artifacts.",
+      "requirement_class": "must",
+      "applicability": "conditional",
+      "applicability_condition_ref": "authorized_overlay_discovery",
+      "primitive_owner": "spec140.instruction_discovery",
+      "implementation_slice": "instruction_graph",
+      "blocking_dependencies": [
+        "S140-REQ-008"
+      ],
+      "core_types": [
+        "InstructionOverlay"
+      ],
+      "security_tests": [
+        "s140_machine_overlay_not_committed"
+      ],
+      "status": "verified",
+      "positive_tests": [
+        "agent_runtime_constitution_authority_test::bounded_paths_reject_escape_and_denied_paths",
+        "agent_runtime_constitution_authority_test::higher_authority_wins_without_last_write_inference"
+      ],
+      "negative_tests": [
+        "agent_runtime_constitution_authority_test::equal_authority_requires_operator_resolution",
+        "agent_runtime_constitution_authority_test::untrusted_injection_is_quarantined"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-010",
+      "spec_section": "7.4",
+      "requirement_text": "Classify every source by authority, enforcement, trust, freshness, scope, target, task, environment, and generation origin.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.instruction_source_classification",
+      "implementation_slice": "instruction_graph",
+      "blocking_dependencies": [
+        "S140-REQ-008"
+      ],
+      "core_types": [
+        "InstructionSourceAuthority",
+        "InstructionTrustClass",
+        "InstructionFreshness"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_authority_test::bounded_paths_reject_escape_and_denied_paths",
+        "agent_runtime_constitution_authority_test::higher_authority_wins_without_last_write_inference",
+        "s140_source_classification"
+      ],
+      "status": "verified",
+      "negative_tests": [
+        "agent_runtime_constitution_authority_test::equal_authority_requires_operator_resolution",
+        "agent_runtime_constitution_authority_test::untrusted_injection_is_quarantined"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-011",
+      "spec_section": "8",
+      "requirement_text": "Parse source content into atomic typed InstructionClaims with subject, action, object, modality, conditions, exceptions, rationale, verification, enforcement, authority, trust, and provenance.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.instruction_claims",
+      "implementation_slice": "instruction_graph",
+      "blocking_dependencies": [
+        "S140-REQ-010"
+      ],
+      "core_types": [
+        "InstructionClaim"
+      ],
+      "reducer_events": [
+        "instruction.claim_extracted"
+      ],
+      "persistence": [
+        "instruction_claims"
+      ],
+      "generated_contracts": [
+        "focusa.instruction_claim.v1"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_authority_test::scanner_discovers_registered_sources_and_extracts_atomic_claims",
+        "agent_runtime_constitution_lifecycle_test::impact_assessment_escalates_permission_and_release_drift",
+        "s140_atomic_claim_extraction"
+      ],
+      "negative_tests": [
+        "agent_runtime_constitution_authority_test::bounded_paths_reject_escape_and_denied_paths",
+        "agent_runtime_constitution_authority_test::untrusted_injection_is_quarantined",
+        "s140_paragraph_as_authority_unit"
+      ],
+      "status": "verified",
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-012",
+      "spec_section": "9.1-9.3",
+      "requirement_text": "Implement an explicit internal authority/applicability graph and allow lower rules to specialize but not silently weaken higher authority.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.instruction_authority_graph",
+      "implementation_slice": "instruction_graph",
+      "blocking_dependencies": [
+        "S140-REQ-011"
+      ],
+      "core_types": [
+        "InstructionAuthorityGraph",
+        "InstructionApplicability"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_authority_test::bounded_paths_reject_escape_and_denied_paths",
+        "agent_runtime_constitution_authority_test::higher_authority_wins_without_last_write_inference",
+        "s140_precedence_and_specialization"
+      ],
+      "negative_tests": [
+        "agent_runtime_constitution_authority_test::equal_authority_requires_operator_resolution",
+        "agent_runtime_constitution_authority_test::untrusted_injection_is_quarantined",
+        "s140_nested_rule_weakens_hard_prohibition"
+      ],
+      "status": "verified",
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-013",
+      "spec_section": "9.4-9.5",
+      "requirement_text": "Create durable InstructionConflict records and operator-governed resolution dispositions.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.instruction_conflicts",
+      "implementation_slice": "instruction_graph",
+      "blocking_dependencies": [
+        "S140-REQ-012"
+      ],
+      "core_types": [
+        "InstructionConflict",
+        "InstructionResolution"
+      ],
+      "reducer_events": [
+        "instruction.conflict_detected",
+        "instruction.conflict_resolved"
+      ],
+      "persistence": [
+        "instruction_conflicts",
+        "instruction_resolutions"
+      ],
+      "api_operations": [
+        "agent_runtime.instructions_conflicts",
+        "agent_runtime.instructions_reconcile"
+      ],
+      "ui_surfaces": [
+        "instruction_conflict_workbench"
+      ],
+      "positive_tests": [
+        "s140_conflict_resolution_lifecycle"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-014",
+      "spec_section": "10",
+      "requirement_text": "Detect direct/conditional contradictions, scope errors, route conflicts, stale commands, blind references, context bloat, skill/lint leakage, init fossilization, universalization, unverifiable language, authority confusion, instruction injection, duplication, and unsupported target semantics.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.instruction_analysis",
+      "implementation_slice": "instruction_graph",
+      "blocking_dependencies": [
+        "S140-REQ-011"
+      ],
+      "core_types": [
+        "InstructionSmell",
+        "InstructionAnalysisFinding"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_authority_test::bounded_paths_reject_escape_and_denied_paths",
+        "agent_runtime_constitution_authority_test::higher_authority_wins_without_last_write_inference",
+        "s140_instruction_smell_matrix"
+      ],
+      "security_tests": [
+        "s140_instruction_injection_detection"
+      ],
+      "status": "verified",
+      "negative_tests": [
+        "agent_runtime_constitution_authority_test::equal_authority_requires_operator_resolution",
+        "agent_runtime_constitution_authority_test::untrusted_injection_is_quarantined"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-015",
+      "spec_section": "11",
+      "requirement_text": "Represent project-specific procedural rules in AgentOperatingContract instead of mutating the declarative Spec 16 Constitution.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.operating_contract",
+      "implementation_slice": "foundation",
+      "blocking_dependencies": [
+        "S140-REQ-002",
+        "S140-REQ-013"
+      ],
+      "core_types": [
+        "AgentOperatingContract"
+      ],
+      "persistence": [
+        "operating_contracts"
+      ],
+      "generated_contracts": [
+        "focusa.agent_operating_contract.v1"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_orchestrator_test::crist_composition_is_operator_gated_and_complete",
+        "s140_procedure_constitution_separation"
+      ],
+      "status": "verified",
+      "negative_tests": [
+        "agent_runtime_constitution_orchestrator_test::incomplete_operating_contract_fails_closed"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-016",
+      "spec_section": "12",
+      "requirement_text": "Implement SystemPromptAssemblyPlan with ordered sections, source refs, token budgets, mutability classes, omission/conflict policies, tool/skill contracts, and integrity hashes.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.system_prompt_compiler",
+      "implementation_slice": "prompt_compiler",
+      "blocking_dependencies": [
+        "S140-REQ-006",
+        "S140-REQ-015"
+      ],
+      "core_types": [
+        "SystemPromptAssemblyPlan"
+      ],
+      "persistence": [
+        "prompt_assembly_plans"
+      ],
+      "generated_contracts": [
+        "focusa.system_prompt_assembly_plan.v1"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_compiler_test::compiler_is_deterministic_and_keeps_dynamic_context_out_of_stable_hash",
+        "agent_runtime_constitution_compiler_test::cross_harness_outputs_are_explicit_and_unknown_targets_fail_closed",
+        "s140_prompt_plan_roundtrip"
+      ],
+      "status": "verified",
+      "negative_tests": [
+        "agent_runtime_constitution_compiler_test::missing_required_section_blocks_compilation",
+        "agent_runtime_constitution_compiler_test::safe_fallback_preserves_harness_default_without_claiming_integrity"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-017",
+      "spec_section": "13",
+      "requirement_text": "Separate stable constitutional prompt, session-stable environment binding, and turn-dynamic operational context.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.prompt_layers",
+      "implementation_slice": "prompt_compiler",
+      "blocking_dependencies": [
+        "S140-REQ-016",
+        "spec139.environment_identity",
+        "spec137.temporal_guard"
+      ],
+      "core_types": [
+        "PromptLayer",
+        "SessionEnvironmentBinding"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_compiler_test::compiler_is_deterministic_and_keeps_dynamic_context_out_of_stable_hash",
+        "agent_runtime_constitution_compiler_test::cross_harness_outputs_are_explicit_and_unknown_targets_fail_closed",
+        "s140_three_layer_prompt"
+      ],
+      "negative_tests": [
+        "agent_runtime_constitution_compiler_test::missing_required_section_blocks_compilation",
+        "agent_runtime_constitution_compiler_test::safe_fallback_preserves_harness_default_without_claiming_integrity",
+        "s140_dynamic_presence_in_stable_prefix"
+      ],
+      "performance_tests": [
+        "s140_prompt_cache_stability"
+      ],
+      "status": "verified",
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-018",
+      "spec_section": "14.1",
+      "requirement_text": "Compile Pi append mode while preserving Pi's default prompt and adding approved Focusa sections.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.pi_prompt_compiler",
+      "implementation_slice": "pi_prompt",
+      "blocking_dependencies": [
+        "S140-REQ-016"
+      ],
+      "target_compilers": [
+        "pi_append"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_compiler_test::compiler_is_deterministic_and_keeps_dynamic_context_out_of_stable_hash",
+        "agent_runtime_constitution_compiler_test::cross_harness_outputs_are_explicit_and_unknown_targets_fail_closed",
+        "s140_pi_append_preserves_default"
+      ],
+      "status": "verified",
+      "negative_tests": [
+        "agent_runtime_constitution_compiler_test::missing_required_section_blocks_compilation",
+        "agent_runtime_constitution_compiler_test::safe_fallback_preserves_harness_default_without_claiming_integrity"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-019",
+      "spec_section": "14.1",
+      "requirement_text": "Compile Pi full-replacement mode only after explicit approval and evaluation against baseline.",
+      "requirement_class": "must",
+      "applicability": "conditional",
+      "applicability_condition_ref": "full_prompt_replacement_enabled",
+      "primitive_owner": "spec140.pi_prompt_compiler",
+      "implementation_slice": "pi_prompt",
+      "blocking_dependencies": [
+        "S140-REQ-016",
+        "S140-REQ-035"
+      ],
+      "target_compilers": [
+        "pi_system_replace"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_compiler_test::compiler_is_deterministic_and_keeps_dynamic_context_out_of_stable_hash",
+        "agent_runtime_constitution_compiler_test::cross_harness_outputs_are_explicit_and_unknown_targets_fail_closed",
+        "s140_pi_full_replacement"
+      ],
+      "negative_tests": [
+        "agent_runtime_constitution_compiler_test::missing_required_section_blocks_compilation",
+        "agent_runtime_constitution_compiler_test::safe_fallback_preserves_harness_default_without_claiming_integrity",
+        "s140_unevaluated_replacement_activation"
+      ],
+      "status": "verified",
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-020",
+      "spec_section": "14.1",
+      "requirement_text": "Compile a session-stable Pi prompt at runtime from approved constitution, environment profile, actual tools, skill metadata, context files, and compiler/source hashes.",
+      "requirement_class": "must",
+      "applicability": "conditional",
+      "applicability_condition_ref": "pi_runtime_compiler_enabled",
+      "primitive_owner": "spec140.pi_runtime_prompt",
+      "implementation_slice": "pi_prompt",
+      "blocking_dependencies": [
+        "S140-REQ-016",
+        "S140-REQ-017",
+        "spec139.environment_resolution"
+      ],
+      "core_types": [
+        "PiPromptVariant"
+      ],
+      "reducer_events": [
+        "prompt.variant_compiled"
+      ],
+      "persistence": [
+        "prompt_variants"
+      ],
+      "target_compilers": [
+        "pi_runtime_compiled"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_compiler_test::compiler_is_deterministic_and_keeps_dynamic_context_out_of_stable_hash",
+        "agent_runtime_constitution_compiler_test::cross_harness_outputs_are_explicit_and_unknown_targets_fail_closed",
+        "s140_pi_runtime_compiled_stable"
+      ],
+      "status": "verified",
+      "negative_tests": [
+        "agent_runtime_constitution_compiler_test::missing_required_section_blocks_compilation",
+        "agent_runtime_constitution_compiler_test::safe_fallback_preserves_harness_default_without_claiming_integrity"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-021",
+      "spec_section": "14.2",
+      "requirement_text": "Use a safe Pi fallback that preserves default behavior plus minimal verified Focusa doctrine and explicit unknown posture without stale machine authority.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.pi_prompt_fallback",
+      "implementation_slice": "pi_prompt",
+      "blocking_dependencies": [
+        "S140-REQ-018"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_compiler_test::compiler_is_deterministic_and_keeps_dynamic_context_out_of_stable_hash",
+        "agent_runtime_constitution_compiler_test::cross_harness_outputs_are_explicit_and_unknown_targets_fail_closed",
+        "s140_pi_focusa_outage_fallback"
+      ],
+      "negative_tests": [
+        "agent_runtime_constitution_compiler_test::missing_required_section_blocks_compilation",
+        "agent_runtime_constitution_compiler_test::safe_fallback_preserves_harness_default_without_claiming_integrity",
+        "s140_stale_profile_fallback"
+      ],
+      "status": "verified",
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-022",
+      "spec_section": "15",
+      "requirement_text": "Support the complete logical Pi prompt section architecture for identity, mission, authority, doctrine, placement, coordination, tools, skills, work lifecycle, proof, time, presence, epistemics, communication, recovery, and non-negotiables.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.pi_prompt_sections",
+      "implementation_slice": "pi_prompt",
+      "blocking_dependencies": [
+        "S140-REQ-018"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_compiler_test::compiler_is_deterministic_and_keeps_dynamic_context_out_of_stable_hash",
+        "agent_runtime_constitution_compiler_test::cross_harness_outputs_are_explicit_and_unknown_targets_fail_closed",
+        "s140_required_prompt_sections"
+      ],
+      "negative_tests": [
+        "agent_runtime_constitution_compiler_test::missing_required_section_blocks_compilation",
+        "agent_runtime_constitution_compiler_test::safe_fallback_preserves_harness_default_without_claiming_integrity",
+        "s140_missing_authority_or_recovery_section"
+      ],
+      "status": "verified",
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-023",
+      "spec_section": "16",
+      "requirement_text": "Compile a concise root AGENTS.md and nested delta-only AGENTS.md files from canonical universal and path policies.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.agents_compiler",
+      "implementation_slice": "artifact_compilers",
+      "blocking_dependencies": [
+        "S140-REQ-012",
+        "S140-REQ-015"
+      ],
+      "core_types": [
+        "PathInstructionPolicy"
+      ],
+      "target_compilers": [
+        "agents_md_root",
+        "agents_md_nested"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_compiler_test::compiler_is_deterministic_and_keeps_dynamic_context_out_of_stable_hash",
+        "agent_runtime_constitution_compiler_test::cross_harness_outputs_are_explicit_and_unknown_targets_fail_closed",
+        "s140_agents_root_budget",
+        "s140_nested_deltas"
+      ],
+      "negative_tests": [
+        "agent_runtime_constitution_compiler_test::missing_required_section_blocks_compilation",
+        "agent_runtime_constitution_compiler_test::safe_fallback_preserves_harness_default_without_claiming_integrity",
+        "s140_nested_repeats_or_weakens_root"
+      ],
+      "performance_tests": [
+        "s140_agents_context_budget"
+      ],
+      "status": "verified",
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-024",
+      "spec_section": "17",
+      "requirement_text": "Implement versioned target capability profiles and truthful compilers for Pi, Claude, Gemini, GitHub Copilot, and registered generic harnesses.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.cross_harness_compiler",
+      "implementation_slice": "artifact_compilers",
+      "blocking_dependencies": [
+        "S140-REQ-023"
+      ],
+      "core_types": [
+        "TargetCapabilityProfile"
+      ],
+      "target_compilers": [
+        "pi",
+        "claude",
+        "gemini",
+        "github_copilot",
+        "generic"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_compiler_test::compiler_is_deterministic_and_keeps_dynamic_context_out_of_stable_hash",
+        "agent_runtime_constitution_compiler_test::cross_harness_outputs_are_explicit_and_unknown_targets_fail_closed",
+        "s140_cross_harness_equivalent_intent"
+      ],
+      "negative_tests": [
+        "agent_runtime_constitution_compiler_test::missing_required_section_blocks_compilation",
+        "agent_runtime_constitution_compiler_test::safe_fallback_preserves_harness_default_without_claiming_integrity",
+        "s140_claims_unsupported_target_feature"
+      ],
+      "status": "verified",
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-025",
+      "spec_section": "18",
+      "requirement_text": "Implement SkillActivationPlan with progressive disclosure, applicability, tool/capability dependencies, side-effect class, invocation mode, guards, and target adapters.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.skill_activation",
+      "implementation_slice": "skills_tools",
+      "blocking_dependencies": [
+        "spec34.agent_skills",
+        "S140-REQ-015"
+      ],
+      "core_types": [
+        "SkillActivationPlan",
+        "SkillBinding"
+      ],
+      "persistence": [
+        "skill_activation_plans"
+      ],
+      "target_compilers": [
+        "pi_skills",
+        "claude_skills",
+        "cross_agent_skills"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_enforcement_test::skills_use_explicit_applicability_and_progressive_disclosure",
+        "agent_runtime_constitution_enforcement_test::validation_matrix_is_change_class_specific",
+        "s140_skill_progressive_disclosure"
+      ],
+      "negative_tests": [
+        "agent_runtime_constitution_enforcement_test::missing_operation_route_fails_closed",
+        "s140_side_effect_skill_auto_invoked"
+      ],
+      "status": "verified",
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-026",
+      "spec_section": "19",
+      "requirement_text": "Implement ToolRoutingPlan that maps operation classes to preferred typed interfaces, fallbacks, preview/approval, guard requirements, result schemas, and prohibited interfaces.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.tool_routing",
+      "implementation_slice": "skills_tools",
+      "blocking_dependencies": [
+        "spec135j.operation_registry"
+      ],
+      "core_types": [
+        "ToolRoutingPlan"
+      ],
+      "persistence": [
+        "tool_routing_plans"
+      ],
+      "generated_contracts": [
+        "focusa.tool_routing_plan.v1"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_enforcement_test::skills_use_explicit_applicability_and_progressive_disclosure",
+        "agent_runtime_constitution_enforcement_test::validation_matrix_is_change_class_specific",
+        "s140_tool_interface_routing"
+      ],
+      "negative_tests": [
+        "agent_runtime_constitution_enforcement_test::missing_operation_route_fails_closed",
+        "s140_prompt_mentions_unavailable_tool"
+      ],
+      "status": "verified",
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-027",
+      "spec_section": "20",
+      "requirement_text": "Replace vague quality-gate prose with a typed ValidationMatrix by change class, path, required/forbidden checks, execution profile, delegation, deduplication, evidence, and completion effect.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.validation_matrix",
+      "implementation_slice": "skills_tools",
+      "blocking_dependencies": [
+        "spec139.execution_placement"
+      ],
+      "core_types": [
+        "ValidationMatrix",
+        "ValidationRule"
+      ],
+      "persistence": [
+        "validation_matrices"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_enforcement_test::skills_use_explicit_applicability_and_progressive_disclosure",
+        "agent_runtime_constitution_enforcement_test::validation_matrix_is_change_class_specific",
+        "s140_change_class_validation"
+      ],
+      "negative_tests": [
+        "agent_runtime_constitution_enforcement_test::missing_operation_route_fails_closed",
+        "s140_unscoped_run_tests_linters_builds"
+      ],
+      "status": "verified",
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-028",
+      "spec_section": "21",
+      "requirement_text": "Compile hard claims into deterministic daemon policy, Operation Registry, permissions, hooks, shell guards, CI, or branch protection and require variance for advisory-only hard rules.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.enforcement_plan",
+      "implementation_slice": "enforcement",
+      "blocking_dependencies": [
+        "S140-REQ-012",
+        "spec139.execution_admission"
+      ],
+      "core_types": [
+        "AgentEnforcementPlan",
+        "EnforcementControl"
+      ],
+      "persistence": [
+        "enforcement_plans"
+      ],
+      "enforcement_outputs": [
+        "daemon_policy",
+        "operation_registry",
+        "permissions",
+        "hooks",
+        "shell_guard",
+        "ci",
+        "branch_protection"
+      ],
+      "positive_tests": [
+        "s140_hard_rule_enforcement_mapping"
+      ],
+      "negative_tests": [
+        "s140_hard_rule_prose_only"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-029",
+      "spec_section": "22",
+      "requirement_text": "Provide A2UI Agent Runtime Studio surfaces for role/grounding, source inventory, conflict workbench, prompt composition, modes, environment variants, tools/skills, boundaries, targets, delivery, and rollback.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.runtime_studio",
+      "implementation_slice": "ui",
+      "blocking_dependencies": [
+        "spec135i.generated_ui",
+        "S140-REQ-013",
+        "S140-REQ-016"
+      ],
+      "ui_surfaces": [
+        "agent_runtime_studio",
+        "instruction_conflict_workbench",
+        "prompt_composer",
+        "target_delivery"
+      ],
+      "generated_contracts": [
+        "a2ui_catalog",
+        "ui_action_bindings"
+      ],
+      "positive_tests": [
+        "agent_runtime_studio::tests::renders_bounded_studio_panels",
+        "agent_runtime_tests::runtime_studio_exposes_every_spec140_workbench",
+        "s140_runtime_studio_end_to_end"
+      ],
+      "accessibility_tests": [
+        "s140_runtime_studio_accessibility"
+      ],
+      "status": "verified",
+      "negative_tests": [],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-030",
+      "spec_section": "23",
+      "requirement_text": "Allow only approved/source-linked prompt inputs; quarantine prompt injection; exclude secrets, raw private data, terminal output, unresolved contradictions, and volatile presence/time facts.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.prompt_security",
+      "implementation_slice": "security_grounding",
+      "blocking_dependencies": [
+        "S140-REQ-005",
+        "S140-REQ-014"
+      ],
+      "core_types": [
+        "InstructionInjectionRecord",
+        "PromptIntegrityManifest"
+      ],
+      "security_tests": [
+        "s140_prompt_injection",
+        "s140_secret_exclusion",
+        "s140_dynamic_fact_exclusion"
+      ],
+      "status": "verified",
+      "positive_tests": [
+        "agent_runtime_constitution_authority_test::scanner_discovers_registered_sources_and_extracts_atomic_claims",
+        "agent_runtime_constitution_lifecycle_test::impact_assessment_escalates_permission_and_release_drift"
+      ],
+      "negative_tests": [
+        "agent_runtime_constitution_authority_test::bounded_paths_reject_escape_and_denied_paths",
+        "agent_runtime_constitution_authority_test::untrusted_injection_is_quarantined"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-031",
+      "spec_section": "24",
+      "requirement_text": "Version and immutably activate Runtime Constitutions and PromptVariants, pin stable versions per session, require governed restart for material changes, and support revocation/rollback.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.version_activation",
+      "implementation_slice": "lifecycle_delivery",
+      "blocking_dependencies": [
+        "S140-REQ-006",
+        "S140-REQ-020"
+      ],
+      "core_types": [
+        "RuntimeConstitutionVersion",
+        "SessionPromptPin",
+        "PromptRevocation"
+      ],
+      "reducer_events": [
+        "runtime_constitution.activated",
+        "runtime_constitution.revoked",
+        "contract.rollback_activated"
+      ],
+      "persistence": [
+        "runtime_constitutions",
+        "prompt_variants"
+      ],
+      "restart_recovery_tests": [
+        "s140_session_pinning",
+        "s140_revocation_restart",
+        "s140_rollback"
+      ],
+      "status": "verified",
+      "positive_tests": [
+        "agent_runtime_constitution_lifecycle_test::immutable_activation_pinning_and_rollback_require_authority",
+        "agent_runtime_constitution_lifecycle_test::promotion_requires_gain_and_no_hard_dimension_regression"
+      ],
+      "negative_tests": [
+        "agent_runtime_constitution_lifecycle_test::evaluation_rejects_missing_evidence_and_out_of_range_scores",
+        "agent_runtime_constitution_lifecycle_test::revocation_fails_closed_for_activation_and_rollback"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-032",
+      "spec_section": "25",
+      "requirement_text": "Compile stable obligations to consult Specs 137/139 while keeping changing time, presence, topology, placement, branch, and operation facts outside stable prompts.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.runtime_awareness_contract",
+      "implementation_slice": "cross_spec",
+      "blocking_dependencies": [
+        "spec137.temporal_authority",
+        "spec139.presence_authority"
+      ],
+      "core_types": [
+        "RuntimeAwarenessContractReference"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_orchestrator_test::crist_composition_is_operator_gated_and_complete",
+        "s140_temporal_presence_obligation"
+      ],
+      "negative_tests": [
+        "agent_runtime_constitution_orchestrator_test::incomplete_operating_contract_fails_closed",
+        "s140_volatile_topology_in_system_prompt"
+      ],
+      "status": "verified",
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-033",
+      "spec_section": "26",
+      "requirement_text": "Evaluate default, append, full replacement, and runtime-compiled prompt variants across role, safety, tools, skills, awareness, placement, coordination, proof, injection resistance, efficiency, cache, compaction, and transfer.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.prompt_evaluation",
+      "implementation_slice": "evaluation",
+      "blocking_dependencies": [
+        "spec113.agent_benchmark",
+        "spec138.prediction_learning",
+        "S140-REQ-018"
+      ],
+      "core_types": [
+        "PromptEvaluation"
+      ],
+      "reducer_events": [
+        "prompt.variant_evaluated"
+      ],
+      "persistence": [
+        "prompt_evaluations"
+      ],
+      "evaluation_scenarios": [
+        "role_fidelity",
+        "authority",
+        "tool_selection",
+        "skill_loading",
+        "presence",
+        "time",
+        "placement",
+        "duplicate_work",
+        "proof",
+        "security",
+        "cache",
+        "compaction",
+        "transfer"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_lifecycle_test::immutable_activation_pinning_and_rollback_require_authority",
+        "agent_runtime_constitution_lifecycle_test::promotion_requires_gain_and_no_hard_dimension_regression",
+        "s140_champion_challenger_suite"
+      ],
+      "status": "verified",
+      "negative_tests": [
+        "agent_runtime_constitution_lifecycle_test::evaluation_rejects_missing_evidence_and_out_of_range_scores",
+        "agent_runtime_constitution_lifecycle_test::revocation_fails_closed_for_activation_and_rollback"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-034",
+      "spec_section": "26.4-26.5",
+      "requirement_text": "Record prompt identity/version/environment/outcome/transfer in Spec 138 and forbid the runtime agent from editing or activating its own stable prompt.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec138.epistemic_governance",
+      "implementation_slice": "evaluation",
+      "blocking_dependencies": [
+        "S140-REQ-033"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_lifecycle_test::spec138_outcome_binding_preserves_epistemic_refs_and_forbids_self_activation",
+        "s140_prompt_provenance_spec138"
+      ],
+      "negative_tests": [
+        "agent_runtime_constitution_lifecycle_test::spec138_outcome_binding_preserves_epistemic_refs_and_forbids_self_activation",
+        "s140_agent_self_activates_prompt"
+      ],
+      "status": "verified",
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-035",
+      "spec_section": "27",
+      "requirement_text": "Detect instruction/tool/skill/profile/spec/compiler drift, create impact assessments, and require review rather than silent regeneration.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.drift",
+      "implementation_slice": "lifecycle_delivery",
+      "blocking_dependencies": [
+        "S140-REQ-008",
+        "S140-REQ-006"
+      ],
+      "core_types": [
+        "AgentContractImpactAssessment"
+      ],
+      "reducer_events": [
+        "contract.drift_detected"
+      ],
+      "persistence": [
+        "contract_impact_assessments"
+      ],
+      "api_operations": [
+        "agent_runtime.instructions_drift"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_authority_test::scanner_discovers_registered_sources_and_extracts_atomic_claims",
+        "agent_runtime_constitution_lifecycle_test::impact_assessment_escalates_permission_and_release_drift",
+        "s140_drift_impact_assessment"
+      ],
+      "negative_tests": [
+        "agent_runtime_constitution_authority_test::bounded_paths_reject_escape_and_denied_paths",
+        "agent_runtime_constitution_authority_test::untrusted_injection_is_quarantined",
+        "s140_silent_regeneration"
+      ],
+      "status": "verified",
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-036",
+      "spec_section": "28-32",
+      "requirement_text": "Implement durable events/persistence, typed API/CLI/Pi surfaces, delivery manifests, preview/commit/verify, and Spec 111/119 Receipt integration.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.persistence_surfaces_delivery",
+      "implementation_slice": "lifecycle_delivery",
+      "blocking_dependencies": [
+        "S140-REQ-006",
+        "spec111.bootstrap_delivery",
+        "spec119.receipts"
+      ],
+      "core_types": [
+        "AgentRuntimeDeliveryManifest"
+      ],
+      "persistence": [
+        "delivery_manifests"
+      ],
+      "api_operations": [
+        "agent_runtime.delivery_preview",
+        "agent_runtime.delivery_commit",
+        "agent_runtime.delivery_verify"
+      ],
+      "cli_commands": [
+        "focusa_agent_runtime_artifacts_preview",
+        "focusa_agent_runtime_artifacts_apply",
+        "focusa_agent_runtime_artifacts_verify"
+      ],
+      "pi_tools": [
+        "focusa_agent_artifact_preview",
+        "focusa_agent_artifact_delivery",
+        "focusa_agent_artifact_verify"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ],
+      "positive_tests": [
+        "s140_api_cli_pi_parity",
+        "s140_target_loader_verification"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-037",
+      "spec_section": "33",
+      "requirement_text": "Migrate by inventorying/quarantining current sources, implementing canonical contracts, integrating C.R.I.S.T., compiling artifacts/prompts, adding enforcement, and completing UI/evaluation without hidden behavior changes.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.migration",
+      "implementation_slice": "migration",
+      "migrations": [
+        "s140_phase0_inventory",
+        "s140_phase1_contracts",
+        "s140_phase2_crist",
+        "s140_phase3_artifacts",
+        "s140_phase4_pi_prompt",
+        "s140_phase5_enforcement",
+        "s140_phase6_ui_evaluation"
+      ],
+      "positive_tests": [
+        "agent_runtime_constitution_migration_test::migration_inventory_is_complete_deterministic_and_zero_hidden_change",
+        "agent_runtime_tests::migration_preview_is_zero_hidden_change_and_non_mutating",
+        "s140_migration_compatibility"
+      ],
+      "status": "verified",
+      "negative_tests": [
+        "agent_runtime_constitution_migration_test::unresolved_conflict_and_manual_mapping_block_delivery",
+        "agent_runtime_constitution_migration_test::verification_rejects_unmapped_source"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ]
+    },
+    {
+      "requirement_id": "S140-REQ-038",
+      "spec_section": "34-35",
+      "requirement_text": "Pass the full discovery, authority, prompt, AGENTS, cross-harness, skill/tool, C.R.I.S.T., evaluation, incident-prevention, security, and delivery-verification test matrix before conformance.",
+      "requirement_class": "must",
+      "applicability": "required",
+      "primitive_owner": "spec140.conformance",
+      "implementation_slice": "closure",
+      "blocking_dependencies": [
+        "S140-REQ-001",
+        "S140-REQ-037"
+      ],
+      "positive_tests": [
+        "spec140_required_test_matrix"
+      ],
+      "evidence_refs": [
+        "docs/evidence/spec140a/focusa-vbcqu.2.2.8-instruction-integrity-headless-conformance.txt"
+      ],
+      "receipt_refs": [
+        "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+      ],
+      "status": "verified",
+      "implementation_refs": [
+        "crates/focusa-core/src/agent_runtime_constitution.rs",
+        "crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs"
+      ],
+      "test_refs": [
+        "tests/spec140a_full_conformance_gate.py"
+      ]
+    }
+  ],
+  "generated_at": "2026-07-31T00:30:00Z",
+  "runtime_claim": "combined_spec140_spec140a_full_conformance",
+  "runtime_status": "verified_complete",
+  "full_conformance_status": "verified_complete",
+  "verified_requirement_count": 38,
+  "receipt_ref": "docs/contracts/140a-focusa-combined-conformance-receipt.v1.yaml"
+}

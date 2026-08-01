@@ -1,0 +1,47 @@
+{
+  "schema": "focusa.legacy_gate_closure.v1",
+  "status": "verified",
+  "locked_release_head": "5d1b0f4c968ed66514500ec084aed2b79d55bc44",
+  "locked_release_branch": "locked-release-all-open-spec137-138-140",
+  "workset": {
+    "workset_id": "workset:focusa-next-locked-release:r6",
+    "member_count": 258,
+    "unique_member_count": 258,
+    "missing_provider_members": [],
+    "duplicate_member_count": 0,
+    "unresolved_external_blockers": 0
+  },
+  "legacy_refs": {
+    "evidence_ref": "docs/evidence/release/141-archived-worktree-ref-semantic-diff.json",
+    "status": "verified",
+    "unsettled_ref_count": 0,
+    "evidence_digest": "sha256:564a822a161fa34de799f5eb65ef5b0fb2ef1e4da2fa984a81abd500dddacda0"
+  },
+  "settlement_prerequisites": {
+    "focusa-vbcqu.7.1": "closed",
+    "focusa-vbcqu.7.2": "closed",
+    "focusa-vbcqu.7.3": "closed",
+    "focusa-vbcqu.7.4": "closed"
+  },
+  "issue_provider": {
+    "beads_owner_uid": 549,
+    "issues_owner_uid": 549,
+    "owner_consistent": true
+  },
+  "restart_recovery_proofs": [
+    "tests/spec133_phase4_runtime_gate.sh",
+    "tests/spec133_phase5_isolation_gate.sh",
+    "tests/spec96_silent_session_process_failure_static_test.sh",
+    "tests/spec130a_proactive_compaction_runtime_test.sh",
+    "tests/spec130a_release_stress_runtime_test.mts"
+  ],
+  "missing_restart_recovery_proofs": [],
+  "zero_open_scope": {
+    "unmapped_issue_count": 0,
+    "duplicate_issue_count": 0,
+    "unsettled_legacy_ref_count": 0,
+    "unresolved_external_blocker_count": 0
+  },
+  "errors": [],
+  "evidence_digest": "sha256:665590594e09ce86091f08c437d9a2034d91aaaef86db9c58f604ceca1832b77"
+}

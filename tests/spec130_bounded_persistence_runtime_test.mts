@@ -1,3 +1,4 @@
+import { registerVerifiedScopeRef } from "../apps/pi-extension/src/scoped-state.ts";
 import {
   getAttachmentRuntime,
   makeAttachmentKey,
@@ -28,6 +29,13 @@ const dataDir = mkdtempSync(join(tmpdir(), "focusa-spec130-anchor-"));
 process.env.FOCUSA_DATA_DIR = dataDir;
 const entries: Array<{ customType: string; data: any }> = [];
 const turnsSource = readFileSync(join(process.cwd(), "apps/pi-extension/src/turns.ts"), "utf8");
+registerVerifiedScopeRef({
+  scope_kind: "project",
+  scope_id: "focusa-spec130-project",
+  root_path: "/tmp/focusa-spec130-project",
+  canonical_name: "Focusa Spec130 Fixture",
+  fingerprint: "sha256:focusa-spec130-project",
+});
 const attachmentKey = makeAttachmentKey({
   projectRoot: "/tmp/focusa-spec130-project",
   continuityId: "focusa-cont-dynamic-a",

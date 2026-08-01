@@ -1,0 +1,17 @@
+Spec138 Advanced Fusion, Scenario, Transfer, and Self-Model Acceptance Evidence
+Generated: 2026-07-30
+Status: PASS (verified advanced slice; full Spec138/138A remains open)
+
+Coverage:
+- source identity, upstream dependency, ownership, acquisition, correlation, redundancy, manipulation/prompt-injection risk, revision, and first-available-time dimensions
+- versioned weight origin/policy, reliability, effective contribution, cluster discounting, explicit missingness, minimum independent sources, and preserved contradictions
+- scenario assumptions, exhaustive probability mass, conditional branches, interventions, causal status, alternatives, disconfirming evidence, expiry, and receipt
+- transfer expectation/similarity/differences/benefit/risk/confidence/uncertainty/evaluation plan/outcome with negative-transfer rollback
+- task/domain/regime-scoped self-model with competence, calibration, uncertainty, abstention, errors, limitations, version/supersession, evidence, and expiry; global self-ratings prohibited
+
+Proof:
+- cargo test -p focusa-core epistemic_fusion
+- cargo test -p focusa-core prediction_advanced
+- tests/spec138_advanced_gate.py
+
+Boundary: lifecycle/security/retention, surfaces/migration/profile closure, and full conformance remain open.

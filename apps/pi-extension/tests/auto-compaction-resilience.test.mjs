@@ -109,15 +109,17 @@ test("attempt, primary failure, retry, rejection, and ROI outcomes are durably l
   assert.match(source, /net_positive:/);
 });
 
-test("compaction exposes elapsed heartbeat, retries, and resume failures", () => {
+test("compaction exposes elapsed heartbeat and bounded no-retry resume outcomes", () => {
   assert.match(source, /startCompactionHeartbeat\(ctx, invokedEpoch, usageBefore\.percent \?\? undefined\)/);
   assert.match(source, /setInterval\(render, 5_000\)/);
   assert.match(source, /Focusa compaction still running/);
   assert.match(source, /Focusa compaction attempt .* failed:/);
   assert.match(source, /Retrying in .*s/);
   assert.match(source, /stopCompactionHeartbeat\(ctx\)/);
-  assert.match(compactionSource, /Compaction resume-context retry .* failed:/);
-  assert.match(compactionSource, /Retrying automatically/);
+  assert.match(compactionSource, /deliverAs: "nextTurn"/);
+  assert.match(compactionSource, /compactResumeDeliveryState = "unknown_completion"/);
+  assert.doesNotMatch(compactionSource, /scheduleCompactionResumeRetry/);
+  assert.doesNotMatch(compactionSource, /Retrying automatically/);
 });
 
 test("one process-wide first-owner coordinator suppresses duplicate registrations", () => {
@@ -181,9 +183,13 @@ test("transport retry exhaustion defers to Pi instead of auto-queuing rollover",
   assert.doesNotMatch(source, /rollover_auto_queued/);
 });
 
-test("numeric pressure and artifact filenames cannot become project aliases", () => {
+test("numeric pressure, artifacts, and injected advisories cannot become project aliases", () => {
   assert.match(stateSource, /!\/\[a-z\]\//);
   assert.match(stateSource, /\^\\d\+\(\?:\\\.\\d\+\)\+\$/);
   assert.match(stateSource, /NON_PROJECT_ARTIFACT_SUFFIXES/);
   assert.match(stateSource, /isPlausibleProjectAlias\(entry\.project_alias\)/);
+  assert.ok(
+    stateSource.includes('stripped = stripped.replace(/\\[\\s*focusa advisory[^\\]]*\\][\\s\\S]*$/i, "");'),
+    "injected Focusa advisories must be removed before current-ask scope inference"
+  );
 });

@@ -381,7 +381,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: Focusa ${{ github.ref_name }}
           body_path: /tmp/release-notes.md
-          draft: false
+          draft: true
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -775,6 +775,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Install Cosign for keyless installer trust metadata
         uses: sigstore/cosign-installer@v3.10.0
@@ -797,6 +799,35 @@ jobs:
           TAG="${{ github.ref_name }}"
           mkdir -p dist
           gh release download "$TAG" --repo "${{ github.repository }}" --dir dist --clobber
+
+      - name: Generate typed release intelligence packet and page
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${{ github.ref_name }}"
+          CLI="dist/focusa-${TAG}-x86_64-unknown-linux-gnu"
+          test -s "$CLI"
+          chmod +x "$CLI"
+          PREVIOUS_TAG="$(git describe --tags --abbrev=0 "${GITHUB_SHA}^" 2>/dev/null || true)"
+          ARGS=()
+          if [ -n "$PREVIOUS_TAG" ]; then
+            ARGS+=(--previous-tag "$PREVIOUS_TAG")
+          fi
+          python3 scripts/generate-release-intelligence-packet.py \
+            --dist dist \
+            --tag "$TAG" \
+            --sha "$GITHUB_SHA" \
+            --repo "$GITHUB_REPOSITORY" \
+            --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --output dist/release-intelligence.json \
+            "${ARGS[@]}"
+          "$CLI" release render-intelligence \
+            --packet dist/release-intelligence.json \
+            --output dist/release-intelligence.md \
+            --publishable
+          test -s dist/release-intelligence.json
+          test -s dist/release-intelligence.md
 
       - name: Generate detached signatures, manifest, provenance, and trust metadata
         env:
@@ -830,12 +861,25 @@ jobs:
             dist/*.sig
             dist/*.pem
             dist/SHA256SUMS.txt
+            dist/release-intelligence.json
+            dist/release-intelligence.md
             dist/release-manifest.json
             dist/release-provenance.json
             dist/focusa-trusted-release-keys.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Publish evidence-backed release page
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          test -s dist/release-intelligence.md
+          gh release edit "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --notes-file dist/release-intelligence.md \
+            --draft=false
 
   dispatch-deploy-live-daemon:
     name: Dispatch Deploy Live Daemon

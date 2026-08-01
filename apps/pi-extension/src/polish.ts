@@ -1,6 +1,19 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
+import { otaActivationPaths } from "./ota-activation.js";
+import { saveConfigOverrides } from "./config.js";
+import {
+  createOperatorWidgetRegistry,
+  migrateOperatorStatusSettings,
+  operatorStatusRollbackPatch,
+  renderOperatorStatusBar,
+  type OperatorWidgetId,
+} from "./operator-status-widgets.js";
 import {
   getAttachmentRuntime,
+  focusaFetch,
   focusaPost,
   getFocusaAvailable,
   getTurnCount,
@@ -9,6 +22,50 @@ import {
 
 const MAX_RECORDS = 80;
 const MAX_TEXT = 500;
+let semanticSequence = 0;
+const MAX_OFFLINE_SPOOL = 64;
+const SPOOL_PATH = join(
+  String(process.env.FOCUSA_DATA_DIR || "").trim() || join(homedir(), ".focusa"),
+  "pi-semantic-spool.json"
+);
+const offlineSemanticSpool: Array<Record<string, unknown>> = loadSemanticSpool();
+
+function loadSemanticSpool(): Array<Record<string, unknown>> {
+  if (!existsSync(SPOOL_PATH)) return [];
+  try {
+    const parsed = JSON.parse(readFileSync(SPOOL_PATH, "utf8"));
+    return Array.isArray(parsed) ? parsed.slice(-MAX_OFFLINE_SPOOL) : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistSemanticSpool(): void {
+  try {
+    mkdirSync(dirname(SPOOL_PATH), { recursive: true, mode: 0o700 });
+    const temporary = `${SPOOL_PATH}.tmp`;
+    writeFileSync(temporary, `${JSON.stringify(offlineSemanticSpool)}\n`, { mode: 0o600 });
+    renameSync(temporary, SPOOL_PATH);
+  } catch {
+    // Best effort only: semantic telemetry must never block Pi.
+  }
+}
+
+type PiSemanticEventEnvelope = {
+  schema: "focusa.pi_semantic_event.v1";
+  event_id: string;
+  sequence: number;
+  project_root: string;
+  continuity_id: string;
+  session_id: string;
+  turn_id?: string;
+  event_type: string;
+  message_id?: string;
+  tool_call_id?: string;
+  occurred_at: string;
+  content: Record<string, unknown>;
+  artifact_handle?: string;
+};
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -60,12 +117,81 @@ function recordTokenTelemetry(record: Record<string, unknown>): void {
     );
 }
 
+async function postSemanticTelemetry(body: Record<string, unknown>): Promise<void> {
+  const pending = offlineSemanticSpool.splice(0, offlineSemanticSpool.length);
+  persistSemanticSpool();
+  const batch = [...pending, body];
+  for (const item of batch) {
+    let outbound = item;
+    const encoded = JSON.stringify(item);
+    if (encoded.length > 12_000) {
+      const runtime = getAttachmentRuntime();
+      const artifact = await focusaFetch("/ecs/store", {
+        method: "POST",
+        body: JSON.stringify({
+          kind: "Json",
+          label: `pi-semantic-event-${String(item.event_type || "unknown")}`,
+          content: encoded,
+          project_root: runtime.sessionCwd || undefined,
+          continuity_id: runtime.continuityId || undefined,
+        }),
+      });
+      const handle = artifact?.id || artifact?.handle?.id;
+      if (typeof handle === "string") {
+        const semantic = item.semantic_event as Record<string, unknown> | undefined;
+        outbound = {
+          ...item,
+          payload: { artifact_handle: handle, original_size: encoded.length },
+          semantic_event: semantic ? {
+            ...semantic,
+            artifact_handle: handle,
+            content: { artifact_handle: handle, original_size: encoded.length },
+          } : undefined,
+        };
+      }
+    }
+    const result = await focusaFetch("/telemetry/event", {
+      method: "POST",
+      body: JSON.stringify(outbound),
+    });
+    if (result === null) {
+      offlineSemanticSpool.push(item);
+      if (offlineSemanticSpool.length > MAX_OFFLINE_SPOOL) {
+        offlineSemanticSpool.splice(0, offlineSemanticSpool.length - MAX_OFFLINE_SPOOL);
+      }
+      persistSemanticSpool();
+      break;
+    }
+  }
+}
+
 function bestEffortTelemetry(kind: string, payload: Record<string, unknown>): void {
+  const runtime = getAttachmentRuntime();
   if (!getFocusaAvailable()) return;
-  focusaPost("/telemetry/event", {
+  const sequence = ++semanticSequence;
+  const sessionId = String((payload.session_id as string | undefined) || "pi-session");
+  const messageId = typeof payload.message_id === "string" ? payload.message_id : undefined;
+  const toolCallId = typeof payload.tool_call_id === "string" ? payload.tool_call_id : undefined;
+  const eventId = simpleHash(`${sessionId}:${kind}:${messageId || toolCallId || "none"}:${sequence}`);
+  const semantic_event: PiSemanticEventEnvelope = {
+    schema: "focusa.pi_semantic_event.v1",
+    event_id: eventId,
+    sequence,
+    project_root: runtime.sessionCwd || "",
+    continuity_id: runtime.continuityId || "",
+    session_id: sessionId,
+    turn_id: typeof payload.turn_id === "string" ? payload.turn_id : undefined,
+    event_type: kind,
+    message_id: messageId,
+    tool_call_id: toolCallId,
+    occurred_at: nowIso(),
+    content: payload,
+  };
+  void postSemanticTelemetry({
     event_type: kind,
     source: "pi-extension-spec92",
     payload,
+    semantic_event,
   });
 }
 
@@ -110,22 +236,202 @@ function payloadSummary(payload: any): Record<string, unknown> {
   };
 }
 
-function skillPaths(): string[] {
-  const homeSkills = process.env.PI_SKILLS_DIR || (process.env.HOME ? `${process.env.HOME}/.pi/skills` : "");
-  return [`${process.cwd()}/.pi/skills`, `${process.cwd()}/apps/pi-extension/skills`, homeSkills].filter(
-    Boolean
+function otaStatus(): string {
+  try {
+    const paths = otaActivationPaths();
+    if (existsSync(paths.activating)) return "activating";
+    if (existsSync(paths.restart) || existsSync(paths.legacy)) return "ready";
+    if (existsSync(paths.receipt)) return "current";
+  } catch {
+    return "unknown";
+  }
+  return "idle";
+}
+
+function headerValue(event: any, name: string): string {
+  const headers = event?.headers || event?.response?.headers;
+  if (typeof headers?.get === "function") return String(headers.get(name) || "");
+  const key = Object.keys(headers || {}).find((candidate) => candidate.toLowerCase() === name);
+  return key ? String(headers[key] || "") : "";
+}
+
+function updateProviderUsageFromHeaders(event: any): void {
+  const usedRaw = headerValue(event, "x-codex-primary-used-percent");
+  const remainingRaw = headerValue(event, "x-ratelimit-remaining-tokens");
+  const limitRaw = headerValue(event, "x-ratelimit-limit-tokens");
+  let used = Number.parseFloat(usedRaw);
+  if (!Number.isFinite(used)) {
+    const remaining = Number.parseFloat(remainingRaw);
+    const limit = Number.parseFloat(limitRaw);
+    if (Number.isFinite(remaining) && Number.isFinite(limit) && limit > 0)
+      used = ((limit - remaining) / limit) * 100;
+  }
+  if (Number.isFinite(used)) {
+    getAttachmentRuntime().providerUsagePercent = Math.max(0, Math.min(100, used));
+    getAttachmentRuntime().providerUsageObservedAt = Date.now();
+  }
+  const renewal =
+    headerValue(event, "x-codex-primary-reset-at") ||
+    headerValue(event, "x-ratelimit-reset-tokens") ||
+    headerValue(event, "x-ratelimit-reset");
+  if (renewal) {
+    getAttachmentRuntime().providerRenewalAt = renewal;
+    getAttachmentRuntime().providerUsageObservedAt = Date.now();
+  }
+}
+
+const operatorWidgetRegistry = createOperatorWidgetRegistry();
+
+function operatorWidgetSettings(cfg: any) {
+  return migrateOperatorStatusSettings(cfg?.operatorStatusWidgets, {
+    time: Boolean(cfg?.operatorStatusTimeEnabled || cfg?.operatorStatusDeadlineEnabled),
+    prediction: cfg?.operatorStatusPredictionEnabled,
+    version: cfg?.operatorStatusVersionEnabled,
+    ota: cfg?.operatorStatusOtaEnabled,
+    "provider-usage": cfg?.operatorStatusModelUsageEnabled,
+  }, operatorWidgetRegistry);
+}
+
+function parseObservedAt(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const parsed = Date.parse(String(value ?? ""));
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function renderOperatorStatus(ctx: any): void {
+  const runtime = getAttachmentRuntime();
+  const cfg = runtime.cfg;
+  if (!cfg?.operatorStatusBarEnabled) {
+    ctx?.ui?.setStatus?.("focusa-operator-status", undefined);
+    ctx?.ui?.setWidget?.("focusa-next-prediction", undefined);
+    return;
+  }
+  const packet: any = getActiveWorkpointPacket();
+  const prediction = packet?.next_action || packet?.next_slice;
+  const ota = otaStatus();
+  const result = renderOperatorStatusBar({
+    now: Date.now(),
+    timezone: String(process.env.TZ || "").trim() || undefined,
+    deadline: process.env.FOCUSA_CONFIRMED_DEADLINE,
+    prediction,
+    predictionLoading: runtime.startupReceptionistActive,
+    predictionObservedAt: parseObservedAt(packet?.updated_at || packet?.observed_at),
+    version: cfg.focusaExtensionBuild,
+    ota,
+    otaState: ota === "unknown" ? "degraded" : "ready",
+    otaObservedAt: Date.now(),
+    provider: runtime.modelProvider,
+    model: runtime.modelId,
+    usagePercent: runtime.providerUsagePercent,
+    renewalAt: runtime.providerRenewalAt,
+    providerObservedAt: runtime.providerUsageObservedAt || undefined,
+  }, operatorWidgetSettings(cfg), Math.max(24, Number(process.stdout.columns || 120)), operatorWidgetRegistry);
+  ctx?.ui?.setStatus?.("focusa-operator-status", result.text || undefined);
+  ctx?.ui?.setWidget?.("focusa-next-prediction", undefined);
+}
+
+function receptionistProgressGreeting(): string {
+  const hourText = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    hourCycle: "h23",
+    timeZone: String(process.env.TZ || "").trim() || undefined,
+  }).format(new Date());
+  const hour = Number.parseInt(hourText, 10);
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const preferred = String(
+    process.env.FOCUSA_PREFERRED_ADDRESS || process.env.OPERATOR_PREFERRED_ADDRESS || ""
+  ).trim();
+  return preferred ? `${greeting}, ${preferred}` : greeting;
+}
+
+function updateReceptionistProgress(ctx: any, message: string): void {
+  if (!getAttachmentRuntime().startupReceptionistActive) return;
+  ctx?.ui?.setWidget?.(
+    "focusa-vital",
+    [`${receptionistProgressGreeting()} — ${message}`],
+    { placement: "belowEditor" }
   );
+}
+
+function receptionistToolProgress(toolName: string): string {
+  const name = toolName.toLowerCase();
+  if (["bash", "read", "find", "fd", "rg"].includes(name))
+    return "I’m looking through nearby folders for likely projects (read-only)…";
+  if (name === "focusa_project_identity")
+    return "I’m checking whether the likely folders are existing Focusa projects…";
+  if (name === "focusa_project_verify")
+    return "I found a possible match and I’m checking it safely…";
+  if (name.includes("trajectory") || name.includes("workpoint") || name.includes("hlt"))
+    return "I’m reviewing existing project history so I don’t treat an established project as new…";
+  return "I’m gathering enough context to give you useful, simple choices…";
 }
 
 export function registerPolishHooks(pi: ExtensionAPI) {
   const hookApi = pi as any;
+  pi.registerCommand("focusa-bar", {
+    description: "Show or change Focusa operator status widgets",
+    handler: async (args: string, ctx: any) => {
+      const runtime = getAttachmentRuntime();
+      const settings = operatorWidgetSettings(runtime.cfg);
+      const tokens = String(args || "").trim().split(/\s+/).filter(Boolean);
+      if (tokens[0] === "list") {
+        const summary = operatorWidgetRegistry.map((widget) => `${settings.enabled[widget.id] ? "on" : "off"} ${widget.id}`).join(" · ");
+        ctx.ui.notify(`Focusa bar: ${summary}`, "info");
+        return;
+      }
+      let widgetId: string | undefined = tokens[0];
+      if (!widgetId) {
+        const choice = await ctx.ui.select("Focusa bar widgets", operatorWidgetRegistry.map((widget) =>
+          `${settings.enabled[widget.id] ? "✓" : "○"} ${widget.label} (${widget.id})`
+        ));
+        widgetId = operatorWidgetRegistry.find((widget) => choice?.endsWith(`(${widget.id})`))?.id;
+      }
+      const widget = operatorWidgetRegistry.find((candidate) => candidate.id === widgetId);
+      if (!widget) {
+        ctx.ui.notify("Usage: /focusa-bar <time|prediction|version|ota|provider-usage> <on|off|toggle>, or /focusa-bar list", "warning");
+        return;
+      }
+      const requested = tokens[1];
+      if (requested && !["on", "off", "toggle"].includes(requested)) {
+        ctx.ui.notify("Widget state must be on, off, or toggle; no setting was changed.", "warning");
+        return;
+      }
+      settings.enabled[widget.id as OperatorWidgetId] = requested === "on" ? true : requested === "off" ? false : !settings.enabled[widget.id];
+      try {
+        const saved = saveConfigOverrides(ctx.cwd, {
+          operatorStatusWidgets: settings,
+          ...operatorStatusRollbackPatch(settings),
+        });
+        runtime.cfg = saved.config;
+        renderOperatorStatus(ctx);
+        ctx.ui.notify(`${widget.label} ${settings.enabled[widget.id] ? "enabled" : "disabled"}; saved in ${saved.path}.`, "info");
+      } catch (error) {
+        ctx.ui.notify(`Focusa bar setting not saved: ${String(error).slice(0, 180)}`, "error");
+      }
+    },
+  });
   hookApi.on("resources_discover", async (_event: any, _ctx: any) => {
-    const paths = Array.from(new Set(skillPaths()));
-    recordHookTelemetry({ hook: "resources_discover", skill_paths: paths });
-    return { skillPaths: paths };
+    // Pi settings/package installation is the single skill-path authority.
+    // Dynamically injecting cwd, package, and legacy home paths caused noisy
+    // name collisions and nondeterministic first-wins behavior.
+    recordHookTelemetry({ hook: "resources_discover", skill_authority: "pi_configuration" });
+    return {};
   });
 
-  hookApi.on("agent_start", async (event: any, _ctx: any) => {
+  hookApi.on("session_start", async (_event: any, ctx: any) => {
+    getAttachmentRuntime().modelProvider = String(ctx?.model?.provider || "");
+    getAttachmentRuntime().modelId = String(ctx?.model?.id || "");
+    renderOperatorStatus(ctx);
+  });
+
+  hookApi.on("model_select", async (event: any, ctx: any) => {
+    getAttachmentRuntime().modelProvider = String(event?.model?.provider || ctx?.model?.provider || "");
+    getAttachmentRuntime().modelId = String(event?.model?.id || ctx?.model?.id || "");
+    renderOperatorStatus(ctx);
+  });
+
+  hookApi.on("agent_start", async (event: any, ctx: any) => {
+    renderOperatorStatus(ctx);
     const record = {
       hook: "agent_start",
       event_keys: Object.keys(event || {}).slice(0, 20),
@@ -139,17 +445,21 @@ export function registerPolishHooks(pi: ExtensionAPI) {
     bestEffortTelemetry("spec92.agent_start", record);
   });
 
-  hookApi.on("message_start", async (event: any, _ctx: any) => {
+  hookApi.on("message_start", async (event: any, ctx: any) => {
     recordHookTelemetry({ hook: "message_start", ...messageSummary(event?.message || event) });
+    updateReceptionistProgress(ctx, "I’m checking recent projects and preparing a few clear options…");
   });
 
-  hookApi.on("message_end", async (event: any, _ctx: any) => {
+  hookApi.on("message_end", async (event: any, ctx: any) => {
     const record = { hook: "message_end", ...messageSummary(event?.message || event) };
     recordHookTelemetry(record);
     bestEffortTelemetry("spec92.message_end", record);
+    updateReceptionistProgress(ctx, "I’ve finished checking and I’m putting the best options into plain language…");
   });
 
-  hookApi.on("before_provider_request", async (event: any, _ctx: any) => {
+  hookApi.on("before_provider_request", async (event: any, ctx: any) => {
+    getAttachmentRuntime().modelProvider = String(event?.provider || event?.model?.provider || ctx?.model?.provider || "");
+    getAttachmentRuntime().modelId = String(event?.model?.id || event?.model || ctx?.model?.id || "");
     const summary = payloadSummary(event?.payload || event?.request || event);
     const record: any = {
       hook: "before_provider_request",
@@ -177,7 +487,9 @@ export function registerPolishHooks(pi: ExtensionAPI) {
     return undefined;
   });
 
-  hookApi.on("after_provider_response", async (event: any, _ctx: any) => {
+  hookApi.on("after_provider_response", async (event: any, ctx: any) => {
+    updateProviderUsageFromHeaders(event);
+    renderOperatorStatus(ctx);
     const record = {
       hook: "after_provider_response",
       status: event?.status || event?.response?.status || "unknown",
@@ -188,7 +500,7 @@ export function registerPolishHooks(pi: ExtensionAPI) {
     bestEffortTelemetry("spec92.after_provider_response", record);
   });
 
-  hookApi.on("tool_execution_start", async (event: any, _ctx: any) => {
+  hookApi.on("tool_execution_start", async (event: any, ctx: any) => {
     const record = {
       hook: "tool_execution_start",
       tool_call_id: event?.toolCallId || event?.id || "unknown",
@@ -197,6 +509,7 @@ export function registerPolishHooks(pi: ExtensionAPI) {
     };
     getAttachmentRuntime().spec92ToolStartTimes[String(record.tool_call_id)] = Date.now();
     recordHookTelemetry(record);
+    updateReceptionistProgress(ctx, receptionistToolProgress(String(record.tool_name)));
   });
 
   hookApi.on("tool_execution_update", async (event: any, _ctx: any) => {
@@ -208,7 +521,7 @@ export function registerPolishHooks(pi: ExtensionAPI) {
     });
   });
 
-  hookApi.on("tool_execution_end", async (event: any, _ctx: any) => {
+  hookApi.on("tool_execution_end", async (event: any, ctx: any) => {
     const id = String(event?.toolCallId || event?.id || "unknown");
     const started = getAttachmentRuntime().spec92ToolStartTimes[id];
     if (started) delete getAttachmentRuntime().spec92ToolStartTimes[id];
@@ -223,6 +536,7 @@ export function registerPolishHooks(pi: ExtensionAPI) {
     };
     recordHookTelemetry(record);
     bestEffortTelemetry("spec92.tool_execution_end", record);
+    updateReceptionistProgress(ctx, "I’m comparing what I found and narrowing it to useful choices…");
     // FOCUSA_FIX-tgij: shell-tool reminder — when the agent uses a shell-like
     // tool that could touch the Focusa daemon, emit a visible reminder to
     // prefer focusa_* tools for governed interactions.
@@ -261,6 +575,26 @@ export function registerPolishHooks(pi: ExtensionAPI) {
         }
       }
     }
+  });
+
+  hookApi.on("agent_end", async (_event: any, ctx: any) => {
+    if (!getAttachmentRuntime().startupReceptionistActive) return;
+    getAttachmentRuntime().startupReceptionistActive = false;
+    const previousThinking = getAttachmentRuntime().startupReceptionistPreviousThinkingLevel;
+    getAttachmentRuntime().startupReceptionistPreviousThinkingLevel = "";
+    if (previousThinking) {
+      try {
+        getAttachmentRuntime().pi?.setThinkingLevel(previousThinking as any);
+      } catch {
+        // Keep reception completion nonblocking even if model state changed.
+      }
+    }
+    renderOperatorStatus(ctx);
+    ctx?.ui?.setWidget?.(
+      "focusa-vital",
+      ["Ready — I’ve shared the clearest next options above. Nothing was changed while I checked."],
+      { placement: "belowEditor" }
+    );
   });
 
   hookApi.on("session_tree", async (event: any, _ctx: any) => {

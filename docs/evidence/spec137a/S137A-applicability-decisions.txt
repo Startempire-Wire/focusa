@@ -1,0 +1,13 @@
+Spec137A Combined Applicability Decision Evidence
+Generated: 2026-07-30
+Decision authority: operator-accepted FULL SEND Spec137 + Spec137A conformance scope
+
+Decision:
+- Every mapped normative source clause is active in the accepted full-conformance delivery contract.
+- Parent conditional rows are activated_conditional for this release rather than silently excluded.
+- Addendum interpretation, scheduling, tranche, unsupported-capability, and variance laws remain active governance requirements.
+- No optional-unimplemented, not-applicable, variance, or operator-reserved closure is claimed.
+- Unsupported runtime capabilities must remain truthful and open; active applicability does not fabricate support.
+
+Review triggers: project scope, platform, domain, profile, product claim, specification amendment, operator supersession.
+Rollback: supersede through a versioned operator-approved applicability decision with clause-level evidence; never edit historical receipts silently.

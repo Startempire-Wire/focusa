@@ -3,10 +3,11 @@
 use crate::server::AppState;
 use axum::{
     Json, Router,
-    extract::Query,
+    extract::{Query, State},
     http::StatusCode,
     routing::{get, post},
 };
+use base64::{Engine as _, engine::general_purpose::STANDARD};
 use chrono::Utc;
 use focusa_core::{
     temporal::{
@@ -14,17 +15,51 @@ use focusa_core::{
         TemporalLedger, TemporalScope, project_temporal, validate_claim,
     },
     temporal_claims::{TemporalClaimEnvelope, revise_claim, temporal_preflight},
-    temporal_forecast::{ObservedDuration, ReleasePhase, calibrate, forecast_phase},
+    temporal_deadline::{CivilTimeIntent, resolve_civil_time},
+    temporal_forecast::{
+        ForecastAuthorityContext, ObservedDuration, ReleasePhase, evaluate_forecast,
+        forecast_phase_authorized,
+    },
+    temporal_high_consequence::{
+        ActivationFirewall, DispatchAgeObservation, DispatchAgePolicy, SignedTemporalLedgerControl,
+        TemporalDataPolicy, TemporalPrecisionProfile, authorize_activation, authorize_dispatch,
+        validate_data_policy, validate_ledger_controls, validate_precision_profile,
+    },
+    temporal_operations::{
+        HumanCalendarContext, TemporalExecutionGuard, TemporalPriorityFrame,
+        authorize_temporal_action,
+    },
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::sync::Arc;
 use uuid::Uuid;
 
+use super::temporal_advanced::{
+    capture_clock, commit_priority, forecast, high_consequence_preflight, migrate_signatures,
+    resolve_civil,
+};
+
+#[derive(Debug, Default, Deserialize)]
+pub struct TemporalScopeDimensions {
+    #[serde(default)]
+    host_id: Option<String>,
+    #[serde(default)]
+    operator_id: Option<String>,
+    #[serde(default)]
+    workpoint_id: Option<String>,
+    #[serde(default)]
+    item_id: Option<String>,
+    #[serde(default)]
+    task_id: Option<String>,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct TemporalStatusQuery {
     project_root: String,
     continuity_id: String,
+    #[serde(flatten)]
+    dimensions: TemporalScopeDimensions,
     #[serde(default)]
     as_of: Option<String>,
 }
@@ -33,6 +68,8 @@ pub struct TemporalStatusQuery {
 pub struct TemporalClaimRequest {
     project_root: String,
     continuity_id: String,
+    #[serde(flatten)]
+    dimensions: TemporalScopeDimensions,
     idempotency_key: String,
     claim: TemporalClaim,
     #[serde(default)]
@@ -43,6 +80,8 @@ pub struct TemporalClaimRequest {
 pub struct TemporalObserveRequest {
     project_root: String,
     continuity_id: String,
+    #[serde(flatten)]
+    dimensions: TemporalScopeDimensions,
     idempotency_key: String,
     phase: ReleasePhase,
     duration_ms: u64,
@@ -54,23 +93,20 @@ pub struct TemporalObserveRequest {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct TemporalForecastRequest {
-    project_root: String,
-    continuity_id: String,
-    phase: ReleasePhase,
-    #[serde(default)]
-    actual_ms: Option<u64>,
-}
-
-#[derive(Debug, Deserialize)]
 pub struct TemporalPreflightRequest {
     project_root: String,
     continuity_id: String,
+    #[serde(flatten)]
+    dimensions: TemporalScopeDimensions,
     #[serde(default)]
     envelope: Option<TemporalClaimEnvelope>,
 }
 
-fn fail(status: StatusCode, code: &str, message: impl Into<String>) -> (StatusCode, Json<Value>) {
+pub(super) fn fail(
+    status: StatusCode,
+    code: &str,
+    message: impl Into<String>,
+) -> (StatusCode, Json<Value>) {
     (
         status,
         Json(json!({
@@ -81,14 +117,76 @@ fn fail(status: StatusCode, code: &str, message: impl Into<String>) -> (StatusCo
     )
 }
 
-fn scope(project_root: String, continuity_id: String) -> TemporalScope {
-    TemporalScope {
-        project_root,
-        continuity_id,
+pub(super) fn scope(
+    project_root: String,
+    continuity_id: String,
+    dimensions: TemporalScopeDimensions,
+) -> TemporalScope {
+    let mut scope = TemporalScope::project(project_root, continuity_id);
+    scope.host_id = dimensions.host_id;
+    scope.operator_id = dimensions.operator_id;
+    scope.workpoint_id = dimensions.workpoint_id;
+    scope.item_id = dimensions.item_id;
+    scope.task_id = dimensions.task_id;
+    scope
+}
+
+pub(crate) fn temporal_signing_key()
+-> Result<(String, ed25519_dalek::SigningKey), (StatusCode, Json<Value>)> {
+    match (
+        std::env::var("FOCUSA_TEMPORAL_SIGNING_KEY_ID").ok(),
+        std::env::var("FOCUSA_TEMPORAL_SIGNING_KEY").ok(),
+    ) {
+        (Some(key_id), Some(encoded)) => {
+            let bytes: [u8; 32] = STANDARD
+                .decode(encoded)
+                .ok()
+                .and_then(|bytes| bytes.try_into().ok())
+                .ok_or_else(|| {
+                    fail(
+                        StatusCode::SERVICE_UNAVAILABLE,
+                        "temporal_signing_key_invalid",
+                        "temporal signing key must be base64-encoded 32-byte Ed25519 material",
+                    )
+                })?;
+            Ok((key_id, ed25519_dalek::SigningKey::from_bytes(&bytes)))
+        }
+        (None, None) => focusa_core::temporal_integrity::load_or_create_temporal_signing_key()
+            .map_err(|error| {
+                fail(
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    "temporal_signing_key_unavailable",
+                    format!("host temporal signing key unavailable: {error:?}"),
+                )
+            }),
+        _ => Err(fail(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "temporal_signing_key_incomplete",
+            "set both temporal signing key environment variables or neither",
+        )),
     }
 }
 
-fn ledger(scope: TemporalScope) -> Result<TemporalLedger, (StatusCode, Json<Value>)> {
+pub(super) fn append_signed_events(
+    ledger: &TemporalLedger,
+    idempotency_key: &str,
+    events: Vec<TemporalEvent>,
+) -> Result<Vec<TemporalEvent>, (StatusCode, Json<Value>)> {
+    let (key_id, signing_key) = temporal_signing_key()?;
+    ledger
+        .append_signed_batch(idempotency_key, events, &key_id, &signing_key)
+        .map_err(|error| {
+            fail(
+                StatusCode::PRECONDITION_FAILED,
+                "temporal_ledger_append_failed",
+                format!("{error:?}"),
+            )
+        })
+}
+
+pub(super) use super::focus::project_active_temporal_frame as project_active_focus_frame;
+
+pub(super) fn ledger(scope: TemporalScope) -> Result<TemporalLedger, (StatusCode, Json<Value>)> {
     TemporalLedger::for_project(scope).map_err(|error| {
         fail(
             StatusCode::BAD_REQUEST,
@@ -111,6 +209,8 @@ fn event(
         scope,
         claim: Some(claim),
         clock_sample: None,
+        metadata: Default::default(),
+        signature: None,
         predecessor_digest: None,
         recorded_at: Utc::now(),
         idempotency_key: key.to_string(),
@@ -118,7 +218,9 @@ fn event(
     }
 }
 
-fn read_events(ledger: &TemporalLedger) -> Result<Vec<TemporalEvent>, (StatusCode, Json<Value>)> {
+pub(super) fn read_events(
+    ledger: &TemporalLedger,
+) -> Result<Vec<TemporalEvent>, (StatusCode, Json<Value>)> {
     ledger.read_all().map_err(|error| {
         fail(
             StatusCode::CONFLICT,
@@ -128,10 +230,26 @@ fn read_events(ledger: &TemporalLedger) -> Result<Vec<TemporalEvent>, (StatusCod
     })
 }
 
+fn spec137a_conformance_surface(project_root: &str) -> Value {
+    let path =
+        std::path::Path::new(project_root).join("docs/contracts/spec137a-surface-parity.v1.yaml");
+    std::fs::read_to_string(&path)
+        .ok()
+        .and_then(|body| serde_json::from_str(&body).ok())
+        .unwrap_or_else(|| json!({
+            "schema":"focusa.spec137a_surface_parity.v1",
+            "status":"degraded",
+            "full_conformance_status":"unknown",
+            "warnings":["Spec137A surface parity artifact unavailable; full conformance is blocked."],
+            "recovery_tools":["focusa_project_verify","focusa_temporal_authority","focusa_tool_doctor"]
+        }))
+}
+
 async fn status(
     Query(query): Query<TemporalStatusQuery>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let scope = scope(query.project_root, query.continuity_id);
+    let project_root = query.project_root.clone();
+    let scope = scope(query.project_root, query.continuity_id, query.dimensions);
     let ledger = ledger(scope.clone())?;
     let as_of = query
         .as_of
@@ -153,10 +271,27 @@ async fn status(
             format!("{error:?}"),
         )
     })?;
+    let attested_legacy_digests = events
+        .iter()
+        .filter(|event| event.event_kind == TemporalEventKind::LegacySignatureAttestation)
+        .filter_map(|event| event.metadata.get("legacy_event_digests"))
+        .filter_map(Value::as_array)
+        .flatten()
+        .filter_map(Value::as_str)
+        .collect::<std::collections::BTreeSet<_>>();
+    let unsigned_legacy_event_count = events
+        .iter()
+        .filter(|event| {
+            event.signature.is_none() && !attested_legacy_digests.contains(event.digest.as_str())
+        })
+        .count();
     let projection = project_temporal(scope, &events, as_of);
     Ok(Json(json!({
         "schema":"focusa.temporal_status.v1", "status":"completed", "canonical":true,
         "projection":projection, "event_count":events.len(),
+        "conformance":spec137a_conformance_surface(&project_root),
+        "unsigned_legacy_event_count":unsigned_legacy_event_count,
+        "integrity_status":if unsigned_legacy_event_count==0 { "signed_verified" } else { "legacy_attestation_required" },
         "next_action":if projection.deadline_status==focusa_core::temporal::DeadlineStatus::None {
             "continue without fabricated urgency; commit a deadline only with authority and evidence"
         } else { "follow the active temporal preflight and evidence policy" }
@@ -164,9 +299,10 @@ async fn status(
 }
 
 async fn commit(
+    State(state): State<Arc<AppState>>,
     Json(req): Json<TemporalClaimRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let scope = scope(req.project_root, req.continuity_id);
+    let scope = scope(req.project_root, req.continuity_id, req.dimensions);
     if req.claim.scope != scope {
         return Err(fail(
             StatusCode::CONFLICT,
@@ -189,23 +325,17 @@ async fn commit(
         )
     })?;
     let ledger = ledger(scope.clone())?;
-    let events = ledger
-        .append_batch(
+    let events = append_signed_events(
+        &ledger,
+        &req.idempotency_key,
+        vec![event(
+            scope.clone(),
+            TemporalEventKind::ClaimCommitted,
+            req.claim,
             &req.idempotency_key,
-            vec![event(
-                scope,
-                TemporalEventKind::ClaimCommitted,
-                req.claim,
-                &req.idempotency_key,
-            )],
-        )
-        .map_err(|error| {
-            fail(
-                StatusCode::CONFLICT,
-                "temporal_commit_failed",
-                format!("{error:?}"),
-            )
-        })?;
+        )],
+    )?;
+    project_active_focus_frame(state.as_ref(), &scope, &ledger).await?;
     Ok(Json(json!({
         "schema":"focusa.temporal_commit_result.v1", "status":"completed", "canonical":true,
         "events":events, "receipt_ref":format!("temporal:{}",req.idempotency_key),
@@ -214,9 +344,10 @@ async fn commit(
 }
 
 async fn revise(
+    State(state): State<Arc<AppState>>,
     Json(req): Json<TemporalClaimRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let scope = scope(req.project_root, req.continuity_id);
+    let scope = scope(req.project_root, req.continuity_id, req.dimensions);
     if req.claim.scope != scope {
         return Err(fail(
             StatusCode::CONFLICT,
@@ -245,31 +376,25 @@ async fn revise(
             format!("{error:?}"),
         )
     })?;
-    let appended = ledger
-        .append_batch(
-            &req.idempotency_key,
-            vec![
-                event(
-                    scope.clone(),
-                    TemporalEventKind::ClaimSuperseded,
-                    superseded,
-                    &req.idempotency_key,
-                ),
-                event(
-                    scope,
-                    TemporalEventKind::ClaimRevised,
-                    revised,
-                    &req.idempotency_key,
-                ),
-            ],
-        )
-        .map_err(|error| {
-            fail(
-                StatusCode::CONFLICT,
-                "temporal_revision_failed",
-                format!("{error:?}"),
-            )
-        })?;
+    let appended = append_signed_events(
+        &ledger,
+        &req.idempotency_key,
+        vec![
+            event(
+                scope.clone(),
+                TemporalEventKind::ClaimSuperseded,
+                superseded,
+                &req.idempotency_key,
+            ),
+            event(
+                scope.clone(),
+                TemporalEventKind::ClaimRevised,
+                revised,
+                &req.idempotency_key,
+            ),
+        ],
+    )?;
+    project_active_focus_frame(state.as_ref(), &scope, &ledger).await?;
     Ok(Json(json!({
         "schema":"focusa.temporal_revision_result.v1", "status":"completed", "canonical":true,
         "events":appended, "receipt_ref":format!("temporal:{}",req.idempotency_key),
@@ -278,9 +403,10 @@ async fn revise(
 }
 
 async fn observe(
+    State(state): State<Arc<AppState>>,
     Json(req): Json<TemporalObserveRequest>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let scope = scope(req.project_root, req.continuity_id);
+    let scope = scope(req.project_root, req.continuity_id, req.dimensions);
     let now = Utc::now();
     let claim = TemporalClaim {
         claim_id: format!("duration:{}:{}", req.idempotency_key, req.duration_ms),
@@ -305,23 +431,17 @@ async fn observe(
         reason_code: req.reason_code,
     };
     let ledger = ledger(scope.clone())?;
-    let events = ledger
-        .append_batch(
+    let events = append_signed_events(
+        &ledger,
+        &req.idempotency_key,
+        vec![event(
+            scope.clone(),
+            TemporalEventKind::DurationObserved,
+            claim,
             &req.idempotency_key,
-            vec![event(
-                scope,
-                TemporalEventKind::DurationObserved,
-                claim,
-                &req.idempotency_key,
-            )],
-        )
-        .map_err(|error| {
-            fail(
-                StatusCode::CONFLICT,
-                "duration_observation_failed",
-                format!("{error:?}"),
-            )
-        })?;
+        )],
+    )?;
+    project_active_focus_frame(state.as_ref(), &scope, &ledger).await?;
     Ok(Json(json!({
         "schema":"focusa.temporal_observation_result.v1", "status":"completed",
         "outcome":req.outcome, "events":events,
@@ -329,51 +449,8 @@ async fn observe(
     })))
 }
 
-fn phase_from_claim(claim: &TemporalClaim) -> Option<ReleasePhase> {
-    let raw = claim.source_ref.as_deref()?.strip_prefix("phase:")?;
-    serde_json::from_str(&format!("\"{}\"", raw.to_ascii_lowercase())).ok()
-}
-
-async fn forecast(
-    Json(req): Json<TemporalForecastRequest>,
-) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let scope = scope(req.project_root, req.continuity_id);
-    let ledger = ledger(scope.clone())?;
-    let observations = read_events(&ledger)?
-        .into_iter()
-        .filter(|event| event.event_kind == TemporalEventKind::DurationObserved)
-        .filter_map(|event| event.claim)
-        .filter_map(|claim| {
-            Some(ObservedDuration {
-                observation_id: claim.claim_id.clone(),
-                scope: claim.scope.clone(),
-                phase: phase_from_claim(&claim)?,
-                duration_ms: claim.duration_ms?,
-                outcome: "observed".into(),
-                reason_code: claim.reason_code.clone(),
-                started_at: claim.observed_at,
-                completed_at: claim.effective_at,
-                evidence_refs: claim.evidence_refs.clone(),
-            })
-        })
-        .collect::<Vec<_>>();
-    let range = forecast_phase(&scope, req.phase, &observations).map_err(|error| {
-        fail(
-            StatusCode::PRECONDITION_FAILED,
-            "forecast_history_insufficient",
-            format!("{error:?}"),
-        )
-    })?;
-    let calibration = req.actual_ms.map(|actual| calibrate(&range, actual));
-    Ok(Json(json!({
-        "schema":"focusa.temporal_forecast.v1", "status":"completed", "canonical":false,
-        "forecast":range, "calibration":calibration,
-        "next_action":"treat this as a range; never convert it into a commitment without authority"
-    })))
-}
-
 async fn preflight(Json(req): Json<TemporalPreflightRequest>) -> Json<Value> {
-    let scope = scope(req.project_root, req.continuity_id);
+    let scope = scope(req.project_root, req.continuity_id, req.dimensions);
     Json(json!({
         "schema":"focusa.temporal_preflight_result.v1", "status":"completed",
         "preflight":temporal_preflight(&scope,req.envelope.as_ref(),Utc::now())
@@ -388,4 +465,12 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/temporal/observe", post(observe))
         .route("/v1/temporal/forecast", post(forecast))
         .route("/v1/temporal/preflight", post(preflight))
+        .route("/v1/temporal/clock/capture", post(capture_clock))
+        .route("/v1/temporal/priority/commit", post(commit_priority))
+        .route("/v1/temporal/civil/resolve", post(resolve_civil))
+        .route(
+            "/v1/temporal/high-consequence/preflight",
+            post(high_consequence_preflight),
+        )
+        .route("/v1/temporal/migrate-signatures", post(migrate_signatures))
 }

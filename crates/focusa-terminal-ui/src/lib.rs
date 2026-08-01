@@ -4,6 +4,7 @@
 //! This crate is a pure presentation library; it contains no installation logic,
 //! no HTTP clients, no license validation, and no file mutations.
 
+pub mod agent_runtime_studio;
 pub mod capabilities;
 pub mod install;
 pub mod sanitize;

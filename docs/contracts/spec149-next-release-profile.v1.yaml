@@ -1,0 +1,75 @@
+schema: focusa.spec149_next_release_profile.v1
+profile_id: focusa-spec149-first-workset-full-release
+spec_ref: docs/149-focusa-workset-flow-ledger-and-release-completion-spec.md
+next_release_bead: focusa-a89or
+release_boundary:
+  current_release_admitted: false
+  current_release_scope_ref: release-proof/audit/next-locked-release-scope.json
+  current_release_membership_import: forbidden
+  current_release_required_state_before_start: terminally_completed_and_verified
+  allowed_carryover:
+    - evidence_refs
+    - benchmark_refs
+    - release_journal_refs
+    - prediction_outcomes
+    - metacognitive_learning_refs
+    - reusable_release_profile_refs
+workset_template:
+  schema_version: focusa.workset.v1
+  workset_id_strategy: generated_at_confirmed_creation
+  project_root: /home/wirebot/focusa
+  continuity_id_strategy: next_release_operator_confirmed
+  title: Implement and formally release Focusa Spec149 Workset Flow Ledger
+  mission: Implement every approved Spec149 requirement and finish with the canonical full-release flow.
+  cardinality_mode: fixed
+  admission_state_at_creation: draft
+  lifecycle_state_at_creation: planned
+  relationship: root
+  membership_policy: exclusive
+  membership_source:
+    kind: approved_provider_neutral_decomposition
+    requirement_range: S149-R-001..080
+    feature_ledger_ref: docs/contracts/spec149-complete-feature-ledger.v1.yaml
+    implicit_current_release_membership: false
+  dependency_policy:
+    require_zero_cycles: true
+    external_dependencies: typed_and_explicit
+    unknown_impact: block
+  checkpoint_profile:
+    - id: contracts_and_reducer
+      mode: blocking
+      trigger: milestone
+    - id: provider_and_stream
+      mode: blocking
+      trigger: milestone
+    - id: preload_and_context
+      mode: blocking
+      trigger: milestone
+    - id: spec135_generated_ui
+      mode: blocking
+      trigger: milestone
+    - id: spec137_138_140_governance
+      mode: blocking
+      trigger: milestone
+    - id: release_rehearsal
+      mode: blocking
+      trigger: before_completion
+  completion:
+    require_sealed_revision: true
+    transition_profile: focusa.release.full.v1
+    release_specs: [145, 146, 147, 148]
+    require_exact_sha: true
+    require_publication: true
+    require_deployment: true
+    require_live_verification: true
+    require_rollback_audit_self_heal_watchdog: true
+    require_release_journal_finalization: true
+    require_prediction_and_metacog_settlement: true
+operator_gates:
+  current_release_exclusion: confirmed
+  final_spec_approval: pending
+  decomposition_approval: pending
+  workset_creation: pending
+  implementation_start: pending
+  release_execution: pending
+blockers: []

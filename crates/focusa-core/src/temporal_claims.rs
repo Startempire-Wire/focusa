@@ -239,10 +239,7 @@ mod tests {
         TemporalClaim {
             claim_id: "deadline".into(),
             revision: 1,
-            scope: TemporalScope {
-                project_root: "/workspace/project".into(),
-                continuity_id: "main".into(),
-            },
+            scope: TemporalScope::project("/workspace/project", "main"),
             kind: TemporalClaimKind::ExternalCommitment,
             status: TemporalClaimStatus::Canonical,
             subject_ref: "release".into(),

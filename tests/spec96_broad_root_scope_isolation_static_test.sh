@@ -40,7 +40,7 @@ else
   exit 1
 fi
 
-if rg -n 'if \(!isProjectRootAuthoritySafe\(root\)\) return \[\]' "$TURNS" >/dev/null; then
+if rg -n 'if \(!scope \|\| !isProjectRootAuthoritySafe\(scope\.projectRoot\)\) return \[\]' "$TURNS" >/dev/null; then
   echo "✓ PASS: Focus Slice suppresses trajectory projection for unsafe roots"
 else
   echo "✗ FAIL: Focus Slice may project unsafe-root trajectory context" >&2

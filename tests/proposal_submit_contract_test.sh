@@ -5,6 +5,8 @@
 set -euo pipefail
 
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+SCOPE_CONTINUITY="proposal-submit-contract"
 FAILED=0
 PASSED=0
 
@@ -20,6 +22,8 @@ log_info() { echo -e "${YELLOW}INFO${NC}: $1"; }
 source_id="proposal-submit-contract-$(date +%s%N)"
 resp=$(curl -sS -X POST "${BASE_URL}/v1/proposals" \
   -H "Content-Type: application/json" \
+  -H "x-scope-project-root: ${PROJECT_ROOT}" \
+  -H "x-scope-continuity-id: ${SCOPE_CONTINUITY}" \
   -d "{\"kind\":\"memory_write\",\"source\":\"${source_id}\",\"score\":0.88,\"deadline_ms\":60000,\"payload\":{\"key\":\"submit-contract-key\",\"value\":\"submit-contract-value\"}}")
 
 if echo "$resp" | jq -e '.status == "accepted"' >/dev/null 2>&1; then
@@ -41,7 +45,9 @@ else
   log_fail "Submit missing kind/target_class :: $resp"
 fi
 
-if [ -n "$proposal_id" ] && curl -sS "${BASE_URL}/v1/proposals" | jq -e --arg id "$proposal_id" '.proposals | any(.id == $id and .status == "pending")' >/dev/null 2>&1; then
+if [ -n "$proposal_id" ] && curl -sS "${BASE_URL}/v1/proposals" \
+  -H "x-scope-project-root: ${PROJECT_ROOT}" \
+  -H "x-scope-continuity-id: ${SCOPE_CONTINUITY}" | jq -e --arg id "$proposal_id" '.proposals | any(.id == $id and .status == "pending")' >/dev/null 2>&1; then
   log_pass "Returned proposal_id matches persisted pending proposal"
 else
   log_fail "Returned proposal_id not found in persisted proposals"
@@ -49,13 +55,17 @@ fi
 
 # Cleanup: resolve this memory proposal so later strict tests run in isolation.
 for _ in 1 2 3 4 5 6 7 8 9 10; do
-  if curl -sS "${BASE_URL}/v1/proposals" | jq -e --arg id "$proposal_id" '.proposals | any(.id == $id and .status == "pending")' >/dev/null 2>&1; then
+  if curl -sS "${BASE_URL}/v1/proposals" \
+    -H "x-scope-project-root: ${PROJECT_ROOT}" \
+    -H "x-scope-continuity-id: ${SCOPE_CONTINUITY}" | jq -e --arg id "$proposal_id" '.proposals | any(.id == $id and .status == "pending")' >/dev/null 2>&1; then
     break
   fi
   sleep 0.1
 done
 curl -sS -X POST "${BASE_URL}/v1/proposals/resolve" \
   -H "Content-Type: application/json" \
+  -H "x-scope-project-root: ${PROJECT_ROOT}" \
+  -H "x-scope-continuity-id: ${SCOPE_CONTINUITY}" \
   -d '{"kind":"memory_write"}' >/dev/null || true
 
 echo ""

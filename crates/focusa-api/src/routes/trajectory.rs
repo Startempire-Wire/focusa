@@ -15,6 +15,7 @@ use axum::{
 };
 use chrono::Utc;
 use focusa_core::reducer;
+use focusa_core::scoped_state::{ScopeKind, ScopeRef};
 use focusa_core::types::{
     EventLogEntry, FocusState, FocusaEvent, FocusaSessionIdentity, FocusaState, FrameRecord,
     HltLedgerEntry, HltStatus, SignalOrigin, TrajectoryConfidence,
@@ -377,19 +378,62 @@ fn trajectory_confidence(value: &str) -> TrajectoryConfidence {
 
 /// Per Spec98: Canonical state is scoped by (project_root + continuity_id).
 /// The global active_trajectory_id is NOT authority - scope must be respected first.
+fn normalized_project_root(value: &str) -> &str {
+    value.trim().trim_end_matches('/')
+}
+
+fn record_has_verified_project_anchor(
+    record: &TrajectoryProjectionRecord,
+    expected_project_root: &str,
+) -> bool {
+    let expected = normalized_project_root(expected_project_root);
+    let Some(record_root) = record.project_root.as_deref() else {
+        return false;
+    };
+    let Some(scope_ref) = record.scope_ref.as_ref() else {
+        return false;
+    };
+    let scope_matches = scope_ref.scope_kind == ScopeKind::Project
+        && !scope_ref.scope_id.trim().is_empty()
+        && !scope_ref.fingerprint.trim().is_empty()
+        && normalized_project_root(record_root) == expected
+        && normalized_project_root(scope_ref.root_path.to_string_lossy().as_ref()) == expected;
+    if !scope_matches {
+        return false;
+    }
+
+    // Rolling session identity is corroborating provenance only. It never grants
+    // stable authority, but an explicit conflicting ProjectIdentity vetoes use.
+    if let Some(project_identity) = record
+        .session_identity
+        .as_ref()
+        .and_then(|identity| identity.project_identity.as_ref())
+    {
+        return project_identity.status.as_deref() == Some("verified")
+            && normalized_project_root(&project_identity.project_root) == expected
+            && project_identity
+                .fingerprint
+                .as_deref()
+                .is_some_and(|fingerprint| fingerprint == scope_ref.fingerprint)
+            && project_identity.mismatches.is_empty();
+    }
+    true
+}
+
 fn active_persisted_trajectory<'a>(
     state: &'a FocusaState,
     project_root: Option<&str>,
     continuity_id: Option<&str>,
 ) -> Option<&'a TrajectoryProjectionRecord> {
-    // Spec98/99 active selectors are executable route context and therefore
-    // require explicit project_root + continuity_id. Historical/fallback views
-    // may still cluster by project_root separately, but active lookup fails closed.
+    // Spec98/99/151 active selectors are executable route context and therefore
+    // require exact stable project authority + continuity. Rolling session
+    // identity is provenance only; its nested verified ProjectIdentity anchor
+    // must corroborate the record's claimed root.
     let expected_project_root = clean(project_root)?;
     let expected_continuity_id = clean(continuity_id)?;
 
     state.trajectory.records.iter().rev().find(|record| {
-        record.project_root.as_deref() == Some(expected_project_root.as_str())
+        record_has_verified_project_anchor(record, &expected_project_root)
             && record.continuity_id.as_deref() == Some(expected_continuity_id.as_str())
             && record.canonical
     })
@@ -476,11 +520,10 @@ fn prior_project_trajectory<'a>(
     project_root: Option<&str>,
     excluded_continuity_id: Option<&str>,
 ) -> Option<&'a TrajectoryProjectionRecord> {
+    let expected_project_root = clean(project_root)?;
     state.trajectory.records.iter().rev().find(|record| {
         record.canonical
-            && project_root
-                .map(|root| record.project_root.as_deref() == Some(root))
-                .unwrap_or(true)
+            && record_has_verified_project_anchor(record, &expected_project_root)
             && excluded_continuity_id
                 .map(|id| record.continuity_id.as_deref() != Some(id))
                 .unwrap_or(true)
@@ -691,6 +734,20 @@ fn trajectory_definition_of_done_record(
     }
 }
 
+fn scope_ref_from_project_identity_payload(payload: &Value) -> Option<ScopeRef> {
+    [
+        "/project_identity/scope_ref",
+        "/project_identity/project_identity_api/scope_ref",
+    ]
+    .into_iter()
+    .find_map(|pointer| {
+        payload
+            .pointer(pointer)
+            .cloned()
+            .and_then(|value| serde_json::from_value(value).ok())
+    })
+}
+
 fn trajectory_record_from_define_payload(
     payload: &Value,
     body: &TrajectoryDefineGoalRequest,
@@ -791,6 +848,7 @@ fn trajectory_record_from_define_payload(
     let definition_of_done = trajectory_definition_of_done_record(body, &desired_end_state);
     Some(TrajectoryProjectionRecord {
         trajectory_id: trajectory_id.clone(),
+        scope_ref: scope_ref_from_project_identity_payload(payload),
         session_identity: body.session_identity.clone(),
         project_root,
         continuity_id,
@@ -924,19 +982,15 @@ async fn dispatch_event(
         .map_err(trajectory_reducer_rejected)?;
 
     let new_state = result.new_state;
+    let temporal = focusa_core::temporal_clock::capture_operator_temporal_action_envelope();
     for emitted in result.emitted_events {
-        let entry = EventLogEntry {
-            id: Uuid::now_v7(),
-            timestamp: Utc::now(),
-            event: emitted,
-            correlation_id: Some("api:trajectory".to_string()),
-            origin: SignalOrigin::Adapter,
-            machine_id: None,
-            instance_id: None,
-            session_id: new_state.session.as_ref().map(|session| session.session_id),
-            thread_id: None,
-            is_observation: false,
-        };
+        let mut entry = EventLogEntry::with_temporal(
+            emitted,
+            SignalOrigin::Adapter,
+            Some("api:trajectory".to_string()),
+            temporal.clone(),
+        );
+        entry.session_id = new_state.session.as_ref().map(|session| session.session_id);
         if let Err(error) = state.append_events_checkpoint(vec![entry.clone()]).await {
             return Err(trajectory_persistence_failed(error));
         } else if let Ok(serialized) = serde_json::to_string(&entry) {
@@ -1606,6 +1660,33 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
                 "active",
             )
         });
+    let trajectory_scope_verification = if let Some(record) = persisted_trajectory {
+        json!({
+            "status": "verified_exact",
+            "rendered_trajectory_id": active_trajectory_id,
+            "source_trajectory_id": record.trajectory_id,
+            "project_root": record.project_root,
+            "continuity_id": record.continuity_id,
+            "scope_ref": record.scope_ref,
+            "composition": "atomic_exact_record",
+        })
+    } else if let Some(record) = persisted_prior_project_trajectory {
+        json!({
+            "status": "verified_same_project_fallback",
+            "rendered_trajectory_id": active_trajectory_id,
+            "source_trajectory_id": record.trajectory_id,
+            "project_root": record.project_root,
+            "continuity_id": record.continuity_id,
+            "scope_ref": record.scope_ref,
+            "composition": "prior_hlt_only_no_lower_ladder_promotion",
+        })
+    } else {
+        json!({
+            "status": "unverified_no_persisted_record",
+            "rendered_trajectory_id": active_trajectory_id,
+            "scope_ref": Value::Null,
+        })
+    };
     let lifecycle_checkpoints = state
         .trajectory
         .checkpoints
@@ -1780,6 +1861,7 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         },
         "trajectory": {
             "trajectory_id": active_trajectory_id,
+            "scope_verification": trajectory_scope_verification,
             "definition_status": definition_status,
             "hlt_status": serde_json::to_value(hlt_status).unwrap_or_default(),
             // Spec 125 §11.5: new field names.
@@ -3172,6 +3254,64 @@ mod tests {
     };
     use uuid::Uuid;
 
+    fn scope_anchored_trajectory(
+        claimed_root: &str,
+        provenance_root: &str,
+    ) -> TrajectoryProjectionRecord {
+        TrajectoryProjectionRecord {
+            trajectory_id: "trajectory:test".to_string(),
+            scope_ref: Some(ScopeRef {
+                scope_kind: ScopeKind::Project,
+                scope_id: "project:test".to_string(),
+                root_path: claimed_root.into(),
+                canonical_name: "Test Project".to_string(),
+                fingerprint: format!("fingerprint:{claimed_root}"),
+            }),
+            project_root: Some(claimed_root.to_string()),
+            continuity_id: Some("focusa-cont".to_string()),
+            long_term_goal: "Complete Focusa".to_string(),
+            desired_end_state: "Focusa complete".to_string(),
+            canonical: true,
+            session_identity: Some(FocusaSessionIdentity {
+                project_identity: Some(focusa_core::types::ProjectIdentityRecord {
+                    status: Some("verified".to_string()),
+                    project_root: provenance_root.to_string(),
+                    fingerprint: Some(format!("fingerprint:{provenance_root}")),
+                    ..focusa_core::types::ProjectIdentityRecord::default()
+                }),
+                ..FocusaSessionIdentity::default()
+            }),
+            ..TrajectoryProjectionRecord::default()
+        }
+    }
+
+    #[test]
+    fn trajectory_selector_rejects_foreign_provenance_behind_matching_outer_scope() {
+        let mut state = FocusaState::default();
+        state.trajectory.records.push(scope_anchored_trajectory(
+            "/home/wirebot/focusa",
+            "/srv/wire-pitch",
+        ));
+        assert!(
+            active_persisted_trajectory(&state, Some("/home/wirebot/focusa"), Some("focusa-cont"))
+                .is_none()
+        );
+        assert!(
+            prior_project_trajectory(&state, Some("/home/wirebot/focusa"), Some("current-cont"))
+                .is_none()
+        );
+
+        state.trajectory.records.push(scope_anchored_trajectory(
+            "/home/wirebot/focusa",
+            "/home/wirebot/focusa",
+        ));
+        assert_eq!(
+            active_persisted_trajectory(&state, Some("/home/wirebot/focusa"), Some("focusa-cont"))
+                .map(|record| record.trajectory_id.as_str()),
+            Some("trajectory:test")
+        );
+    }
+
     #[test]
     fn trajectory_resume_rejects_current_ask_project_path_conflict() {
         let query = TrajectoryViewQuery {
@@ -3290,6 +3430,7 @@ mod tests {
             stats: FrameStats::default(),
             constraints: vec![],
             focus_state: FocusState::default(),
+            temporal_context: None,
             completed_at: None,
             completion_reason: None::<CompletionReason>,
         });
@@ -3941,6 +4082,13 @@ mod tests {
         state.trajectory.active_trajectory_id = Some(trajectory_id.clone());
         state.trajectory.records.push(TrajectoryProjectionRecord {
             trajectory_id: trajectory_id.clone(),
+            scope_ref: Some(ScopeRef {
+                scope_kind: ScopeKind::Project,
+                scope_id: "project:focusa-test".to_string(),
+                root_path: "/tmp/focusa-test".into(),
+                canonical_name: "focusa-test".to_string(),
+                fingerprint: "fingerprint:focusa-test".to_string(),
+            }),
             project_root: Some("/tmp/focusa-test".to_string()),
             continuity_id: Some("cont-a".to_string()),
             root_long_term_goal: "Ship Focusa trajectory".to_string(),

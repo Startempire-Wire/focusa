@@ -31,6 +31,16 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 
 Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_prediction_authority.md
 
+## Operator alignment
+
+- refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps
+- treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker
+- consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation
+- use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested
+- never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range
+- for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons
+- use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation
+
 ## Anti-examples
 
 - journaling raw logs
@@ -67,6 +77,6 @@ Likely next: `focusa_predict_recent`, `focusa_evidence_capture`, `focusa_metacog
 - Runbooks: `runbook:metacognition`
 - Pi: `focusa_prediction_authority`; MCP: `focusa.prediction.authority`; OpenAI: `focusa_prediction_authority`.
 - CLI: `focusa predict authority-append`, `focusa predict authority-projection`.
-- REST: `POST /v1/prediction-authority/events`, `POST /v1/prediction-authority/projection`.
+- REST: `POST /v1/prediction-authority/events`, `POST /v1/prediction-authority/projection`, `GET /v1/prediction-authority/projection`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:289646f6224c0526d7f3ef3d3ab09fdd0a463f1a01823a67407a34906b2dfbff`.
+- Descriptor digest: `sha256:dec93c4c58b677e29702553ff6d0dec24aa02d370aea226e5caea665111bc7e6`.

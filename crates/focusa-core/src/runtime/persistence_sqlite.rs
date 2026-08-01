@@ -7,6 +7,8 @@
 //! ECS objects remain filesystem-backed (see reference::store).
 
 use crate::clt::retain_hot_window;
+use crate::semantic_migration::{MigrationPlan, MigrationReceipt};
+use crate::semantic_replay::{SemanticEventEnvelope, replay as replay_semantic_events};
 use crate::silent_session::{
     SilentSession, SilentSessionConfigRevision, SilentSessionConfigRevisionId, SilentSessionEvent,
     SilentSessionEventId, SilentSessionId, SilentSessionLifecycleState, SilentSessionRun,
@@ -60,6 +62,89 @@ pub struct DurableEventRecord {
 pub struct SqlitePersistence {
     pub data_dir: PathBuf,
     conn: Arc<Mutex<Connection>>,
+}
+
+impl SqlitePersistence {
+    pub fn save_runtime_constitution(
+        &self,
+        constitution: &crate::agent_runtime_constitution::ProjectAgentRuntimeConstitution,
+    ) -> anyhow::Result<()> {
+        let connection = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        crate::agent_runtime_constitution_store::save_runtime_constitution(
+            &connection,
+            constitution,
+        )
+    }
+
+    pub fn load_runtime_constitution(
+        &self,
+        constitution_id: &str,
+    ) -> anyhow::Result<Option<crate::agent_runtime_constitution::ProjectAgentRuntimeConstitution>>
+    {
+        let connection = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        crate::agent_runtime_constitution_store::load_runtime_constitution(
+            &connection,
+            constitution_id,
+        )
+    }
+
+    pub fn append_runtime_constitution_event(
+        &self,
+        event_id: &str,
+        constitution_id: &str,
+        idempotency_key: &str,
+        event: &crate::agent_runtime_constitution::RuntimeConstitutionEvent,
+    ) -> anyhow::Result<crate::agent_runtime_constitution_store::StoredRuntimeConstitutionEvent>
+    {
+        let mut connection = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        crate::agent_runtime_constitution_store::append_runtime_constitution_event(
+            &mut connection,
+            event_id,
+            constitution_id,
+            idempotency_key,
+            event,
+        )
+    }
+
+    pub fn runtime_constitution_events(
+        &self,
+        constitution_id: &str,
+    ) -> anyhow::Result<Vec<crate::agent_runtime_constitution_store::StoredRuntimeConstitutionEvent>>
+    {
+        let connection = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        crate::agent_runtime_constitution_store::runtime_constitution_events(
+            &connection,
+            constitution_id,
+        )
+    }
+
+    pub fn latest_runtime_constitution_event(
+        &self,
+        constitution_id: &str,
+    ) -> anyhow::Result<
+        Option<crate::agent_runtime_constitution_store::StoredRuntimeConstitutionEvent>,
+    > {
+        let connection = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        crate::agent_runtime_constitution_store::latest_runtime_constitution_event(
+            &connection,
+            constitution_id,
+        )
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -597,6 +682,36 @@ impl SqlitePersistence {
                 [],
             )?;
         }
+
+        conn.execute_batch(
+            r#"
+            CREATE TABLE IF NOT EXISTS semantic_pair_events (
+                pair_id TEXT NOT NULL,
+                sequence INTEGER NOT NULL,
+                event_id TEXT NOT NULL UNIQUE,
+                envelope_json TEXT NOT NULL,
+                event_hash TEXT NOT NULL,
+                PRIMARY KEY (pair_id, sequence)
+            );
+            CREATE INDEX IF NOT EXISTS idx_semantic_pair_events_pair
+                ON semantic_pair_events(pair_id, sequence);
+            CREATE TABLE IF NOT EXISTS semantic_pair_migrations (
+                migration_id TEXT PRIMARY KEY,
+                pair_id TEXT NOT NULL,
+                receipt_json TEXT NOT NULL,
+                aggregate_json TEXT NOT NULL,
+                event_head_sequence INTEGER,
+                rolled_back INTEGER NOT NULL DEFAULT 0
+            );
+            CREATE TABLE IF NOT EXISTS semantic_pair_quarantine (
+                pair_id TEXT PRIMARY KEY,
+                found_version INTEGER NOT NULL,
+                payload BLOB NOT NULL,
+                reason TEXT NOT NULL,
+                quarantined_at TEXT NOT NULL
+            );
+            "#,
+        )?;
 
         let existing: Option<String> = conn
             .query_row(
@@ -3510,6 +3625,245 @@ impl SqlitePersistence {
         entries = entries[start..].to_vec();
         Ok(entries)
     }
+
+    /// Atomically append a validated suffix to an unscoped semantic pair stream.
+    pub fn append_semantic_pair_events(
+        &self,
+        pair_id: &str,
+        events: &[SemanticEventEnvelope],
+    ) -> anyhow::Result<()> {
+        if events.iter().any(|envelope| envelope.pair_id != pair_id) {
+            anyhow::bail!("semantic event pair id does not match append target");
+        }
+        self.append_scoped_semantic_pair_events(pair_id, events)
+    }
+
+    /// Atomically append a validated suffix under an opaque exact-scope storage
+    /// key while preserving the logical pair id inside signed event envelopes.
+    pub fn append_scoped_semantic_pair_events(
+        &self,
+        storage_key: &str,
+        events: &[SemanticEventEnvelope],
+    ) -> anyhow::Result<()> {
+        if storage_key.is_empty() {
+            anyhow::bail!("semantic scoped storage key is required");
+        }
+        let mut conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let existing = load_semantic_events_from_connection(&conn, storage_key)?;
+        let logical_pair_id = existing
+            .first()
+            .or_else(|| events.first())
+            .map(|event| event.pair_id.as_str());
+        if logical_pair_id.is_some_and(|pair_id| {
+            existing
+                .iter()
+                .chain(events)
+                .any(|event| event.pair_id != pair_id)
+        }) {
+            anyhow::bail!("semantic scoped stream contains mixed logical pair ids");
+        }
+        let mut candidate = existing;
+        candidate.extend_from_slice(events);
+        replay_semantic_events(&candidate)
+            .map_err(|error| anyhow::anyhow!("semantic replay validation failed: {error}"))?;
+
+        let tx = conn.transaction()?;
+        for envelope in events {
+            tx.execute(
+                "INSERT INTO semantic_pair_events(pair_id, sequence, event_id, envelope_json, event_hash) VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![
+                    storage_key,
+                    envelope.sequence as i64,
+                    envelope.event_id,
+                    serde_json::to_string(envelope)?,
+                    envelope.hash,
+                ],
+            )?;
+        }
+        tx.commit()?;
+        Ok(())
+    }
+
+    pub fn load_semantic_pair_events(
+        &self,
+        pair_id: &str,
+    ) -> anyhow::Result<Vec<SemanticEventEnvelope>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let events = load_semantic_events_from_connection(&conn, pair_id)?;
+        if !events.is_empty() {
+            replay_semantic_events(&events)
+                .map_err(|error| anyhow::anyhow!("semantic replay integrity failure: {error}"))?;
+        }
+        Ok(events)
+    }
+
+    /// Store an apply receipt and migrated aggregate in one transaction. A dry
+    /// run returns its truthful receipt and performs no write.
+    pub fn apply_semantic_pair_migration(
+        &self,
+        plan: &MigrationPlan,
+    ) -> anyhow::Result<MigrationReceipt> {
+        if plan.receipt.dry_run {
+            return Ok(plan.receipt.clone());
+        }
+        let receipt = plan.applied_receipt()?;
+        let mut conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let tx = conn.transaction()?;
+        let head: Option<i64> = tx
+            .query_row(
+                "SELECT MAX(sequence) FROM semantic_pair_events WHERE pair_id=?1",
+                [&receipt.pair_id],
+                |row| row.get(0),
+            )
+            .optional()?
+            .flatten();
+        tx.execute(
+            "INSERT INTO semantic_pair_migrations(migration_id, pair_id, receipt_json, aggregate_json, event_head_sequence) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![
+                receipt.migration_id,
+                receipt.pair_id,
+                serde_json::to_string(&receipt)?,
+                serde_json::to_string(&plan.aggregate)?,
+                head,
+            ],
+        )?;
+        tx.commit()?;
+        Ok(receipt)
+    }
+
+    pub fn load_migrated_semantic_pair(
+        &self,
+        pair_id: &str,
+    ) -> anyhow::Result<Option<(crate::semantic_pair::SemanticPair, MigrationReceipt)>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let row: Option<(String, String)> = conn
+            .query_row(
+                "SELECT aggregate_json, receipt_json FROM semantic_pair_migrations WHERE pair_id=?1 AND rolled_back=0 ORDER BY rowid DESC LIMIT 1",
+                [pair_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?;
+        row.map(|(aggregate, receipt)| {
+            Ok((serde_json::from_str(&aggregate)?, serde_json::from_str(&receipt)?))
+        })
+        .transpose()
+    }
+
+    /// Quarantine opaque future-version bytes. They are never decoded or
+    /// admitted to replay by this runtime.
+    pub fn quarantine_semantic_pair(
+        &self,
+        pair_id: &str,
+        found_version: u32,
+        payload: &[u8],
+        reason: &str,
+    ) -> anyhow::Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        conn.execute(
+            "INSERT OR REPLACE INTO semantic_pair_quarantine(pair_id, found_version, payload, reason, quarantined_at) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![pair_id, found_version, payload, reason, Utc::now().to_rfc3339()],
+        )?;
+        Ok(())
+    }
+
+    pub fn semantic_pair_quarantine_version(
+        &self,
+        pair_id: &str,
+    ) -> anyhow::Result<Option<u32>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let version: Option<i64> = conn
+            .query_row(
+                "SELECT found_version FROM semantic_pair_quarantine WHERE pair_id=?1",
+                [pair_id],
+                |row| row.get(0),
+            )
+            .optional()?;
+        Ok(version.map(|value| value as u32))
+    }
+
+    /// Rollback is allowed only while the event head still matches the head at
+    /// apply time. This prevents a migration rollback from erasing later work.
+    pub fn rollback_semantic_pair_migration(
+        &self,
+        migration_id: &str,
+        rollback_boundary: &str,
+    ) -> anyhow::Result<()> {
+        let mut conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let tx = conn.transaction()?;
+        let row: Option<(String, String, Option<i64>, i64)> = tx
+            .query_row(
+                "SELECT pair_id, receipt_json, event_head_sequence, rolled_back FROM semantic_pair_migrations WHERE migration_id=?1",
+                [migration_id],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            )
+            .optional()?;
+        let (pair_id, receipt_json, apply_head, rolled_back) =
+            row.ok_or_else(|| anyhow::anyhow!("semantic migration receipt not found"))?;
+        let receipt: MigrationReceipt = serde_json::from_str(&receipt_json)?;
+        if rolled_back != 0 || receipt.rollback_boundary != rollback_boundary {
+            anyhow::bail!("semantic migration rollback boundary mismatch");
+        }
+        let current_head: Option<i64> = tx
+            .query_row(
+                "SELECT MAX(sequence) FROM semantic_pair_events WHERE pair_id=?1",
+                [&pair_id],
+                |row| row.get(0),
+            )
+            .optional()?
+            .flatten();
+        if current_head != apply_head {
+            anyhow::bail!("semantic migration rollback blocked by later events");
+        }
+        tx.execute(
+            "UPDATE semantic_pair_migrations SET rolled_back=1 WHERE migration_id=?1",
+            [migration_id],
+        )?;
+        tx.commit()?;
+        Ok(())
+    }
+}
+
+fn load_semantic_events_from_connection(
+    conn: &Connection,
+    pair_id: &str,
+) -> anyhow::Result<Vec<SemanticEventEnvelope>> {
+    let mut statement = conn.prepare(
+        "SELECT envelope_json FROM semantic_pair_events WHERE pair_id=?1 ORDER BY sequence",
+    )?;
+    let rows = statement.query_map([pair_id], |row| row.get::<_, String>(0))?;
+    rows.map(|row| {
+        let json = row?;
+        serde_json::from_str(&json).map_err(|error| {
+            rusqlite::Error::FromSqlConversionFailure(
+                0,
+                rusqlite::types::Type::Text,
+                Box::new(error),
+            )
+        })
+    })
+    .collect::<Result<Vec<_>, _>>()
+    .map_err(Into::into)
 }
 
 fn shellexpand(path: &str) -> PathBuf {

@@ -47,8 +47,6 @@ fn help_migration_exposes_old_to_new_alias_map() {
         "help migration should exit 0, got: {out}"
     );
     for needle in [
-        "focusa init",
-        "focusa project new / focusa setup init",
         "focusa onboard",
         "focusa setup wizard",
         "focusa pair",
@@ -63,6 +61,14 @@ fn help_migration_exposes_old_to_new_alias_map() {
             "migration help missing {needle}, got: {out}"
         );
     }
+    assert!(
+        !out.contains("focusa init"),
+        "canonical existing-repository binding must not appear as a deprecated migration: {out}"
+    );
+    assert!(
+        !include_str!("../src/main.rs").contains("warn_alias(\"focusa init\""),
+        "focusa init must not emit a contradictory deprecation warning"
+    );
 }
 
 #[test]
@@ -87,6 +93,44 @@ fn pairing_start_is_canonical_command() {
     assert!(
         out.contains("Start a Mac/phone pairing flow") || out.contains("Open a Mac Pairing Room")
     );
+}
+
+#[test]
+fn agent_runtime_help_exposes_spec140_hierarchy() {
+    let (output, out) = run(&["agent-runtime", "--help"]);
+    assert!(output.status.success(), "agent-runtime help failed: {out}");
+    for command in [
+        "scan",
+        "sources",
+        "claims",
+        "conflicts",
+        "reconcile",
+        "simulate",
+        "effective",
+        "drift",
+        "migration",
+        "constitution",
+        "prompt",
+        "artifacts",
+        "studio",
+        "doctor",
+    ] {
+        assert!(
+            out.contains(command),
+            "agent-runtime help missing {command}: {out}"
+        );
+    }
+    for args in [
+        &["agent-runtime", "constitution", "--help"][..],
+        &["agent-runtime", "prompt", "--help"][..],
+        &["agent-runtime", "artifacts", "--help"][..],
+    ] {
+        let (nested_output, nested) = run(args);
+        assert!(
+            nested_output.status.success(),
+            "nested help failed: {nested}"
+        );
+    }
 }
 
 #[test]

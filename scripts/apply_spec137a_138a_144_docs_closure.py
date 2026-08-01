@@ -68,8 +68,18 @@ def replace_once(rel: str, old: str, new: str) -> None:
 
 
 def dump_yaml_compatible(data: Any) -> str:
-    # JSON is valid YAML 1.2 and avoids a build-time PyYAML dependency.
+    # JSON is valid YAML 1.2 when it is the complete document.
     return json.dumps(data, indent=2, sort_keys=False, ensure_ascii=False) + "\n"
+
+
+def dump_yaml_root_entries(data: dict[str, Any]) -> str:
+    # Existing Spec 137 is block YAML. Emit each extension value as a YAML
+    # root key with a JSON flow value; concatenating a standalone JSON object
+    # after block YAML produces an invalid document.
+    return "".join(
+        f"{key}: {json.dumps(value, indent=2, sort_keys=False, ensure_ascii=False)}\n"
+        for key, value in data.items()
+    )
 
 
 def write_contract(name: str, data: dict[str, Any]) -> None:
@@ -651,7 +661,7 @@ if "combined_normative_source_v2:" not in ledger137:
             "Spec 137A",
         ),
     }
-    ledger137 = ledger137.rstrip() + "\n\n# Combined Spec 137 + 137A closure extension\n" + dump_yaml_compatible(extension)
+    ledger137 = ledger137.rstrip() + "\n\n# Combined Spec 137 + 137A closure extension\n" + dump_yaml_root_entries(extension)
 ledger137_path.write_text(ledger137, encoding="utf-8")
 
 coverage138 = source_coverage(

@@ -1,0 +1,11 @@
+Spec137A Source Ledger Integrity Evidence
+Generated: 2026-07-30
+
+Gate: tests/spec137a_source_ledger_integrity_gate.py
+Result: PASS
+Coverage: 172 unique source clauses
+Source: docs/137a-focusa-temporal-zero-deferral-applicability-and-omission-firewall-addendum.md
+Source SHA-256: 2747f7f1ff7417c4541d7223199b3a480128ca049c9fe4a45859028af99a8419
+Checks: source path, line bounds, per-row source hash, unique references, blocking closure impact
+
+Boundary: source mapping is closed; runtime, evidence, receipt, parity, and restart-proof closure remain pending.

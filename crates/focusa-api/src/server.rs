@@ -241,6 +241,7 @@ pub struct AppState {
     #[allow(dead_code)]
     pub event_broadcaster: EventBroadcaster,
     pub config: FocusaConfig,
+    pub license_guard: focusa_license::LicenseGuard,
     /// Direct persistence access for sync routes.
     pub persistence: SqlitePersistence,
     /// Process-wide bounded single-writer for state snapshots and checkpoint acks.
@@ -581,6 +582,11 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::uxp::router())
         .merge(routes::autonomy::router())
         .merge(routes::constitution::router())
+        .merge(routes::agent_runtime::router())
+        .merge(routes::agent_runtime_delivery::router())
+        .merge(routes::agent_runtime_integrity::router())
+        .merge(routes::agent_runtime_migration::router())
+        .merge(routes::agent_runtime_studio::router())
         .merge(routes::telemetry::router())
         .merge(routes::temporal::router())
         .merge(routes::trust::router())
@@ -595,6 +601,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::resource::router())
         .merge(routes::reflection::router())
         .merge(routes::reflex::router())
+        .merge(routes::semantic_integrity::router())
         .merge(routes::release::router())
         .merge(routes::update::router())
         .merge(routes::skills::router())
@@ -1064,6 +1071,7 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
 }
 
 /// Start the API server on the configured bind address.
+#[allow(clippy::too_many_arguments)]
 pub async fn run(
     focusa: Arc<RwLock<FocusaState>>,
     command_tx: mpsc::Sender<Action>,
@@ -1072,6 +1080,7 @@ pub async fn run(
     persistence_runtime: (SqlitePersistence, PersistenceActor),
     write_serial_lock: Arc<Mutex<()>>,
     external_mutation_epoch: Arc<AtomicU64>,
+    license_guard: focusa_license::LicenseGuard,
 ) -> anyhow::Result<()> {
     let bind_addr = config.api_bind.clone();
     let (persistence, persistence_actor) = persistence_runtime;
@@ -1094,6 +1103,7 @@ pub async fn run(
         events_tx,
         event_broadcaster: broadcaster,
         config,
+        license_guard,
         persistence,
         persistence_actor: Some(persistence_actor),
         write_serial_lock,

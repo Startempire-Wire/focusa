@@ -1,14 +1,41 @@
 //! Append-only scoped Spec 138 authority ledger and projection.
 
-use crate::prediction_authority::*;
+use crate::{
+    epistemic_fusion::FusionResult,
+    epistemic_memory_lifecycle::MemoryLifecycleEvent,
+    epistemic_primitives::EpistemicPrimitiveRecord,
+    epistemic_security::SourceSecurityDecision,
+    metacognitive_learning::{
+        ActionDeltaPattern, LearningSettlement, PromotionAssessment, ReflectionClaim,
+    },
+    outcome_resolution::{ActionOutcomeObservation, OutcomeAuthorityEvent},
+    prediction_advanced::{ScenarioProjection, SelfModelEstimate, TransferEvaluation},
+    prediction_authority::*,
+    prediction_migration::LegacyMigrationRecord,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct PredictionAuthorityProjection {
     pub sequence: u64,
+    pub primitives: BTreeMap<String, EpistemicPrimitiveRecord>,
+    pub reflection_claims: BTreeMap<String, ReflectionClaim>,
+    pub promotion_assessments: BTreeMap<String, PromotionAssessment>,
+    pub learning_settlements: BTreeMap<String, LearningSettlement>,
+    pub outcome_authority_events: BTreeMap<String, OutcomeAuthorityEvent>,
+    pub fusion_results: BTreeMap<String, FusionResult>,
+    pub scenarios: BTreeMap<String, ScenarioProjection>,
+    pub transfer_evaluations: BTreeMap<String, TransferEvaluation>,
+    pub self_model: BTreeMap<String, SelfModelEstimate>,
+    pub memory_lifecycle: BTreeMap<String, MemoryLifecycleEvent>,
+    pub source_security_decisions: BTreeMap<String, SourceSecurityDecision>,
+    pub legacy_migrations: BTreeMap<String, LegacyMigrationRecord>,
     pub questions: BTreeMap<String, PredictionQuestion>,
     pub commitments: BTreeMap<String, PredictionCommitment>,
+    pub action_commitments: BTreeMap<String, ActionPredictionCommitment>,
+    pub action_outcomes: BTreeMap<String, ActionOutcomeObservation>,
+    pub action_patterns: BTreeMap<String, ActionDeltaPattern>,
     pub resolutions: BTreeMap<String, OutcomeResolution>,
     pub evaluations: BTreeMap<String, PredictionEvaluation>,
     pub learning: BTreeMap<String, LearningRecord>,
@@ -23,8 +50,7 @@ pub struct PredictionAuthorityLedger {
 
 impl PredictionAuthorityLedger {
     pub fn append(&mut self, event: ScopedAuthorityEvent) -> Result<(), String> {
-        if event.scope.project_root.trim().is_empty() || event.scope.continuity_id.trim().is_empty()
-        {
+        if event.scope.validate().is_err() {
             return Err("typed project/workstream scope required".into());
         }
         if self.event_ids.contains(&event.event_id) {
@@ -48,6 +74,66 @@ impl PredictionAuthorityLedger {
         for envelope in self.events.iter().filter(|event| &event.scope == scope) {
             projection.sequence = envelope.sequence;
             match &envelope.event {
+                PredictionAuthorityEvent::EpistemicPrimitive(value) => {
+                    projection
+                        .primitives
+                        .insert(value.primitive_id.clone(), value.clone());
+                }
+                PredictionAuthorityEvent::ReflectionClaim(value) => {
+                    projection
+                        .reflection_claims
+                        .insert(value.claim_id.clone(), value.clone());
+                }
+                PredictionAuthorityEvent::PromotionAssessment(value) => {
+                    projection
+                        .promotion_assessments
+                        .insert(value.assessment_id.clone(), value.clone());
+                }
+                PredictionAuthorityEvent::LearningSettlement(value) => {
+                    projection
+                        .learning_settlements
+                        .insert(value.settlement_id.clone(), value.clone());
+                }
+                PredictionAuthorityEvent::OutcomeAuthority(value) => {
+                    projection
+                        .outcome_authority_events
+                        .insert(value.event_id.clone(), value.clone());
+                }
+                PredictionAuthorityEvent::FusionResult(value) => {
+                    projection
+                        .fusion_results
+                        .insert(value.fusion_id.clone(), value.clone());
+                }
+                PredictionAuthorityEvent::ScenarioProjection(value) => {
+                    projection
+                        .scenarios
+                        .insert(value.scenario_id.clone(), value.clone());
+                }
+                PredictionAuthorityEvent::TransferEvaluation(value) => {
+                    projection
+                        .transfer_evaluations
+                        .insert(value.evaluation_id.clone(), value.clone());
+                }
+                PredictionAuthorityEvent::SelfModelEstimate(value) => {
+                    projection
+                        .self_model
+                        .insert(value.estimate_id.clone(), value.clone());
+                }
+                PredictionAuthorityEvent::MemoryLifecycle(value) => {
+                    projection
+                        .memory_lifecycle
+                        .insert(value.event_id.clone(), value.clone());
+                }
+                PredictionAuthorityEvent::SourceSecurityDecision(value) => {
+                    projection
+                        .source_security_decisions
+                        .insert(value.decision_id.clone(), value.clone());
+                }
+                PredictionAuthorityEvent::LegacyMigration(value) => {
+                    projection
+                        .legacy_migrations
+                        .insert(value.migration_id.clone(), value.clone());
+                }
                 PredictionAuthorityEvent::Question(value) => {
                     projection
                         .questions
@@ -57,6 +143,21 @@ impl PredictionAuthorityLedger {
                     projection
                         .commitments
                         .insert(value.commitment_id.clone(), value.clone());
+                }
+                PredictionAuthorityEvent::ActionCommitment(value) => {
+                    projection
+                        .action_commitments
+                        .insert(value.action_id.clone(), value.clone());
+                }
+                PredictionAuthorityEvent::ActionOutcome(value) => {
+                    projection
+                        .action_outcomes
+                        .insert(value.action_id.clone(), value.clone());
+                }
+                PredictionAuthorityEvent::ActionPattern(value) => {
+                    projection
+                        .action_patterns
+                        .insert(value.pattern_id.clone(), value.clone());
                 }
                 PredictionAuthorityEvent::OutcomeResolution(value) => {
                     projection

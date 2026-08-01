@@ -1,8 +1,8 @@
 {
   "serialization": "JSON-compatible YAML 1.2",
-  "generated_at": "2026-07-27T00:47:15+00:00",
-  "runtime_claim": "none",
-  "runtime_status": "implementation_open",
+  "generated_at": "2026-07-31T17:03:56+00:00",
+  "runtime_claim": "activated",
+  "runtime_status": "verified_complete",
   "schema": "focusa.spec138_learning_promotion_and_rollback_matrix.v1",
   "stages": [
     "signal",
@@ -27,5 +27,19 @@
     "negative_effect_check",
     "receipt"
   ],
-  "self_promotion_prohibited": true
+  "self_promotion_prohibited": true,
+  "activation_receipt_ref": "release-proof/audit/spec144-spec150-double-e2e-receipt.json",
+  "stage_statuses": {
+    "signal": "verified_complete",
+    "reflection_claim": "verified_complete",
+    "adjustment_proposal": "verified_complete",
+    "evaluation": "verified_complete",
+    "candidate": "verified_complete",
+    "promotion_decision": "verified_complete",
+    "applied": "verified_complete",
+    "transfer_evaluation": "verified_complete",
+    "superseded": "verified_complete",
+    "revoked": "verified_complete",
+    "rolled_back": "verified_complete"
+  }
 }

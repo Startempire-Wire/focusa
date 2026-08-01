@@ -1,6 +1,7 @@
 {
   "name": "focusa-pi-bridge",
-  "version": "0.9.141",
+  "version": "0.9.142",
+  "type": "module",
   "private": true,
   "description": "Focusa cognitive integration extension for Pi coding agent",
   "engines": {
@@ -12,6 +13,7 @@
     ]
   },
   "scripts": {
+    "postinstall": "node scripts/patch-pi-shrinkwrap-dependencies.mjs",
     "check": "tsc -p tsconfig.json --pretty false",
     "typecheck": "tsc -p tsconfig.json --pretty false",
     "lint": "eslint . --max-warnings 0",
@@ -20,35 +22,43 @@
     "format:fix": "prettier --write .",
     "test:spec104": "node tests/spec104-pi-runtime-isolation.test.mjs",
     "test:spec130-rollover": "node tests/spec130-rollover-command-lifecycle.test.mjs",
+    "test:compaction-lifecycle": "node tests/compaction-native-lifecycle.test.mjs",
+    "test:scope-isolation": "node tests/cross-project-context-isolation.test.mjs",
+    "test:surface-refresh": "node tests/scoped-surface-refresh.test.mjs && node tests/scoped-surface-refresh-runtime.test.mjs",
+    "test:north-star-gate": "node tests/north-star-gate.test.mjs",
     "test:spec104-attachment": "node tests/spec104-attachment-runtime-isolation.test.mjs",
     "test:cache-safe-context": "node tests/cache-safe-context.test.mjs",
     "test:ota-activation": "node tests/ota-activation.test.mjs",
     "test:work-rail-width": "node tests/work-rail-widget-width.test.mjs",
+    "test:operator-status": "node tests/operator-status-widgets.test.mjs",
+    "test:settings-attachment": "node tests/settings-attachment-safety.test.mjs",
+    "test:interaction-mode": "node tests/interaction-mode.test.mjs",
+    "test:project-binding": "node tests/project-binding-decision.test.mjs && node tests/session-project-classification.test.mjs && node tests/north-star-gate.test.mjs && node tests/session-health-lifecycle-race.test.mjs && node tests/unbound-project-binding-guidance.test.mjs",
+    "test:unbound-project": "node tests/unbound-project-binding-guidance.test.mjs",
+    "test:pi-security": "node tests/pi-sdk-security.test.mjs",
+    "test:menu-audit": "node tests/menu-audit-gate.test.mjs",
+    "test:mission-canvas": "node tests/mission-canvas-pi-surface.test.mjs && node tests/mission-canvas-reference-design.test.mjs && node tests/mission-canvas-mode-precedence.test.mjs && node tests/mission-canvas-session-inventory.test.mjs && node tests/mission-canvas-performance.test.mjs",
     "test:workspace-verticals": "node tests/workspace-verticals.test.mjs",
     "test:canvas-accessibility": "node tests/mission-canvas-accessibility.test.mjs",
     "test:rich-artifact-renderers": "node tests/rich-artifact-renderers.test.mjs",
     "test:research-bridge": "node tests/research-bridge.test.mjs",
-    "test:workspace-invalidation": "node tests/workspace-invalidation.test.mjs",
-    "test:settings-attachment": "node tests/settings-attachment-safety.test.mjs",
-    "test:interaction-mode": "node tests/interaction-mode.test.mjs",
-    "test:menu-audit": "node tests/menu-audit-gate.test.mjs",
-    "test:mission-canvas": "node tests/mission-canvas-pi-surface.test.mjs && node tests/mission-canvas-reference-design.test.mjs && node tests/mission-canvas-mode-precedence.test.mjs && node tests/mission-canvas-session-inventory.test.mjs && node tests/mission-canvas-performance.test.mjs"
+    "test:workspace-invalidation": "node tests/workspace-invalidation.test.mjs"
   },
   "dependencies": {
     "@sinclair/typebox": "^0.34.0"
   },
   "overrides": {
-    "protobufjs": "7.6.3",
-    "undici": "7.28.0"
+    "undici": "7.28.0",
+    "brace-expansion": "5.0.8"
   },
   "devDependencies": {
-    "@earendil-works/pi-coding-agent": "^0.83.0",
-    "@earendil-works/pi-tui": "^0.83.0",
+    "@earendil-works/pi-coding-agent": "0.82.1",
+    "@earendil-works/pi-tui": "0.82.1",
     "@types/node": "25.5.0",
     "@typescript-eslint/eslint-plugin": "^8.63.0",
     "@typescript-eslint/parser": "^8.63.0",
-    "eslint": "^9.39.4",
-    "eslint-config-prettier": "^9.1.2",
+    "eslint": "^10.8.0",
+    "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.9.4",
     "typescript": "^5.0.0"
   }

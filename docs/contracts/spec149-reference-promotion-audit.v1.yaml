@@ -1,0 +1,108 @@
+schema: focusa.spec149_reference_promotion_audit.v1
+audit_id: spec149-hardening-20260729-v1
+spec_ref: docs/149-focusa-workset-flow-ledger-and-release-completion-spec.md
+status: passed_ready_for_final_operator_approval
+current_release_admitted: false
+next_release_bead: focusa-a89or
+reference_audit:
+  status: passed
+  focusa_doc_refs:
+    - docs/100-context-cognition-spec.md
+    - docs/111-agent-context-bootstrap-and-delivery-spec.md
+    - docs/116-provider-neutral-work-item-closure-authority-spec.md
+    - docs/120-adversarial-spec-workbench-and-operator-approval-gates.md
+    - docs/135-series-current-manifest.md
+    - docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md
+    - docs/137a-focusa-temporal-zero-deferral-applicability-and-omission-firewall-addendum.md
+    - docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md
+    - docs/138a-focusa-epistemic-zero-deferral-profile-completeness-and-omission-firewall-addendum.md
+    - docs/140-project-agent-runtime-constitution-instruction-authority-system-prompt-and-cross-harness-compiler-spec.md
+    - docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md
+    - docs/145-focusa-canonical-core-release-cycle-fast-release-architecture.md
+    - docs/146-focusa-canonical-release-cycle-operations-and-proof-runbook.md
+    - docs/147-focusa-master-release-cycle-operationalization-spec.md
+    - docs/148-focusa-canonical-release-benchmark-journal-spec.md
+  code_refs:
+    - crates/focusa-core/src/work_item/types.rs
+    - crates/focusa-core/src/work_item/adapter.rs
+    - crates/focusa-core/src/work_item/scheduler.rs
+    - crates/focusa-core/src/types.rs
+    - crates/focusa-core/src/release_cycle.rs
+    - crates/focusa-core/src/release_orchestrator.rs
+    - crates/focusa-core/src/agent_runtime_constitution.rs
+    - crates/focusa-api/src/routes/mission_canvas_surfaces.rs
+    - crates/focusa-api/src/routes/work_rail.rs
+    - crates/focusa-api/src/routes/preload.rs
+    - crates/focusa-api/src/routes/context_cognition.rs
+    - crates/focusa-api/src/routes/project_genesis.rs
+    - crates/focusa-api/src/routes/provider_execution.rs
+    - crates/focusa-api/src/routes/release.rs
+    - apps/menubar/src/lib/components/MissionCanvasView.svelte
+    - apps/pi-extension/src/mission-canvas-view.ts
+    - packages/a2ui-renderer/src/focusa-catalog.ts
+    - packages/generated/spec135/typescript/schema.d.ts
+  docs_only_runtime_distinction: explicit_in_section_20
+  stale_refs: []
+  invalid_refs: []
+  docs_only_overclaims: []
+  promotion_blockers: []
+resolved_objections:
+  - id: S149-OBJ-001
+    kind: scope_gap
+    prior_severity: blocker
+    claim: Spec149 was attached to the current locked-release epic without manifest admission.
+    resolution: Rehomed to next-release Bead focusa-a89or; current-release membership remains unchanged and explicit exclusion is normative.
+    evidence_refs: [bead:focusa-a89or, docs/contracts/spec149-next-release-profile.v1.yaml]
+  - id: S149-OBJ-002
+    kind: scope_gap
+    prior_severity: blocker
+    claim: Temporal and epistemic dependencies were missing.
+    resolution: Added Specs137/137a and 138/138a dependencies, governance sections, requirements, tests, and call-stack adapters.
+    evidence_refs: [docs/149-focusa-workset-flow-ledger-and-release-completion-spec.md#section-19]
+  - id: S149-OBJ-003
+    kind: implementation_gap
+    prior_severity: blocker
+    claim: Machine-readable schemas, operations, permissions, errors, profiles, and complete feature ledger were absent.
+    resolution: Added strict JSON Schema and generated operation/profile/feature-ledger contracts.
+    evidence_refs: [docs/contracts/spec149-workset.schema.v1.json, docs/contracts/spec149-event-payloads.schema.v1.json, docs/contracts/spec149-openapi.v1.yaml, docs/contracts/spec149-operation-contracts.v1.yaml, docs/contracts/spec149-complete-feature-ledger.v1.yaml]
+  - id: S149-OBJ-004
+    kind: architecture_risk
+    prior_severity: blocker
+    claim: Exact Spec135 compatibility and generated artifact impacts were absent.
+    resolution: Added a complete frozen-series compatibility packet with exact surfaces, generated artifacts, migrations, tests, and gates.
+    evidence_refs: [docs/contracts/spec149-spec135-compatibility-packet.v1.yaml]
+  - id: S149-OBJ-005
+    kind: implementation_gap
+    prior_severity: blocker
+    claim: Only one scaffold call stack existed.
+    resolution: Added read, admission, preload, checkpoint, and completion call-stack designs and a machine index in operation contracts.
+    evidence_refs: [design:019faf0a-42ea-7d42-aa34-468ad44f2720, design:019faf0a-4258-7e31-828a-cbcbb55fd008, design:019faf0a-42e1-79e1-8ffe-800c1ef1d3a5, design:019faf0a-42cd-7133-843b-81a1a80a62ca, design:019faf0a-42d5-79a1-a097-77bd5bd2e72c]
+  - id: S149-OBJ-006
+    kind: closure_policy_risk
+    prior_severity: blocker
+    claim: Spec120 promotion state and distinct approvals were not represented.
+    resolution: Added explicit promotion section, audit, resolved objection ledger, and separate pending final/decomposition/implementation gates.
+    evidence_refs: [docs/149-focusa-workset-flow-ledger-and-release-completion-spec.md#section-32, docs/contracts/spec149-reference-promotion-audit.v1.yaml]
+  - id: S149-OBJ-007
+    kind: architecture_risk
+    prior_severity: should_fix
+    claim: Relationships, overlap, external dependencies, provider tombstones, stream retention, digest semantics, lifecycle combinations, transition DAGs, proof identity, exact permissions, APIs, and budgets were underspecified.
+    resolution: Added normative models, machine schemas, APIs, event/storage contracts, tests, and S149-R-066..077.
+    evidence_refs: [docs/149-focusa-workset-flow-ledger-and-release-completion-spec.md, docs/contracts/spec149-workset.schema.v1.json]
+whole_spec_reconciliation:
+  status: passed
+  unresolved_contradictions: []
+  normalized_terms: [Workset, cardinality_mode, admission_state, lifecycle_state, epoch, ready_frontier, checkpoint_flow, completion_transition]
+  authority_conflicts: []
+  current_release_scope_drift: false
+  machine_contract_drift: false
+promotion_gates:
+  next_release_classification: approved
+  repo_write_for_hardening: approved
+  section_text_hardening: approved
+  final_spec_approval: pending_operator_action
+  receipt_preview: pending_final_spec_approval
+  task_decomposition: pending_final_spec_approval
+  implementation_start: not_authorized
+  current_release_admission: denied
+unresolved_blockers: []

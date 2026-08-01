@@ -7,6 +7,8 @@ use crate::routes::bounded::{
     record_json_response_size,
 };
 use crate::routes::permissions::{forbid, permission_context};
+use crate::routes::proposals::verified_workstream_key;
+use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::{Path, Query, State};
 use axum::http::HeaderMap;
@@ -817,13 +819,25 @@ struct ConstitutionProposeBody {
 async fn constitution_propose(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
+    scope: ScopeContext,
     Json(body): Json<ConstitutionProposeBody>,
 ) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
     require_scope(&headers, &state, "constitution:propose")?;
+    let workstream = verified_workstream_key(&scope).ok_or_else(|| {
+        (
+            axum::http::StatusCode::CONFLICT,
+            Json(json!({
+                "status": "scope_mismatch",
+                "canonical": false,
+                "reason": "verified project and continuity scope required",
+            })),
+        )
+    })?;
     // Submit as a proposal via PRE (docs/41).
     state
         .command_tx
         .send(focusa_core::types::Action::SubmitProposal {
+            workstream: Some(workstream),
             kind: focusa_core::types::ProposalKind::ConstitutionRevision,
             source: "agent".into(),
             payload: serde_json::json!({

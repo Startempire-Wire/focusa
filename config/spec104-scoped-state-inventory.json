@@ -138,7 +138,7 @@
       "symbol": "GUARD",
       "classification": "infra_allowlist",
       "authority_bearing": false,
-      "status": "infra_allowed",
+      "status": "eliminated",
       "target": "Immutable initialized license guard",
       "acceptance_test": "guard cannot supply or mutate scope"
     },
@@ -624,6 +624,16 @@
       "status": "infra_allowed",
       "target": "Generated immutable MCP catalog projection; invocation authority remains in scoped REST routes",
       "acceptance_test": "Spec141 MCP projection parity plus Spec104 singleton inventory gate"
+    },
+    {
+      "annex_id": "INF-02",
+      "path": "crates/focusa-core/src/temporal_platform.rs",
+      "symbol": "PROCESS_MONOTONIC_ORIGIN",
+      "classification": "infra_allowlist",
+      "authority_bearing": false,
+      "status": "eliminated",
+      "target": "Process-local immutable monotonic clock origin; carries no project, workstream, deadline, urgency, or instruction authority",
+      "acceptance_test": "temporal_platform monotonic uptime tests plus Spec104 singleton inventory gate"
     }
   ]
 }

@@ -723,6 +723,8 @@ This spec does **not** require:
 | INF-06 | bounded runtime | `.../bounded.rs:23` | `RESOURCE_MODE_HYSTERESIS_STATE` | process-global hysteresis state | infra-only runtime service | P3 | scope results independent of hysteresis history |
 | INF-07 | bounded runtime | `.../bounded.rs:142,144,145` | pressure/response-size globals | pressure history can taint prompts if not quarantined | infra-only telemetry service | P3 | awareness/warnings may vary, canonical authority may not |
 | INF-08 | Context retrieval model cache | `crates/focusa-core/src/runtime/context_retrieval.rs:31` | `FASTEMBED_MODEL` caches one immutable embedding model behind a mutex | process-local model reuse could be mistaken for Context authority | keep as infra-only compute cache; canonical Context and retrieval evidence remain exact-scope reducer state | P3 | alternating project scopes may reuse model weights but never vectors, sources, claims, or retrieval authority |
+| INF-09 | Generated capability registries | `crates/focusa-api/src/routes/agent_capabilities.rs` | immutable `include_str!` adapter/Spec141 capability and Agent Card registries | immutable metadata could be mistaken for mutable capability authority | keep generated values immutable and process-shared; permission, scope, execution, receipt, and mutation authority remain request-scoped | P3 | alternating scopes see identical metadata while every capability execution remains exact-scope and permission checked |
+| INF-10 | Generated MCP projection | `crates/focusa-api/src/routes/mcp.rs` | immutable `include_str!` MCP tool projection | projection cache could be mistaken for call authority | keep projection immutable and process-shared; each MCP call routes through scoped REST auth/permission/idempotency/receipt enforcement | P3 | projection equality across scopes does not permit cross-scope action or state reuse |
 
 ### C. Pi extension runtime singleton hub
 
@@ -1025,6 +1027,53 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 - `crates/focusa-api/src/routes/mod.rs`
 
 
+#### Post-baseline API routes
+
+- `crates/focusa-api/src/routes/agent_runtime.rs`
+- `crates/focusa-api/src/routes/agent_runtime_delivery.rs`
+- `crates/focusa-api/src/routes/agent_runtime_integrity.rs`
+- `crates/focusa-api/src/routes/agent_runtime_migration.rs`
+- `crates/focusa-api/src/routes/agent_runtime_studio.rs`
+- `crates/focusa-api/src/routes/agent_runtime_tests.rs`
+- `crates/focusa-api/src/routes/browser_interop.rs`
+- `crates/focusa-api/src/routes/context_claims.rs`
+- `crates/focusa-api/src/routes/context_sources.rs`
+- `crates/focusa-api/src/routes/interview_sessions.rs`
+- `crates/focusa-api/src/routes/interview_strategy.rs`
+- `crates/focusa-api/src/routes/mission_canvas_surfaces.rs`
+- `crates/focusa-api/src/routes/prediction_authority.rs`
+- `crates/focusa-api/src/routes/project_bootstrap.rs`
+- `crates/focusa-api/src/routes/project_bootstrap_support.rs`
+- `crates/focusa-api/src/routes/project_genesis.rs`
+- `crates/focusa-api/src/routes/project_genesis_support.rs`
+- `crates/focusa-api/src/routes/project_genesis_tests.rs`
+- `crates/focusa-api/src/routes/provider_execution.rs`
+- `crates/focusa-api/src/routes/role_profiles.rs`
+- `crates/focusa-api/src/routes/silent_sessions.rs`
+- `crates/focusa-api/src/routes/silent_sessions_adopt.rs`
+- `crates/focusa-api/src/routes/silent_sessions_authorize.rs`
+- `crates/focusa-api/src/routes/silent_sessions_capabilities.rs`
+- `crates/focusa-api/src/routes/silent_sessions_config_mutation.rs`
+- `crates/focusa-api/src/routes/silent_sessions_config_mutation_test.rs`
+- `crates/focusa-api/src/routes/silent_sessions_config_read.rs`
+- `crates/focusa-api/src/routes/silent_sessions_contract.rs`
+- `crates/focusa-api/src/routes/silent_sessions_control.rs`
+- `crates/focusa-api/src/routes/silent_sessions_create.rs`
+- `crates/focusa-api/src/routes/silent_sessions_input.rs`
+- `crates/focusa-api/src/routes/silent_sessions_input_test.rs`
+- `crates/focusa-api/src/routes/silent_sessions_lifecycle.rs`
+- `crates/focusa-api/src/routes/silent_sessions_observe.rs`
+- `crates/focusa-api/src/routes/silent_sessions_projection.rs`
+- `crates/focusa-api/src/routes/silent_sessions_restart.rs`
+- `crates/focusa-api/src/routes/silent_sessions_retention.rs`
+- `crates/focusa-api/src/routes/silent_sessions_retention_export.rs`
+- `crates/focusa-api/src/routes/spec_workbench.rs`
+- `crates/focusa-api/src/routes/task_plans.rs`
+- `crates/focusa-api/src/routes/temporal.rs`
+- `crates/focusa-api/src/routes/temporal_advanced.rs`
+- `crates/focusa-api/src/routes/work_rail.rs`
+- `crates/focusa-api/src/routes/workspace_artifacts.rs`
+
 ### B.3 CLI command families
 
 - `crates/focusa-cli/src/api_client.rs`
@@ -1109,6 +1158,18 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 - `crates/focusa-cli/src/commands/workpoint.rs`
 - `crates/focusa-cli/src/commands/wrap.rs`
 - `crates/focusa-cli/src/commands/mod.rs`
+#### Post-baseline CLI commands
+
+- `crates/focusa-cli/src/commands/agent_runtime.rs`
+- `crates/focusa-cli/src/commands/install_e6_failure_matrix_tests.rs`
+- `crates/focusa-cli/src/commands/pi_launch.rs`
+- `crates/focusa-cli/src/commands/pi_launch_migration.rs`
+- `crates/focusa-cli/src/commands/release_master.rs`
+- `crates/focusa-cli/src/commands/silent.rs`
+- `crates/focusa-cli/src/commands/silent_render.rs`
+- `crates/focusa-cli/src/commands/temporal.rs`
+- `crates/focusa-cli/src/commands/update_trust.rs`
+
 ### B.4 Core / TUI / model surfaces
 
 #### focusa-core
@@ -1193,6 +1254,161 @@ The following files were observed carrying scope, scope-adjacent authority, or t
 - `crates/focusa-core/src/workers/mod.rs`
 - `crates/focusa-core/src/workers/priority_queue.rs`
 - `crates/focusa-core/src/workers/queue.rs`
+#### Post-baseline focusa-core surfaces
+
+- `crates/focusa-core/src/agent_runtime_constitution.rs`
+- `crates/focusa-core/src/agent_runtime_constitution_authority.rs`
+- `crates/focusa-core/src/agent_runtime_constitution_authority_test.rs`
+- `crates/focusa-core/src/agent_runtime_constitution_compiler.rs`
+- `crates/focusa-core/src/agent_runtime_constitution_compiler_test.rs`
+- `crates/focusa-core/src/agent_runtime_constitution_enforcement.rs`
+- `crates/focusa-core/src/agent_runtime_constitution_enforcement_test.rs`
+- `crates/focusa-core/src/agent_runtime_constitution_lifecycle.rs`
+- `crates/focusa-core/src/agent_runtime_constitution_lifecycle_test.rs`
+- `crates/focusa-core/src/agent_runtime_constitution_migration.rs`
+- `crates/focusa-core/src/agent_runtime_constitution_migration_test.rs`
+- `crates/focusa-core/src/agent_runtime_constitution_orchestrator.rs`
+- `crates/focusa-core/src/agent_runtime_constitution_orchestrator_test.rs`
+- `crates/focusa-core/src/agent_runtime_constitution_store.rs`
+- `crates/focusa-core/src/agent_runtime_constitution_store_test.rs`
+- `crates/focusa-core/src/agent_runtime_constitution_test.rs`
+- `crates/focusa-core/src/agent_runtime_instruction_integrity.rs`
+- `crates/focusa-core/src/agent_runtime_instruction_integrity_scenario_test.rs`
+- `crates/focusa-core/src/connector_auth.rs`
+- `crates/focusa-core/src/connectors.rs`
+- `crates/focusa-core/src/epistemic_conformance.rs`
+- `crates/focusa-core/src/epistemic_fusion.rs`
+- `crates/focusa-core/src/epistemic_memory_lifecycle.rs`
+- `crates/focusa-core/src/epistemic_primitives.rs`
+- `crates/focusa-core/src/epistemic_security.rs`
+- `crates/focusa-core/src/google_drive_connector.rs`
+- `crates/focusa-core/src/install_lifecycle.rs`
+- `crates/focusa-core/src/metacognitive_learning.rs`
+- `crates/focusa-core/src/outcome_resolution.rs`
+- `crates/focusa-core/src/prediction.rs`
+- `crates/focusa-core/src/prediction_advanced.rs`
+- `crates/focusa-core/src/prediction_authority.rs`
+- `crates/focusa-core/src/prediction_authority_ledger.rs`
+- `crates/focusa-core/src/prediction_authority_storage.rs`
+- `crates/focusa-core/src/prediction_authority_tests.rs`
+- `crates/focusa-core/src/prediction_calibration.rs`
+- `crates/focusa-core/src/prediction_migration.rs`
+- `crates/focusa-core/src/prediction_profiles.rs`
+- `crates/focusa-core/src/prediction_scoring.rs`
+- `crates/focusa-core/src/prediction_scoring_algorithms.rs`
+- `crates/focusa-core/src/provider_execution.rs`
+- `crates/focusa-core/src/release_adapters.rs`
+- `crates/focusa-core/src/release_adapters_test.rs`
+- `crates/focusa-core/src/release_calibration.rs`
+- `crates/focusa-core/src/release_calibration_test.rs`
+- `crates/focusa-core/src/release_cycle.rs`
+- `crates/focusa-core/src/release_cycle_test.rs`
+- `crates/focusa-core/src/release_intelligence.rs`
+- `crates/focusa-core/src/release_ledger.rs`
+- `crates/focusa-core/src/release_ledger_test.rs`
+- `crates/focusa-core/src/release_orchestrator.rs`
+- `crates/focusa-core/src/release_orchestrator_test.rs`
+- `crates/focusa-core/src/release_planner.rs`
+- `crates/focusa-core/src/release_protocol.rs`
+- `crates/focusa-core/src/runtime/context_retrieval.rs`
+- `crates/focusa-core/src/runtime/interview_strategy.rs`
+- `crates/focusa-core/src/runtime/persistence_actor.rs`
+- `crates/focusa-core/src/scoped_state.rs`
+- `crates/focusa-core/src/silent_session.rs`
+- `crates/focusa-core/src/silent_session_authority.rs`
+- `crates/focusa-core/src/silent_session_authorization.rs`
+- `crates/focusa-core/src/silent_session_bootstrap.rs`
+- `crates/focusa-core/src/silent_session_checkpoint_policy.rs`
+- `crates/focusa-core/src/silent_session_completion.rs`
+- `crates/focusa-core/src/silent_session_config.rs`
+- `crates/focusa-core/src/silent_session_continuation.rs`
+- `crates/focusa-core/src/silent_session_failure.rs`
+- `crates/focusa-core/src/silent_session_integration.rs`
+- `crates/focusa-core/src/silent_session_launch.rs`
+- `crates/focusa-core/src/silent_session_notifications.rs`
+- `crates/focusa-core/src/silent_session_protocol.rs`
+- `crates/focusa-core/src/silent_session_receipts.rs`
+- `crates/focusa-core/src/silent_session_reconstruction.rs`
+- `crates/focusa-core/src/silent_session_recovery.rs`
+- `crates/focusa-core/src/silent_session_reducer.rs`
+- `crates/focusa-core/src/silent_session_resources.rs`
+- `crates/focusa-core/src/silent_session_retry.rs`
+- `crates/focusa-core/src/silent_session_scheduler.rs`
+- `crates/focusa-core/src/silent_session_stream.rs`
+- `crates/focusa-core/src/silent_session_wizard.rs`
+- `crates/focusa-core/src/silent_session_workspace.rs`
+- `crates/focusa-core/src/silent_session_writer.rs`
+- `crates/focusa-core/src/silent_sessions/authorization.rs`
+- `crates/focusa-core/src/silent_sessions/authorization_persistence.rs`
+- `crates/focusa-core/src/silent_sessions/authorization_test.rs`
+- `crates/focusa-core/src/silent_sessions/capability_catalog.rs`
+- `crates/focusa-core/src/silent_sessions/cognitive_governance.rs`
+- `crates/focusa-core/src/silent_sessions/completion_artifacts.rs`
+- `crates/focusa-core/src/silent_sessions/concurrency_governance.rs`
+- `crates/focusa-core/src/silent_sessions/config.rs`
+- `crates/focusa-core/src/silent_sessions/config_resolution.rs`
+- `crates/focusa-core/src/silent_sessions/config_resolution_test.rs`
+- `crates/focusa-core/src/silent_sessions/config_revision.rs`
+- `crates/focusa-core/src/silent_sessions/config_revision_test.rs`
+- `crates/focusa-core/src/silent_sessions/event_protocol.rs`
+- `crates/focusa-core/src/silent_sessions/failure_envelope.rs`
+- `crates/focusa-core/src/silent_sessions/harness_adapter.rs`
+- `crates/focusa-core/src/silent_sessions/harness_adapter_test.rs`
+- `crates/focusa-core/src/silent_sessions/identity.rs`
+- `crates/focusa-core/src/silent_sessions/launch_manifest.rs`
+- `crates/focusa-core/src/silent_sessions/launch_manifest_test.rs`
+- `crates/focusa-core/src/silent_sessions/legacy_import.rs`
+- `crates/focusa-core/src/silent_sessions/legacy_import_test.rs`
+- `crates/focusa-core/src/silent_sessions/mod.rs`
+- `crates/focusa-core/src/silent_sessions/model_safety.rs`
+- `crates/focusa-core/src/silent_sessions/operator_experience.rs`
+- `crates/focusa-core/src/silent_sessions/persistence_records.rs`
+- `crates/focusa-core/src/silent_sessions/persistence_sqlite.rs`
+- `crates/focusa-core/src/silent_sessions/persistence_sqlite_test.rs`
+- `crates/focusa-core/src/silent_sessions/persistence_usage.rs`
+- `crates/focusa-core/src/silent_sessions/pi_rpc_adapter.rs`
+- `crates/focusa-core/src/silent_sessions/platform_backends.rs`
+- `crates/focusa-core/src/silent_sessions/process_supervision.rs`
+- `crates/focusa-core/src/silent_sessions/recovery_policy.rs`
+- `crates/focusa-core/src/silent_sessions/resource_admission.rs`
+- `crates/focusa-core/src/silent_sessions/retention.rs`
+- `crates/focusa-core/src/silent_sessions/runner_client.rs`
+- `crates/focusa-core/src/silent_sessions/runner_protocol.rs`
+- `crates/focusa-core/src/silent_sessions/runner_protocol_test.rs`
+- `crates/focusa-core/src/silent_sessions/runner_security.rs`
+- `crates/focusa-core/src/silent_sessions/runner_security_test.rs`
+- `crates/focusa-core/src/silent_sessions/runtime_control.rs`
+- `crates/focusa-core/src/silent_sessions/secure_fs.rs`
+- `crates/focusa-core/src/silent_sessions/state_machine.rs`
+- `crates/focusa-core/src/silent_sessions/stream_codec.rs`
+- `crates/focusa-core/src/silent_sessions/stream_recovery.rs`
+- `crates/focusa-core/src/silent_sessions/stream_rotation.rs`
+- `crates/focusa-core/src/silent_sessions/stream_storage.rs`
+- `crates/focusa-core/src/silent_sessions/stream_storage_test.rs`
+- `crates/focusa-core/src/silent_sessions/types.rs`
+- `crates/focusa-core/src/software_domain.rs`
+- `crates/focusa-core/src/temporal.rs`
+- `crates/focusa-core/src/temporal_authority.rs`
+- `crates/focusa-core/src/temporal_claims.rs`
+- `crates/focusa-core/src/temporal_clock.rs`
+- `crates/focusa-core/src/temporal_conformance.rs`
+- `crates/focusa-core/src/temporal_deadline.rs`
+- `crates/focusa-core/src/temporal_forecast.rs`
+- `crates/focusa-core/src/temporal_forecast_evaluation.rs`
+- `crates/focusa-core/src/temporal_foundation.rs`
+- `crates/focusa-core/src/temporal_full_tests.rs`
+- `crates/focusa-core/src/temporal_high_consequence.rs`
+- `crates/focusa-core/src/temporal_integrity.rs`
+- `crates/focusa-core/src/temporal_ledger.rs`
+- `crates/focusa-core/src/temporal_operations.rs`
+- `crates/focusa-core/src/temporal_platform.rs`
+- `crates/focusa-core/src/temporal_progress.rs`
+- `crates/focusa-core/src/temporal_release_gate.rs`
+- `crates/focusa-core/src/temporal_tests.rs`
+- `crates/focusa-core/src/tool_result.rs`
+- `crates/focusa-core/src/work_item/scheduler.rs`
+- `crates/focusa-core/src/working_subpath.rs`
+
 #### focusa-tui
 
 - `crates/focusa-tui/src/api.rs`

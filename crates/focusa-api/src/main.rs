@@ -288,9 +288,6 @@ async fn main() -> anyhow::Result<()> {
     {
         tracing::warn!(warning = %warn, "focusa-daemon running under eval tier with commercial capability requested");
     }
-    // Register the LicenseGuard so /v1/license/status can serve it.
-    crate::routes::license::init_guard(license_guard);
-
     // Shared state: daemon writes after every reduction, API reads.
     let shared_state = Arc::new(RwLock::new(FocusaState::default()));
 
@@ -347,6 +344,7 @@ async fn main() -> anyhow::Result<()> {
             (persistence, persistence_actor),
             write_serial_lock,
             external_mutation_epoch,
+            license_guard,
         )
         .await
         {

@@ -1,0 +1,29 @@
+focusa-vbcqu.5.7 — macOS compaction overflow/WebSocket recovery E2E
+Observed: 2026-07-31
+Source: Focusa compaction runtime from e9ebaeb35c03f310ad50691b199e28455b4a4a45 (unchanged by later release-intelligence commit)
+
+Host proof:
+- MacBook-Pro.lan, macOS 14.7.6.
+- Node v22.21.1 from the existing Mac NVM installation.
+- No package or toolchain was installed on the Mac.
+- TypeScript compilation occurred exclusively on OVH.
+- The compiled exact-source harness and already-installed OVH Pi runtime dependencies were transferred as temporary artifacts.
+
+Result: PASS
+- Proactive eligibility begins before provider rejection.
+- Single-flight duplicate settlement is bounded.
+- Preflight rejection is terminal and visible.
+- WebSocket failures produce attempt_failed and bounded retry_scheduled events.
+- Retry exhaustion emits native_recovery_deferred_to_pi.
+- Pi retains operator input and owns native overflow recovery.
+- Successful retry completes without concurrent compactors.
+- Current live Pi session also crossed repeated compaction/resume boundaries without the prior steering stall.
+
+Canonical fixture:
+- tests/spec130a_proactive_compaction_runtime_test.sh
+- Mac result log: /tmp/focusa-mac-compaction-e9ebaeb3.log
+- Temporary Mac harness: /tmp/focusa-mac-compaction-e9ebaeb3 (approximately 225 MiB)
+- Temporary transfer archive: /tmp/focusa-pi-node-modules-e9ebaeb3.tar.gz (approximately 35 MiB)
+
+Safety note:
+- Temporary artifacts remain because no approved `trash` utility is available on KH, OVH, or Mac; no destructive cleanup command was used.

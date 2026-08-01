@@ -169,7 +169,10 @@ async fn store_visual_evidence(
         })?;
     let _guard = state.write_serial_lock.lock().await;
     let mut focusa = state.focusa.write().await;
-    handle.trajectory = focusa.trajectory_ladder_context();
+    handle.trajectory = focusa.trajectory_ladder_context_for_scope(
+        handle.project_root.as_deref(),
+        handle.continuity_id.as_deref(),
+    );
     if !focusa
         .reference_index
         .handles

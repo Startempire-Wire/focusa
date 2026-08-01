@@ -1,0 +1,17 @@
+{
+  "schema": "focusa.spec138.runtime_receipt.v1",
+  "status": "passed",
+  "observed_at": "2026-08-01T15:53:21Z",
+  "source_head": "0d858f74676ca7a1937d12dabcc26e63a6618323",
+  "checks": {
+    "prediction_runtime_tests": "passed",
+    "epistemic_runtime_tests": "passed",
+    "metacognitive_learning_tests": "passed",
+    "outcome_resolution_tests": "passed",
+    "foundation_gate": "passed",
+    "full_conformance_gate": "passed",
+    "spec138a_full_conformance_gate": "passed"
+  },
+  "evidence_ref": "docs/evidence/release/S138-E2E-01-runtime.txt",
+  "evidence_sha256": "0b08ab0859c2343e07f714be411d5d30b3cf88e19d2b195a489ea0f8b380120a"
+}

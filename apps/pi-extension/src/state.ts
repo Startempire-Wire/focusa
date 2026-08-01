@@ -2,12 +2,18 @@
 // Spec: docs/44-pi-focusa-integration-spec.md
 
 import { AsyncLocalStorage } from "async_hooks";
-import { appendFileSync, existsSync, readFileSync } from "fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync } from "fs";
 import { dirname, join, resolve } from "path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { DEFAULT_DAEMON_RESTART_COMMAND, type FocusaConfig } from "./config.js";
 import type { NativeSessionPressureV1 } from "./session-pressure.js";
-import { buildProjectWorkstreamKey, type AttachmentKey } from "./scoped-state.js";
+import {
+  buildProjectWorkstreamKey,
+  registerVerifiedScopeRef,
+  verifiedScopeRefForRoot,
+  type AttachmentKey,
+} from "./scoped-state.js";
+import { projectBindingAllowsDurableWrites, type ProjectBindingDecisionV1 } from "./project-binding.js";
 import {
   COMPACTION_PERSISTENCE_ANCHOR_REF_SCHEMA,
   COMPACTION_PERSISTENCE_ANCHOR_SCHEMA,
@@ -217,6 +223,14 @@ function createAttachmentRuntime() {
     sessionFrameKey: "" as string,
     sessionCwd: "" as string,
     continuityId: "" as string,
+    startupReceptionistActive: false,
+    startupReceptionistStartedAt: 0,
+    startupReceptionistPreviousThinkingLevel: "" as string,
+    modelProvider: "" as string,
+    modelId: "" as string,
+    providerUsagePercent: null as number | null,
+    providerRenewalAt: "" as string,
+    providerUsageObservedAt: 0 as number,
     wbmEnabled: false,
     wbmDeep: false,
     wbmNoCatalogue: false, // §29 --no-catalogue flag
@@ -255,10 +269,21 @@ function createAttachmentRuntime() {
       suppressionCount: number;
     },
     lastWorkpointUpdate: 0, // timestamp ms of last Workpoint update
+    northStarSnapshot: null as import("./north-star.js").NorthStarSnapshot | null,
     // lastStreamLen migrated to scope store (PI-07, removed from singleton)
-    // Auto-resume dedup: set when compaction fires, cleared after continuation sent
+    // Compaction delivery arbiter. Pi owns the native queue and next turn;
+    // Focusa only persists a bounded next-turn projection/outcome.
     compactResumePending: false,
-    // Persisted compaction auto-resume idempotency guard; prevents repeated post-compact resume spam across extension reloads.
+    compactionVerifyPendingKey: "",
+    compactResumeDeliveryKey: "",
+    compactResumeDeliveryState: "none" as
+      | "none"
+      | "pending"
+      | "deferred_to_next_turn"
+      | "superseded_by_operator"
+      | "failed"
+      | "unknown_completion",
+    // Persisted compaction resume idempotency guard.
     lastCompactResumeKey: "",
     lastCompactResumeAt: 0,
     // Post-compaction: save last decision for steer message (cleared after localDecisions trim)
@@ -308,6 +333,15 @@ function createAttachmentRuntime() {
         provenance: string;
       }
     >,
+    projectBindingDecisions: {} as Record<string, ProjectBindingDecisionV1>,
+    projectBindingTelemetry: {
+      startup_count: 0,
+      automatic_resolution_count: 0,
+      operator_interruption_count: 0,
+      false_bind_count: 0,
+      recovery_duration_ms: 0,
+      blocked_write_reasons: {} as Record<string, number>,
+    },
     // First-turn guard: only inject behavioral directive once per session, not on every before_agent_start
     seenFirstBeforeAgentStart: false,
     // ECS handle registry: kind -> id -> { content, stored_at }
@@ -591,6 +625,7 @@ export function resetPiSessionScopedState(reason = "session_boundary"): void {
   getAttachmentRuntime().currentAsk = null;
   getAttachmentRuntime().queryScope = null;
   getAttachmentRuntime().excludedContext = null;
+  getAttachmentRuntime().northStarSnapshot = null;
   getAttachmentRuntime().lastFocusSnapshot = {
     decisions: [],
     constraints: [],
@@ -608,6 +643,9 @@ export function resetPiSessionScopedState(reason = "session_boundary"): void {
   getAttachmentRuntime().currentTier = "";
   getAttachmentRuntime().currentContextPct = null;
   getAttachmentRuntime().compactResumePending = false;
+  getAttachmentRuntime().compactionVerifyPendingKey = "";
+  getAttachmentRuntime().compactResumeDeliveryKey = "";
+  getAttachmentRuntime().compactResumeDeliveryState = "none";
   getAttachmentRuntime().lastCompactResumeKey = "";
   getAttachmentRuntime().lastCompactResumeAt = 0;
   getAttachmentRuntime().lastCompactDecision = "";
@@ -762,6 +800,9 @@ export function stripQuotedFocusaContext(text: string): string {
   if (!raw) return "";
 
   let stripped = raw;
+  // Focusa advisories are injected control-plane context, not operator scope evidence.
+  // Strip the whole advisory before project-alias inference to prevent recursive scope poisoning.
+  stripped = stripped.replace(/\[\s*focusa advisory[^\]]*\][\s\S]*$/i, "");
   stripped = stripped.replace(/\[focusa-context\][\s\S]*$/i, "");
   stripped = stripped.replace(/#\s*focusa context[\s\S]*$/i, "");
   stripped = stripped.replace(/rendered live from focusa-pi-bridge current state\.?[\s\S]*$/i, "");
@@ -1410,7 +1451,6 @@ function markerMatchesProjectHint(marker: any, alias: string): boolean {
 function searchProjectMarkerForAlias(alias: string): string {
   // Core directory detection: recursive bounded marker search. This is not
   // Perpetua-specific; it resolves parent/child/subdomain folders from markers.
-  const fs = require("fs");
   const candidateDirs = [
     ...(process.env.FOCUSA_PROJECT_SEARCH_DIRS || "").split(":").filter(Boolean),
     process.env.HOME || "",
@@ -1428,12 +1468,12 @@ function searchProjectMarkerForAlias(alias: string): string {
     visited++;
     const markerPath = `${dir}/.focusa-project.json`;
     try {
-      const marker = JSON.parse(fs.readFileSync(markerPath, "utf-8"));
+      const marker = JSON.parse(readFileSync(markerPath, "utf-8"));
       if (markerMatchesProjectHint(marker, alias)) {
         const root = normalizeProjectRoot(String(marker.project_root || dir));
         try {
-          fs.mkdirSync("/tmp/pi-scratch", { recursive: true });
-          fs.appendFileSync(
+          mkdirSync("/tmp/pi-scratch", { recursive: true });
+          appendFileSync(
             "/tmp/pi-scratch/alias-resolution.log",
             `[alias-resolution] directory_detector: resolved ${alias} to ${root} via ${markerPath}\n`
           );
@@ -1448,7 +1488,7 @@ function searchProjectMarkerForAlias(alias: string): string {
       /* not a marker file or unreadable */
     }
     try {
-      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
         if (entry.isDirectory() && ![".git", "node_modules", "target"].includes(entry.name)) {
           queue.push({ dir: `${dir}/${entry.name}`, depth: item.depth + 1 });
         }
@@ -1690,10 +1730,12 @@ export function buildCurrentAskScopeVerdict(
     reason = "no competing project signal in current ask";
   }
   const actionAllowed = true;
+  const sessionBindingDecision = currentProjectBindingDecision();
   const durableProjectWriteAllowed =
     status === "aligned" &&
     isProjectRootAuthoritySafe(savedRoot) &&
-    (!candidateRoot || candidateRoot === savedRoot);
+    (!candidateRoot || candidateRoot === savedRoot) &&
+    projectBindingAllowsDurableWrites(sessionBindingDecision);
   const verdict = {
     status,
     saved_scope: { project_root: savedRoot || "unknown", continuity_id: continuityId || "unknown" },
@@ -3253,6 +3295,13 @@ export async function refreshTrajectoryClarityLifecycle(
   const projectRoot = normalizeProjectRoot(
     projectRootInput || getAttachmentRuntime().sessionCwd || process.cwd()
   );
+  const continuityId = String(getAttachmentRuntime().continuityId || "").trim();
+  let expectedScope;
+  try {
+    expectedScope = buildProjectWorkstreamKey(projectRoot, continuityId);
+  } catch {
+    return null;
+  }
   if (!isProjectRootAuthoritySafe(projectRoot)) {
     setLastTrajectoryClarity({
       reason,
@@ -3268,9 +3317,55 @@ export async function refreshTrajectoryClarityLifecycle(
   query.set("project_root", projectRoot);
   query.set("allow_prior_project_trajectory", "true");
   if (getAttachmentRuntime().sessionFrameKey) query.set("session_id", getAttachmentRuntime().sessionFrameKey);
-  if (getAttachmentRuntime().continuityId) query.set("continuity_id", getAttachmentRuntime().continuityId);
+  query.set("continuity_id", continuityId);
   try {
     const view = await focusaFetch(`/trajectory/view?${query.toString()}`);
+    const projectIdentity = view?.project_identity || {};
+    const projectIdentityApi = projectIdentity?.project_identity_api || {};
+    const scopeRef = projectIdentity?.scope_ref || projectIdentityApi?.scope_ref || {};
+    const candidateRoot = normalizeProjectRoot(
+      projectIdentity?.project_root || projectIdentityApi?.project_root || ""
+    );
+    const scopeRoot = normalizeProjectRoot(scopeRef?.root_path || "");
+    const candidateContinuity = String(projectIdentity?.continuity_id || "").trim();
+    const trajectoryId = String(view?.trajectory?.trajectory_id || "").trim();
+    const receipt = view?.trajectory?.scope_verification || {};
+    const receiptScope = receipt?.scope_ref || {};
+    if (
+      projectIdentity?.status !== "verified" ||
+      scopeRef?.scope_kind !== expectedScope.root_scope.scope_kind ||
+      String(scopeRef?.scope_id || "") !== expectedScope.root_scope.scope_id ||
+      String(scopeRef?.fingerprint || "") !== expectedScope.root_scope.fingerprint ||
+      candidateRoot !== expectedScope.root_scope.root_path ||
+      scopeRoot !== expectedScope.root_scope.root_path ||
+      candidateContinuity !== expectedScope.continuity_id ||
+      !trajectoryId ||
+      String(receipt?.rendered_trajectory_id || "").trim() !== trajectoryId ||
+      !String(receipt?.source_trajectory_id || "").trim() ||
+      normalizeProjectRoot(receipt?.project_root || "") !== expectedScope.root_scope.root_path ||
+      receiptScope?.scope_kind !== expectedScope.root_scope.scope_kind ||
+      String(receiptScope?.scope_id || "") !== expectedScope.root_scope.scope_id ||
+      String(receiptScope?.fingerprint || "") !== expectedScope.root_scope.fingerprint ||
+      normalizeProjectRoot(receiptScope?.root_path || "") !== expectedScope.root_scope.root_path
+    ) {
+      throw new Error("trajectory_scope_verification_failed");
+    }
+    if (view?.trajectory?.fallback_prior_project_trajectory === true) {
+      const sourceContinuity = String(view?.trajectory?.fallback_source_continuity_id || "").trim();
+      if (
+        receipt?.status !== "verified_same_project_fallback" ||
+        !sourceContinuity ||
+        sourceContinuity === expectedScope.continuity_id ||
+        String(receipt?.continuity_id || "").trim() !== sourceContinuity
+      ) {
+        throw new Error("trajectory_fallback_source_invalid");
+      }
+    } else if (
+      receipt?.status !== "verified_exact" ||
+      String(receipt?.continuity_id || "").trim() !== expectedScope.continuity_id
+    ) {
+      throw new Error("trajectory_exact_scope_receipt_invalid");
+    }
     const clarity = view?.intelligence_view?.clarity_gate || {};
     const snapshot = {
       reason,
@@ -3288,6 +3383,7 @@ export async function refreshTrajectoryClarityLifecycle(
       degraded: view?.degraded === true,
       project_identity_status: String(view?.project_identity?.status || "unknown"),
       trajectory_id: view?.trajectory?.trajectory_id || null,
+      scope_verification: view?.trajectory?.scope_verification || null,
       fallback_prior_project_trajectory: view?.trajectory?.fallback_prior_project_trajectory === true,
       fallback_source_continuity_id: view?.trajectory?.fallback_source_continuity_id || null,
       long_term_goal: view?.trajectory?.long_term_goal || null,
@@ -3385,19 +3481,16 @@ export function isWorkpointPacketScopedToCurrentSession(packet: any): boolean {
   if (!packet || typeof packet !== "object") return false;
   const currentProjectRoot = resolvePiProjectRoot(getAttachmentRuntime().sessionCwd || process.cwd());
   const currentContinuityId = String(getAttachmentRuntime().continuityId || "").trim();
-  const currentSessionKey = String(getAttachmentRuntime().sessionFrameKey || "").trim();
   const packetProjectRoot = normalizeProjectRoot(packet.project_root);
   const packetContinuityId = String(packet.continuity_id || "").trim();
-  const packetPiSessionKey = String(packet.pi_session_frame_key || "").trim();
-  const packetSessionId = String(packet.session_id || "").trim();
   if (!currentProjectRoot || !currentContinuityId || !packetProjectRoot || !packetContinuityId) return false;
   if (!isProjectRootAuthoritySafe(currentProjectRoot) || !isProjectRootAuthoritySafe(packetProjectRoot))
     return false;
   if (currentProjectRoot !== packetProjectRoot) return false;
   if (currentContinuityId !== packetContinuityId) return false;
-  if (currentSessionKey && packetPiSessionKey && packetPiSessionKey !== currentSessionKey) return false;
-  if (currentSessionKey && !packetPiSessionKey && packetSessionId && packetSessionId !== currentSessionKey)
-    return false;
+  // Pi session ids are temporal metadata, never Workpoint identity. Exact
+  // project_root + continuity_id plus current-ask authority is the boundary;
+  // accepted packets are re-stamped for this Pi session.
   if (
     packet.canonical === false ||
     packet.status === "partial" ||
@@ -3569,6 +3662,7 @@ export function adoptWorkpointScopeForFrameRecovery(packet: any, source: string)
     return null;
   if (currentSessionKey && !packetPiSessionKey && !packetSessionId) return null;
   getAttachmentRuntime().continuityId = packetContinuityId;
+  getAttachmentRuntime().sessionCwd = packetProjectRoot;
   setActiveWorkpointPacket(stampWorkpointPacketForCurrentPiSession(workpoint));
   getAttachmentRuntime().lastWorkpointUpdate = Date.now();
   return packetProjectRoot;
@@ -3924,6 +4018,7 @@ function buildPersistedRecoveryState(): Record<string, any> {
       status: getLastProjectVerify()?.status || null,
     }),
     latestReportSummary: getLatestReportSummary(),
+    northStarSnapshot: getAttachmentRuntime().northStarSnapshot,
     toolOutputPressure: getAttachmentRuntime().toolOutputPressure?.recapRequired
       ? {
           recapRequired: true,
@@ -3943,8 +4038,14 @@ function buildPersistedRecoveryState(): Record<string, any> {
     piSessionProjectRegistry: Object.fromEntries(
       Object.entries(getAttachmentRuntime().piSessionProjectRegistry).slice(-64)
     ),
+    projectBindingDecisions: Object.fromEntries(
+      Object.entries(getAttachmentRuntime().projectBindingDecisions).slice(-16)
+    ),
+    projectBindingTelemetry: getAttachmentRuntime().projectBindingTelemetry,
     lastCompactResumeKey: getAttachmentRuntime().lastCompactResumeKey,
     lastCompactResumeAt: getAttachmentRuntime().lastCompactResumeAt,
+    compactResumeDeliveryKey: getAttachmentRuntime().compactResumeDeliveryKey,
+    compactResumeDeliveryState: getAttachmentRuntime().compactResumeDeliveryState,
     turnCount: getTurnCount(),
     wbmEnabled: getAttachmentRuntime().wbmEnabled,
     wbmNoCatalogue: getAttachmentRuntime().wbmNoCatalogue,
@@ -4162,8 +4263,11 @@ export function extractHandles(text: string): Array<{ kind: string; id: string }
  */
 export interface TypedScopeIdentity {
   scopeKind: "project" | "host" | "workstream" | "unknown";
+  scopeId: string;
+  fingerprint: string;
   rootPath: string;
-  continuityId?: string;
+  continuityId: string;
+  workingSubpathId?: string;
   sessionId?: string;
 }
 
@@ -4233,6 +4337,9 @@ export class TypedScopeStore {
 
   /** Trajectory shadow: last clarity snapshot (PI-04) */
   lastTrajectoryClarity: null | Record<string, any> = null;
+
+  /** Rebuildable scoped ontology inner-world projection (Spec95/100/125/151). */
+  lastOntologyContext: null | Record<string, any> = null;
 
   /** Report shadow: latest report summary (PI-06) */
   latestReportSummary: null | { handle?: string; mission?: string; nextAction?: string } = null;
@@ -4330,7 +4437,14 @@ class ScopeStoreRegistry {
   }
 
   private makeKey(id: TypedScopeIdentity): string {
-    return `${id.scopeKind}::${id.rootPath}::${id.continuityId || ""}::${id.sessionId || ""}`;
+    return [
+      id.scopeKind,
+      id.scopeId,
+      id.fingerprint,
+      id.rootPath,
+      id.continuityId,
+      id.workingSubpathId || "primary",
+    ].join("::");
   }
 }
 
@@ -4343,12 +4457,18 @@ export const scopeStoreRegistry = new ScopeStoreRegistry();
  * Returns null if no verified scope exists (caller must handle blocked state).
  */
 export function getCurrentScopeStore(): TypedScopeStore | null {
-  const rootPath = normalizeProjectRoot(getAttachmentRuntime().sessionCwd || "");
-  if (!rootPath) return null;
+  const requestedRoot = normalizeProjectRoot(getAttachmentRuntime().sessionCwd || "");
+  const continuityId = String(getAttachmentRuntime().continuityId || "").trim();
+  if (!requestedRoot || !continuityId) return null;
+  const verifiedScope = verifiedScopeRefForRoot(requestedRoot);
+  if (!verifiedScope) return null;
   const identity: TypedScopeIdentity = {
-    scopeKind: "project",
-    rootPath,
-    continuityId: getAttachmentRuntime().continuityId || undefined,
+    scopeKind: verifiedScope.scope_kind,
+    scopeId: verifiedScope.scope_id,
+    fingerprint: verifiedScope.fingerprint,
+    rootPath: normalizeProjectRoot(verifiedScope.root_path),
+    continuityId,
+    workingSubpathId: process.env.FOCUSA_WORKING_SUBPATH_ID || "primary",
     sessionId: getAttachmentRuntime().sessionFrameKey || undefined,
   };
   const store = scopeStoreRegistry.getOrCreate(identity);
@@ -4484,13 +4604,9 @@ export function getLastProjectRootResolution(): TypedScopeStore["lastProjectRoot
  */
 export function setLastProjectRootResolution(resolution: TypedScopeStore["lastProjectRootResolution"]): void {
   if (!resolution?.projectRoot) return;
-  const identity: TypedScopeIdentity = {
-    scopeKind: "project",
-    rootPath: normalizeProjectRoot(resolution.projectRoot),
-    continuityId: getAttachmentRuntime().continuityId || undefined,
-    sessionId: getAttachmentRuntime().sessionFrameKey || undefined,
-  };
-  const store = scopeStoreRegistry.getOrCreate(identity);
+  const store = getCurrentScopeStore();
+  if (!store) return;
+  if (normalizeProjectRoot(resolution.projectRoot) !== store.identity.rootPath) return;
   store.lastProjectRootResolution = resolution;
 }
 
@@ -4506,6 +4622,10 @@ export function getLastProjectIdentity(): Record<string, any> | null {
  * PI-02: Set lastProjectIdentity on the typed scope store only.
  */
 export function setLastProjectIdentity(identity: Record<string, any> | null): void {
+  const nested = identity?.project_identity || identity;
+  if (nested?.status === "verified" && nested?.scope_ref) {
+    registerVerifiedScopeRef(nested.scope_ref);
+  }
   const store = getCurrentScopeStore();
   if (store) store.lastProjectIdentity = identity;
 }
@@ -4548,10 +4668,133 @@ export function getLastTrajectoryClarity(): Record<string, any> | null {
   return store ? store.lastTrajectoryClarity : null;
 }
 
-/** PI-04: Set lastTrajectoryClarity on the typed scope store only. */
+function trajectorySnapshotMatchesStore(snapshot: Record<string, any>, store: TypedScopeStore): boolean {
+  const projectIdentity = snapshot?.project_identity || {};
+  const projectIdentityApi = projectIdentity?.project_identity_api || {};
+  const scopeRef = projectIdentity?.scope_ref || projectIdentityApi?.scope_ref || {};
+  const projectRoot = normalizeProjectRoot(snapshot?.project_root || "");
+  const continuityId = String(snapshot?.continuity_id || "").trim();
+  const trajectoryId = String(snapshot?.trajectory_id || "").trim();
+  const receipt = snapshot?.scope_verification || {};
+  const receiptScope = receipt?.scope_ref || {};
+  if (
+    !trajectoryId ||
+    projectIdentity?.status !== "verified" ||
+    projectRoot !== store.identity.rootPath ||
+    continuityId !== store.identity.continuityId ||
+    scopeRef?.scope_kind !== store.identity.scopeKind ||
+    String(scopeRef?.scope_id || "") !== store.identity.scopeId ||
+    String(scopeRef?.fingerprint || "") !== store.identity.fingerprint ||
+    normalizeProjectRoot(scopeRef?.root_path || "") !== store.identity.rootPath ||
+    String(receipt?.rendered_trajectory_id || "").trim() !== trajectoryId ||
+    !String(receipt?.source_trajectory_id || "").trim() ||
+    normalizeProjectRoot(receipt?.project_root || "") !== store.identity.rootPath ||
+    receiptScope?.scope_kind !== store.identity.scopeKind ||
+    String(receiptScope?.scope_id || "") !== store.identity.scopeId ||
+    String(receiptScope?.fingerprint || "") !== store.identity.fingerprint ||
+    normalizeProjectRoot(receiptScope?.root_path || "") !== store.identity.rootPath
+  ) {
+    return false;
+  }
+  if (snapshot?.fallback_prior_project_trajectory === true) {
+    const sourceContinuity = String(snapshot?.fallback_source_continuity_id || "").trim();
+    return Boolean(
+      receipt?.status === "verified_same_project_fallback" &&
+        sourceContinuity &&
+        sourceContinuity !== store.identity.continuityId &&
+        String(receipt?.continuity_id || "").trim() === sourceContinuity
+    );
+  }
+  return (
+    receipt?.status === "verified_exact" &&
+    String(receipt?.continuity_id || "").trim() === store.identity.continuityId
+  );
+}
+
+/** PI-04: Set lastTrajectoryClarity only after stable ScopeRef + continuity verification. */
 export function setLastTrajectoryClarity(snapshot: Record<string, any> | null): void {
   const store = getCurrentScopeStore();
-  if (store) store.lastTrajectoryClarity = snapshot;
+  if (!store) return;
+  store.lastTrajectoryClarity = snapshot && trajectorySnapshotMatchesStore(snapshot, store) ? snapshot : null;
+}
+
+function ontologyContextMatchesStore(packet: Record<string, any>, store: TypedScopeStore): boolean {
+  const scope = packet?.scope || {};
+  const rootScope = scope?.root_scope || {};
+  const verification = packet?.scope_verification || {};
+  const verifiedScope = verification?.scope_ref || {};
+  return Boolean(
+    packet?.status === "ok" &&
+      packet?.stale !== true &&
+      rootScope?.scope_kind === store.identity.scopeKind &&
+      String(rootScope?.scope_id || "") === store.identity.scopeId &&
+      String(rootScope?.fingerprint || "") === store.identity.fingerprint &&
+      normalizeProjectRoot(rootScope?.root_path || "") === store.identity.rootPath &&
+      String(scope?.continuity_id || "").trim() === store.identity.continuityId &&
+      verification?.status === "verified_exact" &&
+      verifiedScope?.scope_kind === store.identity.scopeKind &&
+      String(verifiedScope?.scope_id || "") === store.identity.scopeId &&
+      String(verifiedScope?.fingerprint || "") === store.identity.fingerprint &&
+      normalizeProjectRoot(verifiedScope?.root_path || "") === store.identity.rootPath &&
+      normalizeProjectRoot(verification?.project_root || "") === store.identity.rootPath &&
+      String(verification?.continuity_id || "").trim() === store.identity.continuityId
+  );
+}
+
+export function getCachedOntologyContext(): Record<string, any> | null {
+  const store = getCurrentScopeStore();
+  return store ? store.lastOntologyContext : null;
+}
+
+export function setCachedOntologyContext(packet: Record<string, any> | null): void {
+  const store = getCurrentScopeStore();
+  if (!store) return;
+  store.lastOntologyContext = packet && ontologyContextMatchesStore(packet, store) ? packet : null;
+}
+
+export async function refreshOntologyContextLifecycle(
+  reason: string,
+  currentAsk?: string,
+  operatorSteeringDetected = false
+): Promise<Record<string, any> | null> {
+  const store = getCurrentScopeStore();
+  if (!store || !getAttachmentRuntime().focusaAvailable) return null;
+  const workpoint = getActiveWorkpointPacket();
+  const targetRefs = Array.isArray(workpoint?.active_object_refs)
+    ? workpoint.active_object_refs.slice(0, 8)
+    : [];
+  try {
+    const packet = await focusaFetch("/ontology/context", {
+      method: "POST",
+      body: JSON.stringify({
+        current_ask: String(currentAsk || getAttachmentRuntime().currentAsk?.text || "").trim() || null,
+        frame_id: getAttachmentRuntime().activeFrameId || null,
+        workpoint_id: workpoint?.workpoint_id || null,
+        target_refs: targetRefs,
+        active_object_refs: targetRefs,
+        budget_tokens: 600,
+        view_profile: "pi_operator_view",
+        slice_type: "active_context",
+        operator_steering_detected: operatorSteeringDetected,
+      }),
+    });
+    setCachedOntologyContext(packet);
+    const cached = getCachedOntologyContext();
+    if (cached) {
+      focusaPost("/telemetry/activity", {
+        surface: "pi",
+        event: "ontology_context_refreshed",
+        reason,
+        project_root: store.identity.rootPath,
+        continuity_id: store.identity.continuityId,
+        cross_plane_agreement: cached?.cross_plane_agreement?.status || "unknown",
+      });
+    }
+    return cached;
+  } catch {
+    setCachedOntologyContext(null);
+    return null;
+  }
 }
 
 /** PI-05: Get lastProjectVerify from the typed scope store only. */
@@ -4562,8 +4805,28 @@ export function getLastProjectVerify(): Record<string, any> | null {
 
 /** PI-05: Set lastProjectVerify on the typed scope store only. */
 export function setLastProjectVerify(result: Record<string, any> | null): void {
+  if (result?.canonical === true || result?.verification?.verified === true) {
+    registerVerifiedScopeRef(result?.project_identity?.scope_ref);
+  }
   const store = getCurrentScopeStore();
   if (store) store.lastProjectVerify = result;
+}
+
+/** Session-scoped startup binding receipt; project authority remains root+continuity scoped. */
+export function currentProjectBindingDecision(
+  sessionId = getAttachmentRuntime().sessionFrameKey
+): ProjectBindingDecisionV1 | null {
+  return sessionId ? getAttachmentRuntime().projectBindingDecisions[sessionId] || null : null;
+}
+
+export function setCurrentProjectBindingDecision(
+  decision: ProjectBindingDecisionV1,
+  sessionId = getAttachmentRuntime().sessionFrameKey
+): void {
+  if (!sessionId) return;
+  getAttachmentRuntime().projectBindingDecisions[sessionId] = decision;
+  const bounded = Object.entries(getAttachmentRuntime().projectBindingDecisions).slice(-16);
+  getAttachmentRuntime().projectBindingDecisions = Object.fromEntries(bounded);
 }
 
 /** PI-06: Get latestReportSummary from scope store only. */

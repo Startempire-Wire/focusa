@@ -255,6 +255,37 @@ pub struct App {
     client: ApiClient,
 }
 
+fn find_json_string<'a>(value: &'a serde_json::Value, key: &str, depth: usize) -> Option<&'a str> {
+    if depth == 0 {
+        return None;
+    }
+    if let Some(found) = value.get(key).and_then(serde_json::Value::as_str) {
+        return Some(found);
+    }
+    match value {
+        serde_json::Value::Object(map) => map
+            .values()
+            .find_map(|child| find_json_string(child, key, depth - 1)),
+        serde_json::Value::Array(values) => values
+            .iter()
+            .find_map(|child| find_json_string(child, key, depth - 1)),
+        _ => None,
+    }
+}
+
+fn encode_query_component(value: &str) -> String {
+    value
+        .bytes()
+        .map(|byte| {
+            if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'~') {
+                (byte as char).to_string()
+            } else {
+                format!("%{byte:02X}")
+            }
+        })
+        .collect()
+}
+
 impl App {
     pub fn new(api_url: String) -> Self {
         Self::new_with_intro(api_url, true)
@@ -319,6 +350,10 @@ impl App {
             ("project_identity", "/v1/project/identity"),
             ("workpoint_resume", "/v1/workpoint/resume"),
             ("trajectory_view", "/v1/trajectory/view"),
+            (
+                "instruction_integrity",
+                "/v1/agent-runtime/instruction-integrity/status",
+            ),
         ];
 
         for (key, endpoint) in endpoints {
@@ -330,6 +365,43 @@ impl App {
                     self.extra_data.insert(key.to_string(), None);
                 }
             }
+        }
+        let authority_scope = self
+            .extra_data
+            .get("workpoint_resume")
+            .and_then(Option::as_ref)
+            .and_then(|value| find_json_string(value, "continuity_id", 8))
+            .and_then(|continuity_id| {
+                let scope = self
+                    .extra_data
+                    .get("project_identity")
+                    .and_then(Option::as_ref)?
+                    .pointer("/project_identity/scope_ref")?;
+                Some((
+                    scope.get("scope_kind")?.as_str()?.to_string(),
+                    scope.get("scope_id")?.as_str()?.to_string(),
+                    scope.get("root_path")?.as_str()?.to_string(),
+                    scope.get("canonical_name")?.as_str()?.to_string(),
+                    scope.get("fingerprint")?.as_str()?.to_string(),
+                    continuity_id.to_string(),
+                ))
+            });
+        if let Some((scope_kind, scope_id, root_path, canonical_name, fingerprint, continuity_id)) =
+            authority_scope
+        {
+            let endpoint = format!(
+                "/v1/prediction-authority/projection?scope_kind={}&scope_id={}&root_path={}&canonical_name={}&fingerprint={}&continuity_id={}",
+                encode_query_component(&scope_kind),
+                encode_query_component(&scope_id),
+                encode_query_component(&root_path),
+                encode_query_component(&canonical_name),
+                encode_query_component(&fingerprint),
+                encode_query_component(&continuity_id),
+            );
+            let value = self.client.fetch_json(&endpoint).await.ok();
+            self.extra_data.insert("prediction_authority".into(), value);
+        } else {
+            self.extra_data.insert("prediction_authority".into(), None);
         }
     }
 

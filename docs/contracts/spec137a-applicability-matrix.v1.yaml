@@ -1,10 +1,10 @@
 {
   "serialization": "JSON-compatible YAML 1.2",
-  "generated_at": "2026-07-27T00:47:15+00:00",
+  "generated_at": "2026-07-31T17:03:56+00:00",
   "runtime_claim": "none",
   "runtime_status": "implementation_open",
   "schema": "focusa.spec137a_applicability_matrix.v1",
-  "combined_normative_source_hash": "c4195171721cde8821a9c54a2e83d819afe226a20937930af2d4db770916978f",
+  "combined_normative_source_hash": "915bed65583e8c80ad5b2d741fa1c9d0b7d1a87f3c66786832570f3c4ec70e5b",
   "decision_rule": "absence_or_unsupported_implementation_is_never_non_applicability",
   "rows": [
     {

@@ -1,0 +1,21 @@
+focusa-a6yq6.10.5/.10.8/.10.9 — Spec133 final settlement
+Observed: 2026-07-31
+Current head during proof: 5d1b0f4c968ed66514500ec084aed2b79d55bc44
+
+Current OVH proof:
+- 19 Spec133 Python static/conformance gates passed; spec133_fault_fixture.py is an argument-driven fixture, not a standalone gate.
+- 13 Spec133 phase/domain/persistence/reducer/recovery/config/runtime/isolation/evidence/bootstrap shell gates passed.
+- Spec96 Silent Session process-failure and tool gates passed.
+- Phase 7 operator gate passed using existing Node22 Corepack pnpm 11.18.0; no package-manager install occurred.
+- Rust protected-runner, bootstrap authority, mutation POSIX safety, harness adapter, concurrency, process supervision, and evidence paths passed.
+- Menubar check/tests passed within the phase 7 gate.
+
+Cross-platform/operator proof:
+- docs/133-silent-sessions-final-release-proof.md remains the aggregate acceptance record.
+- MacBook-Pro.lan macOS 14.7.6 executed the current compiled compaction recovery fixture successfully.
+- Optional generic/PTY/tmux/Herdr/macOS/Windows runner backends remain fail-closed unless their own runtime evidence authorizes support; no fallback claim is synthesized.
+- Current exact final_release_gap_gate and all Pi tests pass.
+
+Settlement:
+- Cross-platform/real-Pi lifecycle proof, final report, and daemon-native Silent Sessions final gate are complete.
+- No tmux, /tmp, ambient-model, inferred-authority, or unverified-platform path owns canonical state.

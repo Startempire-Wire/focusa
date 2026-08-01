@@ -29,6 +29,16 @@ Returns `focusa.tool_result.v1` through the typed Pi output envelope. Status, ca
 
 Expected: Visible summary plus tool_result_v1 details; docs: docs/focusa-tools/tools/focusa_call_stack_verify.md
 
+## Operator alignment
+
+- refresh preferred address, timezone, local time, goals, constraints, desired pace, and canonical operator state before meaningful work or after long gaps
+- treat cwd as launch location only; never infer project identity, binding consent, or new-user status from cwd, missing trajectory, or a missing marker
+- consider legacy Focusa projects through git, Beads, prior sessions, aliases, and persisted Workpoints before suggesting project creation
+- use progressive disclosure and plain language; keep packet ids, hierarchy labels, tool routes, and internal recovery mechanics private unless requested
+- never invent deadlines or urgency; ground consequential time claims in temporal authority and express uncertainty as a range
+- for meaningful tasks record wall-clock start, predict human-readable delivery, observe actual duration, evaluate the prediction, and retain reusable timing lessons
+- use Focusa capabilities to achieve the operator's desired outcome within operator constraints rather than making Focusa itself the center of conversation
+
 ## Anti-examples
 
 - broad roots such as /root
@@ -67,4 +77,4 @@ Likely next: `focusa_call_stack_design`, `focusa_workpoint_link_evidence`, `focu
 - CLI: `focusa call-stack verify`, `focusa call-stack list`, `focusa call-stack show`.
 - REST: `POST /v1/call-stack/verify`, `GET /v1/call-stack/list`, `GET /v1/call-stack/show`.
 - Specification: contract registry.
-- Descriptor digest: `sha256:03725708b2c2655f3f829065d65fa4d8f229ce058d1db1750e0a60ecdeed82c7`.
+- Descriptor digest: `sha256:9ffd0e62a8ca47aee43b76fce81ab525a39c68c1a959189754fa72b300742ad5`.

@@ -30,7 +30,10 @@ assert.match(settings, /type SimpleProfileView = SimpleProfileId \| "custom"/);
 assert.match(settings, /simpleProfiles\.find\(\(profile\) =>/);
 assert.match(settings, /\["starter", "builder", "hands_off", "audit_safe", "custom"\]/);
 assert.match(settings, /if \(newValue === "custom"\) return/);
-assert.match(commandsSource, /const WORK_LOOP_TURN_OPTIONS = \["6", "10", "12", "16", "24", "60", "120", "200"\]/);
+assert.match(
+  commandsSource,
+  /const WORK_LOOP_TURN_OPTIONS = \["6", "10", "12", "16", "24", "60", "120", "200"\]/
+);
 assert.match(commandsSource, /const WORK_LOOP_RETRY_OPTIONS = \["1", "2", "3", "4", "8"\]/);
 assert.match(commandsSource, /const WORK_LOOP_SAME_SUBPROBLEM_OPTIONS = \["1", "2", "3", "4"\]/);
 
@@ -43,7 +46,11 @@ try {
   );
   writeFileSync(join(outDir, "package.json"), '{"type":"module"}\n');
   const state = await import(pathToFileURL(join(outDir, "state.js")).href);
+  const scopedState = await import(pathToFileURL(join(outDir, "scoped-state.js")).href);
   state.attachmentRuntimeRegistry.reset();
+  for (const [root, id] of [["/tmp/settings-a", "project:settings-a"], ["/tmp/settings-b", "project:settings-b"]]) {
+    scopedState.registerVerifiedScopeRef({ scope_kind: "project", scope_id: id, root_path: root, canonical_name: id, fingerprint: `fingerprint:${id}` });
+  }
   const keyA = state.makeAttachmentKey({
     projectRoot: "/tmp/settings-a",
     continuityId: "settings-a",

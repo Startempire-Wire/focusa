@@ -18,6 +18,7 @@ mod metrics;
 pub mod mission_ladder;
 pub mod modal;
 pub mod proof_status;
+pub mod semantic_pair;
 mod proposals;
 pub mod recall;
 mod references;

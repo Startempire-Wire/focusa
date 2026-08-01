@@ -37,7 +37,7 @@ assert.equal(
   3
 );
 assert.ok(manifest.after.simple_settings < manifest.baseline.simple_settings);
-assert.equal(manifest.after.simple_settings, 8);
+assert.equal(manifest.after.simple_settings, 9);
 assert.deepEqual(
   Object.keys(manifest.migration).sort(),
   ["otaProfile", "vitalInfoPromptSurfaces", "workLoopStatusHeartbeatMs"].sort()
