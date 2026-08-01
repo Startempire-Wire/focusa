@@ -1,0 +1,254 @@
+run=2 head=9712da26ff98e19a44c600effe216712b3677fbf binary_sha=c0ad324f6716b8251d7f5d6047a9271098d8cbbaa400e653e7b8bf0ff3408e98
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.36s
+     Running unittests src/lib.rs (/tmp/focusa-next-locked-release/target/debug/deps/focusa_core-c36c6ed964e1da1e)
+
+running 42 tests
+test semantic_integrity::tests::work_contract_requires_independent_verification_and_nonconflicting_mutation ... ok
+test semantic_integrity::tests::cross_graph_and_duplicate_statements_fail_closed ... ok
+test semantic_integrity::tests::canonicalization_is_order_independent_and_digest_stable ... ok
+test semantic_integrity::tests::validation_profiles_enforce_shapes_imports_and_quarantine ... ok
+test semantic_migration_tests::invalid_version_reports_degraded_instead_of_ready ... ok
+test semantic_migration_tests::dry_run_produces_receipt_without_claiming_apply ... ok
+test semantic_pair_tests::large_inline_artifacts_are_rejected_but_handles_are_accepted ... ok
+test semantic_migration_tests::apply_receipt_and_rollback_are_bounded_to_exact_source ... ok
+test semantic_performance::tests::cache_hit_preserves_strength_and_accepted_work ... ok
+test semantic_performance::tests::bounded_delta_validates_only_changed_and_affected_neighborhood ... ok
+test semantic_performance::tests::expensive_whole_world_work_is_async_and_pressure_defers_without_loss ... ok
+test semantic_pair_tests::aggregate_covers_the_complete_lifecycle_and_is_stably_hashable ... ok
+test semantic_reflex::tests::executable_reflex_preserves_trigger_context_action_evidence_and_escalation ... ok
+test semantic_reflex::tests::registry_only_reflex_never_claims_runtime_implementation ... ok
+test semantic_reflex::tests::authority_context_budget_confirmation_and_evidence_fail_closed ... ok
+test semantic_performance::tests::oversized_neighborhood_and_configured_strength_downgrade_fail_closed ... ok
+test semantic_migration_tests::compatibility_read_is_truthful_for_old_current_and_future_versions ... ok
+test semantic_registry::tests::registry_is_append_only_versioned_and_collision_safe ... ok
+test semantic_registry::tests::activation_requires_registered_active_import_closure ... ok
+test semantic_registry::tests::reproducible_build_sorts_sources_and_stabilizes_digest ... ok
+test semantic_reflex::tests::shared_catalog_requires_every_normative_reflex_name ... ok
+test semantic_replay_tests::tampering_is_detected ... ok
+test semantic_replay_tests::replay_is_deterministic_and_equivalent_after_serialization ... ok
+test semantic_replay_tests::duplicates_and_out_of_order_events_are_rejected ... ok
+test semantic_security::tests::oversized_and_recursive_work_is_rejected_before_execution ... ok
+test semantic_security::tests::executable_shapes_identity_merges_secrets_and_ineligible_evidence_are_rejected ... ok
+test semantic_settlement::tests::changed_revisions_stale_evidence_variance_and_pack_conflicts_block ... ok
+test semantic_settlement::tests::full_settlement_requires_every_mandatory_requirement_and_all_authorities ... ok
+test semantic_settlement::tests::missing_approval_is_operator_required_and_false_completion_checks_block ... ok
+test semantic_settlement::tests::partial_settlement_names_unsettled_requirements_and_never_closes_parent ... ok
+test semantic_verification::tests::frozen_snapshot_digest_is_order_independent ... ok
+test semantic_verification::tests::obligation_compilation_is_deterministic_and_model_additive_only ... ok
+test semantic_verification::tests::router_requires_live_conformant_independent_capability ... ok
+test semantic_verification::tests::settlement_fails_closed_on_stale_snapshot_writer_or_open_finding ... ok
+test semantic_vertical::tests::champion_challenger_requires_calibration_and_provider_independence ... ok
+test semantic_vertical::tests::learning_requires_causal_transfer_evidence_and_never_auto_mutates ... ok
+test semantic_vertical::tests::lifecycle_rerouting_is_bounded_and_preserves_findings_and_obligations ... ok
+test semantic_security::tests::scope_origin_and_signature_fail_closed ... ok
+test semantic_vertical::tests::vertical_activation_requires_digest_signature_window_and_resolved_critical_claims ... ok
+test semantic_replay_tests::sqlite_batch_append_is_atomic_on_invalid_suffix ... ok
+test semantic_vertical::tests::trusted_activation_cryptographically_verifies_bundle_digest ... ok
+test semantic_security::tests::trusted_signed_bounded_exact_scope_envelope_produces_chained_receipt ... ok
+
+test result: ok. 42 passed; 0 failed; 0 ignored; 0 measured; 749 filtered out; finished in 0.06s
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.25s
+     Running unittests src/lib.rs (/tmp/focusa-next-locked-release/target/debug/deps/focusa_core-c36c6ed964e1da1e)
+
+running 19 tests
+test install_lifecycle::adapters::tests::provider_handoff_is_neutral_and_never_ingests_credentials ... ok
+test install_lifecycle::adapters::tests::adapter_selection_is_explicit_and_evidence_is_secret_redacted ... ok
+test install_lifecycle::adapters::tests::pi_busy_compacting_and_uiai_saturated_are_retryable_resume_states ... ok
+test install_lifecycle::adapters::tests::required_absent_or_incompatible_capability_blocks_acceptance ... ok
+test install_lifecycle::adapters::tests::required_and_optional_capabilities_project_truthful_outcomes ... ok
+test install_lifecycle::contract_tests::completion_validation_reports_every_false_success_dimension ... ok
+test install_lifecycle::contract_tests::complete_receipts_prove_host_and_project_outcomes ... ok
+test install_lifecycle::contract_tests::preflight_never_inspects_an_undeclared_project ... ok
+test install_lifecycle::contract_tests::project_transaction_rejects_scope_and_confirmation_gaps ... ok
+test install_lifecycle::contract_tests::replay_conflicts_and_unknown_completion_fail_closed ... ok
+test install_lifecycle::contract_tests::typed_transactions_validate_and_resume_idempotently ... ok
+test install_lifecycle::contract_tests::uninstall_and_recovery_boundaries_fail_closed ... ok
+test install_lifecycle::orchestrator::tests::update_requires_signed_artifact_and_purge_has_separate_confirmation ... ok
+test install_lifecycle::tests::host_install_cannot_mutate_project_scope ... ok
+test install_lifecycle::tests::primary_transition_is_strictly_sequential ... ok
+test install_lifecycle::tests::recovery_and_acceptance_fail_closed ... ok
+test install_lifecycle::orchestrator::tests::rerun_preserves_transaction_state_and_incoherent_version_set_blocks ... ok
+test install_lifecycle::orchestrator::tests::journal_resumes_idempotently_and_detects_tampering ... ok
+test install_lifecycle::orchestrator::tests::final_acceptance_requires_coherent_versions_service_project_and_first_workpoint ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 772 filtered out; finished in 0.00s
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.25s
+     Running unittests src/main.rs (/tmp/focusa-next-locked-release/target/debug/deps/focusa_daemon-6fc23479bc9b5d9a)
+
+running 7 tests
+test routes::semantic_integrity::tests::every_mutation_is_guarded_and_not_claimed_supported ... ok
+test routes::semantic_integrity::tests::operation_ids_are_unique_stable_and_ground_all_families ... ok
+test routes::semantic_integrity::tests::operation_envelope_serialization_is_canonical ... ok
+test routes::semantic_integrity_executor::tests::scoped_storage_keys_do_not_expose_or_merge_scope_text ... ok
+test routes::semantic_integrity_executor::tests::executable_registry_is_explicit_and_schema_only_operations_remain_false ... ok
+test routes::semantic_integrity_executor::tests::durable_create_replay_is_idempotent_and_scope_isolated ... ok
+test routes::semantic_integrity_executor::tests::event_variant_must_match_operation_authority ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 431 filtered out; finished in 0.04s
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.34s
+     Running unittests src/main.rs (/tmp/focusa-next-locked-release/target/debug/deps/focusa-edc6e79ea759b120)
+
+running 3 tests
+test commands::lifecycle_guidance::tests::legacy_path_is_untouched ... ok
+test commands::lifecycle_guidance::tests::cross_flow_recovery_is_rejected ... ok
+test commands::lifecycle_guidance::tests::purge_requires_separate_confirmation ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 117 filtered out; finished in 0.00s
+
+     Running tests/command_hierarchy_e2e.rs (/tmp/focusa-next-locked-release/target/debug/deps/command_hierarchy_e2e-4775b2a0a7feff79)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+
+     Running tests/cross_phase_smoke_e2e.rs (/tmp/focusa-next-locked-release/target/debug/deps/cross_phase_smoke_e2e-8ec7c924d2f5ef5b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/first_mission_e2e.rs (/tmp/focusa-next-locked-release/target/debug/deps/first_mission_e2e-4319b60a8352a7bf)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+     Running tests/launch_hardening_e2e.rs (/tmp/focusa-next-locked-release/target/debug/deps/launch_hardening_e2e-68856800f6e6681d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+     Running tests/menubar_headless_e2e.rs (/tmp/focusa-next-locked-release/target/debug/deps/menubar_headless_e2e-2d40607f9f2a9e8a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/project_e2e.rs (/tmp/focusa-next-locked-release/target/debug/deps/project_e2e-163661aa7591fc56)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+
+     Running tests/project_genesis_e2e.rs (/tmp/focusa-next-locked-release/target/debug/deps/project_genesis_e2e-f50808784c97ddb2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/public_surface_guard_e2e.rs (/tmp/focusa-next-locked-release/target/debug/deps/public_surface_guard_e2e-c17d6d27cfebb6b0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/revoke_repair_cycle.rs (/tmp/focusa-next-locked-release/target/debug/deps/revoke_repair_cycle-d1ac438d1ba550be)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/scope_safety_expansion_e2e.rs (/tmp/focusa-next-locked-release/target/debug/deps/scope_safety_expansion_e2e-7a2d9d50e084e736)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+     Running tests/semantic_integrity_operation_grounding.rs (/tmp/focusa-next-locked-release/target/debug/deps/semantic_integrity_operation_grounding-2637b559be217355)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/silent_config_parity_e2e.rs (/tmp/focusa-next-locked-release/target/debug/deps/silent_config_parity_e2e-6b6e0975e01bcd45)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/silent_doctor_e2e.rs (/tmp/focusa-next-locked-release/target/debug/deps/silent_doctor_e2e-7c47b2871e0f3320)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/silent_interactive_parity_e2e.rs (/tmp/focusa-next-locked-release/target/debug/deps/silent_interactive_parity_e2e-a2fd0dc0a5cbaa71)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+     Running tests/silent_lifecycle_parity_e2e.rs (/tmp/focusa-next-locked-release/target/debug/deps/silent_lifecycle_parity_e2e-061e2f3a632ff354)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+     Running tests/silent_proof_export_parity_e2e.rs (/tmp/focusa-next-locked-release/target/debug/deps/silent_proof_export_parity_e2e-b9a9c27be7bf5d2f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/silent_read_parity_e2e.rs (/tmp/focusa-next-locked-release/target/debug/deps/silent_read_parity_e2e-a371ee86a77d59dd)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+     Running tests/silent_retention_safety_e2e.rs (/tmp/focusa-next-locked-release/target/debug/deps/silent_retention_safety_e2e-98a9ef89a9dbb5af)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+     Running tests/spec128_update_runtime_e2e.rs (/tmp/focusa-next-locked-release/target/debug/deps/spec128_update_runtime_e2e-c9d23d0fdb4cb71c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/work_item_e2e.rs (/tmp/focusa-next-locked-release/target/debug/deps/work_item_e2e-b90360244ed284e5)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+Spec144 client/surface parity: 12 states, 30 operations
+test_blockers_and_runtime_variance_fail_closed (__main__.Spec144EvaluationGate.test_blockers_and_runtime_variance_fail_closed) ... ok
+test_metrics_calibration_resources_replay_and_promotion (__main__.Spec144EvaluationGate.test_metrics_calibration_resources_replay_and_promotion) ... ok
+test_six_cohorts_and_25_executable_named_goldens (__main__.Spec144EvaluationGate.test_six_cohorts_and_25_executable_named_goldens) ... ok
+test_static_contract_and_exact_hashes (__main__.Spec144EvaluationGate.test_static_contract_and_exact_hashes) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.017s
+
+OK
+Spec144 runtime conformance gate: PASS (preflight)
+Spec150 lifecycle runtime gate: PASS (preflight)
+✓ SHA256 verified for focusa-pi-extension-v1.0.0.tar.gz
+✓ SHA256 verified for focusa-v1.0.0-x86_64-unknown-linux-musl
+✓ SHA256 verified for focusa-daemon-v1.0.0-x86_64-unknown-linux-musl
+✓ SHA256 verified for focusa-tui-v1.0.0-x86_64-unknown-linux-musl
+✓ SHA256 verified for focusa-agent-context-v1.0.0.tar.gz
+✓ SHA256 verified for focusa-pi-extension-v1.0.0.tar.gz
+✓ SHA256 verified for focusa-v1.0.0-x86_64-unknown-linux-musl
+✓ SHA256 verified for focusa-daemon-v1.0.0-x86_64-unknown-linux-musl
+✓ SHA256 verified for focusa-tui-v1.0.0-x86_64-unknown-linux-musl
+✓ SHA256 verified for focusa-agent-context-v1.0.0.tar.gz
+✓ SHA256 verified for focusa-pi-extension-v2.0.0.tar.gz
+✓ SHA256 verified for focusa-v2.0.0-x86_64-unknown-linux-musl
+✓ SHA256 verified for focusa-daemon-v2.0.0-x86_64-unknown-linux-musl
+✓ SHA256 verified for focusa-tui-v2.0.0-x86_64-unknown-linux-musl
+✓ SHA256 verified for focusa-agent-context-v2.0.0.tar.gz
+✓ SHA256 verified for focusa-pi-extension-v3.0.0.tar.gz
+✓ SHA256 verified for focusa-v3.0.0-x86_64-unknown-linux-musl
+✓ SHA256 verified for focusa-daemon-v3.0.0-x86_64-unknown-linux-musl
+✓ SHA256 verified for focusa-tui-v3.0.0-x86_64-unknown-linux-musl
+✓ SHA256 verified for focusa-agent-context-v3.0.0.tar.gz
+PASS: interrupted rollback, idempotent rerun, repair, upgrade license reuse, and software-complete preserve-data uninstall
+double_e2e_run_2=PASS

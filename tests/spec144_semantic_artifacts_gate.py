@@ -25,14 +25,16 @@ for gate in SPEC143_RECEIPT["gate_evidence"]:
     assert digest(ROOT / gate["path"]) == gate["sha256"]
     assert gate["result"] == "passed"
 assert ACTIVATION["schema"] == "focusa.spec144_activation.v1"
-assert ACTIVATION["status"] == "eligible"
+assert ACTIVATION["status"] == "activated"
+assert ACTIVATION["activation_receipt_ref"] == "release-proof/audit/spec144-spec150-double-e2e-receipt.json"
 assert ACTIVATION["spec143_completion_receipt_ref"] == "docs/contracts/spec143-completion-receipt.v1.json"
 assert ACTIVATION["unknown_impact_refs"] == []
 assert ACTIVATION["blocking_conflict_refs"] == []
 activation_rows = [row for row in LEDGER["requirements"] if 413 <= row["source_line"] <= 460]
 assert len(activation_rows) == 23
-assert all(row["runtime_status"] == "verified_complete" for row in activation_rows)
-assert sum(row["runtime_status"] == "implementation_open" for row in LEDGER["requirements"]) == 654
+assert all(row["runtime_status"] == "implementation_verified" for row in activation_rows)
+assert all(row["runtime_status"] == "implementation_verified" for row in LEDGER["requirements"])
+assert all(row.get("runtime_evidence_refs") for row in LEDGER["requirements"])
 for key in [
     "normative_source_coverage_ref", "feature_ledger_ref", "delivery_dag_ref",
     "ownership_matrix_ref", "client_parity_matrix_ref", "vertical_pack_matrix_ref",

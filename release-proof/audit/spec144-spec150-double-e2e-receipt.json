@@ -1,0 +1,36 @@
+{
+  "schema": "focusa.release_conformance_receipt.v1",
+  "status": "passed",
+  "observed_at": "2026-08-01T15:05:20Z",
+  "source_head": "9712da26ff98e19a44c600effe216712b3677fbf",
+  "binary": {
+    "path": "target/debug/focusa",
+    "version": "0.9.137-dev",
+    "sha256": "c0ad324f6716b8251d7f5d6047a9271098d8cbbaa400e653e7b8bf0ff3408e98",
+    "release_artifact": false
+  },
+  "repeated_runs": 2,
+  "checks": {
+    "semantic_core_runtime": "passed",
+    "semantic_api_persistence_and_scope_isolation": "passed",
+    "semantic_replay_and_migration": "passed",
+    "semantic_client_parity": "passed",
+    "semantic_evaluation_25_goldens": "passed",
+    "lifecycle_transactions_adapters_orchestrator": "passed",
+    "guided_lifecycle_cli": "passed",
+    "install_update_rollback_uninstall_first_project": "passed"
+  },
+  "runs": [
+    {
+      "run": 1,
+      "evidence_ref": "docs/evidence/release/S144-E2E-01-run-1.txt",
+      "sha256": "62e8e0d1be9f817a4f8c8c038dbcd31d7593d8dae5af55e37521ff23faea1872"
+    },
+    {
+      "run": 2,
+      "evidence_ref": "docs/evidence/release/S144-E2E-02-run-2.txt",
+      "sha256": "d0143b81f308b47c7bc5d317af70b36aebe8e3aecf00166b855524de064eae3e"
+    }
+  ],
+  "release_boundary": "This receipt proves local acceptance against the exact source head; stable release artifact and deployment remain pending canonical v0.9.142 CI."
+}

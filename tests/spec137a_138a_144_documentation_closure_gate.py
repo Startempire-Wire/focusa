@@ -49,8 +49,15 @@ for rel in required:
     text = path.read_text()
     assert len(text) > 200, f"empty/shell artifact: {rel}"
     data = json.loads(text)
-    assert data.get("runtime_claim") == "none", rel
-    assert data.get("runtime_status") in {"implementation_open", "not_activated"}, rel
+    claim = data.get("runtime_claim")
+    status = data.get("runtime_status")
+    assert (claim, status) in {
+        ("none", "implementation_open"),
+        ("none", "not_activated"),
+        ("activated", "implementation_verified"),
+    }, rel
+    if claim == "activated":
+        assert data.get("activation_receipt_ref") == "release-proof/audit/spec144-spec150-double-e2e-receipt.json", rel
 
 s137 = (ROOT / "docs/137-focusa-temporal-authority-deadlines-urgency-grounded-forecasting-spec.md").read_text()
 s138 = (ROOT / "docs/138-focusa-prediction-outcome-calibration-metacognitive-learning-transfer-and-epistemic-governance-spec.md").read_text()
@@ -64,8 +71,8 @@ ledger137 = (ROOT / "docs/contracts/spec137-complete-feature-ledger.v1.yaml").re
 assert "combined_normative_source_v2" in ledger137 and "spec137a_requirement_rows" in ledger137
 
 alignment = (ROOT / "docs/evidence/141-focusa-latest-spec-public-doc-alignment.md").read_text()
-assert "combined full conformance open" in alignment
-assert "normative documentation only; implementation not activated" in alignment
+assert alignment.count("combined full conformance verified") >= 2
+assert "runtime implementation verified by `release-proof/audit/spec144-spec150-double-e2e-receipt.json`" in alignment
 
 ci = (ROOT / "scripts/ci/run-spec-gates.sh").read_text()
 assert "spec137a_138a_144_documentation_closure_gate.py" in ci

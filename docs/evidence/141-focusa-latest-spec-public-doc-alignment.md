@@ -22,7 +22,7 @@ Public docs distinguish implemented-with-active-hardening direction from final r
 | 138 + 138A | prediction/metacognitive substrate plus mandatory full-profile closure | combined full conformance verified |
 | 139 | distributed presence, awareness, placement, multi-daemon coordination | implemented with active hardening |
 | 140 | runtime constitution, instruction authority, cross-harness compiler | implemented with active hardening |
-| 144 | semantic integrity and domain-routed Build↔Verify fabric | normative documentation only; implementation not activated |
+| 144 | semantic integrity and domain-routed Build↔Verify fabric | runtime implementation verified by `release-proof/audit/spec144-spec150-double-e2e-receipt.json` |
 
 ## Reconciled public surfaces
 
