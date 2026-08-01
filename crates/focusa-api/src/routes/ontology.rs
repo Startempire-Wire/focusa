@@ -22,7 +22,9 @@ use chrono::Utc;
 use focusa_core::prediction::{PredictionOntologyContext, PredictionValue};
 use focusa_core::scoped_state::{ScopeKind, ScopeRef, WorkstreamKey};
 use focusa_core::types::{
-    Action, FocusaEvent, FocusaState, FrameRecord, HandleKind, HandleRef, RuleScope,
+    Action, FocusaEvent, FocusaState, FrameRecord, HandleKind, HandleRef,
+    OntologyScopeMigrationRecordKind, OntologyScopeMigrationSelection, RuleScope,
+    ontology_scope_record_hash,
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -583,6 +585,17 @@ struct OntologyActionRequest {
     proposal_id: Option<String>,
     auto_verify: Option<bool>,
     auto_promote: Option<bool>,
+}
+
+#[derive(Deserialize)]
+struct OntologyScopeMigrationRequest {
+    action: String,
+    migration_id: Option<Uuid>,
+    rollback_id: Option<Uuid>,
+    #[serde(default)]
+    selections: Vec<OntologyScopeMigrationSelection>,
+    #[serde(default)]
+    evidence_refs: Vec<String>,
 }
 
 fn default_slice_type() -> String {
@@ -8486,6 +8499,220 @@ async fn execute_ontology_action(
     })))
 }
 
+fn legacy_ontology_scope_migration_candidates(focusa: &FocusaState) -> Vec<Value> {
+    let mut candidates = Vec::new();
+    let mut push =
+        |record_kind: OntologyScopeMigrationRecordKind, source_hash: String, record_ref: String| {
+            candidates.push(json!({
+                "record_kind": record_kind,
+                "source_hash": source_hash,
+                "record_ref": record_ref,
+                "ownership": "legacy_unscoped_quarantined",
+                "evidence_required": true,
+            }));
+        };
+
+    for (index, record) in focusa.ontology.objects.iter().enumerate() {
+        if record
+            .get("workstream")
+            .is_none_or(serde_json::Value::is_null)
+            && record.get("scope_class").and_then(Value::as_str) != Some("global_schema")
+        {
+            push(
+                OntologyScopeMigrationRecordKind::Object,
+                ontology_scope_record_hash(record),
+                format!("ontology.objects[{index}]"),
+            );
+        }
+    }
+    for (index, record) in focusa.ontology.links.iter().enumerate() {
+        if record
+            .get("workstream")
+            .is_none_or(serde_json::Value::is_null)
+            && record.get("scope_class").and_then(Value::as_str) != Some("global_schema")
+        {
+            push(
+                OntologyScopeMigrationRecordKind::Link,
+                ontology_scope_record_hash(record),
+                format!("ontology.links[{index}]"),
+            );
+        }
+    }
+    macro_rules! typed_candidates {
+        ($records:expr, $kind:expr, $label:literal) => {
+            for (index, record) in $records.iter().enumerate() {
+                if record.workstream.is_none() {
+                    push(
+                        $kind,
+                        ontology_scope_record_hash(record),
+                        format!(concat!($label, "[{}]"), index),
+                    );
+                }
+            }
+        };
+    }
+    typed_candidates!(
+        focusa.ontology.proposals,
+        OntologyScopeMigrationRecordKind::Proposal,
+        "ontology.proposals"
+    );
+    typed_candidates!(
+        focusa.ontology.verifications,
+        OntologyScopeMigrationRecordKind::Verification,
+        "ontology.verifications"
+    );
+    typed_candidates!(
+        focusa.ontology.working_set_refreshes,
+        OntologyScopeMigrationRecordKind::WorkingSetRefresh,
+        "ontology.working_set_refreshes"
+    );
+    typed_candidates!(
+        focusa.ontology.delta_log,
+        OntologyScopeMigrationRecordKind::Delta,
+        "ontology.delta_log"
+    );
+    typed_candidates!(
+        focusa.pre.proposals,
+        OntologyScopeMigrationRecordKind::PreProposal,
+        "pre.proposals"
+    );
+    candidates.sort_by(|left, right| {
+        left.get("record_ref")
+            .and_then(Value::as_str)
+            .cmp(&right.get("record_ref").and_then(Value::as_str))
+    });
+    candidates.truncate(env_limit("FOCUSA_ONTOLOGY_MIGRATION_CANDIDATE_LIMIT", 500));
+    candidates
+}
+
+async fn ontology_scope_migrations(
+    State(state): State<Arc<AppState>>,
+    scope: ScopeContext,
+    Json(body): Json<OntologyScopeMigrationRequest>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let target_workstream = verified_workstream_key(&scope).ok_or_else(|| {
+        ontology_validation_rejected("verified project and continuity scope required")
+    })?;
+    match body.action.trim() {
+        "dry_run" => {
+            let focusa = state.focusa.read().await;
+            let candidates = legacy_ontology_scope_migration_candidates(&focusa);
+            Ok(Json(json!({
+                "status": "planned",
+                "canonical": false,
+                "mutation": false,
+                "target_workstream": target_workstream,
+                "candidate_count": candidates.len(),
+                "candidates": candidates,
+                "policy": "explicit per-record evidence required; ownership is never inferred",
+            })))
+        }
+        "status" => {
+            let focusa = state.focusa.read().await;
+            let receipts = focusa
+                .ontology
+                .scope_migration_receipts
+                .iter()
+                .filter(|receipt| receipt.target_workstream == target_workstream)
+                .cloned()
+                .collect::<Vec<_>>();
+            Ok(Json(json!({
+                "status": "completed",
+                "canonical": true,
+                "target_workstream": target_workstream,
+                "receipts": receipts,
+            })))
+        }
+        "apply" => {
+            if body.selections.is_empty()
+                || body.evidence_refs.is_empty()
+                || body
+                    .selections
+                    .iter()
+                    .any(|selection| selection.evidence_refs.is_empty())
+            {
+                return Err(ontology_validation_rejected(
+                    "apply requires selections plus migration and per-record evidence",
+                ));
+            }
+            let migration_id = body.migration_id.unwrap_or_else(Uuid::now_v7);
+            state
+                .command_tx
+                .send(Action::EmitEvent {
+                    event: FocusaEvent::OntologyScopeMigrationApplied {
+                        migration_id,
+                        target_workstream: target_workstream.clone(),
+                        selections: body.selections,
+                        evidence_refs: body.evidence_refs,
+                    },
+                })
+                .await
+                .map_err(|error| {
+                    ontology_dispatch_failed("ontology scope migration apply", error)
+                })?;
+            Ok(Json(json!({
+                "status": "accepted",
+                "canonical": false,
+                "migration_id": migration_id,
+                "target_workstream": target_workstream,
+                "next_action": "poll status for the append-only apply receipt",
+            })))
+        }
+        "rollback" => {
+            let migration_id = body
+                .migration_id
+                .ok_or_else(|| ontology_validation_rejected("rollback requires migration_id"))?;
+            if body.evidence_refs.is_empty() {
+                return Err(ontology_validation_rejected(
+                    "rollback requires evidence_refs",
+                ));
+            }
+            {
+                let focusa = state.focusa.read().await;
+                let owned = focusa
+                    .ontology
+                    .scope_migration_receipts
+                    .iter()
+                    .any(|receipt| {
+                        receipt.migration_id == migration_id
+                            && receipt.operation == "apply"
+                            && receipt.target_workstream == target_workstream
+                    });
+                if !owned {
+                    return Err(ontology_validation_rejected(
+                        "migration apply receipt not found in exact workstream",
+                    ));
+                }
+            }
+            let rollback_id = body.rollback_id.unwrap_or_else(Uuid::now_v7);
+            state
+                .command_tx
+                .send(Action::EmitEvent {
+                    event: FocusaEvent::OntologyScopeMigrationRolledBack {
+                        rollback_id,
+                        migration_id,
+                        evidence_refs: body.evidence_refs,
+                    },
+                })
+                .await
+                .map_err(|error| {
+                    ontology_dispatch_failed("ontology scope migration rollback", error)
+                })?;
+            Ok(Json(json!({
+                "status": "accepted",
+                "canonical": false,
+                "migration_id": migration_id,
+                "rollback_id": rollback_id,
+                "target_workstream": target_workstream,
+                "next_action": "poll status for the append-only rollback receipt",
+            })))
+        }
+        _ => Err(ontology_validation_rejected(
+            "action must be dry_run, apply, status, or rollback",
+        )),
+    }
+}
+
 async fn primitives() -> Json<Value> {
     primitive_contracts()
 }
@@ -9138,6 +9365,10 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/v1/ontology/communities", get(graph_communities))
         .route("/v1/ontology/domain-pack", get(domain_pack_projection))
         .route("/v1/ontology/context", post(context))
+        .route(
+            "/v1/ontology/scope-migrations",
+            post(ontology_scope_migrations),
+        )
         .route("/v1/ontology/affordances", get(affordances))
         .route("/v1/ontology/retrieval-governor", post(retrieval_governor))
         .route(
@@ -9216,6 +9447,38 @@ mod tests {
             "/tmp/focusa-foreign",
             "foreign-continuity"
         ));
+    }
+
+    #[test]
+    fn migration_dry_run_exposes_hashes_not_legacy_payloads() {
+        let mut focusa = FocusaState::default();
+        focusa
+            .ontology
+            .proposals
+            .push(focusa_core::types::OntologyProposalRecord {
+                proposal_id: Uuid::now_v7(),
+                proposal_kind: "object_upsert".into(),
+                target_class: "secret-target".into(),
+                status: "proposed".into(),
+                notes: Some("must-not-leak".into()),
+                ..Default::default()
+            });
+        focusa.ontology.objects.push(json!({
+            "scope_class": "global_schema",
+            "id": "schema:decision"
+        }));
+        let candidates = legacy_ontology_scope_migration_candidates(&focusa);
+        assert_eq!(candidates.len(), 1);
+        assert_eq!(candidates[0]["record_kind"], "proposal");
+        assert!(
+            candidates[0]["source_hash"]
+                .as_str()
+                .unwrap()
+                .starts_with("sha256:")
+        );
+        let encoded = serde_json::to_string(&candidates).unwrap();
+        assert!(!encoded.contains("secret-target"));
+        assert!(!encoded.contains("must-not-leak"));
     }
 
     fn fixture_workspace(test_name: &str, with_git: bool, with_cargo: bool) -> PathBuf {

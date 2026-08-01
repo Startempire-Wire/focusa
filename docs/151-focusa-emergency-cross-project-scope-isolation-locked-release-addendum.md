@@ -216,3 +216,17 @@ The locked working subpath now enforces these additional boundaries:
 - adversarial reducer proof covers duplicate proposal/object ids in two workstreams through propose, promote, and failed verification transitions.
 
 Current proof: core `731/731`; API `430/430`. This checkpoint advances `ESI-006`, `ESI-007`, `ESI-008`, `ESI-010`, `ESI-013`, and `ESI-018` but does not settle them until migration receipts, all client surfaces, runtime reload, and end-to-end alternation gates pass.
+
+## 12. Implementation checkpoint — granular event-sourced migration
+
+The locked working subpath now provides `/v1/ontology/scope-migrations` with scoped `dry_run`, `apply`, `status`, and `rollback` actions:
+
+- dry-run returns bounded record kind/hash/ref candidates without exposing legacy payload content;
+- apply requires migration-level and per-record evidence, rejects ambiguous hashes, and emits one reducer event;
+- the reducer preserves each unowned source unchanged, creates a target-WorkstreamKey clone, and appends an immutable apply receipt containing source and clone hashes;
+- repeated apply events with the same migration id are idempotent;
+- rollback verifies every target clone remains byte-identical, removes only exact clone hashes, preserves legacy sources, and appends a separate rollback receipt;
+- duplicate selections, missing evidence, absent sources, ambiguous sources, foreign-workstream receipts, repeated rollback under a different id, and mutated clones fail closed;
+- `global_schema` records are excluded from migration candidates.
+
+Current proof: core `733/733`; API `431/431`. Migration client parity, interruption/restart integration, and installed-runtime proof remain locked-release blockers.
