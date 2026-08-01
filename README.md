@@ -153,6 +153,8 @@ focusa tui --headless-self-test --json
 
 The Pi extension lets agents call Focusa's Workpoint, Evidence, trajectory, recovery, prediction, metacognition, and lifecycle surfaces without inventing a parallel memory system. Future generated descriptors must expose product-qualified `license_feature` and optional limit metadata for execution-capable tools.
 
+v0.9.142 route: `focusa_project_identity → focusa_trajectory_view → focusa_workpoint_resume → focusa_evidence_capture → focusa_predict_evaluate`; checkpoint with `focusa_workpoint_checkpoint` before compaction or risky continuation.
+
 ### Local daemon and typed API
 
 Focusa runs beside agents as a Rust daemon. State stays on the operator's machine or VPS. The final licensing architecture allows the daemon to start without a valid lease only in recovery mode.
@@ -237,6 +239,10 @@ Final distribution additionally requires signed-lease golden vectors, authority 
 - [Troubleshooting](docs/current/TROUBLESHOOTING_CURRENT.md)
 - [Agent architecture and discovery](docs/agent/01-focusa-agent-docs-index.md)
 - [Friendly onboarding](docs/current/FOCUSA_FRIENDLY_ONBOARDING.md)
+- [Agent Awareness Quickstart](docs/current/AGENT_AWARENESS_QUICKSTART.md)
+- [Focusa Utility Card](docs/current/FOCUSA_AGENT_UTILITY_CARD.md)
+- [Focusa Tool Choreography Map](docs/current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md)
+- [Current Runtime Status](docs/current/CURRENT_RUNTIME_STATUS.md)
 - [Mission Canvas/current generated UI](docs/135-series-current-manifest.md)
 - [Complete tool documentation](docs/focusa-tools/README.md)
 - [Public shipped/planned status](docs/PUBLIC_DOCS_SYNC.md)
