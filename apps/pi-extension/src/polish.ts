@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import { otaActivationPaths } from "./ota-activation.js";
 import {
   getAttachmentRuntime,
+  currentProjectBindingDecision,
   focusaFetch,
   focusaPost,
   getFocusaAvailable,
@@ -348,8 +349,9 @@ function renderOperatorStatus(ctx: any): void {
     lines.push(`Deadline: ${humanTimeClaim(process.env.FOCUSA_CONFIRMED_DEADLINE, "none confirmed")}`);
   if (cfg.operatorStatusPredictionEnabled) {
     const packet: any = getActiveWorkpointPacket();
-    const prediction = runtime.startupReceptionistActive
-      ? "identify the project or task you want, then continue without changing anything prematurely"
+    const binding = currentProjectBindingDecision();
+    const prediction = runtime.startupReceptionistActive || !binding || binding.state !== "BOUND"
+      ? "choose an existing project, a new location, a direct task, or an optional guided setup"
       : packet?.next_action || packet?.next_slice || "continue from the next verified project action";
     lines.push(`Next likely: ${compactStatusText(prediction, "waiting for your direction", 120)}`);
   }
