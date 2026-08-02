@@ -125,7 +125,9 @@ async fn scan(
 ) -> Result<Json<Value>, ApiError> {
     require(&headers, &state, "work-loop:read")?;
     let discovered = discover(&request.project_root, request.max_source_bytes)?;
-    Ok(Json(json!({"schema":SCHEMA,"scan":discovered})))
+    Ok(Json(
+        json!({"schema":SCHEMA,"status":"completed","canonical":true,"scan":discovered}),
+    ))
 }
 
 async fn sources(
@@ -136,7 +138,7 @@ async fn sources(
     require(&headers, &state, "work-loop:read")?;
     let discovered = discover(&query.project_root, query.max_source_bytes)?;
     Ok(Json(
-        json!({"schema":SCHEMA,"sources":discovered.sources,"findings":discovered.findings}),
+        json!({"schema":SCHEMA,"status":"completed","canonical":true,"sources":discovered.sources,"findings":discovered.findings}),
     ))
 }
 
@@ -148,7 +150,7 @@ async fn claims(
     require(&headers, &state, "work-loop:read")?;
     let discovered = discover(&query.project_root, query.max_source_bytes)?;
     Ok(Json(
-        json!({"schema":SCHEMA,"claims":discovered.claims,"findings":discovered.findings}),
+        json!({"schema":SCHEMA,"status":"completed","canonical":true,"claims":discovered.claims,"findings":discovered.findings}),
     ))
 }
 
@@ -160,7 +162,14 @@ async fn conflicts(
     require(&headers, &state, "work-loop:read")?;
     let discovered = discover(&query.project_root, query.max_source_bytes)?;
     let conflicts = detect_conflicts(&discovered.claims, &default_authority_graph());
-    Ok(Json(json!({"schema":SCHEMA,"conflicts":conflicts})))
+    let degraded = !conflicts.is_empty();
+    Ok(Json(json!({
+        "schema":SCHEMA,
+        "status":if degraded { "degraded" } else { "completed" },
+        "canonical":!degraded,
+        "degraded":degraded,
+        "conflicts":conflicts
+    })))
 }
 
 async fn reconcile(
@@ -201,7 +210,7 @@ async fn simulate(
     let discovered = discover(&request.project_root, request.max_source_bytes)?;
     let conflicts = detect_conflicts(&discovered.claims, &default_authority_graph());
     Ok(Json(json!({
-        "schema":SCHEMA,
+        "schema":SCHEMA,"status":"completed","canonical":false,
         "simulation":{"path":request.path,"profile":request.profile,"target":request.target},
         "sources":discovered.sources,"claims":discovered.claims,"conflicts":conflicts,
         "committed":false
@@ -225,9 +234,15 @@ async fn effective(
         .iter()
         .filter(|claim| !conflicted.contains(&claim.claim_id))
         .collect();
-    Ok(Json(
-        json!({"schema":SCHEMA,"effective_claims":effective,"unresolved_conflicts":conflicts}),
-    ))
+    let degraded = !conflicts.is_empty();
+    Ok(Json(json!({
+        "schema":SCHEMA,
+        "status":if degraded { "degraded" } else { "completed" },
+        "canonical":!degraded,
+        "degraded":degraded,
+        "effective_claims":effective,
+        "unresolved_conflicts":conflicts
+    })))
 }
 
 async fn drift(

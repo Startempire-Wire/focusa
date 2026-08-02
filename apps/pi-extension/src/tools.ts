@@ -1268,25 +1268,51 @@ function inferToolResult(tool: string, result: any): FocusaToolResultV1 {
             : tool === "focusa_scratch"
               ? "scratchpad"
               : "focus_state";
+  const explicitStatus = typeof details.status === "string" ? details.status.toLowerCase() : "";
+  const mappedExplicitStatus: FocusaToolStatus | null = ["accepted", "completed", "no_op"].includes(
+    explicitStatus
+  )
+    ? (explicitStatus as FocusaToolStatus)
+    : ["supported", "ok", "ready", "verified"].includes(explicitStatus)
+      ? "completed"
+      : explicitStatus === "validation_rejected"
+        ? "validation_rejected"
+        : ["offline", "unavailable"].includes(explicitStatus)
+          ? "offline"
+          : ["blocked", "not_found"].includes(explicitStatus)
+            ? "blocked"
+            : explicitStatus === "degraded"
+              ? "degraded"
+              : explicitStatus === "error"
+                ? "error"
+                : null;
   const ok =
-    details.ok === true ||
-    details.valid === true ||
-    (!/^❌|blocked|.* unavailable/.test(text) && details.ok !== false && details.valid !== false);
-  const validationRejected = details.valid === false || /validation_rejected|rejected/.test(text);
-  const offline = /offline|unavailable/.test(text);
-  const blocked = /blocked/.test(text);
-  const degraded = details.canonical === false || /degraded|NON-CANONICAL/.test(text);
-  const status: FocusaToolStatus = validationRejected
-    ? "validation_rejected"
-    : offline
-      ? "offline"
-      : blocked
-        ? "blocked"
-        : degraded
-          ? "degraded"
-          : ok
-            ? "completed"
-            : "error";
+    mappedExplicitStatus !== null
+      ? ["accepted", "completed", "no_op"].includes(mappedExplicitStatus)
+      : details.ok === true ||
+        details.valid === true ||
+        (!/^❌|blocked|.* unavailable/.test(text) && details.ok !== false && details.valid !== false);
+  const validationRejected =
+    mappedExplicitStatus === null &&
+    (details.valid === false || /validation_rejected|rejected/.test(text));
+  const offline = mappedExplicitStatus === null && /offline|unavailable/.test(text);
+  const blocked = mappedExplicitStatus === null && /blocked/.test(text);
+  const degraded =
+    mappedExplicitStatus === null &&
+    (details.canonical === false || /degraded|NON-CANONICAL/.test(text));
+  const status: FocusaToolStatus =
+    mappedExplicitStatus ||
+    (validationRejected
+      ? "validation_rejected"
+      : offline
+        ? "offline"
+        : blocked
+          ? "blocked"
+          : degraded
+            ? "degraded"
+            : ok
+              ? "completed"
+              : "error");
   const readOnly =
     family === "lineage_intelligence" ||
     tool.endsWith("_status") ||
