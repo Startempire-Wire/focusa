@@ -405,7 +405,11 @@ fn unconfirmed_project_root_rejection(
             "scope_failure": identity.scope_failure.as_deref(),
             "candidates": &identity.project_root_candidates,
             "retry_posture": "operator_required",
-            "next_tools": ["interview", "focusa_project_identity", "focusa_workpoint_checkpoint"],
+            "next_tools": ["focusa_project_identity", "focusa_workpoint_checkpoint"],
+            "next_actions": [{
+                "action_type": "operator_input_required",
+                "prompt": "Confirm the exact existing project_root, choose new-project Genesis, or resume an authorized handoff."
+            }],
             "next_step_hint": "ask the operator to confirm the exact project_root before mutating Workpoint/evidence state"
         })),
     )

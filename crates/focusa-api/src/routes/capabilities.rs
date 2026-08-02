@@ -18,6 +18,7 @@
 //! - /v1/references
 
 use crate::routes::permissions::{forbid, permission_context};
+use crate::scope::ScopeContext;
 use crate::server::AppState;
 use axum::extract::{Path, Query, State};
 use axum::http::HeaderMap;
@@ -380,6 +381,59 @@ fn lineage_node_cap(q: &SessionScopedQuery) -> usize {
     q.limit.or(q.max_nodes).unwrap_or(ceiling).clamp(1, ceiling)
 }
 
+fn exact_lineage_session_id(
+    scope: &ScopeContext,
+    requested_session_id: Option<&str>,
+) -> Result<String, (axum::http::StatusCode, axum::Json<Value>)> {
+    let scoped_session_id = scope
+        .session_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+    let requested_session_id = requested_session_id
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+    if let (Some(scoped), Some(requested)) = (scoped_session_id, requested_session_id)
+        && scoped != requested
+    {
+        return Err((
+            axum::http::StatusCode::CONFLICT,
+            Json(capabilities_blocked(
+                "lineage session scope mismatch",
+                "scope_mismatch",
+                "The requested lineage session differs from the active typed request scope.",
+                "Use the active Pi session id or an explicit authorized session-transfer workflow.",
+                "Never use foreign lineage as mutation context.",
+                vec!["focusa_project_identity", "focusa_workpoint_resume"],
+            )),
+        ));
+    }
+    let Some(session_id) = requested_session_id.or(scoped_session_id) else {
+        return Err((
+            axum::http::StatusCode::UNPROCESSABLE_ENTITY,
+            Json(capabilities_blocked(
+                "lineage session identity is required",
+                "session_scope_required",
+                "Lineage reads fail closed when no typed Pi session id is available.",
+                "Retry from an active Pi session or provide its exact session_id.",
+                "Global or most-recent lineage fallback is prohibited.",
+                vec!["focusa_project_identity", "focusa_workpoint_resume"],
+            )),
+        ));
+    };
+    Ok(session_id.to_string())
+}
+
+fn lineage_scope_provenance(scope: &ScopeContext, session_id: &str) -> Value {
+    json!({
+        "project_root": scope.project_root,
+        "continuity_id": scope.continuity_id,
+        "session_id": session_id,
+        "binding": "exact",
+        "global_fallback": false,
+    })
+}
+
 fn enriched_lineage_node_value(node: &focusa_core::types::CltNode) -> Value {
     let mut value = serde_json::to_value(node).unwrap_or(Value::Null);
     let payload = value.get("payload").cloned().unwrap_or(Value::Null);
@@ -461,32 +515,40 @@ fn traversal_metadata(args: TraversalMetadataArgs<'_>) -> Value {
 }
 
 async fn lineage_head(
+    scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Query(q): Query<SessionScopedQuery>,
 ) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
     require_scope(&headers, &state, "lineage:read")?;
+    let session_id = exact_lineage_session_id(&scope, q.session_id.as_deref())?;
     let s = state.focusa.read().await;
+    let clt = crate::routes::clt::scoped_clt_state(&s.clt, &scope);
     Ok(Json(json!({
-        "session_id": q.session_id,
-        "head": s.clt.head_id,
+        "status": "completed",
+        "canonical": true,
+        "session_id": session_id,
+        "head": clt.head_id,
+        "scope_provenance": lineage_scope_provenance(&scope, &session_id),
     })))
 }
 
 async fn lineage_tree(
+    scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Query(q): Query<SessionScopedQuery>,
 ) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
     require_scope(&headers, &state, "lineage:read")?;
+    let session_id = exact_lineage_session_id(&scope, q.session_id.as_deref())?;
     let s = state.focusa.read().await;
-    let total = s.clt.nodes.len();
+    let clt = crate::routes::clt::scoped_clt_state(&s.clt, &scope);
+    let total = clt.nodes.len();
     let cap = lineage_node_cap(&q);
     let cursor = q.cursor.unwrap_or(0).min(total);
     let selector = q.selector.as_deref().unwrap_or("window");
-    let head = s.clt.head_id.clone();
-    let root = s
-        .clt
+    let head = clt.head_id.clone();
+    let root = clt
         .nodes
         .iter()
         .find(|node| node.parent_id.is_none())
@@ -495,8 +557,7 @@ async fn lineage_tree(
     let anchor = q.anchor.as_deref().or(head.as_deref());
 
     let nodes: Vec<_> = match selector {
-        "head" => s
-            .clt
+        "head" => clt
             .nodes
             .iter()
             .rev()
@@ -504,8 +565,7 @@ async fn lineage_tree(
             .take(cap)
             .cloned()
             .collect(),
-        "children" => s
-            .clt
+        "children" => clt
             .nodes
             .iter()
             .filter(|node| node.parent_id.as_deref() == anchor)
@@ -513,8 +573,7 @@ async fn lineage_tree(
             .take(cap)
             .cloned()
             .collect(),
-        "summaries" => s
-            .clt
+        "summaries" => clt
             .nodes
             .iter()
             .filter(|node| node.node_type == CltNodeType::Summary)
@@ -522,7 +581,7 @@ async fn lineage_tree(
             .take(cap)
             .cloned()
             .collect(),
-        _ => s.clt.nodes.iter().skip(cursor).take(cap).cloned().collect(),
+        _ => clt.nodes.iter().skip(cursor).take(cap).cloned().collect(),
     };
     let next_cursor = (cursor + nodes.len() < total).then_some(cursor + nodes.len());
     let metadata = traversal_metadata(TraversalMetadataArgs {
@@ -549,7 +608,10 @@ async fn lineage_tree(
         .collect::<Vec<_>>();
     let returned = nodes.len();
     Ok(Json(json!({
-        "session_id": q.session_id,
+        "status": "completed",
+        "canonical": true,
+        "session_id": session_id,
+        "scope_provenance": lineage_scope_provenance(&scope, &session_id),
         "root": root,
         "head": head,
         "nodes": nodes,
@@ -565,21 +627,19 @@ async fn lineage_tree(
 }
 
 async fn lineage_neighborhood(
+    scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Path(clt_node_id): Path<String>,
     Query(q): Query<SessionScopedQuery>,
 ) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
     require_scope(&headers, &state, "lineage:read")?;
+    let session_id = exact_lineage_session_id(&scope, q.session_id.as_deref())?;
     let s = state.focusa.read().await;
+    let clt = crate::routes::clt::scoped_clt_state(&s.clt, &scope);
     let cap = lineage_node_cap(&q);
     let radius = q.radius.unwrap_or(1).clamp(1, 8);
-    let index: HashMap<&str, _> = s
-        .clt
-        .nodes
-        .iter()
-        .map(|n| (n.node_id.as_str(), n))
-        .collect();
+    let index: HashMap<&str, _> = clt.nodes.iter().map(|n| (n.node_id.as_str(), n)).collect();
     let mut selected = Vec::new();
     let mut seen = HashSet::new();
 
@@ -599,8 +659,7 @@ async fn lineage_neighborhood(
             }
             current = node.parent_id.as_deref();
         }
-        for child in s
-            .clt
+        for child in clt
             .nodes
             .iter()
             .filter(|node| node.parent_id.as_deref() == Some(clt_node_id.as_str()))
@@ -617,7 +676,7 @@ async fn lineage_neighborhood(
         selector: "neighborhood",
         anchor: Some(clt_node_id.as_str()),
         returned: selected.len(),
-        total_known: s.clt.nodes.len(),
+        total_known: clt.nodes.len(),
         cursor: None,
         next_cursor: None,
         limit: cap,
@@ -630,7 +689,11 @@ async fn lineage_neighborhood(
         .map(enriched_lineage_node_value)
         .collect::<Vec<_>>();
     Ok(Json(json!({
+        "status": "completed",
+        "canonical": true,
         "anchor": clt_node_id,
+        "session_id": session_id,
+        "scope_provenance": lineage_scope_provenance(&scope, &session_id),
         "nodes": selected,
         "returned": metadata["returned"],
         "truncated": metadata["truncated"],
@@ -639,32 +702,39 @@ async fn lineage_neighborhood(
 }
 
 async fn lineage_node(
+    scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Path(clt_node_id): Path<String>,
 ) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
     require_scope(&headers, &state, "lineage:read")?;
+    let session_id = exact_lineage_session_id(&scope, None)?;
     let s = state.focusa.read().await;
-    let node = s.clt.nodes.iter().find(|n| n.node_id == clt_node_id);
+    let clt = crate::routes::clt::scoped_clt_state(&s.clt, &scope);
+    let node = clt.nodes.iter().find(|n| n.node_id == clt_node_id);
     match node {
-        Some(n) => Ok(Json(json!({"node": enriched_lineage_node_value(n)}))),
+        Some(n) => Ok(Json(json!({
+            "status": "completed",
+            "canonical": true,
+            "session_id": session_id,
+            "scope_provenance": lineage_scope_provenance(&scope, &session_id),
+            "node": enriched_lineage_node_value(n)
+        }))),
         None => Ok(Json(clt_node_not_found(&clt_node_id))),
     }
 }
 
 async fn lineage_path(
+    scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Path(clt_node_id): Path<String>,
 ) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
     require_scope(&headers, &state, "lineage:read")?;
+    let session_id = exact_lineage_session_id(&scope, None)?;
     let s = state.focusa.read().await;
-    let index: HashMap<&str, _> = s
-        .clt
-        .nodes
-        .iter()
-        .map(|n| (n.node_id.as_str(), n))
-        .collect();
+    let clt = crate::routes::clt::scoped_clt_state(&s.clt, &scope);
+    let index: HashMap<&str, _> = clt.nodes.iter().map(|n| (n.node_id.as_str(), n)).collect();
     let mut seen = HashSet::new();
     let mut out = Vec::new();
     let mut current = Some(clt_node_id);
@@ -694,6 +764,10 @@ async fn lineage_path(
         .collect::<Vec<_>>();
     let depth = out.len();
     Ok(Json(json!({
+        "status": "completed",
+        "canonical": true,
+        "session_id": session_id,
+        "scope_provenance": lineage_scope_provenance(&scope, &session_id),
         "path": out,
         "depth": depth,
         "truncated": truncated,
@@ -701,14 +775,16 @@ async fn lineage_path(
 }
 
 async fn lineage_children(
+    scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Path(clt_node_id): Path<String>,
 ) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
     require_scope(&headers, &state, "lineage:read")?;
+    let session_id = exact_lineage_session_id(&scope, None)?;
     let s = state.focusa.read().await;
-    let all_children = s
-        .clt
+    let clt = crate::routes::clt::scoped_clt_state(&s.clt, &scope);
+    let all_children = clt
         .nodes
         .iter()
         .filter(|n| n.parent_id.as_deref() == Some(clt_node_id.as_str()));
@@ -729,6 +805,10 @@ async fn lineage_children(
         .collect::<Vec<_>>();
     let returned = children.len();
     Ok(Json(json!({
+        "status": "completed",
+        "canonical": true,
+        "session_id": session_id,
+        "scope_provenance": lineage_scope_provenance(&scope, &session_id),
         "children": children,
         "total": total,
         "returned": returned,
@@ -751,17 +831,19 @@ async fn lineage_children(
 }
 
 async fn lineage_summaries(
+    scope: ScopeContext,
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Query(q): Query<SessionScopedQuery>,
 ) -> Result<Json<Value>, (axum::http::StatusCode, axum::Json<Value>)> {
     require_scope(&headers, &state, "lineage:read")?;
+    let session_id = exact_lineage_session_id(&scope, q.session_id.as_deref())?;
     let s = state.focusa.read().await;
+    let clt = crate::routes::clt::scoped_clt_state(&s.clt, &scope);
     let cap = lineage_node_cap(&q);
     let mut summaries = Vec::new();
     let mut total = 0_usize;
-    for node in s
-        .clt
+    for node in clt
         .nodes
         .iter()
         .filter(|n| n.node_type == CltNodeType::Summary)
@@ -778,7 +860,10 @@ async fn lineage_summaries(
         .collect::<Vec<_>>();
     let returned = summaries.len();
     Ok(Json(json!({
-        "session_id": q.session_id,
+        "status": "completed",
+        "canonical": true,
+        "session_id": session_id,
+        "scope_provenance": lineage_scope_provenance(&scope, &session_id),
         "summaries": summaries,
         "total": total,
         "returned": returned,
@@ -968,6 +1053,38 @@ mod tests {
                 .iter()
                 .any(|v| v.as_str() == Some("full_tree"))
         );
+    }
+
+    #[test]
+    fn lineage_session_scope_defaults_to_active_session_and_rejects_foreign_override() {
+        let scope = ScopeContext {
+            project_root: Some("/repo/focusa".to_string()),
+            continuity_id: Some("cont-a".to_string()),
+            session_id: Some("session-a".to_string()),
+            ..ScopeContext::default()
+        };
+        assert_eq!(exact_lineage_session_id(&scope, None).unwrap(), "session-a");
+        assert_eq!(
+            exact_lineage_session_id(&scope, Some("session-a")).unwrap(),
+            "session-a"
+        );
+        let (status, Json(body)) = exact_lineage_session_id(&scope, Some("session-b")).unwrap_err();
+        assert_eq!(status, axum::http::StatusCode::CONFLICT);
+        assert_eq!(body["failure_class"], "scope_mismatch");
+        assert_eq!(body["details"]["tool_result_v1"]["ok"], false);
+    }
+
+    #[test]
+    fn lineage_session_scope_missing_fails_closed_without_global_fallback() {
+        let scope = ScopeContext {
+            project_root: Some("/repo/focusa".to_string()),
+            continuity_id: Some("cont-a".to_string()),
+            ..ScopeContext::default()
+        };
+        let (status, Json(body)) = exact_lineage_session_id(&scope, None).unwrap_err();
+        assert_eq!(status, axum::http::StatusCode::UNPROCESSABLE_ENTITY);
+        assert_eq!(body["failure_class"], "session_scope_required");
+        assert_eq!(body["details"]["tool_result_v1"]["ok"], false);
     }
 
     #[test]

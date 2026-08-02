@@ -20,11 +20,17 @@ function sessionStartBlock() {
   return session.slice(start, end);
 }
 
-test("north-star gate is an inspectable read-only Pi tool", () => {
-  assert.match(tools, /name: "focusa_north_star_gate"/);
-  assert.match(tools, /buildNorthStarSnapshot/);
-  assert.match(tools, /canonical: false/);
-  assert.match(tools, /advisory: true/);
+test("north-star gate refreshes exact-scope trajectory before rendering", () => {
+  const start = tools.indexOf('name: "focusa_north_star_gate"');
+  const end = tools.indexOf('name: "focusa_scratch"', start);
+  assert.ok(start >= 0 && end > start);
+  const block = tools.slice(start, end);
+  const refresh = block.indexOf("refreshTrajectoryClarityLifecycle");
+  const snapshot = block.indexOf("buildNorthStarSnapshot");
+  assert.ok(refresh >= 0 && snapshot > refresh);
+  assert.match(block, /resolveFocusaToolProjectRoot/);
+  assert.match(block, /canonical: false/);
+  assert.match(block, /advisory: true/);
 });
 
 test("session startup fails closed before durable project initialization", () => {
