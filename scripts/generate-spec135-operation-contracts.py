@@ -9,6 +9,7 @@ R = Path(__file__).resolve().parents[1]
 B = R / "docs/contracts/spec135/generated-contract-v1"
 REGISTRY = B / "operation-registry.json"
 OPENAPI = B / "openapi-3.0.3.json"
+UI_BINDINGS = B / "ui-action-bindings.fixture.json"
 
 
 def generated(registry, openapi):
@@ -67,6 +68,55 @@ def generated(registry, openapi):
     return openapi
 
 
+def generated_ui_bindings(registry, current):
+    """Keep reviewed bindings stable and derive any newly allowed operation bindings."""
+    existing = {row["action_id"]: row for row in current["bindings"]}
+    bindings = []
+    example_values = {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
+        "session_id": "example",
+        "origin": "https://example.invalid",
+    }
+    for descriptor in registry["operations"]:
+        if not descriptor["ui"]["allowed_in_generated_ui"]:
+            continue
+        operation_id = descriptor["operation_id"]
+        binding = existing.get(operation_id, {})
+        required_keys = descriptor["scope"]["required_keys"]
+        scope = {key: example_values.get(key, "example") for key in required_keys}
+        scope["required_keys"] = required_keys
+        confirmation = descriptor["control"]["confirmation"]
+        binding.update(
+            {
+                "action_id": operation_id,
+                "canonical_revision": descriptor["operation_version"],
+                "capability_refs": descriptor["control"]["capability_refs"],
+                "contracts": descriptor["contracts"],
+                "control": {
+                    "confirmation": "none" if confirmation == "none" else "explicit",
+                    "idempotency_required": descriptor["control"]["idempotency_required"],
+                    "mode": "read" if descriptor["control"]["mode"] == "read" else "write",
+                    "optimistic_concurrency_required": descriptor["control"]["optimistic_concurrency_required"],
+                    "receipt_required": descriptor["control"]["receipt_required"],
+                    "reversible": descriptor["control"]["reversible"],
+                },
+                "operation_descriptor_ref": f"/v1/agent/operations#{operation_id}",
+                "permission_scopes": descriptor["control"]["permission_scopes"],
+                "presentation": descriptor["ui"],
+                "recovery_envelope_ref": descriptor["contracts"]["error_schema_ref"],
+                "result_envelope_ref": "focusa.tool_result.v1",
+                "schema": "focusa.ui_action_binding.v1",
+                "scope": scope,
+            }
+        )
+        bindings.append(binding)
+    current["bindings"] = bindings
+    current["binding_count"] = len(bindings)
+    return current
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--write", action="store_true")
@@ -77,9 +127,18 @@ def main():
     expected = generated(registry, json.loads(json.dumps(current)))
     rendered = json.dumps(expected, indent=2) + "\n"
     existing = json.dumps(current, indent=2) + "\n"
+    current_bindings = json.loads(UI_BINDINGS.read_text())
+    expected_bindings = generated_ui_bindings(
+        registry, json.loads(json.dumps(current_bindings))
+    )
+    rendered_bindings = json.dumps(expected_bindings, indent=2) + "\n"
+    existing_bindings = json.dumps(current_bindings, indent=2) + "\n"
     if args.write:
         OPENAPI.write_text(rendered)
-    if args.check and rendered != existing:
+        UI_BINDINGS.write_text(rendered_bindings)
+    if args.check and (
+        rendered != existing or rendered_bindings != existing_bindings
+    ):
         print(json.dumps({"status":"blocked","reason":"generated_operation_contract_drift","recovery":"run scripts/generate-spec135-operation-contracts.py --write"}))
         return 1
     print(json.dumps({"status":"passed","operations":len(registry["operations"]),"mode":"write" if args.write else "check"}))

@@ -2,9 +2,9 @@
 
 Generated from current Axum route registration plus the Spec135/Spec141 operation registry. This public inventory is release-gated; do not edit route rows manually.
 
-- Classified paths: `524`
-- Agent eligible: `102`
-- Operator only: `410`
+- Classified paths: `525`
+- Agent eligible: `108`
+- Operator only: `405`
 - Public health/pairing: `6`
 - Internal: `6`
 
@@ -3475,18 +3475,18 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 ### `/v1/temporal/civil/resolve`
 
 - Methods: `POST /v1/temporal/civil/resolve`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/temporal.rs`
-- Agent operations: none
+- Agent operations: `focusa.temporal.civil.resolve`
 
 ### `/v1/temporal/clock/capture`
 
 - Methods: `POST /v1/temporal/clock/capture`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/temporal.rs`
-- Agent operations: none
+- Agent operations: `focusa.temporal.clock.capture`
 
 ### `/v1/temporal/commit`
 
@@ -3507,18 +3507,18 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 ### `/v1/temporal/high-consequence/preflight`
 
 - Methods: `POST /v1/temporal/high-consequence/preflight`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/temporal.rs`
-- Agent operations: none
+- Agent operations: `focusa.temporal.high_consequence_preflight`
 
 ### `/v1/temporal/migrate-signatures`
 
 - Methods: `POST /v1/temporal/migrate-signatures`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/temporal.rs`
-- Agent operations: none
+- Agent operations: `focusa.temporal.migrate_signatures`
 
 ### `/v1/temporal/observe`
 
@@ -3539,10 +3539,10 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 ### `/v1/temporal/priority/commit`
 
 - Methods: `POST /v1/temporal/priority/commit`
-- Classification: `operator_only`
-- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/temporal.rs`
-- Agent operations: none
+- Agent operations: `focusa.temporal.priority.commit`
 
 ### `/v1/temporal/revise`
 
@@ -3551,6 +3551,14 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
 - Sources: `crates/focusa-api/src/routes/temporal.rs`
 - Agent operations: `focusa.temporal.revise`
+
+### `/v1/temporal/settle-closure`
+
+- Methods: `POST /v1/temporal/settle-closure`
+- Classification: `agent_eligible`
+- Rationale: Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.
+- Sources: `crates/focusa-api/src/routes/temporal.rs`
+- Agent operations: `focusa.temporal.settle_closure`
 
 ### `/v1/temporal/status`
 

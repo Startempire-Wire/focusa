@@ -1956,6 +1956,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/temporal/clock/capture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Temporal commit */
+        post: operations["focusa.temporal.clock.capture"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/temporal/priority/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Temporal commit */
+        post: operations["focusa.temporal.priority.commit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/temporal/civil/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Temporal commit */
+        post: operations["focusa.temporal.civil.resolve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/temporal/high-consequence/preflight": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Temporal commit */
+        post: operations["focusa.temporal.high_consequence_preflight"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/temporal/migrate-signatures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Temporal commit */
+        post: operations["focusa.temporal.migrate_signatures"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/temporal/settle-closure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Temporal commit */
+        post: operations["focusa.temporal.settle_closure"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/prediction-authority/projection": {
         parameters: {
             query?: never;
@@ -5382,6 +5484,222 @@ export interface components {
         focusa_temporal_preflight_response_v1: {
             status: string;
             next_action?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_clock_capture_request_v1: {
+            actual_duration_ms?: number;
+            civil_time_intent?: Record<string, never>;
+            confirm?: boolean;
+            continuity_id: string;
+            evidence_refs?: string[];
+            forecast_evaluation_refs?: string[];
+            high_consequence_packet?: Record<string, never>;
+            host_id?: string;
+            human_calendar_context?: Record<string, never>;
+            idempotency_key: string;
+            item_id?: string;
+            learning_candidate_refs?: string[];
+            lost_time_incident?: Record<string, never>;
+            operator_id?: string;
+            outcome?: string;
+            project_root: string;
+            receipt_ref?: string;
+            reflection_refs?: string[];
+            subject_ref?: string;
+            target_ref?: string;
+            task_id?: string;
+            temporal_execution_guard?: Record<string, never>;
+            temporal_priority_frame?: Record<string, never>;
+            timezone: string;
+            tzdb_version?: string;
+            workpoint_id?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_clock_capture_response_v1: {
+            next_action?: string;
+            status: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_priority_commit_request_v1: {
+            actual_duration_ms?: number;
+            civil_time_intent?: Record<string, never>;
+            confirm?: boolean;
+            continuity_id: string;
+            evidence_refs?: string[];
+            forecast_evaluation_refs?: string[];
+            high_consequence_packet?: Record<string, never>;
+            host_id?: string;
+            human_calendar_context?: Record<string, never>;
+            idempotency_key: string;
+            item_id?: string;
+            learning_candidate_refs?: string[];
+            lost_time_incident?: Record<string, never>;
+            operator_id?: string;
+            outcome?: string;
+            project_root: string;
+            receipt_ref?: string;
+            reflection_refs?: string[];
+            subject_ref?: string;
+            target_ref?: string;
+            task_id?: string;
+            temporal_execution_guard?: Record<string, never>;
+            temporal_priority_frame?: Record<string, never>;
+            timezone?: string;
+            tzdb_version?: string;
+            workpoint_id?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_priority_commit_response_v1: {
+            next_action?: string;
+            status: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_civil_resolve_request_v1: {
+            actual_duration_ms?: number;
+            civil_time_intent?: Record<string, never>;
+            confirm?: boolean;
+            continuity_id: string;
+            evidence_refs?: string[];
+            forecast_evaluation_refs?: string[];
+            high_consequence_packet?: Record<string, never>;
+            host_id?: string;
+            human_calendar_context?: Record<string, never>;
+            idempotency_key: string;
+            item_id?: string;
+            learning_candidate_refs?: string[];
+            lost_time_incident?: Record<string, never>;
+            operator_id?: string;
+            outcome?: string;
+            project_root: string;
+            receipt_ref?: string;
+            reflection_refs?: string[];
+            subject_ref?: string;
+            target_ref?: string;
+            task_id?: string;
+            temporal_execution_guard?: Record<string, never>;
+            temporal_priority_frame?: Record<string, never>;
+            timezone?: string;
+            tzdb_version?: string;
+            workpoint_id?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_civil_resolve_response_v1: {
+            next_action?: string;
+            status: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_high_consequence_preflight_request_v1: {
+            actual_duration_ms?: number;
+            civil_time_intent?: Record<string, never>;
+            confirm?: boolean;
+            continuity_id: string;
+            evidence_refs?: string[];
+            forecast_evaluation_refs?: string[];
+            high_consequence_packet?: Record<string, never>;
+            host_id?: string;
+            human_calendar_context?: Record<string, never>;
+            idempotency_key: string;
+            item_id?: string;
+            learning_candidate_refs?: string[];
+            lost_time_incident?: Record<string, never>;
+            operator_id?: string;
+            outcome?: string;
+            project_root: string;
+            receipt_ref?: string;
+            reflection_refs?: string[];
+            subject_ref?: string;
+            target_ref?: string;
+            task_id?: string;
+            temporal_execution_guard?: Record<string, never>;
+            temporal_priority_frame?: Record<string, never>;
+            timezone?: string;
+            tzdb_version?: string;
+            workpoint_id?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_high_consequence_preflight_response_v1: {
+            next_action?: string;
+            status: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_migrate_signatures_request_v1: {
+            actual_duration_ms?: number;
+            civil_time_intent?: Record<string, never>;
+            confirm: boolean;
+            continuity_id: string;
+            evidence_refs?: string[];
+            forecast_evaluation_refs?: string[];
+            high_consequence_packet?: Record<string, never>;
+            host_id?: string;
+            human_calendar_context?: Record<string, never>;
+            idempotency_key: string;
+            item_id?: string;
+            learning_candidate_refs?: string[];
+            lost_time_incident?: Record<string, never>;
+            operator_id?: string;
+            outcome?: string;
+            project_root: string;
+            receipt_ref?: string;
+            reflection_refs?: string[];
+            subject_ref?: string;
+            target_ref?: string;
+            task_id?: string;
+            temporal_execution_guard?: Record<string, never>;
+            temporal_priority_frame?: Record<string, never>;
+            timezone?: string;
+            tzdb_version?: string;
+            workpoint_id?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_migrate_signatures_response_v1: {
+            next_action?: string;
+            status: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_settle_closure_request_v1: {
+            actual_duration_ms?: number;
+            civil_time_intent?: Record<string, never>;
+            confirm: boolean;
+            continuity_id: string;
+            evidence_refs: string[];
+            forecast_evaluation_refs?: string[];
+            high_consequence_packet?: Record<string, never>;
+            host_id?: string;
+            human_calendar_context?: Record<string, never>;
+            idempotency_key: string;
+            item_id?: string;
+            learning_candidate_refs?: string[];
+            lost_time_incident?: Record<string, never>;
+            operator_id?: string;
+            outcome: string;
+            project_root: string;
+            receipt_ref: string;
+            reflection_refs?: string[];
+            subject_ref: string;
+            target_ref?: string;
+            task_id?: string;
+            temporal_execution_guard?: Record<string, never>;
+            temporal_priority_frame?: Record<string, never>;
+            timezone?: string;
+            tzdb_version?: string;
+            workpoint_id?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_settle_closure_response_v1: {
+            next_action?: string;
+            status: string;
         } & {
             [key: string]: unknown;
         };
@@ -8921,6 +9239,150 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["focusa_temporal_preflight_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.temporal.clock.capture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_temporal_clock_capture_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Temporal result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_temporal_clock_capture_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.temporal.priority.commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_temporal_priority_commit_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Temporal result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_temporal_priority_commit_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.temporal.civil.resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_temporal_civil_resolve_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Temporal result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_temporal_civil_resolve_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.temporal.high_consequence_preflight": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_temporal_high_consequence_preflight_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Temporal result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_temporal_high_consequence_preflight_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.temporal.migrate_signatures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_temporal_migrate_signatures_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Temporal result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_temporal_migrate_signatures_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.temporal.settle_closure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_temporal_settle_closure_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Temporal result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_temporal_settle_closure_response_v1"];
                 };
             };
         };

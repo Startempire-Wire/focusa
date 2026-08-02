@@ -12289,6 +12289,709 @@
           }
         }
       },
+      "focusa_temporal_clock_capture_request_v1": {
+        "additionalProperties": true,
+        "properties": {
+          "actual_duration_ms": {
+            "type": "integer"
+          },
+          "civil_time_intent": {
+            "type": "object"
+          },
+          "confirm": {
+            "type": "boolean"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "forecast_evaluation_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "high_consequence_packet": {
+            "type": "object"
+          },
+          "host_id": {
+            "type": "string"
+          },
+          "human_calendar_context": {
+            "type": "object"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "learning_candidate_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "lost_time_incident": {
+            "type": "object"
+          },
+          "operator_id": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "project_root": {
+            "type": "string"
+          },
+          "receipt_ref": {
+            "type": "string"
+          },
+          "reflection_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "subject_ref": {
+            "type": "string"
+          },
+          "target_ref": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "temporal_execution_guard": {
+            "type": "object"
+          },
+          "temporal_priority_frame": {
+            "type": "object"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "tzdb_version": {
+            "type": "string"
+          },
+          "workpoint_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_root",
+          "continuity_id",
+          "idempotency_key",
+          "timezone"
+        ],
+        "type": "object"
+      },
+      "focusa_temporal_clock_capture_response_v1": {
+        "additionalProperties": true,
+        "properties": {
+          "next_action": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "focusa_temporal_priority_commit_request_v1": {
+        "additionalProperties": true,
+        "properties": {
+          "actual_duration_ms": {
+            "type": "integer"
+          },
+          "civil_time_intent": {
+            "type": "object"
+          },
+          "confirm": {
+            "type": "boolean"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "forecast_evaluation_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "high_consequence_packet": {
+            "type": "object"
+          },
+          "host_id": {
+            "type": "string"
+          },
+          "human_calendar_context": {
+            "type": "object"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "learning_candidate_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "lost_time_incident": {
+            "type": "object"
+          },
+          "operator_id": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "project_root": {
+            "type": "string"
+          },
+          "receipt_ref": {
+            "type": "string"
+          },
+          "reflection_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "subject_ref": {
+            "type": "string"
+          },
+          "target_ref": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "temporal_execution_guard": {
+            "type": "object"
+          },
+          "temporal_priority_frame": {
+            "type": "object"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "tzdb_version": {
+            "type": "string"
+          },
+          "workpoint_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_root",
+          "continuity_id",
+          "idempotency_key"
+        ],
+        "type": "object"
+      },
+      "focusa_temporal_priority_commit_response_v1": {
+        "additionalProperties": true,
+        "properties": {
+          "next_action": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "focusa_temporal_civil_resolve_request_v1": {
+        "additionalProperties": true,
+        "properties": {
+          "actual_duration_ms": {
+            "type": "integer"
+          },
+          "civil_time_intent": {
+            "type": "object"
+          },
+          "confirm": {
+            "type": "boolean"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "forecast_evaluation_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "high_consequence_packet": {
+            "type": "object"
+          },
+          "host_id": {
+            "type": "string"
+          },
+          "human_calendar_context": {
+            "type": "object"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "learning_candidate_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "lost_time_incident": {
+            "type": "object"
+          },
+          "operator_id": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "project_root": {
+            "type": "string"
+          },
+          "receipt_ref": {
+            "type": "string"
+          },
+          "reflection_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "subject_ref": {
+            "type": "string"
+          },
+          "target_ref": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "temporal_execution_guard": {
+            "type": "object"
+          },
+          "temporal_priority_frame": {
+            "type": "object"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "tzdb_version": {
+            "type": "string"
+          },
+          "workpoint_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_root",
+          "continuity_id",
+          "idempotency_key"
+        ],
+        "type": "object"
+      },
+      "focusa_temporal_civil_resolve_response_v1": {
+        "additionalProperties": true,
+        "properties": {
+          "next_action": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "focusa_temporal_high_consequence_preflight_request_v1": {
+        "additionalProperties": true,
+        "properties": {
+          "actual_duration_ms": {
+            "type": "integer"
+          },
+          "civil_time_intent": {
+            "type": "object"
+          },
+          "confirm": {
+            "type": "boolean"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "forecast_evaluation_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "high_consequence_packet": {
+            "type": "object"
+          },
+          "host_id": {
+            "type": "string"
+          },
+          "human_calendar_context": {
+            "type": "object"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "learning_candidate_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "lost_time_incident": {
+            "type": "object"
+          },
+          "operator_id": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "project_root": {
+            "type": "string"
+          },
+          "receipt_ref": {
+            "type": "string"
+          },
+          "reflection_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "subject_ref": {
+            "type": "string"
+          },
+          "target_ref": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "temporal_execution_guard": {
+            "type": "object"
+          },
+          "temporal_priority_frame": {
+            "type": "object"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "tzdb_version": {
+            "type": "string"
+          },
+          "workpoint_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_root",
+          "continuity_id",
+          "idempotency_key"
+        ],
+        "type": "object"
+      },
+      "focusa_temporal_high_consequence_preflight_response_v1": {
+        "additionalProperties": true,
+        "properties": {
+          "next_action": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "focusa_temporal_migrate_signatures_request_v1": {
+        "additionalProperties": true,
+        "properties": {
+          "actual_duration_ms": {
+            "type": "integer"
+          },
+          "civil_time_intent": {
+            "type": "object"
+          },
+          "confirm": {
+            "type": "boolean"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "forecast_evaluation_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "high_consequence_packet": {
+            "type": "object"
+          },
+          "host_id": {
+            "type": "string"
+          },
+          "human_calendar_context": {
+            "type": "object"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "learning_candidate_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "lost_time_incident": {
+            "type": "object"
+          },
+          "operator_id": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "project_root": {
+            "type": "string"
+          },
+          "receipt_ref": {
+            "type": "string"
+          },
+          "reflection_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "subject_ref": {
+            "type": "string"
+          },
+          "target_ref": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "temporal_execution_guard": {
+            "type": "object"
+          },
+          "temporal_priority_frame": {
+            "type": "object"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "tzdb_version": {
+            "type": "string"
+          },
+          "workpoint_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_root",
+          "continuity_id",
+          "idempotency_key",
+          "confirm"
+        ],
+        "type": "object"
+      },
+      "focusa_temporal_migrate_signatures_response_v1": {
+        "additionalProperties": true,
+        "properties": {
+          "next_action": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "focusa_temporal_settle_closure_request_v1": {
+        "additionalProperties": true,
+        "properties": {
+          "actual_duration_ms": {
+            "type": "integer"
+          },
+          "civil_time_intent": {
+            "type": "object"
+          },
+          "confirm": {
+            "type": "boolean"
+          },
+          "continuity_id": {
+            "type": "string"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "forecast_evaluation_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "high_consequence_packet": {
+            "type": "object"
+          },
+          "host_id": {
+            "type": "string"
+          },
+          "human_calendar_context": {
+            "type": "object"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "learning_candidate_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "lost_time_incident": {
+            "type": "object"
+          },
+          "operator_id": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "project_root": {
+            "type": "string"
+          },
+          "receipt_ref": {
+            "type": "string"
+          },
+          "reflection_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "subject_ref": {
+            "type": "string"
+          },
+          "target_ref": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "temporal_execution_guard": {
+            "type": "object"
+          },
+          "temporal_priority_frame": {
+            "type": "object"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "tzdb_version": {
+            "type": "string"
+          },
+          "workpoint_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_root",
+          "continuity_id",
+          "idempotency_key",
+          "confirm",
+          "subject_ref",
+          "outcome",
+          "evidence_refs",
+          "receipt_ref"
+        ],
+        "type": "object"
+      },
+      "focusa_temporal_settle_closure_response_v1": {
+        "additionalProperties": true,
+        "properties": {
+          "next_action": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
       "focusa_prediction_authority_projection_response_v1": {
         "type": "object",
         "required": [
@@ -21574,6 +22277,420 @@
           "requires_preview_token": false,
           "deprecation": null
         }
+      }
+    },
+    "/v1/temporal/clock/capture": {
+      "post": {
+        "operationId": "focusa.temporal.clock.capture",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_temporal_clock_capture_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_clock_capture_response_v1"
+                }
+              }
+            },
+            "description": "Temporal result"
+          }
+        },
+        "summary": "Temporal commit",
+        "tags": [
+          "temporal"
+        ],
+        "x-focusa": {
+          "family": "trajectory",
+          "canonical": true,
+          "budget_profile": "bounded_write",
+          "materialization_mode": "canonical_mutation",
+          "side_effect_profile": "append_only_temporal_event",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "consequential",
+        "x-focusa-core-action": "focusa.temporal.clock.capture",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "temporal:write"
+        ],
+        "x-focusa-plain-label": "Temporal Clock Capture",
+        "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "consequential",
+        "x-focusa-subsystem": "temporal"
+      }
+    },
+    "/v1/temporal/priority/commit": {
+      "post": {
+        "operationId": "focusa.temporal.priority.commit",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_temporal_priority_commit_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_priority_commit_response_v1"
+                }
+              }
+            },
+            "description": "Temporal result"
+          }
+        },
+        "summary": "Temporal commit",
+        "tags": [
+          "temporal"
+        ],
+        "x-focusa": {
+          "family": "trajectory",
+          "canonical": true,
+          "budget_profile": "bounded_write",
+          "materialization_mode": "canonical_mutation",
+          "side_effect_profile": "append_only_temporal_event",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "consequential",
+        "x-focusa-core-action": "focusa.temporal.priority.commit",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "temporal:write"
+        ],
+        "x-focusa-plain-label": "Temporal Priority Commit",
+        "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "consequential",
+        "x-focusa-subsystem": "temporal"
+      }
+    },
+    "/v1/temporal/civil/resolve": {
+      "post": {
+        "operationId": "focusa.temporal.civil.resolve",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_temporal_civil_resolve_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_civil_resolve_response_v1"
+                }
+              }
+            },
+            "description": "Temporal result"
+          }
+        },
+        "summary": "Temporal commit",
+        "tags": [
+          "temporal"
+        ],
+        "x-focusa": {
+          "family": "trajectory",
+          "canonical": true,
+          "budget_profile": "bounded_write",
+          "materialization_mode": "canonical_mutation",
+          "side_effect_profile": "append_only_temporal_event",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "consequential",
+        "x-focusa-core-action": "focusa.temporal.civil.resolve",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "temporal:write"
+        ],
+        "x-focusa-plain-label": "Temporal Civil Resolve",
+        "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "consequential",
+        "x-focusa-subsystem": "temporal"
+      }
+    },
+    "/v1/temporal/high-consequence/preflight": {
+      "post": {
+        "operationId": "focusa.temporal.high_consequence_preflight",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_temporal_high_consequence_preflight_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_high_consequence_preflight_response_v1"
+                }
+              }
+            },
+            "description": "Temporal result"
+          }
+        },
+        "summary": "Temporal commit",
+        "tags": [
+          "temporal"
+        ],
+        "x-focusa": {
+          "family": "trajectory",
+          "canonical": true,
+          "budget_profile": "bounded_write",
+          "materialization_mode": "canonical_mutation",
+          "side_effect_profile": "append_only_temporal_event",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "consequential",
+        "x-focusa-core-action": "focusa.temporal.high_consequence_preflight",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "temporal:write"
+        ],
+        "x-focusa-plain-label": "Temporal High Consequence Preflight",
+        "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "consequential",
+        "x-focusa-subsystem": "temporal"
+      }
+    },
+    "/v1/temporal/migrate-signatures": {
+      "post": {
+        "operationId": "focusa.temporal.migrate_signatures",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_temporal_migrate_signatures_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_migrate_signatures_response_v1"
+                }
+              }
+            },
+            "description": "Temporal result"
+          }
+        },
+        "summary": "Temporal commit",
+        "tags": [
+          "temporal"
+        ],
+        "x-focusa": {
+          "family": "trajectory",
+          "canonical": true,
+          "budget_profile": "bounded_write",
+          "materialization_mode": "canonical_mutation",
+          "side_effect_profile": "append_only_temporal_event",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "consequential",
+        "x-focusa-core-action": "focusa.temporal.migrate_signatures",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "temporal:write"
+        ],
+        "x-focusa-plain-label": "Temporal Signature Migration",
+        "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "consequential",
+        "x-focusa-subsystem": "temporal"
+      }
+    },
+    "/v1/temporal/settle-closure": {
+      "post": {
+        "operationId": "focusa.temporal.settle_closure",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_temporal_settle_closure_request_v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_temporal_settle_closure_response_v1"
+                }
+              }
+            },
+            "description": "Temporal result"
+          }
+        },
+        "summary": "Temporal commit",
+        "tags": [
+          "temporal"
+        ],
+        "x-focusa": {
+          "family": "trajectory",
+          "canonical": true,
+          "budget_profile": "bounded_write",
+          "materialization_mode": "canonical_mutation",
+          "side_effect_profile": "append_only_temporal_event",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
+        },
+        "x-focusa-advanced-only": false,
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-concurrency": false,
+        "x-focusa-confirmation": "consequential",
+        "x-focusa-core-action": "focusa.temporal.settle_closure",
+        "x-focusa-generated-ui": true,
+        "x-focusa-idempotency": true,
+        "x-focusa-mode": "commit",
+        "x-focusa-permissions": [
+          "temporal:write"
+        ],
+        "x-focusa-plain-label": "Temporal Closure Settlement",
+        "x-focusa-receipt": true,
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa-reversible": false,
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-sensitive": "consequential",
+        "x-focusa-subsystem": "temporal"
       }
     },
     "/v1/prediction-authority/projection": {
