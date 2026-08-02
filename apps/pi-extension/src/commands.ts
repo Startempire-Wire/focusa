@@ -12,6 +12,7 @@ import {
   compatibleWorkLoopStatusState,
   getFocusState,
   getEffectiveFocusSnapshot,
+  getEcsArtifact,
   persistState,
   persistAuthoritativeState,
   createPiFrame,
@@ -49,6 +50,7 @@ import {
   workSurfaceLabel,
 } from "./mission-canvas-model.js";
 import { projectSessionInventory, sessionInventoryLabel } from "./mission-canvas-session-inventory.js";
+import { rehydrateHandle } from "./rehydrate.js";
 
 async function commandWorkLoopWriterHeaders(): Promise<Record<string, string>> {
   const writerId = `pi-${process.pid}`;
@@ -1431,6 +1433,38 @@ export function registerCommands(pi: ExtensionAPI) {
           `Focusa rollover failed safely; source preserved: ${error instanceof Error ? error.message : String(error)}`,
           "error"
         );
+      }
+    },
+  });
+
+  pi.registerCommand("focusa-rehydrate", {
+    description: "Retrieve bounded content for a Focusa ECS or local output handle",
+    handler: async (args, ctx) => {
+      try {
+        const result = await rehydrateHandle(args, {
+          getLocal: getEcsArtifact,
+          fetchRemote: (path, init) => focusaFetch(path, init),
+        });
+        pi.sendMessage(
+          {
+            customType: "focusa-rehydrate",
+            content: result.content,
+            display: true,
+            details: {
+              handle_id: result.handleId,
+              source: result.source,
+              truncated: result.truncated,
+              original_size: result.originalSize ?? null,
+            },
+          },
+          { deliverAs: "nextTurn" }
+        );
+        ctx.ui.notify(
+          `Focusa handle ${result.handleId} retrieved from ${result.source}${result.truncated ? " (bounded)" : ""}`,
+          "info"
+        );
+      } catch (error) {
+        ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
       }
     },
   });
