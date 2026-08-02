@@ -41,6 +41,11 @@ assert.doesNotMatch(shell, /Terminal compatibility projection/);
 assert.doesNotMatch(shell, /AGENT STREAM · SAME SESSION/);
 assert.match(shell, /setConversation\(recentConversation\(this\.ctx\)\)/);
 assert.match(shell, /sendUserMessage\(prompt\)/);
+assert.match(shell, /implements Component, Focusable/);
+assert.match(shell, /this\.input\.focused = value/);
+assert.match(shell, /queueMicrotask/);
+assert.match(shell, /this\.disableCanvas\(\)\.catch/);
+assert.doesNotMatch(shell, /Use the focusa_mission_canvas tool with action off now/);
 assert.match(shell, /setTitle\("Focusa Mission Canvas"\)/);
 assert.match(shell, /FOCUSA MISSION CANVAS · CURRENT PI SESSION/);
 assert.match(shell, /PROMPT EDITOR · To: Pi · current session · New Workpoint: \/focus-work/);
@@ -52,9 +57,11 @@ assert.doesNotMatch(shell, /clearInterval\(this\.refreshTimer\)/);
 assert.match(shell, /this\.input\.getValue\(\)/);
 assert.match(shell, /setEditorText\(draft\)/);
 assert.match(shell, /\/mission-canvas off restores stock Pi/);
+assert.doesNotMatch(shell, /Math\.max\(40, width\)/);
 
 // Reference-design composition exists in the Pi-native renderer.
 assert.match(view, /class MissionCanvasView implements Component/);
+assert.doesNotMatch(view, /Math\.max\(40, width\)/);
 assert.match(view, /Pi-native authoritative Mission Canvas/);
 assert.match(view, /MissionCanvasActivity/);
 for (const label of [

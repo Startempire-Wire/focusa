@@ -1,5 +1,5 @@
 import type { ExtensionAPI, ExtensionContext, Theme } from "@earendil-works/pi-coding-agent";
-import { Input, Key, matchesKey, truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
+import { Input, Key, matchesKey, truncateToWidth, visibleWidth, type Component, type Focusable } from "@earendil-works/pi-tui";
 import { MissionCanvasView, type MissionCanvasModel } from "./mission-canvas-view.js";
 
 let activeShell: MissionCanvasShell | undefined;
@@ -49,10 +49,20 @@ function recentConversation(ctx: ExtensionContext): string[] {
  * while mounted; the same ExtensionContext, SessionManager, model stream,
  * tools, editor target, and history remain active in the current terminal.
  */
-export class MissionCanvasShell implements Component {
+export class MissionCanvasShell implements Component, Focusable {
   private readonly input = new Input();
   private readonly canvas: MissionCanvasView;
   private disposed = false;
+  private _focused = false;
+
+  get focused(): boolean {
+    return this._focused;
+  }
+
+  set focused(value: boolean) {
+    this._focused = value;
+    this.input.focused = value;
+  }
 
   constructor(
     model: MissionCanvasModel,
@@ -65,7 +75,7 @@ export class MissionCanvasShell implements Component {
     private readonly ctx: ExtensionContext,
     copyReference: (reference: string) => void,
     changeWorkspaceProfile: (profile: string) => void,
-    private readonly disableCanvas: () => void
+    private readonly disableCanvas: () => Promise<void>
   ) {
     activeShell?.closeShell();
     activeShell = this;
@@ -91,18 +101,20 @@ export class MissionCanvasShell implements Component {
       ],
       invalidate() {},
     }));
-    this.input.focused = true;
+    this.focused = true;
     this.input.onSubmit = (value) => {
       const prompt = value.trim();
       if (!prompt) return;
       this.input.setValue("");
       if (prompt === "/mission-canvas off" || prompt === "/canvas off") {
-        // Route through the agent-first tool queue. Closing a custom shell from
-        // its own editor-submit stack is re-entrant in Pi; the tool transition
-        // runs after input dispatch and safely reveals the stock root.
-        void this.pi.sendUserMessage(
-          "Use the focusa_mission_canvas tool with action off now. Do not call any other tool."
-        );
+        // Defer until the Input submit stack unwinds, then use the same
+        // controller as the slash command and agent tool. This closes the
+        // native shell immediately without spending an agent turn.
+        queueMicrotask(() => {
+          void this.disableCanvas().catch((error) =>
+            this.ctx.ui.notify(`Mission Canvas close failed: ${String(error)}`, "error")
+          );
+        });
         return;
       }
       void this.pi.sendUserMessage(prompt);
@@ -178,10 +190,16 @@ export class MissionCanvasShell implements Component {
   }
 
   render(width: number): string[] {
-    const safeWidth = Math.max(40, width);
+    const safeWidth = Math.max(1, width);
     this.canvas.setConversation(recentConversation(this.ctx));
     const canvasRows = this.canvas.render(safeWidth);
     const inputRows = this.input.render(Math.max(1, safeWidth - 6));
+    if (safeWidth < 8) {
+      return [
+        ...canvasRows,
+        ...inputRows.map((line) => truncateToWidth(line, safeWidth)),
+      ];
+    }
     const fixedRows = canvasRows.length + inputRows.length + 4;
     const fillRows = Math.max(0, this.terminalRows() - fixedRows - 1);
     const canvasFill = `\x1b[48;2;8;13;20m${" ".repeat(safeWidth)}\x1b[0m`;

@@ -362,15 +362,21 @@ export class MissionCanvasView implements Component {
   }
 
   render(width: number): string[] {
-    const safeWidth = Math.max(40, width);
+    const safeWidth = Math.max(1, width);
     const signature = `${this.activity}|${this.model.workspaceProfile}|${this.selectedSurface}|${this.refreshing}|${this.conversation.join("|")}`;
     if (this.renderCache?.width === safeWidth && this.renderCache.signature === signature) return this.renderCache.lines;
 
-    const rows = [
-      ...this.renderTopBar(safeWidth),
-      ...this.renderSurfaceStrip(safeWidth),
-      ...this.renderWorkspace(safeWidth),
-    ];
+    const rows = safeWidth < 20
+      ? [
+          filled(" Focusa Canvas", safeWidth, COLORS.text, COLORS.canvas, true),
+          filled(` ${this.activity}`, safeWidth, COLORS.purple, COLORS.canvas),
+          filled(` ${clean(this.model.nextAction) || clean(this.model.mission)}`, safeWidth, COLORS.muted, COLORS.canvas),
+        ]
+      : [
+          ...this.renderTopBar(safeWidth),
+          ...this.renderSurfaceStrip(safeWidth),
+          ...this.renderWorkspace(safeWidth),
+        ];
     this.renderCache = { width: safeWidth, signature, lines: rows };
     return rows;
   }
@@ -402,7 +408,9 @@ export class MissionCanvasView implements Component {
     const preferences = accessibilityPreferences();
     const narrow = mode === "narrow" || width < 72;
     const railWidth = narrow ? 0 : Math.min(18, Math.max(14, Math.floor(width * 0.16)));
-    const mainWidth = Math.max(30, width - railWidth - (railWidth ? 1 : 0));
+    const mainWidth = narrow
+      ? width
+      : Math.max(30, width - railWidth - (railWidth ? 1 : 0));
     const contributions = resolveContributions(this.model, this.activity, this.conversation);
     const main = this.renderContributionGrid(contributions, mainWidth);
 
@@ -445,7 +453,7 @@ export class MissionCanvasView implements Component {
 
   private renderCard(item: Contribution, width: number): string[] {
     const color = toneColor(item.tone);
-    const inner = Math.max(10, width - 2);
+    const inner = Math.max(1, width - 2);
     const title = ` ${item.title} `;
     const top = `${paint("┌", color, COLORS.panel)}${paint(truncateFast(`${title}${"─".repeat(inner)}`, inner), color, COLORS.panel, true)}${paint("┐", color, COLORS.panel)}`;
     const body = item.lines.flatMap((line) => wrapFast(line, Math.max(1, inner - 2))).slice(0, MAX_ROWS).map((line, index) => {

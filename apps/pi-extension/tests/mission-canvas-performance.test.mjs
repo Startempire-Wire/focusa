@@ -86,6 +86,13 @@ for (let index = 0; index < 5_000; index++) {
 }
 const heapGrowth = process.memoryUsage().heapUsed - heapBefore;
 assert(heapGrowth < 32 * 1024 * 1024, `Mission Canvas long-session heap growth ${heapGrowth} exceeded 32 MiB`);
+for (let width = 1; width < 40; width++) {
+  const lines = view.render(width);
+  assert(
+    lines.every((line) => visibleWidth(line) <= width),
+    `Mission Canvas emitted a line wider than ${width} columns`
+  );
+}
 view.dispose();
 timings.sort((a, b) => a - b);
 const p95 = timings[Math.floor(timings.length * 0.95)];

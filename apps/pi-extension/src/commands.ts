@@ -569,7 +569,7 @@ export function registerCommands(pi: ExtensionAPI) {
               refreshMissionCanvasWidget(ctx);
               ctx.ui.notify(`Workspace switched to ${profile}; canonical agent state is unchanged.`, "info");
             },
-            () => void handleMissionCanvasAction("off", ctx)
+            () => handleMissionCanvasAction("off", ctx)
           )
         )
         .catch((error) => ctx.ui.notify(`Mission Canvas shell failed: ${String(error)}`, "error"));
