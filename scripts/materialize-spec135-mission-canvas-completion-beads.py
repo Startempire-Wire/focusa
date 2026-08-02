@@ -24,6 +24,8 @@ STAMP = "2026-07-30T07:00:00Z"
 ACTOR = "pi-spec135-materializer"
 ROOT_ID = "focusa-mc2"
 SUPERSEDED_PREFIX = "focusa-mc-full"
+LEGACY_ISSUE_TYPE_MAP = {"security": "bug", "improvement": "feature"}
+LEGACY_STATUS_MAP = {"deferred": "blocked"}
 
 
 def bead_id_for_phase(phase_id: str) -> str:
@@ -141,6 +143,30 @@ def node_record(graph: dict[str, Any], node: dict[str, Any], node_ids: dict[str,
     }
 
 
+def normalize_legacy_record(record: dict[str, Any]) -> dict[str, Any]:
+    """Migrate unsupported provider enums without erasing their original meaning."""
+    updated = dict(record)
+    labels = list(updated.get("labels") or [])
+    migrated = False
+    issue_type = str(updated.get("issue_type") or "task")
+    if issue_type in LEGACY_ISSUE_TYPE_MAP:
+        legacy_label = f"legacy-type:{issue_type}"
+        if legacy_label not in labels:
+            labels.append(legacy_label)
+        updated["issue_type"] = LEGACY_ISSUE_TYPE_MAP[issue_type]
+        migrated = True
+    status = str(updated.get("status") or "open")
+    if status in LEGACY_STATUS_MAP:
+        legacy_label = f"legacy-status:{status}"
+        if legacy_label not in labels:
+            labels.append(legacy_label)
+        updated["status"] = LEGACY_STATUS_MAP[status]
+        migrated = True
+    if migrated:
+        updated["labels"] = labels
+    return updated
+
+
 def supersede(record: dict[str, Any]) -> dict[str, Any]:
     updated = dict(record)
     labels = list(updated.get("labels") or [])
@@ -192,6 +218,7 @@ def merge_jsonl(existing: list[dict[str, Any]], generated: list[dict[str, Any]])
         "source_repo",
     )
     for record in existing:
+        record = normalize_legacy_record(record)
         issue_id = record["id"]
         if issue_id.startswith(SUPERSEDED_PREFIX):
             record = supersede(record)
@@ -280,6 +307,19 @@ def sync_db(db_path: Path, records: list[dict[str, Any]]) -> None:
     try:
         connection.execute("PRAGMA foreign_keys = ON")
         connection.execute("BEGIN IMMEDIATE")
+        # This database is a disposable projection of provider-owned JSONL. The
+        # completion DAG can renumber generated issue ids while retaining stable
+        # external refs, so upsert-by-id alone can violate external_ref uniqueness.
+        # Rebuild only the bounded Spec 135 projection and let FK cascades clear
+        # its derived cache rows before inserting the canonical JSONL records.
+        stale_ids = [
+            row[0]
+            for row in connection.execute(
+                "SELECT id FROM issues WHERE id = ? OR id LIKE ? OR id LIKE ?",
+                (ROOT_ID, f"{ROOT_ID}.%", f"{SUPERSEDED_PREFIX}%"),
+            )
+        ]
+        connection.executemany("DELETE FROM issues WHERE id = ?", ((issue_id,) for issue_id in stale_ids))
         for record in targeted:
             values = (
                 record["id"],
@@ -322,6 +362,9 @@ def sync_db(db_path: Path, records: list[dict[str, Any]]) -> None:
                 """,
                 values,
             )
+        # Dependencies may point forward in DAG order; all issue rows must exist
+        # before restoring labels and edges under immediate SQLite FK checks.
+        for record in targeted:
             connection.execute("DELETE FROM labels WHERE issue_id = ?", (record["id"],))
             for label in record.get("labels") or []:
                 connection.execute("INSERT OR IGNORE INTO labels(issue_id, label) VALUES (?, ?)", (record["id"], label))
