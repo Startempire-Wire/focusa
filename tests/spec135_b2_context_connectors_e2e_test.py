@@ -5,6 +5,7 @@ import json
 import socket
 import sys
 import tempfile
+import time
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -25,6 +26,19 @@ def list_sources(base: str, project: Path):
         }
     )
     return harness.request("GET", f"{base}/v1/context/sources?{query}")
+
+
+def wait_for_source_count(base: str, project: Path, expected: int, timeout: float = 10.0):
+    deadline = time.monotonic() + timeout
+    latest = None
+    while time.monotonic() < deadline:
+        latest = list_sources(base, project)
+        if len(latest["sources"]) == expected:
+            return latest
+        time.sleep(0.1)
+    raise AssertionError(
+        f"Context read model did not converge to {expected} sources after restart: {latest}"
+    )
 
 
 def ingest(base: str, project: Path, version: int, **overrides):
@@ -147,8 +161,7 @@ def main():
 
         harness.stop(process, log)
         process, log = harness.start_daemon(data_dir, port, None)
-        resumed = list_sources(base, project)
-        assert len(resumed["sources"]) == 3
+        resumed = wait_for_source_count(base, project, 3)
         assert all(source["artifact"]["artifact_id"] for source in resumed["sources"])
         assert any(
             source["health"].get("cursor_state") == "cursor:42"
