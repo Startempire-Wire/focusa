@@ -2,8 +2,10 @@
 
 use crate::semantic_pair::{
     Assignment, BuilderAttempt, BuilderContext, Disposition, Finding, ImmutableSnapshot,
-    Obligation, Plan, Reroute, Response, SemanticPair, SemanticPairError, SemanticReceipt,
-    Settlement, Validation, SEMANTIC_PAIR_SCHEMA_VERSION,
+    Obligation, Plan, Reroute, Response, SEMANTIC_PAIR_SCHEMA_VERSION, SemanticBuilderClaimRecord,
+    SemanticContractRecord, SemanticControlRecord, SemanticPair, SemanticPairError,
+    SemanticPairLifecycleStatus, SemanticReceipt, SemanticRollbackRecord,
+    SemanticVerticalActivationRecord, Settlement, Validation,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -19,6 +21,15 @@ pub enum SemanticPairEvent {
         builder_context: BuilderContext,
         snapshot: ImmutableSnapshot,
     },
+    PairPaused(SemanticControlRecord),
+    PairResumed(SemanticControlRecord),
+    PairCancelled(SemanticControlRecord),
+    ContractCommitted(SemanticContractRecord),
+    BuilderStarted(BuilderAttempt),
+    BuilderClaimed(SemanticBuilderClaimRecord),
+    SnapshotFrozen(ImmutableSnapshot),
+    RollbackCommitted(SemanticRollbackRecord),
+    VerticalBundleActivated(SemanticVerticalActivationRecord),
     ObligationAdded(Obligation),
     PlanAdded(Plan),
     AssignmentAdded(Assignment),
@@ -180,6 +191,33 @@ fn reduce_one(
     let pair = aggregate.as_mut().ok_or(ReplayError::MissingCreation)?;
     match &envelope.event {
         SemanticPairEvent::PairCreated { .. } => unreachable!(),
+        SemanticPairEvent::PairPaused(value) => {
+            pair.lifecycle_status = SemanticPairLifecycleStatus::Paused;
+            pair.lifecycle_history.push(value.clone());
+        }
+        SemanticPairEvent::PairResumed(value) => {
+            pair.lifecycle_status = SemanticPairLifecycleStatus::Active;
+            pair.lifecycle_history.push(value.clone());
+        }
+        SemanticPairEvent::PairCancelled(value) => {
+            pair.lifecycle_status = SemanticPairLifecycleStatus::Cancelled;
+            pair.lifecycle_history.push(value.clone());
+        }
+        SemanticPairEvent::ContractCommitted(value) => pair.contract = Some(value.clone()),
+        SemanticPairEvent::BuilderStarted(value) => pair.builder_attempt = value.clone(),
+        SemanticPairEvent::BuilderClaimed(value) => pair.builder_claim = Some(value.clone()),
+        SemanticPairEvent::SnapshotFrozen(value) => {
+            if value.snapshot_id != pair.snapshot.snapshot_id
+                || value.content_hash != pair.snapshot.content_hash
+            {
+                return Err(ReplayError::SnapshotMismatch);
+            }
+            pair.snapshot_frozen = true;
+        }
+        SemanticPairEvent::RollbackCommitted(value) => pair.rollback = Some(value.clone()),
+        SemanticPairEvent::VerticalBundleActivated(value) => {
+            pair.vertical_activation = Some(value.clone());
+        }
         SemanticPairEvent::ObligationAdded(value) => push_unique(&mut pair.obligations, value)?,
         SemanticPairEvent::PlanAdded(value) => push_unique(&mut pair.plans, value)?,
         SemanticPairEvent::AssignmentAdded(value) => push_unique(&mut pair.assignments, value)?,
@@ -248,6 +286,8 @@ pub enum ReplayError {
     HashMismatch { sequence: u64 },
     #[error("semantic pair stream has no creation event")]
     MissingCreation,
+    #[error("frozen snapshot does not match the immutable creation snapshot")]
+    SnapshotMismatch,
     #[error("semantic pair has more than one creation event")]
     DuplicateCreation,
     #[error("semantic event version {0} is newer than this runtime")]

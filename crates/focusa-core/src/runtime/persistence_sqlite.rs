@@ -695,6 +695,15 @@ impl SqlitePersistence {
             );
             CREATE INDEX IF NOT EXISTS idx_semantic_pair_events_pair
                 ON semantic_pair_events(pair_id, sequence);
+            CREATE TABLE IF NOT EXISTS semantic_pair_scope_index (
+                storage_key TEXT PRIMARY KEY,
+                project_root TEXT NOT NULL,
+                continuity_id TEXT NOT NULL,
+                logical_pair_id TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_semantic_pair_scope_lookup
+                ON semantic_pair_scope_index(project_root, continuity_id, logical_pair_id);
             CREATE TABLE IF NOT EXISTS semantic_pair_migrations (
                 migration_id TEXT PRIMARY KEY,
                 pair_id TEXT NOT NULL,
@@ -3635,7 +3644,7 @@ impl SqlitePersistence {
         if events.iter().any(|envelope| envelope.pair_id != pair_id) {
             anyhow::bail!("semantic event pair id does not match append target");
         }
-        self.append_scoped_semantic_pair_events(pair_id, events)
+        self.append_semantic_pair_events_internal(pair_id, None, events)
     }
 
     /// Atomically append a validated suffix under an opaque exact-scope storage
@@ -3643,6 +3652,30 @@ impl SqlitePersistence {
     pub fn append_scoped_semantic_pair_events(
         &self,
         storage_key: &str,
+        events: &[SemanticEventEnvelope],
+    ) -> anyhow::Result<()> {
+        self.append_semantic_pair_events_internal(storage_key, None, events)
+    }
+
+    pub fn append_exact_scope_semantic_pair_events(
+        &self,
+        storage_key: &str,
+        project_root: &str,
+        continuity_id: &str,
+        logical_pair_id: &str,
+        events: &[SemanticEventEnvelope],
+    ) -> anyhow::Result<()> {
+        self.append_semantic_pair_events_internal(
+            storage_key,
+            Some((project_root, continuity_id, logical_pair_id)),
+            events,
+        )
+    }
+
+    fn append_semantic_pair_events_internal(
+        &self,
+        storage_key: &str,
+        scope_index: Option<(&str, &str, &str)>,
         events: &[SemanticEventEnvelope],
     ) -> anyhow::Result<()> {
         if storage_key.is_empty() {
@@ -3671,6 +3704,12 @@ impl SqlitePersistence {
             .map_err(|error| anyhow::anyhow!("semantic replay validation failed: {error}"))?;
 
         let tx = conn.transaction()?;
+        if let Some((project_root, continuity_id, logical_pair_id)) = scope_index {
+            tx.execute(
+                "INSERT INTO semantic_pair_scope_index(storage_key, project_root, continuity_id, logical_pair_id, updated_at) VALUES (?1, ?2, ?3, ?4, ?5) ON CONFLICT(storage_key) DO UPDATE SET project_root=excluded.project_root, continuity_id=excluded.continuity_id, logical_pair_id=excluded.logical_pair_id, updated_at=excluded.updated_at",
+                params![storage_key, project_root, continuity_id, logical_pair_id, Utc::now().to_rfc3339()],
+            )?;
+        }
         for envelope in events {
             tx.execute(
                 "INSERT INTO semantic_pair_events(pair_id, sequence, event_id, envelope_json, event_hash) VALUES (?1, ?2, ?3, ?4, ?5)",
@@ -3701,6 +3740,26 @@ impl SqlitePersistence {
                 .map_err(|error| anyhow::anyhow!("semantic replay integrity failure: {error}"))?;
         }
         Ok(events)
+    }
+
+    pub fn list_exact_scope_semantic_pair_streams(
+        &self,
+        project_root: &str,
+        continuity_id: &str,
+        limit: usize,
+    ) -> anyhow::Result<Vec<(String, String)>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
+        let mut statement = conn.prepare(
+            "SELECT storage_key, logical_pair_id FROM semantic_pair_scope_index WHERE project_root=?1 AND continuity_id=?2 ORDER BY updated_at DESC LIMIT ?3",
+        )?;
+        let rows = statement.query_map(
+            params![project_root, continuity_id, limit.clamp(1, 100) as i64],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+        )?;
+        rows.collect::<Result<Vec<_>, _>>().map_err(Into::into)
     }
 
     /// Store an apply receipt and migrated aggregate in one transaction. A dry
@@ -3756,7 +3815,10 @@ impl SqlitePersistence {
             )
             .optional()?;
         row.map(|(aggregate, receipt)| {
-            Ok((serde_json::from_str(&aggregate)?, serde_json::from_str(&receipt)?))
+            Ok((
+                serde_json::from_str(&aggregate)?,
+                serde_json::from_str(&receipt)?,
+            ))
         })
         .transpose()
     }
@@ -3781,10 +3843,7 @@ impl SqlitePersistence {
         Ok(())
     }
 
-    pub fn semantic_pair_quarantine_version(
-        &self,
-        pair_id: &str,
-    ) -> anyhow::Result<Option<u32>> {
+    pub fn semantic_pair_quarantine_version(&self, pair_id: &str) -> anyhow::Result<Option<u32>> {
         let conn = self
             .conn
             .lock()

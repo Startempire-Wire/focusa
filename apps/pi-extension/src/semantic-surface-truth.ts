@@ -22,7 +22,7 @@ function finiteCount(value: unknown, fallback: number): number {
 export function semanticSurfaceTruth(
   statusResult: unknown,
   registryResult: unknown,
-  visibleLimit = 6
+  visibleLimit = Number.MAX_SAFE_INTEGER
 ): SemanticSurfaceTruth {
   const status =
     statusResult && typeof statusResult === "object" ? (statusResult as Record<string, unknown>) : {};
@@ -45,17 +45,14 @@ export function semanticSurfaceTruth(
     (item) => item && typeof item === "object" && (item as Record<string, unknown>).kind === "mutation"
   ).length;
   const degraded = status.degraded === true || registry.degraded === true || schemaOnlyCount > 0;
-  const gaps = operations.filter(
-    (item) =>
-      item && typeof item === "object" && (item as Record<string, unknown>).availability !== "supported"
-  );
-  const operationLines = gaps.slice(0, Math.max(0, visibleLimit)).map((item) => {
+  const visibleOperations = operations.filter((item) => item && typeof item === "object");
+  const operationLines = visibleOperations.slice(0, Math.max(0, visibleLimit)).map((item) => {
     const operation = item as Record<string, unknown>;
     return `  ${bounded(operation.operation_id || "unknown", 48)} · ${bounded(operation.kind || "read", 12)} · ${bounded(operation.availability || "unknown", 24)}`;
   });
-  if (gaps.length > visibleLimit) {
+  if (visibleOperations.length > visibleLimit) {
     operationLines.push(
-      `  … ${gaps.length - visibleLimit} more gaps · focusa semantic-integrity registry for full truth`
+      `  … ${visibleOperations.length - visibleLimit} more operations · focusa semantic-integrity registry for full truth`
     );
   }
   return {

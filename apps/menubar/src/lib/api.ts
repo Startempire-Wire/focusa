@@ -231,7 +231,7 @@ export async function postJson<T = any>(path: string, body?: unknown, timeoutMs 
   return requestJson<T>(path, { method: 'POST', body, timeoutMs });
 }
 
-/** Read semantic truth without implying this surface can mutate it. */
+/** Read complete semantic operation truth for the menubar surface. */
 export async function fetchSemanticPairStatus(
   projectRoot: string,
   continuityId: string,
@@ -249,7 +249,20 @@ export async function invokeSemanticPairAction<T = unknown>(
   request: SemanticPairActionRequest,
 ): Promise<T> {
   const id = encodeURIComponent(request.operation_id);
-  return postJson<T>(`/v1/semantic-integrity/operations/${id}`, request);
+  return postJson<T>(`/v1/semantic-integrity/operations/${id}`, {
+    contract: 'focusa.semantic-integrity.operation.v1',
+    operation_id: request.operation_id,
+    scope: {
+      project_root: request.project_root,
+      continuity_id: request.continuity_id,
+    },
+    payload: {
+      ...(request.payload ?? {}),
+      ...(request.pair_id ? { pair_id: request.pair_id } : {}),
+    },
+    idempotency_key: request.idempotency_key,
+    confirmation: request.confirmation,
+  });
 }
 
 /**

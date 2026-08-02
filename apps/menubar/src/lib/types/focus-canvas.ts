@@ -49,14 +49,14 @@ export interface CanvasState {
 }
 
 export type SemanticPairTruthState =
-  | 'schema_only' | 'pack_missing' | 'migration_required' | 'verification_required'
+  | 'supported' | 'schema_only' | 'pack_missing' | 'migration_required' | 'verification_required'
   | 'verification_blocked' | 'operator_required' | 'unsupported_future_definition'
   | 'writer_blocked' | 'degraded' | 'stale' | 'conflicted' | 'quarantined';
 
 export interface SemanticPairOperation {
   operation_id: string;
   kind: 'read' | 'mutation';
-  availability: 'available' | 'writer_blocked';
+  availability: 'supported' | 'schema_only' | 'writer_blocked' | 'degraded';
   truthful_states: SemanticPairTruthState[];
 }
 

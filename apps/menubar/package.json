@@ -10,7 +10,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "test": "node tests/work-loop-scope.mjs && node tests/temporal-authority-peek.mjs && node tests/e2e-endpoints.mjs && node tests/e2e-post.mjs",
+    "test": "node tests/work-loop-scope.mjs && node tests/temporal-authority-peek.mjs && node tests/semantic-pair-parity.mjs && node tests/e2e-endpoints.mjs && node tests/e2e-post.mjs",
     "tauri": "tauri"
   },
   "devDependencies": {

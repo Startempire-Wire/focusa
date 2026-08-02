@@ -1,10 +1,14 @@
 <script lang="ts">
-  import { fetchSemanticPairStatus } from '$lib/api';
+  import { fetchSemanticPairStatus, invokeSemanticPairAction } from '$lib/api';
   import { runtimeStore } from '$lib/stores/runtime.svelte';
   import type { SemanticPairOperation, SemanticPairStatus } from '$lib/types/focus-canvas';
 
   let status = $state<SemanticPairStatus | null>(null);
   let loadError = $state<string | null>(null);
+  let selected = $state<SemanticPairOperation | null>(null);
+  let payloadText = $state('{"pair_id":""}');
+  let mutationConfirmed = $state(false);
+  let invokeResult = $state<string | null>(null);
   let s = $derived(runtimeStore.snapshot as Record<string, any>);
   let scope = $derived.by(() => {
     const identity = (s.projectIdentity ?? {}) as Record<string, unknown>;
@@ -32,12 +36,38 @@
   });
 
   const label = (operation: SemanticPairOperation) => operation.operation_id.replaceAll('_', ' ');
+
+  async function executeSelected() {
+    if (!selected) return;
+    if (selected.kind === 'mutation' && !mutationConfirmed) {
+      invokeResult = 'Operator confirmation is required for mutation.';
+      return;
+    }
+    try {
+      const payload = JSON.parse(payloadText) as Record<string, unknown>;
+      const pairId = typeof payload.pair_id === 'string' ? payload.pair_id : undefined;
+      invokeResult = 'Executing…';
+      const result = await invokeSemanticPairAction<Record<string, unknown>>({
+        operation_id: selected.operation_id,
+        project_root: scope.projectRoot,
+        continuity_id: scope.continuityId,
+        pair_id: pairId,
+        payload,
+        idempotency_key: selected.kind === 'mutation' ? crypto.randomUUID() : undefined,
+        confirmation: selected.kind === 'mutation' ? 'operator_confirmed' : undefined,
+      });
+      invokeResult = JSON.stringify(result);
+      status = await fetchSemanticPairStatus(scope.projectRoot, scope.continuityId);
+    } catch (error) {
+      invokeResult = error instanceof Error ? error.message : String(error);
+    }
+  }
 </script>
 
 <section class="semantic-pair" aria-labelledby="semantic-pair-title">
   <header>
     <h3 id="semantic-pair-title">Semantic Pair</h3>
-    <span class:blocked={(status?.state ?? loadError) !== 'schema_only'}>
+    <span class:blocked={(status?.state ?? loadError) !== 'supported'}>
       {status?.state ?? loadError ?? 'schema_only'}
     </span>
   </header>
@@ -52,15 +82,30 @@
           <li>
             <code>{label(operation)}</code>
             <span>{operation.kind}</span>
-            {#if operation.kind === 'mutation'}
-              <button disabled title="This menubar view is read-only">Unsupported on this surface</button>
-            {:else}
-              <span>{operation.availability}</span>
-            {/if}
+            <span>{operation.availability}</span>
+            <button
+              disabled={operation.availability !== 'supported'}
+              onclick={() => { selected = operation; mutationConfirmed = false; invokeResult = null; }}
+            >Invoke</button>
           </li>
         {/each}
       </ul>
     </details>
+    {#if selected}
+      <form onsubmit={(event) => { event.preventDefault(); void executeSelected(); }}>
+        <strong>{selected.operation_id}</strong>
+        <label>
+          Typed operation payload
+          <textarea bind:value={payloadText} rows="5" spellcheck="false"></textarea>
+        </label>
+        {#if selected.kind === 'mutation'}
+          <label><input type="checkbox" bind:checked={mutationConfirmed} /> Confirm mutation</label>
+        {/if}
+        <button type="submit">Execute governed operation</button>
+        <button type="button" onclick={() => { selected = null; }}>Cancel</button>
+      </form>
+      {#if invokeResult}<pre aria-live="polite">{invokeResult}</pre>{/if}
+    {/if}
   {/if}
 </section>
 

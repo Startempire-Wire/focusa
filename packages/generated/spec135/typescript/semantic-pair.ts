@@ -1,6 +1,6 @@
 /** Generated Spec144 semantic-pair surface contract. Do not weaken status truth. */
 export const semanticPairTruthStates = [
-  "schema_only",
+  "supported", "schema_only",
   "pack_missing",
   "migration_required",
   "verification_required",
@@ -84,6 +84,10 @@ export interface SemanticPairPortfolio {
 }
 
 export const semanticPairOperationIds = [
+  "semantic.integrity.status", "semantic.integrity.registry",
+  "semantic.integrity.artifact.list", "semantic.integrity.artifact.get",
+  "semantic.integrity.validate", "semantic.integrity.reason.preview",
+  "semantic.integrity.reason.explain", "semantic.integrity.receipt.get",
   "semantic_pair.create", "semantic_pair.get", "semantic_pair.pause",
   "semantic_pair.resume", "semantic_pair.cancel", "semantic_pair.contract.preview",
   "semantic_pair.contract.commit", "semantic_pair.builder.start", "semantic_pair.builder.claim",
@@ -96,6 +100,8 @@ export const semanticPairOperationIds = [
   "semantic_pair.receipt.get", "semantic_pair.replay", "semantic_pair.eval",
   "semantic_pair.migration.status", "semantic_pair.migration.run",
   "semantic_pair.rollback.preview", "semantic_pair.rollback.commit",
+  "vertical.bundle.validate", "vertical.bundle.preview", "vertical.bundle.activate",
+  "vertical.bundle.conformance", "semantic.reflex.visibility",
 ] as const;
 
 export type SemanticPairOperationId = (typeof semanticPairOperationIds)[number];

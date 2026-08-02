@@ -5,7 +5,7 @@ use serde_json::Value;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum SemanticPairTruthState {
-    SchemaOnly, PackMissing, MigrationRequired, VerificationRequired,
+    Supported, SchemaOnly, PackMissing, MigrationRequired, VerificationRequired,
     VerificationBlocked, OperatorRequired, UnsupportedFutureDefinition,
     WriterBlocked, Degraded, Stale, Conflicted, Quarantined,
 }
@@ -75,6 +75,14 @@ pub struct SemanticPairActionRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SemanticPairOperationId {
+    #[serde(rename = "semantic.integrity.status")] SemanticIntegrityStatus,
+    #[serde(rename = "semantic.integrity.registry")] SemanticIntegrityRegistry,
+    #[serde(rename = "semantic.integrity.artifact.list")] SemanticIntegrityArtifactList,
+    #[serde(rename = "semantic.integrity.artifact.get")] SemanticIntegrityArtifactGet,
+    #[serde(rename = "semantic.integrity.validate")] SemanticIntegrityValidate,
+    #[serde(rename = "semantic.integrity.reason.preview")] SemanticIntegrityReasonPreview,
+    #[serde(rename = "semantic.integrity.reason.explain")] SemanticIntegrityReasonExplain,
+    #[serde(rename = "semantic.integrity.receipt.get")] SemanticIntegrityReceiptGet,
     #[serde(rename = "semantic_pair.create")] Create,
     #[serde(rename = "semantic_pair.get")] Get,
     #[serde(rename = "semantic_pair.pause")] Pause,
@@ -105,6 +113,11 @@ pub enum SemanticPairOperationId {
     #[serde(rename = "semantic_pair.migration.run")] MigrationRun,
     #[serde(rename = "semantic_pair.rollback.preview")] RollbackPreview,
     #[serde(rename = "semantic_pair.rollback.commit")] RollbackCommit,
+    #[serde(rename = "vertical.bundle.validate")] VerticalBundleValidate,
+    #[serde(rename = "vertical.bundle.preview")] VerticalBundlePreview,
+    #[serde(rename = "vertical.bundle.activate")] VerticalBundleActivate,
+    #[serde(rename = "vertical.bundle.conformance")] VerticalBundleConformance,
+    #[serde(rename = "semantic.reflex.visibility")] SemanticReflexVisibility,
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -10,13 +10,15 @@ API = (ROOT / "crates/focusa-api/src/routes/semantic_integrity.rs").read_text()
 FIXTURE = json.loads((ROOT / "packages/generated/spec135/fixtures/semantic-pair-portfolio.json").read_text())
 
 STATES = {
-    "schema_only", "pack_missing", "migration_required", "verification_required",
+    "supported", "schema_only", "pack_missing", "migration_required", "verification_required",
     "verification_blocked", "operator_required", "unsupported_future_definition",
     "writer_blocked", "degraded", "stale", "conflicted", "quarantined",
 }
-OPERATIONS = {op for op in re.findall(r'(?:read_op|mutation_op)!\(\s*"([^"]+)', API) if op.startswith("semantic_pair.")}
-TS_OPERATIONS = set(re.findall(r'"(semantic_pair\.[a-z_.]+)"', TS))
-RS_OPERATIONS = set(re.findall(r'#\[serde\(rename = "(semantic_pair\.[a-z_.]+)"\)\]', RS))
+OPERATIONS = set(re.findall(r'(?:read_op|mutation_op)!\(\s*"([^"]+)', API))
+ts_registry = TS.split("export const semanticPairOperationIds = [", 1)[1].split("] as const", 1)[0]
+rs_registry = RS.split("pub enum SemanticPairOperationId {", 1)[1].split("}\n", 1)[0]
+TS_OPERATIONS = set(re.findall(r'"([a-z_]+(?:\.[a-z_]+)+)"', ts_registry))
+RS_OPERATIONS = set(re.findall(r'#\[serde\(rename = "([a-z_]+(?:\.[a-z_]+)+)"\)\]', rs_registry))
 
 assert STATES <= set(re.findall(r'"([a-z_]+)"', TS))
 for state in STATES:
@@ -38,8 +40,10 @@ surface_files = [
 combined = "\n".join((ROOT / path).read_text() for path in surface_files)
 for state in STATES:
     assert state in combined, state
-for marker in ("read_only_surface", "unsupported on TUI", "Unsupported on this surface"):
+for marker in ("read_only_surface", "invokeSemanticPairAction", "daemon-reported truth"):
     assert marker in combined, marker
+assert "unsupported on TUI" not in combined
+assert "Unsupported on this surface" not in combined
 for path in surface_files:
     assert len((ROOT / path).read_text().splitlines()) < 500, path
 print(f"Spec144 client/surface parity: {len(STATES)} states, {len(OPERATIONS)} operations")
