@@ -6837,6 +6837,8 @@ export function registerTools(pi: ExtensionAPI) {
             String(p.session_id || getAttachmentRuntime().sessionFrameKey || body.session_id || "") || null,
           project_identity_status: String(project.status || "unknown"),
           trajectory_id: trajectory.trajectory_id || null,
+          scope_verification_receipt:
+            trajectory.scope_verification || body.scope_verification || body.trajectory_scope_verification || null,
           fallback_prior_project_trajectory: trajectory.fallback_prior_project_trajectory === true,
           fallback_source_continuity_id: trajectory.fallback_source_continuity_id || null,
           long_term_goal: trajectory.long_term_goal || trajectoryLadder.hlt || null,
