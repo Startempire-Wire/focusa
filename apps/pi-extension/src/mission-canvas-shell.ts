@@ -52,7 +52,6 @@ function recentConversation(ctx: ExtensionContext): string[] {
 export class MissionCanvasShell implements Component {
   private readonly input = new Input();
   private readonly canvas: MissionCanvasView;
-  private readonly refreshTimer: ReturnType<typeof setInterval>;
   private disposed = false;
 
   constructor(
@@ -109,12 +108,15 @@ export class MissionCanvasShell implements Component {
       void this.pi.sendUserMessage(prompt);
       this.requestRender();
     };
-    this.refreshTimer = setInterval(() => this.requestRender(), 250);
   }
 
   closeShell(): void {
     if (this.disposed) return;
     const draft = this.input.getValue();
+    // Pi's custom UI does not guarantee that `done()` synchronously disposes
+    // the component. Tear down timers and references before handing control
+    // back so a closed Canvas cannot continue requesting terminal redraws.
+    this.dispose();
     this.done();
     if (draft) queueMicrotask(() => this.ctx.ui.setEditorText(draft));
   }
@@ -169,7 +171,6 @@ export class MissionCanvasShell implements Component {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
-    clearInterval(this.refreshTimer);
     this.canvas.dispose();
     this.ctx.ui.setFooter(undefined);
     this.ctx.ui.setTitle("Pi");

@@ -134,11 +134,11 @@ export function registerMissionCanvasTool(pi: ExtensionAPI): void {
             ? `profile ${String(params.profile) as MissionCanvasWorkspaceProfile}`
             : params.action;
       const cwd = getSessionCwd();
-      const interaction = resolveInteractionMode(cwd);
-      const presentation = loadConfig(cwd).config;
       // Mission Canvas is the current Pi TypeScript TUI itself. The tool must
       // never launch a browser, webview, native sidecar, or remote host.
       await executeMissionCanvasAction(command, ctx);
+      const effectiveInteraction = resolveInteractionMode(cwd);
+      const effectivePresentation = loadConfig(cwd).config;
       appendPiEventSafely(ctx, "pi_message_updated", {
         event_kind: "mission_canvas_lifecycle_receipt",
         action: params.action,
@@ -146,11 +146,11 @@ export function registerMissionCanvasTool(pi: ExtensionAPI): void {
       });
       const state = {
         action: params.action,
-        canvas_enabled: interaction.mode === "canvas-guided",
-        interaction_mode: interaction.mode,
-        mode_source: interaction.source,
-        workspace_profile: presentation.missionCanvasWorkspaceProfile,
-        visual_variant: presentation.missionCanvasVisualVariant,
+        canvas_enabled: effectiveInteraction.mode === "canvas-guided",
+        interaction_mode: effectiveInteraction.mode,
+        mode_source: effectiveInteraction.source,
+        workspace_profile: effectivePresentation.missionCanvasWorkspaceProfile,
+        visual_variant: effectivePresentation.missionCanvasVisualVariant,
         canonical_runtime_active: true,
         gui: "pi_tui",
         host_scope: "current_pi_session",

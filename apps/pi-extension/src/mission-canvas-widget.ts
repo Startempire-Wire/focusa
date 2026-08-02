@@ -73,19 +73,30 @@ export function refreshMissionCanvasWidget(ctx: any): void {
   const workpoint = getActiveWorkpointPacket();
   const focus = getEffectiveFocusSnapshot();
   const snapshot = workRailSnapshotFromPacket(workpoint ?? focus ?? null);
-  const lines = renderWorkRailWidget(
-    snapshot,
-    120,
-    {
-      accent: (text) => text,
-      dim: (text) => text,
-      good: (text) => text,
-    },
-    true
+  const statusLines = truthfulStatusLines(ctx);
+  const asciiWorkRail = process.env.FOCUSA_ASCII_UI === "1" || process.env.TERM === "dumb";
+  ctx.ui.setWidget(
+    "focusa-mission-canvas-work-rail",
+    (_tui: unknown, theme: { fg(name: string, text: string): string }) => ({
+      render(width: number) {
+        return [
+          ...statusLines,
+          ...renderWorkRailWidget(
+            snapshot,
+            width,
+            {
+              accent: (text) => theme.fg("accent", text),
+              dim: (text) => theme.fg("dim", text),
+              good: (text) => theme.fg("success", text),
+            },
+            asciiWorkRail
+          ),
+        ];
+      },
+      invalidate() {},
+    }),
+    { placement: "aboveEditor" }
   );
-  ctx.ui.setWidget("focusa-mission-canvas-work-rail", [...truthfulStatusLines(ctx), ...lines], {
-    placement: "aboveEditor",
-  });
 }
 
 async function pollScopedSurfaceState(ctx: any): Promise<void> {

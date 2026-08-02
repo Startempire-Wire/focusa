@@ -122,8 +122,48 @@ function meaningful(value: unknown): boolean {
   return Boolean(text) && !EMPTY_TRUTH.test(text) && !PLACEHOLDER_TRUTH.test(text);
 }
 
-function useful(values: readonly string[] | undefined): string[] {
-  return (values ?? []).map(clean).filter(meaningful).slice(0, MAX_ROWS);
+const NON_PRINTABLE_ASCII = /[^\x20-\x7e]/;
+const ANSI_SEQUENCE = /\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\))/g;
+const WIDE_UNICODE = /[\u1100-\u115f\u2e80-\ua4cf\uac00-\ud7a3\uf900-\ufaff\ufe10-\ufe6f\uff00-\uff60\uffe0-\uffe6]|[\u{1f300}-\u{1faff}]/u;
+
+function visibleWidthFast(text: string): number {
+  const plain = text.replace(ANSI_SEQUENCE, "");
+  if (!NON_PRINTABLE_ASCII.test(plain)) return plain.length;
+  return WIDE_UNICODE.test(plain) ? visibleWidth(text) : Array.from(plain).length;
+}
+
+function truncateFast(text: string, width: number): string {
+  const safeWidth = Math.max(1, width);
+  return visibleWidthFast(text) <= safeWidth ? text : truncateToWidth(text, safeWidth);
+}
+
+function wrapFast(text: string, width: number): string[] {
+  const safeWidth = Math.max(1, width);
+  if (NON_PRINTABLE_ASCII.test(text) || text.length <= safeWidth) {
+    return NON_PRINTABLE_ASCII.test(text) ? wrapTextWithAnsi(text, safeWidth) : [text];
+  }
+
+  const lines: string[] = [];
+  let remaining = text;
+  while (remaining.length > safeWidth) {
+    let breakAt = remaining.lastIndexOf(" ", safeWidth);
+    if (breakAt <= 0) breakAt = safeWidth;
+    lines.push(remaining.slice(0, breakAt));
+    remaining = remaining.slice(breakAt).trimStart();
+  }
+  lines.push(remaining);
+  return lines;
+}
+
+function useful(values: readonly unknown[] | undefined): string[] {
+  const result: string[] = [];
+  for (const value of values ?? []) {
+    const text = clean(value);
+    if (!text || EMPTY_TRUTH.test(text) || PLACEHOLDER_TRUTH.test(text)) continue;
+    result.push(text);
+    if (result.length >= MAX_ROWS) break;
+  }
+  return result;
 }
 
 function fg(rgb: RGB): string {
@@ -139,8 +179,9 @@ function paint(text: string, color: RGB = COLORS.text, background?: RGB, bold = 
 }
 
 function filled(text: string, width: number, color: RGB, background: RGB, bold = false): string {
-  const clipped = truncateToWidth(text, Math.max(1, width));
-  const padding = " ".repeat(Math.max(0, width - visibleWidth(clipped)));
+  const clipped = truncateFast(text, width);
+  const usedWidth = visibleWidthFast(clipped);
+  const padding = " ".repeat(Math.max(0, width - usedWidth));
   return `${bg(background)}${fg(color)}${bold ? "\x1b[1m" : ""}${clipped}${padding}\x1b[0m`;
 }
 
@@ -158,7 +199,7 @@ function labelForProfile(id: string): string {
 }
 
 function contribution(id: string, title: string, values: unknown[], tone: Tone, priority: number): Contribution | undefined {
-  const lines = values.map(clean).filter(meaningful).slice(0, MAX_ROWS);
+  const lines = useful(values);
   return lines.length ? { id, title, lines, tone, priority } : undefined;
 }
 
@@ -339,7 +380,7 @@ export class MissionCanvasView implements Component {
     const profile = labelForProfile(this.model.workspaceProfile);
     const session = meaningful(this.model.continuityId) ? this.model.continuityId : "current Pi session";
     const context = `  F  Project  ${project}   Workstream  ${clean(this.model.workItemId) || "Current"}   Workspace  ${profile}`;
-    const state = `  ● Session Active   Pi · ${truncateToWidth(session, Math.max(12, width - 46))}   ${this.activity}   Canvas ●`;
+    const state = `  ● Session Active   Pi · ${truncateFast(session, Math.max(12, width - 46))}   ${this.activity}   Canvas ●`;
     return [
       filled(context, width, COLORS.text, COLORS.canvas, true),
       filled(state, width, COLORS.muted, COLORS.canvas),
@@ -367,7 +408,7 @@ export class MissionCanvasView implements Component {
 
     if (narrow) {
       const activityTabs = ACTIVITIES.map((activity) => activity === this.activity ? paint(` ${activity} `, COLORS.text, COLORS.purple, true) : paint(` ${activity} `, COLORS.muted, COLORS.panel)).join(" ");
-      return [filled(` ${truncateToWidth(activityTabs, width - 1)}`, width, COLORS.muted, COLORS.canvas), ...main.map((line) => filled(line, width, COLORS.text, COLORS.canvas)), filled(`  Ctrl+↑/↓ mode · Ctrl+←/→ profile · Alt+←/→ surface · ${preferences.highContrast ? "high contrast" : "adaptive color"} · ${preferences.reducedMotion ? "reduced motion" : "state transitions"}`, width, COLORS.muted, COLORS.canvas)];
+      return [filled(` ${truncateFast(activityTabs, width - 1)}`, width, COLORS.muted, COLORS.canvas), ...main.map((line) => filled(line, width, COLORS.text, COLORS.canvas)), filled(`  Ctrl+↑/↓ mode · Ctrl+←/→ profile · Alt+←/→ surface · ${preferences.highContrast ? "high contrast" : "adaptive color"} · ${preferences.reducedMotion ? "reduced motion" : "state transitions"}`, width, COLORS.muted, COLORS.canvas)];
     }
 
     const rail = ACTIVITIES.map((activity) => activity === this.activity ? filled(`  ◆ ${activity}`, railWidth, COLORS.text, COLORS.purple, true) : filled(`  ◇ ${activity}`, railWidth, COLORS.muted, COLORS.panel));
@@ -406,8 +447,8 @@ export class MissionCanvasView implements Component {
     const color = toneColor(item.tone);
     const inner = Math.max(10, width - 2);
     const title = ` ${item.title} `;
-    const top = `${paint("┌", color, COLORS.panel)}${paint(truncateToWidth(`${title}${"─".repeat(inner)}`, inner), color, COLORS.panel, true)}${paint("┐", color, COLORS.panel)}`;
-    const body = item.lines.flatMap((line) => wrapTextWithAnsi(line, Math.max(1, inner - 2))).slice(0, MAX_ROWS).map((line, index) => {
+    const top = `${paint("┌", color, COLORS.panel)}${paint(truncateFast(`${title}${"─".repeat(inner)}`, inner), color, COLORS.panel, true)}${paint("┐", color, COLORS.panel)}`;
+    const body = item.lines.flatMap((line) => wrapFast(line, Math.max(1, inner - 2))).slice(0, MAX_ROWS).map((line, index) => {
       const marker = index === 0 ? "● " : "  ";
       return `${paint("│", COLORS.border, COLORS.panel)}${filled(` ${marker}${line}`, inner, index === 0 ? color : COLORS.text, COLORS.panel)}${paint("│", COLORS.border, COLORS.panel)}`;
     });

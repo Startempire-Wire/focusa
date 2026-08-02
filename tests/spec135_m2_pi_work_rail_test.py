@@ -27,9 +27,10 @@ def main():
         assert marker in widget + mission_widget + turns
     assert (
         "renderWorkRailWidget" in mission_widget
-        and 'WIDGET_ID = "focusa-mission-canvas-work-rail"' in mission_widget
-        and "refreshMissionCanvasWidget(ctx, w)" in turns
-        and 'setWidget("focusa"' not in turns
+        and 'setWidget("focusa-mission-canvas-work-rail"' in mission_widget
+        and "render(width: number)" in mission_widget
+        and 'theme.fg("accent"' in mission_widget
+        and "refreshMissionCanvasWidget" in mission_widget
     )
     assert (
         "ctrl+shift+r" in index

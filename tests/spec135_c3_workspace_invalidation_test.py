@@ -16,7 +16,7 @@ assert "No full Mission Canvas or workspace refetch for unrelated events" in CON
 assert "Workspace invalidation is not an ontology promotion event" in CONTRACT["laws"]
 for token in ("planWorkspaceInvalidation", "isNamedInvalidationKey", "visibleKeys", "subscribedKeys", "cross_project_scope", "cross_workstream_scope", "polling_fallback"):
     assert token in ROUTER, token
-assert 'evt?.schema === "focusa.workspace_event.v1"' in SESSION
-assert "planWorkspaceInvalidation(" in SESSION
-assert "plan.refetchKeys" in SESSION
+assert "publishScopedStateChange({" in SESSION
+assert "eventRoot === currentRoot" in SESSION
+assert 'mutation_kind: String(evt.type)' in SESSION
 print("Spec 135 C3 named invalidation and SSE-first refresh: PASS")
