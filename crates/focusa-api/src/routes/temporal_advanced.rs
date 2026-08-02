@@ -424,6 +424,24 @@ pub(super) async fn high_consequence_preflight(
     })))
 }
 
+fn unattested_legacy_digests(events: &[TemporalEvent]) -> Vec<String> {
+    let attested = events
+        .iter()
+        .filter(|event| event.event_kind == TemporalEventKind::LegacySignatureAttestation)
+        .filter_map(|event| event.metadata.get("legacy_event_digests"))
+        .filter_map(Value::as_array)
+        .flatten()
+        .filter_map(Value::as_str)
+        .collect::<std::collections::HashSet<_>>();
+    events
+        .iter()
+        .filter(|event| event.signature.is_none())
+        .filter(|event| event.event_kind != TemporalEventKind::LegacySignatureAttestation)
+        .filter(|event| !attested.contains(event.digest.as_str()))
+        .map(|event| event.digest.clone())
+        .collect()
+}
+
 pub(super) async fn migrate_signatures(
     State(state): State<Arc<AppState>>,
     Json(req): Json<TemporalSignatureMigrationRequest>,
@@ -438,17 +456,14 @@ pub(super) async fn migrate_signatures(
     let scope = scope(req.project_root, req.continuity_id, req.dimensions);
     let ledger = ledger(scope.clone())?;
     let events = read_events(&ledger)?;
-    let unsigned_digests = events
-        .iter()
-        .filter(|event| event.signature.is_none())
-        .map(|event| event.digest.clone())
-        .collect::<Vec<_>>();
+    let unsigned_digests = unattested_legacy_digests(&events);
     if unsigned_digests.is_empty() {
         return Ok(Json(json!({
             "schema":"focusa.temporal_signature_migration.v1",
             "status":"completed","idempotent_replay":true,"unsigned_event_count":0
         })));
     }
+    let attested_legacy_event_count = unsigned_digests.len();
     let mut metadata = std::collections::BTreeMap::new();
     metadata.insert("legacy_event_digests".into(), json!(unsigned_digests));
     metadata.insert(
@@ -474,7 +489,53 @@ pub(super) async fn migrate_signatures(
     Ok(Json(json!({
         "schema":"focusa.temporal_signature_migration.v1",
         "status":"completed","canonical":true,"events":appended,
-        "unsigned_event_count":events.iter().filter(|event| event.signature.is_none()).count(),
+        "attested_legacy_event_count":attested_legacy_event_count,
+        "remaining_unsigned_legacy_event_count":0,
+        "unsigned_event_count":0,
         "receipt_ref":format!("temporal-signature-migration:{}",req.idempotency_key)
     })))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::BTreeMap;
+
+    fn event(
+        kind: TemporalEventKind,
+        digest: &str,
+        metadata: BTreeMap<String, Value>,
+    ) -> TemporalEvent {
+        TemporalEvent {
+            event_id: Uuid::now_v7().to_string(),
+            sequence: 1,
+            event_kind: kind,
+            scope: TemporalScope::project("/project", "continuity"),
+            claim: None,
+            clock_sample: None,
+            metadata,
+            signature: None,
+            predecessor_digest: None,
+            recorded_at: Utc::now(),
+            idempotency_key: "key".into(),
+            digest: digest.into(),
+        }
+    }
+
+    #[test]
+    fn signature_migration_excludes_already_attested_legacy_events() {
+        let legacy = event(
+            TemporalEventKind::ClaimCommitted,
+            "sha256:legacy",
+            BTreeMap::new(),
+        );
+        let mut metadata = BTreeMap::new();
+        metadata.insert("legacy_event_digests".into(), json!(["sha256:legacy"]));
+        let attestation = event(
+            TemporalEventKind::LegacySignatureAttestation,
+            "sha256:attestation",
+            metadata,
+        );
+        assert!(unattested_legacy_digests(&[legacy, attestation]).is_empty());
+    }
 }
