@@ -301,25 +301,29 @@ fn ensure_resolver_catalog(
     for profile in builtin.profiles.values() {
         ensure_catalog_document(
             store,
-            "mission_canvas_profiles",
-            &format!("profile:{}", profile.profile_id),
-            &input.eligibility.scope,
-            serde_json::to_value(profile).map_err(json_error)?,
-            "profile_changed",
             input,
-            &now,
+            CatalogDocumentSeed {
+                table: "mission_canvas_profiles",
+                document_id: &format!("profile:{}", profile.profile_id),
+                scope: &input.eligibility.scope,
+                payload: serde_json::to_value(profile).map_err(json_error)?,
+                event_kind: "profile_changed",
+                now: &now,
+            },
         )?;
     }
     for activity in builtin.activities.values() {
         ensure_catalog_document(
             store,
-            "mission_canvas_activity_modes",
-            &format!("activity:{}", activity.activity_mode_id),
-            &input.eligibility.scope,
-            serde_json::to_value(activity).map_err(json_error)?,
-            "activity_mode_changed",
             input,
-            &now,
+            CatalogDocumentSeed {
+                table: "mission_canvas_activity_modes",
+                document_id: &format!("activity:{}", activity.activity_mode_id),
+                scope: &input.eligibility.scope,
+                payload: serde_json::to_value(activity).map_err(json_error)?,
+                event_kind: "activity_mode_changed",
+                now: &now,
+            },
         )?;
     }
     for entry in builtin
@@ -333,13 +337,15 @@ fn ensure_resolver_catalog(
     {
         ensure_catalog_document(
             store,
-            "mission_canvas_registry_entries",
-            &format!("registry:{}", entry.entry_id),
-            &input.eligibility.scope,
-            serde_json::to_value(entry).map_err(json_error)?,
-            "candidate_discovered",
             input,
-            &now,
+            CatalogDocumentSeed {
+                table: "mission_canvas_registry_entries",
+                document_id: &format!("registry:{}", entry.entry_id),
+                scope: &input.eligibility.scope,
+                payload: serde_json::to_value(entry).map_err(json_error)?,
+                event_kind: "candidate_discovered",
+                now: &now,
+            },
         )?;
     }
     for candidate in &input.candidates {
@@ -385,16 +391,28 @@ fn ensure_resolver_catalog(
     Ok(())
 }
 
+struct CatalogDocumentSeed<'a> {
+    table: &'a str,
+    document_id: &'a str,
+    scope: &'a MissionCanvasScope,
+    payload: Value,
+    event_kind: &'a str,
+    now: &'a str,
+}
+
 fn ensure_catalog_document(
     store: &MissionCanvasStore,
-    table: &str,
-    document_id: &str,
-    scope: &MissionCanvasScope,
-    payload: Value,
-    event_kind: &str,
     input: &ResolveProjectionInput,
-    now: &str,
+    seed: CatalogDocumentSeed<'_>,
 ) -> Result<(), (StatusCode, Json<Value>)> {
+    let CatalogDocumentSeed {
+        table,
+        document_id,
+        scope,
+        payload,
+        event_kind,
+        now,
+    } = seed;
     if store
         .get_document(table, scope, document_id)
         .map_err(store_error)?
