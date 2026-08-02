@@ -1,12 +1,13 @@
 import {
   getActiveWorkpointPacket,
   getAttachmentRuntime,
+  getLastProjectIdentity,
   getLastProjectVerify,
   getLastTrajectoryClarity,
   getScopedWorkpointPacket,
 } from "./state.js";
 
-export type NorthStarSurfaceState = "current" | "stale" | "missing" | "mismatched" | "blocked";
+export type NorthStarSurfaceState = "current" | "stale" | "missing" | "mismatched" | "steered" | "blocked";
 
 export type NorthStarSnapshot = {
   schema: "focusa.north_star_snapshot.v1";
@@ -47,10 +48,18 @@ function firstArray(root: any, paths: string[]): any[] {
 
 export function buildNorthStarSnapshot(trigger: string): NorthStarSnapshot {
   const verify = getLastProjectVerify() as any;
+  const identity = getLastProjectIdentity() as any;
   const trajectory = getLastTrajectoryClarity() as any;
   const workpoint = (getScopedWorkpointPacket() || getActiveWorkpointPacket()) as any;
+  const identityVerified =
+    identity?.status === "verified" ||
+    identity?.project_identity?.status === "verified" ||
+    identity?.project?.status === "verified";
   const projectCurrent =
-    verify?.verification?.verified === true || verify?.verified === true || verify?.canonical === true;
+    verify?.verification?.verified === true ||
+    verify?.verified === true ||
+    verify?.canonical === true ||
+    identityVerified;
   const hltStatus = firstString(trajectory, [
     "hlt_status",
     "trajectory.hlt_status",
@@ -100,7 +109,9 @@ export function buildNorthStarSnapshot(trigger: string): NorthStarSnapshot {
       ? ("missing" as const)
       : workpointAuthority
         ? ("current" as const)
-        : ("mismatched" as const),
+        : trigger === "operator_input"
+          ? ("steered" as const)
+          : ("mismatched" as const),
     frontier: frontier ? ("current" as const) : ("missing" as const),
   };
   const staleSurfaces = Object.entries(states)

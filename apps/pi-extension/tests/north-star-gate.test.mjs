@@ -91,10 +91,14 @@ test("first Workpoint checkpoint omits fake writer identity when no lease exists
   assert.doesNotMatch(block, /headers: writerLeaseHeaders\(localWriterId, await currentWorkLoopLease\(\)\)/);
 });
 
-test("operator ask changes immediately demote saved Workpoint authority", () => {
+test("operator ask changes demote stale action authority without false project blocking", () => {
   assert.match(turns, /boundAsk !== newTaskText/);
   assert.match(turns, /action_authority_for_current_ask: false/);
   assert.match(turns, /operator_ask_changed_since_workpoint_binding/);
+  assert.match(northStar, /getLastProjectIdentity/);
+  assert.match(northStar, /identityVerified/);
+  assert.match(northStar, /trigger === "operator_input"/);
+  assert.match(northStar, /\("steered" as const\)/);
 });
 
 test("north-star card continuously refreshes at lifecycle boundaries", () => {
