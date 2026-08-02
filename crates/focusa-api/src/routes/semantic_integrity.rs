@@ -231,17 +231,45 @@ fn checked_scope(q: &PageQuery) -> Result<ExactScope, Response> {
     }
 }
 
+fn operation_truth_counts() -> (usize, usize, usize, usize) {
+    let canonical_envelope = OPERATIONS
+        .iter()
+        .filter(|op| semantic_integrity_executor::operation_is_executable(op.operation_id))
+        .count();
+    let direct_routes = OPERATIONS
+        .iter()
+        .filter(|op| {
+            op.availability == Availability::Supported
+                && !semantic_integrity_executor::operation_is_executable(op.operation_id)
+        })
+        .count();
+    let supported = canonical_envelope + direct_routes;
+    (
+        canonical_envelope,
+        direct_routes,
+        supported,
+        OPERATIONS.len() - supported,
+    )
+}
+
 async fn status(Query(q): Query<PageQuery>) -> Response {
     let scope = match checked_scope(&q) {
         Ok(v) => v,
         Err(e) => return e,
     };
+    let (canonical_envelope, direct_routes, supported, schema_only) = operation_truth_counts();
     Json(OperationResult {
         contract: CONTRACT,
         operation_id: "semantic.integrity.status".into(), scope,
-        state: Availability::Supported, degraded: false,
-        message: "durable semantic event persistence, replay, migration, and settlement preview are integrated".into(),
-        data: json!({"registered_operations": OPERATIONS.len(), "executable_operations": OPERATIONS.iter().filter(|op| semantic_integrity_executor::operation_is_executable(op.operation_id)).count()}),
+        state: Availability::Supported, degraded: schema_only > 0,
+        message: format!("{supported} operations are executable through canonical envelopes or direct read routes; {schema_only} remain schema-only and block full conformance"),
+        data: json!({
+            "registered_operations": OPERATIONS.len(),
+            "supported_operations": supported,
+            "canonical_envelope_operations": canonical_envelope,
+            "direct_read_route_operations": direct_routes,
+            "schema_only_operations": schema_only
+        }),
         evidence_refs: vec!["operation-registry:semantic-integrity:v1".into()], receipt_refs: vec![],
         observed_at: Utc::now().to_rfc3339(),
     }).into_response()
@@ -272,14 +300,18 @@ async fn registry(Query(q): Query<PageQuery>) -> Response {
         .cloned()
         .collect::<Vec<_>>();
     let next = (offset + items.len() < filtered.len()).then(|| (offset + items.len()).to_string());
+    let schema_only = filtered
+        .iter()
+        .filter(|op| op.availability == Availability::SchemaOnly)
+        .count();
     Json(Page {
         contract: CONTRACT,
         scope,
         items,
         next_cursor: next,
         limit,
-        degraded: false,
-        degraded_reason: None,
+        degraded: schema_only > 0,
+        degraded_reason: (schema_only > 0).then_some("registered operations remain schema-only"),
         evidence_refs: vec!["operation-registry:semantic-integrity:v1".into()],
         receipt_refs: vec![],
     })
@@ -458,6 +490,16 @@ mod tests {
             assert!(op.idempotency_required && op.confirmation_required);
             assert_ne!(op.availability, Availability::Supported);
         }
+    }
+
+    #[test]
+    fn status_and_registry_share_one_operation_truth_definition() {
+        let (canonical_envelope, direct_routes, supported, schema_only) = operation_truth_counts();
+        assert_eq!(canonical_envelope, 18);
+        assert_eq!(direct_routes, 2);
+        assert_eq!(supported, 20);
+        assert_eq!(schema_only, 23);
+        assert_eq!(supported + schema_only, OPERATIONS.len());
     }
 
     #[test]

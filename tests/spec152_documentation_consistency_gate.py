@@ -14,8 +14,11 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
-ACTIVE_FILES = [
+OPERATOR_GUIDES = [
     "README.md",
+    "LICENSE-FAQ.md",
+    "docs/INSTALL_PURCHASE_PUBLIC_STATUS.md",
+    "docs/PHASE2_OPERATOR_PREVIEW.md",
     "docs/current/FIRST_RUN_FLOW.md",
     "docs/current/INSTALLER_UPDATE_POLICY.md",
     "docs/current/FOCUSA_FRIENDLY_ONBOARDING.md",
@@ -23,33 +26,40 @@ ACTIVE_FILES = [
     "docs/agent/01-focusa-agent-docs-index.md",
     ".pi/skills/focusa-install-lifecycle/references/01-focusa-install-lifecycle-runbook.md",
     "apps/pi-extension/skills/focusa-install-lifecycle/references/01-focusa-install-lifecycle-runbook.md",
+]
+
+NORMATIVE_FILES = [
     "docs/150a-spec152-entitlement-overlay-and-lifecycle-integration.md",
     "docs/152-mandatory-authority-licensing-evaluation-entitlements-and-unified-onboarding-spec.md",
     "docs/152a-protected-distribution-private-feature-capsules-and-anti-tamper-spec.md",
     "docs/contracts/spec152-supersession-and-integration-matrix.v1.yaml",
 ]
 
-# Exact published command shapes that would tell a new evaluator to use the legacy bypass.
+ACTIVE_FILES = OPERATOR_GUIDES + NORMATIVE_FILES
+
 FORBIDDEN_ACTIVE_PATTERNS = [
     "curl -fsS https://install.focusa.dev/focusa | bash -s -- --eval",
     "bash scripts/install-focusa.sh --dry-run --eval",
     "scripts/install-focusa.sh --dry-run --eval",
 ]
 
-# Active docs must contain the mandatory authority concepts. The precise phrasing may vary.
 REQUIRED_CONCEPT_GROUPS = {
     "mandatory_spec": ["Spec 152", "spec152"],
     "authority_issued": ["authority-issued", "authority issued"],
-    "recovery_only": ["recovery-only", "recovery only"],
+    "recovery_posture": ["recovery"],
 }
 
 REQUIRED_MATRIX_TOKENS = [
     "docs/150-focusa-guided-install-first-project-and-lifecycle-master-spec.md",
+    "docs/current/PORTABILITY_AUDIT.md",
+    "docs/INSTALL_PURCHASE_PUBLIC_STATUS.md",
+    "docs/PHASE2_OPERATOR_PREVIEW.md",
     "scripts/install-focusa.sh",
+    "scripts/install-focusa.ps1",
     "crates/focusa-license/src/lib.rs",
     "crates/focusa-core/src/license.rs",
+    "apps/menubar/src/lib/components/FirstRunWizard.svelte",
     "docs/current/FIRST_RUN_FLOW.md",
-    "WPUIAI",  # Matrix is allowed to mention product integration indirectly in comments/future expansion.
 ]
 
 
@@ -78,9 +88,7 @@ def main() -> int:
                     f"{path}: publishes legacy self-issued Evaluation command: {pattern!r}"
                 )
 
-    # Every operator/agent-facing guide must point at the new authority boundary.
-    operator_guides = ACTIVE_FILES[:8]
-    for path in operator_guides:
+    for path in OPERATOR_GUIDES:
         text = contents.get(path, "").lower()
         for concept, alternatives in REQUIRED_CONCEPT_GROUPS.items():
             if not any(alt.lower() in text for alt in alternatives):
@@ -99,11 +107,10 @@ def main() -> int:
 
     matrix_path = "docs/contracts/spec152-supersession-and-integration-matrix.v1.yaml"
     matrix = contents.get(matrix_path, "")
-    for token in REQUIRED_MATRIX_TOKENS[:-1]:
+    for token in REQUIRED_MATRIX_TOKENS:
         if token not in matrix:
             failures.append(f"{matrix_path}: missing contradiction/integration entry {token}")
 
-    # Require the combined lifecycle rule, not a standalone license spec detached from Spec 150.
     overlay = contents.get("docs/150a-spec152-entitlement-overlay-and-lifecycle-integration.md", "")
     for token in (
         "LifecycleEntitlementBinding",

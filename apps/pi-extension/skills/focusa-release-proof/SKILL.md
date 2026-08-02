@@ -32,6 +32,10 @@ Use when preparing a release gate, proof bundle, changelog, resolved-issue audit
 2. `focusa_workpoint_link_evidence`
 3. `focusa_predict_stats`
 4. `focusa_metacog_doctor`
+5. `focusa_project_card_outcome`
+6. `focusa_temporal_authority`
+7. `focusa_context_cognition_proof`
+8. `focusa_preload_verify`
 
 Current operator steering, verified project scope, and canonical Workpoint authority remain higher priority than this default sequence.
 

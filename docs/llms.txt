@@ -112,13 +112,13 @@ Use UIAI first for every URL/browser/research task. Sequence:
 
 ## Skills and runbooks
 
-Project and packaged skills live at `.pi/skills/` and `apps/pi-extension/skills/`. Twenty-two skills and twenty-two numbered runbooks cover bootstrap/discovery, scope, Workpoints, Work Loop, daemon-native Silent Sessions, session recovery, browser/UIAI, install lifecycle, security/auth/licensing, resources, Mission Canvas, release proof, temporal authority, spec implementation, evidence/outcomes, troubleshooting, docs, CLI/API, metacognition, and prediction.
+Project and packaged skills live at `.pi/skills/` and `apps/pi-extension/skills/`. Twenty-nine skills and thirty-one numbered runbooks cover bootstrap/discovery, scope, Workpoints, Work Loop, daemon-native Silent Sessions, session recovery, browser/UIAI, install lifecycle, security/auth/licensing, resources, Mission Canvas, Context Cognition, Project Card/Genesis, preload, device pairing, release proof, temporal authority, spec implementation, evidence/outcomes, troubleshooting, docs, CLI/API, metacognition, prediction, and Tool Discovery.
 
 Coverage/parity authority: `docs/evidence/141-focusa-skill-runbook-coverage.json`.
 
 ## Public status and direction
 
-Focusa remains under active development. The `v0.9.121-dev` snapshot includes 112 all-harness Pi capability descriptors/docs, progressive discovery, 22 skill/runbook pairs, 458 classified routes, governed browser capability intake, and current lifecycle/onboarding projections. Spec141 behavioral conformance and strict agent-first audit pass with zero findings.
+Focusa v0.9.142 carries 135 all-harness Pi capability descriptors/docs, progressive discovery, 29 generated skills with 31 runbooks, 524 classified routes, governed browser/UIAI capability intake, Context Cognition curation/proof, Project Card/Genesis, Temporal Authority, preload, Silent Sessions, device pairing, and current lifecycle/onboarding projections. Spec141 behavioral conformance and strict agent-first audit pass with zero findings.
 
 Recent direction: CRIST genesis/interviews, UIAI rich artifacts, domain ontology packs, multiplexed Mission Canvas/browser isolation, generated nontechnical UI, durable operation registry/streams, adaptive UXP/UFI, governed proposal settlement, temporal authority, prediction/metacognitive transfer, distributed presence/placement, and runtime constitution compilation.
 

@@ -6,6 +6,10 @@ This adapter is part of the cross-agent Focusa feature set: every major
 coding agent sees the same recent-turns slice, recall-intent trigger, and
 provider prompt cache split, sourced from a single canonical daemon.
 
+## v0.9.142 surface
+
+The adapter follows the current cross-harness contract: verify `project_root + continuity_id`, orient with Agent Card/Trajectory/Workpoint, keep mutations scope-bound, capture evidence after proof, and record/evaluate predictions around uncertainty. Context Cognition, Project Card/Genesis, preload, session transfer, Temporal Authority, Tool Discovery, and release-proof routes are available through the same typed API; operator steering remains authoritative.
+
 ## What it does
 
 1. **Capture**: on every Claude Code turn boundary (Stop / PostToolUse /

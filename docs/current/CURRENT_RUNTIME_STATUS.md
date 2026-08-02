@@ -2,16 +2,18 @@
 
 <!-- GENERATED: scripts/generate-current-runtime-status. Do not edit by hand. -->
 
-Generated: 2026-08-01T15:32:57Z
-Version: 0.9.142
+Generated: 2026-08-02T01:32:27Z
+Version: 0.9.143
 Tool contracts: 135
 Tool surface summary: [docs/current/generated/tool-surface-summary.md](docs/current/generated/tool-surface-summary.md)
 
 ## Current shipped functionality
 
-- evaluations persist as first-class records for prediction/metacog readback and promotion.
-- /v1/work-loop/health exposes dispatch readiness for work-loop diagnostics.
-- ontology memory-pipeline promotions are documented and auditable.
+- typed project identity, Project Card, Genesis/bootstrap, Trajectory, Workpoint, evidence, and continuity recovery preserve project_root + continuity_id authority.
+- Context Cognition builds bounded project context, curation, proof, and optimization packets without overriding Workpoint or operator steering.
+- prediction authority, temporal authority, metacognition, work-loop health, and Spec97 reflex suggestions provide evidence-backed routing and learning.
+- UIAI/WebMCP capability intake, browser workflow planning, preload packets, Silent Sessions, device pairing, and progressive Tool Discovery are cross-harness surfaces.
+- runtime tools, contracts, Pi/MCP/OpenAI/CLI/REST projections, per-tool docs, Agent Card, and 29 generated skills are parity-gated.
 
 ## Release invariant inputs
 

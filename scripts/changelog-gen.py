@@ -22,13 +22,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 RELEASE_HIGHLIGHTS = [
-    "112 Focusa Pi tools with strict cross-harness descriptors and per-tool docs",
-    "22 packaged skills with 22 numbered runbooks and complete Agent Card discovery",
-    "daemon-native Silent Sessions and governed continuous work-loop execution",
-    "Mission Canvas, Work Rail, connectors, domain projections, and adaptive generated UI",
-    "cache-safe compaction, automatic rollover, verified worktree/project authority, and durable evidence",
-    "trusted install/repair/OTA rollback plus preserve-by-default public uninstall",
-    "OpenClaw Focusa awareness plugin and non-Pi Agent Awareness surfaces",
+    "135 Focusa tools with strict cross-harness descriptors, per-tool docs, and 381 choreography edges",
+    "29 packaged skills with complete root/package parity, numbered runbooks, and Agent Card discovery",
+    "typed Project Identity, Project Card/Genesis, Trajectory, Workpoint, evidence, and continuity recovery",
+    "Context Cognition curation/proof/optimization, prediction authority, metacognition, and governed work-loop execution",
+    "Mission Canvas, Work Rail, UIAI/WebMCP workflows, preload, Silent Sessions, device pairing, and progressive Tool Discovery",
+    "cache-safe compaction, automatic rollover, Temporal Authority, strict cross-platform terminal builds, and cross-project isolation",
+    "trusted install/repair/OTA rollback plus preserve-by-default public uninstall, OpenClaw Focusa awareness plugin, and non-Pi Agent Awareness surfaces",
 ]
 
 

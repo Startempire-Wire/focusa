@@ -1,0 +1,44 @@
+name: Spec 152 Documentation Consistency
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'README.md'
+      - 'LICENSE-FAQ.md'
+      - 'docs/**'
+      - '.pi/skills/focusa-install-lifecycle/**'
+      - 'apps/pi-extension/skills/focusa-install-lifecycle/**'
+      - 'tests/spec152_documentation_consistency_gate.py'
+      - '.github/workflows/spec152-documentation-consistency.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'README.md'
+      - 'LICENSE-FAQ.md'
+      - 'docs/**'
+      - '.pi/skills/focusa-install-lifecycle/**'
+      - 'apps/pi-extension/skills/focusa-install-lifecycle/**'
+      - 'tests/spec152_documentation_consistency_gate.py'
+      - '.github/workflows/spec152-documentation-consistency.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  consistency:
+    name: Licensing and onboarding docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Run Spec 152 documentation gate
+        run: python3 tests/spec152_documentation_consistency_gate.py
+      - name: Verify canonical and packaged install runbooks are byte-identical
+        run: |
+          cmp \
+            .pi/skills/focusa-install-lifecycle/references/01-focusa-install-lifecycle-runbook.md \
+            apps/pi-extension/skills/focusa-install-lifecycle/references/01-focusa-install-lifecycle-runbook.md

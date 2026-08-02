@@ -12,13 +12,13 @@
 <p align="center">
   <a href="https://github.com/Startempire-Wire/focusa/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Startempire-Wire/focusa/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/Startempire-Wire/focusa/actions/workflows/release.yml"><img alt="Release" src="https://github.com/Startempire-Wire/focusa/actions/workflows/release.yml/badge.svg"></a>
-  <img alt="Version" src="https://img.shields.io/badge/version-0.9.142-blue">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.9.143-blue">
   <img alt="Rust" src="https://img.shields.io/badge/rust-1.91%2B-dea584?logo=rust">
   <img alt="License" src="https://img.shields.io/badge/license-BSL--1.1-orange">
   <img alt="Local first" src="https://img.shields.io/badge/local--first-proof%20layer-2b82ff">
 </p>
 
-Focusa is the local-first proof and continuity layer for AI coding agents. Current source version: `v0.9.142`.
+Focusa is the local-first proof and continuity layer for AI coding agents. Current source version: `v0.9.143`.
 
 > **Evaluator/customer distribution status:** Focusa's lifecycle, release, Workpoint, Evidence, Pi, TUI, and Mission Canvas foundations are advanced, but mandatory authority-issued licensing is not yet implemented end to end. The current Bash/PowerShell `--eval` path self-issues local Evaluation and is now release-blocked. New evaluator/customer installs must wait for Spec 152, Spec 150A, and applicable Spec 152A proof rather than using that legacy bypass.
 
@@ -30,7 +30,7 @@ When a coding session gets long, context compacts, the mission drifts, proof get
 - **Daemon-native Silent Sessions:** durable background runs support observation, steering, pause/resume/restart, approvals, idempotency, and receipts.
 - **Governed work loop and recovery:** one writer, canonical checkpoints, proactive compaction, cache-safe context, and governed rollover.
 - **Mission Canvas and Work Rail:** scoped Work Surfaces, interviews, workspace artifacts, UIAI browser context, connectors, software/domain projections, and adaptive generated UI.
-- **Customer lifecycle mechanics:** typed install/repair/update/rollback/uninstall transactions with data preservation and proof.
+- **Customer lifecycle mechanics:** typed install/repair/update/rollback/uninstall transactions with data preservation and proof; uninstall with user data preserved by default, purge explicit.
 - **Agent-ready contracts:** every Focusa Pi tool has runtime, generated machine, documentation, skill, and runbook projections.
 - **Mandatory licensing target:** authority-issued signed Evaluation/paid/developer leases, recovery-only missing state, product-qualified features/limits, UIAI independent grants, and protected private workers/capsules for selected commercial functionality.
 
@@ -153,6 +153,8 @@ focusa tui --headless-self-test --json
 
 The Pi extension lets agents call Focusa's Workpoint, Evidence, trajectory, recovery, prediction, metacognition, and lifecycle surfaces without inventing a parallel memory system. Future generated descriptors must expose product-qualified `license_feature` and optional limit metadata for execution-capable tools.
 
+v0.9.142 route: `focusa_project_identity → focusa_trajectory_view → focusa_workpoint_resume → focusa_evidence_capture → focusa_predict_evaluate`; checkpoint with `focusa_workpoint_checkpoint` before compaction or risky continuation.
+
 ### Local daemon and typed API
 
 Focusa runs beside agents as a Rust daemon. State stays on the operator's machine or VPS. The final licensing architecture allows the daemon to start without a valid lease only in recovery mode.
@@ -179,7 +181,8 @@ Focusa publishes generated capability descriptors across Pi, MCP, OpenAI-compati
 4. `focusa_tool_graph`
 5. `focusa_tool_bundle`
 
-Machine contracts: [`docs/contracts/spec141/generated-capability-v2/`](docs/contracts/spec141/generated-capability-v2/)  
+All 135 Focusa Pi tools are documented across the machine contracts, Agent Card, per-tool docs, and 29 generated skills. Machine contracts: [`docs/contracts/spec141/generated-capability-v2/`](docs/contracts/spec141/generated-capability-v2/)
+
 Every Pi tool: [`docs/focusa-tools/tools/`](docs/focusa-tools/tools/)  
 Skills/runbooks: [`.pi/skills/`](.pi/skills/)  
 Agent fast start: [`docs/agent/01-focusa-agent-docs-index.md`](docs/agent/01-focusa-agent-docs-index.md)
@@ -236,7 +239,14 @@ Final distribution additionally requires signed-lease golden vectors, authority 
 - [Current CLI reference](docs/current/CLI_REFERENCE_CURRENT.md)
 - [Troubleshooting](docs/current/TROUBLESHOOTING_CURRENT.md)
 - [Agent architecture and discovery](docs/agent/01-focusa-agent-docs-index.md)
-- [Friendly onboarding](docs/current/FOCUSA_FRIENDLY_ONBOARDING.md)
+- [Tool Implementation-to-Spec Audit](docs/current/FOCUSA_TOOL_IMPLEMENTATION_SPEC_AUDIT.md)
+- [Model-Visible Awareness Surfaces](docs/current/FOCUSA_MODEL_VISIBLE_AWARENESS.md)
+- [Non-Pi Agent Focusa Usage](docs/current/NON_PI_AGENT_FOCUSA_USAGE.md)
+- [Friendly Focusa Onboarding Q](docs/current/FOCUSA_FRIENDLY_ONBOARDING.md)
+- [Agent Awareness Quickstart](docs/current/AGENT_AWARENESS_QUICKSTART.md)
+- [Focusa Utility Card](docs/current/FOCUSA_AGENT_UTILITY_CARD.md)
+- [Focusa Tool Choreography Map](docs/current/FOCUSA_TOOL_CHOREOGRAPHY_MAP.md)
+- [Current Runtime Status](docs/current/CURRENT_RUNTIME_STATUS.md)
 - [Mission Canvas/current generated UI](docs/135-series-current-manifest.md)
 - [Complete tool documentation](docs/focusa-tools/README.md)
 - [Public shipped/planned status](docs/PUBLIC_DOCS_SYNC.md)

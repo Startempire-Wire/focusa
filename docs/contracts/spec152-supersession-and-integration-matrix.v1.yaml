@@ -1,13 +1,14 @@
 schema: focusa.spec152.supersession_and_integration_matrix.v1
-generated_at: 2026-08-01T19:40:00Z
+generated_at: 2026-08-01T20:10:00Z
 normative_authorities:
   entitlement: docs/152-mandatory-authority-licensing-evaluation-entitlements-and-unified-onboarding-spec.md
   lifecycle_overlay: docs/150a-spec152-entitlement-overlay-and-lifecycle-integration.md
   protected_distribution: docs/152a-protected-distribution-private-feature-capsules-and-anti-tamper-spec.md
 release_rule: >-
   Historical implementation truth may remain documented, but no active guide, release claim,
-  lifecycle receipt, or installer path may treat missing/local state as Evaluation or claim
-  evaluator/customer readiness without the combined Spec 150 + 152 + 152A gates.
+  lifecycle receipt, installer path, pairing path, source-build path, or UIAI health/auth path
+  may treat missing/local state as Evaluation or claim evaluator/customer readiness without
+  the combined Spec 150 + 150A + 152 + applicable 152A gates.
 entries:
   - path: docs/150-focusa-guided-install-first-project-and-lifecycle-master-spec.md
     classification: active_spec_amended
@@ -36,15 +37,39 @@ entries:
   - path: docs/112-install-binary-architecture-spec.md
     classification: active_spec_amended
     conflicting_claim: legacy --eval installer path can be treated as approved evaluator activation
-    disposition: retain binary mechanics; replace evaluation authority through Spec 152 device-code flow
+    disposition: retain binary mechanics; replace Evaluation authority through Spec 152 device-code flow
     required_change: update installer contract and Windows parity
     status: release_blocker
+  - path: docs/112-install-binary-architecture-audit.md
+    classification: historical_audit
+    conflicting_claim: audit may prove legacy eval/install behavior as then-current
+    disposition: retain as historical implementation evidence; current release authority comes from Spec 152/150A
+    required_change: none beyond cross-link when audit is next revised
+    status: retained_historical
   - path: docs/132-focusa-installer-animated-terminal-experience-spec.md
     classification: active_spec_amended
     conflicting_claim: presenter examples may expose the legacy --eval flow as supported evaluator onboarding
     disposition: terminal UX remains; it cannot own or bypass entitlement
     required_change: render entitlement/device-code states and redact all activation material
     status: documentation_migration_required
+  - path: docs/current/PORTABILITY_AUDIT.md
+    classification: active_audit_amended
+    conflicting_claim: one-curl and pairing-first setup addenda predate mandatory entitlement and may imply install readiness without a signed lease
+    disposition: portability mechanics remain useful; Spec 152 and FIRST_RUN_FLOW govern current onboarding order
+    required_change: revise next portability audit to include device-code, lease, protected-component, Windows, and recovery parity
+    status: amendment_required
+  - path: docs/55-focusa-self-host-architecture.md
+    classification: historical_architecture_amended
+    conflicting_claim: self-host/eval examples predate authority-issued Evaluation and protected component boundaries
+    disposition: use only for infrastructure concepts that do not conflict; Spec 152/152A own entitlement/protected delivery
+    required_change: replace legacy install examples when architecture doc is revised
+    status: retained_with_supersession
+  - path: docs/58-focusa-intel-mac-runbook.md
+    classification: historical_platform_runbook_amended
+    conflicting_claim: Mac install sequence predates entitlement-first onboarding
+    disposition: platform details remain historical; current first-run/install policy controls
+    required_change: revise before use for an external evaluator
+    status: not_current_onboarding
   - path: scripts/install-focusa.sh
     classification: current_code_legacy
     conflicting_claim: --eval locally self-issues Evaluation
@@ -75,30 +100,48 @@ entries:
     disposition: become device-code and signed-lease client
     required_change: start, poll, exchange, refresh, status, doctor, deactivate-node, and redacted JSON contracts
     status: release_blocker
+  - path: apps/menubar/src/lib/components/FirstRunWizard.svelte
+    classification: current_code_legacy
+    conflicting_claim: pairing-first completion can enter normal polling without an immutable entitlement receipt
+    disposition: pairing remains device authentication; entitlement must precede pairing and execution
+    required_change: add entitlement-first state machine and reconciled completion receipt
+    status: release_blocker
   - path: docs/current/FIRST_RUN_FLOW.md
     classification: active_guide_corrected
     conflicting_claim: pairing is the first authority step
     disposition: entitlement resolution precedes pairing in the required release flow
-    required_change: retain as-built distinction until code changes
+    required_change: implement the documented state machine
     status: corrected_pending_implementation
   - path: docs/current/INSTALLER_UPDATE_POLICY.md
     classification: active_guide_corrected
     conflicting_claim: unauthenticated --eval is the public evaluator path
     disposition: only non-mutating preflight is allowed before authority issuance
-    required_change: replace published examples and gate update apply by signed features
+    required_change: replace published installer implementation and gate update apply by signed features
     status: corrected_pending_implementation
   - path: docs/current/FOCUSA_FRIENDLY_ONBOARDING.md
     classification: active_guide_corrected
     conflicting_claim: customer lifecycle recommends legacy --eval install
-    disposition: document current release block and target device-code flow
-    required_change: remove approved legacy examples
+    disposition: current release block and target device-code flow are explicit
+    required_change: implement and prove target commands before advertising them
     status: corrected_pending_implementation
   - path: docs/current/COMMERCIAL_PACKAGING.md
     classification: active_guide_corrected
     conflicting_claim: Community source appears to be an automatically entitled runnable edition
     disposition: source reference/development shell is distinct from authority-issued Evaluation
-    required_change: clarify protected/private artifact delivery and combined readiness gate
+    required_change: implement protected/private artifact delivery and combined readiness gate
     status: corrected_pending_implementation
+  - path: docs/INSTALL_PURCHASE_PUBLIC_STATUS.md
+    classification: active_public_status_corrected
+    conflicting_claim: public status previously implied current evaluation installs were approved
+    disposition: release block and target authority flow are now explicit
+    required_change: update again when device-code/signed-lease flow ships
+    status: corrected_pending_implementation
+  - path: docs/PHASE2_OPERATOR_PREVIEW.md
+    classification: active_launch_plan_corrected
+    conflicting_claim: preview plan used a no-license one-line install and called the flow open-source
+    disposition: preview entry now requires signed Evaluation and combined release gates
+    required_change: run only after authority, client, UIAI, and recovery proof pass
+    status: blocked_until_implementation
   - path: README.md
     classification: active_guide_corrected
     conflicting_claim: install and source-evaluation examples bypass authority issuance
@@ -109,12 +152,12 @@ entries:
     classification: active_agent_guide_corrected
     conflicting_claim: lifecycle discovery recommends legacy --eval
     disposition: agents use non-mutating preflight and must not synthesize entitlement
-    required_change: load Spec 152/150A for license/install work
+    required_change: keep Spec 152/150A/152A fast path current
     status: corrected_pending_implementation
   - path: .pi/skills/focusa-install-lifecycle/references/01-focusa-install-lifecycle-runbook.md
     classification: active_runbook_corrected
     conflicting_claim: agents are told to inspect/install through legacy --eval
-    disposition: use authority-backed flow and recovery-only posture
+    disposition: use authority-backed flow and recovery posture
     required_change: packaged copy must remain byte-identical
     status: corrected_pending_implementation
   - path: apps/pi-extension/skills/focusa-install-lifecycle/references/01-focusa-install-lifecycle-runbook.md
@@ -134,9 +177,10 @@ combined_release_blockers:
   - authority device-code and verified-email Evaluation issuance
   - lifecycle entitlement binding and receipts
   - installer Bash and PowerShell replacement of self-issued Evaluation
+  - entitlement-first menubar first run before pairing
   - central runtime feature and recovery-mode enforcement
   - UIAI independent entitlement enforcement
   - generated feature/route/client coverage ledgers
   - protected worker/capsule boundary for selected crown-jewel features
-  - documentation consistency gate
-  - staging and adversarial E2E proof
+  - documentation consistency gates
+  - staging, migration, rollback, and adversarial E2E proof

@@ -24,6 +24,13 @@ function compact(value: unknown, fallback: string, max = 180): string {
   return text.length > max ? `${text.slice(0, Math.max(0, max - 1))}…` : text;
 }
 
+const AWARENESS_ROUTE_HINTS =
+  "focusa_tool_doctor → focusa_project_identity → focusa_trajectory_view → focusa_workpoint_resume";
+const PROOF_ROUTE_HINTS =
+  "focusa_evidence_capture / focusa_workpoint_link_evidence / focusa_predict_record / focusa_predict_evaluate";
+const LEARNING_ROUTE_HINTS =
+  "focusa_metacog_retrieve / focusa_metacog_capture / focusa_metacog_reflect / focusa_work_loop_status";
+
 /**
  * Prompt-safe cached fallback for the startup card.
  *
@@ -80,6 +87,13 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
     `Mission: ${mission}`,
     `HLT status: ${hltStatus}`,
     `Interaction: ${interactionMode}`,
+    "Card: Focusa Utility Card",
+    "Attention: Attentive and awaiting operator direction",
+    "Priority: Operator steering always wins",
+    `Orient/recover: ${AWARENESS_ROUTE_HINTS}`,
+    `Prove/forecast: ${PROOF_ROUTE_HINTS}`,
+    `Learn/continue: ${LEARNING_ROUTE_HINTS}`,
+    "Checkpoint before compaction/model switch/risky continuation: focusa_workpoint_checkpoint",
     `Next: ${next}`,
     scopeVerified
       ? "Boundary: operator steering leads; scoped mutation tools enforce durable-write authority."

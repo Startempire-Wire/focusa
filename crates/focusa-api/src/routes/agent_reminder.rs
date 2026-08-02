@@ -206,6 +206,17 @@ async fn inject_agent_prompt_into_body(response: &mut Response) {
 
     let is_json = content_type.contains("application/json");
     let is_plain = content_type.starts_with("text/") || content_type.is_empty();
+    let Some(content_length) = response
+        .headers()
+        .get(axum::http::header::CONTENT_LENGTH)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.parse::<usize>().ok())
+    else {
+        return;
+    };
+    if content_length > MAX_INJECT_BYTES {
+        return;
+    }
 
     let body = std::mem::replace(response.body_mut(), Body::empty());
     let bytes = match axum::body::to_bytes(body, MAX_INJECT_BYTES + 1).await {
@@ -348,6 +359,26 @@ mod tests {
             HeaderValue::from_static("focusa-pi/0.9.14-dev"),
         );
         assert!(detect_pi_agent(&hm));
+    }
+
+    #[tokio::test]
+    async fn large_agent_response_body_is_preserved_without_injection() {
+        use axum::body::Body;
+        let payload = vec![b'x'; MAX_INJECT_BYTES + 1];
+        let mut response = Response::new(Body::from(payload.clone()));
+        response.headers_mut().insert(
+            axum::http::header::CONTENT_TYPE,
+            HeaderValue::from_static("application/json"),
+        );
+        response.headers_mut().insert(
+            axum::http::header::CONTENT_LENGTH,
+            HeaderValue::from_str(&payload.len().to_string()).unwrap(),
+        );
+
+        inject_agent_prompt_into_body(&mut response).await;
+        let body = std::mem::replace(response.body_mut(), Body::empty());
+        let actual = axum::body::to_bytes(body, payload.len()).await.unwrap();
+        assert_eq!(actual.as_ref(), payload.as_slice());
     }
 
     #[test]

@@ -4,6 +4,10 @@
 
 The **Friendly Focusa Q** should feel like navigation help, not a nag. The goal is a short orientation that helps the model choose the right tool route before it falls back to only `focusa_scratch` / `focusa_decide`.
 
+## v0.9.142 surface
+
+Friendly onboarding now covers the 135-tool cross-harness surface: Context Cognition, Project Card/Genesis, Temporal Authority, preload, Silent Sessions, browser/UIAI workflows, device pairing, Mission Canvas, progressive Tool Discovery, and the existing Trajectory/Workpoint/evidence/prediction/metacognition/work-loop route. Scope and operator-steering rules remain unchanged.
+
 ## Tone contract
 
 - Use **suggested route**, **quick orientation**, and **next useful move** language.
@@ -87,7 +91,7 @@ Suggested route: project_identity → trajectory_view → workpoint_resume/check
 
 1. Read `AGENTS.md`, then `docs/agent/01-focusa-agent-docs-index.md`.
 2. For install, licensing, evaluator onboarding, UIAI grant, or protected-worker work, also read Spec 152, Spec 150A, Spec 152A, and the machine supersession matrix.
-3. Call `focusa_agent_card`; confirm version, registry digest, Pi tool count, complete skill inventory, and runbook count.
+3. Call `focusa_agent_card`; confirm version, registry digest, Pi tool count, complete skill inventory, and runbook count. all Focusa Pi tools are covered by the same cross-harness registry and docs.
 4. Verify `project_root + continuity_id` with `focusa_project_identity` and `focusa_project_verify`. Treat worktrees as typed working subpaths.
 5. Resume `focusa_trajectory_view` and `focusa_workpoint_resume`; checkpoint when no canonical Workpoint exists and entitlement permits mutation.
 6. Use `focusa_tool_search` → `focusa_tool_describe` for the narrowest tool. Do not hot-load or invent schemas.
@@ -97,7 +101,9 @@ Suggested route: project_identity → trajectory_view → workpoint_resume/check
 10. Before compaction or model/session change, checkpoint Workpoint and Trajectory when allowed.
 11. Close work with stable Evidence, prediction evaluation when available, reusable metacognition when evidence-backed, and an exact next action.
 
-## Customer/evaluator lifecycle walkthrough
+## Customer lifecycle walkthrough
+
+The evaluator path uses the same authority-issued lifecycle rules; evaluator-specific notes follow below.
 
 ### Approved current operations before Spec 152 implementation
 

@@ -1,0 +1,23 @@
+schema: focusa.spec152.open_code_gaps.v1
+gaps:
+  - id: focusa-dual-license-engines
+    paths: [crates/focusa-license/src/lib.rs, crates/focusa-core/src/license.rs]
+    severity: p0
+  - id: focusa-self-issued-eval
+    paths: [scripts/install-focusa.sh, scripts/install-focusa.ps1]
+    severity: p0
+  - id: focusa-noncanonical-license-cli
+    paths: [crates/focusa-cli/src/commands/license.rs]
+    severity: p0
+  - id: focusa-partial-runtime-gates
+    paths: [crates/focusa-api, crates/focusa-cli, apps/pi-extension, apps/menubar]
+    severity: p0
+  - id: focusa-pairing-first
+    paths: [apps/menubar/src/lib/components/FirstRunWizard.svelte]
+    severity: p0
+  - id: focusa-lifecycle-unbound
+    paths: [crates/focusa-core/src/install_lifecycle]
+    severity: p0
+  - id: focusa-uiai-child-token-missing
+    paths: [crates/focusa-api, apps/pi-extension]
+    severity: p0

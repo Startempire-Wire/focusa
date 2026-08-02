@@ -32,6 +32,9 @@ Use when orienting a new or resumed agent with bounded Focusa identity, Agent Ca
 3. `focusa_workpoint_resume`
 4. `focusa_trajectory_view`
 5. `focusa_tool_search`
+6. `focusa_preload_build`
+7. `focusa_context_cognition`
+8. `focusa_project_card`
 
 Current operator steering, verified project scope, and canonical Workpoint authority remain higher priority than this default sequence.
 

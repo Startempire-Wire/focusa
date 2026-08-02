@@ -29,12 +29,13 @@ Minimum card content:
 Focusa is the local cognitive continuity/governance runtime.
 Use it for Workpoints, Focus State, evidence refs, predictions, metacognition, lineage, work-loop state, Spec97 Reflex Primitives, and recovery.
 If uncertain/degraded: run focusa doctor or call /v1/doctor; if a result includes reflex_suggestions, inspect /v1/reflex/primitives read-only.
-Before compaction/model switch/fork/risky continuation: checkpoint a Workpoint.
+Before compaction/model switch/fork/risky continuation: checkpoint a Workpoint with `focusa_workpoint_checkpoint`.
 On project start/resume: fetch /v1/trajectory/view for high/mid/low goals, active gap, evidence, and drift boundaries.
-After resume/reload: fetch Workpoint resume packet and follow it unless operator steers otherwise.
+After resume/reload: fetch Workpoint resume packet from `/v1/workpoint/resume` or `focusa_workpoint_resume` and follow it unless operator steers otherwise.
+If state/tool readiness is unclear, run `focusa_tool_doctor` before guessing.
 Trajectory similarity is advisory only; same high-level sessions must_not_merge_sessions without project_root+continuity_id match.
-After proof/tests/API/file result: capture/link evidence.
-Before risky/uncertain next action: record prediction; after outcome: evaluate it.
+After proof/tests/API/file result: capture/link evidence with `focusa_evidence_capture` or `focusa_workpoint_link_evidence`.
+Before risky/uncertain next action: record prediction with `focusa_predict_record`; after outcome: evaluate it with `focusa_predict_evaluate`.
 Operator steering wins.
 ```
 

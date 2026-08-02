@@ -2,7 +2,7 @@ use crate::agent_runtime_constitution::*;
 use crate::agent_runtime_constitution_authority::*;
 use std::fs;
 
-fn claim(id: &str, source: &str, text: &str) -> InstructionClaim {
+fn claim(id: &str, source: &str, text: &str, modality: &str) -> InstructionClaim {
     InstructionClaim {
         claim_id: id.into(),
         source_id: source.into(),
@@ -13,9 +13,9 @@ fn claim(id: &str, source: &str, text: &str) -> InstructionClaim {
         scope_ref: "/project".into(),
         condition: None,
         subject: None,
-        action: None,
-        object: None,
-        modality: None,
+        action: Some("release".into()),
+        object: Some("without approval".into()),
+        modality: Some(modality.into()),
         exceptions: vec![],
         rationale: None,
         verification_ref: None,
@@ -152,8 +152,18 @@ fn higher_authority_wins_without_last_write_inference() {
         "/project",
     );
     let claims = vec![
-        claim("project-claim", "project", "ask before release"),
-        claim("imported-claim", "imported", "release automatically"),
+        claim(
+            "project-claim",
+            "project",
+            "never release without approval",
+            "never",
+        ),
+        claim(
+            "imported-claim",
+            "imported",
+            "may release without approval",
+            "may",
+        ),
     ];
     let conflict = detect_conflicts(&claims, &default_authority_graph()).remove(0);
     let resolution = resolve_conflict(&conflict, &claims, &[project, imported], None).unwrap();
@@ -180,8 +190,13 @@ fn equal_authority_requires_operator_resolution() {
         "/project",
     );
     let claims = vec![
-        claim("one-claim", "one", "use one"),
-        claim("two-claim", "two", "use two"),
+        claim(
+            "one-claim",
+            "one",
+            "never release without approval",
+            "never",
+        ),
+        claim("two-claim", "two", "may release without approval", "may"),
     ];
     let conflict = detect_conflicts(&claims, &default_authority_graph()).remove(0);
     assert_eq!(
@@ -190,6 +205,17 @@ fn equal_authority_requires_operator_resolution() {
     );
     let resolved = resolve_conflict(&conflict, &claims, &[one, two], Some("two-claim")).unwrap();
     assert!(resolved.operator_confirmed);
+}
+
+#[test]
+fn different_instruction_targets_do_not_create_combinatorial_conflicts() {
+    let mut one = claim("one", "one-source", "must edit file one", "must");
+    one.action = Some("edit".into());
+    one.object = Some("file one".into());
+    let mut two = claim("two", "two-source", "must edit file two", "must");
+    two.action = Some("edit".into());
+    two.object = Some("file two".into());
+    assert!(detect_conflicts(&[one, two], &default_authority_graph()).is_empty());
 }
 
 #[test]

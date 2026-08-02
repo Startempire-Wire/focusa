@@ -1,0 +1,18 @@
+schema: focusa.spec152.document_set.v1
+canonical:
+  - docs/152-mandatory-authority-licensing-evaluation-entitlements-and-unified-onboarding-spec.md
+  - docs/150a-spec152-entitlement-overlay-and-lifecycle-integration.md
+  - docs/152a-protected-distribution-private-feature-capsules-and-anti-tamper-spec.md
+  - docs/152b-license-implementation-workbreakdown-and-acceptance-sequence.md
+  - docs/152c-server-client-coordination-contract.md
+  - docs/152d-authority-client-implementation-entrypoints.md
+  - docs/contracts/spec152-supersession-and-integration-matrix.v1.yaml
+  - docs/contracts/spec152-current-head-audit-2026-08-01.md
+  - docs/contracts/spec152-release-blocker-summary.v1.yaml
+  - docs/contracts/spec152-server-agent-handoff-pointer.v1.yaml
+  - docs/contracts/spec152-implementation-owners.v1.yaml
+  - docs/contracts/spec152-open-code-gaps.v1.yaml
+  - docs/contracts/spec152-final-audit-status.v1.yaml
+gates:
+  - tests/spec152_documentation_consistency_gate.py
+  - .github/workflows/spec152-documentation-consistency.yml

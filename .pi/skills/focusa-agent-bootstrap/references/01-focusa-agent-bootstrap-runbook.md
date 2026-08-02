@@ -17,6 +17,9 @@ focusa_agent_card -> focusa_project_identity
 focusa_project_identity -> focusa_workpoint_resume
 focusa_workpoint_resume -> focusa_trajectory_view
 focusa_trajectory_view -> focusa_tool_search
+focusa_tool_search -> focusa_preload_build
+focusa_preload_build -> focusa_context_cognition
+focusa_context_cognition -> focusa_project_card
 ```
 
 ## Minimal path
@@ -26,12 +29,16 @@ focusa_trajectory_view -> focusa_tool_search
 3. Call `focusa_workpoint_resume` with only required bounded inputs.
 4. Call `focusa_trajectory_view` with only required bounded inputs.
 5. Call `focusa_tool_search` with only required bounded inputs.
+6. Call `focusa_preload_build` with only required bounded inputs.
+7. Call `focusa_context_cognition` with only required bounded inputs.
+8. Call `focusa_project_card` with only required bounded inputs.
 
 ## Current domain procedure
 
 1. Call `focusa_agent_card` and verify workspace version, registry digest, all-Pi-tool count, installed skills, and runbooks.
 2. Use `focusa_tool_search` and `focusa_tool_describe`; never hot-load or invent the complete tool schema set.
 3. Follow `docs/agent/01-focusa-agent-docs-index.md` for current architecture, lifecycle, and recovery routes.
+4. For v0.9.142, build the scoped preload packet and Context Cognition view before loading broad schemas; Project Card is advisory orientation.
 
 ## Branches
 

@@ -1,11 +1,11 @@
 ---
 name: focusa-docs-maintenance
-description: "Use for docs maintenance workflows with bounded Focusa authority."
+description: "Use for public, machine-readable, generated tool, Agent Card, and agent-skill documentation freshness with bounded Focusa authority."
 ---
 
 # Focusa Docs Maintenance
 
-Use for docs maintenance workflows with bounded Focusa authority.
+Use for public, machine-readable, generated tool, Agent Card, and agent-skill documentation freshness with bounded Focusa authority.
 
 ## Progressive disclosure
 
@@ -16,7 +16,10 @@ Use for docs maintenance workflows with bounded Focusa authority.
 
 ## Trigger examples
 
-- docs maintenance workflows with bounded Focusa authority
+- docs maintenance
+- public surface refresh
+- generated tool docs drift
+- agent skill parity
 
 ## Non-trigger examples
 
@@ -26,6 +29,9 @@ Use for docs maintenance workflows with bounded Focusa authority.
 ## Required sequence
 
 1. `focusa_tool_search`
+2. `focusa_context_cognition`
+3. `focusa_project_card`
+4. `focusa_evidence_capture`
 
 Current operator steering, verified project scope, and canonical Workpoint authority remain higher priority than this default sequence.
 
@@ -60,6 +66,6 @@ Treat `blocked`, `pending`, `degraded`, `canonical=false`, validation rejection,
 
 ## Done condition
 
-The scoped operation is verified, evidenced, and handed to the next owning skill.
+All public, machine, generated, and agent-skill surfaces agree with the current registry/version and are evidenced.
 
 Stable evidence or receipt refs must support any completion claim.

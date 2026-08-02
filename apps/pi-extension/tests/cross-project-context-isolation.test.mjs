@@ -27,19 +27,19 @@ function block(source, startToken, endToken) {
   return source.slice(start, end);
 }
 
-test("ECS handle trajectory summaries require exact verified project/workstream scope", () => {
+test("ECS tool output never injects derived trajectory context", () => {
   const matcherSource = block(
     turns,
     "function currentVerifiedTrajectoryScope",
-    "function formatHandleTrajectorySummary"
+    "function safeExists"
   );
-  const formatter = block(turns, "function currentVerifiedTrajectoryScope", "function safeExists");
-  assert.match(formatter, /candidateRoot !== current\.projectRoot/);
-  assert.match(formatter, /candidateContinuity !== current\.continuityId/);
-  assert.match(formatter, /activeRoot === current\.projectRoot/);
-  assert.match(formatter, /activeContinuity === current\.continuityId/);
+  assert.match(matcherSource, /candidateRoot !== current\.projectRoot/);
+  assert.match(matcherSource, /candidateContinuity !== current\.continuityId/);
+  assert.match(matcherSource, /activeRoot === current\.projectRoot/);
+  assert.match(matcherSource, /activeContinuity === current\.continuityId/);
   assert.doesNotMatch(matcherSource, /getSessionCwd/);
-  assert.match(formatter, /if \(!handleTrajectoryMatchesCurrentScope\(handle\)\) return ""/);
+  assert.doesNotMatch(turns, /TRAJECTORY_CONTEXT:/);
+  assert.doesNotMatch(turns, /formatHandleTrajectorySummary/);
 
   const executableMatcher = matcherSource
     .replace(

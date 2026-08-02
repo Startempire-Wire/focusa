@@ -1,5 +1,7 @@
 # Pre-MVP Launch Readiness — 2026-07-06
 
+> **Historical record.** Superseded by the v0.9.142 release proof and current runtime status. Preserve the original evidence below; do not use its preview version or open-bead list as current release truth.
+
 Purpose: final pre-MVP polish sweep across every layer, captured as one unified evidence artifact.
 
 Commit under sweep: `9d1bde49` (`docs(spec): add 101/5.11 optical context and 100/compression-hints interop`).
