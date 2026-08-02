@@ -74,7 +74,7 @@ for needle in \
   'Extend' \
   'Custom only after a failing conformance fixture' \
   'UIAI Engine Eval for all browser proof' \
-  'must not add Playwright' \
+  'MUST NOT introduce Playwright' \
   'Vercel WorkflowAgent' \
   'machine-readable closure DAG' \
   'Permanent integration gate' \
