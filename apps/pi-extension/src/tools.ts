@@ -6364,6 +6364,7 @@ export function registerTools(pi: ExtensionAPI) {
             Type.Literal("capture-clock"),
             Type.Literal("resolve-civil-time"),
             Type.Literal("commit-priority"),
+            Type.Literal("settle-closure"),
           ],
           { description: "Temporal operation; defaults to status." }
         )
@@ -6404,6 +6405,7 @@ export function registerTools(pi: ExtensionAPI) {
       high_consequence_packet: Type.Optional(Type.Any()),
       civil_time_packet: Type.Optional(Type.Any()),
       temporal_priority_packet: Type.Optional(Type.Any()),
+      closure_packet: Type.Optional(Type.Any()),
       duration_ms: Type.Optional(Type.Number()),
       outcome: Type.Optional(Type.String()),
       actual_ms: Type.Optional(Type.Number()),
@@ -6475,6 +6477,21 @@ export function registerTools(pi: ExtensionAPI) {
           details: {
             status: "blocked",
             failure_class: "temporal_priority_packet_required",
+            canonical: false,
+          },
+        } as any;
+      }
+      if (action === "settle-closure" && !params.closure_packet) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "temporal closure settlement → blocked: evidence, receipt, outcome, and optional lost-time packet required",
+            },
+          ],
+          details: {
+            status: "blocked",
+            failure_class: "closure_packet_required",
             canonical: false,
           },
         } as any;
@@ -6551,7 +6568,9 @@ export function registerTools(pi: ExtensionAPI) {
               ? params.civil_time_packet || {}
               : action === "commit-priority"
                 ? params.temporal_priority_packet || {}
-                : params;
+                : action === "settle-closure"
+                  ? params.closure_packet || {}
+                  : params;
         result = await focusaFetchDetailed(actionPath, {
           method: "POST",
           body: JSON.stringify({

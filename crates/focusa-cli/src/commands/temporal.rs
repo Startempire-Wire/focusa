@@ -174,6 +174,13 @@ pub enum TemporalCmd {
         #[arg(long)]
         confirm: bool,
     },
+    /// Settle completion, missed-target, lost-time, receipt, and learning evidence.
+    SettleClosure {
+        #[command(flatten)]
+        scope: TemporalScopeArgs,
+        #[arg(long)]
+        packet: std::path::PathBuf,
+    },
     /// Check temporal policy without inventing a deadline.
     Preflight {
         #[command(flatten)]
@@ -412,6 +419,21 @@ pub async fn run(cmd: TemporalCmd, json_output: bool) -> anyhow::Result<()> {
             (
                 "temporal migrate-signatures",
                 api.post("/v1/temporal/migrate-signatures", &body).await?,
+            )
+        }
+        TemporalCmd::SettleClosure { scope, packet } => {
+            ensure_project_root_scope_safe(Some(&scope.project_root), "temporal settle-closure")?;
+            let mut body: Value = serde_json::from_str(&std::fs::read_to_string(packet)?)?;
+            let scoped = scope_body(&scope);
+            let object = body.as_object_mut().ok_or_else(|| {
+                anyhow::anyhow!("closure settlement packet must be a JSON object")
+            })?;
+            for (key, value) in scoped.as_object().expect("scope body object") {
+                object.insert(key.clone(), value.clone());
+            }
+            (
+                "temporal settle-closure",
+                api.post("/v1/temporal/settle-closure", &body).await?,
             )
         }
         TemporalCmd::Preflight { scope } => {
