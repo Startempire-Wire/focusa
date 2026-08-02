@@ -275,6 +275,70 @@ fn alert_overload_obeys_backpressure_and_notification_budget() {
 }
 
 #[test]
+fn temporal_pulse_notifies_only_for_grounded_urgency_within_focus_and_budget() {
+    let now = Utc::now();
+    let policy = TemporalPulsePolicy {
+        policy_id: "pulse".into(),
+        minimum_dwell_ms: 1_000,
+        debounce_ms: 1_000,
+        hysteresis_ms: 1_000,
+        maximum_notifications_per_hour: 2,
+        maximum_pending_notifications: 2,
+        protected_focus: false,
+        safety_authority_immutable: true,
+    };
+    let urgent = TemporalPulseState {
+        urgency_level: 3,
+        ..Default::default()
+    };
+    assert_eq!(
+        temporal_pulse_decision(&policy, &urgent, now),
+        PulseDecision::NotifyCalmly
+    );
+    assert_eq!(
+        temporal_pulse_decision(
+            &policy,
+            &TemporalPulseState {
+                urgency_level: 0,
+                ..Default::default()
+            },
+            now
+        ),
+        PulseDecision::RecomputeSilently
+    );
+    assert_eq!(
+        temporal_pulse_decision(
+            &policy,
+            &TemporalPulseState {
+                urgency_level: 3,
+                last_transition_at: Some(now),
+                ..Default::default()
+            },
+            now
+        ),
+        PulseDecision::HoldForDwell
+    );
+    assert_eq!(
+        temporal_pulse_decision(
+            &policy,
+            &TemporalPulseState {
+                urgency_level: 3,
+                notifications_this_hour: 2,
+                ..Default::default()
+            },
+            now
+        ),
+        PulseDecision::SuppressForBudget
+    );
+    let mut protected_policy = policy;
+    protected_policy.protected_focus = true;
+    assert_eq!(
+        temporal_pulse_decision(&protected_policy, &urgent, now),
+        PulseDecision::RecomputeSilently
+    );
+}
+
+#[test]
 fn temporal_event_signature_detects_tampering_and_preserves_chain_authority() {
     let signing_key = SigningKey::from_bytes(&[42; 32]);
     let mut event = TemporalEvent {
