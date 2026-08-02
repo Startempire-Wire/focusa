@@ -265,6 +265,15 @@ async fn view(
     if let Some(wp) = scoped_workpoint {
         packet.scope.workpoint_id = Some(wp.workpoint_id.to_string());
     }
+    if exact_scope_ready && let Some(continuity_id) = continuity_id.as_deref() {
+        packet.optimization_frame.temporal_context =
+            Some(super::temporal_context::bounded_temporal_context(
+                project_root,
+                continuity_id,
+                packet.scope.workpoint_id.clone(),
+                None,
+            ));
+    }
     if exact_scope_ready
         && let Some(active_id) = focusa_state.trajectory.active_trajectory_id.as_deref()
     {

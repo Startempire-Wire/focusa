@@ -2903,27 +2903,20 @@ fn temporal_resume_context(record: &WorkpointRecord) -> Value {
         record.project_root.as_deref(),
         record.continuity_id.as_deref(),
     ) else {
-        return json!({"status":"degraded","reason":"temporal_scope_missing","authority":"advisory_only"});
+        return json!({
+            "schema":"focusa.bounded_temporal_context.v1",
+            "status":"unavailable",
+            "canonical":false,
+            "failure_class":"temporal_scope_missing",
+            "cache_safe_refs_only":true
+        });
     };
-    let mut scope = focusa_core::temporal::TemporalScope::project(project_root, continuity_id);
-    scope.workpoint_id = Some(record.workpoint_id.to_string());
-    scope.item_id = record.work_item_id.clone();
-    match focusa_core::temporal::TemporalLedger::for_project(scope.clone())
-        .and_then(|ledger| ledger.read_all())
-    {
-        Ok(events) => serde_json::to_value(focusa_core::temporal::project_temporal(
-            scope,
-            &events,
-            Utc::now(),
-        ))
-        .unwrap_or_else(|_| json!({"status":"degraded","reason":"serialization_failed"})),
-        Err(error) => json!({
-            "status":"degraded",
-            "reason":"temporal_ledger_unavailable",
-            "error":format!("{error:?}"),
-            "authority":"advisory_only"
-        }),
-    }
+    super::temporal_context::bounded_temporal_context(
+        project_root,
+        continuity_id,
+        Some(record.workpoint_id.to_string()),
+        record.work_item_id.clone(),
+    )
 }
 
 #[allow(clippy::too_many_arguments)]

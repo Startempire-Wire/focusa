@@ -1838,6 +1838,20 @@ fn trajectory_view_payload(state: &FocusaState, query: &TrajectoryViewQuery) -> 
         "generic_bootstrap": generic_bootstrap,
         "action_authority_from_trajectory": action_authority_from_trajectory,
         "mode": query.mode.as_deref().unwrap_or("summary"),
+        "temporal_context": continuity_id.as_deref().map(|active_continuity_id| {
+            super::temporal_context::bounded_temporal_context(
+                &project_root,
+                active_continuity_id,
+                workpoint.map(|record| record.workpoint_id.to_string()),
+                workpoint.and_then(|record| record.work_item_id.clone()),
+            )
+        }).unwrap_or_else(|| json!({
+            "schema":"focusa.bounded_temporal_context.v1",
+            "status":"unavailable",
+            "canonical":false,
+            "failure_class":"continuity_missing",
+            "cache_safe_refs_only":true
+        })),
         "trajectory_workpoint_reconciliation": trajectory_workpoint_reconciliation.clone(),
         "project_identity": {
             "status": project_identity_status,

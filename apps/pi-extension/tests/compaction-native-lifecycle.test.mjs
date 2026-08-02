@@ -24,6 +24,20 @@ function blockFrom(source, marker, nextMarker) {
   return source.slice(start, end);
 }
 
+test("compaction packets preserve bounded temporal authority without full projection blobs", () => {
+  const render = blockFrom(
+    extensionSource,
+    "function renderCompactionMissionPacket",
+    "async function buildCompactionMissionPacket"
+  );
+  assert.match(render, /TEMPORAL_STATUS:/);
+  assert.match(render, /DEADLINE_STATUS:/);
+  assert.match(render, /TEMPORAL_REFS:/);
+  assert.doesNotMatch(render, /JSON\.stringify\(temporal/);
+  assert.match(apiSource, /bounded_temporal_context/);
+  assert.match(apiSource, /cache_safe_refs_only/);
+});
+
 test("session_compact is network-free and returns before background verification", () => {
   const handler = blockFrom(extensionSource, 'pi.on("session_compact", (event, ctx) => {', "\n  });\n}");
   assert.equal(handler.includes("await "), false);

@@ -312,6 +312,8 @@ async fn build_post(
         }
     }
     let workpoint_found = workpoint.is_some();
+    let temporal_workpoint_id = workpoint.map(|record| record.workpoint_id.to_string());
+    let temporal_item_id = workpoint.and_then(|record| record.work_item_id.clone());
     drop(focus);
 
     let target = query.target.as_deref().unwrap_or("generic");
@@ -342,6 +344,18 @@ async fn build_post(
     selection["selected_context"] = json!(included);
     selection["excluded_context"] = json!(excluded);
     packet["dynamic_context_lines"] = json!(dynamic_lines);
+    packet["temporal_context"] = query
+        .continuity_id
+        .as_deref()
+        .map(|continuity_id| {
+            super::temporal_context::bounded_temporal_context(
+                project_root,
+                continuity_id,
+                temporal_workpoint_id.clone(),
+                temporal_item_id.clone(),
+            )
+        })
+        .unwrap_or(Value::Null);
     packet["selected_context"] = json!({"include":selection["selected_context"],"exclude":selection["excluded_context"],"over_budget":selection["over_budget"]});
     packet["context_selection"] = json!("context_cognition");
     packet["canonical"] = json!(false);
