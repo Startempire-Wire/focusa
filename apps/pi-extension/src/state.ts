@@ -3512,7 +3512,8 @@ export function adoptVerifiedContinuityForCurrentSession(
 ): boolean {
   const root = normalizeProjectRoot(projectRoot);
   const continuity = String(continuityId || "").trim();
-  const identity: any = getLastProjectIdentity() || {};
+  const identityEnvelope: any = getLastProjectIdentity() || {};
+  const identity: any = identityEnvelope.project_identity || identityEnvelope;
   const decision: any = currentProjectBindingDecision() || {};
   const verifiedRoot = normalizeProjectRoot(
     identity.canonical_parent_root || identity.project_root || decision.selected_project_root
