@@ -12865,6 +12865,113 @@
           "committed_at"
         ],
         "type": "object"
+      },
+      "focusa_prediction_authority_append_request_v1": {
+        "type": "object",
+        "required": [
+          "scope",
+          "event"
+        ],
+        "properties": {
+          "scope": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "event": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "focusa_prediction_authority_append_response_v1": {
+        "type": "object",
+        "required": [
+          "status",
+          "canonical",
+          "event_id",
+          "sequence",
+          "receipt_ref"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "canonical": {
+            "type": "boolean"
+          },
+          "durability": {
+            "type": "string"
+          },
+          "event_id": {
+            "type": "string"
+          },
+          "sequence": {
+            "type": "integer"
+          },
+          "receipt_ref": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      },
+      "focusa_prediction_authority_projection_request_v1": {
+        "type": "object",
+        "required": [
+          "project_root",
+          "continuity_id"
+        ],
+        "properties": {
+          "project_root": {
+            "type": "string"
+          },
+          "continuity_id": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "x-focusa-schema-id": "focusa.prediction_authority_projection.request.v1"
+      },
+      "focusa_prediction_authority_projection_response_v1": {
+        "type": "object",
+        "required": [
+          "status",
+          "canonical",
+          "projection",
+          "event_count"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "canonical": {
+            "type": "boolean"
+          },
+          "durability": {
+            "type": "string"
+          },
+          "projection": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "profile_conformance": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "event_count": {
+            "type": "integer"
+          },
+          "legacy_event_count": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": true
       }
     }
   },
@@ -22037,6 +22144,152 @@
           "budget_profile": "light_read",
           "materialization_mode": "advisory_read",
           "side_effect_profile": "read_or_advisory_projection",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
+        }
+      }
+    },
+    "/v1/prediction-authority/events": {
+      "post": {
+        "operationId": "focusa.prediction_authority.append",
+        "summary": "Append canonical prediction authority event",
+        "tags": [
+          "prediction-authority"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/focusa_prediction_authority_append_request_v1"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Durable append result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_prediction_authority_append_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.temporal.commit",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "prediction:write"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "commit",
+        "x-focusa-confirmation": "consequential",
+        "x-focusa-idempotency": true,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": true,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Temporal Commit",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "consequential",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "metacognition",
+          "canonical": true,
+          "budget_profile": "bounded_write",
+          "materialization_mode": "canonical_mutation",
+          "side_effect_profile": "append_prediction_authority",
+          "supports_side_effect_policy": [
+            "preview",
+            "commit"
+          ],
+          "requires_preview_token": false,
+          "deprecation": null
+        }
+      }
+    },
+    "/v1/prediction-authority/projection": {
+      "get": {
+        "operationId": "focusa.prediction_authority.projection",
+        "summary": "Prediction authority projection",
+        "tags": [
+          "prediction-authority"
+        ],
+        "responses": {
+          "200": {
+            "description": "Canonical projection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/focusa_prediction_authority_projection_response_v1"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "project_root",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "continuity_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-focusa-subsystem": "temporal",
+        "x-focusa-core-action": "focusa.temporal.status",
+        "x-focusa-scope-keys": [
+          "project_root",
+          "continuity_id"
+        ],
+        "x-focusa-permissions": [
+          "prediction:read"
+        ],
+        "x-focusa-capabilities": [
+          "trajectory",
+          "workpoint",
+          "release"
+        ],
+        "x-focusa-mode": "read",
+        "x-focusa-confirmation": "none",
+        "x-focusa-idempotency": false,
+        "x-focusa-concurrency": false,
+        "x-focusa-receipt": false,
+        "x-focusa-reversible": false,
+        "x-focusa-generated-ui": true,
+        "x-focusa-plain-label": "Temporal Status",
+        "x-focusa-advanced-only": false,
+        "x-focusa-sensitive": "routine",
+        "x-focusa-result-envelope": "focusa.tool_result.v1",
+        "x-focusa": {
+          "family": "metacognition",
+          "canonical": true,
+          "budget_profile": "light_read",
+          "materialization_mode": "advisory_read",
+          "side_effect_profile": "read_state",
           "supports_side_effect_policy": [
             "preview",
             "commit"

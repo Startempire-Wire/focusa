@@ -10,7 +10,7 @@ SHELL = (ROOT / "apps/pi-extension/src/mission-canvas-shell.ts").read_text()
 VIEW = (ROOT / "apps/pi-extension/src/mission-canvas-view.ts").read_text()
 TOOL = (ROOT / "apps/pi-extension/src/mission-canvas-tool.ts").read_text()
 COMMANDS = (ROOT / "apps/pi-extension/src/commands.ts").read_text()
-SESSION = (ROOT / "apps/pi-extension/src/session.ts").read_text()
+WIDGET = (ROOT / "apps/pi-extension/src/mission-canvas-widget.ts").read_text()
 
 assert PROOF["status"] == "pi_native_reference_design_implemented"
 assert PROOF["accepted"] is True
@@ -40,7 +40,8 @@ assert "@earendil-works/pi-tui" in SHELL
 assert "Authoritative Pi-native Mission Canvas" in SHELL
 assert "ctx.ui.custom" in COMMANDS
 assert "closeActiveMissionCanvasShell" in COMMANDS
-assert 'interactionMode === "canvas-guided"' in SESSION
+assert 'mode !== "canvas-guided"' in COMMANDS
+assert 'interactionMode.mode !== "canvas-guided"' in WIDGET
 assert "Pi-native authoritative Mission Canvas" in VIEW
 assert "resolveContributions" in VIEW
 assert "RichHostLifecycleManager" not in TOOL
