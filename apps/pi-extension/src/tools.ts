@@ -3104,8 +3104,27 @@ export function registerTools(pi: ExtensionAPI) {
     }
     const base = getAttachmentRuntime().cfg?.focusaApiBaseUrl || "http://127.0.0.1:8787/v1";
     const token = getAttachmentRuntime().cfg?.focusaToken || "";
-    const attachmentKey = currentAttachmentKey();
-    if (!attachmentKey) throw new Error("attachment_runtime_key_required");
+    const currentKey = currentAttachmentKey();
+    if (!currentKey) throw new Error("attachment_runtime_key_required");
+    const verifiedRoot = normalizeProjectRoot(
+      getLastProjectIdentity()?.project_root || getLastProjectVerify()?.project_root || ""
+    );
+    const verifiedContinuity = String(getContinuityId() || "").trim();
+    const currentRoot = normalizeProjectRoot(currentKey.workstream.root_scope.root_path);
+    const currentContinuity = String(currentKey.workstream.continuity_id || "").trim();
+    const attachmentKey =
+      isProjectRootAuthoritySafe(currentRoot) &&
+      currentContinuity &&
+      currentContinuity !== "extension-bootstrap"
+        ? currentKey
+        : isProjectRootAuthoritySafe(verifiedRoot) &&
+            verifiedContinuity &&
+            verifiedContinuity !== "extension-bootstrap"
+          ? {
+              ...currentKey,
+              workstream: buildProjectWorkstreamKey(verifiedRoot, verifiedContinuity),
+            }
+          : currentKey;
     const scopeHeaders = {
       "x-scope-project-root": attachmentKey.workstream.root_scope.root_path,
       "x-scope-continuity-id": attachmentKey.workstream.continuity_id,
