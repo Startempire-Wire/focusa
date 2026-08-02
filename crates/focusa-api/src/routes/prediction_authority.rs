@@ -55,24 +55,95 @@ impl ProjectionGetQuery {
     }
 }
 
-fn profile_conformance(scope: &ScopeRef) -> Value {
+const SPEC138_PROFILE_CONFORMANCE: &str = include_str!(
+    "../../../../docs/contracts/spec138-profile-activation-and-conformance-matrix.v1.yaml"
+);
+
+fn profile_conformance(scope: &ScopeRef, event_count: usize) -> Value {
     if scope.scope_kind == ScopeKind::Host {
         return json!({"status":"verified_not_applicable","reason":"project_profile_matrix_not_applicable_to_host_scope"});
     }
-    let path = scope
-        .root_path
-        .join("docs/contracts/spec138-profile-activation-and-conformance-matrix.v1.yaml");
-    std::fs::read_to_string(path)
-        .ok()
-        .and_then(|body| serde_json::from_str(&body).ok())
-        .unwrap_or_else(|| {
+    let mut artifact: Value =
+        serde_json::from_str(SPEC138_PROFILE_CONFORMANCE).unwrap_or_else(|error| {
             json!({
                 "schema":"focusa.spec138_profile_activation_conformance.v1",
                 "runtime_status":"degraded",
-                "full_conformance_status":"unknown",
-                "warnings":["Spec138 profile artifact unavailable; full conformance is blocked."]
+                "full_conformance_status":"blocked",
+                "warnings":[format!("embedded Spec138 profile artifact is invalid: {error}")]
             })
+        });
+    let incomplete = artifact
+        .get("profiles")
+        .and_then(Value::as_array)
+        .map(|profiles| {
+            profiles.is_empty()
+                || profiles.iter().any(|profile| {
+                    !matches!(
+                        profile.get("status").and_then(Value::as_str),
+                        Some("verified_complete" | "verified_not_applicable")
+                    )
+                })
         })
+        .unwrap_or(true);
+    artifact["artifact_source"] = json!("embedded_release");
+    artifact["scope_activation_status"] = if event_count == 0 {
+        json!("available_unproven_for_scope")
+    } else {
+        json!("observed")
+    };
+    if incomplete {
+        artifact["runtime_status"] = json!("degraded");
+        artifact["full_conformance_status"] = json!("blocked");
+    }
+    if !artifact.get("warnings").is_some_and(Value::is_array) {
+        artifact["warnings"] = json!([]);
+    }
+    let warnings = artifact
+        .get_mut("warnings")
+        .and_then(Value::as_array_mut)
+        .expect("Spec138 warnings must be an array");
+    if incomplete {
+        warnings.push(json!(
+            "Spec138 contains incomplete profile records; full conformance remains blocked."
+        ));
+    }
+    if event_count == 0 {
+        warnings.push(json!(
+            "No scoped epistemic events exist; profile availability is not live activation proof."
+        ));
+    }
+    artifact
+}
+
+#[cfg(test)]
+mod conformance_tests {
+    use super::profile_conformance;
+    use focusa_core::scoped_state::{ScopeKind, ScopeRef};
+    use std::path::PathBuf;
+
+    #[test]
+    fn conformance_is_release_embedded_and_empty_scope_is_not_activation_proof() {
+        let scope = ScopeRef {
+            scope_kind: ScopeKind::Project,
+            scope_id: "project:test".into(),
+            root_path: PathBuf::from("/tmp/focusa-test-project"),
+            canonical_name: "test".into(),
+            fingerprint: "fingerprint:test".into(),
+        };
+        let artifact = profile_conformance(&scope, 0);
+        assert_eq!(artifact["artifact_source"], "embedded_release");
+        assert_eq!(
+            artifact["scope_activation_status"],
+            "available_unproven_for_scope"
+        );
+        assert!(
+            artifact["warnings"]
+                .as_array()
+                .is_some_and(|warnings| warnings.iter().any(|warning| warning
+                    .as_str()
+                    .is_some_and(|text| text.contains("not live activation proof"))))
+        );
+    }
 }
 
 fn scope_matches(scope: &WorkstreamKey, authority: &WorkstreamKey) -> bool {
@@ -122,12 +193,13 @@ async fn projection(
         StatusCode::UNPROCESSABLE_ENTITY,
         Json(json!({"status":"blocked","error":"typed_scope_invalid","reason":error.to_string()})),
     ))?;
-    let conformance = profile_conformance(&query.scope.root_scope);
+    let root_scope = query.scope.root_scope.clone();
     let durable =
         PersistentPredictionAuthorityLedger::for_scope(query.scope, Some(&state.config.data_dir))
             .map_err(storage_failure)?;
     let events = durable.read_all().map_err(storage_failure)?;
     let projection = durable.projection().map_err(storage_failure)?;
+    let conformance = profile_conformance(&root_scope, events.len());
     Ok(Json(json!({
         "status":"completed",
         "canonical":true,
@@ -149,12 +221,13 @@ async fn projection_get(
             Json(json!({"status":"blocked","error":"typed_scope_required","reason":reason})),
         )
     })?;
-    let conformance = profile_conformance(&scope.root_scope);
+    let root_scope = scope.root_scope.clone();
     let durable =
         PersistentPredictionAuthorityLedger::for_scope(scope, Some(&state.config.data_dir))
             .map_err(storage_failure)?;
     let events = durable.read_all().map_err(storage_failure)?;
     let projection = durable.projection().map_err(storage_failure)?;
+    let conformance = profile_conformance(&root_scope, events.len());
     Ok(Json(json!({
         "status":"completed","canonical":true,
         "durability":"atomic_fsync_causal_jsonl",
