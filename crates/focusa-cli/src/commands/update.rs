@@ -3173,17 +3173,35 @@ fn pi_extension_package_from_settings(settings_path: &Path) -> Option<PathBuf> {
         })
 }
 
+fn pi_extension_package_from_agent_dir(agent_dir: &Path) -> Option<PathBuf> {
+    let settings = agent_dir.join("settings.json");
+    if let Some(package) = pi_extension_package_from_settings(&settings) {
+        return Some(package);
+    }
+    ["focusa-runtime", "focusa-pi-bridge"]
+        .iter()
+        .map(|name| agent_dir.join("extensions").join(name).join("package.json"))
+        .find(|package| {
+            package.is_file()
+                && std::fs::read(package)
+                    .ok()
+                    .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok())
+                    .and_then(|value| value.get("name")?.as_str().map(str::to_string))
+                    .map(|name| name.starts_with("focusa-"))
+                    .unwrap_or(false)
+        })
+}
+
 fn configured_pi_extension_package_json() -> PathBuf {
     if let Some(path) = std::env::var_os("FOCUSA_PI_EXTENSION_PACKAGE_JSON") {
         return PathBuf::from(path);
     }
-    let settings_path = std::env::var_os("PI_CODING_AGENT_DIR")
+    let agent_dir = std::env::var_os("PI_CODING_AGENT_DIR")
         .map(PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".pi/agent")))
-        .map(|dir| dir.join("settings.json"));
-    if let Some(package) = settings_path
+        .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".pi/agent")));
+    if let Some(package) = agent_dir
         .as_deref()
-        .and_then(pi_extension_package_from_settings)
+        .and_then(pi_extension_package_from_agent_dir)
     {
         return package;
     }
@@ -3623,8 +3641,8 @@ fn print_human(envelope: &UpdateInventoryEnvelope) {
 mod tests {
     use super::{
         DaemonRestoreAction, PromotedPart, daemon_restore_action, inspect_package_part,
-        normalize_version, path_is_git_managed, pi_extension_package_from_settings,
-        rollback_promoted_parts,
+        normalize_version, path_is_git_managed, pi_extension_package_from_agent_dir,
+        pi_extension_package_from_settings, rollback_promoted_parts,
     };
     #[cfg(target_os = "macos")]
     use super::{restart_daemon_service, stop_daemon_service};
@@ -3718,6 +3736,30 @@ mod tests {
             Some(extension.join("package.json"))
         );
         std::fs::remove_dir_all(root).expect("remove Pi settings fixture");
+    }
+
+    #[test]
+    fn pi_agent_dir_falls_back_to_auto_loaded_focusa_runtime_package() {
+        let root = std::env::temp_dir().join(format!(
+            "focusa-pi-agent-dir-{}-{}",
+            std::process::id(),
+            super::chrono_like_timestamp()
+        ));
+        let runtime = root.join("extensions/focusa-runtime");
+        std::fs::create_dir_all(&runtime).expect("create runtime fixture");
+        std::fs::write(root.join("settings.json"), br#"{"extensions":[]}"#)
+            .expect("write settings fixture");
+        std::fs::write(
+            runtime.join("package.json"),
+            br#"{"name":"focusa-pi-bridge","version":"0.9.143"}"#,
+        )
+        .expect("write runtime package");
+
+        assert_eq!(
+            pi_extension_package_from_agent_dir(&root),
+            Some(runtime.join("package.json"))
+        );
+        std::fs::remove_dir_all(root).expect("remove Pi agent fixture");
     }
 
     #[test]

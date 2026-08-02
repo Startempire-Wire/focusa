@@ -10,7 +10,7 @@
 flowchart TD
   SCOPE[focusa-gkwt\nExact project/workstream isolation]
   PATH[focusa-ux2qx.3\nInstalled CLI/TUI PATH]
-  BIN[focusa-w26jj.9.5.3\nBinary/version parity]
+  BIN[focusa-w26jj.9.5.3\nExact released binary/hash parity]
 
   T1[9.2.1 Temporal substrate]
   T2[9.2.2 Temporal authority]
@@ -74,7 +74,9 @@ flowchart TD
   ACCEPT[8.1 Integrated acceptance]
   DOGFOOD[8.2 Canonical release dogfood/benchmark]
   DECIDE[8.3 Truthful release decision]
-  FINAL[9.7 Zero-deferral publication gate]
+  PUBLISH[9.7.1 Freeze candidate and publish]
+  POST[9.7.2 Install release and post-release E2E]
+  FINAL[9.7 Zero-deferral release closure]
 
   SCOPE --> T1
   T1 --> T2 --> T3 --> T4 --> T6 --> T5 --> TA1 --> TA2 --> TA3 --> TA4 --> TA5 --> TA6
@@ -93,7 +95,6 @@ flowchart TD
 
   SCOPE --> R1
   R1 --> R2 --> R3 --> R4 --> R5 --> R6 --> R7 --> R8
-  BIN --> R8
 
   SCOPE --> O1 --> O2 --> OA --> OB --> OC --> OD --> OE --> OF
   OF --> O5 --> O6 --> O8 --> O7
@@ -102,7 +103,7 @@ flowchart TD
   PA9 --> O8
 
   SCOPE --> I1 --> I2 --> I3 --> I4 --> I5 --> I6
-  PATH --> BIN --> I5
+  PATH --> I2
   I6 --> O8
 
   TA6 --> ACCEPT
@@ -110,9 +111,9 @@ flowchart TD
   R8 --> ACCEPT
   O7 --> ACCEPT
   I6 --> ACCEPT
-  BIN --> ACCEPT
   SCOPE --> ACCEPT
-  ACCEPT --> DOGFOOD --> DECIDE --> FINAL
+  ACCEPT --> DOGFOOD --> DECIDE --> PUBLISH
+  PUBLISH --> BIN --> POST --> FINAL
 ```
 
 ## 2. Implementation order
@@ -121,7 +122,7 @@ flowchart TD
 
 1. `focusa-gkwt` — eliminate foreign trajectory/tool-output contamination; prove two exact-scope runs.
 2. `focusa-ux2qx.3` — make installed CLI/TUI path deterministic.
-3. `focusa-w26jj.9.5.3` — align source, release, CLI, daemon, Pi extension, TUI, Agent Card, and health versions.
+3. Install and verify the current stable CLI/daemon/TUI/installer baseline; keep `focusa-w26jj.9.5.3` open because exact repaired-artifact hashes require the terminal release.
 
 ### Phase 1 — Core authority substrates (parallel after Phase 0)
 
@@ -155,9 +156,12 @@ flowchart TD
 
 ### Phase 5 — Canonical release closure
 
-1. `8.2` — canonical release dogfood plus speed/friction benchmark.
+1. `8.2` — canonical candidate dogfood plus speed/friction benchmark.
 2. `8.3` — truthful SHIPPED/BLOCKED decision.
-3. `9.7` — final zero-deferral publication gate.
+3. `9.7.1` — freeze the accepted exact SHA and publish through the canonical release cycle without bypasses.
+4. `focusa-w26jj.9.5.3` — install the published artifacts and require exact cross-part versions and hashes.
+5. `9.7.2` — run two fresh-process post-release E2E passes and close installed parity.
+6. `9.7` — close only after publication and post-release parity both pass.
 
 ## 3. Universal done condition
 
