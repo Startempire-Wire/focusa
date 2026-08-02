@@ -15,6 +15,7 @@ REFERENCE_TOPOLOGIES = "\n".join(path.read_text() for path in sorted((ROOT / "co
 UPDATE = (ROOT / "crates/focusa-cli/src/commands/update.rs").read_text()
 RELEASE_CLI = "\n".join((ROOT / f"crates/focusa-cli/src/commands/{name}").read_text() for name in ["release.rs", "release_master.rs"])
 TAG_SCRIPT = (ROOT / "scripts/create-dev-release-tag.sh").read_text()
+VERSION_SELECTOR = (ROOT / "scripts/select-release-version.py").read_text()
 CI = (ROOT / ".github/workflows/ci.yml").read_text()
 RELEASE = (ROOT / ".github/workflows/release.yml").read_text()
 SPEC132 = (ROOT / ".github/workflows/spec132-terminal-matrix.yml").read_text()
@@ -65,8 +66,26 @@ require(
         "ensure_source_workflow \"Spec 132 terminal matrix\" \"$HEAD_SHA\"",
         "source_gate_dispatch_blocked",
         'git push origin "${TAG}"',
+        "scripts/select-release-version.py",
+        'stage "version-selection"',
+        "VERSION_SELECTION_DETAILS",
+        "normalize_release_channel",
+        '--prerelease=true --latest=false',
+        '--prerelease=false --latest=true',
+        'stage "release-channel"',
     ],
     "exact candidate pre-tag flow",
+)
+require(
+    VERSION_SELECTOR,
+    [
+        "focusa.release_version_selection.v1",
+        "highest_patch",
+        "channel_maxima",
+        "release version regression",
+        "selected_patch > highest_patch",
+    ],
+    "monotonic release version selection",
 )
 assert TAG_SCRIPT.index("  push_candidate_main_with_auto_rebase\n") < TAG_SCRIPT.rindex('git tag "${TAG}" HEAD'), "tag created before candidate preflight"
 assert TAG_SCRIPT.index('ensure_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"') < TAG_SCRIPT.index('wait_for_source_workflow "Spec 132 terminal matrix" "$HEAD_SHA"'), "Spec132 wait begins before missing-run dispatch"

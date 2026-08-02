@@ -290,6 +290,31 @@ wait_for_workflow() {
   exit 1
 }
 
+normalize_release_channel() {
+  local tag="$1"
+  local channel="$2"
+  local release
+  case "$channel" in
+    preview)
+      gh release edit "$tag" --prerelease=true --latest=false
+      ;;
+    stable)
+      gh release edit "$tag" --prerelease=false --latest=true
+      ;;
+    *)
+      echo "Unsupported release channel normalization: ${channel}" >&2
+      return 1
+      ;;
+  esac
+  release="$(gh release view "$tag" --json isLatest,isPrerelease,tagName)"
+  if [[ "$channel" == "preview" ]]; then
+    jq -e '.isPrerelease == true and .isLatest == false' <<<"$release" >/dev/null
+  else
+    jq -e '.isPrerelease == false and .isLatest == true' <<<"$release" >/dev/null
+  fi
+  echo "release_channel_normalized=${release}"
+}
+
 journal_client() {
   python3 scripts/canonical-release-journal.py "$@"
 }
@@ -333,26 +358,22 @@ fi
 
 git fetch --tags --quiet origin || git fetch --tags --quiet
 
+VERSION_SELECTION_ARGS=(--base "$BASE" --use-git-tags)
 if [[ -n "$EXACT_TAG" ]]; then
-  TAG="$EXACT_TAG"
-else
-  LATEST_PATCH=$(
-    git tag --list "v${BASE}.*-dev" |
-      sed -E "s/^v${BASE//./\.}\.([0-9]+)-dev$/\1/" |
-      grep -E '^[0-9]+$' |
-      sort -n |
-      tail -1
-  )
-  LATEST_PATCH="${LATEST_PATCH:-0}"
-  NEXT_PATCH=$((LATEST_PATCH + 1))
-  TAG="v${BASE}.${NEXT_PATCH}-dev"
+  VERSION_SELECTION_ARGS+=(--tag "$EXACT_TAG")
 fi
-VERSION="${TAG#v}"
-case "$TAG" in
-  *-nightly*) RELEASE_CHANNEL="nightly" ;;
-  *-dev*|*-rc*) RELEASE_CHANNEL="preview" ;;
-  *) RELEASE_CHANNEL="stable" ;;
+VERSION_SELECTION="$(python3 scripts/select-release-version.py "${VERSION_SELECTION_ARGS[@]}")"
+jq -e '.status == "completed" and .monotonic == true' <<<"$VERSION_SELECTION" >/dev/null
+TAG="$(jq -r '.selected_tag' <<<"$VERSION_SELECTION")"
+VERSION="$(jq -r '.selected_version' <<<"$VERSION_SELECTION")"
+SELECTED_CHANNEL="$(jq -r '.selected_channel' <<<"$VERSION_SELECTION")"
+case "$SELECTED_CHANNEL" in
+  dev|rc|preview) RELEASE_CHANNEL="preview" ;;
+  stable) RELEASE_CHANNEL="stable" ;;
+  *) echo "Unsupported selected release channel: ${SELECTED_CHANNEL}" >&2; exit 1 ;;
 esac
+VERSION_SELECTION_DETAILS="$(jq -c '{base,mode,selected_tag,selected_channel,highest_patch,channel_maxima,considered_tags,ignored_malformed_tags,monotonic}' <<<"$VERSION_SELECTION")"
+echo "release_version_selection=${VERSION_SELECTION_DETAILS}"
 
 if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
   echo "Tag already exists: ${TAG}" >&2
@@ -408,6 +429,9 @@ if [[ "$PUSH" -eq 1 && "$RELEASE_JOURNAL_MODE" != "off" ]]; then
       echo "Canonical release journal plan accepted for ${TAG}."
     fi
     RELEASE_JOURNAL_ACTIVE=1
+    journal_client progress --tag "$TAG" --stage "version-selection" --status "completed" \
+      --details "$VERSION_SELECTION_DETAILS" \
+      --evidence-ref "script:scripts/select-release-version.py"
   elif [[ "$RELEASE_JOURNAL_MODE" == "required" ]]; then
     echo "Canonical release journal is required but agent-kb-api is unavailable." >&2
     exit 1
@@ -514,6 +538,12 @@ if [[ "$PUSH" -eq 1 ]]; then
   if [[ "$WAIT_CI" -eq 1 ]]; then
     wait_for_workflow "CI" "$HEAD_SHA"
     wait_for_workflow "Release" "$HEAD_SHA" "${TAG}"
+    normalize_release_channel "$TAG" "$RELEASE_CHANNEL"
+    if [[ "$RELEASE_JOURNAL_ACTIVE" -eq 1 ]]; then
+      journal_client progress --tag "$TAG" --stage "release-channel" --status "completed" \
+        --details "GitHub release classification normalized to ${RELEASE_CHANNEL}" \
+        --evidence-ref "github:release:${TAG}"
+    fi
     if [[ "$WAIT_DEPLOY" -eq 1 ]]; then
       wait_for_workflow "Deploy Live Daemon" "$HEAD_SHA"
       echo "GitHub CI, Release, and Deploy workflows passed for ${TAG}."
