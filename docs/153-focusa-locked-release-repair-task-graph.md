@@ -14,7 +14,10 @@ flowchart TD
 
   T1[9.2.1 Temporal substrate]
   T2[9.2.2 Temporal authority]
-  T3[9.2.3 Runtime settlement]
+  T3A[9.2.3.1 Work Loop temporal integration]
+  T3B[9.2.3.2 Silent Sessions temporal integration]
+  T3C[9.2.3.3 Compaction/resume temporal refs]
+  T3D[9.2.3.4 Closure/lost-time settlement]
   T4[9.2.4 Surface parity]
   T6[9.2.6 Live primitive E2E]
   T5[9.2.5 Migration/security/receipts]
@@ -79,7 +82,11 @@ flowchart TD
   FINAL[9.7 Zero-deferral release closure]
 
   SCOPE --> T1
-  T1 --> T2 --> T3 --> T4 --> T6 --> T5 --> TA1 --> TA2 --> TA3 --> TA4 --> TA5 --> TA6
+  T1 --> T2 --> T3A
+  T3A --> T3B
+  T3A --> T3C
+  T3B --> T3D
+  T3C --> T3D --> T4 --> T6 --> T5 --> TA1 --> TA2 --> TA3 --> TA4 --> TA5 --> TA6
 
   SCOPE --> P1
   P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7 --> PA1
@@ -134,7 +141,8 @@ flowchart TD
 
 ### Phase 2 — Complete primitive execution
 
-- Temporal runtime and surfaces: `9.2.4`, `9.2.6`, `9.2.5`.
+- Temporal runtime integration: `9.2.3.1` Work Loop → `9.2.3.2` Silent Sessions plus `9.2.3.3` compaction/resume → `9.2.3.4` closure settlement.
+- Temporal surfaces and live proof: `9.2.4`, `9.2.6`, `9.2.5`.
 - Prediction advanced/lifecycle/surfaces: `9.4.4` through `9.4.7`.
 - Runtime compiler/enforcement/studio/lifecycle: `9.6.3` through `9.6.8`.
 - Semantic operations: `8.4.3.1` → `8.4.3.2` → `8.4.3.3` → `8.4.4.1` → `8.4.4.2` → `8.4.5.1`.
