@@ -619,6 +619,61 @@ fn normalize_partition_segment(value: impl AsRef<str>, fallback: &str) -> String
     }
 }
 
+fn temporal_context_for_scope(scope: &WorkLoopScope) -> Value {
+    let temporal_scope = focusa_core::temporal::TemporalScope::project(
+        scope.0.root_scope.root_path.to_string_lossy().to_string(),
+        scope.0.continuity_id.clone(),
+    );
+    let ledger = match super::temporal::ledger(temporal_scope.clone()) {
+        Ok(ledger) => ledger,
+        Err((_, Json(error))) => {
+            return json!({
+                "schema":"focusa.work_loop_temporal_context.v1",
+                "status":"unavailable",
+                "canonical":false,
+                "scope":temporal_scope,
+                "failure_class":error.get("failure_class").cloned().unwrap_or_else(|| json!("temporal_scope_unavailable")),
+                "next_action":"repair exact temporal scope before using time-based Work Loop policy"
+            });
+        }
+    };
+    let events = match super::temporal::read_events(&ledger) {
+        Ok(events) => events,
+        Err((_, Json(error))) => {
+            return json!({
+                "schema":"focusa.work_loop_temporal_context.v1",
+                "status":"unavailable",
+                "canonical":false,
+                "scope":temporal_scope,
+                "failure_class":error.get("failure_class").cloned().unwrap_or_else(|| json!("temporal_ledger_unavailable")),
+                "next_action":"repair temporal ledger integrity before continuing time-based Work Loop policy"
+            });
+        }
+    };
+    let as_of = Utc::now();
+    let projection =
+        focusa_core::temporal::project_temporal(temporal_scope.clone(), &events, as_of);
+    json!({
+        "schema":"focusa.work_loop_temporal_context.v1",
+        "status":"completed",
+        "canonical":true,
+        "scope":temporal_scope,
+        "as_of":as_of,
+        "event_count":events.len(),
+        "deadline_status":projection.deadline_status,
+        "active_claim_ref":projection.active_commitment.as_ref().map(|claim| json!({
+            "claim_id":claim.claim_id,"revision":claim.revision,"kind":claim.kind,"target_at":claim.target_at
+        })),
+        "forecast_range":projection.authorized_forecast_range,
+        "human_calendar_context":projection.human_calendar_context,
+        "temporal_priority_frame":projection.temporal_priority_frame,
+        "temporal_execution_guard":projection.temporal_execution_guard,
+        "urgency":projection.urgency,
+        "warnings":projection.warnings.into_iter().take(8).collect::<Vec<_>>(),
+        "evidence_ref":format!("temporal-ledger:{}:{}",scope.0.root_scope.root_path.display(),scope.0.continuity_id)
+    })
+}
+
 fn writer_claim_key_for_partition(
     project_root: &str,
     continuity_id: &str,
@@ -2795,6 +2850,7 @@ async fn status(
         },
         "authorship_mode": wl.authorship_mode,
         "policy": wl.policy,
+        "temporal_context": temporal_context_for_scope(&scope),
         "run": wl.run,
         "identity_summary": {
             "project_run_id": wl.run.project_run_id,
@@ -4487,6 +4543,26 @@ pub fn router() -> Router<Arc<AppState>> {
 mod tests {
     use super::*;
     use focusa_core::scoped_state::ScopeRef;
+
+    #[test]
+    fn work_loop_temporal_context_is_exact_scope_and_never_infers_urgency() {
+        let root = std::env::temp_dir().join(format!(
+            "focusa-work-loop-temporal-{}",
+            uuid::Uuid::now_v7()
+        ));
+        std::fs::create_dir_all(&root).unwrap();
+        let root_scope = ScopeRef::project("project:test", &root, "test", "sha256:test").unwrap();
+        let scope = WorkLoopScope(WorkstreamKey::new(root_scope, "continuity:test").unwrap());
+
+        let context = temporal_context_for_scope(&scope);
+        assert_eq!(context["status"], "completed");
+        assert_eq!(context["canonical"], true);
+        assert_eq!(context["scope"]["project_root"], root.display().to_string());
+        assert_eq!(context["scope"]["continuity_id"], "continuity:test");
+        assert_eq!(context["event_count"], 0);
+        assert!(context["urgency"].is_null());
+        std::fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn extension_ui_dialogs_receive_safe_or_fail_closed_matching_responses() {
