@@ -1,7 +1,7 @@
 {
   "schema": "focusa.spec137a_surface_parity.v1",
-  "status": "verified_complete",
-  "full_conformance_status": "verified_complete",
+  "status": "implemented",
+  "full_conformance_status": "blocked_live_proof_required",
   "required_surfaces": [
     "api",
     "operation_registry",
@@ -61,7 +61,7 @@
     },
     {
       "surface": "tui",
-      "state": "degraded",
+      "state": "implemented",
       "behavior_ref": "mission control renders conformance or truthful unknown",
       "evidence_refs": [
         "crates/focusa-tui/src/mission_control.rs"
@@ -88,7 +88,7 @@
     },
     {
       "surface": "degraded_unsupported_unknown",
-      "state": "degraded",
+      "state": "implemented",
       "behavior_ref": "unknown or unsupported remains open and blocks closure",
       "evidence_refs": [
         "crates/focusa-core/src/temporal_conformance.rs"
@@ -96,7 +96,9 @@
       "recovery_ref": "focusa_temporal_authority action=status"
     }
   ],
-  "warnings": [],
+  "warnings": [
+    "Full conformance remains blocked until two clean exact-scope installed-surface E2E runs pass."
+  ],
   "recovery_tools": [
     "focusa_temporal_authority",
     "focusa_project_verify",

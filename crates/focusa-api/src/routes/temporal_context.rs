@@ -45,6 +45,7 @@ pub fn bounded_temporal_context(
     };
     let as_of = Utc::now();
     let projection = project_temporal(scope.clone(), &events, as_of);
+    let conformance = super::temporal_conformance::spec137a_conformance_surface();
     let attested_legacy_digests = events
         .iter()
         .filter(|event| event.event_kind == TemporalEventKind::LegacySignatureAttestation)
@@ -81,8 +82,14 @@ pub fn bounded_temporal_context(
         "as_of":as_of,
         "source_event_count":events.len(),
         "integrity_status":if unsigned_legacy_event_count == 0 { "signed_verified" } else { "legacy_attestation_required" },
+        "conformance":{
+            "status":conformance.get("status").cloned().unwrap_or_else(|| json!("unknown")),
+            "full_conformance_status":conformance.get("full_conformance_status").cloned().unwrap_or_else(|| json!("blocked")),
+            "recovery_tools":conformance.get("recovery_tools").cloned().unwrap_or_else(|| json!([]))
+        },
         "unsigned_legacy_event_count":unsigned_legacy_event_count,
         "deadline_status":projection.deadline_status,
+        "deadline_conflict_state":projection.deadline_conflict_state,
         "active_claim_ref":projection.active_commitment.as_ref().map(|claim| json!({
             "claim_id":claim.claim_id,
             "revision":claim.revision,

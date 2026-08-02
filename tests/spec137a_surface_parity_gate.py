@@ -6,7 +6,10 @@ import json
 ROOT = Path(__file__).resolve().parents[1]
 PARITY = json.loads((ROOT / "docs/contracts/spec137a-surface-parity.v1.yaml").read_text())
 CORE = (ROOT / "crates/focusa-core/src/temporal_conformance.rs").read_text()
-API = (ROOT / "crates/focusa-api/src/routes/temporal.rs").read_text()
+API = (
+    (ROOT / "crates/focusa-api/src/routes/temporal.rs").read_text()
+    + (ROOT / "crates/focusa-api/src/routes/temporal_conformance.rs").read_text()
+)
 CLI = (ROOT / "crates/focusa-cli/src/commands/temporal.rs").read_text()
 PI = (ROOT / "apps/pi-extension/src/tools.ts").read_text()
 UI = (ROOT / "apps/menubar/src/lib/components/TemporalAuthorityPeek.svelte").read_text()
@@ -27,8 +30,12 @@ assert 'name: "focusa_temporal_authority"' in PI and 'Type.Literal("status")' in
 assert "<dt>Conformance</dt>" in UI and "conformance.warnings" in UI
 assert "conformance={conformance}" in TUI
 assert "focusa.temporal.status" in REGISTRY
-assert PARITY["full_conformance_status"] in {"proof_pending", "verified_complete"}
-if PARITY["full_conformance_status"] == "proof_pending":
+assert PARITY["full_conformance_status"] in {
+    "proof_pending",
+    "blocked_live_proof_required",
+    "verified_complete",
+}
+if PARITY["full_conformance_status"] != "verified_complete":
     assert PARITY["warnings"]
 else:
     assert PARITY["status"] == "verified_complete"
