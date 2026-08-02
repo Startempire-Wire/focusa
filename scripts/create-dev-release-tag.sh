@@ -294,6 +294,7 @@ normalize_release_channel() {
   local tag="$1"
   local channel="$2"
   local release
+  local latest
   case "$channel" in
     preview)
       gh release edit "$tag" --prerelease=true --latest=false
@@ -306,13 +307,18 @@ normalize_release_channel() {
       return 1
       ;;
   esac
-  release="$(gh release view "$tag" --json isLatest,isPrerelease,tagName)"
+  release="$(gh release view "$tag" --json isPrerelease,tagName)"
+  latest="$(gh release list --limit 100 --json isLatest,tagName \
+    | jq -c --arg tag "$tag" '.[] | select(.tagName == $tag)')"
+  [[ -n "$latest" ]] || { echo "Release ${tag} missing from latest-release projection" >&2; return 1; }
   if [[ "$channel" == "preview" ]]; then
-    jq -e '.isPrerelease == true and .isLatest == false' <<<"$release" >/dev/null
+    jq -e '.isPrerelease == true' <<<"$release" >/dev/null
+    jq -e '.isLatest == false' <<<"$latest" >/dev/null
   else
-    jq -e '.isPrerelease == false and .isLatest == true' <<<"$release" >/dev/null
+    jq -e '.isPrerelease == false' <<<"$release" >/dev/null
+    jq -e '.isLatest == true' <<<"$latest" >/dev/null
   fi
-  echo "release_channel_normalized=${release}"
+  echo "release_channel_normalized=$(jq -cn --argjson release "$release" --argjson latest "$latest" '{release:$release,latest:$latest}')"
 }
 
 journal_client() {
