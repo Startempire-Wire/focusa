@@ -9,10 +9,11 @@ use axum::{
 use chrono::Utc;
 use focusa_core::silent_sessions::{
     AuthorizationTarget, AuthorizedProjection, ContextAuthorityVerdict, RunGeneration,
-    SilentSession, SilentSessionAction, SilentSessionAuthorizationRequest, SilentSessionId,
-    SilentSessionRole, SilentSessionRouteScope, SilentSessionRunId, VerifiedAuthorityFacts,
-    authorize_silent_session_action, list_sessions, load_retention_record, load_run, load_session,
-    save_authorization_principal,
+    SilentSession, SilentSessionAction, SilentSessionAuthorizationRequest, SilentSessionConfig,
+    SilentSessionId, SilentSessionLifecycle, SilentSessionRole, SilentSessionRouteScope,
+    SilentSessionRun, SilentSessionRunId, VerifiedAuthorityFacts, authorize_silent_session_action,
+    list_sessions, load_config_revision, load_retention_record, load_run, load_session,
+    load_session_events, save_authorization_principal,
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -305,29 +306,153 @@ async fn status(
     } else {
         json!(run)
     };
-    let mut temporal_scope = focusa_core::temporal::TemporalScope::project(
-        session.authority.project_root.clone(),
-        session.authority.continuity_id.clone(),
+    let config = load_config_revision(&state.persistence, run.config_revision_id)
+        .ok()
+        .flatten();
+    let event_count = load_session_events(&state.persistence, session.id)
+        .ok()
+        .map(|events| events.len());
+    let temporal_context = silent_session_temporal_context(
+        &session,
+        Some(&run),
+        config.as_ref().map(|revision| &revision.config),
+        event_count,
     );
-    temporal_scope.item_id = session.work_item_ref.clone();
-    let temporal_context =
-        focusa_core::temporal::TemporalLedger::for_project(temporal_scope.clone())
-            .and_then(|ledger| ledger.read_all())
-            .ok()
-            .and_then(|events| {
-                serde_json::to_value(focusa_core::temporal::project_temporal(
-                    temporal_scope,
-                    &events,
-                    Utc::now(),
-                ))
-                .ok()
-            })
-            .unwrap_or_else(|| json!({"status":"degraded","authority":"advisory_only"}));
     success_with_principal(
         "status",
         json!({"session": session_projection, "run": run_projection, "temporal_context": temporal_context}),
         &principal,
     )
+}
+
+fn silent_session_temporal_projection(
+    session: &SilentSession,
+) -> Result<focusa_core::temporal::TemporalProjection, Box<ApiResponse>> {
+    let mut scope = focusa_core::temporal::TemporalScope::project(
+        session.authority.project_root.clone(),
+        session.authority.continuity_id.clone(),
+    );
+    scope.item_id = session.work_item_ref.clone();
+    let ledger = focusa_core::temporal::TemporalLedger::for_project(scope.clone()).map_err(|_| {
+        Box::new(failure(
+            StatusCode::PRECONDITION_FAILED,
+            "temporal_scope_unavailable",
+            "temporal_scope_unavailable",
+            "Repair the exact project and continuity scope before Silent Session temporal action.",
+        ))
+    })?;
+    let events = ledger.read_all().map_err(|_| {
+        Box::new(failure(
+            StatusCode::PRECONDITION_FAILED,
+            "temporal_ledger_unavailable",
+            "temporal_ledger_unavailable",
+            "Repair temporal ledger integrity before Silent Session temporal action.",
+        ))
+    })?;
+    Ok(focusa_core::temporal::project_temporal(
+        scope,
+        &events,
+        Utc::now(),
+    ))
+}
+
+pub(super) fn silent_session_temporal_context(
+    session: &SilentSession,
+    run: Option<&SilentSessionRun>,
+    config: Option<&SilentSessionConfig>,
+    event_count: Option<usize>,
+) -> Value {
+    let projection = match silent_session_temporal_projection(session) {
+        Ok(projection) => projection,
+        Err(response) => {
+            return json!({
+                "schema":"focusa.silent_session_temporal_context.v1",
+                "status":"unavailable",
+                "canonical":false,
+                "scope":{
+                    "project_root":session.authority.project_root,
+                    "continuity_id":session.authority.continuity_id,
+                    "item_id":session.work_item_ref
+                },
+                "failure_class":response.1.0.failure_class,
+                "recovery_hint":response.1.0.recovery_hint
+            });
+        }
+    };
+    let now = Utc::now();
+    let elapsed_ms = run.map(|run| {
+        run.ended_at
+            .unwrap_or(now)
+            .signed_duration_since(run.started_at)
+            .num_milliseconds()
+            .max(0) as u64
+    });
+    let max_wall_clock_ms = config
+        .and_then(|config| config.resources.max_wall_clock_seconds)
+        .map(|seconds| seconds.saturating_mul(1_000));
+    let remaining_wall_clock_ms = max_wall_clock_ms
+        .zip(elapsed_ms)
+        .map(|(maximum, elapsed)| maximum.saturating_sub(elapsed));
+    let timeout_state = match (
+        run.and_then(|run| run.ended_at),
+        max_wall_clock_ms,
+        elapsed_ms,
+    ) {
+        (Some(_), _, _) => "settled",
+        (None, Some(maximum), Some(elapsed)) if elapsed >= maximum => "exceeded",
+        (None, Some(_), Some(_)) => "within_budget",
+        _ => "not_configured",
+    };
+    let cancellation_state = match session.lifecycle {
+        SilentSessionLifecycle::Cancelling => "requested",
+        SilentSessionLifecycle::Cancelled => "acknowledged",
+        _ => "not_requested",
+    };
+    let settlement_status = match session.lifecycle {
+        SilentSessionLifecycle::Completed
+        | SilentSessionLifecycle::Failed
+        | SilentSessionLifecycle::Cancelled => "terminal_pending_receipt",
+        _ => "pending",
+    };
+    json!({
+        "schema":"focusa.silent_session_temporal_context.v1",
+        "status":"completed",
+        "canonical":true,
+        "scope":projection.scope,
+        "observed_at":now,
+        "deadline_status":projection.deadline_status,
+        "active_claim_ref":projection.active_commitment.as_ref().map(|claim| json!({
+            "claim_id":claim.claim_id,"revision":claim.revision,"kind":claim.kind,"target_at":claim.target_at
+        })),
+        "forecast_range":projection.authorized_forecast_range,
+        "human_calendar_context":projection.human_calendar_context,
+        "temporal_priority_frame":projection.temporal_priority_frame,
+        "temporal_execution_guard":projection.temporal_execution_guard,
+        "urgency":projection.urgency,
+        "warnings":projection.warnings.into_iter().take(8).collect::<Vec<_>>(),
+        "run_timing":{
+            "started_at":run.map(|run| run.started_at),
+            "ended_at":run.and_then(|run| run.ended_at),
+            "elapsed_ms":elapsed_ms,
+            "max_wall_clock_ms":max_wall_clock_ms,
+            "remaining_wall_clock_ms":remaining_wall_clock_ms,
+            "timeout_state":timeout_state
+        },
+        "progress":{
+            "event_count":event_count,
+            "lifecycle":session.lifecycle,
+            "health":session.health,
+            "semantic_activity":session.semantic_activity,
+            "session_updated_at":session.updated_at
+        },
+        "cancellation_state":cancellation_state,
+        "settlement":{
+            "status":settlement_status,
+            "ended_at":run.and_then(|run| run.ended_at),
+            "completion_receipt_required":config.map(|config| config.governance.completion_receipt_required),
+            "receipt_refs":[]
+        }
+    })
 }
 
 pub(super) fn ensure_silent_session_temporal_guard(
@@ -394,7 +519,18 @@ pub(super) fn ensure_silent_session_temporal_guard(
             "Refresh the scoped priority frame and execution guard before retrying.",
         ))
     })?;
-    Ok(serde_json::to_value(projection).unwrap_or(Value::Null))
+    Ok(json!({
+        "schema":"focusa.silent_session_temporal_guard.v1",
+        "status":"completed",
+        "canonical":true,
+        "scope":projection.scope,
+        "action_ref":action_ref,
+        "deadline_status":projection.deadline_status,
+        "priority_frame_ref":frame.frame_id,
+        "guard_ref":guard.guard_id,
+        "receipt_ref":guard.receipt_ref,
+        "urgency":projection.urgency
+    }))
 }
 
 pub(super) async fn durable_request_principal(
@@ -537,7 +673,9 @@ pub(super) fn failure(
 mod tests {
     use super::*;
     use focusa_core::silent_sessions::{
-        ConfigRevisionId, SilentSessionAuthority, SilentSessionLifecycle,
+        ActorInstanceId, ConfigRevisionId, HarnessConfig, HarnessKind, IdentityConfig, ModelConfig,
+        ModelFallbackPolicy, ModelSelectionPolicy, NativeResumePolicy, ProtocolVersions,
+        SILENT_SESSION_SCHEMA_VERSION, SilentSessionAuthority, SilentSessionLifecycle,
     };
 
     fn request_principal(role: SilentSessionRole, os_user: &str) -> ApiRequestPrincipal {
@@ -570,6 +708,127 @@ mod tests {
             Utc::now(),
         )
         .unwrap()
+    }
+
+    fn temporal_test_config(project_root: &str) -> SilentSessionConfig {
+        SilentSessionConfig::new(
+            IdentityConfig {
+                display_name: "temporal-proof".into(),
+                project_root: project_root.into(),
+                continuity_id: "continuity:temporal-proof".into(),
+                work_item_ref: Some("focusa-vbcqu.9.2.3.2".into()),
+                mission: "prove silent session temporal context".into(),
+                agent_identity_ref: "agent:pi".into(),
+                role_profile_ref: None,
+            },
+            HarnessConfig {
+                kind: HarnessKind::Pi,
+                adapter_version: "1".into(),
+                native_resume_policy: NativeResumePolicy::Prefer,
+            },
+            ModelConfig {
+                provider: "test".into(),
+                model: "test".into(),
+                thinking: None,
+                selection_policy: ModelSelectionPolicy::Exact,
+                fallback_policy: ModelFallbackPolicy::Disabled,
+                allowed_fallbacks: Vec::new(),
+                auth_profile_ref: "auth:test".into(),
+                require_entitlement_preflight: false,
+                require_runtime_model_confirmation: false,
+            },
+        )
+    }
+
+    #[test]
+    fn silent_session_temporal_context_is_scoped_bounded_and_tracks_timeout_settlement() {
+        let root =
+            std::env::temp_dir().join(format!("focusa-silent-temporal-{}", uuid::Uuid::now_v7()));
+        std::fs::create_dir_all(&root).unwrap();
+        let authority =
+            SilentSessionAuthority::new(root.display().to_string(), "continuity:temporal-proof")
+                .unwrap();
+        let mut session = SilentSession::draft_owned(
+            authority,
+            "principal:test",
+            "wirebot",
+            "temporal-proof",
+            "prove temporal context",
+            ConfigRevisionId::new(),
+            Utc::now(),
+        )
+        .unwrap();
+        session.lifecycle = SilentSessionLifecycle::Running;
+        let mut run = SilentSessionRun {
+            silent_session_schema_version: SILENT_SESSION_SCHEMA_VERSION,
+            id: SilentSessionRunId::new(),
+            silent_session_id: session.id,
+            generation: session.current_run_generation,
+            actor_instance_id: ActorInstanceId::new(),
+            config_revision_id: session.active_config_revision_id,
+            protocol_versions: ProtocolVersions::default(),
+            started_at: Utc::now() - chrono::Duration::seconds(10),
+            ended_at: None,
+        };
+        let mut config = temporal_test_config(root.to_string_lossy().as_ref());
+        config.resources.max_wall_clock_seconds = Some(5);
+
+        let running = silent_session_temporal_context(&session, Some(&run), Some(&config), Some(4));
+        assert_eq!(running["status"], "completed");
+        assert_eq!(running["scope"]["project_root"], root.display().to_string());
+        assert_eq!(
+            running["scope"]["continuity_id"],
+            "continuity:temporal-proof"
+        );
+        assert_eq!(running["run_timing"]["timeout_state"], "exceeded");
+        assert_eq!(running["cancellation_state"], "not_requested");
+        assert_eq!(running["progress"]["event_count"], 4);
+        assert!(running["urgency"].is_null());
+
+        session.lifecycle = SilentSessionLifecycle::Cancelling;
+        let cancelling =
+            silent_session_temporal_context(&session, Some(&run), Some(&config), Some(5));
+        assert_eq!(cancelling["cancellation_state"], "requested");
+
+        session.lifecycle = SilentSessionLifecycle::Completed;
+        run.ended_at = Some(Utc::now());
+        let completed =
+            silent_session_temporal_context(&session, Some(&run), Some(&config), Some(6));
+        assert_eq!(completed["run_timing"]["timeout_state"], "settled");
+        assert_eq!(
+            completed["settlement"]["status"],
+            "terminal_pending_receipt"
+        );
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn silent_session_mutation_without_temporal_priority_fails_closed() {
+        let root = std::env::temp_dir().join(format!(
+            "focusa-silent-temporal-guard-{}",
+            uuid::Uuid::now_v7()
+        ));
+        std::fs::create_dir_all(&root).unwrap();
+        let session = SilentSession::draft_owned(
+            SilentSessionAuthority::new(root.display().to_string(), "continuity:guard-proof")
+                .unwrap(),
+            "principal:test",
+            "wirebot",
+            "guard-proof",
+            "prove guard rejection",
+            ConfigRevisionId::new(),
+            Utc::now(),
+        )
+        .unwrap();
+
+        let response = ensure_silent_session_temporal_guard(&session, "silent-session:start")
+            .expect_err("missing temporal priority must block mutation");
+        assert_eq!(response.0, StatusCode::PRECONDITION_FAILED);
+        assert_eq!(
+            response.1.0.failure_class.as_deref(),
+            Some("temporal_priority_missing")
+        );
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

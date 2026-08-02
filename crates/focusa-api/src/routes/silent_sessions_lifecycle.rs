@@ -20,6 +20,7 @@ use super::{
     silent_sessions::{
         ApiResponse, disclose_principal_side_effect, durable_request_principal,
         ensure_silent_session_temporal_guard, failure, persistence_failure,
+        silent_session_temporal_context,
     },
     silent_sessions_contract::{
         ApiSideEffect, ExactSessionRunTarget, SilentSessionApiEnvelope, guard_exact_target,
@@ -117,6 +118,8 @@ pub(super) async fn start(
             true,
             &principal,
             body.approval_id,
+            silent_session_temporal_context(&session, Some(&run), None, Some(events.len())),
+            None,
         );
     }
     let config = match load_config_revision(&state.persistence, run.config_revision_id) {
@@ -142,9 +145,11 @@ pub(super) async fn start(
     if let Err(response) = authorize_start(&principal, &session, &run, &config, approval) {
         return after_principal(*response, &principal);
     }
-    if let Err(response) = ensure_silent_session_temporal_guard(&session, "silent-session:start") {
-        return after_principal(*response, &principal);
-    }
+    let temporal_guard =
+        match ensure_silent_session_temporal_guard(&session, "silent-session:start") {
+            Ok(context) => context,
+            Err(response) => return after_principal(*response, &principal),
+        };
     let transition = match reduce_lifecycle(
         session.lifecycle,
         SilentSessionLifecycle::Validating,
@@ -190,6 +195,12 @@ pub(super) async fn start(
     if let Err(error) = append_reducer_event_and_project(&state.persistence, &mut event, &session) {
         return after_principal(persistence_failure(error), &principal);
     }
+    let temporal_context = silent_session_temporal_context(
+        &session,
+        Some(&run),
+        Some(&config.config),
+        Some(events.len() + 1),
+    );
     lifecycle_success(
         StatusCode::ACCEPTED,
         "start_requested",
@@ -198,6 +209,8 @@ pub(super) async fn start(
         false,
         &principal,
         body.approval_id,
+        temporal_context,
+        Some(temporal_guard),
     )
 }
 
@@ -277,6 +290,8 @@ fn lifecycle_success(
     replayed: bool,
     principal: &ApiRequestPrincipal,
     approval_id: ApprovalId,
+    temporal_context: Value,
+    temporal_guard: Option<Value>,
 ) -> ApiResponse {
     let mut envelope = SilentSessionApiEnvelope::canonical(
         status,
@@ -284,6 +299,8 @@ fn lifecycle_success(
             "session": session,
             "event_id": event_id,
             "idempotent_replay": replayed,
+            "temporal_context":temporal_context,
+            "mutation_temporal_guard":temporal_guard,
         }),
     );
     envelope.side_effects.extend([
