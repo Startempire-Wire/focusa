@@ -33,6 +33,7 @@ import {
   stampWorkpointPacketForCurrentPiSession,
   normalizeWorkpointResumePacketEnvelope,
   adoptWorkpointScopeForFrameRecovery,
+  adoptVerifiedContinuityForCurrentSession,
   persistState,
   estimateTokens,
   getTurnCount,
@@ -6771,6 +6772,23 @@ export function registerTools(pi: ExtensionAPI) {
                 trajectory.continuity_id || body.scope?.continuity_id || body.continuity_id || null,
             },
             next_tools: ["focusa_project_identity", "focusa_project_verify", "focusa_trajectory_view"],
+          },
+        } as any;
+      }
+      const responseRoot = normalizeProjectRoot(project.project_root || trajectory.project_root || projectRoot);
+      const responseContinuity = String(
+        trajectory.continuity_id || body.scope?.continuity_id || body.continuity_id || requestedContinuity
+      ).trim();
+      if (!adoptVerifiedContinuityForCurrentSession(responseRoot, responseContinuity)) {
+        return {
+          content: [{ type: "text", text: "trajectory view blocked → exact verified scope adoption failed" }],
+          details: {
+            ok: false,
+            status: "blocked",
+            canonical: true,
+            failure_class: "scope_mismatch",
+            project_root: responseRoot,
+            continuity_id: responseContinuity,
           },
         } as any;
       }

@@ -44,6 +44,18 @@ test("session startup fails closed before durable project initialization", () =>
   assert.doesNotMatch(block, /North-star gate blocked durable project startup/);
 });
 
+test("explicit trajectory view adopts verified continuity before caching North Star state", () => {
+  const start = tools.indexOf('name: "focusa_trajectory_view"');
+  const end = tools.indexOf('name: "focusa_hlt_history"', start);
+  assert.ok(start >= 0 && end > start);
+  const block = tools.slice(start, end);
+  const adopt = block.indexOf("adoptVerifiedContinuityForCurrentSession");
+  const cache = block.indexOf("setLastTrajectoryClarity");
+  assert.ok(adopt >= 0 && cache > adopt);
+  assert.match(state, /export function adoptVerifiedContinuityForCurrentSession/);
+  assert.match(state, /verifiedRoot !== root/);
+});
+
 test("north-star startup order is project then trajectory then Workpoint", () => {
   const block = sessionStartBlock();
   const verify = block.indexOf("promptForProjectVerifyIfNeeded");

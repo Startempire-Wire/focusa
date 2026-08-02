@@ -3506,6 +3506,23 @@ export function getScopedWorkpointPacket(): any | null {
     : null;
 }
 
+export function adoptVerifiedContinuityForCurrentSession(
+  projectRoot: string,
+  continuityId: string
+): boolean {
+  const root = normalizeProjectRoot(projectRoot);
+  const continuity = String(continuityId || "").trim();
+  const identity: any = getLastProjectIdentity() || {};
+  const decision: any = currentProjectBindingDecision() || {};
+  const verifiedRoot = normalizeProjectRoot(
+    identity.canonical_parent_root || identity.project_root || decision.selected_project_root
+  );
+  if (!root || !continuity || !isProjectRootAuthoritySafe(root) || verifiedRoot !== root) return false;
+  getAttachmentRuntime().continuityId = continuity;
+  syncRuntimeFieldsToScopeStore();
+  return true;
+}
+
 export function adoptPersistedContinuityForSession(data: any, eventSessionId: string, cwd: string): void {
   const persistedSessionId = String(data?.sessionId || "").trim();
   const persistedContinuityId = String(data?.continuityId || "").trim();
