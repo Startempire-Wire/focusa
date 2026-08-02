@@ -3,6 +3,7 @@
 
 import json
 import pathlib
+import subprocess
 import tempfile
 
 import spec135_role_profile_e2e_test as helper
@@ -10,6 +11,13 @@ import spec135_role_profile_e2e_test as helper
 
 def verify_root(root: pathlib.Path):
     root.mkdir(parents=True, exist_ok=True)
+    # ProjectIdentity requires two independent matching signals before it emits
+    # the typed ScopeRef that Project Genesis commits consume. A marker alone is
+    # intentionally degraded; initialize the same Git+marker boundary used by a
+    # real bootstrapped software project.
+    subprocess.run(
+        ["git", "init", "--quiet", str(root)], check=True, capture_output=True
+    )
     (root / ".focusa-project.json").write_text(
         json.dumps(
             {
