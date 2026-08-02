@@ -98,6 +98,8 @@ pub mod task_plans;
 pub mod telemetry;
 pub mod temporal;
 mod temporal_advanced;
+mod temporal_conformance;
+mod temporal_requests;
 pub mod threads;
 pub mod tokens;
 pub mod training;
