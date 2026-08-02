@@ -45,18 +45,33 @@ pub struct PreservedInteractionState {
     pub drafts: BTreeMap<String, DraftSnapshot>,
 }
 
+pub struct LayoutMemoryReduction<'a> {
+    pub scope: MissionCanvasScope,
+    pub profile_id: &'a str,
+    pub activity_mode_id: &'a str,
+    pub viewport_class: &'a str,
+    pub layout: &'a LayoutNode,
+    pub eligible_contribution_ids: &'a BTreeSet<String>,
+    pub interaction: &'a PreservedInteractionState,
+    pub idempotency_key: &'a str,
+    pub updated_at: &'a str,
+}
+
 pub fn reduce_layout_memory(
     previous: Option<&ProfileLayoutMemory>,
-    scope: MissionCanvasScope,
-    profile_id: &str,
-    activity_mode_id: &str,
-    viewport_class: &str,
-    layout: &LayoutNode,
-    eligible_contribution_ids: &BTreeSet<String>,
-    interaction: &PreservedInteractionState,
-    idempotency_key: &str,
-    updated_at: &str,
+    reduction: LayoutMemoryReduction<'_>,
 ) -> ProfileLayoutMemory {
+    let LayoutMemoryReduction {
+        scope,
+        profile_id,
+        activity_mode_id,
+        viewport_class,
+        layout,
+        eligible_contribution_ids,
+        interaction,
+        idempotency_key,
+        updated_at,
+    } = reduction;
     let previous_placements = previous
         .map(|memory| {
             memory
@@ -249,17 +264,19 @@ mod tests {
         };
         let first = reduce_layout_memory(
             None,
-            scope(),
-            "software",
-            "overview",
-            "standard",
-            &first_layout,
-            &["contribution:a".into(), "contribution:b".into()]
-                .into_iter()
-                .collect(),
-            &interaction,
-            "memory:1",
-            "2026-07-30T12:00:00Z",
+            LayoutMemoryReduction {
+                scope: scope(),
+                profile_id: "software",
+                activity_mode_id: "overview",
+                viewport_class: "standard",
+                layout: &first_layout,
+                eligible_contribution_ids: &["contribution:a".into(), "contribution:b".into()]
+                    .into_iter()
+                    .collect(),
+                interaction: &interaction,
+                idempotency_key: "memory:1",
+                updated_at: "2026-07-30T12:00:00Z",
+            },
         );
         let second_layout = LayoutNode::Single {
             node_id: "layout:a".into(),
@@ -267,15 +284,17 @@ mod tests {
         };
         let second = reduce_layout_memory(
             Some(&first),
-            scope(),
-            "software",
-            "overview",
-            "standard",
-            &second_layout,
-            &["contribution:a".into()].into_iter().collect(),
-            &interaction,
-            "memory:2",
-            "2026-07-30T12:01:00Z",
+            LayoutMemoryReduction {
+                scope: scope(),
+                profile_id: "software",
+                activity_mode_id: "overview",
+                viewport_class: "standard",
+                layout: &second_layout,
+                eligible_contribution_ids: &["contribution:a".into()].into_iter().collect(),
+                interaction: &interaction,
+                idempotency_key: "memory:2",
+                updated_at: "2026-07-30T12:01:00Z",
+            },
         );
         assert_eq!(second.absent_contribution_ids, vec!["contribution:b"]);
         assert_eq!(
