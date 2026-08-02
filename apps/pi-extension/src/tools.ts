@@ -1293,13 +1293,11 @@ function inferToolResult(tool: string, result: any): FocusaToolResultV1 {
         details.valid === true ||
         (!/^❌|blocked|.* unavailable/.test(text) && details.ok !== false && details.valid !== false);
   const validationRejected =
-    mappedExplicitStatus === null &&
-    (details.valid === false || /validation_rejected|rejected/.test(text));
+    mappedExplicitStatus === null && (details.valid === false || /validation_rejected|rejected/.test(text));
   const offline = mappedExplicitStatus === null && /offline|unavailable/.test(text);
   const blocked = mappedExplicitStatus === null && /blocked/.test(text);
   const degraded =
-    mappedExplicitStatus === null &&
-    (details.canonical === false || /degraded|NON-CANONICAL/.test(text));
+    mappedExplicitStatus === null && (details.canonical === false || /degraded|NON-CANONICAL/.test(text));
   const status: FocusaToolStatus =
     mappedExplicitStatus ||
     (validationRejected
@@ -5727,9 +5725,9 @@ export function registerTools(pi: ExtensionAPI) {
           hint.next_action ||
           inferred.next_action ||
           "Resume transferred Focusa mission under the target continuity";
+        // The first checkpoint in a target continuity cannot depend on the source partition's writer lease.
         targetCheckpoint = await focusaFetchDetailed("/workpoint/checkpoint", {
           method: "POST",
-          headers: await requiredWriterLeaseHeaders(),
           body: JSON.stringify({
             scope: targetScope,
             mission: targetMission,
@@ -7659,9 +7657,9 @@ export function registerTools(pi: ExtensionAPI) {
         continuityId: p.continuity_id,
         sessionId: p.session_id,
       });
+      // Evidence linkage is governed by explicit session identity and server-side Workpoint scope, not Work Loop ownership.
       const res = await focusaFetchDetailed("/workpoint/evidence/link", {
         method: "POST",
-        headers: await requiredWriterLeaseHeaders(),
         body: JSON.stringify({
           workpoint_id: p.workpoint_id,
           target_ref: p.target_ref,
@@ -7924,9 +7922,9 @@ export function registerTools(pi: ExtensionAPI) {
           continuityId: scopedContinuityId,
           sessionId: scopedSessionId,
         });
+        // Read-only browser evidence does not acquire continuous-execution writer authority.
         evidenceResult = await focusaFetchDetailed("/workpoint/evidence/link", {
           method: "POST",
-          headers: await requiredWriterLeaseHeaders(),
           body: JSON.stringify({
             workpoint_id: scopedWorkpointId,
             target_ref: targetRef,
@@ -8365,9 +8363,9 @@ export function registerTools(pi: ExtensionAPI) {
           },
         } as any;
       }
+      // Explicit project/continuity/Workpoint scope is sufficient for durable evidence linkage.
       const res = await focusaFetchDetailed("/workpoint/evidence/link", {
         method: "POST",
-        headers: await requiredWriterLeaseHeaders(),
         body: JSON.stringify({
           workpoint_id: p.workpoint_id,
           target_ref: p.target_ref,
@@ -14702,7 +14700,9 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
         Type.Literal("status"),
         Type.Literal("rollback"),
       ]),
-      migration_id: Type.Optional(Type.String({ description: "Stable UUID for apply/retry or rollback target." })),
+      migration_id: Type.Optional(
+        Type.String({ description: "Stable UUID for apply/retry or rollback target." })
+      ),
       rollback_id: Type.Optional(Type.String({ description: "Stable UUID for idempotent rollback/retry." })),
       selections: Type.Optional(
         Type.Array(
@@ -14722,9 +14722,7 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
         )
       ),
       evidence_refs: Type.Optional(Type.Array(Type.String(), { minItems: 1 })),
-      confirm: Type.Optional(
-        Type.Boolean({ description: "Required true for apply or rollback mutation." })
-      ),
+      confirm: Type.Optional(Type.Boolean({ description: "Required true for apply or rollback mutation." })),
     }),
     async execute(_id, params) {
       const mutation = params.action === "apply" || params.action === "rollback";

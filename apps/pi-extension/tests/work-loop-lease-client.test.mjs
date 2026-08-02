@@ -17,6 +17,42 @@ assert.match(
   "shared lease helper must reject unsupported status schemas"
 );
 assert.match(tools, /current scoped writer lease is missing, expired, or owned by another writer/);
+const writerLeaseCalls = tools.match(/requiredWriterLeaseHeaders\(\)/g) ?? [];
+assert.equal(
+  writerLeaseCalls.length,
+  4,
+  "only the lease helper plus three true Work Loop mutations may require writer authority"
+);
+for (const [toolName, nextToolName] of [
+  ["focusa_session_transfer", "focusa_project_verify"],
+  ["focusa_evidence_capture", "focusa_browser_diagnostics_intake"],
+  ["focusa_browser_diagnostics_intake", "focusa_workpoint_checkpoint"],
+  ["focusa_workpoint_link_evidence", "focusa_workpoint_resume"],
+]) {
+  const block = tools.slice(tools.indexOf(`name: "${toolName}"`), tools.indexOf(`name: "${nextToolName}"`));
+  assert.doesNotMatch(
+    block,
+    /requiredWriterLeaseHeaders\(\)/,
+    `${toolName} must use canonical explicit scope without a continuous Work Loop lease`
+  );
+  assert.match(
+    block,
+    /session_identity|targetScope/,
+    `${toolName} must preserve typed project/continuity authority when writer lease is absent`
+  );
+}
+for (const [toolName, nextToolName] of [
+  ["focusa_work_loop_context", "focusa_work_loop_checkpoint"],
+  ["focusa_work_loop_checkpoint", "focusa_work_loop_select_next"],
+  ["focusa_work_loop_select_next", "focusa_state_hygiene_doctor"],
+]) {
+  const block = tools.slice(tools.indexOf(`name: "${toolName}"`), tools.indexOf(`name: "${nextToolName}"`));
+  assert.match(
+    block,
+    /requiredWriterLeaseHeaders\(\)/,
+    `${toolName} must retain continuous Work Loop fencing authority`
+  );
+}
 const checkpointTool = tools.slice(
   tools.indexOf('name: "focusa_workpoint_checkpoint"'),
   tools.indexOf('name: "focusa_workpoint_link_evidence"')
