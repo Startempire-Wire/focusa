@@ -10,6 +10,7 @@
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
+import { createHash } from "crypto";
 import { registerAgentRuntimeTools } from "./agent-runtime-tools.js";
 import {
   getAttachmentRuntime,
@@ -36,6 +37,7 @@ import {
   adoptVerifiedContinuityForCurrentSession,
   persistState,
   estimateTokens,
+  storeEcsArtifact,
   getTurnCount,
   getActiveFrameId,
   getContinuityId,
@@ -77,6 +79,11 @@ import {
 import { buildNorthStarSnapshot, renderNorthStarCard } from "./north-star.js";
 import { projectBindingAllowsDurableWrites, reconcileProjectBindingDecision } from "./project-binding.js";
 import { publishScopedStateChange } from "./scoped-surface-refresh.js";
+import { modelVisibleDiscoveryPayload as renderDiscoveryPayload } from "./tool-discovery-visible.js";
+
+function modelVisibleDiscoveryPayload(label: string, payload: unknown, maxChars = 12_000): string {
+  return renderDiscoveryPayload(label, payload, storeEcsArtifact, maxChars);
+}
 
 const SCRATCHPAD_DIR = "/tmp/pi-scratch";
 
@@ -14568,26 +14575,25 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
           likely_next_tools: affordance?.likely_next_tools || [],
           describe_with: "focusa_tool_describe",
         }));
+      const payload = {
+        schema: "focusa.tool_search_result.v1",
+        query,
+        family: p.family || null,
+        count: results.length,
+        results,
+        next_tools: results.length ? ["focusa_tool_describe"] : ["focusa_tool_bundle"],
+      };
       return {
         content: [
           {
             type: "text",
-            text: `tool search → ${results.length} ranked result(s): ${
-              results
-                .slice(0, 5)
-                .map((item) => item.name)
-                .join(", ") || "none"
-            }`,
+            text: modelVisibleDiscoveryPayload(
+              `tool search → ${results.length} ranked result(s)`,
+              payload
+            ),
           },
         ],
-        details: {
-          schema: "focusa.tool_search_result.v1",
-          query,
-          family: p.family || null,
-          count: results.length,
-          results,
-          next_tools: results.length ? ["focusa_tool_describe"] : ["focusa_tool_bundle"],
-        },
+        details: payload,
       } as any;
     },
   });
@@ -14633,18 +14639,19 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
         output_schema: p.include_schemas === false ? undefined : definition.outputSchema,
         schema_loading: p.include_schemas === false ? "metadata_only" : "cold_loaded",
       };
+      const payload = {
+        schema: "focusa.tool_description.v2",
+        descriptor,
+        next_tools: affordance.likely_next_tools,
+      };
       return {
         content: [
           {
             type: "text",
-            text: `tool describe → ${name}: ${contract.purpose} side_effect=${contract.side_effect_profile} next=${affordance.likely_next_tools.join(",")}`,
+            text: modelVisibleDiscoveryPayload(`tool describe → ${name}`, payload),
           },
         ],
-        details: {
-          schema: "focusa.tool_description.v2",
-          descriptor,
-          next_tools: affordance.likely_next_tools,
-        },
+        details: payload,
       } as any;
     },
   });
@@ -14668,6 +14675,19 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
       let frontier = FOCUSA_TOOL_CONTRACTS.filter(
         (item) => item.name === p.anchor || item.family === p.anchor
       ).map((item) => item.name);
+      if (!frontier.length) {
+        const alternatives = [...new Set(FOCUSA_TOOL_CONTRACTS.map((item) => item.family))]
+          .sort()
+          .slice(0, 12);
+        return blockedToolResponse(
+          "focusa_tool_graph",
+          "traversal",
+          `tool graph blocked → unknown tool or family ${p.anchor}`,
+          "not_found",
+          { anchor: p.anchor, valid_family_examples: alternatives },
+          ["focusa_tool_search", "focusa_tool_bundle"]
+        );
+      }
       const seen = new Set(frontier);
       const edges: Array<{ from: string; to: string; relation: string }> = [];
       for (let level = 0; level < depth && frontier.length && seen.size <= limit; level += 1) {
@@ -14683,21 +14703,25 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
         }
         frontier = next;
       }
+      const payload = {
+        schema: "focusa.tool_graph.v1",
+        anchor: p.anchor,
+        depth,
+        nodes: [...seen],
+        edges,
+        next_tools: ["focusa_tool_describe", "focusa_tool_bundle"],
+      };
       return {
         content: [
           {
             type: "text",
-            text: `tool graph → anchor=${p.anchor} nodes=${seen.size} edges=${edges.length} depth=${depth}`,
+            text: modelVisibleDiscoveryPayload(
+              `tool graph → anchor=${p.anchor} nodes=${seen.size} edges=${edges.length}`,
+              payload
+            ),
           },
         ],
-        details: {
-          schema: "focusa.tool_graph.v1",
-          anchor: p.anchor,
-          depth,
-          nodes: [...seen],
-          edges,
-          next_tools: ["focusa_tool_describe", "focusa_tool_bundle"],
-        },
+        details: payload,
       } as any;
     },
   });
@@ -14732,21 +14756,38 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
             output_schema: p.include_schemas ? definition?.outputSchema : undefined,
           };
         });
+      if (!items.length) {
+        const alternatives = [...new Set(FOCUSA_TOOL_CONTRACTS.map((item) => item.family))]
+          .sort()
+          .slice(0, 12);
+        return blockedToolResponse(
+          "focusa_tool_bundle",
+          "traversal",
+          `tool bundle blocked → unknown family ${p.family}`,
+          "not_found",
+          { family: p.family, valid_family_examples: alternatives },
+          ["focusa_tool_search"]
+        );
+      }
+      const payload = {
+        schema: "focusa.tool_bundle.v1",
+        family: p.family,
+        count: items.length,
+        schema_loading: p.include_schemas ? "cold_loaded" : "metadata_only",
+        tools: items,
+        next_tools: ["focusa_tool_describe", "focusa_tool_graph"],
+      };
       return {
         content: [
           {
             type: "text",
-            text: `tool bundle → family=${p.family} count=${items.length} schemas=${p.include_schemas === true ? "included" : "deferred"}`,
+            text: modelVisibleDiscoveryPayload(
+              `tool bundle → family=${p.family} count=${items.length}`,
+              payload
+            ),
           },
         ],
-        details: {
-          schema: "focusa.tool_bundle.v1",
-          family: p.family,
-          count: items.length,
-          schema_loading: p.include_schemas ? "cold_loaded" : "metadata_only",
-          tools: items,
-          next_tools: items.length ? ["focusa_tool_describe", "focusa_tool_graph"] : ["focusa_tool_search"],
-        },
+        details: payload,
       } as any;
     },
   });
@@ -14762,10 +14803,29 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
     async execute(_id, params) {
       const p = params as any;
       const families = [...new Set(FOCUSA_TOOL_CONTRACTS.map((item) => item.family))].sort();
+      const registryDigest = createHash("sha256")
+        .update(
+          JSON.stringify(
+            FOCUSA_TOOL_CONTRACTS.map((item) => ({
+              name: item.name,
+              family: item.family,
+              scope: item.scope_requirement,
+              side_effect: item.side_effect_profile,
+            }))
+          )
+        )
+        .digest("hex");
+      let runtimeVersion = "unknown";
+      try {
+        const health = await focusaFetch("/health");
+        runtimeVersion = String(health?.version || "unknown");
+      } catch {
+        // Agent Card remains useful offline; unknown is more truthful than a stale hard-coded version.
+      }
       const card = {
         schema: "focusa.agent_card.v1",
         name: "Focusa",
-        version: "0.9.120-dev",
+        version: runtimeVersion,
         description:
           "Agent-first cognitive infrastructure with scoped Workpoints, Trajectory, evidence, recovery, browser interoperability, and cross-harness contracts.",
         interfaces: ["pi", "mcp", "openai-functions", "cli", "rest"],
@@ -14785,13 +14845,21 @@ next_tools=focusa_traverse,focusa_trajectory_view,focusa_workpoint_resume`,
         ],
         capability_count: FOCUSA_TOOL_CONTRACTS.length,
         capability_families: p.include_families === false ? undefined : families,
+        registry_digest: `sha256:${registryDigest}`,
+        registry_digest_ref: "/v1/agent/card",
+        protocol_bindings: {
+          mcp: "focusa_agent_card",
+          openai_functions: "/v1/capabilities/openai-functions",
+          rest: "/v1/agent/card",
+          cli: "focusa capabilities",
+        },
         extended_card_path: "/v1/agent/card",
       };
       return {
         content: [
           {
             type: "text",
-            text: `Focusa Agent Card → capabilities=${card.capability_count} interfaces=${card.interfaces.join(",")} discovery=${card.discovery_tools.join(",")}`,
+            text: modelVisibleDiscoveryPayload("Focusa Agent Card", card),
           },
         ],
         details: { ...card, next_tools: card.discovery_tools },
