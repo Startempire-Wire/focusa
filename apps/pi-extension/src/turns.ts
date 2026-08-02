@@ -535,24 +535,6 @@ function handleTrajectoryMatchesCurrentScope(handle: any): boolean {
   );
 }
 
-function formatHandleTrajectorySummary(handle: any): string {
-  if (!handleTrajectoryMatchesCurrentScope(handle)) return "";
-  const trajectory = handle?.trajectory || {};
-  const parts = [
-    trajectory.trajectory_id ? `id=${boundedTrajectoryText(trajectory.trajectory_id, 80)}` : "",
-    trajectory.hlt ? `HLT=${boundedTrajectoryText(trajectory.hlt, 140)}` : "",
-    trajectory.mlg ? `MLG=${boundedTrajectoryText(trajectory.mlg, 120)}` : "",
-    trajectory.stg ? `STG=${boundedTrajectoryText(trajectory.stg, 120)}` : "",
-    Array.isArray(trajectory.waypoints) && trajectory.waypoints.length
-      ? `waypoints=${trajectory.waypoints
-          .slice(0, 3)
-          .map((item: any) => boundedTrajectoryText(trajectoryWaypointTitle(item), 80))
-          .join(" | ")}`
-      : "",
-  ].filter(Boolean);
-  return parts.length ? `TRAJECTORY_CONTEXT: ${parts.join("; ")}\n` : "";
-}
-
 function safeExists(root: string, rel: string): boolean {
   try {
     return fs.existsSync(path.join(root, rel));
@@ -2988,7 +2970,6 @@ export function registerTurns(pi: ExtensionAPI) {
               type: "text",
               text:
                 `[HANDLE:text:${handle.id} "${toolName} output" (${content.length} bytes, ~${tokens} tokens)]\n` +
-                formatHandleTrajectorySummary(handle) +
                 `Use /focusa-rehydrate ${handle.id} to retrieve full content.\n\n` +
                 content.slice(0, 1000) +
                 (content.length > 1000 ? "\n...[truncated, full content in ECS]" : ""),
