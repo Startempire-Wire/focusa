@@ -14,6 +14,7 @@ assert.match(api, /scope: \{/);
 assert.match(component, /invokeSemanticPairAction/);
 assert.match(component, /Execute governed operation/);
 assert.match(component, /Confirm mutation/);
+assert.match(component, /confirmation: selected\.kind === 'mutation' \? 'confirm'/);
 assert.doesNotMatch(component, /Unsupported on this surface/);
 assert.doesNotMatch(proof, /mutations unsupported/);
 console.log('menubar semantic-pair 43-operation parity source proof passed');

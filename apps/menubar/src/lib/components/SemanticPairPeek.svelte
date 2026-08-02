@@ -54,7 +54,7 @@
         pair_id: pairId,
         payload,
         idempotency_key: selected.kind === 'mutation' ? crypto.randomUUID() : undefined,
-        confirmation: selected.kind === 'mutation' ? 'operator_confirmed' : undefined,
+        confirmation: selected.kind === 'mutation' ? 'confirm' : undefined,
       });
       invokeResult = JSON.stringify(result);
       status = await fetchSemanticPairStatus(scope.projectRoot, scope.continuityId);
