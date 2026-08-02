@@ -28,6 +28,8 @@ test("tool doctor separates executable tools from operator actions", () => {
   assert.match(doctor, /scope_status:/);
   assert.match(doctor, /workpoint_status:/);
   assert.match(doctor, /work_loop_status:/);
+  assert.match(doctor, /getActiveWorkpointPacket/);
+  assert.match(doctor, /exact_scoped_pi_resume_packet/);
 });
 
 test("project confirmation envelopes never advertise nonexistent interview tool", () => {

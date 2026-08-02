@@ -4468,7 +4468,20 @@ export function registerTools(pi: ExtensionAPI) {
       const p = params as any;
       const health = await focusaFetchDetailed("/health", { method: "GET" });
       const resource = await focusaFetchDetailed("/resource/mode", { method: "GET" });
-      const workpoint = await focusaFetchDetailed("/workpoint/current", { method: "GET" });
+      const localWorkpoint = getActiveWorkpointPacket();
+      const localWorkpointScope = focusaToolWorkpointScope(localWorkpoint);
+      const workpoint = localWorkpointScope
+        ? {
+            ok: true,
+            status: 200,
+            body: {
+              ...(localWorkpoint || {}),
+              status: "completed",
+              canonical: true,
+              source: "exact_scoped_pi_resume_packet",
+            },
+          }
+        : await focusaFetchDetailed("/workpoint/current", { method: "GET" });
       const loop = await focusaFetchDetailed("/work-loop/status?summary_only=true", { method: "GET" });
       const liveContracts = await focusaFetchDetailed("/ontology/tool-contracts", { method: "GET" });
       const uiaiBrowser = await uiaiBrowserHealthCard();
