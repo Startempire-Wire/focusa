@@ -52,7 +52,7 @@ test("explicit trajectory view adopts verified continuity before caching North S
   const adopt = block.indexOf("adoptVerifiedContinuityForCurrentSession");
   const cache = block.indexOf("setLastTrajectoryClarity", adopt);
   assert.ok(adopt >= 0 && cache > adopt);
-  assert.match(block, /scope_verification_receipt/);
+  assert.match(block, /scope_verification:/);
   assert.match(block, /trajectory\.scope_verification/);
   assert.match(state, /export function adoptVerifiedContinuityForCurrentSession/);
   assert.match(state, /verifiedRoot !== root/);
