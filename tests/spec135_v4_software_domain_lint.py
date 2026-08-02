@@ -14,7 +14,7 @@ for dependency in ("petgraph = { workspace = true }", "tree-sitter = { workspace
 for marker in (
     "StableDiGraph",
     "Parser::new()",
-    "parser.set_language",
+    ".set_language(language)",
     'args(["scan", "--json=stream", "--pattern", pattern])',
     "Sha256::digest",
     "MAX_CHANGED_FILES",
