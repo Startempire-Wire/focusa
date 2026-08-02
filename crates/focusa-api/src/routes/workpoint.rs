@@ -1459,6 +1459,21 @@ fn workpoint_dispatch_timeout() -> (StatusCode, Json<Value>) {
     )
 }
 
+fn explicit_workpoint_not_found(workpoint_id: Uuid) -> (StatusCode, Json<Value>) {
+    let (status, Json(mut body)) = workpoint_failure(
+        StatusCode::NOT_FOUND,
+        format!("Workpoint {workpoint_id} does not exist in the exact scoped read model"),
+        "not_found",
+        "The explicitly requested Workpoint was not found after bounded read-model reconciliation.",
+        "Resume a known Workpoint or checkpoint a new exact-scope Workpoint before linking evidence.",
+        "Never treat an unknown Workpoint id as eventual evidence-link success.",
+        vec!["focusa_workpoint_resume", "focusa_workpoint_checkpoint"],
+    );
+    body["workpoint_id"] = json!(workpoint_id);
+    body["requested_mutation"] = json!("workpoint_evidence_link");
+    (status, Json(body))
+}
+
 fn workpoint_no_active_to_link() -> (StatusCode, Json<Value>) {
     workpoint_failure(
         StatusCode::NOT_FOUND,
@@ -3428,21 +3443,7 @@ async fn link_evidence(
     };
     let Some(record) = record else {
         if let Some(workpoint_id) = explicit_workpoint_id {
-            return Err((
-                StatusCode::ACCEPTED,
-                Json(json!({
-                    "status": "pending",
-                    "canonical": false,
-                    "degraded": true,
-                    "workpoint_id": workpoint_id,
-                    "failure_class": "read_model_lag",
-                    "retry_posture": "safe_retry",
-                    "retry": {"safe": true, "posture": "safe_retry", "reason": "workpoint record accepted but not visible yet"},
-                    "side_effects": [],
-                    "next_tools": ["focusa_workpoint_resume", "focusa_workpoint_link_evidence"],
-                    "next_step_hint": "retry evidence link after Workpoint checkpoint is visible"
-                })),
-            ));
+            return Err(explicit_workpoint_not_found(workpoint_id));
         }
         return Err(workpoint_no_active_to_link());
     };
@@ -3703,6 +3704,19 @@ mod tests {
         let payload = idempotency_cache_status_payload();
         assert_eq!(payload["status"], "eliminated");
         assert_eq!(payload["cross_scope_fallback"], false);
+    }
+
+    #[test]
+    fn unknown_explicit_workpoint_rejects_evidence_link_without_pending_success() {
+        let workpoint_id = Uuid::nil();
+        let (status, Json(body)) = explicit_workpoint_not_found(workpoint_id);
+        assert_eq!(status, StatusCode::NOT_FOUND);
+        assert_eq!(body["status"], "blocked");
+        assert_eq!(body["canonical"], false);
+        assert_eq!(body["failure_class"], "not_found");
+        assert_eq!(body["workpoint_id"], workpoint_id.to_string());
+        assert_eq!(body["requested_mutation"], "workpoint_evidence_link");
+        assert_eq!(body["details"]["tool_result_v1"]["retry"]["safe"], false);
     }
 
     #[test]
