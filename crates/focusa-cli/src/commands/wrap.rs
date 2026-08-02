@@ -21,8 +21,23 @@ use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::Duration;
+
+static WRAP_DEBUG_ENABLED: AtomicBool = AtomicBool::new(false);
+
+fn wrap_debug_enabled() -> bool {
+    WRAP_DEBUG_ENABLED.load(Ordering::Relaxed)
+}
+
+macro_rules! debugln {
+    ($($arg:tt)*) => {
+        if wrap_debug_enabled() {
+            eprintln!($($arg)*);
+        }
+    };
+}
 
 /// Fire-and-forget POST - doesn't block on daemon response.
 async fn fire_and_forget(client: &ApiClient, path: &str, body: Value) {
@@ -33,7 +48,7 @@ async fn fire_and_forget(client: &ApiClient, path: &str, body: Value) {
 
     tokio::spawn(async move {
         if let Err(e) = client.post(&url).json(&body).send().await {
-            eprintln!("[DEBUG] POST {} failed: {}", path, e);
+            debugln!("[DEBUG] POST {} failed: {}", path, e);
         }
     });
 }
@@ -70,7 +85,7 @@ async fn start_daemon() -> Result<()> {
             }
         })?;
 
-    eprintln!("[DEBUG] Starting daemon: {:?}", daemon_path);
+    debugln!("[DEBUG] Starting daemon: {:?}", daemon_path);
 
     // Use setsid to create new session - no need for exec or shell redirections
     std::process::Command::new("/usr/bin/setsid")
@@ -533,7 +548,7 @@ fn run_with_recording(
     };
 
     if let Err(e) = fs::remove_file(&session_file) {
-        eprintln!("[DEBUG] Failed to remove session file: {}", e);
+        debugln!("[DEBUG] Failed to remove session file: {}", e);
     }
 
     let exit_code = if capped {
@@ -614,7 +629,8 @@ fn semantic_harness_failure(transcript: &str) -> Option<String> {
 }
 
 /// Run the wrap command with full session capture.
-pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
+pub async fn run(command: Vec<String>, verbose: bool) -> anyhow::Result<()> {
+    WRAP_DEBUG_ENABLED.store(verbose, Ordering::Relaxed);
     if command.is_empty() {
         anyhow::bail!("Usage: focusa wrap -- <command> [args...]");
     }
@@ -630,7 +646,7 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
         .and_then(|n| n.to_str())
         .unwrap_or("unknown");
 
-    eprintln!("[DEBUG] Mode: {} (TUI={})", harness_name, is_tui);
+    debugln!("[DEBUG] Mode: {} (TUI={})", harness_name, is_tui);
 
     // 0. Ensure daemon is running
     if !is_daemon_running(&client).await {
@@ -650,7 +666,7 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
     let timestamp_ms = Utc::now().timestamp_millis();
     let random_suffix: u32 = random();
     let turn_id = format!("{:x}{:08x}", timestamp_ms, random_suffix);
-    eprintln!("[DEBUG] Turn ID: {}", turn_id);
+    debugln!("[DEBUG] Turn ID: {}", turn_id);
 
     fire_and_forget(
         &client,
@@ -672,10 +688,10 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
         // This bypasses Focusa prompt assembly which is meant for TUI mode
         if harness_name == "pi" {
             final_args = vec!["--print".to_string(), prompt.to_string()];
-            eprintln!("[DEBUG] Using --print mode for pi");
+            debugln!("[DEBUG] Using --print mode for pi");
         } else {
             // For other harnesses, try prompt assembly
-            eprintln!("[DEBUG] Assembling prompt for: {} chars", prompt.len());
+            debugln!("[DEBUG] Assembling prompt for: {} chars", prompt.len());
 
             if let Ok(resp) = client
                 .post(
@@ -691,7 +707,7 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
                 && let Some(assembled) = resp.get("assembled_prompt").and_then(|v| v.as_str())
             {
                 final_args = vec![assembled.to_string()];
-                eprintln!("[DEBUG] Prompt assembled: {} chars", assembled.len());
+                debugln!("[DEBUG] Prompt assembled: {} chars", assembled.len());
             }
         }
     }
@@ -699,7 +715,7 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
     // 3. Run the harness with full session capture
     let env_vars = vec![("FOCUSA_MAGIC_DISABLE", "1"), ("FOCUSA_TURN_ID", &turn_id)];
 
-    eprintln!("[DEBUG] Running: {} {}", harness_path, final_args.join(" "));
+    debugln!("[DEBUG] Running: {} {}", harness_path, final_args.join(" "));
 
     let (exit_code, transcript) = if is_tui && harness_name == "pi" {
         // Interactive Pi: preserve native TTY behavior; semantic events come from
@@ -716,7 +732,7 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
         match run_with_recording(harness_path, &final_args, &env_vars) {
             Ok(result) => result,
             Err(e) => {
-                eprintln!("[DEBUG] Recording failed ({}), falling back to simple", e);
+                debugln!("[DEBUG] Recording failed ({}), falling back to simple", e);
                 match run_simple(harness_path, &final_args, &env_vars) {
                     Ok(result) => result,
                     Err(e) => {
@@ -746,8 +762,8 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
         }
     };
 
-    eprintln!("[DEBUG] Harness exited with code: {}", exit_code);
-    eprintln!("[DEBUG] Transcript length: {} chars", transcript.len());
+    debugln!("[DEBUG] Harness exited with code: {}", exit_code);
+    debugln!("[DEBUG] Transcript length: {} chars", transcript.len());
     let semantic_output_expected =
         !is_tui || std::env::var("FOCUSA_RAW_PTY_CAPTURE").as_deref() == Ok("1");
     let semantic_failure = (exit_code == 0 && semantic_output_expected)
@@ -765,15 +781,15 @@ pub async fn run(command: Vec<String>) -> anyhow::Result<()> {
     // 4. Parse transcript to extract user/assistant content (for TUI observability)
     let (user_input, assistant_output) = if is_tui {
         let parsed = parse_transcript(&transcript);
-        eprintln!("[DEBUG] Extracted user_input: {} chars", parsed.0.len());
-        eprintln!(
+        debugln!("[DEBUG] Extracted user_input: {} chars", parsed.0.len());
+        debugln!(
             "[DEBUG] Extracted assistant_output: {} chars",
             parsed.1.len()
         );
         parsed
     } else {
         // CLI mode: use captured output directly (no speaker markers to parse)
-        eprintln!("[DEBUG] CLI mode: using captured output directly");
+        debugln!("[DEBUG] CLI mode: using captured output directly");
         (String::new(), transcript.clone())
     };
 
