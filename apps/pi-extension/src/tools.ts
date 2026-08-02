@@ -3106,25 +3106,38 @@ export function registerTools(pi: ExtensionAPI) {
     const token = getAttachmentRuntime().cfg?.focusaToken || "";
     const currentKey = currentAttachmentKey();
     if (!currentKey) throw new Error("attachment_runtime_key_required");
+    const activeWorkpoint = getActiveWorkpointPacket() as any;
+    const workpointScopeAuthoritative =
+      !!activeWorkpoint &&
+      activeWorkpoint.canonical !== false &&
+      activeWorkpoint.action_authority_for_current_ask !== false;
     const verifiedRoot = normalizeProjectRoot(
-      getLastProjectIdentity()?.project_root || getLastProjectVerify()?.project_root || ""
+      (workpointScopeAuthoritative ? activeWorkpoint.project_root : "") ||
+        getLastProjectIdentity()?.project_root ||
+        getLastProjectVerify()?.project_root ||
+        ""
     );
-    const verifiedContinuity = String(getContinuityId() || "").trim();
+    const verifiedContinuity = String(
+      (workpointScopeAuthoritative ? activeWorkpoint.continuity_id : "") || getContinuityId() || ""
+    ).trim();
     const currentRoot = normalizeProjectRoot(currentKey.workstream.root_scope.root_path);
     const currentContinuity = String(currentKey.workstream.continuity_id || "").trim();
-    const attachmentKey =
+    const verifiedScopeAvailable =
+      isProjectRootAuthoritySafe(verifiedRoot) &&
+      verifiedContinuity &&
+      verifiedContinuity !== "extension-bootstrap";
+    const currentScopeAvailable =
       isProjectRootAuthoritySafe(currentRoot) &&
       currentContinuity &&
-      currentContinuity !== "extension-bootstrap"
-        ? currentKey
-        : isProjectRootAuthoritySafe(verifiedRoot) &&
-            verifiedContinuity &&
-            verifiedContinuity !== "extension-bootstrap"
-          ? {
-              ...currentKey,
-              workstream: buildProjectWorkstreamKey(verifiedRoot, verifiedContinuity),
-            }
-          : currentKey;
+      currentContinuity !== "extension-bootstrap";
+    const attachmentKey =
+      verifiedScopeAvailable &&
+      (workpointScopeAuthoritative || !currentScopeAvailable || currentRoot !== verifiedRoot)
+        ? {
+            ...currentKey,
+            workstream: buildProjectWorkstreamKey(verifiedRoot, verifiedContinuity),
+          }
+        : currentKey;
     const scopeHeaders = {
       "x-scope-project-root": attachmentKey.workstream.root_scope.root_path,
       "x-scope-continuity-id": attachmentKey.workstream.continuity_id,
@@ -8544,7 +8557,11 @@ export function registerTools(pi: ExtensionAPI) {
       );
       if (res.ok && canonical && actionAuthority && matchesCurrentAskScope) {
         const candidate = normalizeWorkpointResumePacketEnvelope(res.body);
-        const adoptedRoot = adoptWorkpointScopeForFrameRecovery(candidate, "workpoint_resume_tool");
+        const adoptedRoot = adoptWorkpointScopeForFrameRecovery(candidate, "workpoint_resume_tool", {
+          projectRoot: params.project_root || "",
+          continuityId: params.continuity_id || "",
+          allowSessionTransfer: Boolean(params.project_root && params.continuity_id),
+        });
         if (adoptedRoot) {
           setActiveWorkpointSummary(String(res.body?.rendered_summary || v2?.rendered_summary || ""));
           getAttachmentRuntime().lastWorkpointUpdate = Date.now();

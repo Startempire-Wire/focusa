@@ -3636,7 +3636,15 @@ export function isGenericPiFrameForCwd(cwd: string, title?: string | null, goal?
   return (title || "") === `Pi: ${projectName}` && (goal || "") === `Work on ${projectName}`;
 }
 
-export function adoptWorkpointScopeForFrameRecovery(packet: any, source: string): string | null {
+export function adoptWorkpointScopeForFrameRecovery(
+  packet: any,
+  source: string,
+  expectedScope?: {
+    projectRoot: string;
+    continuityId: string;
+    allowSessionTransfer: boolean;
+  }
+): string | null {
   if (!packet || typeof packet !== "object") return null;
   const workpoint = packet.resume_packet?.workpoint || packet.workpoint || packet;
   const packetProjectRoot = normalizeProjectRoot(workpoint.project_root || packet.project_root);
@@ -3656,11 +3664,27 @@ export function adoptWorkpointScopeForFrameRecovery(packet: any, source: string)
     packet.status === "rejected_scope_mismatch"
   )
     return null;
-  if (currentContinuityId && currentContinuityId !== packetContinuityId) return null;
-  if (currentSessionKey && packetPiSessionKey && packetPiSessionKey !== currentSessionKey) return null;
-  if (currentSessionKey && !packetPiSessionKey && packetSessionId && packetSessionId !== currentSessionKey)
+  const explicitScopeMatch =
+    expectedScope?.allowSessionTransfer === true &&
+    normalizeProjectRoot(expectedScope.projectRoot) === packetProjectRoot &&
+    String(expectedScope.continuityId || "").trim() === packetContinuityId;
+  if (currentContinuityId && currentContinuityId !== packetContinuityId && !explicitScopeMatch) return null;
+  if (
+    currentSessionKey &&
+    packetPiSessionKey &&
+    packetPiSessionKey !== currentSessionKey &&
+    !explicitScopeMatch
+  )
     return null;
-  if (currentSessionKey && !packetPiSessionKey && !packetSessionId) return null;
+  if (
+    currentSessionKey &&
+    !packetPiSessionKey &&
+    packetSessionId &&
+    packetSessionId !== currentSessionKey &&
+    !explicitScopeMatch
+  )
+    return null;
+  if (currentSessionKey && !packetPiSessionKey && !packetSessionId && !explicitScopeMatch) return null;
   getAttachmentRuntime().continuityId = packetContinuityId;
   getAttachmentRuntime().sessionCwd = packetProjectRoot;
   setActiveWorkpointPacket(stampWorkpointPacketForCurrentPiSession(workpoint));
