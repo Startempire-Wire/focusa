@@ -356,8 +356,15 @@ pub fn extract_atomic_claims(source: &InstructionSource, body: &str) -> Vec<Inst
                     "must" | "shall" | "should" | "may" | "never"
                 )
             });
-            let modality = modality_index.map(|position| words[position].to_ascii_lowercase());
-            let action_index = modality_index.map(|position| position + 1).unwrap_or(0);
+            let mut modality = modality_index.map(|position| words[position].to_ascii_lowercase());
+            let mut action_index = modality_index.map(|position| position + 1).unwrap_or(0);
+            if action_index < words.len()
+                && words[action_index].eq_ignore_ascii_case("not")
+                && modality.as_deref().is_some_and(|value| value != "never")
+            {
+                modality = modality.map(|value| format!("{value}_not"));
+                action_index += 1;
+            }
             let condition = [" if ", " when ", " provided that "]
                 .iter()
                 .find_map(|delimiter| {
@@ -407,6 +414,43 @@ pub fn extract_atomic_claims(source: &InstructionSource, body: &str) -> Vec<Inst
         .collect()
 }
 
+fn normalized_target(value: Option<&str>) -> Option<String> {
+    value.map(|raw| {
+        raw.trim_matches(|ch: char| !ch.is_alphanumeric())
+            .split_whitespace()
+            .map(|part| {
+                part.trim_matches(|ch: char| !ch.is_alphanumeric())
+                    .to_ascii_lowercase()
+            })
+            .collect::<Vec<_>>()
+            .join(" ")
+    })
+}
+
+fn modality_polarity(value: Option<&str>) -> Option<bool> {
+    match value {
+        Some("never" | "must_not" | "shall_not" | "should_not" | "may_not") => Some(false),
+        Some("must" | "shall" | "should" | "may") | None => Some(true),
+        Some(_) => None,
+    }
+}
+
+fn claims_are_contradictory(left: &InstructionClaim, right: &InstructionClaim) -> bool {
+    let same_target = normalized_target(left.action.as_deref())
+        .zip(normalized_target(right.action.as_deref()))
+        .is_some_and(|(left_action, right_action)| left_action == right_action)
+        && normalized_target(left.object.as_deref())
+            .zip(normalized_target(right.object.as_deref()))
+            .is_some_and(|(left_object, right_object)| left_object == right_object);
+    let same_condition = normalized_target(left.condition.as_deref())
+        == normalized_target(right.condition.as_deref());
+    same_target
+        && same_condition
+        && modality_polarity(left.modality.as_deref())
+            .zip(modality_polarity(right.modality.as_deref()))
+            .is_some_and(|(left_polarity, right_polarity)| left_polarity != right_polarity)
+}
+
 pub fn detect_conflicts(
     claims: &[InstructionClaim],
     graph: &InstructionAuthorityGraph,
@@ -416,7 +460,7 @@ pub fn detect_conflicts(
         for right in claims.iter().skip(left_index + 1) {
             if left.claim_class == right.claim_class
                 && left.scope_ref == right.scope_ref
-                && left.normalized_text != right.normalized_text
+                && claims_are_contradictory(left, right)
                 && left.applicability != InstructionApplicability::NotApplicable
                 && right.applicability != InstructionApplicability::NotApplicable
             {
