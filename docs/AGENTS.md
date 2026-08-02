@@ -5,6 +5,10 @@
 
 ---
 
+## Agent-KB API Default Reference
+
+For KH/OVH/operator policy, use `agent-kb-api` first, verify freshness, retrieve exact documents after empty searches, and use local Agent KB files only as a read-only degraded fallback.
+
 ## Core Authority
 
 - **Beads** is the authoritative task system
