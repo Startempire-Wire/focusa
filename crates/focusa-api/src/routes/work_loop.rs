@@ -3151,7 +3151,7 @@ async fn enable(
     }
 
     Ok(Json(
-        json!({ "ok": true, "writer_id": writer_lease.writer_id, "fencing_token": writer_lease.fencing_token, "lease_expires_at": writer_lease.expires_at }),
+        json!({ "ok": true, "writer_id": writer_lease.writer_id, "fencing_token": writer_lease.fencing_token, "lease_expires_at": writer_lease.expires_at, "temporal_context":temporal_context_for_scope(&scope) }),
     ))
 }
 
@@ -3178,7 +3178,7 @@ async fn pause(
     .await?;
 
     Ok(Json(
-        json!({ "ok": true, "writer_id": writer_lease.writer_id, "fencing_token": writer_lease.fencing_token, "lease_expires_at": writer_lease.expires_at }),
+        json!({ "ok": true, "writer_id": writer_lease.writer_id, "fencing_token": writer_lease.fencing_token, "lease_expires_at": writer_lease.expires_at, "temporal_context":temporal_context_for_scope(&scope) }),
     ))
 }
 
@@ -3220,7 +3220,7 @@ async fn resume(
     .await?;
 
     Ok(Json(
-        json!({ "ok": true, "writer_id": writer_lease.writer_id, "fencing_token": writer_lease.fencing_token, "lease_expires_at": writer_lease.expires_at }),
+        json!({ "ok": true, "writer_id": writer_lease.writer_id, "fencing_token": writer_lease.fencing_token, "lease_expires_at": writer_lease.expires_at, "temporal_context":temporal_context_for_scope(&scope) }),
     ))
 }
 
@@ -4198,6 +4198,7 @@ async fn checkpoints(
         "restored_context_summary": wl.restored_context_summary,
         "last_continue_reason": wl.last_continue_reason,
         "last_blocker_reason": wl.last_blocker_reason,
+        "temporal_context":temporal_context_for_scope(&scope),
     })))
 }
 
@@ -4405,6 +4406,7 @@ async fn checkpoint(
             "ok": true,
             "idempotent_replay": true,
             "checkpoint_id": checkpoint_id,
+            "temporal_context":temporal_context_for_scope(&scope),
             "writer_id": writer_lease.writer_id,
             "fencing_token": writer_lease.fencing_token,
             "lease_expires_at": writer_lease.expires_at,
@@ -4466,6 +4468,7 @@ async fn checkpoint(
         "ok": true,
         "idempotent_replay": false,
         "checkpoint_id": checkpoint_id,
+        "temporal_context":temporal_context_for_scope(&scope),
         "writer_id": writer_lease.writer_id,
         "fencing_token": writer_lease.fencing_token,
         "lease_expires_at": writer_lease.expires_at,
@@ -4497,6 +4500,7 @@ async fn stop(
         "ok": true,
         "released_writer": released_writer.as_ref().map(|lease| lease.writer_id.as_str()),
         "released_fencing_token": released_writer.as_ref().map(|lease| lease.fencing_token),
+        "temporal_context":temporal_context_for_scope(&scope),
     })))
 }
 
