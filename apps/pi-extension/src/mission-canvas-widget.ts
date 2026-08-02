@@ -9,14 +9,16 @@ import {
   getSessionCwd,
   normalizeProjectRoot,
   normalizeWorkpointResumePacketEnvelope,
+  refreshTrajectoryClarityLifecycle,
   setActiveWorkpointPacket,
-  setLastTrajectoryClarity,
   stampWorkpointPacketForCurrentPiSession,
 } from "./state.js";
 import { resolveInteractionMode } from "./config.js";
 import { renderWorkRailWidget, workRailSnapshotFromPacket } from "./work-rail-widget.js";
+import { semanticSurfaceTruth } from "./semantic-surface-truth.js";
 import {
   buildTruthfulScopedSurfaceSnapshot,
+  currentScopedProjectRoot,
   latestScopedStateChange,
   publishScopedStateChange,
   scopedReceiptMatchesCurrentScope,
@@ -31,6 +33,8 @@ let pollInFlight = false;
 let semanticTruth = "schema_only";
 let semanticOperations = 0;
 let semanticMutations = 0;
+let semanticSupported = 0;
+let semanticSchemaOnly = 0;
 let semanticOperationLines: string[] = [];
 
 function bounded(value: unknown, max = 56): string {
@@ -48,7 +52,7 @@ function truthfulStatusLines(ctx: any): string[] {
     `scope ${bounded(truth.selected_scope)} · startup ${bounded(truth.startup_cwd)} · project ${truth.project}`,
     `trajectory ${truth.trajectory} · workpoint ${truth.workpoint} · bead ${truth.bead} · ${proof}`,
     `refresh ${truth.last_refresh_status} · ${stale}`,
-    `semantic pair ${semanticTruth} · ${semanticOperations} operations · ${semanticMutations} mutations visible`,
+    `semantic pair ${semanticTruth} · ${semanticOperations} operations · ${semanticSupported} supported · ${semanticSchemaOnly} schema-only · ${semanticMutations} mutations`,
     ...semanticOperationLines,
   ];
 }
@@ -90,7 +94,7 @@ export function refreshMissionCanvasWidget(ctx: any): void {
 
 async function pollScopedSurfaceState(ctx: any): Promise<void> {
   if (pollInFlight) return;
-  const projectRoot = normalizeProjectRoot(getSessionCwd());
+  const projectRoot = currentScopedProjectRoot();
   const continuityId = getContinuityId();
   if (!projectRoot || !continuityId) return;
   pollInFlight = true;
@@ -100,64 +104,44 @@ async function pollScopedSurfaceState(ctx: any): Promise<void> {
       continuity_id: continuityId,
       mode: "summary",
     });
-    const [trajectoryResult, workpointResult, semanticResult, semanticRegistry] = await Promise.all([
-      focusaFetch(`/trajectory/view?${trajectoryQuery.toString()}`, { method: "GET" }).catch(() => null),
+    const [trajectoryRefresh, workpointResult, semanticResult, semanticRegistry] = await Promise.all([
+      refreshTrajectoryClarityLifecycle("mission_canvas_poll", projectRoot).catch(() => null),
       focusaFetch("/workpoint/resume", {
         method: "POST",
         body: JSON.stringify({
           mode: "compact_prompt",
           project_root: projectRoot,
           continuity_id: continuityId,
+          current_ask: getAttachmentRuntime().currentAsk?.text || undefined,
         }),
       }).catch(() => null),
-      focusaFetch(`/semantic-integrity/status?${trajectoryQuery.toString()}`, { method: "GET" }).catch(() => null),
-      focusaFetch(`/semantic-integrity/operations?${trajectoryQuery.toString()}&limit=100`, { method: "GET" }).catch(() => null),
+      focusaFetch(`/semantic-integrity/status?${trajectoryQuery.toString()}`, { method: "GET" }).catch(
+        () => null
+      ),
+      focusaFetch(`/semantic-integrity/operations?${trajectoryQuery.toString()}&limit=100`, {
+        method: "GET",
+      }).catch(() => null),
     ]);
-    const semantic = semanticResult && typeof semanticResult === "object"
-      ? semanticResult as Record<string, unknown> : {};
-    semanticTruth = bounded(semantic.state || "degraded", 40);
-    const registry = semanticRegistry && typeof semanticRegistry === "object"
-      ? semanticRegistry as Record<string, unknown> : {};
-    const operations = Array.isArray(registry.items) ? registry.items : [];
-    semanticOperations = operations.length;
-    semanticMutations = operations.filter((item) =>
-      item && typeof item === "object" && (item as Record<string, unknown>).kind === "mutation"
-    ).length;
-    semanticOperationLines = operations.map((item) => {
-      const op = item && typeof item === "object" ? item as Record<string, unknown> : {};
-      const kind = bounded(op.kind || "read", 12);
-      const support = kind === "mutation"
-        ? "unsupported on this Pi surface" : bounded(op.availability || "available", 24);
-      return `  ${bounded(op.operation_id || "unknown", 48)} · ${kind} · ${support}`;
-    });
-    const trajectoryProjectRoot = normalizeProjectRoot(
-      trajectoryResult?.project_identity?.project_root || trajectoryResult?.trajectory?.project_root
+    const semanticSummary = semanticSurfaceTruth(semanticResult, semanticRegistry);
+    semanticTruth = semanticSummary.state;
+    semanticOperations = semanticSummary.operationCount;
+    semanticMutations = semanticSummary.mutationCount;
+    semanticSupported = semanticSummary.supportedCount;
+    semanticSchemaOnly = semanticSummary.schemaOnlyCount;
+    semanticOperationLines = semanticSummary.operationLines;
+    const packet = normalizeWorkpointResumePacketEnvelope(workpointResult);
+    const packetRoot = normalizeProjectRoot(
+      packet?.project_root || packet?.scope?.project_root || workpointResult?.scope?.project_root || ""
     );
-    if (trajectoryProjectRoot === projectRoot) {
-      const trajectory = trajectoryResult?.trajectory || {};
-      setLastTrajectoryClarity({
-        status: trajectoryResult?.status || "projected",
-        canonical: trajectoryResult?.canonical === true,
-        degraded: trajectoryResult?.degraded === true,
-        project_root: projectRoot,
-        continuity_id: continuityId,
-        trajectory_id: trajectory.trajectory_id || null,
-        long_term_goal: trajectory.long_term_goal || trajectory.trajectory_ladder?.hlt || null,
-        desired_end_state:
-          trajectory.desired_end_state || trajectory.trajectory_ladder?.desired_end_state || null,
-        mid_level_goal: trajectory.mid_level_goal || trajectory.trajectory_ladder?.mlg || null,
-        short_term_goal: trajectory.short_term_goal || trajectory.trajectory_ladder?.stg || null,
-        waypoints: trajectory.waypoints || trajectory.trajectory_ladder?.waypoints || [],
-        current_state: trajectory.current_state || null,
-        active_gap: trajectory.active_gap || null,
-      });
-    }
+    const packetContinuity = String(
+      packet?.continuity_id || packet?.scope?.continuity_id || workpointResult?.scope?.continuity_id || ""
+    ).trim();
     if (
       workpointResult?.status === "completed" &&
-      workpointResult?.matches_current_ask_scope !== false &&
-      normalizeProjectRoot(workpointResult?.scope?.project_root || projectRoot) === projectRoot
+      packet &&
+      packetRoot === projectRoot &&
+      packetContinuity === continuityId
     ) {
-      const packet = normalizeWorkpointResumePacketEnvelope(workpointResult);
       setActiveWorkpointPacket(stampWorkpointPacketForCurrentPiSession(packet));
     }
     publishScopedStateChange({
@@ -165,7 +149,7 @@ async function pollScopedSurfaceState(ctx: any): Promise<void> {
       mutation_kind: "scoped_surface_refresh",
       project_root: projectRoot,
       continuity_id: continuityId,
-      status: trajectoryResult || workpointResult ? "observed" : "degraded",
+      status: trajectoryRefresh || workpointResult ? "observed" : "degraded",
       effective_at: new Date().toISOString(),
     });
   } finally {

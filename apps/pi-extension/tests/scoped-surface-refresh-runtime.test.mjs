@@ -57,6 +57,36 @@ test("mixed state keeps persisted trajectory visible while project recovers", ()
   assert.equal(snapshot.proof_count, 0);
 });
 
+test("bound selected project outranks broad startup cwd", () => {
+  const state = globalThis.__focusaScopedRefreshState;
+  const previous = {
+    projectRoot: state.projectRoot,
+    binding: state.binding,
+    trajectory: state.trajectory,
+  };
+  try {
+    state.projectRoot = "/root";
+    state.binding = { state: "BOUND", selected_project_root: "/home/wirebot/focusa" };
+    state.trajectory = {
+      canonical: true,
+      degraded: false,
+      project_root: "/home/wirebot/focusa",
+      trajectory_id: "trajectory-focusa-mvp",
+      long_term_goal: "Complete full Focusa MVP",
+      mid_level_goal: "Restore locked-release baseline",
+      short_term_goal: "Repair Pi surfaces",
+    };
+    const snapshot = refresh.buildTruthfulScopedSurfaceSnapshot("/root");
+    assert.equal(refresh.currentScopedProjectRoot(), "/home/wirebot/focusa");
+    assert.equal(snapshot.selected_scope, "/home/wirebot/focusa");
+    assert.equal(snapshot.startup_cwd, "/root");
+    assert.equal(snapshot.project, "bound");
+    assert.equal(snapshot.trajectory, "persisted");
+  } finally {
+    Object.assign(state, previous);
+  }
+});
+
 test("one exact-scope receipt refreshes subscribers and exposes freshness", async () => {
   let observed = 0;
   const unsubscribe = refresh.subscribeScopedStateChanges((receipt) => {
