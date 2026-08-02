@@ -133,7 +133,7 @@ pub const OPERATIONS: &[OperationDescriptor] = &[
     ),
     mutation_op!("semantic_pair.verification.plan.commit", "verify"),
     mutation_op!("semantic_pair.verify.start", "verify"),
-    read_op!("semantic_pair.verify.findings", "verify", SchemaOnly),
+    mutation_op!("semantic_pair.verify.findings", "verify"),
     read_op!("semantic_pair.verify.verdict", "verify", SchemaOnly),
     mutation_op!("semantic_pair.finding.respond", "verify"),
     mutation_op!("semantic_pair.finding.resolve", "verify"),

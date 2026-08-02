@@ -11,6 +11,7 @@ use chrono::Utc;
 use focusa_core::{
     runtime::persistence_sqlite::SqlitePersistence,
     semantic_migration::{compatibility_read, inspect_version, plan_v1_migration},
+    semantic_pair::{ArtifactHandleRef, SemanticPair},
     semantic_reflex::SHARED_SEMANTIC_REFLEXES,
     semantic_replay::{SemanticEventEnvelope, SemanticPairEvent, replay},
     semantic_settlement::{SettlementInput, evaluate_settlement},
@@ -205,6 +206,34 @@ fn load_and_replay(persistence: &SqlitePersistence, request: &OperationRequest) 
     ))
 }
 
+fn collect_artifact_refs(aggregate: &SemanticPair) -> Vec<ArtifactHandleRef> {
+    let mut artifacts = aggregate.builder_context.artifact_refs.clone();
+    artifacts.extend(aggregate.snapshot.artifact_refs.clone());
+    if let Some(contract) = &aggregate.contract {
+        artifacts.extend(contract.artifact_refs.clone());
+    }
+    for item in aggregate
+        .obligations
+        .iter()
+        .chain(&aggregate.plans)
+        .chain(&aggregate.assignments)
+        .chain(&aggregate.findings)
+        .chain(&aggregate.responses)
+        .chain(&aggregate.dispositions)
+        .chain(&aggregate.validations)
+        .chain(&aggregate.reroutes)
+        .chain(&aggregate.settlements)
+    {
+        artifacts.extend(item.artifact_refs.clone());
+    }
+    for receipt in &aggregate.receipts {
+        artifacts.extend(receipt.evidence_refs.clone());
+    }
+    artifacts.sort_by(|left, right| left.handle.cmp(&right.handle));
+    artifacts.dedup_by(|left, right| left.handle == right.handle);
+    artifacts
+}
+
 pub fn list_scope_artifacts(
     persistence: &SqlitePersistence,
     scope: &ExactScope,
@@ -224,11 +253,7 @@ pub fn list_scope_artifacts(
         let aggregate = replay(&events)
             .map_err(|error| error.to_string())?
             .aggregate;
-        let mut refs = aggregate.builder_context.artifact_refs;
-        refs.extend(aggregate.snapshot.artifact_refs);
-        if let Some(contract) = aggregate.contract {
-            refs.extend(contract.artifact_refs);
-        }
+        let refs = collect_artifact_refs(&aggregate);
         artifacts.extend(refs.into_iter().map(|artifact| {
             json!({
                 "artifact_id": artifact.handle,
@@ -266,13 +291,7 @@ fn project_read(persistence: &SqlitePersistence, request: &OperationRequest) -> 
     let replayed =
         replay(&events).map_err(|error| conflict("replay_invalid", error.to_string()))?;
     let aggregate = &replayed.aggregate;
-    let mut artifacts = aggregate.builder_context.artifact_refs.clone();
-    artifacts.extend(aggregate.snapshot.artifact_refs.clone());
-    if let Some(contract) = &aggregate.contract {
-        artifacts.extend(contract.artifact_refs.clone());
-    }
-    artifacts.sort_by(|left, right| left.handle.cmp(&right.handle));
-    artifacts.dedup_by(|left, right| left.handle == right.handle);
+    let artifacts = collect_artifact_refs(aggregate);
     let unresolved_findings = aggregate
         .findings
         .iter()
@@ -836,7 +855,12 @@ mod tests {
                 receipt_id: "receipt-read".into(),
                 kind: "test".into(),
                 issued_at: "2026-08-01T00:01:00Z".into(),
-                evidence_refs: vec![],
+                evidence_refs: vec![ArtifactHandleRef {
+                    handle: "receipt-artifact-read".into(),
+                    content_hash: "sha256:receipt-artifact".into(),
+                    byte_len: 24,
+                    media_type: "application/json".into(),
+                }],
                 attributes: Default::default(),
             }),
         )
@@ -878,6 +902,22 @@ mod tests {
                 "projection failed: {operation}"
             );
         }
+        let artifact_list = project_read(
+            &persistence,
+            &request(
+                "semantic.integrity.artifact.list",
+                scope("continuity-read"),
+                json!({"pair_id": "pair-read"}),
+            ),
+        )
+        .expect("artifact list");
+        assert!(
+            artifact_list.1["artifacts"]
+                .as_array()
+                .is_some_and(|items| items
+                    .iter()
+                    .any(|item| item["handle"] == "receipt-artifact-read"))
+        );
         assert!(
             project_read(
                 &persistence,
@@ -931,6 +971,120 @@ mod tests {
             load_and_replay(&persistence, &foreign).unwrap_err().0,
             StatusCode::NOT_FOUND
         );
+    }
+
+    #[test]
+    fn every_event_append_operation_accepts_its_typed_authority_event() {
+        let control = json!({
+            "authority_id": "authority", "actor_id": "actor", "reason": "proof",
+            "effective_at": "2026-08-01T00:00:00Z", "evidence_refs": []
+        });
+        let item = json!({
+            "id": "item", "statement": "typed authority", "status": "open",
+            "artifact_refs": [], "attributes": {}
+        });
+        let cases = vec![
+            (
+                "semantic_pair.create",
+                json!({"type": "pair_created", "payload": {
+                    "builder_attempt": {"attempt_id": "attempt", "builder": "builder", "started_at": "2026-08-01T00:00:00Z"},
+                    "builder_context": {"project_root": "/project", "continuity_id": "continuity", "attributes": {}, "artifact_refs": []},
+                    "snapshot": {"snapshot_id": "snapshot", "captured_at": "2026-08-01T00:00:00Z", "content_hash": "sha256:snapshot", "artifact_refs": []}
+                }}),
+            ),
+            (
+                "semantic_pair.pause",
+                json!({"type": "pair_paused", "payload": control}),
+            ),
+            (
+                "semantic_pair.resume",
+                json!({"type": "pair_resumed", "payload": control}),
+            ),
+            (
+                "semantic_pair.cancel",
+                json!({"type": "pair_cancelled", "payload": control}),
+            ),
+            (
+                "semantic_pair.contract.commit",
+                json!({"type": "contract_committed", "payload": {
+                    "contract_id": "contract", "content_hash": "sha256:contract", "committed_at": "2026-08-01T00:00:00Z", "artifact_refs": []
+                }}),
+            ),
+            (
+                "semantic_pair.builder.start",
+                json!({"type": "builder_started", "payload": {
+                    "attempt_id": "attempt", "builder": "builder", "started_at": "2026-08-01T00:00:00Z"
+                }}),
+            ),
+            (
+                "semantic_pair.builder.claim",
+                json!({"type": "builder_claimed", "payload": {
+                    "attempt_id": "attempt", "claimant_id": "claimant", "claimed_at": "2026-08-01T00:00:00Z"
+                }}),
+            ),
+            (
+                "semantic_pair.builder.respond",
+                json!({"type": "response_added", "payload": item}),
+            ),
+            (
+                "semantic_pair.builder.repair",
+                json!({"type": "reroute_added", "payload": item}),
+            ),
+            (
+                "semantic_pair.snapshot.freeze",
+                json!({"type": "snapshot_frozen", "payload": {
+                    "snapshot_id": "snapshot", "captured_at": "2026-08-01T00:00:00Z", "content_hash": "sha256:snapshot", "artifact_refs": []
+                }}),
+            ),
+            (
+                "semantic_pair.obligations.compile",
+                json!({"type": "obligation_added", "payload": item}),
+            ),
+            (
+                "semantic_pair.verification.plan.commit",
+                json!({"type": "plan_added", "payload": item}),
+            ),
+            (
+                "semantic_pair.verify.start",
+                json!({"type": "assignment_added", "payload": item}),
+            ),
+            (
+                "semantic_pair.verify.findings",
+                json!({"type": "finding_added", "payload": item}),
+            ),
+            (
+                "semantic_pair.finding.respond",
+                json!({"type": "response_added", "payload": item}),
+            ),
+            (
+                "semantic_pair.finding.resolve",
+                json!({"type": "disposition_added", "payload": item}),
+            ),
+            (
+                "semantic_pair.settlement.commit",
+                json!({"type": "settlement_added", "payload": item}),
+            ),
+            (
+                "semantic_pair.rollback.commit",
+                json!({"type": "rollback_committed", "payload": {
+                    "target_sequence": 0, "reason": "proof", "committed_at": "2026-08-01T00:00:00Z"
+                }}),
+            ),
+            (
+                "vertical.bundle.activate",
+                json!({"type": "vertical_bundle_activated", "payload": {
+                    "bundle_id": "bundle", "bundle_hash": "sha256:bundle", "activated_at": "2026-08-01T00:00:00Z", "evidence_refs": []
+                }}),
+            ),
+        ];
+        assert_eq!(cases.len(), EVENT_APPEND_OPERATIONS.len());
+        for (operation, value) in cases {
+            let event: SemanticPairEvent = serde_json::from_value(value).expect(operation);
+            assert!(
+                validate_event_for_operation(operation, &event).is_ok(),
+                "typed authority rejected for {operation}"
+            );
+        }
     }
 
     #[test]
