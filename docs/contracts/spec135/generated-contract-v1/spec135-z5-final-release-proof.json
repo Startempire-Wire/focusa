@@ -1,11 +1,11 @@
 {
-  "ahead": 13,
+  "ahead": 97,
   "behind": 0,
-  "branch": "feature/spec-135-mission-canvas-uiai-evals",
+  "branch": "feature/spec-135-context-connectors-b2",
   "clean": true,
   "closure_gate_ref": "spec135-z4-closure-gate-result.json",
-  "evidence_ref": "evidence:spec135-final:538fa314d06d",
-  "head": "538fa314d06d72b0949d6ca02f1ab576c01e128b",
+  "evidence_ref": "evidence:spec135-final:1069f0c46e34",
+  "head": "1069f0c46e34324c3a0c58ce5fded9520d7279c3",
   "lineage_ref": "spec135-z3-worktree-lineage-proof.json",
   "merge_ready": true,
   "merge_target": "origin/main",
@@ -13,7 +13,13 @@
     "SPEC135-Z5"
   ],
   "open_task_beads": [
-    "focusa-mc-z5"
+    "focusa-mc2",
+    "focusa-mc2.12",
+    "focusa-mc2.12.377",
+    "focusa-mc2.12.378",
+    "focusa-mc2.12.379",
+    "focusa-mc2.12.380",
+    "focusa-mc2.12.381"
   ],
   "project_card_outcome": {
     "attempted": true,
@@ -21,7 +27,7 @@
     "recovery_tool": "focusa_project_card_outcome",
     "status": "degraded_timeout"
   },
-  "receipt_ref": "receipt:spec135-final:538fa314d06d",
+  "receipt_ref": "receipt:spec135-final:1069f0c46e34",
   "requirement_id": "SPEC135-Z5",
   "requirement_matrix_ref": "spec135-z1-requirement-closure-matrix.json",
   "schema": "focusa.spec135.final_release_proof.v1",
