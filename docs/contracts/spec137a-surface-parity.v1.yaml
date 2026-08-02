@@ -1,7 +1,7 @@
 {
   "schema": "focusa.spec137a_surface_parity.v1",
-  "status": "verified_complete",
-  "full_conformance_status": "verified_complete",
+  "status": "implemented",
+  "full_conformance_status": "blocked_live_proof_required",
   "required_surfaces": [
     "api",
     "operation_registry",
@@ -53,27 +53,30 @@
     {
       "surface": "menubar_ui",
       "state": "implemented",
-      "behavior_ref": "TemporalAuthorityPeek conformance",
+      "behavior_ref": "TemporalAuthorityPeek renders grounded projection and fail-closed unavailable state",
       "evidence_refs": [
-        "apps/menubar/src/lib/components/TemporalAuthorityPeek.svelte"
+        "apps/menubar/src/lib/components/TemporalAuthorityPeek.svelte",
+        "apps/menubar/tests/temporal-authority-peek.mjs"
       ],
       "recovery_ref": null
     },
     {
       "surface": "tui",
-      "state": "degraded",
-      "behavior_ref": "mission control renders conformance or truthful unknown",
+      "state": "implemented",
+      "behavior_ref": "mission control renders bounded deadline, conflict, urgency, and conformance or truthful unknown",
       "evidence_refs": [
-        "crates/focusa-tui/src/mission_control.rs"
+        "crates/focusa-tui/src/mission_control.rs#bounded_temporal_context_renders_exact_status_without_inferred_urgency"
       ],
       "recovery_ref": "focusa temporal status --project-root <root> --continuity-id <id>"
     },
     {
       "surface": "notification",
       "state": "implemented",
-      "behavior_ref": "pending conformance warning",
+      "behavior_ref": "aria-live temporal warnings plus calm dwell, budget, focus, and backpressure pulse policy",
       "evidence_refs": [
-        "apps/menubar/src/lib/components/TemporalAuthorityPeek.svelte"
+        "apps/menubar/tests/temporal-authority-peek.mjs",
+        "crates/focusa-core/src/temporal_full_tests.rs#temporal_pulse_notifies_only_for_grounded_urgency_within_focus_and_budget",
+        "crates/focusa-core/src/temporal_full_tests.rs#alert_overload_obeys_backpressure_and_notification_budget"
       ],
       "recovery_ref": null
     },
@@ -88,7 +91,7 @@
     },
     {
       "surface": "degraded_unsupported_unknown",
-      "state": "degraded",
+      "state": "implemented",
       "behavior_ref": "unknown or unsupported remains open and blocks closure",
       "evidence_refs": [
         "crates/focusa-core/src/temporal_conformance.rs"
@@ -96,7 +99,9 @@
       "recovery_ref": "focusa_temporal_authority action=status"
     }
   ],
-  "warnings": [],
+  "warnings": [
+    "Full conformance remains blocked until two clean exact-scope installed-surface E2E runs pass."
+  ],
   "recovery_tools": [
     "focusa_temporal_authority",
     "focusa_project_verify",

@@ -1,10 +1,10 @@
 {
   "schema": "focusa.agent_route_classification.v1",
-  "route_count": 543,
+  "route_count": 544,
   "classification_counts": {
-    "agent_eligible": 102,
+    "agent_eligible": 108,
     "internal": 6,
-    "operator_only": 429,
+    "operator_only": 424,
     "public_pairing": 6
   },
   "allowed_classifications": [
@@ -5498,27 +5498,31 @@
     },
     {
       "path": "/v1/temporal/civil/resolve",
-      "classification": "operator_only",
-      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/temporal.rs"
       ],
       "methods": [
         "POST"
       ],
-      "operation_refs": []
+      "operation_refs": [
+        "focusa.temporal.civil.resolve"
+      ]
     },
     {
       "path": "/v1/temporal/clock/capture",
-      "classification": "operator_only",
-      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/temporal.rs"
       ],
       "methods": [
         "POST"
       ],
-      "operation_refs": []
+      "operation_refs": [
+        "focusa.temporal.clock.capture"
+      ]
     },
     {
       "path": "/v1/temporal/commit",
@@ -5550,27 +5554,31 @@
     },
     {
       "path": "/v1/temporal/high-consequence/preflight",
-      "classification": "operator_only",
-      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/temporal.rs"
       ],
       "methods": [
         "POST"
       ],
-      "operation_refs": []
+      "operation_refs": [
+        "focusa.temporal.high_consequence_preflight"
+      ]
     },
     {
       "path": "/v1/temporal/migrate-signatures",
-      "classification": "operator_only",
-      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/temporal.rs"
       ],
       "methods": [
         "POST"
       ],
-      "operation_refs": []
+      "operation_refs": [
+        "focusa.temporal.migrate_signatures"
+      ]
     },
     {
       "path": "/v1/temporal/observe",
@@ -5602,15 +5610,17 @@
     },
     {
       "path": "/v1/temporal/priority/commit",
-      "classification": "operator_only",
-      "rationale": "Not in the curated agent operation registry; requires explicit operator/application workflow authority.",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
       "sources": [
         "crates/focusa-api/src/routes/temporal.rs"
       ],
       "methods": [
         "POST"
       ],
-      "operation_refs": []
+      "operation_refs": [
+        "focusa.temporal.priority.commit"
+      ]
     },
     {
       "path": "/v1/temporal/revise",
@@ -5624,6 +5634,20 @@
       ],
       "operation_refs": [
         "focusa.temporal.revise"
+      ]
+    },
+    {
+      "path": "/v1/temporal/settle-closure",
+      "classification": "agent_eligible",
+      "rationale": "Covered by the generated operation registry or Spec141 capability-discovery/MCP contract.",
+      "sources": [
+        "crates/focusa-api/src/routes/temporal.rs"
+      ],
+      "methods": [
+        "POST"
+      ],
+      "operation_refs": [
+        "focusa.temporal.settle_closure"
       ]
     },
     {

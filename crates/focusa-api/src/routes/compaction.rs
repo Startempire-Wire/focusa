@@ -234,21 +234,23 @@ fn build_packet(state: &FocusaState, req: &BuildCompactionPacketRequest) -> Valu
         .project_root
         .as_deref()
         .zip(req.continuity_id.as_deref())
-        .and_then(|(project_root, continuity_id)| {
-            let scope = focusa_core::temporal::TemporalScope::project(project_root, continuity_id);
-            focusa_core::temporal::TemporalLedger::for_project(scope.clone())
-                .and_then(|ledger| ledger.read_all())
-                .ok()
-                .and_then(|events| {
-                    serde_json::to_value(focusa_core::temporal::project_temporal(
-                        scope,
-                        &events,
-                        Utc::now(),
-                    ))
-                    .ok()
-                })
+        .map(|(project_root, continuity_id)| {
+            super::temporal_context::bounded_temporal_context(
+                project_root,
+                continuity_id,
+                workpoint.map(|record| record.workpoint_id.to_string()),
+                workpoint.and_then(|record| record.work_item_id.clone()),
+            )
         })
-        .unwrap_or_else(|| json!({"status":"degraded","authority":"advisory_only"}));
+        .unwrap_or_else(|| {
+            json!({
+                "schema":"focusa.bounded_temporal_context.v1",
+                "status":"unavailable",
+                "canonical":false,
+                "failure_class":"scope_missing",
+                "cache_safe_refs_only":true
+            })
+        });
 
     json!({
         "schema_version": PACKET_SCHEMA,
@@ -957,6 +959,12 @@ mod tests {
                 rehydrate_refs: vec!["focusa_traverse".into()],
             },
         );
+        assert_eq!(
+            packet["temporal"]["schema"],
+            "focusa.bounded_temporal_context.v1"
+        );
+        assert_eq!(packet["temporal"]["cache_safe_refs_only"], true);
+        assert!(packet["temporal"].get("projection").is_none());
         let inspect = inspect_payload(&packet);
         assert_eq!(inspect["schema"], "focusa.compaction_inspect.v1");
         assert_eq!(inspect["omitted"][0], "raw_tool_history");

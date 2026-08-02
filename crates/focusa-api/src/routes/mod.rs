@@ -98,7 +98,11 @@ pub mod task_plans;
 pub mod telemetry;
 pub mod temporal;
 mod temporal_advanced;
-mod temporal_conformance;
+#[cfg(test)]
+mod temporal_advanced_test;
+pub mod temporal_closure;
+pub mod temporal_conformance;
+pub mod temporal_context;
 mod temporal_requests;
 pub mod threads;
 pub mod tokens;

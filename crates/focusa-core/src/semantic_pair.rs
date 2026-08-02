@@ -117,6 +117,57 @@ impl SemanticReceipt {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum SemanticPairLifecycleStatus {
+    #[default]
+    Active,
+    Paused,
+    Cancelled,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SemanticControlRecord {
+    pub authority_id: String,
+    pub actor_id: String,
+    pub reason: String,
+    pub effective_at: String,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SemanticContractRecord {
+    pub contract_id: String,
+    pub content_hash: String,
+    pub committed_at: String,
+    #[serde(default)]
+    pub artifact_refs: Vec<ArtifactHandleRef>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SemanticBuilderClaimRecord {
+    pub attempt_id: String,
+    pub claimant_id: String,
+    pub claimed_at: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SemanticRollbackRecord {
+    pub target_sequence: u64,
+    pub reason: String,
+    pub committed_at: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SemanticVerticalActivationRecord {
+    pub bundle_id: String,
+    pub bundle_hash: String,
+    pub activated_at: String,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SemanticPair {
     pub pair_id: String,
@@ -144,6 +195,20 @@ pub struct SemanticPair {
     pub settlements: Vec<Settlement>,
     #[serde(default)]
     pub receipts: Vec<SemanticReceipt>,
+    #[serde(default)]
+    pub lifecycle_status: SemanticPairLifecycleStatus,
+    #[serde(default)]
+    pub lifecycle_history: Vec<SemanticControlRecord>,
+    #[serde(default)]
+    pub contract: Option<SemanticContractRecord>,
+    #[serde(default)]
+    pub snapshot_frozen: bool,
+    #[serde(default)]
+    pub builder_claim: Option<SemanticBuilderClaimRecord>,
+    #[serde(default)]
+    pub rollback: Option<SemanticRollbackRecord>,
+    #[serde(default)]
+    pub vertical_activation: Option<SemanticVerticalActivationRecord>,
 }
 
 impl SemanticPair {
@@ -169,6 +234,13 @@ impl SemanticPair {
             reroutes: vec![],
             settlements: vec![],
             receipts: vec![],
+            lifecycle_status: SemanticPairLifecycleStatus::Active,
+            lifecycle_history: vec![],
+            contract: None,
+            snapshot_frozen: false,
+            builder_claim: None,
+            rollback: None,
+            vertical_activation: None,
         }
     }
 

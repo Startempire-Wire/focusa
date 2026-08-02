@@ -93,8 +93,14 @@ export function subscribeScopedStateChanges(listener: ScopedRefreshListener): ()
   return () => listeners.delete(listener);
 }
 
+export function currentScopedProjectRoot(): string {
+  const binding = currentProjectBindingDecision();
+  const selected = normalizeProjectRoot(binding?.selected_project_root || "");
+  return binding?.state === "BOUND" && selected ? selected : normalizeProjectRoot(getSessionCwd());
+}
+
 export function latestScopedStateChange(
-  projectRoot = getSessionCwd(),
+  projectRoot = currentScopedProjectRoot(),
   continuityId = getContinuityId()
 ): ScopedStateChangeReceiptV1 | null {
   return latestByScope.get(scopeKey(projectRoot, continuityId)) || null;
@@ -102,7 +108,7 @@ export function latestScopedStateChange(
 
 export function scopedReceiptMatchesCurrentScope(receipt: ScopedStateChangeReceiptV1): boolean {
   return (
-    normalizeProjectRoot(receipt.project_root) === normalizeProjectRoot(getSessionCwd()) &&
+    normalizeProjectRoot(receipt.project_root) === currentScopedProjectRoot() &&
     receipt.continuity_id === getContinuityId()
   );
 }
@@ -114,7 +120,7 @@ export function buildTruthfulScopedSurfaceSnapshot(
   const binding = currentProjectBindingDecision();
   const trajectory = getLastTrajectoryClarity() || {};
   const workpoint = getActiveWorkpointPacket();
-  const projectRoot = normalizeProjectRoot(getSessionCwd());
+  const projectRoot = currentScopedProjectRoot();
   const continuityId = getContinuityId();
   const receipt = latestScopedStateChange(projectRoot, continuityId);
   const evidence = Array.isArray(workpoint?.verification_records)

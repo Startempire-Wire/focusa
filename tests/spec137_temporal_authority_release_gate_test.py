@@ -11,11 +11,13 @@ forecast_evaluation=(ROOT/'crates/focusa-core/src/temporal_forecast_evaluation.r
 ledger=(ROOT/'crates/focusa-core/src/temporal_ledger.rs').read_text()
 deadline=(ROOT/'crates/focusa-core/src/temporal_deadline.rs').read_text()
 operations=(ROOT/'crates/focusa-core/src/temporal_operations.rs').read_text()
+progress=(ROOT/'crates/focusa-core/src/temporal_progress.rs').read_text()
 platform=(ROOT/'crates/focusa-core/src/temporal_platform.rs').read_text()
 lib=(ROOT/'crates/focusa-core/src/lib.rs').read_text()
 api=(ROOT/'crates/focusa-api/src/routes/temporal.rs').read_text()
 api_advanced=(ROOT/'crates/focusa-api/src/routes/temporal_advanced.rs').read_text()
-api_all=api+api_advanced
+api_closure=(ROOT/'crates/focusa-api/src/routes/temporal_closure.rs').read_text()
+api_all=api+api_advanced+api_closure
 cli=(ROOT/'crates/focusa-cli/src/commands/temporal.rs').read_text()
 pi=(ROOT/'apps/pi-extension/src/tools.ts').read_text()
 turns=(ROOT/'apps/pi-extension/src/turns.ts').read_text()
@@ -71,8 +73,17 @@ for action in ('status','commit','revise','observe','forecast','preflight'):
 for endpoint in ('/v1/temporal/priority/commit','/v1/temporal/civil/resolve','/v1/temporal/clock/capture','/v1/temporal/high-consequence/preflight','/v1/temporal/migrate-signatures'):
  assert endpoint in api, endpoint
 assert 'TemporalCmd' in cli and 'name: "focusa_temporal_authority"' in pi
-for action in ('commit-priority','resolve-civil-time','capture-clock','high-consequence-preflight','migrate-signatures'):
+for action in ('commit-priority','resolve-civil-time','capture-clock','high-consequence-preflight','migrate-signatures','settle-closure'):
  assert action in pi, action
+for symbol in ('LostTimeClassification','IncidentVerificationStatus','LostTimeIncident','validate_lost_time_incident'):
+ assert symbol in progress, symbol
+for field in ('subject_ref','interval_start','interval_end','wall_clock_lost_ms','classification','verification_status','settlement_ref'):
+ assert field in progress, field
+for symbol in ('TemporalClosureSettlementRequest','LostTimeIncidentRecorded','ClosurePostureRecorded','ReceiptLinked','idempotent_replay'):
+ assert symbol in api_closure, symbol
+assert '/v1/temporal/settle-closure' in api
+assert 'SettleClosure' in cli and '/v1/temporal/settle-closure' in cli
+assert 'closure_packet' in pi
 for marker in ('TEMPORAL_PRIORITY','durable_or_consequential_action','temporal_priority_frame','temporal_execution_guard'):
  assert marker in turns, marker
 for marker in ('aria-live="polite"','<dt>Deadline</dt>','<dt>Forecast</dt>','<dt>Urgency</dt>','<dt>Calendar</dt>'):

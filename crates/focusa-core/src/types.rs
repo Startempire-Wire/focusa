@@ -1713,6 +1713,9 @@ pub struct ContextCognitionOptimizationFrame {
     pub eval_score: Option<f64>,
     pub baseline_score: Option<f64>,
     pub promoted: bool,
+    /// Cache-safe, bounded temporal authority refs for continuation decisions.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub temporal_context: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

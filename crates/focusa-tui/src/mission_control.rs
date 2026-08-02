@@ -99,6 +99,38 @@ fn project_label(app: &App) -> String {
     "focusa".to_string()
 }
 
+fn temporal_status_fields(temporal: Option<&Value>) -> [String; 4] {
+    let field = |name: &str, fallback: &str| {
+        temporal
+            .and_then(|value| value.get(name))
+            .and_then(Value::as_str)
+            .unwrap_or(fallback)
+            .to_string()
+    };
+    let urgency = temporal
+        .and_then(|value| value.get("urgency"))
+        .and_then(|value| {
+            value
+                .get("subject_ref")
+                .or_else(|| value.get("reason_code"))
+        })
+        .and_then(Value::as_str)
+        .unwrap_or("none")
+        .to_string();
+    let conformance = temporal
+        .and_then(|value| value.get("conformance"))
+        .and_then(|value| value.get("full_conformance_status"))
+        .and_then(Value::as_str)
+        .unwrap_or("unknown")
+        .to_string();
+    [
+        field("deadline_status", "unavailable"),
+        field("deadline_conflict_state", "unknown"),
+        urgency,
+        conformance,
+    ]
+}
+
 fn render_grid(app: &App, frame: &mut ratatui::Frame, area: Rect) -> Vec<Rect> {
     let cols = Layout::default()
         .direction(Direction::Horizontal)
@@ -228,28 +260,7 @@ fn render_proof_scope_blocks(app: &App, frame: &mut ratatui::Frame, area: Rect) 
                 .get("temporal")
                 .and_then(|value| value.as_ref())
         });
-    let deadline = temporal
-        .and_then(|value| value.get("deadline_status"))
-        .and_then(|value| value.as_str())
-        .unwrap_or("unavailable");
-    let conflict = temporal
-        .and_then(|value| value.get("deadline_conflict_state"))
-        .and_then(|value| value.as_str())
-        .unwrap_or("unknown");
-    let urgency = temporal
-        .and_then(|value| value.get("urgency"))
-        .and_then(|value| {
-            value
-                .get("subject_ref")
-                .or_else(|| value.get("reason_code"))
-        })
-        .and_then(|value| value.as_str())
-        .unwrap_or("none");
-    let conformance = temporal
-        .and_then(|value| value.get("conformance"))
-        .and_then(|value| value.get("full_conformance_status"))
-        .and_then(|value| value.as_str())
-        .unwrap_or("unknown");
+    let [deadline, conflict, urgency, conformance] = temporal_status_fields(temporal);
     let prediction_authority = app
         .extra_data
         .get("prediction_authority")
@@ -523,6 +534,24 @@ mod tests {
     fn short_truncates_long_strings_with_ellipsis() {
         assert_eq!(short("abcdef", 4).chars().count(), 4);
         assert!(short("abcdefghi", 4).ends_with('…'));
+    }
+
+    #[test]
+    fn bounded_temporal_context_renders_exact_status_without_inferred_urgency() {
+        let temporal = serde_json::json!({
+            "deadline_status":"none",
+            "deadline_conflict_state":"feasible",
+            "urgency":null,
+            "conformance":{"full_conformance_status":"blocked_live_proof_required"}
+        });
+        assert_eq!(
+            temporal_status_fields(Some(&temporal)),
+            ["none", "feasible", "none", "blocked_live_proof_required"]
+        );
+        assert_eq!(
+            temporal_status_fields(None),
+            ["unavailable", "unknown", "none", "unknown"]
+        );
     }
 
     #[test]

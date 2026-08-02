@@ -1,4 +1,4 @@
-//! Embedded Spec137A conformance projection kept separate from temporal route handlers.
+//! Embedded Spec 137A conformance truth for temporal runtime surfaces.
 
 use serde_json::{Value, json};
 
@@ -47,17 +47,20 @@ mod tests {
     use super::spec137a_conformance_surface;
 
     #[test]
-    fn conformance_is_release_embedded_and_incomplete_records_block_closure() {
+    fn conformance_is_release_embedded_and_live_proof_still_blocks_closure() {
         let artifact = spec137a_conformance_surface();
         assert_eq!(artifact["artifact_source"], "embedded_release");
-        assert_eq!(artifact["status"], "degraded");
-        assert_eq!(artifact["full_conformance_status"], "blocked");
+        assert_eq!(artifact["status"], "implemented");
+        assert_eq!(
+            artifact["full_conformance_status"],
+            "blocked_live_proof_required"
+        );
         assert!(
             artifact["warnings"]
                 .as_array()
                 .is_some_and(|warnings| warnings.iter().any(|warning| warning
                     .as_str()
-                    .is_some_and(|text| text.contains("incomplete surface records"))))
+                    .is_some_and(|text| text.contains("two clean exact-scope"))))
         );
     }
 }

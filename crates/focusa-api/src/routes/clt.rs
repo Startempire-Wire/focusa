@@ -88,6 +88,11 @@ pub(crate) fn scoped_clt_state(clt: &CltState, scope: &ScopeContext) -> CltState
         .as_deref()
         .map(str::trim)
         .unwrap_or_default();
+    let session_id = scope
+        .session_id
+        .as_deref()
+        .map(str::trim)
+        .unwrap_or_default();
     let mut nodes = clt
         .nodes
         .iter()
@@ -102,6 +107,8 @@ pub(crate) fn scoped_clt_state(clt: &CltState, scope: &ScopeContext) -> CltState
             );
             !project_root.is_empty()
                 && !continuity_id.is_empty()
+                && !session_id.is_empty()
+                && node.session_id.map(|value| value.to_string()).as_deref() == Some(session_id)
                 && !is_guardian_service_warning
                 && trajectory
                     .and_then(|ctx| ctx.project_root.as_deref())
@@ -261,23 +268,25 @@ mod tests {
     #[test]
     fn scoped_clt_drops_other_workstreams_and_rebuilds_path() {
         let mut clt = CltState::default();
+        let session_a = uuid::Uuid::parse_str("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa").unwrap();
+        let session_b = uuid::Uuid::parse_str("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb").unwrap();
         let first = append_interaction(
             &mut clt,
-            None,
+            Some(session_a),
             "assistant",
             Some("first"),
             metadata("/repo/focusa", "cont-a"),
         );
         append_interaction(
             &mut clt,
-            None,
+            Some(session_b),
             "system",
-            Some("other"),
-            metadata("/repo/other", "cont-b"),
+            Some("other session"),
+            metadata("/repo/focusa", "cont-a"),
         );
         append_interaction(
             &mut clt,
-            None,
+            Some(session_a),
             "system",
             Some(
                 "intuition_signal type=Warning severity=info summary=Guardian: service spamd is DOWN",
@@ -286,7 +295,7 @@ mod tests {
         );
         let last = append_interaction(
             &mut clt,
-            None,
+            Some(session_a),
             "assistant",
             Some("last"),
             metadata("/repo/focusa", "cont-a"),
@@ -294,6 +303,7 @@ mod tests {
         let scope = ScopeContext {
             project_root: Some("/repo/focusa".to_string()),
             continuity_id: Some("cont-a".to_string()),
+            session_id: Some(session_a.to_string()),
             ..ScopeContext::default()
         };
 
@@ -304,5 +314,16 @@ mod tests {
         assert_eq!(scoped.nodes[0].parent_id, None);
         assert_eq!(scoped.nodes[1].parent_id.as_deref(), Some(first.as_str()));
         assert_eq!(scoped.head_id.as_deref(), Some(last.as_str()));
+
+        let missing_session_scope = ScopeContext {
+            project_root: Some("/repo/focusa".to_string()),
+            continuity_id: Some("cont-a".to_string()),
+            ..ScopeContext::default()
+        };
+        assert!(
+            scoped_clt_state(&clt, &missing_session_scope)
+                .nodes
+                .is_empty()
+        );
     }
 }

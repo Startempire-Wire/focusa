@@ -139,6 +139,22 @@ async fn card(
         .as_deref()
         .unwrap_or("unknown-continuity");
     let public_policy = public_card_policy(project_root, continuity_id, awareness_canonical);
+    let temporal_context = if awareness_canonical {
+        super::temporal_context::bounded_temporal_context(
+            project_root,
+            continuity_id,
+            record.map(|item| item.workpoint_id.to_string()),
+            record.and_then(|item| item.work_item_id.clone()),
+        )
+    } else {
+        json!({
+            "schema":"focusa.bounded_temporal_context.v1",
+            "status":"unavailable",
+            "canonical":false,
+            "failure_class":"scope_unverified",
+            "cache_safe_refs_only":true
+        })
+    };
     Json(json!({
         "status": "completed",
         "canonical": awareness_canonical,
@@ -153,6 +169,7 @@ async fn card(
         "workpoint_id": record.map(|r| r.workpoint_id),
         "workpoint_canonical": record.map(|r| r.canonical).unwrap_or(false),
         "public_stream_policy": public_policy,
+        "temporal_context":temporal_context,
         "rendered_card": rendered_card,
         "next_step_hint": "inject rendered_card into the non-Pi agent system/developer prompt before reasoning"
     }))

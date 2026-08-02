@@ -405,7 +405,11 @@ fn unconfirmed_project_root_rejection(
             "scope_failure": identity.scope_failure.as_deref(),
             "candidates": &identity.project_root_candidates,
             "retry_posture": "operator_required",
-            "next_tools": ["interview", "focusa_project_identity", "focusa_workpoint_checkpoint"],
+            "next_tools": ["focusa_project_identity", "focusa_workpoint_checkpoint"],
+            "next_actions": [{
+                "action_type": "operator_input_required",
+                "prompt": "Confirm the exact existing project_root, choose new-project Genesis, or resume an authorized handoff."
+            }],
             "next_step_hint": "ask the operator to confirm the exact project_root before mutating Workpoint/evidence state"
         })),
     )
@@ -1457,6 +1461,21 @@ fn workpoint_dispatch_timeout() -> (StatusCode, Json<Value>) {
             "next_step_hint": "retry after command backlog drains; workpoint event was not enqueued"
         })),
     )
+}
+
+fn explicit_workpoint_not_found(workpoint_id: Uuid) -> (StatusCode, Json<Value>) {
+    let (status, Json(mut body)) = workpoint_failure(
+        StatusCode::NOT_FOUND,
+        format!("Workpoint {workpoint_id} does not exist in the exact scoped read model"),
+        "not_found",
+        "The explicitly requested Workpoint was not found after bounded read-model reconciliation.",
+        "Resume a known Workpoint or checkpoint a new exact-scope Workpoint before linking evidence.",
+        "Never treat an unknown Workpoint id as eventual evidence-link success.",
+        vec!["focusa_workpoint_resume", "focusa_workpoint_checkpoint"],
+    );
+    body["workpoint_id"] = json!(workpoint_id);
+    body["requested_mutation"] = json!("workpoint_evidence_link");
+    (status, Json(body))
 }
 
 fn workpoint_no_active_to_link() -> (StatusCode, Json<Value>) {
@@ -2903,27 +2922,20 @@ fn temporal_resume_context(record: &WorkpointRecord) -> Value {
         record.project_root.as_deref(),
         record.continuity_id.as_deref(),
     ) else {
-        return json!({"status":"degraded","reason":"temporal_scope_missing","authority":"advisory_only"});
+        return json!({
+            "schema":"focusa.bounded_temporal_context.v1",
+            "status":"unavailable",
+            "canonical":false,
+            "failure_class":"temporal_scope_missing",
+            "cache_safe_refs_only":true
+        });
     };
-    let mut scope = focusa_core::temporal::TemporalScope::project(project_root, continuity_id);
-    scope.workpoint_id = Some(record.workpoint_id.to_string());
-    scope.item_id = record.work_item_id.clone();
-    match focusa_core::temporal::TemporalLedger::for_project(scope.clone())
-        .and_then(|ledger| ledger.read_all())
-    {
-        Ok(events) => serde_json::to_value(focusa_core::temporal::project_temporal(
-            scope,
-            &events,
-            Utc::now(),
-        ))
-        .unwrap_or_else(|_| json!({"status":"degraded","reason":"serialization_failed"})),
-        Err(error) => json!({
-            "status":"degraded",
-            "reason":"temporal_ledger_unavailable",
-            "error":format!("{error:?}"),
-            "authority":"advisory_only"
-        }),
-    }
+    super::temporal_context::bounded_temporal_context(
+        project_root,
+        continuity_id,
+        Some(record.workpoint_id.to_string()),
+        record.work_item_id.clone(),
+    )
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -3435,21 +3447,7 @@ async fn link_evidence(
     };
     let Some(record) = record else {
         if let Some(workpoint_id) = explicit_workpoint_id {
-            return Err((
-                StatusCode::ACCEPTED,
-                Json(json!({
-                    "status": "pending",
-                    "canonical": false,
-                    "degraded": true,
-                    "workpoint_id": workpoint_id,
-                    "failure_class": "read_model_lag",
-                    "retry_posture": "safe_retry",
-                    "retry": {"safe": true, "posture": "safe_retry", "reason": "workpoint record accepted but not visible yet"},
-                    "side_effects": [],
-                    "next_tools": ["focusa_workpoint_resume", "focusa_workpoint_link_evidence"],
-                    "next_step_hint": "retry evidence link after Workpoint checkpoint is visible"
-                })),
-            ));
+            return Err(explicit_workpoint_not_found(workpoint_id));
         }
         return Err(workpoint_no_active_to_link());
     };
@@ -3710,6 +3708,19 @@ mod tests {
         let payload = idempotency_cache_status_payload();
         assert_eq!(payload["status"], "eliminated");
         assert_eq!(payload["cross_scope_fallback"], false);
+    }
+
+    #[test]
+    fn unknown_explicit_workpoint_rejects_evidence_link_without_pending_success() {
+        let workpoint_id = Uuid::nil();
+        let (status, Json(body)) = explicit_workpoint_not_found(workpoint_id);
+        assert_eq!(status, StatusCode::NOT_FOUND);
+        assert_eq!(body["status"], "blocked");
+        assert_eq!(body["canonical"], false);
+        assert_eq!(body["failure_class"], "not_found");
+        assert_eq!(body["workpoint_id"], workpoint_id.to_string());
+        assert_eq!(body["requested_mutation"], "workpoint_evidence_link");
+        assert_eq!(body["details"]["tool_result_v1"]["retry"]["safe"], false);
     }
 
     #[test]

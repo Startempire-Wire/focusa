@@ -3506,6 +3506,24 @@ export function getScopedWorkpointPacket(): any | null {
     : null;
 }
 
+export function adoptVerifiedContinuityForCurrentSession(
+  projectRoot: string,
+  continuityId: string
+): boolean {
+  const root = normalizeProjectRoot(projectRoot);
+  const continuity = String(continuityId || "").trim();
+  const identityEnvelope: any = getLastProjectIdentity() || {};
+  const identity: any = identityEnvelope.project_identity || identityEnvelope;
+  const decision: any = currentProjectBindingDecision() || {};
+  const verifiedRoot = normalizeProjectRoot(
+    identity.canonical_parent_root || identity.project_root || decision.selected_project_root
+  );
+  if (!root || !continuity || !isProjectRootAuthoritySafe(root) || verifiedRoot !== root) return false;
+  getAttachmentRuntime().continuityId = continuity;
+  syncRuntimeFieldsToScopeStore();
+  return true;
+}
+
 export function adoptPersistedContinuityForSession(data: any, eventSessionId: string, cwd: string): void {
   const persistedSessionId = String(data?.sessionId || "").trim();
   const persistedContinuityId = String(data?.continuityId || "").trim();
@@ -3636,7 +3654,15 @@ export function isGenericPiFrameForCwd(cwd: string, title?: string | null, goal?
   return (title || "") === `Pi: ${projectName}` && (goal || "") === `Work on ${projectName}`;
 }
 
-export function adoptWorkpointScopeForFrameRecovery(packet: any, source: string): string | null {
+export function adoptWorkpointScopeForFrameRecovery(
+  packet: any,
+  source: string,
+  expectedScope?: {
+    projectRoot: string;
+    continuityId: string;
+    allowSessionTransfer: boolean;
+  }
+): string | null {
   if (!packet || typeof packet !== "object") return null;
   const workpoint = packet.resume_packet?.workpoint || packet.workpoint || packet;
   const packetProjectRoot = normalizeProjectRoot(workpoint.project_root || packet.project_root);
@@ -3656,11 +3682,27 @@ export function adoptWorkpointScopeForFrameRecovery(packet: any, source: string)
     packet.status === "rejected_scope_mismatch"
   )
     return null;
-  if (currentContinuityId && currentContinuityId !== packetContinuityId) return null;
-  if (currentSessionKey && packetPiSessionKey && packetPiSessionKey !== currentSessionKey) return null;
-  if (currentSessionKey && !packetPiSessionKey && packetSessionId && packetSessionId !== currentSessionKey)
+  const explicitScopeMatch =
+    expectedScope?.allowSessionTransfer === true &&
+    normalizeProjectRoot(expectedScope.projectRoot) === packetProjectRoot &&
+    String(expectedScope.continuityId || "").trim() === packetContinuityId;
+  if (currentContinuityId && currentContinuityId !== packetContinuityId && !explicitScopeMatch) return null;
+  if (
+    currentSessionKey &&
+    packetPiSessionKey &&
+    packetPiSessionKey !== currentSessionKey &&
+    !explicitScopeMatch
+  )
     return null;
-  if (currentSessionKey && !packetPiSessionKey && !packetSessionId) return null;
+  if (
+    currentSessionKey &&
+    !packetPiSessionKey &&
+    packetSessionId &&
+    packetSessionId !== currentSessionKey &&
+    !explicitScopeMatch
+  )
+    return null;
+  if (currentSessionKey && !packetPiSessionKey && !packetSessionId && !explicitScopeMatch) return null;
   getAttachmentRuntime().continuityId = packetContinuityId;
   getAttachmentRuntime().sessionCwd = packetProjectRoot;
   setActiveWorkpointPacket(stampWorkpointPacketForCurrentPiSession(workpoint));

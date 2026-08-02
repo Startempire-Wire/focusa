@@ -232,6 +232,7 @@ function renderCompactionMissionPacket(packet: any): string {
   const workpoint = packet?.workpoint || {};
   const scope = packet?.scope || {};
   const next = packet?.next || {};
+  const temporal = packet?.temporal || {};
   const warnings = compactLines(trajectory?.warnings).slice(0, 6);
   return [
     "## CompactionMissionPacket",
@@ -241,6 +242,17 @@ function renderCompactionMissionPacket(packet: any): string {
     `ACTION_AUTHORITY_FROM_TRAJECTORY: ${trajectory?.action_authority_from_trajectory === true}`,
     `WORKPOINT_STATUS: ${compactText(workpoint?.status, "missing", 32)}`,
     `WORKPOINT_ACTION_AUTHORITY: ${workpoint?.action_authority === true}`,
+    `TEMPORAL_STATUS: ${compactText(temporal?.status, "unavailable", 32)}`,
+    `DEADLINE_STATUS: ${compactText(temporal?.deadline_status, "none", 32)}`,
+    `TEMPORAL_REFS: ${[
+      temporal?.calendar_context_ref,
+      temporal?.priority_frame_ref,
+      temporal?.execution_guard_ref,
+      ...(Array.isArray(temporal?.evidence_refs) ? temporal.evidence_refs : []),
+    ]
+      .filter(Boolean)
+      .slice(0, 8)
+      .join(",") || "none"}`,
     `HLT: ${compactText(trajectory?.hlt, "missing", 300)}`,
     `MISSION: ${compactText(workpoint?.mission, "missing", 300)}`,
     `NEXT_SLICE: ${compactText(workpoint?.next_slice, "missing", 300)}`,

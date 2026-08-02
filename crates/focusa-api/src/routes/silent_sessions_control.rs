@@ -18,7 +18,7 @@ use super::{
     silent_sessions::{
         ApiResponse, authorized_projection, disclose_principal_side_effect,
         durable_request_principal, ensure_silent_session_temporal_guard, failure,
-        persistence_failure,
+        persistence_failure, silent_session_temporal_context,
     },
     silent_sessions_authorize::authorize_mutation,
     silent_sessions_contract::{
@@ -216,6 +216,8 @@ async fn control(
             &principal,
             kind,
             body.approval_id,
+            silent_session_temporal_context(&session, Some(&run), None, Some(events.len())),
+            None,
         );
     }
     let config = match load_config_revision(&state.persistence, run.config_revision_id) {
@@ -264,10 +266,11 @@ async fn control(
     ) {
         return after_principal(*response, &principal);
     }
-    if let Err(response) = ensure_silent_session_temporal_guard(&session, "silent-session:control")
-    {
-        return after_principal(*response, &principal);
-    }
+    let temporal_guard =
+        match ensure_silent_session_temporal_guard(&session, "silent-session:control") {
+            Ok(context) => context,
+            Err(response) => return after_principal(*response, &principal),
+        };
     let Some(target) = kind.target(session.lifecycle) else {
         return after_principal(invalid_transition(session.lifecycle, kind), &principal);
     };
@@ -308,6 +311,12 @@ async fn control(
     if let Err(error) = append_reducer_event_and_project(&state.persistence, &mut event, &session) {
         return after_principal(persistence_failure(error), &principal);
     }
+    let temporal_context = silent_session_temporal_context(
+        &session,
+        Some(&run),
+        Some(&config.config),
+        Some(events.len() + 1),
+    );
     success(
         StatusCode::ACCEPTED,
         kind.event_kind(),
@@ -317,6 +326,8 @@ async fn control(
         &principal,
         kind,
         body.approval_id,
+        temporal_context,
+        Some(temporal_guard),
     )
 }
 
@@ -330,12 +341,20 @@ fn success(
     principal: &ApiRequestPrincipal,
     kind: ControlKind,
     approval_id: Option<ApprovalId>,
+    temporal_context: Value,
+    temporal_guard: Option<Value>,
 ) -> ApiResponse {
     let projection = authorized_projection(principal, session, SilentSessionAction::Show)
         .unwrap_or_else(|| json!({"id": session.id, "projection": "redacted_summary"}));
     let mut envelope = SilentSessionApiEnvelope::canonical(
         status,
-        json!({"session": projection, "event_id": event_id, "idempotent_replay": replayed}),
+        json!({
+            "session": projection,
+            "event_id": event_id,
+            "idempotent_replay": replayed,
+            "temporal_context":temporal_context,
+            "mutation_temporal_guard":temporal_guard
+        }),
     );
     if let Some(approval_id) = approval_id {
         envelope.receipt_refs.push(approval_id.to_string());

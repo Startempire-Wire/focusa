@@ -6,6 +6,7 @@ import test from "node:test";
 const source = (name) => readFileSync(fileURLToPath(new URL(`../src/${name}`, import.meta.url)), "utf8");
 const refresh = source("scoped-surface-refresh.ts");
 const widget = source("mission-canvas-widget.ts");
+const semantic = source("semantic-surface-truth.ts");
 const session = source("session.ts");
 const tools = source("tools.ts");
 const rail = source("work-rail-widget.ts");
@@ -26,11 +27,19 @@ test("Mission Canvas subscribes independently and polls only when stale", () => 
   assert.match(widget, /scopedReceiptMatchesCurrentScope/);
   assert.match(widget, /setInterval/);
   assert.match(widget, /age >= 60_000/);
-  assert.match(widget, /\/trajectory\/view/);
+  assert.match(widget, /refreshTrajectoryClarityLifecycle\("mission_canvas_poll"/);
   assert.match(widget, /\/workpoint\/resume/);
+  assert.match(widget, /currentScopedProjectRoot\(\)/);
+  assert.match(widget, /current_ask: getAttachmentRuntime\(\)\.currentAsk\?\.text/);
+  assert.doesNotMatch(widget, /workpointResult\?\.matches_current_ask_scope !== false/);
   assert.match(widget, /truthfulStatusLines/);
   assert.match(widget, /startup_cwd/);
   assert.match(widget, /last_refresh_status/);
+  assert.match(widget, /semanticSupported/);
+  assert.match(widget, /semanticSchemaOnly/);
+  assert.match(widget, /semanticSurfaceTruth/);
+  assert.match(semantic, /operation\.availability \|\| "unknown"/);
+  assert.doesNotMatch(widget + semantic, /unsupported on this Pi surface/);
 });
 
 test("SSE refresh rejects foreign scope and survives reconnect through polling", () => {

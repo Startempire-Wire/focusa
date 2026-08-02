@@ -42,8 +42,10 @@ use super::{
     },
     temporal_conformance::spec137a_conformance_surface,
 };
+use super::temporal_closure::settle_closure;
+use super::temporal_conformance::spec137a_conformance_surface;
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, Clone)]
 pub struct TemporalScopeDimensions {
     #[serde(default)]
     host_id: Option<String>,
@@ -461,4 +463,5 @@ pub fn router() -> Router<Arc<AppState>> {
             post(high_consequence_preflight),
         )
         .route("/v1/temporal/migrate-signatures", post(migrate_signatures))
+        .route("/v1/temporal/settle-closure", post(settle_closure))
 }

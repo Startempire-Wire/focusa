@@ -20,11 +20,17 @@ function sessionStartBlock() {
   return session.slice(start, end);
 }
 
-test("north-star gate is an inspectable read-only Pi tool", () => {
-  assert.match(tools, /name: "focusa_north_star_gate"/);
-  assert.match(tools, /buildNorthStarSnapshot/);
-  assert.match(tools, /canonical: false/);
-  assert.match(tools, /advisory: true/);
+test("north-star gate refreshes exact-scope trajectory before rendering", () => {
+  const start = tools.indexOf('name: "focusa_north_star_gate"');
+  const end = tools.indexOf('name: "focusa_scratch"', start);
+  assert.ok(start >= 0 && end > start);
+  const block = tools.slice(start, end);
+  const refresh = block.indexOf("refreshTrajectoryClarityLifecycle");
+  const snapshot = block.indexOf("buildNorthStarSnapshot");
+  assert.ok(refresh >= 0 && snapshot > refresh);
+  assert.match(block, /resolveFocusaToolProjectRoot/);
+  assert.match(block, /canonical: false/);
+  assert.match(block, /advisory: true/);
 });
 
 test("session startup fails closed before durable project initialization", () => {
@@ -36,6 +42,20 @@ test("session startup fails closed before durable project initialization", () =>
   assert.match(block, /pi_project_startup_waiting_for_binding/);
   assert.match(block, /ctx\.ui\.setWidget\("focusa-north-star", undefined\)/);
   assert.doesNotMatch(block, /North-star gate blocked durable project startup/);
+});
+
+test("explicit trajectory view adopts verified continuity before caching North Star state", () => {
+  const start = tools.indexOf('name: "focusa_trajectory_view"');
+  const end = tools.indexOf('name: "focusa_hlt_history"', start);
+  assert.ok(start >= 0 && end > start);
+  const block = tools.slice(start, end);
+  const adopt = block.indexOf("adoptVerifiedContinuityForCurrentSession");
+  const cache = block.indexOf("setLastTrajectoryClarity", adopt);
+  assert.ok(adopt >= 0 && cache > adopt);
+  assert.match(block, /scope_verification:/);
+  assert.match(block, /trajectory\.scope_verification/);
+  assert.match(state, /export function adoptVerifiedContinuityForCurrentSession/);
+  assert.match(state, /verifiedRoot !== root/);
 });
 
 test("north-star startup order is project then trajectory then Workpoint", () => {
@@ -91,10 +111,14 @@ test("first Workpoint checkpoint omits fake writer identity when no lease exists
   assert.doesNotMatch(block, /headers: writerLeaseHeaders\(localWriterId, await currentWorkLoopLease\(\)\)/);
 });
 
-test("operator ask changes immediately demote saved Workpoint authority", () => {
+test("operator ask changes demote stale action authority without false project blocking", () => {
   assert.match(turns, /boundAsk !== newTaskText/);
   assert.match(turns, /action_authority_for_current_ask: false/);
   assert.match(turns, /operator_ask_changed_since_workpoint_binding/);
+  assert.match(northStar, /getLastProjectIdentity/);
+  assert.match(northStar, /identityVerified/);
+  assert.match(northStar, /trigger === "operator_input"/);
+  assert.match(northStar, /\("steered" as const\)/);
 });
 
 test("north-star card continuously refreshes at lifecycle boundaries", () => {

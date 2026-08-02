@@ -101,7 +101,7 @@
       <div class="metric">{semanticFindings.length}</div>
       <p>{text(semanticPair.state, 'schema_only')} · {semanticObligations.length} obligations</p>
       <p>settlement:{text(semanticPair.settlement?.status, 'unsettled')} · replay:{text(semanticPair.replay?.status, 'not_requested')}</p>
-      <p class="muted">read-only · mutations unsupported on Proof Peek</p>
+      <p class="muted">read-only proof projection · governed mutations remain available in Semantic Pair</p>
     </article>
   </div>
 

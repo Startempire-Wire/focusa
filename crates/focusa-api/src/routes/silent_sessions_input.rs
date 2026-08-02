@@ -18,6 +18,7 @@ use super::{
     silent_sessions::{
         ApiResponse, disclose_principal_side_effect, durable_request_principal,
         ensure_silent_session_temporal_guard, failure, persistence_failure,
+        silent_session_temporal_context,
     },
     silent_sessions_authorize::authorize_mutation,
     silent_sessions_contract::{
@@ -286,6 +287,8 @@ async fn deliver(
                         .collect::<Vec<_>>()
                 })
                 .unwrap_or_default(),
+            silent_session_temporal_context(&session, Some(&run), None, Some(events.len())),
+            None,
         );
     }
     let config = match load_config_revision(&state.persistence, run.config_revision_id) {
@@ -310,9 +313,17 @@ async fn deliver(
     ) {
         return after(*response, &principal);
     }
-    if let Err(response) = ensure_silent_session_temporal_guard(&session, "silent-session:input") {
-        return after(*response, &principal);
-    }
+    let temporal_guard =
+        match ensure_silent_session_temporal_guard(&session, "silent-session:input") {
+            Ok(context) => context,
+            Err(response) => return after(*response, &principal),
+        };
+    let temporal_context = silent_session_temporal_context(
+        &session,
+        Some(&run),
+        Some(&config.config),
+        Some(events.len()),
+    );
     let now = Utc::now();
     session.updated_at = now;
     let previous = events.last();
@@ -349,6 +360,8 @@ async fn deliver(
         &target,
         kind,
         side_effects,
+        temporal_context,
+        Some(temporal_guard),
     )
 }
 
@@ -362,6 +375,8 @@ fn success(
     target: &DeliveryTarget,
     kind: DeliveryKind,
     side_effects: Vec<String>,
+    temporal_context: Value,
+    temporal_guard: Option<Value>,
 ) -> ApiResponse {
     let mut envelope = SilentSessionApiEnvelope::canonical(
         status,
@@ -372,6 +387,8 @@ fn success(
             "delivery_kind": kind,
             "delivery_status": "queued",
             "replayed": replayed,
+            "temporal_context":temporal_context,
+            "mutation_temporal_guard":temporal_guard,
         }),
     );
     envelope

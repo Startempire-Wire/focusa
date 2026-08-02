@@ -1,6 +1,6 @@
 {
   "attachment_id": "example",
-  "binding_count": 102,
+  "binding_count": 108,
   "bindings": [
     {
       "action_id": "focusa.agent_execution.abort",
@@ -16,7 +16,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -38,9 +38,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -61,7 +60,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -83,9 +82,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -106,7 +104,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -128,9 +126,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -151,7 +148,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -173,9 +170,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -196,7 +192,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -218,8 +214,6 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
         "required_keys": [
           "project_root"
@@ -262,8 +256,6 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
         "required_keys": [
           "project_root"
@@ -284,7 +276,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -306,8 +298,6 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
         "required_keys": [
           "project_root"
@@ -328,7 +318,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -350,8 +340,6 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
         "required_keys": [
           "project_root"
@@ -392,9 +380,6 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
-        "project_root": "/example",
         "required_keys": []
       }
     },
@@ -434,9 +419,9 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -458,7 +443,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": true,
         "receipt_required": true,
         "reversible": false
@@ -480,9 +465,9 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -526,9 +511,9 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -550,7 +535,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -572,9 +557,9 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -596,7 +581,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": true,
         "receipt_required": true,
         "reversible": false
@@ -618,9 +603,9 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -642,7 +627,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": true,
         "receipt_required": true,
         "reversible": false
@@ -664,9 +649,9 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -710,9 +695,9 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -734,7 +719,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -756,9 +741,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -801,9 +785,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -824,7 +807,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -846,9 +829,6 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
-        "project_root": "/example",
         "required_keys": []
       }
     },
@@ -888,9 +868,6 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
-        "project_root": "/example",
         "required_keys": []
       }
     },
@@ -930,8 +907,6 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
         "required_keys": [
           "project_root"
@@ -974,9 +949,6 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
-        "project_root": "/example",
         "required_keys": []
       }
     },
@@ -994,7 +966,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -1016,9 +988,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -1061,9 +1032,6 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
-        "project_root": "/example",
         "required_keys": []
       }
     },
@@ -1093,9 +1061,9 @@
       "presentation": {
         "advanced_only": false,
         "allowed_in_generated_ui": true,
-        "default_label": "Get Governed Interview Closure Package",
+        "default_label": "List Durable Interview Session Revisions",
         "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Get Governed Interview Closure Package",
+        "plain_language_description": "List Durable Interview Session Revisions",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
       },
@@ -1103,9 +1071,9 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -1149,9 +1117,9 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -1173,7 +1141,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": true,
         "receipt_required": true,
         "reversible": false
@@ -1195,9 +1163,9 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -1219,7 +1187,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -1241,9 +1209,9 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -1265,7 +1233,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -1287,9 +1255,6 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
-        "project_root": "/example",
         "required_keys": []
       }
     },
@@ -1329,8 +1294,6 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
         "required_keys": [
           "project_root"
@@ -1373,8 +1336,6 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
         "required_keys": [
           "project_root"
@@ -1417,9 +1378,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -1440,7 +1400,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -1462,9 +1422,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -1507,9 +1466,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -1530,7 +1488,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -1552,9 +1510,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -1575,7 +1532,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -1597,9 +1554,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -1620,7 +1576,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -1642,9 +1598,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -1665,7 +1620,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -1687,9 +1642,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -1710,7 +1664,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -1732,9 +1686,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -1745,7 +1698,7 @@
       "action_id": "focusa.mission_canvas.state.get",
       "canonical_revision": "1.0.0",
       "capability_refs": [
-        "mission_canvas"
+        "task_plan"
       ],
       "contracts": {
         "error_schema_ref": "focusa.tool_result.v1",
@@ -1777,9 +1730,11 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "client_instance_id": "example",
+        "user_id": "example",
+        "device_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -1793,7 +1748,7 @@
       "action_id": "focusa.mission_canvas.state.mutate",
       "canonical_revision": "1.0.0",
       "capability_refs": [
-        "mission_canvas"
+        "task_plan"
       ],
       "contracts": {
         "error_schema_ref": "focusa.tool_result.v1",
@@ -1803,7 +1758,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "preview",
+        "mode": "write",
         "optimistic_concurrency_required": true,
         "receipt_required": true,
         "reversible": false
@@ -1825,9 +1780,11 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "client_instance_id": "example",
+        "user_id": "example",
+        "device_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -1841,7 +1798,7 @@
       "action_id": "focusa.mission_canvas.surface.list",
       "canonical_revision": "1.0.0",
       "capability_refs": [
-        "mission_canvas"
+        "task_plan"
       ],
       "contracts": {
         "error_schema_ref": "focusa.tool_result.v1",
@@ -1873,9 +1830,9 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -1887,7 +1844,7 @@
       "action_id": "focusa.mission_canvas.surface.mutate",
       "canonical_revision": "1.0.0",
       "capability_refs": [
-        "mission_canvas"
+        "task_plan"
       ],
       "contracts": {
         "error_schema_ref": "focusa.tool_result.v1",
@@ -1897,7 +1854,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "preview",
+        "mode": "write",
         "optimistic_concurrency_required": true,
         "receipt_required": true,
         "reversible": false
@@ -1919,9 +1876,9 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -1933,7 +1890,7 @@
       "action_id": "focusa.mission_canvas.surface_binding.list",
       "canonical_revision": "1.0.0",
       "capability_refs": [
-        "mission_canvas"
+        "task_plan"
       ],
       "contracts": {
         "error_schema_ref": "focusa.tool_result.v1",
@@ -1955,9 +1912,9 @@
       "presentation": {
         "advanced_only": false,
         "allowed_in_generated_ui": true,
-        "default_label": "List Exact Work Surface Bindings",
+        "default_label": "List Mission Canvas Work Surface Revisions",
         "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "List Exact Work Surface Bindings",
+        "plain_language_description": "List Mission Canvas Work Surface Revisions",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "routine"
       },
@@ -1965,9 +1922,10 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
+        "work_surface_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -1980,7 +1938,7 @@
       "action_id": "focusa.mission_canvas.surface_binding.mutate",
       "canonical_revision": "1.0.0",
       "capability_refs": [
-        "mission_canvas"
+        "task_plan"
       ],
       "contracts": {
         "error_schema_ref": "focusa.tool_result.v1",
@@ -1990,7 +1948,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "preview",
+        "mode": "write",
         "optimistic_concurrency_required": true,
         "receipt_required": true,
         "reversible": false
@@ -2002,9 +1960,9 @@
       "presentation": {
         "advanced_only": false,
         "allowed_in_generated_ui": true,
-        "default_label": "Bind or Unbind an Exact Work Surface Target",
+        "default_label": "Create, Arrange, Suspend, Resume, or Close Work Surface",
         "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Bind or Unbind an Exact Work Surface Target",
+        "plain_language_description": "Create, Arrange, Suspend, Resume, or Close Work Surface",
         "result_presentation_ref": "focusa.generated_result.v1",
         "sensitivity": "scoped_mutation"
       },
@@ -2012,9 +1970,10 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
+        "work_surface_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -2057,8 +2016,6 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
         "required_keys": [
           "project_root"
@@ -2079,7 +2036,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -2101,9 +2058,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -2146,9 +2102,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -2169,7 +2124,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -2191,9 +2146,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -2204,14 +2158,14 @@
       "action_id": "focusa.prediction_authority.append",
       "canonical_revision": "1.0.0",
       "capability_refs": [
-        "metacognition",
         "trajectory",
-        "workpoint"
+        "workpoint",
+        "release"
       ],
       "contracts": {
         "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa_prediction_authority_append.request.v1",
-        "output_schema_ref": "focusa_prediction_authority_append.response.v1"
+        "input_schema_ref": "focusa.prediction_authority_append.request.v1",
+        "output_schema_ref": "focusa.prediction_authority_append.response.v1"
       },
       "control": {
         "confirmation": "explicit",
@@ -2228,18 +2182,19 @@
       "presentation": {
         "advanced_only": false,
         "allowed_in_generated_ui": true,
-        "default_label": "Append Prediction Authority Event",
+        "default_label": "Temporal Commit",
         "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Append Prediction Authority Event",
+        "plain_language_description": "Temporal Commit",
         "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "consequential"
+        "sensitivity": "consequential",
+        "label": "Append prediction authority event"
       },
       "recovery_envelope_ref": "focusa.tool_result.v1",
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -2250,14 +2205,14 @@
       "action_id": "focusa.prediction_authority.projection",
       "canonical_revision": "1.0.0",
       "capability_refs": [
-        "metacognition",
         "trajectory",
-        "workpoint"
+        "workpoint",
+        "release"
       ],
       "contracts": {
         "error_schema_ref": "focusa.tool_result.v1",
-        "input_schema_ref": "focusa_prediction_authority_projection.request.v1",
-        "output_schema_ref": "focusa_prediction_authority_projection.response.v1"
+        "input_schema_ref": "focusa.prediction_authority_projection.request.v1",
+        "output_schema_ref": "focusa.prediction_authority_projection.response.v1"
       },
       "control": {
         "confirmation": "none",
@@ -2274,18 +2229,19 @@
       "presentation": {
         "advanced_only": false,
         "allowed_in_generated_ui": true,
-        "default_label": "Prediction Authority Projection",
+        "default_label": "Temporal Status",
         "input_presentation_ref": "focusa.generated_form.v1",
-        "plain_language_description": "Prediction Authority Projection",
+        "plain_language_description": "Temporal Status",
         "result_presentation_ref": "focusa.generated_result.v1",
-        "sensitivity": "routine"
+        "sensitivity": "routine",
+        "label": "Prediction authority projection"
       },
       "recovery_envelope_ref": "focusa.tool_result.v1",
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -2330,8 +2286,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -2356,7 +2312,7 @@
         "idempotency_required": false,
         "mode": "read",
         "optimistic_concurrency_required": false,
-        "receipt_required": false,
+        "receipt_required": true,
         "reversible": false
       },
       "operation_descriptor_ref": "/v1/agent/operations#focusa.project.bootstrap.preview",
@@ -2376,8 +2332,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -2422,8 +2378,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -2512,8 +2468,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -2558,8 +2514,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -2604,8 +2560,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -2692,8 +2648,6 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
         "required_keys": [
           "project_root"
@@ -2736,8 +2690,6 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
         "required_keys": [
           "project_root"
@@ -2758,7 +2710,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -2780,9 +2732,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -2803,7 +2754,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": true,
         "receipt_required": true,
         "reversible": false
@@ -2825,9 +2776,9 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -2871,9 +2822,9 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -2917,8 +2868,6 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
         "required_keys": [
           "project_root"
@@ -2939,7 +2888,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": true,
         "receipt_required": true,
         "reversible": false
@@ -2961,9 +2910,9 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -3007,9 +2956,9 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -3029,9 +2978,9 @@
         "output_schema_ref": "focusa.project_agent_role_profile_mutation_result.v1"
       },
       "control": {
-        "confirmation": "consequential",
+        "confirmation": "explicit",
         "idempotency_required": true,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": true,
         "receipt_required": true,
         "reversible": false
@@ -3053,9 +3002,9 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -3099,9 +3048,9 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -3123,7 +3072,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": true,
         "receipt_required": true,
         "reversible": false
@@ -3145,9 +3094,9 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -3191,8 +3140,6 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
         "required_keys": [
           "project_root"
@@ -3235,9 +3182,9 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -3259,7 +3206,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "preview",
+        "mode": "write",
         "optimistic_concurrency_required": true,
         "receipt_required": true,
         "reversible": false
@@ -3281,9 +3228,9 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -3305,7 +3252,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "preview",
+        "mode": "write",
         "optimistic_concurrency_required": true,
         "receipt_required": true,
         "reversible": false
@@ -3327,13 +3274,105 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
           "attachment_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.temporal.civil.resolve",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_civil_resolve.request.v1",
+        "output_schema_ref": "focusa.temporal_civil_resolve.response.v1"
+      },
+      "control": {
+        "confirmation": "explicit",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.temporal.civil.resolve",
+      "permission_scopes": [
+        "temporal:write"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Temporal Civil Resolve",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Civil Resolve",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "consequential"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.temporal.clock.capture",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_clock_capture.request.v1",
+        "output_schema_ref": "focusa.temporal_clock_capture.response.v1"
+      },
+      "control": {
+        "confirmation": "explicit",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.temporal.clock.capture",
+      "permission_scopes": [
+        "temporal:write"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Temporal Clock Capture",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Clock Capture",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "consequential"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
         ]
       }
     },
@@ -3375,8 +3414,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -3401,7 +3440,7 @@
         "idempotency_required": false,
         "mode": "read",
         "optimistic_concurrency_required": false,
-        "receipt_required": false,
+        "receipt_required": true,
         "reversible": false
       },
       "operation_descriptor_ref": "/v1/agent/operations#focusa.temporal.forecast",
@@ -3421,8 +3460,100 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.temporal.high_consequence_preflight",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_high_consequence_preflight.request.v1",
+        "output_schema_ref": "focusa.temporal_high_consequence_preflight.response.v1"
+      },
+      "control": {
+        "confirmation": "explicit",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.temporal.high_consequence_preflight",
+      "permission_scopes": [
+        "temporal:write"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Temporal High Consequence Preflight",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal High Consequence Preflight",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "consequential"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.temporal.migrate_signatures",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_migrate_signatures.request.v1",
+        "output_schema_ref": "focusa.temporal_migrate_signatures.response.v1"
+      },
+      "control": {
+        "confirmation": "explicit",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.temporal.migrate_signatures",
+      "permission_scopes": [
+        "temporal:write"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Temporal Signature Migration",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Signature Migration",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "consequential"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -3467,8 +3598,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -3493,7 +3624,7 @@
         "idempotency_required": false,
         "mode": "read",
         "optimistic_concurrency_required": false,
-        "receipt_required": false,
+        "receipt_required": true,
         "reversible": false
       },
       "operation_descriptor_ref": "/v1/agent/operations#focusa.temporal.preflight",
@@ -3513,8 +3644,54 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.temporal.priority.commit",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_priority_commit.request.v1",
+        "output_schema_ref": "focusa.temporal_priority_commit.response.v1"
+      },
+      "control": {
+        "confirmation": "explicit",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.temporal.priority.commit",
+      "permission_scopes": [
+        "temporal:write"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Temporal Priority Commit",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Priority Commit",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "consequential"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -3559,8 +3736,54 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "required_keys": [
+          "project_root",
+          "continuity_id"
+        ]
+      }
+    },
+    {
+      "action_id": "focusa.temporal.settle_closure",
+      "canonical_revision": "1.0.0",
+      "capability_refs": [
+        "trajectory",
+        "workpoint",
+        "release"
+      ],
+      "contracts": {
+        "error_schema_ref": "focusa.tool_result.v1",
+        "input_schema_ref": "focusa.temporal_settle_closure.request.v1",
+        "output_schema_ref": "focusa.temporal_settle_closure.response.v1"
+      },
+      "control": {
+        "confirmation": "explicit",
+        "idempotency_required": true,
+        "mode": "write",
+        "optimistic_concurrency_required": false,
+        "receipt_required": true,
+        "reversible": false
+      },
+      "operation_descriptor_ref": "/v1/agent/operations#focusa.temporal.settle_closure",
+      "permission_scopes": [
+        "temporal:write"
+      ],
+      "presentation": {
+        "advanced_only": false,
+        "allowed_in_generated_ui": true,
+        "default_label": "Temporal Closure Settlement",
+        "input_presentation_ref": "focusa.generated_form.v1",
+        "plain_language_description": "Temporal Closure Settlement",
+        "result_presentation_ref": "focusa.generated_result.v1",
+        "sensitivity": "consequential"
+      },
+      "recovery_envelope_ref": "focusa.tool_result.v1",
+      "result_envelope_ref": "focusa.tool_result.v1",
+      "schema": "focusa.ui_action_binding.v1",
+      "scope": {
+        "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -3605,8 +3828,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -3649,8 +3872,6 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
         "required_keys": [
           "project_root"
@@ -3671,7 +3892,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -3693,9 +3914,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -3716,7 +3936,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -3738,9 +3958,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -3761,7 +3980,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -3783,9 +4002,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -3806,7 +4024,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -3828,9 +4046,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -3851,7 +4068,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -3873,9 +4090,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -3918,9 +4134,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -3941,7 +4156,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "read",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -3963,8 +4178,6 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
         "required_keys": [
           "project_root"
@@ -3985,7 +4198,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -4007,9 +4220,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -4030,7 +4242,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -4052,9 +4264,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -4075,7 +4286,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": false,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -4097,9 +4308,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -4142,9 +4352,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -4187,9 +4396,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -4210,7 +4418,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": false,
         "receipt_required": true,
         "reversible": false
@@ -4232,9 +4440,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -4277,9 +4484,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -4290,7 +4496,7 @@
       "action_id": "focusa.work_rail.list",
       "canonical_revision": "1.0.0",
       "capability_refs": [
-        "work_rail"
+        "task_plan"
       ],
       "contracts": {
         "error_schema_ref": "focusa.tool_result.v1",
@@ -4322,23 +4528,23 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "working_subpath_id": "example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "working_subpath_id",
           "continuity_id",
           "attachment_id"
-        ],
-        "working_subpath_id": "mission-canvas"
+        ]
       }
     },
     {
       "action_id": "focusa.work_rail.mutate",
       "canonical_revision": "1.0.0",
       "capability_refs": [
-        "work_rail"
+        "task_plan"
       ],
       "contracts": {
         "error_schema_ref": "focusa.tool_result.v1",
@@ -4348,7 +4554,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "preview",
+        "mode": "write",
         "optimistic_concurrency_required": true,
         "receipt_required": true,
         "reversible": false
@@ -4370,16 +4576,16 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "working_subpath_id": "example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "working_subpath_id",
           "continuity_id",
           "attachment_id"
-        ],
-        "working_subpath_id": "mission-canvas"
+        ]
       }
     },
     {
@@ -4396,7 +4602,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": true,
         "receipt_required": true,
         "reversible": false
@@ -4418,9 +4624,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -4441,7 +4646,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": true,
         "receipt_required": true,
         "reversible": false
@@ -4463,9 +4668,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -4508,9 +4712,8 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id"
@@ -4531,7 +4734,7 @@
       "control": {
         "confirmation": "none",
         "idempotency_required": true,
-        "mode": "commit",
+        "mode": "write",
         "optimistic_concurrency_required": true,
         "receipt_required": true,
         "reversible": false
@@ -4553,9 +4756,9 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",
@@ -4599,9 +4802,9 @@
       "result_envelope_ref": "focusa.tool_result.v1",
       "schema": "focusa.ui_action_binding.v1",
       "scope": {
-        "attachment_id": "example",
-        "continuity_id": "example",
         "project_root": "/example",
+        "continuity_id": "example",
+        "attachment_id": "example",
         "required_keys": [
           "project_root",
           "continuity_id",

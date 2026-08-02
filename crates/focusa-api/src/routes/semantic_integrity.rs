@@ -133,7 +133,7 @@ pub const OPERATIONS: &[OperationDescriptor] = &[
     ),
     mutation_op!("semantic_pair.verification.plan.commit", "verify"),
     mutation_op!("semantic_pair.verify.start", "verify"),
-    read_op!("semantic_pair.verify.findings", "verify", SchemaOnly),
+    mutation_op!("semantic_pair.verify.findings", "verify"),
     read_op!("semantic_pair.verify.verdict", "verify", SchemaOnly),
     mutation_op!("semantic_pair.finding.respond", "verify"),
     mutation_op!("semantic_pair.finding.resolve", "verify"),
@@ -495,11 +495,17 @@ mod tests {
     #[test]
     fn status_and_registry_share_one_operation_truth_definition() {
         let (canonical_envelope, direct_routes, supported, schema_only) = operation_truth_counts();
-        assert_eq!(canonical_envelope, 18);
+        assert_eq!(canonical_envelope, 41);
         assert_eq!(direct_routes, 2);
-        assert_eq!(supported, 20);
-        assert_eq!(schema_only, 23);
+        assert_eq!(supported, 43);
+        assert_eq!(schema_only, 0);
         assert_eq!(supported + schema_only, OPERATIONS.len());
+        assert!(OPERATIONS.iter().all(|operation| {
+            matches!(
+                operation.operation_id,
+                "semantic.integrity.status" | "semantic.integrity.registry"
+            ) || semantic_integrity_executor::operation_is_executable(operation.operation_id)
+        }));
     }
 
     #[test]

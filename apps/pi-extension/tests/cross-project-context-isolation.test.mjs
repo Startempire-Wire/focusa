@@ -317,6 +317,23 @@ test("begin-session ontology trajectory projection is preserved behind exact sco
   assert.match(ontologyProjection, /\(STG=/);
 });
 
+test("explicit Workpoint resume adopts only the operator-supplied exact typed scope", () => {
+  const adoption = block(
+    state,
+    "export function adoptWorkpointScopeForFrameRecovery",
+    "export function getEffectiveFocusSnapshot"
+  );
+  assert.match(adoption, /expectedScope\?\.allowSessionTransfer === true/);
+  assert.match(adoption, /normalizeProjectRoot\(expectedScope\.projectRoot\) === packetProjectRoot/);
+  assert.match(adoption, /expectedScope\.continuityId.*=== packetContinuityId/s);
+  assert.match(adoption, /currentContinuityId !== packetContinuityId && !explicitScopeMatch/);
+
+  const resume = block(tools, 'name: "focusa_workpoint_resume"', 'name: "focusa_tree_head"');
+  assert.match(resume, /projectRoot: params\.project_root/);
+  assert.match(resume, /continuityId: params\.continuity_id/);
+  assert.match(resume, /allowSessionTransfer: Boolean\(params\.project_root && params\.continuity_id\)/);
+});
+
 test("recent predictions reject any response outside requested typed workstream", () => {
   const recent = block(tools, 'name: "focusa_predict_recent"', 'name: "focusa_predict_evaluate"');
   assert.match(recent, /buildProjectWorkstreamKey\(projectRoot, continuityId\)/);

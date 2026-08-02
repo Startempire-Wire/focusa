@@ -440,12 +440,50 @@ pub enum OpportunityPosture {
     SettledNoMiss,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LostTimeClassification {
+    Avoidable,
+    External,
+    OperatorWait,
+    Contention,
+    Uncertainty,
+    Recovery,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum IncidentVerificationStatus {
+    Proposed,
+    Verified,
+    Disputed,
+    Unknown,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LostTimeIncident {
     pub incident_id: String,
     pub scope: TemporalScope,
     pub revision: u64,
     pub predecessor_ref: Option<String>,
+    pub subject_ref: String,
+    pub detected_at: DateTime<Utc>,
+    pub interval_start: DateTime<Utc>,
+    pub interval_end: DateTime<Utc>,
+    pub wall_clock_lost_ms: u64,
+    pub classification: LostTimeClassification,
+    pub cause_code: String,
+    pub action_refs: Vec<String>,
+    pub progress_refs: Vec<String>,
+    pub deadline_refs: Vec<String>,
+    pub opportunity_risk_refs: Vec<String>,
+    pub material_impact: Option<String>,
+    pub detection_delay_ms: u64,
+    pub recovery_action_ref: Option<String>,
+    pub prevention_candidate_ref: Option<String>,
+    pub verification_status: IncidentVerificationStatus,
+    pub settlement_ref: Option<String>,
     pub posture: OpportunityPosture,
     pub cause_refs: Vec<String>,
     pub evidence_refs: Vec<String>,
@@ -464,6 +502,10 @@ pub struct LostTimeIncident {
 pub enum LostTimeIncidentError {
     MissingEvidence,
     MissingPredecessor,
+    MissingSubject,
+    InvalidInterval,
+    InvalidWallClockLoss,
+    VerifiedUnknownClassification,
     MissWithoutPredictionEvaluation,
     SettlementWithoutReceipt,
 }
@@ -473,6 +515,27 @@ pub fn validate_lost_time_incident(
 ) -> Result<(), LostTimeIncidentError> {
     if incident.evidence_refs.is_empty() {
         return Err(LostTimeIncidentError::MissingEvidence);
+    }
+    if incident.subject_ref.trim().is_empty() || incident.cause_code.trim().is_empty() {
+        return Err(LostTimeIncidentError::MissingSubject);
+    }
+    if incident.interval_end < incident.interval_start
+        || incident.detected_at < incident.interval_end
+    {
+        return Err(LostTimeIncidentError::InvalidInterval);
+    }
+    let measured_ms = incident
+        .interval_end
+        .signed_duration_since(incident.interval_start)
+        .num_milliseconds()
+        .max(0) as u64;
+    if incident.wall_clock_lost_ms != measured_ms {
+        return Err(LostTimeIncidentError::InvalidWallClockLoss);
+    }
+    if incident.verification_status == IncidentVerificationStatus::Verified
+        && incident.classification == LostTimeClassification::Unknown
+    {
+        return Err(LostTimeIncidentError::VerifiedUnknownClassification);
     }
     if incident.revision > 1 && incident.predecessor_ref.is_none() {
         return Err(LostTimeIncidentError::MissingPredecessor);
@@ -488,4 +551,76 @@ pub fn validate_lost_time_incident(
         return Err(LostTimeIncidentError::SettlementWithoutReceipt);
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod lost_time_tests {
+    use super::*;
+
+    fn incident() -> LostTimeIncident {
+        let interval_start = Utc::now() - chrono::Duration::seconds(10);
+        let interval_end = interval_start + chrono::Duration::seconds(10);
+        LostTimeIncident {
+            incident_id: "lost-time:test".into(),
+            scope: TemporalScope::project("/project", "continuity"),
+            revision: 1,
+            predecessor_ref: None,
+            subject_ref: "workpoint:test".into(),
+            detected_at: interval_end,
+            interval_start,
+            interval_end,
+            wall_clock_lost_ms: 10_000,
+            classification: LostTimeClassification::External,
+            cause_code: "provider_wait".into(),
+            action_refs: vec!["action:test".into()],
+            progress_refs: vec![],
+            deadline_refs: vec![],
+            opportunity_risk_refs: vec![],
+            material_impact: None,
+            detection_delay_ms: 0,
+            recovery_action_ref: Some("retry:test".into()),
+            prevention_candidate_ref: None,
+            verification_status: IncidentVerificationStatus::Proposed,
+            settlement_ref: None,
+            posture: OpportunityPosture::UnknownCounterfactual,
+            cause_refs: vec!["cause:provider".into()],
+            evidence_refs: vec!["evidence:test".into()],
+            prediction_evaluation_refs: vec![],
+            reflection_refs: vec![],
+            fixed_eval_refs: vec![],
+            learning_candidate_refs: vec![],
+            promotion_or_rejection_receipt_refs: vec![],
+            rollback_refs: vec![],
+            dispute_refs: vec![],
+            settlement_receipt_ref: None,
+            observed_at: interval_end,
+        }
+    }
+
+    #[test]
+    fn lost_time_validation_preserves_counterfactual_and_settlement_truth() {
+        assert_eq!(validate_lost_time_incident(&incident()), Ok(()));
+
+        let mut proven_miss = incident();
+        proven_miss.posture = OpportunityPosture::EvidenceProvenMiss;
+        assert_eq!(
+            validate_lost_time_incident(&proven_miss),
+            Err(LostTimeIncidentError::MissWithoutPredictionEvaluation)
+        );
+        proven_miss
+            .prediction_evaluation_refs
+            .push("prediction-evaluation:test".into());
+        proven_miss.verification_status = IncidentVerificationStatus::Verified;
+        assert_eq!(validate_lost_time_incident(&proven_miss), Ok(()));
+
+        let mut settled = incident();
+        settled.posture = OpportunityPosture::SettledNoMiss;
+        assert_eq!(
+            validate_lost_time_incident(&settled),
+            Err(LostTimeIncidentError::SettlementWithoutReceipt)
+        );
+        settled.settlement_receipt_ref = Some("receipt:settlement".into());
+        settled.settlement_ref = Some("settlement:test".into());
+        assert_eq!(validate_lost_time_incident(&settled), Ok(()));
+    }
 }
