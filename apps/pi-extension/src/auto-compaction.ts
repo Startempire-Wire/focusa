@@ -16,6 +16,11 @@ import {
 } from "./provider-compaction-capabilities.js";
 import { contextPressureTelemetry } from "./context-pressure-telemetry.js";
 import { selectCompactionPolicy } from "./compaction-policy-selector.js";
+import {
+  emptyCompactionAuthorityProjection,
+  reduceCompactionAuthorityEvents,
+  type CompactionAuthorityProjection,
+} from "./compaction-authority-projection.js";
 
 declare module "@earendil-works/pi-coding-agent" {
   interface ExtensionAPI {
@@ -147,6 +152,7 @@ type ProcessCompactionLease = {
   inFlightEpochId?: string;
   attemptOwnerId?: string;
   retryOwnerId?: string;
+  projection: CompactionAuthorityProjection;
   request?: (
     ctx: ExtensionContext,
     request: CoordinatedCompactionRequest
@@ -176,7 +182,9 @@ function processCompactionLease(): ProcessCompactionLease {
     schema: "focusa.compaction.coordinator.v1",
     generation: 0,
     duplicateDiagnosticEmitted: false,
+    projection: emptyCompactionAuthorityProjection(),
   };
+  scope[PROCESS_LEASE_SYMBOL].projection ??= emptyCompactionAuthorityProjection();
   return scope[PROCESS_LEASE_SYMBOL];
 }
 
@@ -476,8 +484,8 @@ export function registerAutoCompaction(
     epoch: ActiveEpoch | undefined = activeEpoch
   ): void => {
     try {
-      pi.appendEntry(EVENT_TYPE, {
-        schema: "focusa.auto_compaction_event.v1",
+      const event = {
+        schema: "focusa.auto_compaction_event.v1" as const,
         kind,
         recorded_at: new Date().toISOString(),
         epoch_id: epoch?.epochId,
@@ -489,7 +497,9 @@ export function registerAutoCompaction(
         registration_id: registrationId,
         registration_generation: processLease.generation,
         ...details,
-      });
+      };
+      pi.appendEntry(EVENT_TYPE, event);
+      processLease.projection = reduceCompactionAuthorityEvents([event], processLease.projection);
     } catch (error) {
       console.warn("[focusa] could not persist auto-compaction telemetry", error);
     }
@@ -1019,6 +1029,14 @@ export function registerAutoCompaction(
       processLease.owner.attachmentId =
         ctx.sessionManager.getSessionFile() ?? ctx.sessionManager.getSessionId();
     }
+    const persistedEvents = ctx.sessionManager
+      .getBranch()
+      .filter(
+        (entry): entry is Extract<BranchEntry, { type: "custom" }> =>
+          entry.type === "custom" && entry.customType === EVENT_TYPE
+      )
+      .map((entry) => entry.data);
+    processLease.projection = reduceCompactionAuthorityEvents(persistedEvents);
     inFlight = false;
     lastAttemptAt = undefined;
     stopCompactionHeartbeat(ctx);
