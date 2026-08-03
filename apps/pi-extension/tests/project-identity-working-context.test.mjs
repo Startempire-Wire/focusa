@@ -116,6 +116,12 @@ assert.match(
   /decision\.selected_project_root \|\|\s*resolveCanonicalMarkerProjectRoot\(process\.cwd\(\)\)/,
   "verified continuity adoption must survive transition from bootstrap to typed attachment"
 );
+assert.match(stateSource, /verifiedContinuityBySessionRoot = new Map<string, string>\(\)/);
+assert.match(
+  stateSource,
+  /verified \|\| store\?\.continuityId \|\| getAttachmentRuntime\(\)\.continuityId/,
+  "exact verified continuity must outrank stale attachment-local continuity"
+);
 const toolsSource = readFileSync(
   fileURLToPath(new URL("../src/tools.ts", import.meta.url)),
   "utf8"

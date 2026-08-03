@@ -3530,6 +3530,12 @@ export function getScopedWorkpointPacket(): any | null {
     : null;
 }
 
+const verifiedContinuityBySessionRoot = new Map<string, string>();
+
+function verifiedContinuityKey(sessionId: string, projectRoot: string): string {
+  return `${String(sessionId || "").trim()}|${normalizeProjectRoot(projectRoot)}`;
+}
+
 export function adoptVerifiedContinuityForCurrentSession(
   projectRoot: string,
   continuityId: string
@@ -3547,6 +3553,10 @@ export function adoptVerifiedContinuityForCurrentSession(
   );
   if (!root || !continuity || !isProjectRootAuthoritySafe(root) || verifiedRoot !== root) return false;
   getAttachmentRuntime().continuityId = continuity;
+  verifiedContinuityBySessionRoot.set(
+    verifiedContinuityKey(getSessionFrameKey(), root),
+    continuity
+  );
   syncRuntimeFieldsToScopeStore();
   return true;
 }
@@ -4633,7 +4643,12 @@ export function getActiveFrameId(): string | null {
  */
 export function getContinuityId(): string {
   const store = getCurrentScopeStore();
-  return store?.continuityId || getAttachmentRuntime().continuityId || "";
+  const sessionId = store?.sessionFrameKey || getAttachmentRuntime().sessionFrameKey || "";
+  const markerRoot = resolveCanonicalMarkerProjectRoot(process.cwd());
+  const verified = markerRoot
+    ? verifiedContinuityBySessionRoot.get(verifiedContinuityKey(sessionId, markerRoot))
+    : "";
+  return verified || store?.continuityId || getAttachmentRuntime().continuityId || "";
 }
 
 /**
