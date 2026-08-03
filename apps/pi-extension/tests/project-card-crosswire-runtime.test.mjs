@@ -18,6 +18,8 @@ assert.match(
 );
 assert.match(tools, /body\.trajectory\?\.stg \|\| priorLadder\.short_term_goal/);
 assert.match(tools, /crosswire\.status \|\|/);
+assert.match(tools, /body\.trajectory_ladder\?\.fallback_source_continuity_id/);
+assert.match(tools, /adoptVerifiedContinuityForCurrentSession\(recoveredRoot, recoveredContinuity\)/);
 assert.doesNotMatch(
   tools,
   /crosswire=\$\{String\(crosswire\.prediction_feed\?\.elapsed_tokens_waypoints_feed_future_predictions === true \? "ok"/,

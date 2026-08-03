@@ -5282,8 +5282,10 @@ export function registerTools(pi: ExtensionAPI) {
         remote_deploy_root?: string;
       };
       const query = new URLSearchParams();
-      query.set("cwd", p.cwd || getSessionCwd() || process.cwd());
-      if (p.project_root) query.set("project_root", p.project_root);
+      const ambientCwd = normalizeProjectRoot(p.cwd || process.cwd());
+      const markerProjectRoot = resolveCanonicalMarkerProjectRoot(ambientCwd);
+      query.set("cwd", p.cwd || (markerProjectRoot ? ambientCwd : getSessionCwd() || process.cwd()));
+      if (p.project_root || markerProjectRoot) query.set("project_root", p.project_root || markerProjectRoot);
       if (p.current_ask) query.set("current_ask", p.current_ask);
       if (p.remote_host) query.set("remote_host", p.remote_host);
       if (p.remote_user) query.set("remote_user", p.remote_user);
@@ -5291,8 +5293,26 @@ export function registerTools(pi: ExtensionAPI) {
       if (p.remote_repo_remote) query.set("remote_repo_remote", p.remote_repo_remote);
       if (p.remote_workspace_kind) query.set("remote_workspace_kind", p.remote_workspace_kind);
       if (p.remote_deploy_root) query.set("remote_deploy_root", p.remote_deploy_root);
-      const result = await focusaFetchDetailed(`/project/card?${query.toString()}`, { method: "GET" });
-      const body = result.body || {};
+      let result = await focusaFetchDetailed(`/project/card?${query.toString()}`, { method: "GET" });
+      let body = result.body || {};
+      const recoveredContinuity = String(
+        body.trajectory_ladder?.fallback_source_continuity_id ||
+          body.inferred_workpoint_candidate?.source_signals?.prior_session_workpath?.find(
+            (entry: any) => entry?.continuity_id
+          )?.continuity_id ||
+          ""
+      ).trim();
+      const recoveredRoot = normalizeProjectRoot(
+        body.project_identity?.canonical_parent_root || body.project_identity?.project_root
+      );
+      if (
+        recoveredContinuity &&
+        recoveredContinuity !== getContinuityId() &&
+        adoptVerifiedContinuityForCurrentSession(recoveredRoot, recoveredContinuity)
+      ) {
+        result = await focusaFetchDetailed(`/project/card?${query.toString()}`, { method: "GET" });
+        body = result.body || {};
+      }
       const project = body.project_identity || {};
       const temporalProjectRoot = project.project_root || project.canonical_parent_root || p.project_root;
       const temporalContinuityId = getContinuityId();
