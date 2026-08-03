@@ -1,3 +1,5 @@
+pub mod http;
+
 use agent_stateful_cognitive_runtime::{
     ClientToolRequest, ClientToolResult, RuntimeBinding, RuntimeContractError, RuntimeMode,
 };
