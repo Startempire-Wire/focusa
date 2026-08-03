@@ -259,6 +259,10 @@ function applyAsciiFallback(lines: string[], ascii: boolean): string[] {
   );
 }
 
+function stripCanvasAnsi(lines: string[], noColor: boolean): string[] {
+  return noColor ? lines.map((line) => line.replace(ANSI_SEQUENCE, "")) : lines;
+}
+
 function paint(text: string, color: RGB = COLORS.text, background?: RGB, bold = false): string {
   return `${background ? bg(background) : ""}${fg(color)}${bold ? "\x1b[1m" : ""}${text}\x1b[0m`;
 }
@@ -464,9 +468,12 @@ export class MissionCanvasView implements Component {
           ...this.renderWorkspace(safeWidth),
         ];
     const preferences = accessibilityPreferences();
-    const renderedRows = applyAsciiFallback(
-      applyVisualPalette(rows, this.model.visualVariant, preferences.highContrast),
-      preferences.ascii
+    const renderedRows = stripCanvasAnsi(
+      applyAsciiFallback(
+        applyVisualPalette(rows, this.model.visualVariant, preferences.highContrast),
+        preferences.ascii
+      ),
+      process.env.NO_COLOR !== undefined || process.env.TERM === "dumb"
     );
     this.renderCache = { width: safeWidth, signature, lines: renderedRows };
     return renderedRows;
