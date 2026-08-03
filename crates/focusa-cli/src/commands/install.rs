@@ -1630,21 +1630,27 @@ fn have_cmd(name: &str) -> bool {
 fn find_command(name: &str) -> Option<String> {
     #[cfg(windows)]
     {
-        // Avoid the `which` crate's recursive PATHEXT probing on Windows.
-        // `where.exe` is the native command resolver and does not execute the
-        // candidate, which keeps preflight safe and stack-bounded.
-        for candidate in [name.to_string(), format!("{name}.exe"), format!("{name}.cmd")] {
-            let Ok(output) = std::process::Command::new("where.exe")
-                .arg(candidate)
-                .output()
-            else {
-                continue;
-            };
-            if output.status.success()
-                && let Ok(value) = String::from_utf8(output.stdout)
-                && let Some(path) = value.lines().next().map(str::trim).filter(|path| !path.is_empty())
-            {
-                return Some(path.to_string());
+        // Resolve directly from PATH so `.exe` and command shims are reliable
+        // in non-interactive PowerShell/CI processes without executing them.
+        let path = std::env::var_os("PATH")?;
+        let has_extension = std::path::Path::new(name).extension().is_some();
+        let candidates = if has_extension {
+            vec![name.to_string()]
+        } else {
+            vec![
+                name.to_string(),
+                format!("{name}.exe"),
+                format!("{name}.cmd"),
+                format!("{name}.bat"),
+                format!("{name}.com"),
+            ]
+        };
+        for directory in std::env::split_paths(&path) {
+            for candidate in &candidates {
+                let resolved = directory.join(candidate);
+                if resolved.is_file() {
+                    return Some(resolved.display().to_string());
+                }
             }
         }
         return None;
