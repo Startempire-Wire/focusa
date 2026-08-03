@@ -1249,14 +1249,11 @@ fn command_semver(name: &str) -> Option<(u64, u64, u64)> {
             .unwrap_or("")
             .to_ascii_lowercase();
         if matches!(extension.as_str(), "cmd" | "bat") {
-            // cmd.exe requires the outer quote pair when /C launches a script
-            // whose absolute path may contain spaces (for example npm.cmd).
-            if command.contains('"') {
-                return None;
-            }
-            let command_line = format!("\"\"{command}\" --version\"");
-            std::process::Command::new("cmd.exe")
-                .args(["/D", "/S", "/C"])
+            // PowerShell's call operator preserves an absolute script path as
+            // one token even when it contains spaces (for example npm.cmd).
+            let command_line = format!("& '{}' --version", command.replace('\'', "''"));
+            std::process::Command::new("powershell.exe")
+                .args(["-NoProfile", "-NonInteractive", "-Command"])
                 .arg(command_line)
                 .output()
                 .ok()?
@@ -4854,12 +4851,14 @@ mod tests {
         unsafe { std::env::set_var("UIAI_ENGINE_URL", format!("http://{address}")) };
 
         let result = std::panic::catch_unwind(|| {
+            // Consume the bounded health fixture before assertions that can
+            // unwind, so its server thread always terminates deterministically.
+            assert!(dependency_present("uiai-engine"));
             assert!(find_command("pi").is_some_and(|path| path.ends_with("pi.exe")));
             assert!(command_semver("pi").is_some_and(|version| version >= (0, 81, 1)));
             assert!(dependency_present("pi"));
             assert_eq!(command_semver("npm"), Some((10, 9, 2)));
             assert!(dependency_present("npm"));
-            assert!(dependency_present("uiai-engine"));
         });
         server.join().unwrap();
         // SAFETY: restore the process environment while ENV_LOCK is held.
