@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { homedir } from "node:os";
 import test from "node:test";
 import {
   canReuseFreshVerifiedBindingOffline,
@@ -9,7 +8,7 @@ import {
 } from "../src/project-binding.ts";
 
 const sessionSource = readFileSync(new URL("../src/session.ts", import.meta.url), "utf8");
-const macHome = homedir().replace(/\/+$/, "");
+const macHome = "/Users/focusa-test-operator";
 
 const candidate = {
   project_root: `${macHome}/Projects/focusa`,
