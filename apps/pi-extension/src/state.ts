@@ -14,7 +14,10 @@ import {
   type AttachmentKey,
 } from "./scoped-state.js";
 import { projectBindingAllowsDurableWrites, type ProjectBindingDecisionV1 } from "./project-binding.js";
-import { resolveProjectIdentityLookupCwd } from "./project-identity-working-context.js";
+import {
+  resolveCanonicalMarkerProjectRoot,
+  resolveProjectIdentityLookupCwd,
+} from "./project-identity-working-context.js";
 import {
   COMPACTION_PERSISTENCE_ANCHOR_REF_SCHEMA,
   COMPACTION_PERSISTENCE_ANCHOR_SCHEMA,
@@ -3215,7 +3218,11 @@ export async function buildFocusaSessionIdentity(
   if (safe) {
     const query = new URLSearchParams();
     query.set("cwd", cwdForIdentity);
-    query.set("project_root", projectRoot);
+    // `projectRoot` is normally the ambient Pi cwd, not operator-confirmed
+    // authority. Only a local project marker may promote a canonical root.
+    const markerProjectRoot = resolveCanonicalMarkerProjectRoot(cwdForIdentity);
+    const authorityProjectRoot = markerProjectRoot || projectRoot;
+    if (markerProjectRoot) query.set("project_root", markerProjectRoot);
     if (sessionId) query.set("pi_session_id", sessionId);
     const remoteContext: any = persistedBody.remote_context || {};
     if (remoteContext.remote_host) query.set("remote_host", String(remoteContext.remote_host));
@@ -3227,7 +3234,7 @@ export async function buildFocusaSessionIdentity(
       query.set("remote_workspace_kind", String(remoteContext.remote_workspace_kind));
     if (remoteContext.remote_deploy_root)
       query.set("remote_deploy_root", String(remoteContext.remote_deploy_root));
-    if (normalizeProjectRoot(persistedBody.project_root) === projectRoot) {
+    if (normalizeProjectRoot(persistedBody.project_root) === authorityProjectRoot) {
       if (persistedBody.project_root)
         query.set("persisted_project_root", normalizeProjectRoot(persistedBody.project_root));
       if (persistedBody.fingerprint)
@@ -3523,6 +3530,12 @@ export function getScopedWorkpointPacket(): any | null {
     : null;
 }
 
+const verifiedContinuityBySessionRoot = new Map<string, string>();
+
+function verifiedContinuityKey(sessionId: string, projectRoot: string): string {
+  return `${String(sessionId || "").trim()}|${normalizeProjectRoot(projectRoot)}`;
+}
+
 export function adoptVerifiedContinuityForCurrentSession(
   projectRoot: string,
   continuityId: string
@@ -3533,10 +3546,17 @@ export function adoptVerifiedContinuityForCurrentSession(
   const identity: any = identityEnvelope.project_identity || identityEnvelope;
   const decision: any = currentProjectBindingDecision() || {};
   const verifiedRoot = normalizeProjectRoot(
-    identity.canonical_parent_root || identity.project_root || decision.selected_project_root
+    resolveCanonicalMarkerProjectRoot(process.cwd()) ||
+      identity.canonical_parent_root ||
+      identity.project_root ||
+      decision.selected_project_root
   );
   if (!root || !continuity || !isProjectRootAuthoritySafe(root) || verifiedRoot !== root) return false;
   getAttachmentRuntime().continuityId = continuity;
+  verifiedContinuityBySessionRoot.set(
+    verifiedContinuityKey(getSessionFrameKey(), root),
+    continuity
+  );
   syncRuntimeFieldsToScopeStore();
   return true;
 }
@@ -4623,7 +4643,12 @@ export function getActiveFrameId(): string | null {
  */
 export function getContinuityId(): string {
   const store = getCurrentScopeStore();
-  return store?.continuityId || getAttachmentRuntime().continuityId || "";
+  const sessionId = store?.sessionFrameKey || getAttachmentRuntime().sessionFrameKey || "";
+  const markerRoot = resolveCanonicalMarkerProjectRoot(process.cwd());
+  const verified = markerRoot
+    ? verifiedContinuityBySessionRoot.get(verifiedContinuityKey(sessionId, markerRoot))
+    : "";
+  return verified || store?.continuityId || getAttachmentRuntime().continuityId || "";
 }
 
 /**

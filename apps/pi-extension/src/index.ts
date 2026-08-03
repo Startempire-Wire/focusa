@@ -72,6 +72,7 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
       const hints = attachmentRoutingHints(eventOrParams);
       const sessionId = String(
         hints.sessionId ||
+          ctx?.sessionManager?.getSessionId?.() ||
           ctx?.sessionManager?.getSessionFile?.() ||
           getAttachmentRuntime(extensionKey).sessionFrameKey ||
           `pi-extension-${process.pid}`

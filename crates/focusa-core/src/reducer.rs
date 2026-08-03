@@ -4440,6 +4440,30 @@ pub fn reduce_with_meta(
                 }
             }
             state.workpoint.active_workpoint_id = Some(workpoint_id);
+            let promoted_scope = state
+                .workpoint
+                .records
+                .iter()
+                .find(|record| record.workpoint_id == workpoint_id)
+                .map(|record| (record.project_root.clone(), record.continuity_id.clone()));
+            if let Some((Some(project_root), Some(continuity_id))) = promoted_scope {
+                let active_trajectory_id = state.trajectory.active_trajectory_id.as_deref();
+                let exact_scope = |trajectory: &TrajectoryProjectionRecord| {
+                    trajectory.project_root.as_deref() == Some(project_root.as_str())
+                        && trajectory.continuity_id.as_deref() == Some(continuity_id.as_str())
+                };
+                let trajectory_index = active_trajectory_id
+                    .and_then(|active_id| {
+                        state.trajectory.records.iter().position(|trajectory| {
+                            trajectory.trajectory_id == active_id && exact_scope(trajectory)
+                        })
+                    })
+                    .or_else(|| state.trajectory.records.iter().rposition(exact_scope));
+                if let Some(index) = trajectory_index {
+                    state.trajectory.records[index].active_workpoint_id = Some(workpoint_id);
+                    state.trajectory.records[index].updated_at = Some(now);
+                }
+            }
         }
         FocusaEvent::WorkpointCheckpointRejected {
             workpoint_id,
@@ -5194,7 +5218,15 @@ mod tests {
 
     #[test]
     fn test_workpoint_promote_sets_active_pointer() {
-        let state = fresh_state();
+        let mut state = fresh_state();
+        let trajectory = TrajectoryProjectionRecord {
+            trajectory_id: "trajectory-test".to_string(),
+            project_root: Some("/repo/test".to_string()),
+            continuity_id: Some("cont-test".to_string()),
+            ..TrajectoryProjectionRecord::default()
+        };
+        state.trajectory.active_trajectory_id = Some("stale-trajectory-id".to_string());
+        state.trajectory.records.push(trajectory);
         let record = workpoint_record("focusa-a2w2.2");
         let workpoint_id = record.workpoint_id;
         let state = reduce(
@@ -5225,6 +5257,7 @@ mod tests {
             .unwrap();
         assert_eq!(active.status, WorkpointStatus::Active);
         assert_eq!(active.confidence, WorkpointConfidence::Verified);
+        assert_eq!(state.trajectory.records[0].active_workpoint_id, Some(workpoint_id));
     }
 
     #[test]

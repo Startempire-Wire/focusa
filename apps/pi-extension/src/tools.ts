@@ -78,6 +78,7 @@ import {
 } from "./scoped-state.js";
 import { buildNorthStarSnapshot, renderNorthStarCard } from "./north-star.js";
 import { projectBindingAllowsDurableWrites, reconcileProjectBindingDecision } from "./project-binding.js";
+import { resolveCanonicalMarkerProjectRoot } from "./project-identity-working-context.js";
 import { publishScopedStateChange } from "./scoped-surface-refresh.js";
 import { modelVisibleDiscoveryPayload as renderDiscoveryPayload } from "./tool-discovery-visible.js";
 
@@ -1847,7 +1848,15 @@ function focusaToolWorkpointScope(packet: any): { projectRoot: string; continuit
 
 async function resolveFocusaToolProjectRoot(explicitProjectRoot?: unknown): Promise<string> {
   const explicit = normalizeProjectRoot(explicitProjectRoot);
-  const sessionCwd = normalizeProjectRoot(getSessionCwd() || process.cwd());
+  const ambientCwd = normalizeProjectRoot(process.cwd());
+  const ambientMarkerCanonical = resolveCanonicalMarkerProjectRoot(ambientCwd);
+  const sessionCwd = ambientMarkerCanonical
+    ? ambientCwd
+    : normalizeProjectRoot(getSessionCwd() || ambientCwd);
+  const markerCanonical = ambientMarkerCanonical || resolveCanonicalMarkerProjectRoot(sessionCwd);
+  if (!explicit && markerCanonical && isProjectRootAuthoritySafe(markerCanonical)) {
+    return markerCanonical;
+  }
   const cachedIdentity: any = getLastProjectIdentity() || {};
   const cachedCanonical = normalizeProjectRoot(
     cachedIdentity.canonical_parent_root || cachedIdentity.project_root
@@ -1855,7 +1864,9 @@ async function resolveFocusaToolProjectRoot(explicitProjectRoot?: unknown): Prom
   const cachedWorking = normalizeProjectRoot(
     cachedIdentity.active_worktree_root || cachedIdentity.working_context?.active_worktree_root
   );
+  const cachedVerified = cachedIdentity.status === "verified" || cachedIdentity.verified === true;
   if (
+    cachedVerified &&
     cachedCanonical &&
     (!explicit || explicit === cachedCanonical || explicit === cachedWorking) &&
     (!sessionCwd || sessionCwd === cachedCanonical || sessionCwd === cachedWorking)
@@ -3128,10 +3139,15 @@ export function registerTools(pi: ExtensionAPI) {
     const currentKey = currentAttachmentKey();
     if (!currentKey) throw new Error("attachment_runtime_key_required");
     const activeWorkpoint = getActiveWorkpointPacket() as any;
+    const markerProjectRoot = resolveCanonicalMarkerProjectRoot(process.cwd());
+    const activeWorkpointRoot = normalizeProjectRoot(activeWorkpoint?.project_root);
+    const activeWorkpointContinuity = String(activeWorkpoint?.continuity_id || "").trim();
     const workpointScopeAuthoritative =
       !!activeWorkpoint &&
       activeWorkpoint.canonical !== false &&
-      activeWorkpoint.action_authority_for_current_ask !== false;
+      activeWorkpoint.action_authority_for_current_ask !== false &&
+      activeWorkpointContinuity !== "extension-bootstrap" &&
+      (!markerProjectRoot || activeWorkpointRoot === markerProjectRoot);
     const verifiedRoot = normalizeProjectRoot(
       (workpointScopeAuthoritative ? activeWorkpoint.project_root : "") ||
         getLastProjectIdentity()?.project_root ||
@@ -3162,7 +3178,7 @@ export function registerTools(pi: ExtensionAPI) {
     const scopeHeaders = {
       "x-scope-project-root": attachmentKey.workstream.root_scope.root_path,
       "x-scope-continuity-id": attachmentKey.workstream.continuity_id,
-      "x-scope-session-id": attachmentKey.session_id,
+      "x-scope-session-id": getSessionFrameKey() || attachmentKey.session_id,
       "x-scope-id": attachmentKey.workstream.root_scope.scope_id,
       "x-scope-kind": attachmentKey.workstream.root_scope.scope_kind,
       "x-scope-attachment-id": attachmentKey.attachment_id,
@@ -3185,6 +3201,15 @@ export function registerTools(pi: ExtensionAPI) {
         body = await r.json();
       } catch {
         body = null;
+      }
+      if (!r.ok && body === null) {
+        body = {
+          status: "blocked",
+          failure_class: "non_json_http_error",
+          error: `daemon returned HTTP ${r.status} without a JSON recovery envelope`,
+          request_scope: scopeHeaders,
+          request_overrides: (opts.headers as Record<string, string>) || {},
+        };
       }
       if (r.ok && !["GET", "HEAD", "OPTIONS"].includes(method)) {
         const responseRoot = normalizeProjectRoot(
@@ -5012,15 +5037,26 @@ export function registerTools(pi: ExtensionAPI) {
         remote_deploy_root?: string;
       };
       const query = new URLSearchParams();
-      query.set("cwd", p.cwd || getSessionCwd() || process.cwd());
-      if (p.project_root) query.set("project_root", p.project_root);
-      const persistedProjectRoot =
+      const ambientCwd = normalizeProjectRoot(p.cwd || process.cwd());
+      const markerProjectRoot = resolveCanonicalMarkerProjectRoot(ambientCwd);
+      const requestCwd = p.cwd || (markerProjectRoot ? ambientCwd : getSessionCwd() || process.cwd());
+      const authorityProjectRoot = normalizeProjectRoot(p.project_root || markerProjectRoot);
+      query.set("cwd", requestCwd);
+      if (authorityProjectRoot) query.set("project_root", authorityProjectRoot);
+      if (getSessionFrameKey()) query.set("pi_session_id", getSessionFrameKey());
+      const persistedProjectRoot = normalizeProjectRoot(
         p.persisted_project_root ||
-        getActiveWorkpointPacket()?.scope?.project_root ||
-        getActiveWorkpointPacket()?.project_root ||
-        getLastProjectRootResolution()?.projectRoot ||
-        getLastProjectIdentity()?.project_root;
-      if (persistedProjectRoot) query.set("persisted_project_root", persistedProjectRoot);
+          getActiveWorkpointPacket()?.scope?.project_root ||
+          getActiveWorkpointPacket()?.project_root ||
+          getLastProjectRootResolution()?.projectRoot ||
+          getLastProjectIdentity()?.project_root
+      );
+      if (
+        persistedProjectRoot &&
+        (!authorityProjectRoot || persistedProjectRoot === authorityProjectRoot)
+      ) {
+        query.set("persisted_project_root", persistedProjectRoot);
+      }
       if (p.remote_host) query.set("remote_host", p.remote_host);
       if (p.remote_user) query.set("remote_user", p.remote_user);
       if (p.remote_port) query.set("remote_port", String(p.remote_port));
@@ -5130,6 +5166,19 @@ export function registerTools(pi: ExtensionAPI) {
         ) {
           confirmPiProjectRoot(verifiedRoot, "focusa_project_identity_verified");
           ensureContinuityId(verifiedRoot);
+          const priorTrajectory = await focusaFetchDetailed(
+            `/trajectory/view?project_root=${encodeURIComponent(verifiedRoot)}&mode=summary&allow_prior_project_trajectory=true`,
+            { method: "GET" }
+          ).catch(() => null);
+          const priorContinuity = String(
+            priorTrajectory?.body?.trajectory?.fallback_source_continuity_id ||
+              priorTrajectory?.body?.project_identity?.continuity_id ||
+              priorTrajectory?.body?.continuity_id ||
+              ""
+          ).trim();
+          if (priorContinuity) {
+            adoptVerifiedContinuityForCurrentSession(verifiedRoot, priorContinuity);
+          }
           persistState();
         }
       }
@@ -5238,8 +5287,10 @@ export function registerTools(pi: ExtensionAPI) {
         remote_deploy_root?: string;
       };
       const query = new URLSearchParams();
-      query.set("cwd", p.cwd || getSessionCwd() || process.cwd());
-      if (p.project_root) query.set("project_root", p.project_root);
+      const ambientCwd = normalizeProjectRoot(p.cwd || process.cwd());
+      const markerProjectRoot = resolveCanonicalMarkerProjectRoot(ambientCwd);
+      query.set("cwd", p.cwd || (markerProjectRoot ? ambientCwd : getSessionCwd() || process.cwd()));
+      if (p.project_root || markerProjectRoot) query.set("project_root", p.project_root || markerProjectRoot);
       if (p.current_ask) query.set("current_ask", p.current_ask);
       if (p.remote_host) query.set("remote_host", p.remote_host);
       if (p.remote_user) query.set("remote_user", p.remote_user);
@@ -5247,8 +5298,40 @@ export function registerTools(pi: ExtensionAPI) {
       if (p.remote_repo_remote) query.set("remote_repo_remote", p.remote_repo_remote);
       if (p.remote_workspace_kind) query.set("remote_workspace_kind", p.remote_workspace_kind);
       if (p.remote_deploy_root) query.set("remote_deploy_root", p.remote_deploy_root);
-      const result = await focusaFetchDetailed(`/project/card?${query.toString()}`, { method: "GET" });
-      const body = result.body || {};
+      let result = await focusaFetchDetailed(`/project/card?${query.toString()}`, { method: "GET" });
+      let body = result.body || {};
+      const continuityBeforeRecovery = getContinuityId();
+      const authoritativeFallbackContinuity = String(
+        body.trajectory_ladder?.fallback_source_continuity_id ||
+          body.prior_session_context?.trajectory_ladder?.fallback_source_continuity_id ||
+          body.prior_session_context?.fallback_source_continuity_id ||
+          ""
+      ).trim();
+      const inferredFallbackContinuity = String(
+        body.inferred_workpoint_candidate?.source_signals?.prior_session_workpath?.find(
+          (entry: any) => entry?.continuity_id
+        )?.continuity_id || ""
+      ).trim();
+      const recoveredContinuity =
+        authoritativeFallbackContinuity ||
+        (!continuityBeforeRecovery || continuityBeforeRecovery === "extension-bootstrap"
+          ? inferredFallbackContinuity
+          : "");
+      const recoveredRoot = normalizeProjectRoot(
+        body.project_identity?.canonical_parent_root || body.project_identity?.project_root
+      );
+      let continuityRecoveryAdopted = false;
+      if (
+        recoveredContinuity &&
+        recoveredContinuity !== continuityBeforeRecovery &&
+        (continuityRecoveryAdopted = adoptVerifiedContinuityForCurrentSession(
+          recoveredRoot,
+          recoveredContinuity
+        ))
+      ) {
+        result = await focusaFetchDetailed(`/project/card?${query.toString()}`, { method: "GET" });
+        body = result.body || {};
+      }
       const project = body.project_identity || {};
       const temporalProjectRoot = project.project_root || project.canonical_parent_root || p.project_root;
       const temporalContinuityId = getContinuityId();
@@ -5347,6 +5430,13 @@ export function registerTools(pi: ExtensionAPI) {
           temporal_context: body.temporal_context || { status: "unavailable" },
           efficiency_summary: efficiency,
           crosswire_health: crosswire,
+          continuity_recovery: {
+            candidate: recoveredContinuity || null,
+            project_root: recoveredRoot || null,
+            before: continuityBeforeRecovery || null,
+            adopted: continuityRecoveryAdopted,
+            after: getContinuityId() || null,
+          },
           prior_session_context: prior,
           success_sequence: sequence,
           ontology,
@@ -8932,9 +9022,29 @@ export function registerTools(pi: ExtensionAPI) {
     const method = opts.method || "POST";
     const writerId = opts.writer ? await preferredWriterId() : undefined;
     const writerLease = writerId ? await currentWorkLoopLease() : null;
+    const requestSessionId = String(request.session_id || "").trim();
+    const identity: any = getLastProjectIdentity() || {};
+    const requestProjectRoot = normalizeProjectRoot(
+      resolveCanonicalMarkerProjectRoot(process.cwd()) ||
+        identity.canonical_parent_root ||
+        identity.project_root ||
+        getSessionCwd()
+    );
+    const requestContinuityId = String(getContinuityId() || "").trim();
+    const requestScopeHeaders: Record<string, string> =
+      isProjectRootAuthoritySafe(requestProjectRoot) && requestContinuityId
+        ? {
+            "x-scope-project-root": requestProjectRoot,
+            "x-scope-continuity-id": requestContinuityId,
+          }
+        : {};
     const req: RequestInit = {
       method,
-      headers: writerId ? writerLeaseHeaders(writerId, writerLease) : undefined,
+      headers: {
+        ...(writerId ? writerLeaseHeaders(writerId, writerLease) : {}),
+        ...requestScopeHeaders,
+        ...(requestSessionId ? { "x-scope-session-id": requestSessionId } : {}),
+      },
       body: method === "POST" ? JSON.stringify(request) : undefined,
     };
     const first = await focusaFetchDetailed(endpoint, req);
