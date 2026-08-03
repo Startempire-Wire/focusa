@@ -102,12 +102,28 @@ try {
   shell.handleInput("\n");
   await new Promise((resolvePromise) => setImmediate(resolvePromise));
   assert.deepEqual(sent, ["continue the work"]);
+  assert.equal(done, 1, "submitting work must return to the normal Pi transcript");
   assert.deepEqual(notifications, []);
 
-  for (const character of "preserve this draft") shell.handleInput(character);
-  shell.handleInput("\x1b");
+  let escapeDone = 0;
+  restoredDraft = "";
+  const escapeShell = new MissionCanvasShell(
+    {},
+    theme,
+    () => {},
+    () => 20,
+    () => escapeDone++,
+    async () => ({}),
+    pi,
+    ctx,
+    () => {},
+    () => {},
+    async () => {}
+  );
+  for (const character of "preserve this draft") escapeShell.handleInput(character);
+  escapeShell.handleInput("\x1b");
   await new Promise((resolvePromise) => setImmediate(resolvePromise));
-  assert.equal(done, 1, "Escape must close the Canvas immediately");
+  assert.equal(escapeDone, 1, "Escape must close the Canvas immediately");
   assert.equal(restoredDraft, "preserve this draft");
   console.log("Mission Canvas shell runtime: PASS (stable overlay, bounded height, IME focus, local close)");
 } finally {

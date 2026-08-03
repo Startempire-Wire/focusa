@@ -107,8 +107,8 @@ export class MissionCanvasShell implements Component, Focusable {
         });
         return;
       }
+      this.closeShell();
       void this.pi.sendUserMessage(prompt);
-      this.requestRender();
     };
   }
 

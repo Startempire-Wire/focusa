@@ -209,9 +209,14 @@ function graphLines(profile: string): string[] {
   return ["User repo ── Auth flow ── Hasher", "     ╲         │         ╱", "      Errors ─ Evidence"];
 }
 
-function resolveContributions(model: MissionCanvasModel, activity: MissionCanvasActivity, transcript: string[]): Contribution[] {
+function resolveContributions(
+  model: MissionCanvasModel,
+  activity: MissionCanvasActivity,
+  transcript: string[],
+  selectedSurface: number
+): Contribution[] {
   const result: Array<Contribution | undefined> = [];
-  const surface = useful(model.workSurfaceDetails[0]);
+  const surface = useful(model.workSurfaceDetails[selectedSurface]);
   const evidence = useful(model.evidenceRefs);
   const research = useful(model.researchArtifacts);
   const sessions = useful(model.sessions);
@@ -407,7 +412,12 @@ export class MissionCanvasView implements Component {
     const mainWidth = narrow
       ? width
       : Math.max(30, width - railWidth - (railWidth ? 1 : 0));
-    const contributions = resolveContributions(this.model, this.activity, this.conversation);
+    const contributions = resolveContributions(
+      this.model,
+      this.activity,
+      this.conversation,
+      this.selectedSurface
+    );
     const main = this.renderContributionGrid(contributions, mainWidth);
 
     if (narrow) {

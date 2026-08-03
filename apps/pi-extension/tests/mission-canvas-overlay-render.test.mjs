@@ -41,6 +41,11 @@ const detailRows = Array.from(
   { length: 24 },
   (_, index) => `work surface detail ${index + 1} with bounded operational context`
 );
+const surfaceDetails = [
+  ["canvas-only-content", ...detailRows],
+  ["runtime-only-content", ...detailRows],
+  ["release-only-content", ...detailRows],
+];
 const model = {
   mission: "Make Mission Canvas stable and workable",
   trajectory: "Pi-native overlay without reset or scroll storms",
@@ -54,7 +59,7 @@ const model = {
   blockers: ["No polling", "No root takeover"],
   sessions: ["Pi · active", "UIAI · idle"],
   workSurfaces: ["Canvas repair", "Runtime proof", "Release evidence"],
-  workSurfaceDetails: [detailRows, detailRows, detailRows],
+  workSurfaceDetails: surfaceDetails,
   contention: [],
   researchArtifacts: detailRows,
   history: detailRows,
@@ -93,7 +98,13 @@ try {
   assert(first.length <= 24, `overlay rendered ${first.length} rows into a 24-row viewport`);
   assert(first.every((line) => visibleWidth(line) <= 100));
   assert(first.some((line) => line.includes("Canvas repair")));
+  assert(first.some((line) => line.includes("canvas-only-content")));
   assert(first.some((line) => line.includes("PROMPT EDITOR")));
+
+  shell.canvas.handleInput("surface-next");
+  const switched = shell.render(100);
+  assert(switched.some((line) => line.includes("runtime-only-content")));
+  assert(switched.every((line) => !line.includes("canvas-only-content")));
 
   shell.handleInput("\x1b[6~");
   const scrolled = shell.render(100);

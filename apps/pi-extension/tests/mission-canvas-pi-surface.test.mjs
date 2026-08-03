@@ -57,6 +57,7 @@ assert.match(shell, /this\.input\.getValue\(\)/);
 assert.match(shell, /setEditorText\(draft\)/);
 assert.match(shell, /Esc\/Ctrl\+G close/);
 assert.match(shell, /this\.closeShell\(\)/);
+assert.match(shell, /this\.closeShell\(\);\n      void this\.pi/);
 assert.match(shell, /this\.scrollOffset \+ availableRows/);
 assert.match(shell, /Key\.pageDown/);
 assert.doesNotMatch(shell, /Math\.max\(40, width\)/);
@@ -71,6 +72,7 @@ for (const label of [
   "Sessions", "Documents", "Research", "Evidence", "History", "Controls",
 ]) assert.ok(view.includes(`"${label}"`), `missing activity ${label}`);
 assert.match(view, /resolveContributions/);
+assert.match(view, /workSurfaceDetails\[selectedSurface\]/);
 assert.match(view, /meaningful/);
 assert.match(view, /layoutMemory/);
 assert.match(view, /Steering Queue/);
