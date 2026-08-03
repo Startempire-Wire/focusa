@@ -1248,14 +1248,24 @@ fn command_semver(name: &str) -> Option<(u64, u64, u64)> {
             .and_then(|value| value.to_str())
             .unwrap_or("")
             .to_ascii_lowercase();
-        let mut process = if matches!(extension.as_str(), "cmd" | "bat") {
-            let mut process = std::process::Command::new("cmd.exe");
-            process.args(["/D", "/C"]).arg(&command);
-            process
+        if matches!(extension.as_str(), "cmd" | "bat") {
+            // cmd.exe requires the outer quote pair when /C launches a script
+            // whose absolute path may contain spaces (for example npm.cmd).
+            if command.contains('"') {
+                return None;
+            }
+            let command_line = format!("\"\"{command}\" --version\"");
+            std::process::Command::new("cmd.exe")
+                .args(["/D", "/S", "/C"])
+                .arg(command_line)
+                .output()
+                .ok()?
         } else {
             std::process::Command::new(&command)
-        };
-        process.arg("--version").output().ok()?
+                .arg("--version")
+                .output()
+                .ok()?
+        }
     };
     #[cfg(not(windows))]
     let output = std::process::Command::new(command)
@@ -4798,9 +4808,16 @@ mod tests {
             "failed to compile native pi.exe fixture"
         );
         std::fs::write(fixture.join("pi.cmd"), "@echo off\r\necho pi 0.81.1\r\n").unwrap();
+        let script_fixture = fixture.join("Program Files fixture");
+        std::fs::create_dir_all(&script_fixture).unwrap();
+        std::fs::write(
+            script_fixture.join("npm.cmd"),
+            "@echo off\r\necho 10.9.2\r\n",
+        )
+        .unwrap();
         let previous_path = std::env::var_os("PATH");
         let previous_uiai = std::env::var_os("UIAI_ENGINE_URL");
-        let mut paths = vec![fixture.clone()];
+        let mut paths = vec![fixture.clone(), script_fixture];
         if let Some(path) = previous_path.as_ref() {
             paths.extend(std::env::split_paths(path));
         }
@@ -4840,6 +4857,8 @@ mod tests {
             assert!(find_command("pi").is_some_and(|path| path.ends_with("pi.exe")));
             assert!(command_semver("pi").is_some_and(|version| version >= (0, 81, 1)));
             assert!(dependency_present("pi"));
+            assert_eq!(command_semver("npm"), Some((10, 9, 2)));
+            assert!(dependency_present("npm"));
             assert!(dependency_present("uiai-engine"));
         });
         server.join().unwrap();
