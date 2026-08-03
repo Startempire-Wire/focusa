@@ -4781,19 +4781,37 @@ mod tests {
         if let Some(path) = previous_path.as_ref() {
             paths.extend(std::env::split_paths(path));
         }
-        std::env::set_var("PATH", std::env::join_paths(paths).unwrap());
+        // SAFETY: this Windows-only test is the sole filtered test in its CI
+        // process and holds ENV_LOCK for the complete mutation/restoration.
+        unsafe { std::env::set_var("PATH", std::env::join_paths(paths).unwrap()) };
 
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        listener.set_nonblocking(true).unwrap();
         let address = listener.local_addr().unwrap();
         let server = std::thread::spawn(move || {
-            let (mut stream, _) = listener.accept().unwrap();
-            let mut request = [0_u8; 1024];
-            let _ = stream.read(&mut request);
-            stream
-                .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nOK")
-                .unwrap();
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+            loop {
+                match listener.accept() {
+                    Ok((mut stream, _)) => {
+                        let mut request = [0_u8; 1024];
+                        let _ = stream.read(&mut request);
+                        stream
+                            .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nOK")
+                            .unwrap();
+                        return;
+                    }
+                    Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                        if std::time::Instant::now() >= deadline {
+                            panic!("UIAI health fixture received no request");
+                        }
+                        std::thread::sleep(std::time::Duration::from_millis(20));
+                    }
+                    Err(error) => panic!("UIAI health fixture accept failed: {error}"),
+                }
+            }
         });
-        std::env::set_var("UIAI_ENGINE_URL", format!("http://{address}"));
+        // SAFETY: guarded and restored before this test releases ENV_LOCK.
+        unsafe { std::env::set_var("UIAI_ENGINE_URL", format!("http://{address}")) };
 
         let result = std::panic::catch_unwind(|| {
             assert!(find_command("pi").is_some_and(|path| path.ends_with("pi.cmd")));
@@ -4802,15 +4820,18 @@ mod tests {
             assert!(dependency_present("uiai-engine"));
         });
         server.join().unwrap();
-        if let Some(path) = previous_path {
-            std::env::set_var("PATH", path);
-        } else {
-            std::env::remove_var("PATH");
-        }
-        if let Some(url) = previous_uiai {
-            std::env::set_var("UIAI_ENGINE_URL", url);
-        } else {
-            std::env::remove_var("UIAI_ENGINE_URL");
+        // SAFETY: restore the process environment while ENV_LOCK is held.
+        unsafe {
+            if let Some(path) = previous_path {
+                std::env::set_var("PATH", path);
+            } else {
+                std::env::remove_var("PATH");
+            }
+            if let Some(url) = previous_uiai {
+                std::env::set_var("UIAI_ENGINE_URL", url);
+            } else {
+                std::env::remove_var("UIAI_ENGINE_URL");
+            }
         }
         let _ = std::fs::remove_dir_all(fixture);
         result.unwrap();
