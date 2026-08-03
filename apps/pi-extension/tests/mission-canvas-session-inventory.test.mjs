@@ -46,6 +46,29 @@ const surfaces = model.projectWorkSurfaces({
     },
   ],
 });
+const durableSurface = model.projectWorkSurfaces({
+  surfaces: [
+    {
+      work_surface_id: "surface-document",
+      title: "Release notes",
+      surface_kind: "document",
+      project_root: "/project",
+      continuity_id: "continuity",
+      attachment_id: "attachment-document",
+      instance_id: "instance-document",
+      status: "suspended",
+      pane_id: "secondary:vertical",
+      pinned: true,
+      unread: true,
+    },
+  ],
+})[0];
+assert.equal(durableSurface.displayName, "Release notes");
+assert.equal(durableSurface.kind, "document");
+assert.equal(durableSurface.lifecycleState, "suspended");
+assert.equal(durableSurface.splitGroupId, "secondary:vertical");
+assert.equal(durableSurface.unreadEventCount, 1);
+
 const rows = inventory.projectSessionInventory(discovered, surfaces, {
   sessions: [
     { session_id: "silent-1", status: "running", project_root: "/project", continuity_id: "continuity" },

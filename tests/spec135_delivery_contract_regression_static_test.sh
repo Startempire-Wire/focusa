@@ -43,7 +43,7 @@ while IFS= read -r filename; do
   if [[ "$filename" =~ ^135[l-z]([-_].*)?\.md$ ]]; then
     fail "Spec 135 series is frozen at 135K; forbidden later companion exists: docs/$filename"
   fi
-done < <(find "$ROOT_DIR/docs" -maxdepth 1 -type f -printf '%f\n')
+done < <(find "$ROOT_DIR/docs" -maxdepth 1 -type f -exec basename {} \;)
 pass "Spec 135 companion series is frozen at 135K"
 
 for needle in \
@@ -145,7 +145,8 @@ for needle in \
   '→ Evidence' \
   '→ Receipt' \
   '→ UIAI artifact' \
-  '→ multiplexed Mission Canvas' \
+  '→ Focusa rich Mission Canvas with the same live session' \
+  '→ real Work Surface switch/split/rehydration' \
   '→ pause' \
   '→ restart'; do
   require_in "$DELIVERY" "$needle"

@@ -7,7 +7,7 @@
       "ok": true
     },
     {
-      "detail": "Spec 135 generated clients: PASS (86 operations)",
+      "detail": "Spec 135 generated clients: PASS (100 operations)",
       "gate": "tests/spec135_generated_clients_test.py",
       "ok": true
     },
@@ -172,7 +172,7 @@
       "ok": true
     },
     {
-      "detail": "operations=86",
+      "detail": "operations=100",
       "gate": "schemathesis_compatible_openapi_contract",
       "ok": true
     }

@@ -16,10 +16,19 @@ ledger = yaml.safe_load((R / "docs/contracts/spec135-complete-feature-ledger.v1.
 verified = [row["requirement_id"] for row in ledger if row.get("closure_status") == "verified"]
 open_requirements = [row["requirement_id"] for row in ledger if row.get("closure_status") != "verified"]
 issues = [json.loads(line) for line in (R / ".beads/issues.jsonl").read_text().splitlines()]
+AUTHORITATIVE_RELEASE_TASKS = [
+    "focusa-mc2",
+    "focusa-mc2.12",
+    "focusa-mc2.12.377",
+    "focusa-mc2.12.378",
+    "focusa-mc2.12.379",
+    "focusa-mc2.12.380",
+    "focusa-mc2.12.381",
+]
 open_tasks = [
     row["id"] for row in issues
-    if row["id"].startswith("focusa-mc-")
-    and row.get("issue_type") == "task"
+    if (row["id"] == "focusa-mc2" or row["id"].startswith("focusa-mc2."))
+    and row.get("issue_type") in {"task", "epic"}
     and row.get("status") != "closed"
 ]
 status = git("status", "--porcelain=v1")
@@ -53,7 +62,7 @@ proof["merge_ready"] = (
     proof["clean"]
     and behind == 0
     and open_requirements == ["SPEC135-Z5"]
-    and open_tasks == ["focusa-mc-z5"]
+    and open_tasks == AUTHORITATIVE_RELEASE_TASKS
 )
 print(json.dumps(proof, indent=2, sort_keys=True))
 sys.exit(0 if proof["merge_ready"] else 1)

@@ -1,4 +1,5 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { truncateToWidth } from "@earendil-works/pi-tui";
 import {
   focusaFetch,
   getAttachmentRuntime,
@@ -35,7 +36,7 @@ let semanticOperations = 0;
 let semanticMutations = 0;
 let semanticSupported = 0;
 let semanticSchemaOnly = 0;
-let semanticOperationLines: string[] = [];
+let lastWidgetSignature: string | null = null;
 
 function bounded(value: unknown, max = 56): string {
   const text = String(value || "")
@@ -47,13 +48,10 @@ function bounded(value: unknown, max = 56): string {
 function truthfulStatusLines(ctx: any): string[] {
   const truth = buildTruthfulScopedSurfaceSnapshot(startupCwd || ctx?.cwd || "");
   const proof = truth.proof === "missing" ? "proof missing" : `${truth.proof} proof ${truth.proof_count}`;
-  const stale = truth.stale_age_ms < 0 ? "never refreshed" : `age ${Math.round(truth.stale_age_ms / 1000)}s`;
   return [
     `scope ${bounded(truth.selected_scope)} · startup ${bounded(truth.startup_cwd)} · project ${truth.project}`,
     `trajectory ${truth.trajectory} · workpoint ${truth.workpoint} · bead ${truth.bead} · ${proof}`,
-    `refresh ${truth.last_refresh_status} · ${stale}`,
-    `semantic pair ${semanticTruth} · ${semanticOperations} operations · ${semanticSupported} supported · ${semanticSchemaOnly} schema-only · ${semanticMutations} mutations`,
-    ...semanticOperationLines,
+    `refresh ${truth.last_refresh_status} · semantic ${semanticTruth} · ${semanticSupported}/${semanticOperations} supported · ${semanticSchemaOnly} schema-only · ${semanticMutations} mutations`,
   ];
 }
 
@@ -66,30 +64,54 @@ export function refreshMissionCanvasWidget(ctx: any): void {
   if (!ctx?.hasUI) return;
   const binding = currentProjectBindingDecision();
   if (getAttachmentRuntime().startupReceptionistActive || !binding || binding.state !== "BOUND") {
-    ctx.ui.setWidget("focusa-mission-canvas-work-rail", undefined);
+    if (lastWidgetSignature !== null) {
+      ctx.ui.setWidget("focusa-mission-canvas-work-rail", undefined);
+      lastWidgetSignature = null;
+    }
     return;
   }
   const interactionMode = resolveInteractionMode(getSessionCwd());
   if (interactionMode.mode !== "canvas-guided") {
-    ctx.ui.setWidget("focusa-mission-canvas-work-rail", undefined);
+    if (lastWidgetSignature !== null) {
+      ctx.ui.setWidget("focusa-mission-canvas-work-rail", undefined);
+      lastWidgetSignature = null;
+    }
     return;
   }
   const workpoint = getActiveWorkpointPacket();
   const focus = getEffectiveFocusSnapshot();
   const snapshot = workRailSnapshotFromPacket(workpoint ?? focus ?? null);
-  const lines = renderWorkRailWidget(
-    snapshot,
-    120,
-    {
-      accent: (text) => text,
-      dim: (text) => text,
-      good: (text) => text,
-    },
-    true
+  const statusLines = truthfulStatusLines(ctx);
+  const asciiWorkRail = process.env.FOCUSA_ASCII_UI === "1" || process.env.TERM === "dumb";
+  const signature = JSON.stringify([
+    statusLines,
+    { ...snapshot, updatedAt: undefined },
+    asciiWorkRail,
+  ]);
+  if (signature === lastWidgetSignature) return;
+  lastWidgetSignature = signature;
+  ctx.ui.setWidget(
+    "focusa-mission-canvas-work-rail",
+    (_tui: unknown, theme: { fg(name: string, text: string): string }) => ({
+      render(width: number) {
+        return [
+          ...statusLines.map((line) => truncateToWidth(line, Math.max(1, width))),
+          ...renderWorkRailWidget(
+            snapshot,
+            width,
+            {
+              accent: (text) => theme.fg("accent", text),
+              dim: (text) => theme.fg("dim", text),
+              good: (text) => theme.fg("success", text),
+            },
+            asciiWorkRail
+          ),
+        ];
+      },
+      invalidate() {},
+    }),
+    { placement: "aboveEditor" }
   );
-  ctx.ui.setWidget("focusa-mission-canvas-work-rail", [...truthfulStatusLines(ctx), ...lines], {
-    placement: "aboveEditor",
-  });
 }
 
 async function pollScopedSurfaceState(ctx: any): Promise<void> {
@@ -128,7 +150,6 @@ async function pollScopedSurfaceState(ctx: any): Promise<void> {
     semanticMutations = semanticSummary.mutationCount;
     semanticSupported = semanticSummary.supportedCount;
     semanticSchemaOnly = semanticSummary.schemaOnlyCount;
-    semanticOperationLines = semanticSummary.operationLines;
     const packet = normalizeWorkpointResumePacketEnvelope(workpointResult);
     const packetRoot = normalizeProjectRoot(
       packet?.project_root || packet?.scope?.project_root || workpointResult?.scope?.project_root || ""

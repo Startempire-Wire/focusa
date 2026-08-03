@@ -106,7 +106,14 @@ def commit_context(base):
     raise RuntimeError("context writer did not quiesce")
 
 
-def draft_body(source_id, key, purpose=None, redlines=None, permission_assertions=None):
+def draft_body(
+    source_id,
+    key,
+    purpose=None,
+    redlines=None,
+    permission_assertions=None,
+    alternatives=None,
+):
     return {
         **SCOPE,
         "idempotency_key": key,
@@ -153,6 +160,7 @@ def draft_body(source_id, key, purpose=None, redlines=None, permission_assertion
         ],
         "tool_preferences": ["Operation Registry", "UIAI Engine"],
         "reviewer_lenses": ["security", "accessibility", "evidence quality"],
+        "alternatives": alternatives or [],
         "context_artifact_refs": [source_id],
         "context_claim_refs": [],
         "interview_answer_refs": [],
@@ -239,6 +247,8 @@ def main():
         assert profile1["revision"] == 1 and profile1["status"] == "pending_operator"
         assert profile1["grants_permissions"] is False
         assert profile1["grounding"]["context_artifact_refs"] == [source_id]
+        assert len(profile1["alternatives"]) == 1
+        assert profile1["alternatives"][0]["grounding_refs"] == [source_id]
         assert profile1["assumptions"][0]["status"] == "grounded"
         assert drafted["responsibility_is_not_permission"] is True
         assert drafted["evidence_ref"] == source_id
@@ -277,11 +287,20 @@ def main():
                         "rationale": "Operator clarified the recovery and handoff boundary.",
                     }
                 ],
+                alternatives=[
+                    {
+                        "title": "Evidence challenger",
+                        "purpose": "Challenge role conclusions without direct execution authority.",
+                        "tradeoffs": ["More verification depth with slower execution"],
+                        "grounding_refs": [source_id],
+                    }
+                ],
             ),
         )
         profile3 = revised["profile"]
         assert profile3["revision"] == 3 and profile3["status"] == "pending_operator"
         assert profile3["redlines"][0]["field"] == "purpose"
+        assert profile3["alternatives"][0]["title"] == "Evidence challenger"
 
         deferred = mutate(
             base,

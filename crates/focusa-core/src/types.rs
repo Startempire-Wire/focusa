@@ -2127,10 +2127,87 @@ pub struct ContextSourceHealth {
     pub status: String,
     pub adapter_id: String,
     pub message: String,
+    #[serde(default)]
+    pub read_write_posture: String,
+    #[serde(default)]
+    pub oauth_scopes: Vec<String>,
+    #[serde(default)]
+    pub incremental_sync_method: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cursor_state: Option<String>,
+    #[serde(default)]
+    pub rate_limit_posture: String,
+    #[serde(default)]
+    pub revocation_behavior: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub recovery_action: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_successful_sync: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectContextArtifactScope {
+    pub project_root: String,
+    pub continuity_id: String,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectContextArtifactProvenance {
+    pub connector_id: String,
+    pub account_ref: String,
+    pub author: String,
+    pub source_url: String,
+    pub page_or_message_ref: String,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectContextArtifactClassification {
+    pub sensitivity: String,
+    pub confidentiality: String,
+    pub retention_class: String,
+    pub freshness_status: String,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectContextArtifactExtraction {
+    pub status: String,
+    pub diagnostic_refs: Vec<String>,
+    pub extracted_claim_ids: Vec<String>,
+    pub entity_refs: Vec<String>,
+    pub date_refs: Vec<String>,
+    pub task_refs: Vec<String>,
+    pub contradiction_refs: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectContextArtifactSemantic {
+    pub domain_pack_refs: Vec<String>,
+    pub candidate_object_refs: Vec<String>,
+    pub candidate_link_refs: Vec<String>,
+    pub verification_policy_refs: Vec<String>,
+}
+
+/// Source-linked artifact contract required by Spec 135B Context ingestion.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectContextArtifact {
+    pub schema: String,
+    pub artifact_id: String,
+    pub source_kind: String,
+    pub source_ref: String,
+    pub source_revision: String,
+    pub title: String,
+    pub mime_type: String,
+    pub content_handle: String,
+    pub content_sha256: String,
+    pub created_at: DateTime<Utc>,
+    pub observed_at: DateTime<Utc>,
+    pub scope: ProjectContextArtifactScope,
+    pub provenance: ProjectContextArtifactProvenance,
+    pub classification: ProjectContextArtifactClassification,
+    pub extraction: ProjectContextArtifactExtraction,
+    pub semantic: ProjectContextArtifactSemantic,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duplicate_of_artifact_ref: Option<String>,
 }
 
 /// Canonical, scoped Context source retained by the Focusa reducer.
@@ -2163,6 +2240,8 @@ pub struct ContextSourceRecord {
     pub extraction_diagnostics: Vec<String>,
     #[serde(default)]
     pub health: ContextSourceHealth,
+    #[serde(default)]
+    pub artifact: ProjectContextArtifact,
 }
 
 /// Stable bounded content handle for a rich Workspace Artifact; never stores a large browser blob.
@@ -2411,6 +2490,17 @@ pub struct RoleReviewRecord {
     pub rationale: String,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RoleAlternativeRecord {
+    pub alternative_id: String,
+    pub title: String,
+    pub purpose: String,
+    #[serde(default)]
+    pub tradeoffs: Vec<String>,
+    #[serde(default)]
+    pub grounding_refs: Vec<String>,
+}
+
 /// Versioned, Context-grounded project role. It describes responsibility, never permission.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProjectAgentRoleProfile {
@@ -2451,6 +2541,8 @@ pub struct ProjectAgentRoleProfile {
     pub tool_preferences: Vec<String>,
     #[serde(default)]
     pub reviewer_lenses: Vec<String>,
+    #[serde(default)]
+    pub alternatives: Vec<RoleAlternativeRecord>,
     pub grounding: RoleProfileGrounding,
     #[serde(default)]
     pub assumptions: Vec<RoleAssumptionRecord>,
@@ -2713,6 +2805,7 @@ pub struct SpecSectionRecord {
     pub section_id: String,
     pub title: String,
     pub section_kind: String,
+    pub reality_classification: String,
     pub status: SpecSectionStatus,
     pub order_index: u32,
     pub revision: u64,
@@ -2730,6 +2823,30 @@ pub struct SpecSectionRecord {
     pub updated_at: DateTime<Utc>,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CristSpecHandoff {
+    pub schema: String,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub current_ask: String,
+    pub workspace_profile_ref: String,
+    #[serde(default)]
+    pub active_domain_pack_refs: Vec<String>,
+    pub semantic_registry_version: String,
+    #[serde(default)]
+    pub context_pack_refs: Vec<String>,
+    #[serde(default)]
+    pub accepted_project_claim_refs: Vec<String>,
+    pub role_profile_ref: String,
+    #[serde(default)]
+    pub interview_session_refs: Vec<String>,
+    #[serde(default)]
+    pub unresolved_questions: Vec<String>,
+    #[serde(default)]
+    pub known_contradictions: Vec<String>,
+    pub desired_spec_template: String,
+}
+
 /// Canonical Spec 120 Workbench asset; exports and agent rounds remain projections.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SpecWorkbenchSessionRecord {
@@ -2738,6 +2855,10 @@ pub struct SpecWorkbenchSessionRecord {
     pub continuity_id: String,
     pub attachment_id: String,
     pub current_ask: String,
+    #[serde(default)]
+    pub desired_spec_template: String,
+    #[serde(default)]
+    pub crist_handoff: CristSpecHandoff,
     pub state_revision: u64,
     pub status: SpecWorkbenchStatus,
     pub canonical: bool,
@@ -2880,6 +3001,16 @@ pub enum WorkRailStatus {
     Cancelled,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkRailInteractionRecord {
+    pub interaction_id: String,
+    pub action: String,
+    pub actor_ref: String,
+    pub reason: String,
+    pub receipt_ref: String,
+    pub committed_at: DateTime<Utc>,
+}
+
 /// Canonical Work Rail row joining Beads, Workpoint, proof, closure, and Receipt truth.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WorkRailRecord {
@@ -2895,6 +3026,16 @@ pub struct WorkRailRecord {
     pub working_subpath_id: String,
     pub continuity_id: String,
     pub attachment_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub instance_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
+    #[serde(default)]
+    pub work_surface_ids: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub priority: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rank: Option<i64>,
     #[serde(default)]
     pub dependencies: Vec<String>,
     #[serde(default)]
@@ -2904,9 +3045,13 @@ pub struct WorkRailRecord {
     #[serde(default)]
     pub artifact_refs: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub change_set_ref: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub receipt_ref: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub closure_claim_ref: Option<String>,
+    #[serde(default)]
+    pub interaction_history: Vec<WorkRailInteractionRecord>,
     pub idempotency_key: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

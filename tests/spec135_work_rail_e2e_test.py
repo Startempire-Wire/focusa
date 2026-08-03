@@ -36,14 +36,22 @@ def mutate(base, scope, action, key, wp, item, row=None, **extra):
             "expected_state_version": current["state_version"],
             "expected_rail_revision": row["state_revision"] if row else 0,
             "action": action,
+            "side_effect_policy": "preview",
+            "actor_ref": "operator:vsmith",
+            "interaction_reason": f"E2E {action}",
             "workpoint_id": wp,
             "provider_item_id": item,
             **extra,
         }
         if row:
             body["work_rail_id"] = row["work_rail_id"]
+        status, preview = h.call(base, "POST", MUTATE, body)
+        assert status == 200 and not preview["committed"], preview
+        body["side_effect_policy"] = "commit"
+        body["preview_token"] = preview["preview_token"]
         status, p = h.call(base, "POST", MUTATE, body)
         if status == 200:
+            assert p["committed"] and p["row"]["interaction_history"]
             return p
         assert status == 409, p
         time.sleep(0.05)
@@ -178,8 +186,47 @@ def main():
         )
         assert status == 200, linked
         row = mutate(
-            base, scope, "bind", "st4-bind", wp, item, title="Verified Work Rail task"
+            base,
+            scope,
+            "bind",
+            "st4-bind",
+            wp,
+            item,
+            title="Verified Work Rail task",
+            instance_id="instance:st4",
+            session_id="session:st4",
+            work_surface_ids=["work-surface:st4"],
+            priority=0,
+            rank=1,
+            change_set_ref="change-set:st4",
         )["row"]
+        current = listed(base, scope, row["work_rail_id"])
+        status, rejected = h.call(
+            base,
+            "POST",
+            MUTATE,
+            {
+                **scope,
+                "working_subpath_id": "mission-canvas",
+                "idempotency_key": "st4-invalid-token",
+                "expected_state_version": current["state_version"],
+                "expected_rail_revision": row["state_revision"],
+                "action": "activate",
+                "side_effect_policy": "commit",
+                "preview_token": "wrong-token",
+                "actor_ref": "operator:vsmith",
+                "work_rail_id": row["work_rail_id"],
+                "workpoint_id": wp,
+                "provider_item_id": item,
+            },
+        )
+        assert status == 428 and rejected["failure_class"] == "approval_required"
+        row = mutate(base, scope, "request_approval", "st4-approval", wp, item, row)["row"]
+        assert row["focusa_status"] == "proof_missing"
+        row = mutate(base, scope, "defer", "st4-defer", wp, item, row)["row"]
+        assert row["focusa_status"] == "ready" and row["blockers"]
+        row = mutate(base, scope, "steer", "st4-steer", wp, item, row)["row"]
+        assert row["focusa_status"] == "active"
         row = mutate(base, scope, "activate", "st4-active", wp, item, row)["row"]
         closed = mutate(
             base,
@@ -200,10 +247,41 @@ def main():
             and row["receipt_ref"]
         )
         assert '"status":"closed"' in (root / ".beads/issues.jsonl").read_text()
+        row = mutate(base, scope, "reopen", "st4-reopen", wp, item, row)["row"]
+        assert row["focusa_status"] == "ready" and row["provider_status"] == "open"
+        assert '"status":"open"' in (root / ".beads/issues.jsonl").read_text()
+        row = mutate(
+            base,
+            scope,
+            "verify_close",
+            "st4-close-final",
+            wp,
+            item,
+            row,
+            evidence_refs=[evidence],
+            artifact_refs=["artifact:st4:output"],
+            closure_claim_ref="closure-claim:st4-final",
+        )["row"]
+        actions = [entry["action"] for entry in row["interaction_history"]]
+        for expected_action in (
+            "bind",
+            "request_approval",
+            "defer",
+            "steer",
+            "activate",
+            "verify_close",
+            "reopen",
+        ):
+            assert expected_action in actions
+        time.sleep(1.0)
         h.stop(process, log)
         process = log = None
         process, log, base = h.start(data)
-        assert listed(base, scope, row["work_rail_id"])["rows"][-1] == row
+        resumed = max(
+            listed(base, scope, row["work_rail_id"])["rows"],
+            key=lambda candidate: candidate["state_revision"],
+        )
+        assert resumed == row
         print("Spec 135 ST4 Work Rail verified closure E2E: PASS")
     finally:
         h.SCOPE, wb.SCOPE, tp.SCOPE = old

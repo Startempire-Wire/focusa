@@ -1,0 +1,53 @@
+{
+  "schema": "focusa.spec135.adaptive_ui_governance.v1",
+  "acceptance_criteria": "No UI adaptation self-promotes; approved changes improve measured outcomes and rollback exactly.",
+  "candidate": {
+    "required_fields": [
+      "candidate_id",
+      "scope",
+      "evidence_refs",
+      "baseline_metrics",
+      "predicted_outcome",
+      "preview_ref",
+      "version",
+      "rollback_snapshot_ref"
+    ],
+    "advisory_only": true
+  },
+  "promotion": {
+    "operator_approval_required": true,
+    "self_promotion": false,
+    "rule": "eval_score > baseline_score AND eval_score >= score_threshold",
+    "minimum_evaluation_window": 30,
+    "cohort_isolation_required": true,
+    "authority_panels_hideable": false
+  },
+  "versioning": {
+    "immutable_artifact": true,
+    "supersedes_ref_required": true,
+    "history_append_only": true
+  },
+  "rollback": {
+    "exact_snapshot_required": true,
+    "idempotent": true,
+    "restores_layout_and_preferences": true,
+    "mutates_canonical_project_state": false,
+    "receipt_required": true
+  },
+  "evaluation": {
+    "metrics": [
+      "task_success",
+      "time_to_recovery",
+      "repeat_prompt_count",
+      "accessibility_failure",
+      "abandonment"
+    ],
+    "harm_gate": "any authority/proof/safety regression blocks promotion"
+  },
+  "laws": [
+    "No UI adaptation self-promotes",
+    "Model preference is never approval",
+    "Adaptation cannot hide authority, evidence, safety, or recovery surfaces",
+    "Rejected candidates remain inspectable but inactive"
+  ]
+}

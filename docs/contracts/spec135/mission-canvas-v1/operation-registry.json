@@ -1,0 +1,734 @@
+{
+  "availability": "available",
+  "operation_count": 25,
+  "operations": [
+    {
+      "availability": "available",
+      "confirmation": "none",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "GET",
+      "mode": "read",
+      "operation_id": "focusa.mission_canvas.projection.get",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/projection",
+      "permissions_required": [
+        "mission_canvas:read"
+      ],
+      "receipt_required": false,
+      "request_schema_ref": "focusa.mission_canvas.projection_get.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_revision": false,
+      "response_schema_ref": "ResolvedWorkspaceProjection",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    },
+    {
+      "availability": "available",
+      "confirmation": "none",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "POST",
+      "mode": "mutation",
+      "operation_id": "focusa.mission_canvas.projection.resolve",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/projection/resolve",
+      "permissions_required": [
+        "mission_canvas:write"
+      ],
+      "receipt_required": true,
+      "request_schema_ref": "ContributionEligibilityContext",
+      "requires_idempotency_key": true,
+      "requires_if_match_revision": true,
+      "response_schema_ref": "ResolvedWorkspaceProjection",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    },
+    {
+      "availability": "available",
+      "confirmation": "none",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "GET",
+      "mode": "read",
+      "operation_id": "focusa.mission_canvas.profile.list",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/profiles",
+      "permissions_required": [
+        "mission_canvas:read"
+      ],
+      "receipt_required": false,
+      "request_schema_ref": "focusa.mission_canvas.profile_list.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_revision": false,
+      "response_schema_ref": "WorkspaceProfile[]",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    },
+    {
+      "availability": "available",
+      "confirmation": "none",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "POST",
+      "mode": "mutation",
+      "operation_id": "focusa.mission_canvas.profile.select",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/profiles/select",
+      "permissions_required": [
+        "mission_canvas:write"
+      ],
+      "receipt_required": true,
+      "request_schema_ref": "focusa.mission_canvas.composition_selection.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_revision": true,
+      "response_schema_ref": "ResolvedWorkspaceProjection",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    },
+    {
+      "availability": "available",
+      "confirmation": "none",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "GET",
+      "mode": "read",
+      "operation_id": "focusa.mission_canvas.profile.get",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/profiles/{profile_id}",
+      "permissions_required": [
+        "mission_canvas:read"
+      ],
+      "receipt_required": false,
+      "request_schema_ref": "focusa.mission_canvas.profile_get.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_revision": false,
+      "response_schema_ref": "WorkspaceProfile",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    },
+    {
+      "availability": "available",
+      "confirmation": "none",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "GET",
+      "mode": "read",
+      "operation_id": "focusa.mission_canvas.activity.list",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/activities",
+      "permissions_required": [
+        "mission_canvas:read"
+      ],
+      "receipt_required": false,
+      "request_schema_ref": "focusa.mission_canvas.activity_list.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_revision": false,
+      "response_schema_ref": "ActivityMode[]",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    },
+    {
+      "availability": "available",
+      "confirmation": "none",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "POST",
+      "mode": "mutation",
+      "operation_id": "focusa.mission_canvas.activity.select",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/activities/select",
+      "permissions_required": [
+        "mission_canvas:write"
+      ],
+      "receipt_required": true,
+      "request_schema_ref": "focusa.mission_canvas.composition_selection.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_revision": true,
+      "response_schema_ref": "ResolvedWorkspaceProjection",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    },
+    {
+      "availability": "available",
+      "confirmation": "explicit",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "POST",
+      "mode": "mutation",
+      "operation_id": "focusa.mission_canvas.domain_pack.install",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/domain-packs/install",
+      "permissions_required": [
+        "mission_canvas:write"
+      ],
+      "receipt_required": true,
+      "request_schema_ref": "focusa.mission_canvas.domain_pack_install.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_revision": false,
+      "response_schema_ref": "focusa.mission_canvas.domain_pack_install_receipt.v1",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    },
+    {
+      "availability": "available",
+      "confirmation": "none",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "GET",
+      "mode": "read",
+      "operation_id": "focusa.mission_canvas.registry.list",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/registries/{registry_kind}",
+      "permissions_required": [
+        "mission_canvas:read"
+      ],
+      "receipt_required": false,
+      "request_schema_ref": "focusa.mission_canvas.registry_list.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_revision": false,
+      "response_schema_ref": "RegistryEntry[]",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    },
+    {
+      "availability": "available",
+      "confirmation": "none",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "GET",
+      "mode": "read",
+      "operation_id": "focusa.mission_canvas.layout_memory.get",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/layout-memory",
+      "permissions_required": [
+        "mission_canvas:read"
+      ],
+      "receipt_required": false,
+      "request_schema_ref": "focusa.mission_canvas.layout_memory_get.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_revision": false,
+      "response_schema_ref": "ProfileLayoutMemory",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    },
+    {
+      "availability": "available",
+      "confirmation": "none",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "POST",
+      "mode": "mutation",
+      "operation_id": "focusa.mission_canvas.layout_memory.update",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/layout-memory",
+      "permissions_required": [
+        "mission_canvas:write"
+      ],
+      "receipt_required": true,
+      "request_schema_ref": "ProfileLayoutMemory",
+      "requires_idempotency_key": true,
+      "requires_if_match_revision": true,
+      "response_schema_ref": "RecompositionReceipt",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    },
+    {
+      "availability": "available",
+      "confirmation": "none",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "POST",
+      "mode": "mutation",
+      "operation_id": "focusa.mission_canvas.layout.mutate",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/layout/mutations",
+      "permissions_required": [
+        "mission_canvas:write"
+      ],
+      "receipt_required": true,
+      "request_schema_ref": "LayoutMutationCommand",
+      "requires_idempotency_key": true,
+      "requires_if_match_revision": true,
+      "response_schema_ref": "LayoutMutationResult",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    },
+    {
+      "availability": "available",
+      "confirmation": "none",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "GET",
+      "mode": "read",
+      "operation_id": "focusa.mission_canvas.rich_host.resolve",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/rich-host/resolution",
+      "permissions_required": [
+        "mission_canvas:host"
+      ],
+      "receipt_required": false,
+      "request_schema_ref": "focusa.mission_canvas.rich_host_resolve.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_revision": false,
+      "response_schema_ref": "HostRendererResolution",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    },
+    {
+      "availability": "available",
+      "confirmation": "none",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "POST",
+      "mode": "mutation",
+      "operation_id": "focusa.mission_canvas.rich_host.launch",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/rich-host/launch",
+      "permissions_required": [
+        "mission_canvas:host"
+      ],
+      "receipt_required": true,
+      "request_schema_ref": "focusa.mission_canvas.rich_host_command.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_revision": false,
+      "response_schema_ref": "HostLifecycleState",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    },
+    {
+      "availability": "available",
+      "confirmation": "none",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "POST",
+      "mode": "mutation",
+      "operation_id": "focusa.mission_canvas.rich_host.focus",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/rich-host/focus",
+      "permissions_required": [
+        "mission_canvas:host"
+      ],
+      "receipt_required": true,
+      "request_schema_ref": "focusa.mission_canvas.rich_host_command.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_revision": false,
+      "response_schema_ref": "HostLifecycleState",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    },
+    {
+      "availability": "available",
+      "confirmation": "none",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "POST",
+      "mode": "mutation",
+      "operation_id": "focusa.mission_canvas.rich_host.hide",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/rich-host/hide",
+      "permissions_required": [
+        "mission_canvas:host"
+      ],
+      "receipt_required": true,
+      "request_schema_ref": "focusa.mission_canvas.rich_host_command.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_revision": false,
+      "response_schema_ref": "HostLifecycleState",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    },
+    {
+      "availability": "available",
+      "confirmation": "explicit",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "POST",
+      "mode": "mutation",
+      "operation_id": "focusa.mission_canvas.rich_host.close",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/rich-host/close",
+      "permissions_required": [
+        "mission_canvas:host"
+      ],
+      "receipt_required": true,
+      "request_schema_ref": "focusa.mission_canvas.rich_host_command.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_revision": false,
+      "response_schema_ref": "HostLifecycleState",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    },
+    {
+      "availability": "available",
+      "confirmation": "none",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "GET",
+      "mode": "read",
+      "operation_id": "focusa.mission_canvas.draft.get",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/drafts/{draft_id}",
+      "permissions_required": [
+        "mission_canvas:draft"
+      ],
+      "receipt_required": false,
+      "request_schema_ref": "focusa.mission_canvas.draft_get.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_revision": false,
+      "response_schema_ref": "CanvasDraftState",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    },
+    {
+      "availability": "available",
+      "confirmation": "none",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "POST",
+      "mode": "mutation",
+      "operation_id": "focusa.mission_canvas.draft.sync",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/drafts/sync",
+      "permissions_required": [
+        "mission_canvas:draft"
+      ],
+      "receipt_required": true,
+      "request_schema_ref": "CanvasDraftState",
+      "requires_idempotency_key": true,
+      "requires_if_match_revision": true,
+      "response_schema_ref": "CanvasDraftState",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    },
+    {
+      "availability": "available",
+      "confirmation": "none",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "POST",
+      "mode": "read",
+      "operation_id": "focusa.mission_canvas.recipient.resolve",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/recipients/resolve",
+      "permissions_required": [
+        "mission_canvas:draft"
+      ],
+      "receipt_required": false,
+      "request_schema_ref": "focusa.mission_canvas.recipient_resolve.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_revision": false,
+      "response_schema_ref": "focusa.mission_canvas.recipient_resolution.v1",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    },
+    {
+      "availability": "available",
+      "confirmation": "none",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "GET",
+      "mode": "read",
+      "operation_id": "focusa.mission_canvas.recomposition.evidence.get",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/recompositions/{revision}/evidence",
+      "permissions_required": [
+        "mission_canvas:read"
+      ],
+      "receipt_required": false,
+      "request_schema_ref": "focusa.mission_canvas.recomposition_get.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_revision": false,
+      "response_schema_ref": "RecompositionEvidence",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    },
+    {
+      "availability": "available",
+      "confirmation": "none",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "GET",
+      "mode": "read",
+      "operation_id": "focusa.mission_canvas.recomposition.receipt.get",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/recompositions/{revision}/receipt",
+      "permissions_required": [
+        "mission_canvas:read"
+      ],
+      "receipt_required": false,
+      "request_schema_ref": "focusa.mission_canvas.recomposition_get.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_revision": false,
+      "response_schema_ref": "RecompositionReceipt",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    },
+    {
+      "availability": "available",
+      "confirmation": "none",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "GET",
+      "mode": "read",
+      "operation_id": "focusa.mission_canvas.recomposition.diagnostics.list",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/recompositions/{revision}/diagnostics",
+      "permissions_required": [
+        "mission_canvas:read"
+      ],
+      "receipt_required": false,
+      "request_schema_ref": "focusa.mission_canvas.recomposition_get.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_revision": false,
+      "response_schema_ref": "OmissionDiagnostic[]",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    },
+    {
+      "availability": "available",
+      "confirmation": "none",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "POST",
+      "mode": "mutation",
+      "operation_id": "focusa.mission_canvas.pi_session.event.append",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/pi-session/events",
+      "permissions_required": [
+        "mission_canvas:write"
+      ],
+      "receipt_required": true,
+      "request_schema_ref": "focusa.mission_canvas.pi_session_event_append.request.v1",
+      "requires_idempotency_key": true,
+      "requires_if_match_revision": false,
+      "response_schema_ref": "focusa.mission_canvas.pi_session_event_receipt.v1",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    },
+    {
+      "availability": "available",
+      "confirmation": "none",
+      "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+      "error_schema_ref": "focusa.tool_result.v1",
+      "family": "mission_canvas",
+      "generated_ui_eligible": true,
+      "implementation_phase": "P03",
+      "method": "GET",
+      "mode": "stream",
+      "operation_id": "focusa.mission_canvas.events.stream",
+      "operation_version": "1.0.0",
+      "path": "/v1/mission-canvas/events",
+      "permissions_required": [
+        "mission_canvas:read"
+      ],
+      "receipt_required": false,
+      "request_schema_ref": "focusa.mission_canvas.events.request.v1",
+      "requires_idempotency_key": false,
+      "requires_if_match_revision": false,
+      "response_schema_ref": "ProjectionLifecycleEvent[]",
+      "schema": "focusa.mission_canvas.operation_descriptor.v1",
+      "scope_required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ]
+    }
+  ],
+  "promotion_owner": "P03 runtime implementation",
+  "registry_version": "1.0.0",
+  "schema": "focusa.mission_canvas.operation_registry.v1"
+}

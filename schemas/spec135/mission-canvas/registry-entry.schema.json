@@ -1,0 +1,6 @@
+{
+  "$id": "https://focusa.dev/schemas/spec135/mission-canvas/registry-entry.schema.json",
+  "$ref": "composition-bundle.v1.schema.json#/$defs/RegistryEntry",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Focusa Spec 135 RegistryEntry"
+}

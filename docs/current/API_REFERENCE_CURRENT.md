@@ -2,9 +2,9 @@
 
 Generated from current Axum route registration plus the Spec135/Spec141 operation registry. This public inventory is release-gated; do not edit route rows manually.
 
-- Classified paths: `525`
+- Classified paths: `544`
 - Agent eligible: `108`
-- Operator only: `405`
+- Operator only: `424`
 - Public health/pairing: `6`
 - Internal: `6`
 
@@ -2062,6 +2062,158 @@ Machine authority: [`route-classification.json`](../contracts/spec141/generated-
 - Classification: `internal`
 - Rationale: Runtime/operator diagnostic surface not projected as an agent capability.
 - Sources: `crates/focusa-api/src/routes/capabilities_extra.rs`
+- Agent operations: none
+
+### `/v1/mission-canvas/activities`
+
+- Methods: `GET /v1/mission-canvas/activities`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/mission_canvas.rs`
+- Agent operations: none
+
+### `/v1/mission-canvas/activities/select`
+
+- Methods: `POST /v1/mission-canvas/activities/select`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/mission_canvas.rs`
+- Agent operations: none
+
+### `/v1/mission-canvas/domain-packs/install`
+
+- Methods: `POST /v1/mission-canvas/domain-packs/install`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/mission_canvas.rs`
+- Agent operations: none
+
+### `/v1/mission-canvas/drafts/sync`
+
+- Methods: `POST /v1/mission-canvas/drafts/sync`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/mission_canvas.rs`
+- Agent operations: none
+
+### `/v1/mission-canvas/drafts/{draft_id}`
+
+- Methods: `GET /v1/mission-canvas/drafts/{draft_id}`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/mission_canvas.rs`
+- Agent operations: none
+
+### `/v1/mission-canvas/events`
+
+- Methods: `GET /v1/mission-canvas/events`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/mission_canvas.rs`
+- Agent operations: none
+
+### `/v1/mission-canvas/layout-memory`
+
+- Methods: `GET /v1/mission-canvas/layout-memory`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/mission_canvas.rs`
+- Agent operations: none
+
+### `/v1/mission-canvas/layout/mutations`
+
+- Methods: `POST /v1/mission-canvas/layout/mutations`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/mission_canvas.rs`
+- Agent operations: none
+
+### `/v1/mission-canvas/pi-session/events`
+
+- Methods: `POST /v1/mission-canvas/pi-session/events`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/mission_canvas.rs`
+- Agent operations: none
+
+### `/v1/mission-canvas/profiles`
+
+- Methods: `GET /v1/mission-canvas/profiles`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/mission_canvas.rs`
+- Agent operations: none
+
+### `/v1/mission-canvas/profiles/select`
+
+- Methods: `POST /v1/mission-canvas/profiles/select`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/mission_canvas.rs`
+- Agent operations: none
+
+### `/v1/mission-canvas/profiles/{profile_id}`
+
+- Methods: `GET /v1/mission-canvas/profiles/{profile_id}`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/mission_canvas.rs`
+- Agent operations: none
+
+### `/v1/mission-canvas/projection`
+
+- Methods: `GET /v1/mission-canvas/projection`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/mission_canvas.rs`
+- Agent operations: none
+
+### `/v1/mission-canvas/projection/resolve`
+
+- Methods: `POST /v1/mission-canvas/projection/resolve`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/mission_canvas.rs`
+- Agent operations: none
+
+### `/v1/mission-canvas/recipients/resolve`
+
+- Methods: `POST /v1/mission-canvas/recipients/resolve`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/mission_canvas.rs`
+- Agent operations: none
+
+### `/v1/mission-canvas/recompositions/{revision}/{proof_kind}`
+
+- Methods: `GET /v1/mission-canvas/recompositions/{revision}/{proof_kind}`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/mission_canvas.rs`
+- Agent operations: none
+
+### `/v1/mission-canvas/registries/{registry_kind}`
+
+- Methods: `GET /v1/mission-canvas/registries/{registry_kind}`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/mission_canvas.rs`
+- Agent operations: none
+
+### `/v1/mission-canvas/rich-host/resolution`
+
+- Methods: `GET /v1/mission-canvas/rich-host/resolution`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/mission_canvas.rs`
+- Agent operations: none
+
+### `/v1/mission-canvas/rich-host/{action}`
+
+- Methods: `POST /v1/mission-canvas/rich-host/{action}`
+- Classification: `operator_only`
+- Rationale: Not in the curated agent operation registry; requires explicit operator/application workflow authority.
+- Sources: `crates/focusa-api/src/routes/mission_canvas.rs`
 - Agent operations: none
 
 ### `/v1/mission-canvas/state`

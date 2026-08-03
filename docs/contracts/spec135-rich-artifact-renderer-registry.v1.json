@@ -1,0 +1,66 @@
+{
+  "schema": "focusa.spec135.rich_artifact_renderer_registry.v1",
+  "spec_ref": "docs/135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md#5-artifact-kinds-and-required-renderers",
+  "canonical_state_law": "No client owns or duplicates canonical artifact state. UIAI Engine produces descriptors; Focusa reducers own linkage and authority. Mission Canvas clients render presentation safely from canonical before/after/evidence refs.",
+  "fallback_rule": "No client may silently discard an artifact because it cannot render the preferred format.",
+  "artifact_kinds": [
+    {
+      "kind": "image",
+      "primary": "image viewer with zoom, metadata, source, and evidence",
+      "fallback": "artifact card + Open action"
+    },
+    {
+      "kind": "markdown",
+      "primary": "cited research/document reader",
+      "fallback": "bounded text + handle"
+    },
+    {
+      "kind": "dataset",
+      "primary": "sortable/filterable table",
+      "fallback": "schema/row summary + download/open"
+    },
+    {
+      "kind": "diff",
+      "primary": "workspace-specific change viewer",
+      "fallback": "unified text diff"
+    },
+    {
+      "kind": "browser_snapshot",
+      "primary": "structured accessibility tree and refs",
+      "fallback": "bounded JSON/text tree"
+    },
+    {
+      "kind": "diagnostics",
+      "primary": "console/network/error inspector",
+      "fallback": "summarized findings + refs"
+    },
+    {
+      "kind": "chart",
+      "primary": "interactive chart where supported",
+      "fallback": "table and static summary"
+    },
+    {
+      "kind": "document",
+      "primary": "document/PDF reader",
+      "fallback": "extracted text + source page refs"
+    },
+    {
+      "kind": "media",
+      "primary": "bounded media viewer",
+      "fallback": "metadata + external/open action"
+    },
+    {
+      "kind": "fpv_session",
+      "primary": "live UIAI FPV Work Surface/share",
+      "fallback": "session status + share/open action"
+    }
+  ],
+  "all_required_sources": [
+    "canonical before/after/evidence refs",
+    "provenance with source kind and harvested timestamp",
+    "session/attachment/browser-context origin",
+    "freshness",
+    "authority marker",
+    "render_safe flag"
+  ]
+}

@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docs.startempire.ai/focusa/spec135/focusa.generated_ui_component.v1.json",
+  "title": "Focusa Generated UI Component v1",
+  "description": "A validated generated UI component bound to a governed Focusa operation. Malformed manifests fail closed; unsupported actions render disabled.",
+  "type": "object",
+  "required": [
+    "schema",
+    "component_id",
+    "component_kind",
+    "renderer",
+    "bound_operation_id",
+    "bound_scope",
+    "fallback_summary",
+    "version",
+    "versioning",
+    "validation_status"
+  ],
+  "properties": {
+    "schema": {
+      "const": "focusa.generated_ui_component.v1"
+    },
+    "component_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "component_kind": {
+      "type": "string",
+      "enum": [
+        "surface",
+        "action",
+        "panel",
+        "card",
+        "dialog",
+        "form"
+      ]
+    },
+    "renderer": {
+      "type": "string",
+      "enum": [
+        "lit",
+        "svelte-custom-element",
+        "pi-tui-text",
+        "markdown-fallback"
+      ]
+    },
+    "bound_operation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "bound_scope": {
+      "type": "object",
+      "required": [
+        "project_root",
+        "continuity_id"
+      ]
+    },
+    "bound_action_prototype": {},
+    "preview_required": {
+      "type": "boolean"
+    },
+    "fallback_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "fallback_component_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "versioning": {
+      "type": "object",
+      "required": [
+        "major",
+        "minor",
+        "patch",
+        "lineage"
+      ],
+      "properties": {
+        "major": {
+          "type": "integer"
+        },
+        "minor": {
+          "type": "integer"
+        },
+        "patch": {
+          "type": "integer"
+        },
+        "lineage": {
+          "type": "array"
+        }
+      }
+    },
+    "validation_status": {
+      "type": "string",
+      "enum": [
+        "valid",
+        "malformed",
+        "fallback_required",
+        "disabled"
+      ]
+    },
+    "governed_operation_law": {
+      "const": "Generated components can invoke only registered governed operations."
+    }
+  },
+  "additionalProperties": false
+}

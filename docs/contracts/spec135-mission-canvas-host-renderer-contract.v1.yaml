@@ -1,0 +1,157 @@
+schema: focusa.mission_canvas_host_renderer_contract.v2
+version: 2
+status: normative
+owner: Focusa / Verious Smith
+updated_at: 2026-08-01
+
+authority:
+  delivery_contract: docs/135-series-current-manifest.md
+  parent_spec: docs/135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md
+  adaptive_composition_authority:
+    replacement_text: docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md
+    populated_examples:
+      - docs/contracts/spec135/authoritative-handoff/focusa_activity_mode_recomposition.png
+      - docs/contracts/spec135/authoritative-handoff/focusa_dynamic_vertical_recomposition.png
+    precedence: operator_steering_then_replacement_text_then_images_then_older_contracts
+  operator_clarification:
+    statement: Mission Canvas switches on and off inside the current Pi terminal; it is not a remote host, browser, webview, or sidecar.
+    supersedes:
+      - focusa_pi_rich_window_required_renderer
+      - svelte_or_tauri_host_requirement
+      - pi_terminal_projection_as_non_authoritative_fallback
+
+product_definition: >-
+  Mission Canvas is the authoritative adaptive workspace presentation mounted by
+  the Focusa Pi TypeScript extension through ctx.ui.custom() in the current Pi
+  terminal, preserving the same Pi process, session, model stream, tools,
+  transcript, prompt editor, attachments, drafts, and canonical Focusa runtime.
+
+interaction_modes:
+  values: [canvas-guided, terminal-guided, headless]
+  meanings:
+    canvas-guided: authoritative Mission Canvas component replaces only the visible Pi root in the current terminal
+    terminal-guided: stock Pi root is visible while Focusa canonical runtime remains active
+    headless: no human UI calls or renderer activation
+  precedence: session_env_then_project_then_user_then_default
+
+required_host_renderer:
+  id: pi_native_mission_canvas
+  package: apps/pi-extension
+  language: TypeScript
+  mounting_api: ctx.ui.custom
+  process_boundary: current_pi_process
+  terminal_boundary: current_pi_terminal
+  canonical_runtime_forked: false
+  separate_window_created: false
+  browser_created: false
+  remote_host_created: false
+  same_runtime_not_a_handoff: true
+  required_actions:
+    on:
+      - persist canvas-guided interaction mode
+      - mount MissionCanvasShell in current Pi terminal
+      - preserve current ExtensionContext and SessionManager
+      - focus current Pi prompt editor
+    off:
+      - dispose MissionCanvasShell
+      - restore stock Pi root in same terminal
+      - preserve session identity, transcript, drafts, and Focusa runtime
+    toggle:
+      - execute exactly one of on or off based on current interaction mode
+    status:
+      - report interaction mode and pi_tui renderer without launching another host
+
+forbidden_host_behavior:
+  - launch_browser_for_canvas
+  - launch_webview_for_canvas
+  - launch_tauri_sidecar_for_canvas
+  - launch_remote_canvas_host
+  - label_the_authoritative_canvas_as_terminal_compatibility_projection
+  - transfer_focusa_authority_to_renderer
+  - fork_pi_session_or_model_stream
+
+required_frame:
+  - project_workstream_workspace_session_activity_top_bar
+  - actual_work_surface_strip
+  - activity_mode_rail_or_compact_tabs
+  - resolved_contribution_grid
+  - steering_queue_when_populated
+  - follow_up_queue_when_populated
+  - prompt_editor_targeting_current_pi_session
+
+adaptive_composition:
+  inputs:
+    - workspace_profile
+    - activity_mode
+    - focused_work_surface
+    - canonical_read_model
+    - available_operations
+    - capabilities
+    - permissions
+    - viewport
+    - project_constraints
+    - user_preferences
+  output: ResolvedWorkspaceProjection
+  occupancy_law:
+    - evaluate_semantic_relevance_before_geometry
+    - omit_empty_optional_contributions_before_layout
+    - remove_heading_border_and_spacing_with_omitted_contribution
+    - reflow_remaining_contributions_deterministically
+    - preserve_per_profile_layout_memory
+    - preserve_creation_affordance_without_empty_panel
+
+activity_modes:
+  - Overview
+  - Context
+  - Role
+  - Interview
+  - Spec
+  - Tasks / Work
+  - Sessions
+  - Documents
+  - Research
+  - Evidence
+  - History
+  - Controls
+
+workspace_profiles:
+  - general
+  - software
+  - legal
+  - markets
+  - research
+  - custom
+
+responsive_modes:
+  narrow:
+    activity_navigation: compact_tabs
+    contribution_columns: 1
+  stacked:
+    activity_navigation: rail_when_viable
+    contribution_columns: 1
+  desktop:
+    activity_navigation: persistent_rail
+    contribution_columns: 2
+
+client_projection_boundaries:
+  pi_native_mission_canvas:
+    authority: authoritative_interactive_projection
+    mutation_mode: governed_preview_commit
+  menubar_peek:
+    authority: bounded_status_and_launch_surface_only
+  pwa:
+    authority: bounded_remote_projection
+  uiai_engine_cockpit:
+    authority: browser_execution_and_visual_evaluation
+
+proof_requirements:
+  - on_off_same_terminal_same_session
+  - reference_activity_mode_recomposition
+  - reference_vertical_profile_recomposition
+  - actual_only_work_surfaces
+  - queue_occupancy_and_prompt_expansion
+  - empty_work_rail_collapse_with_creation_affordance
+  - omission_diagnostics_without_dead_chrome
+  - responsive_keyboard_high_contrast_reduced_motion
+  - canonical_state_session_draft_and_focus_continuity
+  - rendered_snapshot_or_terminal_capture_evidence

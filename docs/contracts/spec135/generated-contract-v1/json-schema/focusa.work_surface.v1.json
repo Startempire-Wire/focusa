@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docs.startempire.ai/focusa/spec135/focusa.work_surface.v1.json",
+  "title": "Focusa Work Surface v1",
+  "description": "Durable multiplexed Work Surface record that rehydrates with exact scope, attachment, lifecycle, queue, and isolation identity. No singleton canonical authority.",
+  "type": "object",
+  "required": [
+    "schema",
+    "work_surface_id",
+    "state_revision",
+    "project_root",
+    "continuity_id",
+    "attachment_id",
+    "instance_id",
+    "mission_ref",
+    "title",
+    "surface_kind",
+    "status",
+    "pane_id",
+    "tab_index",
+    "pinned",
+    "unread",
+    "canonical_state_refs",
+    "idempotency_key",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "schema": {
+      "const": "focusa.work_surface.v1"
+    },
+    "work_surface_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "state_revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "project_root": {
+      "type": "string",
+      "minLength": 1
+    },
+    "continuity_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "attachment_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "instance_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "workpoint_id": {
+      "type": "string"
+    },
+    "mission_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "surface_kind": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "suspended",
+        "paused",
+        "terminated",
+        "closed",
+        "rehydrating"
+      ]
+    },
+    "pane_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tab_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "pinned": {
+      "type": "boolean"
+    },
+    "unread": {
+      "type": "boolean"
+    },
+    "canonical_state_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "created_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "updated_at": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "additionalProperties": false
+}

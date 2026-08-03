@@ -1,0 +1,183 @@
+schema: focusa.spec135.adaptive_composition_proof_matrix.v1
+version: 1
+status: reopened_runtime_proof_required
+authority:
+  adaptive_composition: docs/contracts/spec135-adaptive-composition.v1.yaml
+  responsive_matrix: docs/contracts/spec135-responsive-matrix.v1.yaml
+  quality_bar: docs/contracts/spec135-ux-quality-bar.v1.yaml
+  proof_matrix: docs/contracts/spec135-proof-matrix.v1.yaml
+  proof_owner: UIAI_Engine_Eval_plus_canonical_runtime_trace
+
+common_seed_requirements:
+  - exact_project_workstream_session_attachment
+  - canonical_profile_and_activity
+  - canonical_read_model_revision
+  - capability_and_permission_snapshot
+  - candidate_contribution_set
+  - focused_work_surface
+  - viewport_and_platform
+
+common_evidence_fields:
+  - scenario_id
+  - platform
+  - viewport_class
+  - profile_id_and_revision
+  - activity_mode_id_and_revision
+  - candidate_contribution_ids
+  - eligible_contribution_ids
+  - omission_diagnostics
+  - projection_digest
+  - layout_revision
+  - focused_semantic_target_before_and_after
+  - session_and_attachment_before_and_after
+  - durable_event_cursor
+  - runtime_trace_ref
+  - screenshot_ref
+  - accessibility_tree_ref
+  - diagnostics_ref
+  - Evidence_ref
+  - Receipt_ref
+
+proofs:
+  - proof_id: AC-01
+    title: Empty optional contribution leaves no trace
+    requirement_refs: [SPEC135-M1, SPEC135-M3, SPEC135-K3, SPEC135-U6]
+    scenario: tests/uiai/spec135/scenarios/no-empty-contribution.json
+    expected:
+      - no_DOM_element
+      - no_accessibility_landmark
+      - no_heading_or_border
+      - no_reserved_grid_track_or_spacing
+      - omission_reason_no_relevant_content
+    status: pending
+  - proof_id: AC-02
+    title: Panel removal produces deterministic balanced reflow
+    requirement_refs: [SPEC135-M1, SPEC135-G2, SPEC135-V6, SPEC135-U6]
+    scenario: tests/uiai/spec135/scenarios/panel-removal-reflow.json
+    expected:
+      - equivalent_inputs_equal_projection_digest
+      - no_layout_hole
+      - deliberate_expand_promote_merge_tab_or_rearrange
+      - focus_preserved_or_deterministic_successor
+    status: pending
+  - proof_id: AC-03
+    title: Single populated queue spans queue region
+    requirement_refs: [SPEC135-M2, SPEC135-G4, SPEC135-U6]
+    scenario: tests/uiai/spec135/scenarios/single-queue-span.json
+    expected:
+      - one_queue_uses_resolved_queue_span
+      - no_blank_sibling_lane
+      - recipient_and_attachment_visible
+    status: pending
+  - proof_id: AC-04
+    title: Empty queues collapse and Prompt Editor expands
+    requirement_refs: [SPEC135-M2, SPEC135-U6]
+    scenario: tests/uiai/spec135/scenarios/zero-queues-editor-expand.json
+    expected:
+      - no_queue_DOM_regions
+      - no_queue_headings_borders_or_spacing
+      - prompt_editor_expanded
+      - compact_creation_affordance_retained
+    status: pending
+  - proof_id: AC-05
+    title: Empty Work Rail collapses without losing New Workpoint
+    requirement_refs: [SPEC135-M2, SPEC135-ST4]
+    scenario: tests/uiai/spec135/scenarios/empty-work-rail.json
+    expected:
+      - no_work_rail_geometry
+      - focused_workspace_or_composer_expanded
+      - governed_new_workpoint_action_operable
+    status: pending
+  - proof_id: AC-06
+    title: Empty inspector sections disappear and gaps close
+    requirement_refs: [SPEC135-M3, SPEC135-U6]
+    scenario: tests/uiai/spec135/scenarios/inspector-occupancy.json
+    expected:
+      - irrelevant_sections_absent
+      - no_blank_separators
+      - remaining_sections_in_profile_activity_order
+    status: pending
+  - proof_id: AC-07
+    title: Work Surface tabs represent actual surfaces
+    requirement_refs: [SPEC135-M3, SPEC135-G1, SPEC135-G3]
+    scenario: tests/uiai/spec135/scenarios/actual-surface-tabs.json
+    expected:
+      - open_pinned_or_contextual_surfaces_only
+      - no_possible_type_tabs
+      - add_surface_discovery_operable
+    status: pending
+  - proof_id: AC-08
+    title: Profile switching recomputes from candidates
+    requirement_refs: [SPEC135-V1, SPEC135-V2, SPEC135-V3, SPEC135-V4, SPEC135-V5, SPEC135-V6]
+    scenario: tests/uiai/spec135/scenarios/profile-recomposition.json
+    expected:
+      - candidate_set_changes_by_registry
+      - eligibility_recomputed
+      - layout_geometry_and_composition_change
+      - color_only_change_rejected
+      - same_canonical_mission_session_and_workpoint
+    status: pending
+  - proof_id: AC-09
+    title: Per-profile memory survives disappearance and return
+    requirement_refs: [SPEC135-G2, SPEC135-V6, SPEC135-J4]
+    scenario: tests/uiai/spec135/scenarios/layout-memory-return.json
+    expected:
+      - no_reserved_geometry_while_absent
+      - preference_revision_persists
+      - contribution_returns_to_compatible_preferred_region
+      - deterministic_fallback_when_preference_no_longer_valid
+    status: pending
+  - proof_id: AC-10
+    title: Capability loss avoids unavailable dashboard
+    requirement_refs: [SPEC135-F7, SPEC135-J4, SPEC135-K4, SPEC135-Q4]
+    scenario: tests/uiai/spec135/scenarios/capability-loss.json
+    expected:
+      - dead_controls_removed
+      - dependent_contributions_omitted
+      - safe_loaded_content_preserved
+      - diagnostic_internal_or_contextual
+      - no_permanent_degraded_banner_or_unavailable_cards
+      - eligible_contribution_restores_on_capability_return
+    status: pending
+  - proof_id: AC-11
+    title: Canonical state session drafts and focus survive recomposition
+    requirement_refs: [SPEC135-F14, SPEC135-G2, SPEC135-J4, SPEC135-K1]
+    scenario: tests/uiai/spec135/scenarios/recomposition-continuity.json
+    expected:
+      - project_workstream_instance_session_attachment_unchanged
+      - Workpoint_and_Evidence_unchanged
+      - unsent_Pi_and_Canvas_drafts_byte_equal
+      - focused_semantic_target_preserved_or_deterministic_successor
+      - event_cursor_continuous
+    status: pending
+  - proof_id: AC-12
+    title: UIAI Engine Eval transitions at supported viewports
+    requirement_refs: [SPEC135-U3, SPEC135-U4, SPEC135-U5, SPEC135-U6]
+    scenario: tests/uiai/spec135/scenarios/viewport-transition-matrix.json
+    expected:
+      - all_responsive_matrix_viewports
+      - macOS_Windows_Linux
+      - scale_and_accessibility_variants
+      - interruptible_resize
+      - no_dead_chrome_or_unreachable_controls
+    status: pending
+  - proof_id: AC-13
+    title: Evidence and Receipts identify resolved composition
+    requirement_refs: [SPEC135-J3, SPEC135-Z1, SPEC135-Z2]
+    scenario: tests/uiai/spec135/scenarios/recomposition-receipt.json
+    expected:
+      - profile_and_activity_exact
+      - candidates_eligible_omissions_exact
+      - projection_digest_exact
+      - layout_revision_exact
+      - viewport_platform_session_attachment_cursor_exact
+      - runtime_artifacts_correlated_by_scenario_id
+    status: pending
+
+closure:
+  all_13_required: true
+  static_screenshot_alone_valid: false
+  handwritten_pass_JSON_valid: false
+  terminal_projection_valid: false
+  source_substring_valid: false
+  merge_blocked_until_all_pass_with_evidence_and_receipts: true

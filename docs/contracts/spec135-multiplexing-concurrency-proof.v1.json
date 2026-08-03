@@ -1,0 +1,80 @@
+{
+  "schema": "focusa.spec135.multiplexing_concurrency_proof.v1",
+  "acceptance_criteria": "All eight normative proof scenarios pass through Pi Mission Canvas and canonical APIs.",
+  "scenario_count": 8,
+  "scenarios": [
+    {
+      "scenario_id": "two_project",
+      "expected": "Two projects retain exact independent scope",
+      "proof_refs": [
+        "tests/spec135_mission_canvas_surfaces_e2e_test.py",
+        "tests/spec135_m4_surface_bindings_e2e_test.py"
+      ],
+      "status": "passed"
+    },
+    {
+      "scenario_id": "same_project",
+      "expected": "Same project supports multiple attachment-scoped surfaces",
+      "proof_refs": [
+        "tests/spec135_mission_canvas_surfaces_e2e_test.py"
+      ],
+      "status": "passed"
+    },
+    {
+      "scenario_id": "contention",
+      "expected": "Contention is visible and conflicting writers fail closed",
+      "proof_refs": [
+        "tests/spec135_g4_writer_governance_test.py"
+      ],
+      "status": "passed"
+    },
+    {
+      "scenario_id": "browser_isolation",
+      "expected": "Browser contexts preserve exact attachment ownership",
+      "proof_refs": [
+        "tests/spec135_m5_browser_context_isolation_e2e_test.py"
+      ],
+      "status": "passed"
+    },
+    {
+      "scenario_id": "shared_warning",
+      "expected": "Explicit shared browser context retains visible warning",
+      "proof_refs": [
+        "tests/spec135_g5_browser_isolation_test.py"
+      ],
+      "status": "passed"
+    },
+    {
+      "scenario_id": "close_semantics",
+      "expected": "Close view never terminates work",
+      "proof_refs": [
+        "tests/spec135_g3_surface_lifecycle_test.py"
+      ],
+      "status": "passed"
+    },
+    {
+      "scenario_id": "restart_restore",
+      "expected": "Restart restores Canvas layout and surfaces",
+      "proof_refs": [
+        "tests/spec135_m6_canvas_resume_e2e_test.py",
+        "tests/spec135_g2_canvas_restoration_test.py"
+      ],
+      "status": "passed"
+    },
+    {
+      "scenario_id": "concurrent_writer",
+      "expected": "Concurrent writer authority is scoped and recoverable",
+      "proof_refs": [
+        "tests/spec135_g4_writer_governance_test.py",
+        "tests/spec135_work_rail_e2e_test.py"
+      ],
+      "status": "passed"
+    }
+  ],
+  "global_invariants": [
+    "No Work Surface becomes singleton canonical authority",
+    "Project/workstream/attachment scope remains exact",
+    "Visual focus never selects mutation authority implicitly",
+    "Restart and reconnect preserve identity and cursor lineage"
+  ]
+}

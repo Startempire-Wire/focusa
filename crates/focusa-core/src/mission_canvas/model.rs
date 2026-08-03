@@ -1,0 +1,139 @@
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct MissionCanvasScope {
+    pub project_root: String,
+    pub continuity_id: String,
+    pub instance_id: Option<String>,
+    pub session_id: String,
+    pub attachment_id: String,
+    pub working_subpath_id: Option<String>,
+}
+
+impl MissionCanvasScope {
+    pub fn storage_key(&self) -> String {
+        serde_json::to_string(self).expect("MissionCanvasScope is serializable")
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ContributionKind {
+    WorkSurfaceStrip,
+    FocusedWorkSurface,
+    Inspector,
+    InspectorSection,
+    WorkRail,
+    SteeringQueue,
+    FollowUpQueue,
+    PromptEditor,
+    ScopeBar,
+    ActivityNavigation,
+    ToolbarControl,
+    ContextualAction,
+    TransientNotification,
+    GeneratedSurface,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CandidateContribution {
+    pub contribution_id: String,
+    pub kind: ContributionKind,
+    pub semantic_binding_id: String,
+    pub renderer_binding_id: String,
+    pub priority: i64,
+    pub applicable_profile_ids: Vec<String>,
+    pub applicable_activity_mode_ids: Vec<String>,
+    #[serde(default)]
+    pub canonical_content_refs: Vec<Value>,
+    #[serde(default)]
+    pub required_capabilities: Vec<String>,
+    #[serde(default)]
+    pub required_permissions: Vec<String>,
+    #[serde(default)]
+    pub required_operations: Vec<String>,
+    pub geometry: Value,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ResolvedContribution {
+    pub contribution_id: String,
+    pub kind: ContributionKind,
+    pub semantic_binding_id: String,
+    pub renderer_binding_id: String,
+    pub data_ref: Value,
+    pub operation_ids: Vec<String>,
+    pub authority: Value,
+    pub freshness: Value,
+    pub resolved_geometry: Value,
+    pub accessibility: Value,
+    pub contribution_revision: u64,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OmissionDiagnostic {
+    pub contribution_id: String,
+    pub reason: String,
+    pub rule_revision: String,
+    pub projection_revision: u64,
+    #[serde(default)]
+    pub canonical_input_refs: Vec<Value>,
+    pub details_ref: Option<String>,
+    pub observed_at: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ResolvedWorkspaceProjection {
+    pub schema: String,
+    pub scope: MissionCanvasScope,
+    pub workspace_profile_id: String,
+    pub workspace_profile_revision: u64,
+    pub activity_mode_id: String,
+    pub activity_mode_revision: u64,
+    pub focused_work_surface_id: Option<String>,
+    pub canonical_read_model_revision: u64,
+    pub candidate_contribution_ids: Vec<String>,
+    pub eligible_contributions: Vec<ResolvedContribution>,
+    pub omission_diagnostics: Vec<OmissionDiagnostic>,
+    pub layout_tree: Value,
+    pub operation_bindings: Vec<Value>,
+    pub focused_semantic_target: String,
+    pub projection_revision: u64,
+    pub layout_revision: u64,
+    pub durable_event_cursor: String,
+    pub projection_digest: String,
+    pub resolved_at: Option<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub receipt_refs: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CompositionEvent {
+    pub event_id: String,
+    pub event_kind: String,
+    pub scope: MissionCanvasScope,
+    pub projection_revision: u64,
+    pub layout_revision: u64,
+    pub causation_id: Option<String>,
+    pub correlation_id: Option<String>,
+    pub occurred_at: String,
+    pub payload: Value,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub receipt_refs: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct StoredDocument {
+    pub document_id: String,
+    pub scope: MissionCanvasScope,
+    pub revision: u64,
+    pub payload: Value,
+    pub updated_at: String,
+}

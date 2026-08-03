@@ -9,14 +9,15 @@ use chrono::Utc;
 use focusa_core::{
     tool_result::{FailureClass, ToolResultV1, ToolStatus},
     types::{
-        Action, FocusaEvent, SpecAmendmentRecord, SpecGateDecision, SpecGroundingBlock,
+        Action, CristSpecHandoff, FocusaEvent, FocusaState, ProjectInterviewSessionStatus,
+        RoleProfileStatus, SpecAmendmentRecord, SpecGateDecision, SpecGroundingBlock,
         SpecObjectionRecord, SpecObjectionStatus, SpecOperatorGateRecord, SpecRoundRecord,
         SpecSectionRecord, SpecSectionStatus, SpecWorkbenchSessionRecord, SpecWorkbenchStatus,
     },
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{sync::Arc, time::Duration};
+use std::{collections::BTreeSet, sync::Arc, time::Duration};
 
 type ApiError = (StatusCode, Json<Box<ToolResultV1>>);
 const TOOL: &str = "focusa_spec_workbench_mutate";
@@ -50,6 +51,8 @@ pub struct SectionInput {
     pub section_id: Option<String>,
     pub title: String,
     pub section_kind: String,
+    #[serde(default)]
+    pub reality_classification: String,
     pub order_index: u32,
     pub content: String,
     #[serde(default)]
@@ -120,6 +123,8 @@ pub struct MutationRequest {
     #[serde(default)]
     pub current_ask: Option<String>,
     #[serde(default)]
+    pub desired_spec_template: Option<String>,
+    #[serde(default)]
     pub section: Option<SectionInput>,
     #[serde(default)]
     pub round: Option<RoundInput>,
@@ -181,6 +186,166 @@ fn id(prefix: &str, values: &[&str]) -> String {
 fn scoped(s: &SpecWorkbenchSessionRecord, p: &str, c: &str, a: &str) -> bool {
     s.project_root == p && s.continuity_id == c && s.attachment_id == a
 }
+
+const PROJECT_GENESIS_SECTIONS: [&str; 22] = [
+    "Project title and one-line definition",
+    "Problem or opportunity",
+    "Project identity and current-state reality",
+    "Long-term desired state / mandatory HLT",
+    "Users and stakeholders",
+    "Approved project agent role",
+    "Context sources and provenance",
+    "Scope",
+    "Non-goals",
+    "Constraints",
+    "Risks",
+    "Authority and approval boundaries",
+    "Data, privacy, retention, and connector posture",
+    "Workspace and visual profile",
+    "Evidence and proof policy",
+    "Core workflows",
+    "Initial architecture or operating model",
+    "Success criteria",
+    "Milestones and Waypoints",
+    "Known unknowns and open questions",
+    "Initial task-decomposition policy",
+    "Final approval record",
+];
+
+const REALITY_CLASSIFICATIONS: [&str; 9] = [
+    "implemented",
+    "partial",
+    "docs_only",
+    "normative_target",
+    "planned",
+    "speculative",
+    "stale",
+    "blocked",
+    "unknown",
+];
+
+fn crist_handoff(
+    snapshot: &FocusaState,
+    request: &MutationRequest,
+    current_ask: &str,
+) -> CristSpecHandoff {
+    let in_scope = |project_root: &str, continuity_id: &str, attachment_id: &str| {
+        project_root == request.project_root
+            && continuity_id == request.continuity_id
+            && attachment_id == request.attachment_id
+    };
+    let sources: Vec<_> = snapshot
+        .context_sources
+        .iter()
+        .filter(|source| {
+            in_scope(
+                &source.project_root,
+                &source.continuity_id,
+                &source.attachment_id,
+            )
+        })
+        .collect();
+    let context_pack_refs = sources
+        .iter()
+        .map(|source| {
+            if source.artifact.artifact_id.is_empty() {
+                source.source_id.clone()
+            } else {
+                source.artifact.artifact_id.clone()
+            }
+        })
+        .collect();
+    let active_domain_pack_refs = sources
+        .iter()
+        .flat_map(|source| source.artifact.semantic.domain_pack_refs.iter().cloned())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    let accepted_project_claim_refs = snapshot
+        .context_claims
+        .iter()
+        .filter(|claim| {
+            in_scope(
+                &claim.project_root,
+                &claim.continuity_id,
+                &claim.attachment_id,
+            ) && claim.status == "accepted"
+        })
+        .map(|claim| claim.claim_id.clone())
+        .collect();
+    let role_profile_ref = snapshot
+        .project_role_profiles
+        .iter()
+        .filter(|role| {
+            in_scope(&role.project_root, &role.continuity_id, &role.attachment_id)
+                && role.status == RoleProfileStatus::Approved
+        })
+        .max_by_key(|role| role.revision)
+        .map(|role| role.role_profile_id.clone())
+        .unwrap_or_default();
+    let interviews: Vec<_> = snapshot
+        .project_interview_sessions
+        .iter()
+        .filter(|session| {
+            in_scope(
+                &session.project_root,
+                &session.continuity_id,
+                &session.attachment_id,
+            ) && matches!(
+                session.status,
+                ProjectInterviewSessionStatus::Closed | ProjectInterviewSessionStatus::ReadyForSpec
+            )
+        })
+        .collect();
+    let interview_session_refs = interviews
+        .iter()
+        .map(|session| session.interview_session_id.clone())
+        .collect();
+    let unresolved_questions = interviews
+        .iter()
+        .flat_map(|session| {
+            session.questions.iter().filter_map(|question| {
+                let answered = session
+                    .answers
+                    .iter()
+                    .any(|answer| answer.question_id == question.question_id);
+                (!answered).then(|| question.question.clone())
+            })
+        })
+        .collect();
+    let known_contradictions = snapshot
+        .context_contradictions
+        .iter()
+        .filter(|contradiction| {
+            in_scope(
+                &contradiction.project_root,
+                &contradiction.continuity_id,
+                &contradiction.attachment_id,
+            ) && contradiction.status != "resolved"
+        })
+        .map(|contradiction| contradiction.contradiction_id.clone())
+        .collect();
+    CristSpecHandoff {
+        schema: "focusa.crist_spec_handoff.v1".to_string(),
+        project_root: request.project_root.clone(),
+        continuity_id: request.continuity_id.clone(),
+        current_ask: current_ask.to_string(),
+        workspace_profile_ref: id(
+            "workspace-profile",
+            &[&request.project_root, &request.continuity_id],
+        ),
+        active_domain_pack_refs,
+        semantic_registry_version: format!("focusa-state:r{}", snapshot.version),
+        context_pack_refs,
+        accepted_project_claim_refs,
+        role_profile_ref,
+        interview_session_refs,
+        unresolved_questions,
+        known_contradictions,
+        desired_spec_template: "project_genesis".to_string(),
+    }
+}
+
 fn response(s: SpecWorkbenchSessionRecord, v: u64, replayed: bool) -> MutationResponse {
     let e = format!(
         "evidence:spec-workbench:{}:r{}",
@@ -304,6 +469,38 @@ async fn mutate(
                     "open requires current_ask",
                 )
             })?;
+        let desired_spec_template = req
+            .desired_spec_template
+            .clone()
+            .unwrap_or_else(|| "adversarial".to_string());
+        if !matches!(
+            desired_spec_template.as_str(),
+            "adversarial" | "project_genesis"
+        ) {
+            return Err(fail(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                ToolStatus::ValidationRejected,
+                FailureClass::ValidationRejected,
+                "desired_spec_template must be adversarial or project_genesis",
+            ));
+        }
+        let crist_handoff = if desired_spec_template == "project_genesis" {
+            let handoff = crist_handoff(&snap, &req, &ask);
+            if handoff.context_pack_refs.is_empty()
+                || handoff.role_profile_ref.is_empty()
+                || handoff.interview_session_refs.is_empty()
+            {
+                return Err(fail(
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                    ToolStatus::Blocked,
+                    FailureClass::ApprovalRequired,
+                    "project_genesis requires source-linked Context, an approved Role Profile, and a closed Interview",
+                ));
+            }
+            handoff
+        } else {
+            CristSpecHandoff::default()
+        };
         let sid = req.workbench_session_id.clone().unwrap_or_else(|| {
             id(
                 "spec-workbench",
@@ -321,6 +518,8 @@ async fn mutate(
             continuity_id: req.continuity_id.clone(),
             attachment_id: req.attachment_id.clone(),
             current_ask: ask,
+            desired_spec_template,
+            crist_handoff,
             state_revision: 1,
             status: SpecWorkbenchStatus::Active,
             canonical: true,
@@ -407,6 +606,23 @@ async fn mutate(
             let existing = s.sections.iter().find(|z| z.section_id == sid).cloned();
             let rev = existing.as_ref().map_or(1, |z| z.revision);
             let created = existing.as_ref().map_or(now, |z| z.created_at);
+            let reality_classification = if x.reality_classification.trim().is_empty() {
+                if x.docs_only {
+                    "docs_only".to_string()
+                } else {
+                    "unknown".to_string()
+                }
+            } else {
+                x.reality_classification.trim().to_lowercase()
+            };
+            if !REALITY_CLASSIFICATIONS.contains(&reality_classification.as_str()) {
+                return Err(fail(
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                    ToolStatus::ValidationRejected,
+                    FailureClass::ValidationRejected,
+                    "invalid reality_classification",
+                ));
+            }
             let status = if x.context_refs.is_empty() || x.evidence_refs.is_empty() {
                 SpecSectionStatus::Draft
             } else {
@@ -416,6 +632,7 @@ async fn mutate(
                 section_id: sid.clone(),
                 title: x.title,
                 section_kind: x.section_kind,
+                reality_classification,
                 status,
                 order_index: x.order_index,
                 revision: rev,
@@ -702,6 +919,24 @@ async fn mutate(
                     FailureClass::ApprovalRequired,
                     "all sections require approval",
                 ));
+            }
+            if s.desired_spec_template == "project_genesis" {
+                let missing_sections: Vec<_> = PROJECT_GENESIS_SECTIONS
+                    .iter()
+                    .filter(|title| !s.sections.iter().any(|section| section.title == **title))
+                    .copied()
+                    .collect();
+                if !missing_sections.is_empty() {
+                    return Err(fail(
+                        StatusCode::UNPROCESSABLE_ENTITY,
+                        ToolStatus::ValidationRejected,
+                        FailureClass::ApprovalRequired,
+                        format!(
+                            "project_genesis final approval requires all 22 sections; missing: {}",
+                            missing_sections.join(", ")
+                        ),
+                    ));
+                }
             }
             s.status = SpecWorkbenchStatus::FinalApproved;
             s.final_spec_id = Some(id(

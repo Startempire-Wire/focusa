@@ -1,0 +1,18 @@
+{
+  "schema": "focusa.mission_canvas.no_dead_chrome_proofs.v1",
+  "proofs": [
+    {"id":"NDC-01","scenario":"empty-optionals","assertion":"omitted contributions have no layout reference"},
+    {"id":"NDC-02","scenario":"empty-optionals","assertion":"remaining primary reflow is deterministic"},
+    {"id":"NDC-03","scenario":"single-queue","assertion":"single queue occupies the available queue composition"},
+    {"id":"NDC-04","scenario":"zero-queues","assertion":"zero queues leave no queue container"},
+    {"id":"NDC-05","scenario":"empty-optionals","assertion":"empty Work Rail has no node while New Workpoint remains contextual"},
+    {"id":"NDC-06","scenario":"empty-optionals","assertion":"empty inspector sections and gaps disappear"},
+    {"id":"NDC-07","scenario":"populated","assertion":"tabs and strip entries represent actual eligible Work Surfaces only"},
+    {"id":"NDC-08","scenario":"populated","assertion":"profile switch recomputes from candidate intersections"},
+    {"id":"NDC-09","scenario":"populated","assertion":"profile memory preserves disappearance and return placement"},
+    {"id":"NDC-10","scenario":"empty-optionals","assertion":"capability loss omits or suspends unavailable contribution"},
+    {"id":"NDC-11","scenario":"populated","assertion":"semantic ids and renderer bindings prevent visual counterfeiting"},
+    {"id":"NDC-12","scenario":"populated","assertion":"canonical state, session, drafts, focus, and scroll survive recomposition"},
+    {"id":"NDC-13","scenario":"populated","assertion":"receipts correlate profile, activity, contribution set, and layout revision"}
+  ]
+}

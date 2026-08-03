@@ -1,0 +1,58 @@
+{
+  "schema": "focusa.spec135.mission_canvas_pi_native_gui_proof.v2",
+  "status": "pi_native_reference_design_implemented",
+  "accepted": true,
+  "authority_ref": "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml",
+  "runtime": {
+    "observed_host_renderer": "pi_native_mission_canvas",
+    "required_host_renderer": "pi_native_mission_canvas",
+    "same_pi_process": true,
+    "same_pi_terminal": true,
+    "same_session": true,
+    "browser_or_remote_host_launched": false,
+    "canonical_runtime_forked": false
+  },
+  "implementation": {
+    "extension": "apps/pi-extension",
+    "language": "TypeScript",
+    "mounting_api": "ctx.ui.custom",
+    "shell_ref": "apps/pi-extension/src/mission-canvas-shell.ts",
+    "renderer_ref": "apps/pi-extension/src/mission-canvas-view.ts",
+    "tool_ref": "apps/pi-extension/src/mission-canvas-tool.ts"
+  },
+  "reference_design": {
+    "handoff_ref": "docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md",
+    "activity_image_ref": "docs/contracts/spec135/authoritative-handoff/focusa_activity_mode_recomposition.png",
+    "vertical_image_ref": "docs/contracts/spec135/authoritative-handoff/focusa_dynamic_vertical_recomposition.png",
+    "render_packet_ref": "docs/evidence/spec135-pi-native-reference-renders.v1.json",
+    "render_contact_sheet_ref": "docs/evidence/spec135-pi-native-reference-renders.png"
+  },
+  "verified_behaviors": {
+    "current_pi_on_off_control": true,
+    "activity_mode_recomposition": true,
+    "workspace_profile_recomposition": true,
+    "actual_work_surface_strip": true,
+    "same_session_transcript": true,
+    "same_session_prompt_editor": true,
+    "steering_and_follow_up_occupancy": true,
+    "no_dead_chrome_sparse_state": true,
+    "per_profile_layout_memory": true,
+    "responsive_narrow_stacked_desktop": true,
+    "high_contrast_and_reduced_motion_signals": true,
+    "remote_host_launch_forbidden": true
+  },
+  "proof_commands": [
+    "cd apps/pi-extension && npm run typecheck",
+    "cd apps/pi-extension && npm run test:mission-canvas",
+    "python3 scripts/render-spec135-pi-native-evidence.py"
+  ],
+  "evidence_refs": [
+    "apps/pi-extension/tests/mission-canvas-pi-surface.test.mjs",
+    "apps/pi-extension/tests/mission-canvas-reference-design.test.mjs",
+    "apps/pi-extension/tests/mission-canvas-performance.test.mjs",
+    "apps/pi-extension/tests/mission-canvas-accessibility.test.mjs",
+    "docs/evidence/spec135-pi-native-reference-renders.v1.json",
+    "docs/evidence/spec135-pi-native-reference-renders.png"
+  ],
+  "live_reload_requirement": "Run /reload in the current Pi session after installed extension source changes, then toggle Canvas on."
+}

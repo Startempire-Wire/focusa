@@ -1,0 +1,19 @@
+{
+  "schema": "focusa.mission_canvas.pi_extension_release_matrix.v2",
+  "package_evidence": "docs/evidence/spec135-pi-extension-package-candidate.json",
+  "platforms": [
+    {"os":"macOS","architectures":["arm64","x64"],"runtime":"Pi TypeScript TUI","ci":"macos-latest","status":"installed_smoke_verified_on_current_mac"},
+    {"os":"Windows","architectures":["x64"],"runtime":"Pi TypeScript TUI","ci":"windows-latest","status":"portable_package_and_no_native_dependency_verified"},
+    {"os":"Linux","architectures":["x64","arm64"],"runtime":"Pi TypeScript TUI","ci":"ubuntu-latest","status":"portable_package_and_no_native_dependency_verified"}
+  ],
+  "transitions": [
+    {"from":"legacy_terminal_projection","to":"pi_native_mission_canvas","expected":"preserve profile, activity, drafts, scope, transcript, and current Pi session"},
+    {"from":"pi_native_mission_canvas","to":"stock_pi","expected":"Canvas OFF restores stock Pi root in same terminal"},
+    {"from":"stock_pi","to":"pi_native_mission_canvas","expected":"Canvas ON remounts one authoritative shell without duplicate host"},
+    {"from":"updated_extension","to":"rollback_backup","expected":"restore prior extension sources and reload stock Pi safely"},
+    {"from":"daemon_restart","to":"reconnected","expected":"continue Pi interaction and refresh canonical projection"}
+  ],
+  "release_authority":"GitHub protected pipeline after explicit operator authorization",
+  "local_status":"Pi 0.83 typecheck, installed smoke, integration, security, 5,000-transition stress, deterministic package, and macOS live capture passed",
+  "remote_status":"pending_protected_checks"
+}

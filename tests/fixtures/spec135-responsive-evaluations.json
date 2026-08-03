@@ -1,0 +1,54 @@
+[
+  {
+    "fixture_id": "responsive-fixture:minimum:macos",
+    "viewport": {"class":"minimum","css_width":1024,"css_height":720,"platform":"macOS","device_pixel_ratio":2,"zoom_percent":100,"high_contrast":false,"reduced_motion":false,"reduced_transparency":false,"text_scale_percent":100},
+    "profile_id": "software",
+    "activity_mode_id": "overview",
+    "candidate_contribution_ids": ["contribution:pi-session","contribution:focusa-inspector","contribution:work-rail"],
+    "expected_eligible_contribution_ids": ["contribution:pi-session","contribution:focusa-inspector"],
+    "expected_omissions": [{"contribution_id":"contribution:work-rail","reason":"viewport_omitted"}],
+    "expected_layout_kinds": ["single","tabs"],
+    "minimum_primary_span": 8,
+    "maximum_visible_contributions": 2,
+    "must_preserve_focus": true
+  },
+  {
+    "fixture_id": "responsive-fixture:standard:windows",
+    "viewport": {"class":"standard","css_width":1280,"css_height":800,"platform":"Windows","device_pixel_ratio":1,"zoom_percent":125,"high_contrast":false,"reduced_motion":false,"reduced_transparency":false,"text_scale_percent":100},
+    "profile_id": "legal",
+    "activity_mode_id": "documents",
+    "candidate_contribution_ids": ["contribution:document","contribution:authority-inspector","contribution:follow-up-queue"],
+    "expected_eligible_contribution_ids": ["contribution:document","contribution:authority-inspector","contribution:follow-up-queue"],
+    "expected_omissions": [],
+    "expected_layout_kinds": ["split","inspector"],
+    "minimum_primary_span": 7,
+    "maximum_visible_contributions": 3,
+    "must_preserve_focus": true
+  },
+  {
+    "fixture_id": "responsive-fixture:productive:linux",
+    "viewport": {"class":"productive","css_width":1600,"css_height":1000,"platform":"Linux","device_pixel_ratio":1,"zoom_percent":100,"high_contrast":true,"reduced_motion":true,"reduced_transparency":true,"text_scale_percent":150},
+    "profile_id": "research",
+    "activity_mode_id": "evidence",
+    "candidate_contribution_ids": ["contribution:source","contribution:evidence-inspector","contribution:work-rail","contribution:follow-up-queue"],
+    "expected_eligible_contribution_ids": ["contribution:source","contribution:evidence-inspector","contribution:work-rail","contribution:follow-up-queue"],
+    "expected_omissions": [],
+    "expected_layout_kinds": ["grid","inspector"],
+    "minimum_primary_span": 6,
+    "maximum_visible_contributions": 4,
+    "must_preserve_focus": true
+  },
+  {
+    "fixture_id": "responsive-fixture:reference-capture:macos",
+    "viewport": {"class":"reference_capture","css_width":1440,"css_height":900,"platform":"macOS","device_pixel_ratio":2,"zoom_percent":100,"high_contrast":false,"reduced_motion":false,"reduced_transparency":false,"text_scale_percent":100},
+    "profile_id": "markets",
+    "activity_mode_id": "overview",
+    "candidate_contribution_ids": ["contribution:market-overview","contribution:risk-inspector","contribution:steering-queue"],
+    "expected_eligible_contribution_ids": ["contribution:market-overview","contribution:risk-inspector","contribution:steering-queue"],
+    "expected_omissions": [],
+    "expected_layout_kinds": ["split","inspector"],
+    "minimum_primary_span": 7,
+    "maximum_visible_contributions": 3,
+    "must_preserve_focus": true
+  }
+]

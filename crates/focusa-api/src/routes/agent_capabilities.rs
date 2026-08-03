@@ -344,7 +344,7 @@ fn op(
 }
 
 fn build_operations() -> Vec<OperationEntry> {
-    vec![
+    let mut operations = vec![
         // ── health ──────────────────────────────────────────────────────────
         op(
             "focusa.health.check",
@@ -2347,6 +2347,356 @@ fn build_operations() -> Vec<OperationEntry> {
             "focusa.agent_execution_adapter_result.v1",
             "docs/133-daemon-native-durable-silent-sessions-and-governed-autonomous-execution-spec.md",
             None,
+        ),
+    ];
+    operations.extend(build_mission_canvas_operations());
+    operations
+}
+
+fn build_mission_canvas_operations() -> Vec<OperationEntry> {
+    macro_rules! canvas_op {
+        ($id:literal, $label:literal, $method:literal, $path:literal, $write:expr, $if_match:expr, $permission:literal, $request:literal, $response:literal, $confirm:expr) => {
+            op(
+                $id,
+                $label,
+                "mission_canvas",
+                $method,
+                $path,
+                true,
+                None,
+                if $write {
+                    "write_workspace"
+                } else {
+                    "read_workspace"
+                },
+                if $write {
+                    "canonical_write"
+                } else {
+                    "canonical_read"
+                },
+                if $write {
+                    vec!["preview", "commit"]
+                } else {
+                    vec!["preview"]
+                },
+                $write,
+                $if_match,
+                false,
+                vec![$permission],
+                $confirm,
+                if $write {
+                    "standard_write"
+                } else {
+                    "light_read"
+                },
+                vec!["compact", "standard"],
+                $request,
+                $response,
+                "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
+                None,
+            )
+        };
+    }
+    vec![
+        canvas_op!(
+            "focusa.mission_canvas.projection.get",
+            "Get Resolved Workspace Projection",
+            "GET",
+            "/v1/mission-canvas/projection",
+            false,
+            false,
+            "mission_canvas:read",
+            "focusa.mission_canvas.projection_get.request.v1",
+            "focusa.resolved_workspace_projection.v1",
+            false
+        ),
+        canvas_op!(
+            "focusa.mission_canvas.projection.resolve",
+            "Resolve Workspace Projection",
+            "POST",
+            "/v1/mission-canvas/projection/resolve",
+            true,
+            true,
+            "mission_canvas:write",
+            "focusa.contribution_eligibility_context.v1",
+            "focusa.mission_canvas.resolve_result.v1",
+            false
+        ),
+        canvas_op!(
+            "focusa.mission_canvas.profile.list",
+            "List Workspace Profiles",
+            "GET",
+            "/v1/mission-canvas/profiles",
+            false,
+            false,
+            "mission_canvas:read",
+            "focusa.mission_canvas.profile_list.request.v1",
+            "focusa.workspace_profile_list.v1",
+            false
+        ),
+        canvas_op!(
+            "focusa.mission_canvas.profile.select",
+            "Select Workspace Profile",
+            "POST",
+            "/v1/mission-canvas/profiles/select",
+            true,
+            true,
+            "mission_canvas:write",
+            "focusa.mission_canvas.composition_selection.request.v1",
+            "focusa.resolved_workspace_projection.v1",
+            false
+        ),
+        canvas_op!(
+            "focusa.mission_canvas.profile.get",
+            "Get Workspace Profile",
+            "GET",
+            "/v1/mission-canvas/profiles/{profile_id}",
+            false,
+            false,
+            "mission_canvas:read",
+            "focusa.mission_canvas.profile_get.request.v1",
+            "focusa.workspace_profile.v1",
+            false
+        ),
+        canvas_op!(
+            "focusa.mission_canvas.activity.list",
+            "List Activity Modes",
+            "GET",
+            "/v1/mission-canvas/activities",
+            false,
+            false,
+            "mission_canvas:read",
+            "focusa.mission_canvas.activity_list.request.v1",
+            "focusa.activity_mode_list.v1",
+            false
+        ),
+        canvas_op!(
+            "focusa.mission_canvas.activity.select",
+            "Select Activity Mode",
+            "POST",
+            "/v1/mission-canvas/activities/select",
+            true,
+            true,
+            "mission_canvas:write",
+            "focusa.mission_canvas.composition_selection.request.v1",
+            "focusa.resolved_workspace_projection.v1",
+            false
+        ),
+        canvas_op!(
+            "focusa.mission_canvas.domain_pack.install",
+            "Install Mission Canvas Domain Pack",
+            "POST",
+            "/v1/mission-canvas/domain-packs/install",
+            true,
+            false,
+            "mission_canvas:write",
+            "focusa.mission_canvas.domain_pack_install.request.v1",
+            "focusa.mission_canvas.domain_pack_install_receipt.v1",
+            true
+        ),
+        canvas_op!(
+            "focusa.mission_canvas.registry.list",
+            "List Mission Canvas Registry",
+            "GET",
+            "/v1/mission-canvas/registries/{registry_kind}",
+            false,
+            false,
+            "mission_canvas:read",
+            "focusa.mission_canvas.registry_list.request.v1",
+            "focusa.registry_entry_list.v1",
+            false
+        ),
+        canvas_op!(
+            "focusa.mission_canvas.layout_memory.get",
+            "Get Profile Layout Memory",
+            "GET",
+            "/v1/mission-canvas/layout-memory",
+            false,
+            false,
+            "mission_canvas:read",
+            "focusa.mission_canvas.layout_memory_get.request.v1",
+            "focusa.profile_layout_memory.v1",
+            false
+        ),
+        canvas_op!(
+            "focusa.mission_canvas.layout_memory.update",
+            "Update Profile Layout Memory",
+            "POST",
+            "/v1/mission-canvas/layout-memory",
+            true,
+            true,
+            "mission_canvas:write",
+            "focusa.profile_layout_memory_write.v1",
+            "focusa.recomposition_receipt.v1",
+            false
+        ),
+        canvas_op!(
+            "focusa.mission_canvas.layout.mutate",
+            "Mutate Mission Canvas Layout",
+            "POST",
+            "/v1/mission-canvas/layout/mutations",
+            true,
+            true,
+            "mission_canvas:write",
+            "focusa.layout_mutation_command.v1",
+            "focusa.layout_mutation_result.v1",
+            false
+        ),
+        canvas_op!(
+            "focusa.mission_canvas.rich_host.resolve",
+            "Resolve Rich Host Renderer",
+            "GET",
+            "/v1/mission-canvas/rich-host/resolution",
+            false,
+            false,
+            "mission_canvas:host",
+            "focusa.mission_canvas.rich_host_resolve.request.v1",
+            "focusa.host_renderer_resolution.v1",
+            false
+        ),
+        canvas_op!(
+            "focusa.mission_canvas.rich_host.launch",
+            "Launch Rich Host",
+            "POST",
+            "/v1/mission-canvas/rich-host/launch",
+            true,
+            false,
+            "mission_canvas:host",
+            "focusa.mission_canvas.rich_host_command.v1",
+            "focusa.host_lifecycle_state.v1",
+            false
+        ),
+        canvas_op!(
+            "focusa.mission_canvas.rich_host.focus",
+            "Focus Rich Host",
+            "POST",
+            "/v1/mission-canvas/rich-host/focus",
+            true,
+            false,
+            "mission_canvas:host",
+            "focusa.mission_canvas.rich_host_command.v1",
+            "focusa.host_lifecycle_state.v1",
+            false
+        ),
+        canvas_op!(
+            "focusa.mission_canvas.rich_host.hide",
+            "Hide Rich Host",
+            "POST",
+            "/v1/mission-canvas/rich-host/hide",
+            true,
+            false,
+            "mission_canvas:host",
+            "focusa.mission_canvas.rich_host_command.v1",
+            "focusa.host_lifecycle_state.v1",
+            false
+        ),
+        canvas_op!(
+            "focusa.mission_canvas.rich_host.close",
+            "Close Rich Host",
+            "POST",
+            "/v1/mission-canvas/rich-host/close",
+            true,
+            false,
+            "mission_canvas:host",
+            "focusa.mission_canvas.rich_host_command.v1",
+            "focusa.host_lifecycle_state.v1",
+            true
+        ),
+        canvas_op!(
+            "focusa.mission_canvas.draft.get",
+            "Get Mission Canvas Draft",
+            "GET",
+            "/v1/mission-canvas/drafts/{draft_id}",
+            false,
+            false,
+            "mission_canvas:draft",
+            "focusa.mission_canvas.draft_get.request.v1",
+            "focusa.canvas_draft_state.v1",
+            false
+        ),
+        canvas_op!(
+            "focusa.mission_canvas.draft.sync",
+            "Synchronize Mission Canvas Draft",
+            "POST",
+            "/v1/mission-canvas/drafts/sync",
+            true,
+            true,
+            "mission_canvas:draft",
+            "focusa.canvas_draft_state.v1",
+            "focusa.canvas_draft_state.v1",
+            false
+        ),
+        canvas_op!(
+            "focusa.mission_canvas.recipient.resolve",
+            "Resolve Draft Recipient",
+            "POST",
+            "/v1/mission-canvas/recipients/resolve",
+            false,
+            false,
+            "mission_canvas:draft",
+            "focusa.mission_canvas.recipient_resolve.request.v1",
+            "focusa.mission_canvas.recipient_resolution.v1",
+            false
+        ),
+        canvas_op!(
+            "focusa.mission_canvas.recomposition.evidence.get",
+            "Get Recomposition Evidence",
+            "GET",
+            "/v1/mission-canvas/recompositions/{revision}/evidence",
+            false,
+            false,
+            "mission_canvas:read",
+            "focusa.mission_canvas.recomposition_get.request.v1",
+            "focusa.recomposition_evidence.v1",
+            false
+        ),
+        canvas_op!(
+            "focusa.mission_canvas.recomposition.receipt.get",
+            "Get Recomposition Receipt",
+            "GET",
+            "/v1/mission-canvas/recompositions/{revision}/receipt",
+            false,
+            false,
+            "mission_canvas:read",
+            "focusa.mission_canvas.recomposition_get.request.v1",
+            "focusa.recomposition_receipt.v1",
+            false
+        ),
+        canvas_op!(
+            "focusa.mission_canvas.recomposition.diagnostics.list",
+            "List Recomposition Diagnostics",
+            "GET",
+            "/v1/mission-canvas/recompositions/{revision}/diagnostics",
+            false,
+            false,
+            "mission_canvas:read",
+            "focusa.mission_canvas.recomposition_get.request.v1",
+            "focusa.omission_diagnostic_list.v1",
+            false
+        ),
+        canvas_op!(
+            "focusa.mission_canvas.pi_session.event.append",
+            "Append Pi Session Event",
+            "POST",
+            "/v1/mission-canvas/pi-session/events",
+            true,
+            false,
+            "mission_canvas:write",
+            "focusa.mission_canvas.pi_session_event_append.request.v1",
+            "focusa.mission_canvas.pi_session_event_receipt.v1",
+            false
+        ),
+        canvas_op!(
+            "focusa.mission_canvas.events.stream",
+            "Stream Projection Events",
+            "GET",
+            "/v1/mission-canvas/events",
+            false,
+            false,
+            "mission_canvas:read",
+            "focusa.mission_canvas.events.request.v1",
+            "focusa.projection_lifecycle_event_list.v1",
+            false
         ),
     ]
 }

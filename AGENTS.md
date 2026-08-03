@@ -8,6 +8,34 @@ For KH/OVH/operator policy, inherit `/root/AGENTS.md`: query `agent-kb-api` firs
 
 Before broad Focusa code changes or after context loss, read `docs/agent/01-focusa-agent-docs-index.md`. It is the bounded, public-safe architecture/commands/API/Workpoint/Trajectory/private-boundary guide for agents.
 
+### Mandatory Spec 135 / Mission Canvas preflight
+
+Before changing Mission Canvas, Pi UI, Work Surfaces, workspace verticals, C.R.I.S.T. generated UI, renderer code, proof artifacts, or Spec 135 closure state, read in this order:
+
+1. `docs/135-series-current-manifest.md`
+2. the current replacement authority, verbatim:
+   - `docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md`
+   - `docs/contracts/spec135/authoritative-handoff/focusa_activity_mode_recomposition.png`
+   - `docs/contracts/spec135/authoritative-handoff/focusa_dynamic_vertical_recomposition.png`
+3. `docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml`
+4. `docs/agent/spec135-implementation-acceleration-directive.md`
+5. the affected existing 135A–135K documents
+6. the current machine-readable ledger and runtime proof
+
+The replacement text outranks images and older contracts for occupancy. The images are populated examples, not fixed panel inventory. Record `interaction_mode`, `host_renderer`, eligible contributions, and omitted contribution reasons separately in the Workpoint or issue before implementation.
+
+The operator intent is fixed:
+
+```text
+Pi terminal interaction
+        ⇅ light switch controlled directly from Pi
+Focusa-owned rich Mission Canvas professional GUI over the same live Pi session
+```
+
+A terminal sidebar, box-drawing full-screen TUI, status-card dashboard, Markdown vertical projection, transcript C.R.I.S.T. stage, or handwritten proof JSON is not the rich GUI. It may be retained only as a truthful terminal fallback or partial implementation.
+
+Do not create 135L or another lettered clarification. The current delivery manifest and machine contract govern conflicts.
+
 ## Current agent-readiness fast path
 
 1. Verify `project_root + continuity_id` with `focusa_project_identity`/`focusa_project_verify`; a Git worktree is a typed working subpath under that authority.
@@ -60,10 +88,10 @@ rejected by local hooks, CI, and the release-tag gate.
 
 ```bash
 bd ready              # Find available work
-bd show <id>          # View issue details
+bd show <id>           # View issue details
 bd update <id> --status in_progress  # Claim work
-bd close <id>         # Complete work
-bd sync               # Sync with git
+bd close <id>          # Complete work
+bd sync                # Sync with git
 ```
 
 ## Public / Private Docs Boundary

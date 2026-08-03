@@ -1,0 +1,51 @@
+{
+  "schema": "focusa.spec135.ui_event_stream_durable.v1",
+  "spec_ref": "docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md",
+  "acceptance_criteria": "Events survive daemon restart and preserve project/workstream/session/origin identity.",
+  "required_projection_events": [
+    "mission_canvas_surface_created",
+    "mission_canvas_surface_updated",
+    "mission_canvas_surface_focused",
+    "mission_canvas_surface_suspended",
+    "mission_canvas_surface_rehydrated",
+    "mission_canvas_surface_closed",
+    "mission_canvas_layout_changed",
+    "attachment_added",
+    "attachment_role_changed",
+    "attachment_detached",
+    "session_started",
+    "session_state_changed",
+    "session_ended",
+    "browser_context_created",
+    "browser_context_isolation_changed",
+    "browser_context_closed",
+    "browser_target_opened",
+    "browser_target_navigated",
+    "browser_target_moved",
+    "browser_target_closed",
+    "surface_unread_changed",
+    "surface_approval_required",
+    "surface_conflict_changed",
+    "surface_writer_lease_changed"
+  ],
+  "invariants": [
+    "Events contain scoped IDs, versions, cursors, and invalidation keys",
+    "Events never contain full transcripts, page bodies, images, or browser storage",
+    "Payloads are bounded by payload_max_bytes",
+    "Sequence is monotonic per (project_root, continuity_id) scope",
+    "Cursor enables replay from any point after restart",
+    "Invalidation key allows clients to skip redundant re-render",
+    "Receipt ref makes suspicious or impactful events auditable",
+    "Session origin identity preserved across restart"
+  ],
+  "bounded_payload_rule": "Events contain scoped IDs, versions, cursors, and invalidation keys rather than full transcripts, page bodies, images, or browser storage.",
+  "schema_path": "docs/contracts/spec135/generated-contract-v1/json-schema/focusa.ui_event.v1.json",
+  "required_read_models": [
+    "mission_canvas.summary",
+    "mission_canvas.open_surfaces",
+    "mission_canvas.surface_detail",
+    "mission_canvas.session_inventory",
+    "mission_canvas.project_activity",
+    "mission_canvas.contention"
+  ]
+}

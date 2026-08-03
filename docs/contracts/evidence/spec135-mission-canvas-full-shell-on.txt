@@ -1,0 +1,139 @@
+[Skill conflicts]
+  "focusa" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa/SKILL.md (skipped)
+  "focusa-agent-bootstrap" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-agent-bootstrap/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-agent-bootstrap/SKILL.md (skipped)
+  "focusa-browser-uiai" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-browser-uiai/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-browser-uiai/SKILL.md (skipped)
+  "focusa-cli-api" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-cli-api/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-cli-api/SKILL.md (skipped)
+  "focusa-context-cognition" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-context-cognition/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-context-cognition/SKILL.md (skipped)
+  "focusa-device-pairing" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-device-pairing/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-device-pairing/SKILL.md (skipped)
+  "focusa-docs-maintenance" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-docs-maintenance/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-docs-maintenance/SKILL.md (skipped)
+  "focusa-dxux-recovery" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-dxux-recovery/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-dxux-recovery/SKILL.md (skipped)
+  "focusa-evidence-outcomes" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-evidence-outcomes/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-evidence-outcomes/SKILL.md (skipped)
+  "focusa-focus-state" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-focus-state/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-focus-state/SKILL.md (skipped)
+  "focusa-install-lifecycle" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-install-lifecycle/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-install-lifecycle/SKILL.md (skipped)
+  "focusa-lineage" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-lineage/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-lineage/SKILL.md (skipped)
+  "focusa-metacognition" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-metacognition/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-metacognition/SKILL.md (skipped)
+  "focusa-mission-canvas" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-mission-canvas/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-mission-canvas/SKILL.md (skipped)
+  "focusa-project-card" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-project-card/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-project-card/SKILL.md (skipped)
+  "focusa-project-scope" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-project-scope/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-project-scope/SKILL.md (skipped)
+  "focusa-release-proof" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-release-proof/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-release-proof/SKILL.md (skipped)
+  "focusa-resource-performance" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-resource-performance/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-resource-performance/SKILL.md (skipped)
+  "focusa-security-auth-licensing" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-security-auth-licensing/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-security-auth-licensing/SKILL.md (skipped)
+  "focusa-session-recovery" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-session-recovery/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-session-recovery/SKILL.md (skipped)
+  "focusa-silent-sessions" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-silent-sessions/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-silent-sessions/SKILL.md (skipped)
+  "focusa-spec-implementation" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-spec-implementation/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-spec-implementation/SKILL.md (skipped)
+  "focusa-temporal-authority" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-temporal-authority/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-temporal-authority/SKILL.md (skipped)
+  "focusa-tool-discovery" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-tool-discovery/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-tool-discovery/SKILL.md (skipped)
+  "focusa-trajectory" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-trajectory/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-trajectory/SKILL.md (skipped)
+  "focusa-troubleshooting" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-troubleshooting/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-troubleshooting/SKILL.md (skipped)
+  "focusa-work-loop" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-work-loop/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-work-loop/SKILL.md (skipped)
+  "focusa-workpoint" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/focusa-workpoint/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/focusa-workpoint/SKILL.md (skipped)
+  "predictive-power" collision:
+    ✓ extension:index (temp) ~/focusa-mission-canvas/.pi/skills/predictive-power/SKILL.md
+    ✗ ~/focusa-mission-canvas/apps/pi-extension/skills/predictive-power/SKILL.md (skipped)
+  ~/.pi/skills
+    skill path does not exist
+
+
+ Warning: Project preparation is incomplete; Focusa preserved the Genesis packet and next action without creating a placeholder Workpoint.
+
+ Warning: tmux extended-keys is off. Modified Enter keys may not work. Add `set -g extended-keys on` to ~/.tmux.conf and restart tmux.
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Update Available
+ New version 0.83.0 is available. Run pi update
+ Changelog: https://pi.dev/changelog
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+▶ no-bead  [UNBOUND]  WP no-workpoint  Pnormal/unranked
+✓ proof 0 · 0 deps · 0 blockers · 0 artifacts · surface-local · adapter-unavailable  → checkpoint next action
+FOCUSA WORKSPACE SYSTEM · MISSION CANVAS
+One Runtime. Many Workspaces. Same mission, Workpoint, evidence, and history.
+WORKSPACE  ○ General  ● Software Engineering  ○ Legal  ○ Markets  ○ Research  ○ Custom
+pi · state:live · isolation:attachment-scoped · advisory · mode canvas-guided (project) · /Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas · layout:desktop · contrast:theme
+· motion:state-change-only · focus-restoration:editor
+WORK SURFACES  [Current Pi attachment]
+
+CURRENT WORKSPACE COCKPIT
+[1 Now]  2 Work  3 Sessions  4 Contention  5 Proof  6 Research  7 History  8 Context  9 Role  10 Interview  11 Spec  12 Controls
+
+┌ CURRENT NOW ──────────────────────────────────────────────────────────────────────────┐  ┌ NEXT UP ──────────────────────────────────────────────────────────────────────────────┐
+│ MISSION                                                                               │  │ Create or resume a canonical Workpoint                                                │
+│   No active Mission Canvas Workpoint                                                  │  │ Task  Unavailable                                                                     │
+│ TRAJECTORY                                                                            │  │ Loop  Unavailable                                                                     │
+│   No trajectory loaded                                                                │  │ Proof 0 evidence reference(s)                                                         │
+│ NEXT SAFE ACTION                                                                      │  │ Surface Current Pi attachment                                                         │
+│   Create or resume a canonical Workpoint                                              │  └───────────────────────────────────────────────────────────────────────────────────────┘
+└───────────────────────────────────────────────────────────────────────────────────────┘
+
+┌ WHAT CHANGES ─────────────────────────────────────────────────────────────────────────┐  ┌ WHAT STAYS THE SAME ──────────────────────────────────────────────────────────────────┐
+│ ✓ Workspace layout: software                                                          │  │ ✓ Mission: No active Mission Canvas Workpoint                                         │
+│ ✓ Terminology and focused panel: Now                                                  │  │ ✓ Workpoint: Unavailable                                                              │
+│ ✓ Work Surface emphasis                                                               │  │ ✓ Session: focusa-cont-focusa-mission-canvas-2ae83fc3-ca77-4d2b-a632-55228ae559d5     │
+│ ✓ Visual variant: default                                                             │  │ ✓ Canonical evidence and history                                                      │
+└───────────────────────────────────────────────────────────────────────────────────────┘  └───────────────────────────────────────────────────────────────────────────────────────┘
+
+N/W/S/P/H/C panels · [/] workspace · Y copy ref · R refresh · Esc clear input
+
+AGENT STREAM · SAME SESSION
+│ No conversation messages yet
+└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+YOU >
+Enter send · Ctrl+←/→ workspace · Alt+←/→ Work Surface · /mission-canvas off restores stock Pi
+FOCUSA CANVAS SHELL · SAME SESSION · gpt-5.6-sol · /mission-canvas off

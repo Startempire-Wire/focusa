@@ -1,6 +1,6 @@
 {
   "authority": "docs/135-series-current-manifest.md",
-  "generated_from": "focusa-mc-* canonical Beads decomposition",
+  "generated_from": "legacy 73-row ledger reconciled in place; rich-host additions live in the delivery amendment",
   "requirement_count": 73,
   "requirements": [
     {
@@ -12,7 +12,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -35,7 +34,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -45,7 +43,7 @@
         "focusa-mc-f0"
       ],
       "migration_requirements": [],
-      "normative_text": "F0 Freeze Spec 135\u2013135K and compile authoritative Delivery Contract. Freeze the series, amendments, requirement IDs, supersession rules, and no-deferral contract.",
+      "normative_text": "F0 Freeze Spec 135–135K and compile authoritative Delivery Contract. Freeze the series, amendments, requirement IDs, supersession rules, and no-deferral contract.",
       "primitive_owner": "Focusa Core",
       "receipt_requirements": [
         "closure Receipt",
@@ -56,8 +54,8 @@
       "requirement_id": "SPEC135-F0",
       "source_section": [
         "135 manifest",
-        "135D \u00a73",
-        "135H \u00a77"
+        "135D §3",
+        "135H §7"
       ],
       "source_spec": "135 manifest",
       "tests": [
@@ -66,6 +64,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -77,7 +80,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -102,7 +104,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -122,16 +123,21 @@
       "repository_owner": "Startempire-Wire/focusa",
       "requirement_id": "SPEC135-F1",
       "source_section": [
-        "135D \u00a7\u00a74\u20137",
-        "135H \u00a721"
+        "135D §§4–7",
+        "135H §21"
       ],
-      "source_spec": "135D \u00a7\u00a74\u20137",
+      "source_spec": "135D §§4–7",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135h_implementation_acceleration_static_test.sh"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -143,7 +149,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -168,7 +173,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -188,11 +192,11 @@
       "repository_owner": "Startempire-Wire/focusa",
       "requirement_id": "SPEC135-F2",
       "source_section": [
-        "135D \u00a76",
+        "135D §6",
         "135H Foundation F2",
         "135J"
       ],
-      "source_spec": "135D \u00a76",
+      "source_spec": "135D §6",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135h_implementation_acceleration_static_test.sh",
@@ -200,6 +204,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -211,7 +220,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -237,7 +245,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -270,6 +277,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -281,7 +293,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -307,7 +318,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -328,7 +338,7 @@
       "requirement_id": "SPEC135-F4",
       "source_section": [
         "135H Foundation F4",
-        "135I \u00a73",
+        "135I §3",
         "135J"
       ],
       "source_spec": "135H Foundation F4",
@@ -340,6 +350,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -351,7 +366,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -376,7 +390,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -407,6 +420,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -418,7 +436,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -443,7 +460,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -464,7 +480,7 @@
       "requirement_id": "SPEC135-F6",
       "source_section": [
         "135H Foundation F6",
-        "135I \u00a74",
+        "135I §4",
         "135J"
       ],
       "source_spec": "135H Foundation F6",
@@ -476,6 +492,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -487,7 +508,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -513,7 +533,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -546,6 +565,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -557,7 +581,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -583,7 +606,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -614,6 +636,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -625,7 +652,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -652,7 +678,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -685,6 +710,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -696,7 +726,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -721,7 +750,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -753,6 +781,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -764,7 +797,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -790,7 +822,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -823,6 +854,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -834,7 +870,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -867,7 +902,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -899,6 +933,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -910,7 +949,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -935,7 +973,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -967,6 +1004,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -978,7 +1020,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -1004,7 +1045,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -1035,6 +1075,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -1046,7 +1091,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -1072,7 +1116,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -1103,6 +1146,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -1114,7 +1162,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -1140,7 +1187,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -1171,6 +1217,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -1234,6 +1285,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -1287,7 +1343,7 @@
       "requirement_id": "SPEC135-RI2",
       "source_section": [
         "135B Interview",
-        "135H \u00a7\u00a74\u20136"
+        "135H §§4–6"
       ],
       "source_spec": "135B Interview",
       "tests": [
@@ -1297,6 +1353,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -1362,6 +1423,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -1428,6 +1494,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -1495,6 +1566,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -1562,6 +1638,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -1627,6 +1708,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -1696,6 +1782,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -1763,6 +1854,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -1829,6 +1925,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -1875,7 +1976,7 @@
         "focusa-mc-m3"
       ],
       "migration_requirements": [],
-      "normative_text": "Multiplexed Mission Canvas hierarchy, tabs, panes, and work-surface registry. Implement project\u2192mission\u2192surface hierarchy, surface registry, tabs/panes, status indicators, and bounded projections.",
+      "normative_text": "Multiplexed Mission Canvas hierarchy, tabs, panes, and work-surface registry. Implement project→mission→surface hierarchy, surface registry, tabs/panes, status indicators, and bounded projections.",
       "primitive_owner": "Focusa Core",
       "receipt_requirements": [
         "closure Receipt",
@@ -1885,15 +1986,20 @@
       "repository_owner": "Startempire-Wire/focusa",
       "requirement_id": "SPEC135-M3",
       "source_section": [
-        "135G \u00a7\u00a75\u20138"
+        "135G §§5–8"
       ],
-      "source_spec": "135G \u00a7\u00a75\u20138",
+      "source_spec": "135G §§5–8",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -1950,15 +2056,20 @@
       "repository_owner": "Startempire-Wire/focusa",
       "requirement_id": "SPEC135-M4",
       "source_section": [
-        "135G \u00a7\u00a79\u201312"
+        "135G §§9–12"
       ],
-      "source_spec": "135G \u00a7\u00a79\u201312",
+      "source_spec": "135G §§9–12",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -2016,9 +2127,9 @@
       "repository_owner": "Startempire-Wire/focusa",
       "requirement_id": "SPEC135-M5",
       "source_section": [
-        "135G \u00a7\u00a713\u201314"
+        "135G §§13–14"
       ],
-      "source_spec": "135G \u00a7\u00a713\u201314",
+      "source_spec": "135G §§13–14",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh",
@@ -2027,6 +2138,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -2085,10 +2201,10 @@
       "repository_owner": "Startempire-Wire/focusa",
       "requirement_id": "SPEC135-M6",
       "source_section": [
-        "135G \u00a7\u00a715\u201318",
+        "135G §§15–18",
         "135H Alpha 6"
       ],
-      "source_spec": "135G \u00a7\u00a715\u201318",
+      "source_spec": "135G §§15–18",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh",
@@ -2099,6 +2215,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -2171,6 +2292,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -2236,6 +2362,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -2303,6 +2434,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -2373,6 +2509,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -2442,6 +2583,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -2500,9 +2646,9 @@
       "repository_owner": "Startempire-Wire/focusa",
       "requirement_id": "SPEC135-U5",
       "source_section": [
-        "135K \u00a7\u00a75\u201312"
+        "135K §§5–12"
       ],
-      "source_spec": "135K \u00a7\u00a75\u201312",
+      "source_spec": "135K §§5–12",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135k_uxp_ufi_generated_ui_static_test.sh",
@@ -2510,6 +2656,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -2577,6 +2728,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -2588,7 +2744,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -2615,7 +2770,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -2635,15 +2789,20 @@
       "repository_owner": "Startempire-Wire/focusa",
       "requirement_id": "SPEC135-V1",
       "source_section": [
-        "135F \u00a7\u00a74\u20138"
+        "135F §§4–8"
       ],
-      "source_spec": "135F \u00a7\u00a74\u20138",
+      "source_spec": "135F §§4–8",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135_v1_v6_domain_projection_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -2655,7 +2814,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -2680,7 +2838,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -2700,15 +2857,20 @@
       "repository_owner": "Startempire-Wire/focusa",
       "requirement_id": "SPEC135-V2",
       "source_section": [
-        "135F \u00a7\u00a79\u201316"
+        "135F §§9–16"
       ],
-      "source_spec": "135F \u00a7\u00a79\u201316",
+      "source_spec": "135F §§9–16",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135_v1_v6_domain_projection_test.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -2720,7 +2882,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -2744,7 +2905,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -2773,6 +2933,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -2784,7 +2949,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -2809,7 +2973,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -2839,6 +3002,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -2850,7 +3018,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -2875,7 +3042,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -2905,6 +3071,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -2916,7 +3087,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -2944,7 +3114,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -2954,7 +3123,7 @@
         "focusa-mc-v6"
       ],
       "migration_requirements": [],
-      "normative_text": "Reactive domain-pack selection and General\u2192Software\u2192Research parity. Select and update domain projections deterministically from policy and context while preserving identical underlying state.",
+      "normative_text": "Reactive domain-pack selection and General→Software→Research parity. Select and update domain projections deterministically from policy and context while preserving identical underlying state.",
       "primitive_owner": "Focusa Core",
       "receipt_requirements": [
         "closure Receipt",
@@ -2964,10 +3133,10 @@
       "repository_owner": "Startempire-Wire/focusa",
       "requirement_id": "SPEC135-V6",
       "source_section": [
-        "135F \u00a713",
+        "135F §13",
         "135H Alpha 7"
       ],
-      "source_spec": "135F \u00a713",
+      "source_spec": "135F §13",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135h_implementation_acceleration_static_test.sh",
@@ -2976,6 +3145,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -2987,7 +3161,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "pi",
         "typescript",
         "uiai_engine_cockpit"
@@ -3013,7 +3186,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "pi",
         "typescript",
         "uiai_engine_cockpit"
@@ -3045,6 +3217,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -3056,7 +3233,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "pi",
         "typescript",
         "uiai_engine_cockpit"
@@ -3081,7 +3257,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "pi",
         "typescript",
         "uiai_engine_cockpit"
@@ -3112,6 +3287,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -3123,7 +3303,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "pi",
         "typescript",
         "uiai_engine_cockpit"
@@ -3147,7 +3326,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "pi",
         "typescript",
         "uiai_engine_cockpit"
@@ -3178,6 +3356,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -3189,7 +3372,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "pi",
         "typescript",
         "uiai_engine_cockpit"
@@ -3213,7 +3395,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "pi",
         "typescript",
         "uiai_engine_cockpit"
@@ -3247,6 +3428,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -3258,7 +3444,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "pi",
         "typescript",
         "uiai_engine_cockpit"
@@ -3284,7 +3469,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "pi",
         "typescript",
         "uiai_engine_cockpit"
@@ -3305,15 +3489,20 @@
       "repository_owner": "Startempire-Wire/focusa",
       "requirement_id": "SPEC135-P5",
       "source_section": [
-        "135E \u00a7\u00a78\u201314"
+        "135E §§8–14"
       ],
-      "source_spec": "135E \u00a7\u00a78\u201314",
+      "source_spec": "135E §§8–14",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135_p5_parity_migration_lint.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -3369,7 +3558,12 @@
         "tests/spec135j_core_api_runtime_reuse_static_test.sh",
         "tests/spec135_ready_frontier_contracts_lint.py"
       ],
-      "uiai_eval_scenarios": []
+      "uiai_eval_scenarios": [],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
+      ]
     },
     {
       "acceptance_criteria": [
@@ -3413,15 +3607,20 @@
       "repository_owner": "Startempire-Wire/focusa",
       "requirement_id": "SPEC135-Q2",
       "source_section": [
-        "135A\u2013135K security sections"
+        "135A–135K security sections"
       ],
-      "source_spec": "135A\u2013135K security sections",
+      "source_spec": "135A–135K security sections",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135k_uxp_ufi_generated_ui_static_test.sh",
         "tests/spec135_security_migration_contracts_lint.py"
       ],
-      "uiai_eval_scenarios": []
+      "uiai_eval_scenarios": [],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
+      ]
     },
     {
       "acceptance_criteria": [
@@ -3466,7 +3665,7 @@
       "requirement_id": "SPEC135-Q3",
       "source_section": [
         "135D performance laws",
-        "135F \u00a720",
+        "135F §20",
         "135G performance",
         "135J"
       ],
@@ -3477,7 +3676,12 @@
         "tests/spec135j_core_api_runtime_reuse_static_test.sh",
         "tests/spec135_ready_frontier_contracts_lint.py"
       ],
-      "uiai_eval_scenarios": []
+      "uiai_eval_scenarios": [],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
+      ]
     },
     {
       "acceptance_criteria": [
@@ -3534,7 +3738,12 @@
         "tests/spec135j_core_api_runtime_reuse_static_test.sh",
         "tests/spec135_ready_frontier_contracts_lint.py"
       ],
-      "uiai_eval_scenarios": []
+      "uiai_eval_scenarios": [],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
+      ]
     },
     {
       "acceptance_criteria": [
@@ -3588,7 +3797,12 @@
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135_q5_supply_chain_lint.py"
       ],
-      "uiai_eval_scenarios": []
+      "uiai_eval_scenarios": [],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
+      ]
     },
     {
       "acceptance_criteria": [
@@ -3645,7 +3859,12 @@
         "tests/spec135h_implementation_acceleration_static_test.sh",
         "tests/spec135_q6_quality_gate_lint.py"
       ],
-      "uiai_eval_scenarios": []
+      "uiai_eval_scenarios": [],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
+      ]
     },
     {
       "acceptance_criteria": [
@@ -3713,6 +3932,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -3780,6 +4004,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -3847,6 +4076,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -3915,6 +4149,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -3983,6 +4222,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -4051,6 +4295,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -4099,7 +4348,7 @@
         "focusa-mc-alpha7"
       ],
       "migration_requirements": [],
-      "normative_text": "Alpha 7: General\u2192Software\u2192Research projection over identical state. Alpha 7: General\u2192Software\u2192Research projection over identical state",
+      "normative_text": "Alpha 7: General→Software→Research projection over identical state. Alpha 7: General→Software→Research projection over identical state",
       "primitive_owner": "Focusa Core",
       "receipt_requirements": [
         "closure Receipt",
@@ -4119,6 +4368,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -4193,6 +4447,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -4203,7 +4462,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -4229,7 +4487,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -4251,15 +4508,20 @@
       "repository_owner": "Startempire-Wire/focusa",
       "requirement_id": "SPEC135-E1",
       "source_section": [
-        "135E \u00a7\u00a73\u20135"
+        "135E §§3–5"
       ],
-      "source_spec": "135E \u00a7\u00a73\u20135",
+      "source_spec": "135E §§3–5",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135_ready_frontier_contracts_lint.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -4270,7 +4532,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -4297,7 +4558,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -4319,15 +4579,20 @@
       "repository_owner": "Startempire-Wire/focusa",
       "requirement_id": "SPEC135-E2",
       "source_section": [
-        "135E \u00a7\u00a76\u20139"
+        "135E §§6–9"
       ],
-      "source_spec": "135E \u00a7\u00a76\u20139",
+      "source_spec": "135E §§6–9",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135_security_migration_contracts_lint.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -4338,7 +4603,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -4367,7 +4631,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -4389,15 +4652,20 @@
       "repository_owner": "Startempire-Wire/focusa",
       "requirement_id": "SPEC135-E3",
       "source_section": [
-        "135E \u00a710"
+        "135E §10"
       ],
-      "source_spec": "135E \u00a710",
+      "source_spec": "135E §10",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135_security_migration_contracts_lint.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -4408,7 +4676,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -4437,7 +4704,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -4459,15 +4725,20 @@
       "repository_owner": "Startempire-Wire/focusa",
       "requirement_id": "SPEC135-E4",
       "source_section": [
-        "135E \u00a7\u00a711\u201313"
+        "135E §§11–13"
       ],
-      "source_spec": "135E \u00a7\u00a711\u201313",
+      "source_spec": "135E §§11–13",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135_security_migration_contracts_lint.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -4478,7 +4749,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -4507,7 +4777,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -4529,15 +4798,20 @@
       "repository_owner": "Startempire-Wire/focusa",
       "requirement_id": "SPEC135-E5",
       "source_section": [
-        "135E \u00a7\u00a714\u201317"
+        "135E §§14–17"
       ],
-      "source_spec": "135E \u00a7\u00a714\u201317",
+      "source_spec": "135E §§14–17",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135_e5_rollout_closure_lint.py"
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -4548,7 +4822,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "menubar",
         "mission_canvas",
         "pi",
@@ -4584,7 +4857,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "menubar",
         "mission_canvas",
         "pi",
@@ -4609,11 +4881,11 @@
       "repository_owner": "Startempire-Wire/focusa",
       "requirement_id": "SPEC135-Z1",
       "source_section": [
-        "135D \u00a716",
-        "135E \u00a7\u00a715\u201317",
-        "135H \u00a724"
+        "135D §16",
+        "135E §§15–17",
+        "135H §24"
       ],
-      "source_spec": "135D \u00a716",
+      "source_spec": "135D §16",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135h_implementation_acceleration_static_test.sh",
@@ -4621,6 +4893,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -4631,7 +4908,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "menubar",
         "mission_canvas",
         "pi",
@@ -4661,7 +4937,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "menubar",
         "mission_canvas",
         "pi",
@@ -4676,7 +4951,7 @@
       "migration_requirements": [
         "expand-contract compatibility"
       ],
-      "normative_text": "Run permanent Onboarding\u2192Context\u2192Role\u2192Interview\u2192Spec\u2192Tasks\u2192Workpoint\u2192Evidence\u2192Receipt\u2192artifact\u2192Canvas integration gate. Execute the canonical permanent integration chain through pause/restart/exact resume.",
+      "normative_text": "Run permanent Onboarding→Context→Role→Interview→Spec→Tasks→Workpoint→Evidence→Receipt→artifact→Canvas integration gate. Execute the canonical permanent integration chain through pause/restart/exact resume.",
       "primitive_owner": "Focusa Core",
       "receipt_requirements": [
         "closure Receipt",
@@ -4686,10 +4961,10 @@
       "repository_owner": "Startempire-Wire/focusa",
       "requirement_id": "SPEC135-Z2",
       "source_section": [
-        "135D \u00a79",
+        "135D §9",
         "135H"
       ],
-      "source_spec": "135D \u00a79",
+      "source_spec": "135D §9",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135h_implementation_acceleration_static_test.sh",
@@ -4697,6 +4972,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -4707,7 +4987,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "menubar",
         "mission_canvas",
         "pi",
@@ -4736,7 +5015,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "menubar",
         "mission_canvas",
         "pi",
@@ -4774,6 +5052,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -4784,7 +5067,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "menubar",
         "mission_canvas",
         "pi",
@@ -4816,7 +5098,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "menubar",
         "mission_canvas",
         "pi",
@@ -4841,9 +5122,9 @@
       "repository_owner": "Startempire-Wire/focusa",
       "requirement_id": "SPEC135-Z4",
       "source_section": [
-        "135A\u2013135K acceptance sections"
+        "135A–135K acceptance sections"
       ],
-      "source_spec": "135A\u2013135K acceptance sections",
+      "source_spec": "135A–135K acceptance sections",
       "tests": [
         "tests/spec135_delivery_contract_regression_static_test.sh",
         "tests/spec135k_uxp_ufi_generated_ui_static_test.sh",
@@ -4851,6 +5132,11 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     },
     {
@@ -4861,7 +5147,6 @@
       "client_surfaces": [
         "api",
         "cli",
-        "go",
         "menubar",
         "mission_canvas",
         "pi",
@@ -4870,9 +5155,9 @@
         "typescript",
         "uiai_engine_cockpit"
       ],
-      "closure_status": "verified",
+      "closure_status": "blocked_release_prerequisites",
       "core_types": [],
-      "current_status": "verified",
+      "current_status": "blocked_release_prerequisites",
       "delivery_lane": "closure",
       "dependencies": [
         "SPEC135-Z4",
@@ -4892,7 +5177,6 @@
       "generated_ui_surfaces": [
         "api",
         "cli",
-        "go",
         "menubar",
         "mission_canvas",
         "pi",
@@ -4926,9 +5210,29 @@
       ],
       "uiai_eval_scenarios": [
         "required when browser-facing"
+      ],
+      "evidence_refs": [
+        "docs/contracts/spec135-master-final-acceptance.v1.json",
+        "docs/evidence/spec135-rich-host-hardening-proof.md",
+        "docs/evidence/spec135-p10-uiai-evaluation.md"
       ]
     }
   ],
   "schema": "focusa.spec135.feature_ledger.v1",
-  "series": "135-135K"
+  "series": "135-135K",
+  "reconciliation": {
+    "legacy_requirement_count": 73,
+    "delivery_amendment_ref": "docs/contracts/spec135-rich-host-delivery-contract.v1.json",
+    "added_requirement_ids": [
+      "SPEC135-F13",
+      "SPEC135-F14",
+      "SPEC135-AC1"
+    ],
+    "verified_count": 72,
+    "blocked_count": 1,
+    "blocker_refs": [
+      "browser-diagnostics:2026-07-31T08:47:27.316Z",
+      "docs/contracts/spec135-master-final-acceptance.v1.json"
+    ]
+  }
 }

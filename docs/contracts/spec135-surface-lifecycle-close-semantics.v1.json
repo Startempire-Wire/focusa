@@ -1,0 +1,42 @@
+{
+  "schema": "focusa.spec135.surface_lifecycle_close_semantics.v1",
+  "acceptance_criteria": "Lifecycle tests prove close never terminates work and explicit termination uses separate governed authority.",
+  "surface_actions": [
+    "create",
+    "arrange",
+    "pin",
+    "group",
+    "suspend",
+    "resume",
+    "rehydrate",
+    "close_view"
+  ],
+  "close_view": {
+    "effect": "remove presentation attachment from open canvas",
+    "session_terminated": false,
+    "provider_work_closed": false,
+    "workpoint_completed": false,
+    "reopenable": true
+  },
+  "suspend": {
+    "effect": "pause presentation/live subscription while preserving durable state",
+    "session_terminated": false,
+    "rehydratable": true
+  },
+  "terminate_session": {
+    "surface_action": false,
+    "authority": "separate governed session operation",
+    "confirmation_required": true,
+    "preview_required": true,
+    "receipt_required": true,
+    "cannot_be_inferred_from": "close_view"
+  },
+  "transition_laws": [
+    "close_view never terminates session or provider work",
+    "terminate_session is not a SurfaceAction",
+    "suspend preserves exact scope and attachment identity",
+    "resume and rehydrate preserve state revision lineage",
+    "arrange/pin/group mutate presentation state only"
+  ],
+  "implementation_ref": "crates/focusa-api/src/routes/mission_canvas_surfaces.rs::SurfaceAction"
+}

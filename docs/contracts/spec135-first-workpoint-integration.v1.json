@@ -1,0 +1,62 @@
+{
+  "schema": "focusa.spec135.first_workpoint_integration.v1",
+  "acceptance_criteria": "End-to-end production journey reaches first verified Workpoint and survives renderer/API degradation.",
+  "journey": [
+    "guided onboarding",
+    "source-linked context",
+    "approved role",
+    "closed interview",
+    "reviewed spec",
+    "materialized task",
+    "first Workpoint",
+    "execution evidence",
+    "durable receipt",
+    "live refresh"
+  ],
+  "permanent_chain": [
+    "onboarding",
+    "context",
+    "role",
+    "interview",
+    "spec",
+    "tasks",
+    "workpoint",
+    "evidence",
+    "receipt",
+    "artifact",
+    "mission_canvas"
+  ],
+  "real_execution_refs": [
+    "docs/contracts/spec135/generated-contract-v1/uiai-eval.p1-provider-conformance.result.json",
+    "docs/contracts/spec135/generated-contract-v1/uiai-eval.alpha0-context-commit.result.json",
+    "docs/contracts/spec135/generated-contract-v1/uiai-eval.ri1-role-profile.result.json",
+    "docs/contracts/spec135/generated-contract-v1/uiai-eval.ri3-interview-resume.result.json",
+    "docs/contracts/spec135/generated-contract-v1/uiai-eval.st1-spec-workbench.result.json",
+    "docs/contracts/spec135/generated-contract-v1/uiai-eval.st2-task-plan.result.json",
+    "docs/contracts/spec135/generated-contract-v1/uiai-eval.u1-workspace-artifact.result.json",
+    "docs/contracts/spec135/generated-contract-v1/uiai-eval.u2-workspace-live-refresh.result.json"
+  ],
+  "continuity_proof": {
+    "pause": "interview and work-surface revisions persist",
+    "restart": "event log and snapshot rehydrate canonical state",
+    "exact_resume": "project root, continuity, attachment, active object, and next action preserved"
+  },
+  "first_workpoint": {
+    "no_fork": true,
+    "verified_evidence_required": true,
+    "receipt_required": true,
+    "provider_task_materialized": true
+  },
+  "fallbacks": {
+    "renderer": "bounded text artifact card + Open action",
+    "api_disconnect": "stale label + cursor replay + snapshot fallback",
+    "unsupported_action": "disabled with plain-language recovery",
+    "degraded_scope": "read-only; canonical mutation blocked"
+  },
+  "evidence_refs": [
+    "tests/spec135_b7_genesis_resume_e2e_test.py",
+    "tests/spec135_i3_nontechnical_onboarding_test.py",
+    "tests/spec135_j4_reconnect_recovery_test.py",
+    "tests/spec135_c1_rich_artifact_test.py"
+  ]
+}

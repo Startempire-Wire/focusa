@@ -10,9 +10,11 @@ NC='\033[0m'
 log_pass(){ echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail(){ echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+SCOPE_ROOT="$(git -C "$ROOT_DIR" worktree list --porcelain 2>/dev/null | awk '/^worktree / {sub(/^worktree /, ""); print; exit}')"
+SCOPE_ROOT="${SCOPE_ROOT:-$ROOT_DIR}"
 curl() {
   command curl \
-    -H "x-scope-project-root: ${ROOT_DIR}" \
+    -H "x-scope-project-root: ${SCOPE_ROOT}" \
     -H "x-scope-continuity-id: work-loop-continuation-test" \
     "$@"
 }
@@ -57,7 +59,7 @@ else
 fi
 http_json -X POST "${BASE_URL}/v1/workpoint/checkpoint" \
   -H 'Content-Type: application/json' \
-  -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-continuation-test\",\"work_item_id\":\"spec79-pi-driver\",\"mission\":\"verify Pi RPC driver contract\",\"current_action\":\"spec79_pi_rpc_driver\",\"next_slice\":\"verify scoped driver lifecycle\",\"canonical\":true}" >/dev/null
+  -d "{\"project_root\":\"${SCOPE_ROOT}\",\"continuity_id\":\"work-loop-continuation-test\",\"work_item_id\":\"spec79-pi-driver\",\"mission\":\"verify Pi RPC driver contract\",\"current_action\":\"spec79_pi_rpc_driver\",\"next_slice\":\"verify scoped driver lifecycle\",\"canonical\":true}" >/dev/null
 WRITER_ID="spec79-pi-driver"
 ENABLE_RESP=$(http_json -X POST "${BASE_URL}/v1/work-loop/enable" -H 'Content-Type: application/json' \
   -H "x-focusa-writer-id: ${WRITER_ID}" -H 'x-focusa-approval: approved' \
@@ -70,7 +72,7 @@ elif ! echo "$ENABLE_RESP" | jq -e '.ok == true and .writer_id == "spec79-pi-dri
   log_fail "Pi RPC work-loop writer enable rejected: $ENABLE_RESP"
 fi
 START_PAYLOAD=$(jq -n \
-  --arg cwd "${ROOT_DIR}" \
+  --arg cwd "${SCOPE_ROOT}" \
   --arg idempotency_key "spec79-pi-driver-work-loop-continuation-test" \
   '{cwd: $cwd, idempotency_key: $idempotency_key}')
 START=$(http_json -X POST "${BASE_URL}/v1/work-loop/driver/start" -H 'Content-Type: application/json' \

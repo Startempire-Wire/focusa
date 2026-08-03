@@ -9,123 +9,30 @@ use focusa_core::{
         TemporalClaim, TemporalClaimKind, TemporalClaimStatus, TemporalEvent, TemporalEventKind,
         TemporalScope, project_temporal,
     },
-    temporal_deadline::{CivilTimeIntent, resolve_civil_time},
+    temporal_deadline::resolve_civil_time,
     temporal_forecast::{
-        ForecastAuthorityContext, ObservedDuration, ReleasePhase, evaluate_forecast,
-        forecast_phase_authorized,
+        ObservedDuration, ReleasePhase, evaluate_forecast, forecast_phase_authorized,
     },
     temporal_high_consequence::{
-        ActivationFirewall, DispatchAgeObservation, DispatchAgePolicy, SignedTemporalLedgerControl,
-        TemporalDataPolicy, TemporalPrecisionProfile, authorize_activation, authorize_dispatch,
-        validate_data_policy, validate_ledger_controls, validate_precision_profile,
+        authorize_activation, authorize_dispatch, validate_data_policy, validate_ledger_controls,
+        validate_precision_profile,
     },
-    temporal_operations::{
-        HumanCalendarContext, TemporalExecutionGuard, TemporalPriorityFrame,
-        authorize_temporal_action,
-    },
+    temporal_operations::authorize_temporal_action,
 };
-use serde::Deserialize;
 use serde_json::{Value, json};
 use std::sync::Arc;
 use uuid::Uuid;
 
-use super::temporal::{
-    TemporalScopeDimensions, append_signed_events, fail, ledger, project_active_focus_frame,
-    read_events, scope,
+use super::{
+    temporal::{
+        append_signed_events, fail, ledger, project_active_focus_frame, read_events, scope,
+    },
+    temporal_requests::{
+        TemporalCivilTimeResolveRequest, TemporalClockCaptureRequest, TemporalForecastRequest,
+        TemporalHighConsequencePreflightRequest, TemporalPriorityCommitRequest,
+        TemporalSignatureMigrationRequest,
+    },
 };
-
-#[derive(Debug, Deserialize)]
-pub struct ForecastEvaluationRequest {
-    exact_target_event_ref: String,
-    baseline_score: f64,
-    #[serde(default)]
-    censored_sample_count: usize,
-    #[serde(default)]
-    correlated_cluster_count: usize,
-    #[serde(default)]
-    cohort_drift: f64,
-    #[serde(default)]
-    decision_value: f64,
-    #[serde(default)]
-    evidence_refs: Vec<String>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct TemporalForecastRequest {
-    project_root: String,
-    continuity_id: String,
-    #[serde(flatten)]
-    dimensions: TemporalScopeDimensions,
-    idempotency_key: String,
-    phase: ReleasePhase,
-    authority: ForecastAuthorityContext,
-    #[serde(default)]
-    actual_ms: Option<u64>,
-    #[serde(default)]
-    evaluation: Option<ForecastEvaluationRequest>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct TemporalPriorityCommitRequest {
-    project_root: String,
-    continuity_id: String,
-    #[serde(flatten)]
-    dimensions: TemporalScopeDimensions,
-    human_calendar_context: HumanCalendarContext,
-    temporal_priority_frame: TemporalPriorityFrame,
-    temporal_execution_guard: TemporalExecutionGuard,
-    operator_ask_digest: String,
-    authorized_action_ref: String,
-    idempotency_key: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct TemporalCivilTimeResolveRequest {
-    project_root: String,
-    continuity_id: String,
-    #[serde(flatten)]
-    dimensions: TemporalScopeDimensions,
-    intent: CivilTimeIntent,
-    local_datetime: String,
-    idempotency_key: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct TemporalClockCaptureRequest {
-    project_root: String,
-    continuity_id: String,
-    #[serde(flatten)]
-    dimensions: TemporalScopeDimensions,
-    timezone: String,
-    #[serde(default)]
-    tzdb_version: Option<String>,
-    idempotency_key: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct TemporalHighConsequencePreflightRequest {
-    project_root: String,
-    continuity_id: String,
-    #[serde(flatten)]
-    dimensions: TemporalScopeDimensions,
-    precision_profile: TemporalPrecisionProfile,
-    dispatch_policy: DispatchAgePolicy,
-    dispatch_observation: DispatchAgeObservation,
-    activation_firewall: ActivationFirewall,
-    data_policy: TemporalDataPolicy,
-    ledger_controls: SignedTemporalLedgerControl,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct TemporalSignatureMigrationRequest {
-    project_root: String,
-    continuity_id: String,
-    #[serde(flatten)]
-    dimensions: TemporalScopeDimensions,
-    idempotency_key: String,
-    #[serde(default)]
-    confirm: bool,
-}
 
 fn phase_from_claim(claim: &TemporalClaim) -> Option<ReleasePhase> {
     let raw = claim.source_ref.as_deref()?.strip_prefix("phase:")?;

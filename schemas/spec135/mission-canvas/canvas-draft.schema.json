@@ -1,0 +1,6 @@
+{
+  "$id": "https://focusa.dev/schemas/spec135/mission-canvas/canvas-draft.schema.json",
+  "$ref": "composition-bundle.v1.schema.json#/$defs/CanvasDraftState",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Focusa Spec 135 CanvasDraftState"
+}

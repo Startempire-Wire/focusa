@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docs.startempire.ai/focusa/spec135/focusa.ontology_registry.v2.json",
+  "title": "Focusa Ontology Registry v2",
+  "description": "One core-owned semantic registry with typed object, link, action, status, and evidence definitions. Versioned built-in domain packs. No duplicate canonical models.",
+  "type": "object",
+  "required": [
+    "schema",
+    "object_types",
+    "link_types",
+    "action_types",
+    "status_vocabularies",
+    "evidence_kinds",
+    "domain_packs",
+    "v1_compatibility_projection",
+    "hard_design_laws"
+  ],
+  "properties": {
+    "schema": {
+      "const": "focusa.ontology_registry.v2"
+    },
+    "object_types": {
+      "type": "array"
+    },
+    "link_types": {
+      "type": "array"
+    },
+    "action_types": {
+      "type": "array"
+    },
+    "status_vocabularies": {
+      "type": "array"
+    },
+    "evidence_kinds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "domain_packs": {
+      "type": "array"
+    },
+    "v1_compatibility_projection": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "legacy_names_preserved"
+      ]
+    },
+    "hard_design_laws": {
+      "type": "array"
+    }
+  },
+  "additionalProperties": false
+}

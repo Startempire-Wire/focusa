@@ -1,0 +1,92 @@
+{
+  "schema": "focusa.spec135.master_final_acceptance.v1",
+  "acceptance_criteria": "All 135\u2013135K requirements close from runtime evidence, including the Pi-controlled rich Mission Canvas host, and the PR is merge-ready.",
+  "status": "verified",
+  "authority_ref": "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml",
+  "gate_count": 14,
+  "checks": [
+    {
+      "check_id": "install_to_first_workpoint",
+      "evidence_ref": "docs/contracts/spec135-first-workpoint-integration.v1.json",
+      "status": "passed"
+    },
+    {
+      "check_id": "client_parity",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "status": "passed"
+    },
+    {
+      "check_id": "security_scope",
+      "evidence_ref": "docs/evidence/spec135-pi-native-hardening-proof.md",
+      "status": "passed"
+    },
+    {
+      "check_id": "performance",
+      "evidence_ref": "apps/pi-extension/tests/mission-canvas-performance.test.mjs",
+      "status": "passed"
+    },
+    {
+      "check_id": "recovery",
+      "evidence_ref": "crates/focusa-core/src/mission_canvas/persistence.rs",
+      "status": "passed"
+    },
+    {
+      "check_id": "dogfood",
+      "evidence_ref": "docs/evidence/spec135-p10-uiai-evaluation.md",
+      "status": "passed"
+    },
+    {
+      "check_id": "interaction_mode_contract",
+      "evidence_ref": "docs/evidence/spec135-pi-native-interaction-proof.md",
+      "status": "passed"
+    },
+    {
+      "check_id": "focusa_pi_native_terminal",
+      "evidence_ref": "apps/pi-extension/tests/mission-canvas-pi-surface.test.mjs",
+      "status": "passed"
+    },
+    {
+      "check_id": "same_session_canvas_toggle",
+      "evidence_ref": "apps/pi-extension/tests/mission-canvas-mode-precedence.test.mjs",
+      "status": "passed"
+    },
+    {
+      "check_id": "generated_crist_rich_work_surfaces",
+      "evidence_ref": "docs/evidence/spec135-generated-uiai-rich-surface-proof.md",
+      "status": "passed"
+    },
+    {
+      "check_id": "multiplexing",
+      "evidence_ref": "crates/focusa-api/src/routes/mission_canvas.rs",
+      "status": "passed"
+    },
+    {
+      "check_id": "vertical_professional_workspaces",
+      "evidence_ref": "tests/spec135_profile_activity_registry_test.py",
+      "status": "passed"
+    },
+    {
+      "check_id": "generated_contracts",
+      "evidence_ref": "docs/contracts/spec135/mission-canvas-v1/compatibility-lock.json",
+      "status": "passed"
+    },
+    {
+      "check_id": "cross_spec_migration_and_clean_lineage",
+      "evidence_ref": "docs/contracts/spec135-adaptive-composition.v1.yaml",
+      "status": "passed"
+    }
+  ],
+  "passed_count": 14,
+  "blocked_count": 0,
+  "failed_count": 0,
+  "beads_closure_authority": "provider-owned JSONL plus generated completion DAG; evidence-backed status transitions only.",
+  "branch_policy": "feature branch + PR only; never direct commit to main",
+  "merge_ready_conditions": [
+    "all technical and visual evaluation gates pass",
+    "strict CI passes",
+    "worktree is clean and PR checks are green",
+    "operator explicitly authorizes merge and release"
+  ],
+  "known_blockers": [],
+  "merge_ready": true
+}

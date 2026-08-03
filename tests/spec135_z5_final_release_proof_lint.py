@@ -9,7 +9,15 @@ proof = json.loads((B / "spec135-z5-final-release-proof.json").read_text())
 assert proof["merge_ready"] is True
 assert proof["verified_requirements"] == 72
 assert proof["open_requirements"] == ["SPEC135-Z5"]
-assert proof["open_task_beads"] == ["focusa-mc-z5"]
+assert proof["open_task_beads"] == [
+    "focusa-mc2",
+    "focusa-mc2.12",
+    "focusa-mc2.12.377",
+    "focusa-mc2.12.378",
+    "focusa-mc2.12.379",
+    "focusa-mc2.12.380",
+    "focusa-mc2.12.381",
+]
 assert proof["behind"] == 0 and proof["clean"] is True
 for ref in (proof["closure_gate_ref"], proof["requirement_matrix_ref"], proof["lineage_ref"]):
     assert (B / ref).exists(), ref

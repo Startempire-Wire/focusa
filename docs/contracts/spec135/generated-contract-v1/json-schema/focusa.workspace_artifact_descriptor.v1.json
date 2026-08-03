@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docs.startempire.ai/focusa/spec135/focusa.workspace_artifact_descriptor.v1.json",
+  "title": "Focusa Workspace Artifact Descriptor v1",
+  "description": "Durable rich artifact descriptor produced by UIAI Engine and rendered by Mission Canvas / Pi clients. No client may silently discard an artifact because it cannot render the preferred format; fallback is required.",
+  "type": "object",
+  "required": [
+    "schema",
+    "artifact_id",
+    "artifact_kind",
+    "title",
+    "before_ref",
+    "after_ref",
+    "evidence_refs",
+    "project_root",
+    "continuity_id",
+    "session_origin",
+    "freshness",
+    "authority",
+    "render_safe"
+  ],
+  "properties": {
+    "schema": {
+      "const": "focusa.workspace_artifact_descriptor.v1"
+    },
+    "artifact_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "artifact_kind": {
+      "type": "string",
+      "enum": [
+        "image",
+        "markdown",
+        "dataset",
+        "diff",
+        "browser_snapshot",
+        "diagnostics",
+        "chart",
+        "document",
+        "media",
+        "fpv_session"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "before_ref": {
+      "type": "string"
+    },
+    "after_ref": {
+      "type": "string"
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "summary": {
+      "type": "string"
+    },
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "citations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "citation_ref",
+          "source_origin"
+        ],
+        "properties": {
+          "citation_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_origin": {
+            "type": "string",
+            "minLength": 1
+          },
+          "authoritative": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "source_kind",
+        "harvested_at"
+      ],
+      "properties": {
+        "source_kind": {
+          "type": "string"
+        },
+        "harvested_at": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uiai_session_ref": {
+          "type": "string"
+        },
+        "browser_context_ref": {
+          "type": "string"
+        },
+        "operator_id": {
+          "type": "string"
+        }
+      }
+    },
+    "project_root": {
+      "type": "string",
+      "minLength": 1
+    },
+    "continuity_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "session_origin": {
+      "type": "string",
+      "minLength": 1
+    },
+    "attachment_id": {
+      "type": "string"
+    },
+    "freshness": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authority": {
+      "type": "string",
+      "minLength": 1
+    },
+    "vertical_dispatch": {
+      "type": "string",
+      "enum": [
+        "General",
+        "Software",
+        "Legal",
+        "Markets",
+        "Research",
+        "Custom"
+      ]
+    },
+    "render_safe": {
+      "type": "boolean"
+    },
+    "redacted": {
+      "type": "boolean"
+    },
+    "artifact_handle": {
+      "type": "string"
+    },
+    "external_open_ref": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

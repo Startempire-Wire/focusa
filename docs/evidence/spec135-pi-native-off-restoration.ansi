@@ -1,0 +1,50 @@
+
+ [3m[38;2;128;128;128mThe user wants me to call focusa_mission_canvas with action "off" and nothing else.[0m
+
+[48;2;40;50;40m
+ [1m[38;2;212;212;212mfocusa_mission_canvas[0m[48;2;40;50;40m
+ [38;2;128;128;128m{
+[39m [38;2;128;128;128m  "action": "off",
+[39m [38;2;128;128;128m  "canvas_enabled": true,
+[39m [38;2;128;128;128m  "interaction_mode": "canvas-guided",
+[39m [38;2;128;128;128m  "mode_source": "project",
+[39m [38;2;128;128;128m  "workspace_profile": "software",
+[39m [38;2;128;128;128m  "visual_variant": "default",
+[39m [38;2;128;128;128m  "canonical_runtime_active": true,
+[39m [38;2;128;128;128m  "gui": "pi_tui",
+[39m [38;2;128;128;128m  "host_scope": "current_pi_session"
+[39m [38;2;128;128;128m}
+[39m [38;2;128;128;128mfields: status=completed canonical=true[39m
+
+
+[49m [38;2;102;102;102mMission Canvas switched off; Focusa canonical runtime remains active.[39m
+
+[48;2;45;40;56m
+ [1m[38;2;149;117;205m[focusa-utility-card][0m[48;2;45;40;56m
+
+ [1;4m[38;2;240;198;116mFocusa[0m[48;2;45;40;56m
+
+ [38;2;212;212;212mStatus: degraded · confidence=medium[39m
+ [38;2;212;212;212mScope: canonical_parent=/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas working_root=/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas
+[39m [38;2;212;212;212mworking_subpath=primary[39m
+ [38;2;212;212;212mMission: follow the newest operator request[39m
+ [38;2;212;212;212mNext: continue the newest operator request[39m
+ [38;2;212;212;212mBoundary: operator steering leads; scoped tools enforce durable writes[39m
+
+
+[49m [3m[38;2;128;128;128mThe user wants me to turn off the Mission Canvas using the focusa_mission_canvas tool. I've done that and it returned successfully. The action is "off" and
+[0m [3m[38;2;128;128;128mthe canvas is now disabled. The response shows the current state after turning it off.[0m
+
+ [3m[38;2;128;128;128mI should provide a brief confirmation of what happened.[0m
+
+ Mission Canvas turned [1moff[0m. The canonical Focusa runtime remains active; only the rich GUI presentation layer has been disabled. You're now in terminal/TUI
+ interaction mode.
+
+[38;2;129;162;190m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[7m[39m [0m
+[38;2;129;162;190m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[38;2;102;102;102m~/focusa-mission-canvas (feature/spec-135-context-connectors-b2)[39m
+[38;2;102;102;102m↑42k ↓156 R38k CH94.9% 4.0%/1.0M (auto)                                                                                  (qwen-token-plan) qwen3.7-plus • medium
+[39m🧭 Focusa
+
+

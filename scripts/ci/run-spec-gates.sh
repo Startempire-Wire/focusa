@@ -2,7 +2,14 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-EXPECTED_OWNER="$(stat -c %U "$ROOT_DIR")"
+stat_owner_name() {
+  if stat -c %U "$1" >/dev/null 2>&1; then
+    stat -c %U "$1"
+  else
+    stat -f %Su "$1"
+  fi
+}
+EXPECTED_OWNER="$(stat_owner_name "$ROOT_DIR")"
 find_owner_drift() {
   find "$ROOT_DIR" -xdev     \( -path "$ROOT_DIR/.git" -o -path "$ROOT_DIR/target" -o -path '*/node_modules' -o -path "$ROOT_DIR/data" -o -path "$ROOT_DIR/ecs" \) -prune -o     -user root -print -quit
 }
@@ -60,12 +67,101 @@ run_gate ./tests/command_write_contract_test.sh
 run_gate ./tests/trace_dimensions_test.sh
 run_gate ./tests/pi_extension_contract_test.sh
 run_gate bash ./tests/spec142_workflow_dependency_onboarding_static_test.sh
+run_gate python3 ./tests/spec135_crist_state_test.py
+run_gate python3 ./tests/spec135_b2_context_connectors_test.py
+run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_b2_context_connectors_e2e_test.py
+run_gate python3 ./tests/spec135_b3_role_composer_test.py
+run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_role_profile_e2e_test.py
+run_gate python3 ./tests/spec135_b4_interview_compendium_test.py
+run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_interview_session_e2e_test.py
+run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_interview_strategy_e2e_test.py
+run_gate python3 ./tests/spec135_b5_spec120_integration_test.py
+run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_b5_spec120_integration_e2e_test.py
+run_gate python3 ./scripts/generate-spec135-context-artifact-contracts.py --check
+run_gate python3 ./scripts/generate-spec135-role-contracts.py --check
+run_gate python3 ./scripts/generate-spec135-interview-contracts.py --check
+run_gate python3 ./scripts/generate-spec135-spec-workbench-contracts.py --check
+run_gate python3 ./tests/spec135_b6_provider_task_materialization_test.py
+run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_task_plan_e2e_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_task_materialization_e2e_test.py
+run_gate python3 ./scripts/generate-spec135-task-provider-contracts.py --check
+run_gate python3 ./tests/spec135_b7_genesis_resume_test.py
+run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_b7_genesis_resume_e2e_test.py
+run_gate python3 ./scripts/generate-spec135-genesis-contracts.py --check
+run_gate python3 ./tests/spec135_a3_work_rail_interactions_test.py
+run_gate python3 ./scripts/generate-spec135-work-rail-contracts.py --check
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_work_rail_e2e_test.py
 run_gate bash ./tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh
 run_gate python3 ./tests/spec135_m1_workspace_shell_test.py
 run_gate python3 ./tests/spec135_m2_pi_work_rail_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_mission_canvas_surfaces_e2e_test.py
+run_gate python3 ./tests/spec135_a5_surface_layout_test.py
+run_gate python3 ./tests/spec135_a6_workspace_verticals_test.py
+run_gate npm --prefix ./apps/pi-extension run test:workspace-verticals
+run_gate python3 ./tests/spec135_a7_pi_accessibility_test.py
+run_gate npm --prefix ./apps/pi-extension run test:canvas-accessibility
+run_gate python3 scripts/generate-spec135-client-parity-matrix.py
+run_gate python3 ./tests/spec135_a8_client_parity_test.py
+run_gate python3 scripts/generate-spec135-rich-artifact-schema.py
+run_gate python3 ./tests/spec135_c1_rich_artifact_test.py
+run_gate npm --prefix ./apps/pi-extension run test:rich-artifact-renderers
+run_gate python3 scripts/generate-spec135-research-bridge-contract.py
+run_gate python3 ./tests/spec135_c2_research_bridge_test.py
+run_gate npm --prefix ./apps/pi-extension run test:research-bridge
+run_gate python3 scripts/generate-spec135-workspace-invalidation.py
+run_gate python3 ./tests/spec135_c3_workspace_invalidation_test.py
+run_gate npm --prefix ./apps/pi-extension run test:workspace-invalidation
+run_gate python3 scripts/generate-spec135-uiai-recovery-evidence.py
+run_gate python3 ./tests/spec135_c4_uiai_recovery_test.py
+run_gate python3 scripts/generate-spec135-ontology-registry.py
+run_gate python3 ./tests/spec135_f1_ontology_registry_test.py
+run_gate python3 scripts/generate-spec135-semantic-graph-contract.py
+run_gate python3 ./tests/spec135_f2_semantic_graph_test.py
+run_gate python3 scripts/generate-spec135-domain-packs.py
+run_gate python3 ./tests/spec135_f3_domain_packs_test.py
+run_gate python3 scripts/generate-spec135-reactive-domain-parity.py
+run_gate python3 ./tests/spec135_f4_reactive_domain_parity_test.py
+run_gate python3 scripts/generate-spec135-work-surface-schema.py
+run_gate python3 ./tests/spec135_g1_work_surface_test.py
+run_gate python3 scripts/generate-spec135-canvas-state.py
+run_gate python3 ./tests/spec135_g2_canvas_restoration_test.py
+run_gate python3 scripts/generate-spec135-surface-lifecycle.py
+run_gate python3 ./tests/spec135_g3_surface_lifecycle_test.py
+run_gate python3 scripts/generate-spec135-writer-governance.py
+run_gate python3 ./tests/spec135_g4_writer_governance_test.py
+run_gate python3 scripts/generate-spec135-browser-isolation.py
+run_gate python3 ./tests/spec135_g5_browser_isolation_test.py
+run_gate python3 scripts/generate-spec135-multiplexing-proof.py
+run_gate python3 ./tests/spec135_g6_multiplexing_proof_test.py
+run_gate python3 scripts/generate-spec135-ui-event-stream.py
+run_gate python3 ./tests/spec135_j3_ui_event_stream_test.py
+run_gate python3 scripts/generate-spec135-reconnect-recovery.py
+run_gate python3 ./tests/spec135_j4_reconnect_recovery_test.py
+run_gate python3 scripts/generate-spec135-runtime-ownership.py
+run_gate python3 ./tests/spec135_j5_runtime_ownership_test.py
+run_gate python3 scripts/generate-spec135-generated-ui-protocol.py
+run_gate python3 ./tests/spec135_i1_generated_ui_test.py
+run_gate python3 ./tests/spec135_i2_crist_pi_ui_test.py
+run_gate python3 ./tests/spec135_i3_nontechnical_onboarding_test.py
+run_gate python3 scripts/generate-spec135-first-workpoint-proof.py
+run_gate python3 ./tests/spec135_i4_first_workpoint_integration_test.py
+run_gate python3 scripts/generate-spec135-alpha1-4-proof.py
+run_gate python3 ./tests/spec135_h1_alpha1_4_test.py
+run_gate python3 scripts/generate-spec135-alpha5-8-proof.py
+run_gate python3 ./tests/spec135_h2_alpha5_8_test.py
+run_gate python3 scripts/generate-spec135-e1-closure.py
+run_gate python3 ./tests/spec135_e1_cross_spec_closure_test.py
+run_gate python3 scripts/generate-spec135-master-acceptance.py
+run_gate python3 ./tests/spec135_z1_master_acceptance_test.py
+run_gate python3 scripts/generate-spec135-interaction-mode-proof.py
+run_gate python3 ./tests/spec135_k1_interaction_mode_test.py
+run_gate python3 ./tests/spec135_mission_canvas_full_shell_gui_test.py
+run_gate python3 scripts/generate-spec135-friction-capture.py
+run_gate python3 ./tests/spec135_k2_friction_capture_test.py
+run_gate python3 scripts/generate-spec135-adaptive-ui.py
+run_gate python3 ./tests/spec135_k3_adaptive_ui_test.py
+run_gate python3 scripts/generate-spec135-k4-proof.py
+run_gate python3 ./tests/spec135_k4_usability_headless_test.py
 run_gate python3 ./tests/spec135_m4_surface_bindings_static_test.py
 run_gate env FOCUSA_DAEMON_BIN="$DAEMON_BIN" python3 ./tests/spec135_m4_surface_bindings_e2e_test.py
 run_gate python3 ./tests/spec135_m5_browser_context_isolation_test.py
@@ -120,6 +216,22 @@ run_gate env DAEMON_BIN="$DAEMON_BIN" bash ./tests/security_non_loopback_auth_gu
 run_gate bash ./tests/spec96_menubar_mission_canvas_foundation_static_test.sh
 run_gate bash ./tests/spec135_mission_canvas_naming_and_multiplexing_static_test.sh
 run_gate bash ./tests/spec135h_implementation_acceleration_static_test.sh
+run_gate python3 ./tests/spec135_mission_canvas_completion_dag_test.py
+run_gate python3 ./tests/spec135_p00_recovery_test.py
+run_gate python3 ./tests/spec135_p00_governance_test.py
+run_gate python3 ./tests/spec135_adaptive_composition_authority_test.py
+run_gate python3 ./tests/spec135_p01_authority_closure_test.py
+run_gate python3 ./tests/spec135_resolved_projection_contract_test.py
+run_gate python3 ./tests/spec135_projection_state_contract_test.py
+run_gate python3 ./tests/spec135_projection_events_proof_test.py
+run_gate python3 ./tests/spec135_mission_canvas_operation_registry_test.py
+run_gate python3 ./tests/spec135_mission_canvas_generated_parity_test.py
+run_gate python3 ./tests/spec135_mission_canvas_api_static_test.py
+run_gate python3 ./tests/spec135_profile_activity_registry_test.py
+run_gate python3 ./tests/spec135_generated_pi_surface_test.py
+run_gate python3 ./tests/spec135_pi_native_hardening_test.py
+run_gate python3 ./tests/spec135_uiai_evaluation_harness_test.py
+run_gate python3 ./tests/spec135_reconciliation_release_truth_test.py
 run_gate bash ./tests/spec135i_real_time_generated_ui_static_test.sh
 run_gate bash ./tests/spec135j_core_api_runtime_reuse_static_test.sh
 run_gate bash ./tests/spec135k_uxp_ufi_generated_ui_static_test.sh

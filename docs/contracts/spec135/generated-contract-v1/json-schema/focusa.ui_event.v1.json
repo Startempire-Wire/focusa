@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docs.startempire.ai/focusa/spec135/focusa.ui_event.v1.json",
+  "title": "Focusa UI Event v1",
+  "description": "Durable scoped UI event that survives daemon restart and preserves project/workstream/session/origin identity.",
+  "type": "object",
+  "required": [
+    "schema",
+    "event_id",
+    "event_type",
+    "sequence",
+    "cursor",
+    "invalidation_key",
+    "project_root",
+    "continuity_id",
+    "session_origin",
+    "attachment_id",
+    "created_at",
+    "payload_max_bytes"
+  ],
+  "properties": {
+    "schema": {
+      "const": "focusa.ui_event.v1"
+    },
+    "event_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "mission_canvas_surface_created",
+        "mission_canvas_surface_updated",
+        "mission_canvas_surface_focused",
+        "mission_canvas_surface_suspended",
+        "mission_canvas_surface_rehydrated",
+        "mission_canvas_surface_closed",
+        "mission_canvas_layout_changed",
+        "attachment_added",
+        "attachment_role_changed",
+        "attachment_detached",
+        "session_started",
+        "session_state_changed",
+        "session_ended",
+        "browser_context_created",
+        "browser_context_isolation_changed",
+        "browser_context_closed",
+        "browser_target_opened",
+        "browser_target_navigated",
+        "browser_target_moved",
+        "browser_target_closed",
+        "surface_unread_changed",
+        "surface_approval_required",
+        "surface_conflict_changed",
+        "surface_writer_lease_changed"
+      ]
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "cursor": {
+      "type": "string",
+      "minLength": 1
+    },
+    "invalidation_key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "project_root": {
+      "type": "string",
+      "minLength": 1
+    },
+    "continuity_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "session_origin": {
+      "type": "string",
+      "minLength": 1
+    },
+    "attachment_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "work_surface_id": {
+      "type": "string"
+    },
+    "browser_context_ref": {
+      "type": "string"
+    },
+    "payload": {
+      "type": "object"
+    },
+    "payload_max_bytes": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "receipt_ref": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "additionalProperties": false
+}

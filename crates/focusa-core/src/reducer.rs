@@ -5111,6 +5111,7 @@ mod tests {
             ingestion_status: "committed".to_string(),
             extraction_diagnostics: Vec::new(),
             health: Default::default(),
+            artifact: Default::default(),
         };
         let event = FocusaEvent::ContextSourceCommitted {
             source: source.clone(),

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import ts from "typescript";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
 const commands = readFileSync(`${root}/apps/pi-extension/src/commands.ts`, "utf8");
@@ -9,9 +10,26 @@ const session = readFileSync(`${root}/apps/pi-extension/src/session.ts`, "utf8")
 const manifest = JSON.parse(
   readFileSync(`${root}/docs/contracts/48-49-focusa-pi-menu-inventory.json`, "utf8")
 );
+function canonicalTypeScriptTokens(source) {
+  const scanner = ts.createScanner(
+    ts.ScriptTarget.ESNext,
+    true,
+    ts.LanguageVariant.Standard,
+    source
+  );
+  const tokens = [];
+  for (let token = scanner.scan(); token !== ts.SyntaxKind.EndOfFileToken; token = scanner.scan()) {
+    tokens.push(`${token}:${scanner.getTokenText()}`);
+  }
+  return tokens.join("\n");
+}
+
 const digest = createHash("sha256")
-  .update(commands + session)
+  .update(canonicalTypeScriptTokens(commands))
+  .update("\n--- session ---\n")
+  .update(canonicalTypeScriptTokens(session))
   .digest("hex");
+assert.equal(manifest.source_digest_kind, "typescript_token_stream_v1");
 assert.equal(manifest.source_sha256, digest, "menu source changed without regenerated audit");
 const registered = [...commands.matchAll(/pi\.registerCommand\("([^"]+)"/g)].map((m) => m[1]);
 const inventoried = manifest.items.filter((x) => x.kind === "command").map((x) => x.id);

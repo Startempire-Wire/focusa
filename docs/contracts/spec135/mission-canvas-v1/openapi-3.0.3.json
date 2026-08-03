@@ -1,0 +1,1277 @@
+{
+  "components": {
+    "schemas": {
+      "AccessibilityDescriptor": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/AccessibilityDescriptor"
+      },
+      "ActivityMode": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ActivityMode"
+      },
+      "AuthorityDescriptor": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/AuthorityDescriptor"
+      },
+      "CandidateContribution": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/CandidateContribution"
+      },
+      "CanonicalRef": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/CanonicalRef"
+      },
+      "CanvasDraftState": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/CanvasDraftState"
+      },
+      "CapabilityProjection": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/CapabilityProjection"
+      },
+      "ContributionEligibilityContext": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ContributionEligibilityContext"
+      },
+      "ContributionId": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ContributionId"
+      },
+      "ContributionKind": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ContributionKind"
+      },
+      "ContributionPlacementPreference": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ContributionPlacementPreference"
+      },
+      "EligibilityDecision": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/EligibilityDecision"
+      },
+      "ExactScope": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ExactScope"
+      },
+      "FreshnessDescriptor": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/FreshnessDescriptor"
+      },
+      "GeometryPreference": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/GeometryPreference"
+      },
+      "GridLayoutNode": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/GridLayoutNode"
+      },
+      "HostLifecycleState": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/HostLifecycleState"
+      },
+      "HostRendererResolution": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/HostRendererResolution"
+      },
+      "InspectorLayoutNode": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/InspectorLayoutNode"
+      },
+      "LayoutMutationCommand": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/LayoutMutationCommand"
+      },
+      "LayoutMutationResult": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/LayoutMutationResult"
+      },
+      "LayoutNode": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/LayoutNode"
+      },
+      "LegacyLayoutMapping": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/LegacyLayoutMapping"
+      },
+      "LegacyLayoutMigrationEnvelope": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/LegacyLayoutMigrationEnvelope"
+      },
+      "OmissionDiagnostic": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/OmissionDiagnostic"
+      },
+      "OmissionReason": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/OmissionReason"
+      },
+      "OperationBinding": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/OperationBinding"
+      },
+      "ProfileLayoutMemory": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ProfileLayoutMemory"
+      },
+      "ProjectionDigest": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ProjectionDigest"
+      },
+      "ProjectionEventKind": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ProjectionEventKind"
+      },
+      "ProjectionLifecycleEvent": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ProjectionLifecycleEvent"
+      },
+      "RecompositionEvidence": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/RecompositionEvidence"
+      },
+      "RecompositionReceipt": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/RecompositionReceipt"
+      },
+      "RegionKind": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/RegionKind"
+      },
+      "RegistryEntry": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/RegistryEntry"
+      },
+      "RendererBindingId": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/RendererBindingId"
+      },
+      "ResolvedContribution": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ResolvedContribution"
+      },
+      "ResolvedWorkspaceProjection": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ResolvedWorkspaceProjection"
+      },
+      "ResponsiveEvaluationFixture": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ResponsiveEvaluationFixture"
+      },
+      "SemanticBindingId": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/SemanticBindingId"
+      },
+      "SingleLayoutNode": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/SingleLayoutNode"
+      },
+      "SplitLayoutNode": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/SplitLayoutNode"
+      },
+      "StackLayoutNode": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/StackLayoutNode"
+      },
+      "TabLayoutNode": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/TabLayoutNode"
+      },
+      "UnavailableOperationDiagnostic": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/UnavailableOperationDiagnostic"
+      },
+      "ViewportDescriptor": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ViewportDescriptor"
+      },
+      "WorkspaceProfile": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/WorkspaceProfile"
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "Focusa Mission Canvas API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/v1/mission-canvas/activities": {
+      "get": {
+        "operationId": "focusa.mission_canvas.activity.list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ActivityMode"
+                }
+              }
+            },
+            "description": "Contract response"
+          },
+          "409": {
+            "description": "Scope, revision, or ownership conflict"
+          },
+          "422": {
+            "description": "Contract validation failure"
+          }
+        },
+        "summary": "Activity List",
+        "tags": [
+          "Mission Canvas"
+        ],
+        "x-focusa-availability": "available",
+        "x-focusa-idempotency-required": false,
+        "x-focusa-if-match-revision-required": false,
+        "x-focusa-implementation-phase": "P03",
+        "x-focusa-permissions": [
+          "mission_canvas:read"
+        ],
+        "x-focusa-receipt-required": false
+      }
+    },
+    "/v1/mission-canvas/activities/select": {
+      "post": {
+        "operationId": "focusa.mission_canvas.activity.select",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "x-focusa-schema-ref": "focusa.mission_canvas.composition_selection.request.v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ResolvedWorkspaceProjection"
+                }
+              }
+            },
+            "description": "Contract response"
+          },
+          "409": {
+            "description": "Scope, revision, or ownership conflict"
+          },
+          "422": {
+            "description": "Contract validation failure"
+          }
+        },
+        "summary": "Activity Select",
+        "tags": [
+          "Mission Canvas"
+        ],
+        "x-focusa-availability": "available",
+        "x-focusa-idempotency-required": true,
+        "x-focusa-if-match-revision-required": true,
+        "x-focusa-implementation-phase": "P03",
+        "x-focusa-permissions": [
+          "mission_canvas:write"
+        ],
+        "x-focusa-receipt-required": true
+      }
+    },
+    "/v1/mission-canvas/domain-packs/install": {
+      "post": {
+        "operationId": "focusa.mission_canvas.domain_pack.install",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "x-focusa-schema-ref": "focusa.mission_canvas.domain_pack_install.request.v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "x-focusa-schema-ref": "focusa.mission_canvas.domain_pack_install_receipt.v1"
+                }
+              }
+            },
+            "description": "Contract response"
+          },
+          "409": {
+            "description": "Scope, revision, or ownership conflict"
+          },
+          "422": {
+            "description": "Contract validation failure"
+          }
+        },
+        "summary": "Domain Pack Install",
+        "tags": [
+          "Mission Canvas"
+        ],
+        "x-focusa-availability": "available",
+        "x-focusa-idempotency-required": true,
+        "x-focusa-if-match-revision-required": false,
+        "x-focusa-implementation-phase": "P03",
+        "x-focusa-permissions": [
+          "mission_canvas:write"
+        ],
+        "x-focusa-receipt-required": true
+      }
+    },
+    "/v1/mission-canvas/drafts/sync": {
+      "post": {
+        "operationId": "focusa.mission_canvas.draft.sync",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/CanvasDraftState"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/CanvasDraftState"
+                }
+              }
+            },
+            "description": "Contract response"
+          },
+          "409": {
+            "description": "Scope, revision, or ownership conflict"
+          },
+          "422": {
+            "description": "Contract validation failure"
+          }
+        },
+        "summary": "Draft Sync",
+        "tags": [
+          "Mission Canvas"
+        ],
+        "x-focusa-availability": "available",
+        "x-focusa-idempotency-required": true,
+        "x-focusa-if-match-revision-required": true,
+        "x-focusa-implementation-phase": "P03",
+        "x-focusa-permissions": [
+          "mission_canvas:draft"
+        ],
+        "x-focusa-receipt-required": true
+      }
+    },
+    "/v1/mission-canvas/drafts/{draft_id}": {
+      "get": {
+        "operationId": "focusa.mission_canvas.draft.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "draft_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/CanvasDraftState"
+                }
+              }
+            },
+            "description": "Contract response"
+          },
+          "409": {
+            "description": "Scope, revision, or ownership conflict"
+          },
+          "422": {
+            "description": "Contract validation failure"
+          }
+        },
+        "summary": "Draft Get",
+        "tags": [
+          "Mission Canvas"
+        ],
+        "x-focusa-availability": "available",
+        "x-focusa-idempotency-required": false,
+        "x-focusa-if-match-revision-required": false,
+        "x-focusa-implementation-phase": "P03",
+        "x-focusa-permissions": [
+          "mission_canvas:draft"
+        ],
+        "x-focusa-receipt-required": false
+      }
+    },
+    "/v1/mission-canvas/events": {
+      "get": {
+        "operationId": "focusa.mission_canvas.events.stream",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ProjectionLifecycleEvent"
+                }
+              }
+            },
+            "description": "Contract response"
+          },
+          "409": {
+            "description": "Scope, revision, or ownership conflict"
+          },
+          "422": {
+            "description": "Contract validation failure"
+          }
+        },
+        "summary": "Events Stream",
+        "tags": [
+          "Mission Canvas"
+        ],
+        "x-focusa-availability": "available",
+        "x-focusa-idempotency-required": false,
+        "x-focusa-if-match-revision-required": false,
+        "x-focusa-implementation-phase": "P03",
+        "x-focusa-permissions": [
+          "mission_canvas:read"
+        ],
+        "x-focusa-receipt-required": false
+      }
+    },
+    "/v1/mission-canvas/layout-memory": {
+      "get": {
+        "operationId": "focusa.mission_canvas.layout_memory.get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ProfileLayoutMemory"
+                }
+              }
+            },
+            "description": "Contract response"
+          },
+          "409": {
+            "description": "Scope, revision, or ownership conflict"
+          },
+          "422": {
+            "description": "Contract validation failure"
+          }
+        },
+        "summary": "Layout Memory Get",
+        "tags": [
+          "Mission Canvas"
+        ],
+        "x-focusa-availability": "available",
+        "x-focusa-idempotency-required": false,
+        "x-focusa-if-match-revision-required": false,
+        "x-focusa-implementation-phase": "P03",
+        "x-focusa-permissions": [
+          "mission_canvas:read"
+        ],
+        "x-focusa-receipt-required": false
+      },
+      "post": {
+        "operationId": "focusa.mission_canvas.layout_memory.update",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ProfileLayoutMemory"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/RecompositionReceipt"
+                }
+              }
+            },
+            "description": "Contract response"
+          },
+          "409": {
+            "description": "Scope, revision, or ownership conflict"
+          },
+          "422": {
+            "description": "Contract validation failure"
+          }
+        },
+        "summary": "Layout Memory Update",
+        "tags": [
+          "Mission Canvas"
+        ],
+        "x-focusa-availability": "available",
+        "x-focusa-idempotency-required": true,
+        "x-focusa-if-match-revision-required": true,
+        "x-focusa-implementation-phase": "P03",
+        "x-focusa-permissions": [
+          "mission_canvas:write"
+        ],
+        "x-focusa-receipt-required": true
+      }
+    },
+    "/v1/mission-canvas/layout/mutations": {
+      "post": {
+        "operationId": "focusa.mission_canvas.layout.mutate",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/LayoutMutationCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/LayoutMutationResult"
+                }
+              }
+            },
+            "description": "Contract response"
+          },
+          "409": {
+            "description": "Scope, revision, or ownership conflict"
+          },
+          "422": {
+            "description": "Contract validation failure"
+          }
+        },
+        "summary": "Layout Mutate",
+        "tags": [
+          "Mission Canvas"
+        ],
+        "x-focusa-availability": "available",
+        "x-focusa-idempotency-required": true,
+        "x-focusa-if-match-revision-required": true,
+        "x-focusa-implementation-phase": "P03",
+        "x-focusa-permissions": [
+          "mission_canvas:write"
+        ],
+        "x-focusa-receipt-required": true
+      }
+    },
+    "/v1/mission-canvas/pi-session/events": {
+      "post": {
+        "operationId": "focusa.mission_canvas.pi_session.event.append",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "x-focusa-schema-ref": "focusa.mission_canvas.pi_session_event_append.request.v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "x-focusa-schema-ref": "focusa.mission_canvas.pi_session_event_receipt.v1"
+                }
+              }
+            },
+            "description": "Contract response"
+          },
+          "409": {
+            "description": "Scope, revision, or ownership conflict"
+          },
+          "422": {
+            "description": "Contract validation failure"
+          }
+        },
+        "summary": "Pi Session Event Append",
+        "tags": [
+          "Mission Canvas"
+        ],
+        "x-focusa-availability": "available",
+        "x-focusa-idempotency-required": true,
+        "x-focusa-if-match-revision-required": false,
+        "x-focusa-implementation-phase": "P03",
+        "x-focusa-permissions": [
+          "mission_canvas:write"
+        ],
+        "x-focusa-receipt-required": true
+      }
+    },
+    "/v1/mission-canvas/profiles": {
+      "get": {
+        "operationId": "focusa.mission_canvas.profile.list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/WorkspaceProfile"
+                }
+              }
+            },
+            "description": "Contract response"
+          },
+          "409": {
+            "description": "Scope, revision, or ownership conflict"
+          },
+          "422": {
+            "description": "Contract validation failure"
+          }
+        },
+        "summary": "Profile List",
+        "tags": [
+          "Mission Canvas"
+        ],
+        "x-focusa-availability": "available",
+        "x-focusa-idempotency-required": false,
+        "x-focusa-if-match-revision-required": false,
+        "x-focusa-implementation-phase": "P03",
+        "x-focusa-permissions": [
+          "mission_canvas:read"
+        ],
+        "x-focusa-receipt-required": false
+      }
+    },
+    "/v1/mission-canvas/profiles/select": {
+      "post": {
+        "operationId": "focusa.mission_canvas.profile.select",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "x-focusa-schema-ref": "focusa.mission_canvas.composition_selection.request.v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ResolvedWorkspaceProjection"
+                }
+              }
+            },
+            "description": "Contract response"
+          },
+          "409": {
+            "description": "Scope, revision, or ownership conflict"
+          },
+          "422": {
+            "description": "Contract validation failure"
+          }
+        },
+        "summary": "Profile Select",
+        "tags": [
+          "Mission Canvas"
+        ],
+        "x-focusa-availability": "available",
+        "x-focusa-idempotency-required": true,
+        "x-focusa-if-match-revision-required": true,
+        "x-focusa-implementation-phase": "P03",
+        "x-focusa-permissions": [
+          "mission_canvas:write"
+        ],
+        "x-focusa-receipt-required": true
+      }
+    },
+    "/v1/mission-canvas/profiles/{profile_id}": {
+      "get": {
+        "operationId": "focusa.mission_canvas.profile.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profile_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/WorkspaceProfile"
+                }
+              }
+            },
+            "description": "Contract response"
+          },
+          "409": {
+            "description": "Scope, revision, or ownership conflict"
+          },
+          "422": {
+            "description": "Contract validation failure"
+          }
+        },
+        "summary": "Profile Get",
+        "tags": [
+          "Mission Canvas"
+        ],
+        "x-focusa-availability": "available",
+        "x-focusa-idempotency-required": false,
+        "x-focusa-if-match-revision-required": false,
+        "x-focusa-implementation-phase": "P03",
+        "x-focusa-permissions": [
+          "mission_canvas:read"
+        ],
+        "x-focusa-receipt-required": false
+      }
+    },
+    "/v1/mission-canvas/projection": {
+      "get": {
+        "operationId": "focusa.mission_canvas.projection.get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ResolvedWorkspaceProjection"
+                }
+              }
+            },
+            "description": "Contract response"
+          },
+          "409": {
+            "description": "Scope, revision, or ownership conflict"
+          },
+          "422": {
+            "description": "Contract validation failure"
+          }
+        },
+        "summary": "Projection Get",
+        "tags": [
+          "Mission Canvas"
+        ],
+        "x-focusa-availability": "available",
+        "x-focusa-idempotency-required": false,
+        "x-focusa-if-match-revision-required": false,
+        "x-focusa-implementation-phase": "P03",
+        "x-focusa-permissions": [
+          "mission_canvas:read"
+        ],
+        "x-focusa-receipt-required": false
+      }
+    },
+    "/v1/mission-canvas/projection/resolve": {
+      "post": {
+        "operationId": "focusa.mission_canvas.projection.resolve",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ContributionEligibilityContext"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ResolvedWorkspaceProjection"
+                }
+              }
+            },
+            "description": "Contract response"
+          },
+          "409": {
+            "description": "Scope, revision, or ownership conflict"
+          },
+          "422": {
+            "description": "Contract validation failure"
+          }
+        },
+        "summary": "Projection Resolve",
+        "tags": [
+          "Mission Canvas"
+        ],
+        "x-focusa-availability": "available",
+        "x-focusa-idempotency-required": true,
+        "x-focusa-if-match-revision-required": true,
+        "x-focusa-implementation-phase": "P03",
+        "x-focusa-permissions": [
+          "mission_canvas:write"
+        ],
+        "x-focusa-receipt-required": true
+      }
+    },
+    "/v1/mission-canvas/recipients/resolve": {
+      "post": {
+        "operationId": "focusa.mission_canvas.recipient.resolve",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "x-focusa-schema-ref": "focusa.mission_canvas.recipient_resolve.request.v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "x-focusa-schema-ref": "focusa.mission_canvas.recipient_resolution.v1"
+                }
+              }
+            },
+            "description": "Contract response"
+          },
+          "409": {
+            "description": "Scope, revision, or ownership conflict"
+          },
+          "422": {
+            "description": "Contract validation failure"
+          }
+        },
+        "summary": "Recipient Resolve",
+        "tags": [
+          "Mission Canvas"
+        ],
+        "x-focusa-availability": "available",
+        "x-focusa-idempotency-required": false,
+        "x-focusa-if-match-revision-required": false,
+        "x-focusa-implementation-phase": "P03",
+        "x-focusa-permissions": [
+          "mission_canvas:draft"
+        ],
+        "x-focusa-receipt-required": false
+      }
+    },
+    "/v1/mission-canvas/recompositions/{revision}/diagnostics": {
+      "get": {
+        "operationId": "focusa.mission_canvas.recomposition.diagnostics.list",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "revision",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/OmissionDiagnostic"
+                }
+              }
+            },
+            "description": "Contract response"
+          },
+          "409": {
+            "description": "Scope, revision, or ownership conflict"
+          },
+          "422": {
+            "description": "Contract validation failure"
+          }
+        },
+        "summary": "Recomposition Diagnostics List",
+        "tags": [
+          "Mission Canvas"
+        ],
+        "x-focusa-availability": "available",
+        "x-focusa-idempotency-required": false,
+        "x-focusa-if-match-revision-required": false,
+        "x-focusa-implementation-phase": "P03",
+        "x-focusa-permissions": [
+          "mission_canvas:read"
+        ],
+        "x-focusa-receipt-required": false
+      }
+    },
+    "/v1/mission-canvas/recompositions/{revision}/evidence": {
+      "get": {
+        "operationId": "focusa.mission_canvas.recomposition.evidence.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "revision",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/RecompositionEvidence"
+                }
+              }
+            },
+            "description": "Contract response"
+          },
+          "409": {
+            "description": "Scope, revision, or ownership conflict"
+          },
+          "422": {
+            "description": "Contract validation failure"
+          }
+        },
+        "summary": "Recomposition Evidence Get",
+        "tags": [
+          "Mission Canvas"
+        ],
+        "x-focusa-availability": "available",
+        "x-focusa-idempotency-required": false,
+        "x-focusa-if-match-revision-required": false,
+        "x-focusa-implementation-phase": "P03",
+        "x-focusa-permissions": [
+          "mission_canvas:read"
+        ],
+        "x-focusa-receipt-required": false
+      }
+    },
+    "/v1/mission-canvas/recompositions/{revision}/receipt": {
+      "get": {
+        "operationId": "focusa.mission_canvas.recomposition.receipt.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "revision",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/RecompositionReceipt"
+                }
+              }
+            },
+            "description": "Contract response"
+          },
+          "409": {
+            "description": "Scope, revision, or ownership conflict"
+          },
+          "422": {
+            "description": "Contract validation failure"
+          }
+        },
+        "summary": "Recomposition Receipt Get",
+        "tags": [
+          "Mission Canvas"
+        ],
+        "x-focusa-availability": "available",
+        "x-focusa-idempotency-required": false,
+        "x-focusa-if-match-revision-required": false,
+        "x-focusa-implementation-phase": "P03",
+        "x-focusa-permissions": [
+          "mission_canvas:read"
+        ],
+        "x-focusa-receipt-required": false
+      }
+    },
+    "/v1/mission-canvas/registries/{registry_kind}": {
+      "get": {
+        "operationId": "focusa.mission_canvas.registry.list",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "registry_kind",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/RegistryEntry"
+                }
+              }
+            },
+            "description": "Contract response"
+          },
+          "409": {
+            "description": "Scope, revision, or ownership conflict"
+          },
+          "422": {
+            "description": "Contract validation failure"
+          }
+        },
+        "summary": "Registry List",
+        "tags": [
+          "Mission Canvas"
+        ],
+        "x-focusa-availability": "available",
+        "x-focusa-idempotency-required": false,
+        "x-focusa-if-match-revision-required": false,
+        "x-focusa-implementation-phase": "P03",
+        "x-focusa-permissions": [
+          "mission_canvas:read"
+        ],
+        "x-focusa-receipt-required": false
+      }
+    },
+    "/v1/mission-canvas/rich-host/close": {
+      "post": {
+        "operationId": "focusa.mission_canvas.rich_host.close",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "x-focusa-schema-ref": "focusa.mission_canvas.rich_host_command.v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/HostLifecycleState"
+                }
+              }
+            },
+            "description": "Contract response"
+          },
+          "409": {
+            "description": "Scope, revision, or ownership conflict"
+          },
+          "422": {
+            "description": "Contract validation failure"
+          }
+        },
+        "summary": "Rich Host Close",
+        "tags": [
+          "Mission Canvas"
+        ],
+        "x-focusa-availability": "available",
+        "x-focusa-idempotency-required": true,
+        "x-focusa-if-match-revision-required": false,
+        "x-focusa-implementation-phase": "P03",
+        "x-focusa-permissions": [
+          "mission_canvas:host"
+        ],
+        "x-focusa-receipt-required": true
+      }
+    },
+    "/v1/mission-canvas/rich-host/focus": {
+      "post": {
+        "operationId": "focusa.mission_canvas.rich_host.focus",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "x-focusa-schema-ref": "focusa.mission_canvas.rich_host_command.v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/HostLifecycleState"
+                }
+              }
+            },
+            "description": "Contract response"
+          },
+          "409": {
+            "description": "Scope, revision, or ownership conflict"
+          },
+          "422": {
+            "description": "Contract validation failure"
+          }
+        },
+        "summary": "Rich Host Focus",
+        "tags": [
+          "Mission Canvas"
+        ],
+        "x-focusa-availability": "available",
+        "x-focusa-idempotency-required": true,
+        "x-focusa-if-match-revision-required": false,
+        "x-focusa-implementation-phase": "P03",
+        "x-focusa-permissions": [
+          "mission_canvas:host"
+        ],
+        "x-focusa-receipt-required": true
+      }
+    },
+    "/v1/mission-canvas/rich-host/hide": {
+      "post": {
+        "operationId": "focusa.mission_canvas.rich_host.hide",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "x-focusa-schema-ref": "focusa.mission_canvas.rich_host_command.v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/HostLifecycleState"
+                }
+              }
+            },
+            "description": "Contract response"
+          },
+          "409": {
+            "description": "Scope, revision, or ownership conflict"
+          },
+          "422": {
+            "description": "Contract validation failure"
+          }
+        },
+        "summary": "Rich Host Hide",
+        "tags": [
+          "Mission Canvas"
+        ],
+        "x-focusa-availability": "available",
+        "x-focusa-idempotency-required": true,
+        "x-focusa-if-match-revision-required": false,
+        "x-focusa-implementation-phase": "P03",
+        "x-focusa-permissions": [
+          "mission_canvas:host"
+        ],
+        "x-focusa-receipt-required": true
+      }
+    },
+    "/v1/mission-canvas/rich-host/launch": {
+      "post": {
+        "operationId": "focusa.mission_canvas.rich_host.launch",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "x-focusa-schema-ref": "focusa.mission_canvas.rich_host_command.v1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/HostLifecycleState"
+                }
+              }
+            },
+            "description": "Contract response"
+          },
+          "409": {
+            "description": "Scope, revision, or ownership conflict"
+          },
+          "422": {
+            "description": "Contract validation failure"
+          }
+        },
+        "summary": "Rich Host Launch",
+        "tags": [
+          "Mission Canvas"
+        ],
+        "x-focusa-availability": "available",
+        "x-focusa-idempotency-required": true,
+        "x-focusa-if-match-revision-required": false,
+        "x-focusa-implementation-phase": "P03",
+        "x-focusa-permissions": [
+          "mission_canvas:host"
+        ],
+        "x-focusa-receipt-required": true
+      }
+    },
+    "/v1/mission-canvas/rich-host/resolution": {
+      "get": {
+        "operationId": "focusa.mission_canvas.rich_host.resolve",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/HostRendererResolution"
+                }
+              }
+            },
+            "description": "Contract response"
+          },
+          "409": {
+            "description": "Scope, revision, or ownership conflict"
+          },
+          "422": {
+            "description": "Contract validation failure"
+          }
+        },
+        "summary": "Rich Host Resolve",
+        "tags": [
+          "Mission Canvas"
+        ],
+        "x-focusa-availability": "available",
+        "x-focusa-idempotency-required": false,
+        "x-focusa-if-match-revision-required": false,
+        "x-focusa-implementation-phase": "P03",
+        "x-focusa-permissions": [
+          "mission_canvas:host"
+        ],
+        "x-focusa-receipt-required": false
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "x-focusa-contract-availability": "contract_defined"
+}

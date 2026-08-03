@@ -297,7 +297,8 @@ Onboarding
 → Evidence
 → Receipt
 → UIAI artifact
-→ multiplexed Mission Canvas
+→ Focusa rich Mission Canvas with the same live session
+→ real Work Surface switch/split/rehydration
 → pause
 → restart
 → resume exact state

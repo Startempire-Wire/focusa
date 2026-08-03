@@ -37,7 +37,12 @@
     "test:unbound-project": "node tests/unbound-project-binding-guidance.test.mjs",
     "test:pi-security": "node tests/pi-sdk-security.test.mjs",
     "test:menu-audit": "node tests/menu-audit-gate.test.mjs",
-    "test:mission-canvas": "node tests/mission-canvas-pi-surface.test.mjs && node tests/mission-canvas-mode-precedence.test.mjs && node tests/mission-canvas-session-inventory.test.mjs && node tests/mission-canvas-performance.test.mjs"
+    "test:mission-canvas": "node tests/mission-canvas-pi-surface.test.mjs && node tests/mission-canvas-shell-runtime.test.mjs && node tests/mission-canvas-overlay-render.test.mjs && node tests/mission-canvas-layout-runtime.test.mjs && node tests/mission-canvas-reference-design.test.mjs && node tests/mission-canvas-mode-precedence.test.mjs && node tests/mission-canvas-session-inventory.test.mjs && node tests/mission-canvas-performance.test.mjs",
+    "test:workspace-verticals": "node tests/workspace-verticals.test.mjs",
+    "test:canvas-accessibility": "node tests/mission-canvas-accessibility.test.mjs",
+    "test:rich-artifact-renderers": "node tests/rich-artifact-renderers.test.mjs",
+    "test:research-bridge": "node tests/research-bridge.test.mjs",
+    "test:workspace-invalidation": "node tests/workspace-invalidation.test.mjs"
   },
   "dependencies": {
     "@sinclair/typebox": "^0.34.0"

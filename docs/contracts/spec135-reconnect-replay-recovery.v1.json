@@ -1,0 +1,51 @@
+{
+  "schema": "focusa.spec135.reconnect_replay_recovery.v1",
+  "spec_ref": "docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md",
+  "acceptance_criteria": "Disconnect/reconnect tests restore exact UI state without loss, duplication, or false freshness.",
+  "components": [
+    {
+      "component": "cursor_resume",
+      "description": "Resume from last_known_cursor; events before cursor are assumed received"
+    },
+    {
+      "component": "snapshot_fallback",
+      "description": "If cursor is stale or gap exceeds refetch bound, fall back to full snapshot resync"
+    },
+    {
+      "component": "duplicate_suppression",
+      "description": "Deduplicate by event_id_exact or invalidation_key; never replay the same event twice"
+    },
+    {
+      "component": "gap_detection",
+      "description": "Detect sequence gaps, heartbeat timeouts, or cursor hash mismatches; refetch from cursor or snapshot resync"
+    },
+    {
+      "component": "stale_labeling",
+      "description": "Mark recovered state as stale until verified live; no false freshness"
+    },
+    {
+      "component": "bounded_refetch",
+      "description": "Refetch is bounded by max_events and max_tokens; no unbounded replays"
+    }
+  ],
+  "no_loss_invariant": "Replay restores exact UI state: no events lost between disconnect and reconnect.",
+  "no_duplication_invariant": "Duplicate suppression prevents the same event from rendering twice.",
+  "no_false_freshness_invariant": "Recovered state is labeled stale until the cursor reaches live; false freshness is prohibited.",
+  "dedup_strategies": [
+    "event_id_exact",
+    "invalidation_key",
+    "sequence_gte",
+    "composite"
+  ],
+  "gap_detection_methods": [
+    "sequence_gap",
+    "heartbeat_timeout",
+    "cursor_hash_mismatch"
+  ],
+  "replay_orders": [
+    "sequence_ascending",
+    "snapshot_then_delta",
+    "delta_then_snapshot_verify"
+  ],
+  "schema_path": "docs/contracts/spec135/generated-contract-v1/json-schema/focusa.reconnect_recovery.v1.json"
+}

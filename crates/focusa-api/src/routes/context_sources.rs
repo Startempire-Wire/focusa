@@ -14,14 +14,22 @@ use focusa_core::{
     tool_result::{FailureClass, ToolResultV1, ToolStatus},
     types::{
         Action, ContextSourceEvidence, ContextSourceHealth, ContextSourceReceipt,
-        ContextSourceRecord, FocusaEvent,
+        ContextSourceRecord, FocusaEvent, ProjectContextArtifact,
+        ProjectContextArtifactClassification, ProjectContextArtifactExtraction,
+        ProjectContextArtifactProvenance, ProjectContextArtifactScope,
+        ProjectContextArtifactSemantic,
     },
 };
 use reqwest::multipart::{Form, Part};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use std::{env, sync::Arc, time::Duration};
+use std::{
+    env,
+    path::{Path, PathBuf},
+    sync::Arc,
+    time::Duration,
+};
 
 const COMMIT_OPERATION_ID: &str = "focusa.context.source.commit";
 const INGEST_OPERATION_ID: &str = "focusa.context.source.ingest";
@@ -245,6 +253,40 @@ async fn commit(
     let evidence_ref = format!("evidence:context-source:{}", &scope_hash[..24]);
     let receipt_ref = format!("receipt:context-source:{}", &scope_hash[..24]);
     let committed_at = Utc::now();
+    let artifact_id = format!("context-artifact:{}", &scope_hash[..24]);
+    let artifact = ProjectContextArtifact {
+        schema: "focusa.project_context_artifact.v1".to_string(),
+        artifact_id: artifact_id.clone(),
+        source_kind: source_kind.clone(),
+        source_ref: format!("inline:{source_id}"),
+        source_revision: "commit:1".to_string(),
+        title: title.clone(),
+        mime_type: "text/plain".to_string(),
+        content_handle: format!("{artifact_id}#content"),
+        content_sha256: content_hash.clone(),
+        created_at: committed_at,
+        observed_at: committed_at,
+        scope: ProjectContextArtifactScope {
+            project_root: project_root.clone(),
+            continuity_id: continuity_id.clone(),
+        },
+        provenance: ProjectContextArtifactProvenance {
+            connector_id: "focusa.context.commit".to_string(),
+            ..Default::default()
+        },
+        classification: ProjectContextArtifactClassification {
+            sensitivity: "internal".to_string(),
+            confidentiality: "project".to_string(),
+            retention_class: "project".to_string(),
+            freshness_status: "current".to_string(),
+        },
+        extraction: ProjectContextArtifactExtraction {
+            status: "committed".to_string(),
+            ..Default::default()
+        },
+        semantic: Default::default(),
+        duplicate_of_artifact_ref: None,
+    };
     let source = ContextSourceRecord {
         source_id: source_id.clone(),
         project_root,
@@ -279,7 +321,19 @@ async fn commit(
         adapter_id: "focusa.context.commit".to_string(),
         ingestion_status: "committed".to_string(),
         extraction_diagnostics: Vec::new(),
-        health: Default::default(),
+        health: ContextSourceHealth {
+            status: "healthy".to_string(),
+            adapter_id: "focusa.context.commit".to_string(),
+            message: "Inline Context commit completed successfully".to_string(),
+            read_write_posture: "read-only".to_string(),
+            incremental_sync_method: "idempotency_key".to_string(),
+            rate_limit_posture: "not_applicable".to_string(),
+            revocation_behavior: "remove the source registration".to_string(),
+            recovery_action: Some("retry with the same idempotency key".to_string()),
+            last_successful_sync: Some(committed_at),
+            ..Default::default()
+        },
+        artifact,
     };
 
     state
@@ -373,6 +427,38 @@ pub struct ContextSourceIngestRequest {
     pub mime_type: String,
     pub content: Option<String>,
     pub content_base64: Option<String>,
+    #[serde(default)]
+    pub connector_id: Option<String>,
+    #[serde(default)]
+    pub account_ref: Option<String>,
+    #[serde(default)]
+    pub author: Option<String>,
+    #[serde(default)]
+    pub source_url: Option<String>,
+    #[serde(default)]
+    pub page_or_message_ref: Option<String>,
+    #[serde(default)]
+    pub sensitivity: Option<String>,
+    #[serde(default)]
+    pub confidentiality: Option<String>,
+    #[serde(default)]
+    pub retention_class: Option<String>,
+    #[serde(default)]
+    pub freshness_status: Option<String>,
+    #[serde(default)]
+    pub domain_pack_refs: Vec<String>,
+    #[serde(default)]
+    pub verification_policy_refs: Vec<String>,
+    #[serde(default)]
+    pub oauth_scopes: Vec<String>,
+    #[serde(default)]
+    pub sync_cursor: Option<String>,
+    #[serde(default)]
+    pub incremental_sync_method: Option<String>,
+    #[serde(default)]
+    pub rate_limit_posture: Option<String>,
+    #[serde(default)]
+    pub recovery_action: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -583,6 +669,86 @@ async fn extract_pdf(
     Ok((converted.document.md_content, diagnostics))
 }
 
+fn optional_bounded(value: Option<&str>, field: &str, max: usize) -> Result<String, ApiError> {
+    match value.map(str::trim).filter(|value| !value.is_empty()) {
+        Some(value) => validate_nonempty(value, field, max),
+        None => Ok(String::new()),
+    }
+}
+
+fn local_source_path(project_root: &str, source_locator: &str) -> Result<PathBuf, ApiError> {
+    let root = Path::new(project_root).canonicalize().map_err(|error| {
+        ingest_failure(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            ToolStatus::ValidationRejected,
+            FailureClass::ValidationRejected,
+            format!("project_root cannot be resolved: {error}"),
+        )
+    })?;
+    let requested = Path::new(source_locator);
+    let candidate = if requested.is_absolute() {
+        requested.to_path_buf()
+    } else {
+        root.join(requested)
+    };
+    let canonical = candidate.canonicalize().map_err(|error| {
+        ingest_failure(
+            StatusCode::NOT_FOUND,
+            ToolStatus::ValidationRejected,
+            FailureClass::ValidationRejected,
+            format!("local Context source cannot be resolved: {error}"),
+        )
+    })?;
+    if !canonical.starts_with(&root) || !canonical.is_file() {
+        return Err(ingest_failure(
+            StatusCode::FORBIDDEN,
+            ToolStatus::ValidationRejected,
+            FailureClass::PermissionDenied,
+            "local Context sources must be files inside project_root",
+        ));
+    }
+    Ok(canonical)
+}
+
+fn bounded_refs(values: &[String], field: &str) -> Result<Vec<String>, ApiError> {
+    if values.len() > 32
+        || values
+            .iter()
+            .any(|value| value.trim().is_empty() || value.len() > 256)
+    {
+        return Err(ingest_failure(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            ToolStatus::ValidationRejected,
+            FailureClass::ValidationRejected,
+            format!("{field} permits at most 32 non-empty references of 256 characters"),
+        ));
+    }
+    Ok(values
+        .iter()
+        .map(|value| value.trim().to_string())
+        .collect())
+}
+
+fn validated_public_source_url(value: &str) -> Result<String, ApiError> {
+    let parsed = reqwest::Url::parse(value).map_err(|_| {
+        ingest_failure(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            ToolStatus::ValidationRejected,
+            FailureClass::ValidationRejected,
+            "web and research sources require an absolute http(s) source URL",
+        )
+    })?;
+    if !matches!(parsed.scheme(), "http" | "https") || parsed.host_str().is_none() {
+        return Err(ingest_failure(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            ToolStatus::ValidationRejected,
+            FailureClass::ValidationRejected,
+            "web and research sources require an absolute http(s) source URL",
+        ));
+    }
+    Ok(parsed.to_string())
+}
+
 async fn ingest(
     State(state): State<Arc<AppState>>,
     Json(body): Json<ContextSourceIngestRequest>,
@@ -596,12 +762,61 @@ async fn ingest(
     let title = validate_nonempty(&body.title, "title", 240)?;
     let mime_type = validate_nonempty(&body.mime_type, "mime_type", 128)?;
     let source_kind = validate_nonempty(&body.source_kind, "source_kind", 32)?.to_lowercase();
-    if !matches!(source_kind.as_str(), "markdown" | "code" | "pdf") {
+    if !matches!(
+        source_kind.as_str(),
+        "markdown" | "code" | "pdf" | "file" | "web" | "research" | "connected" | "focusa_native"
+    ) {
         return Err(ingest_failure(
             StatusCode::UNPROCESSABLE_ENTITY,
             ToolStatus::ValidationRejected,
             FailureClass::ValidationRejected,
-            "source_kind must be markdown, code, or pdf",
+            "source_kind must be markdown, code, pdf, file, web, research, connected, or focusa_native",
+        ));
+    }
+    let connector_id = optional_bounded(body.connector_id.as_deref(), "connector_id", 160)?;
+    let account_ref = optional_bounded(body.account_ref.as_deref(), "account_ref", 256)?;
+    let author = optional_bounded(body.author.as_deref(), "author", 256)?;
+    let page_or_message_ref = optional_bounded(
+        body.page_or_message_ref.as_deref(),
+        "page_or_message_ref",
+        512,
+    )?;
+    let sensitivity = optional_bounded(body.sensitivity.as_deref(), "sensitivity", 64)?;
+    let confidentiality = optional_bounded(body.confidentiality.as_deref(), "confidentiality", 64)?;
+    let retention_class = optional_bounded(body.retention_class.as_deref(), "retention_class", 64)?;
+    let freshness_status =
+        optional_bounded(body.freshness_status.as_deref(), "freshness_status", 64)?;
+    let sync_cursor = optional_bounded(body.sync_cursor.as_deref(), "sync_cursor", 512)?;
+    let incremental_sync_method = optional_bounded(
+        body.incremental_sync_method.as_deref(),
+        "incremental_sync_method",
+        128,
+    )?;
+    let rate_limit_posture = optional_bounded(
+        body.rate_limit_posture.as_deref(),
+        "rate_limit_posture",
+        128,
+    )?;
+    let recovery_action =
+        optional_bounded(body.recovery_action.as_deref(), "recovery_action", 512)?;
+    let domain_pack_refs = bounded_refs(&body.domain_pack_refs, "domain_pack_refs")?;
+    let verification_policy_refs =
+        bounded_refs(&body.verification_policy_refs, "verification_policy_refs")?;
+    let oauth_scopes = bounded_refs(&body.oauth_scopes, "oauth_scopes")?;
+    let mut source_url = optional_bounded(body.source_url.as_deref(), "source_url", 2048)?;
+    if matches!(source_kind.as_str(), "web" | "research") {
+        source_url = validated_public_source_url(if source_url.is_empty() {
+            &source_locator
+        } else {
+            &source_url
+        })?;
+    }
+    if source_kind == "connected" && (connector_id.is_empty() || account_ref.is_empty()) {
+        return Err(ingest_failure(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            ToolStatus::ValidationRejected,
+            FailureClass::ValidationRejected,
+            "connected sources require connector_id and account_ref credential references",
         ));
     }
 
@@ -649,13 +864,13 @@ async fn ingest(
     };
 
     let (content, adapter_id, diagnostics) = match source_kind.as_str() {
-        "markdown" | "code" => {
+        "markdown" | "code" | "web" | "research" | "connected" | "focusa_native" => {
             let content = body.content.ok_or_else(|| {
                 ingest_failure(
                     StatusCode::UNPROCESSABLE_ENTITY,
                     ToolStatus::ValidationRejected,
                     FailureClass::ValidationRejected,
-                    "content is required for Markdown and code ingestion",
+                    "content is required for text, web, research, connected, and Focusa-native ingestion",
                 )
             })?;
             if content.is_empty() || content.len() > MAX_TEXT_INGEST_BYTES {
@@ -674,9 +889,18 @@ async fn ingest(
                     "Markdown ingestion requires mime_type=text/markdown",
                 ));
             }
+            let adapter_id = if !connector_id.is_empty() {
+                connector_id.clone()
+            } else {
+                match source_kind.as_str() {
+                    "web" | "research" => "uiai.public_source.v1".to_string(),
+                    "focusa_native" => "focusa.native_context.v1".to_string(),
+                    _ => "focusa.local_text.v1".to_string(),
+                }
+            };
             (
                 content,
-                "focusa.local_text.v1".to_string(),
+                adapter_id,
                 vec!["native_utf8_extraction=success".to_string()],
             )
         }
@@ -716,11 +940,58 @@ async fn ingest(
             let (content, diagnostics) = extract_pdf(bytes, &source_locator).await?;
             (content, "docling-serve.v1".to_string(), diagnostics)
         }
+        "file" => {
+            let path = local_source_path(&project_root, &source_locator)?;
+            let bytes = std::fs::read(&path).map_err(|error| {
+                ingest_failure(
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                    ToolStatus::ValidationRejected,
+                    FailureClass::ValidationRejected,
+                    format!("local Context source read failed: {error}"),
+                )
+            })?;
+            if mime_type == "application/pdf" {
+                if bytes.len() > MAX_PDF_INGEST_BYTES || !bytes.starts_with(b"%PDF-") {
+                    return Err(ingest_failure(
+                        StatusCode::UNPROCESSABLE_ENTITY,
+                        ToolStatus::ValidationRejected,
+                        FailureClass::ValidationRejected,
+                        format!(
+                            "PDF must be valid and no larger than {MAX_PDF_INGEST_BYTES} bytes"
+                        ),
+                    ));
+                }
+                let (content, diagnostics) = extract_pdf(bytes, &source_locator).await?;
+                (content, "docling-serve.v1".to_string(), diagnostics)
+            } else {
+                if bytes.is_empty() || bytes.len() > MAX_TEXT_INGEST_BYTES {
+                    return Err(ingest_failure(
+                        StatusCode::PAYLOAD_TOO_LARGE,
+                        ToolStatus::ValidationRejected,
+                        FailureClass::ResourceExhausted,
+                        format!("local text ingestion requires 1-{MAX_TEXT_INGEST_BYTES} bytes"),
+                    ));
+                }
+                let content = String::from_utf8(bytes).map_err(|_| {
+                    ingest_failure(
+                        StatusCode::UNPROCESSABLE_ENTITY,
+                        ToolStatus::ValidationRejected,
+                        FailureClass::ValidationRejected,
+                        "local non-PDF Context files must contain UTF-8 text",
+                    )
+                })?;
+                (
+                    content,
+                    "focusa.local_file.v1".to_string(),
+                    vec!["bounded_project_file_read=success".to_string()],
+                )
+            }
+        }
         _ => unreachable!(),
     };
     let content_hash = digest(&[&content]);
 
-    {
+    let duplicate_of_artifact_ref = {
         let focusa = state.focusa.read().await;
         if focusa.version != before_state_version {
             return Err(ingest_failure(
@@ -743,7 +1014,23 @@ async fn ingest(
                 true,
             )));
         }
-    }
+        focusa
+            .context_sources
+            .iter()
+            .find(|source| {
+                source.project_root == project_root
+                    && source.continuity_id == continuity_id
+                    && source.content_hash == content_hash
+                    && source.source_id != source_id
+            })
+            .map(|source| {
+                if source.artifact.artifact_id.is_empty() {
+                    source.source_id.clone()
+                } else {
+                    source.artifact.artifact_id.clone()
+                }
+            })
+    };
 
     let committed_at = Utc::now();
     let revision = existing_revision + 1;
@@ -753,12 +1040,80 @@ async fn ingest(
         &content_hash,
         &idempotency_key,
     ]);
+    let artifact_id = format!("context-artifact:{}", &transition_hash[..24]);
+    let effective_connector_id = if connector_id.is_empty() {
+        adapter_id.clone()
+    } else {
+        connector_id
+    };
+    let artifact = ProjectContextArtifact {
+        schema: "focusa.project_context_artifact.v1".to_string(),
+        artifact_id: artifact_id.clone(),
+        source_kind: source_kind.clone(),
+        source_ref: source_locator.clone(),
+        source_revision: source_revision.clone(),
+        title: title.clone(),
+        mime_type: mime_type.clone(),
+        content_handle: format!("{artifact_id}#content"),
+        content_sha256: content_hash.clone(),
+        created_at: committed_at,
+        observed_at: committed_at,
+        scope: ProjectContextArtifactScope {
+            project_root: project_root.clone(),
+            continuity_id: continuity_id.clone(),
+        },
+        provenance: ProjectContextArtifactProvenance {
+            connector_id: effective_connector_id.clone(),
+            account_ref,
+            author,
+            source_url,
+            page_or_message_ref,
+        },
+        classification: ProjectContextArtifactClassification {
+            sensitivity: if sensitivity.is_empty() {
+                "internal".to_string()
+            } else {
+                sensitivity
+            },
+            confidentiality: if confidentiality.is_empty() {
+                "project".to_string()
+            } else {
+                confidentiality
+            },
+            retention_class: if retention_class.is_empty() {
+                "project".to_string()
+            } else {
+                retention_class
+            },
+            freshness_status: if freshness_status.is_empty() {
+                "current".to_string()
+            } else {
+                freshness_status
+            },
+        },
+        extraction: ProjectContextArtifactExtraction {
+            status: "completed".to_string(),
+            diagnostic_refs: diagnostics.clone(),
+            extracted_claim_ids: Vec::new(),
+            entity_refs: Vec::new(),
+            date_refs: Vec::new(),
+            task_refs: Vec::new(),
+            contradiction_refs: Vec::new(),
+        },
+        semantic: ProjectContextArtifactSemantic {
+            domain_pack_refs,
+            candidate_object_refs: Vec::new(),
+            candidate_link_refs: Vec::new(),
+            verification_policy_refs,
+        },
+        duplicate_of_artifact_ref,
+    };
     let source = ContextSourceRecord {
         source_id: source_id.clone(),
         project_root,
         continuity_id,
         attachment_id,
-        source_kind,
+        source_kind: source_kind.clone(),
         title,
         content,
         content_hash: content_hash.clone(),
@@ -792,9 +1147,32 @@ async fn ingest(
             status: "healthy".to_string(),
             adapter_id,
             message: "Source ingestion completed successfully".to_string(),
-            recovery_action: None,
+            read_write_posture: "read-only".to_string(),
+            oauth_scopes,
+            incremental_sync_method: if incremental_sync_method.is_empty() {
+                "source_revision_and_content_hash".to_string()
+            } else {
+                incremental_sync_method
+            },
+            cursor_state: (!sync_cursor.is_empty()).then_some(sync_cursor),
+            rate_limit_posture: if rate_limit_posture.is_empty() {
+                "adapter_managed".to_string()
+            } else {
+                rate_limit_posture
+            },
+            revocation_behavior: if source_kind == "connected" {
+                "stop incremental sync and revoke the external credential reference".to_string()
+            } else {
+                "remove the source registration without deleting the origin".to_string()
+            },
+            recovery_action: Some(if recovery_action.is_empty() {
+                "retry from the last source revision or reauthorize the connector".to_string()
+            } else {
+                recovery_action
+            }),
             last_successful_sync: Some(committed_at),
         },
+        artifact,
     };
     state
         .command_tx

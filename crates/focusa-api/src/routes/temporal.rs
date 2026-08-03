@@ -35,12 +35,14 @@ use serde_json::{Value, json};
 use std::sync::Arc;
 use uuid::Uuid;
 
-use super::temporal_advanced::{
-    capture_clock, commit_priority, forecast, high_consequence_preflight, migrate_signatures,
-    resolve_civil,
+use super::{
+    temporal_advanced::{
+        capture_clock, commit_priority, forecast, high_consequence_preflight, migrate_signatures,
+        resolve_civil,
+    },
+    temporal_closure::settle_closure,
+    temporal_conformance::spec137a_conformance_surface,
 };
-use super::temporal_closure::settle_closure;
-use super::temporal_conformance::spec137a_conformance_surface;
 
 #[derive(Debug, Default, Deserialize, Clone)]
 pub struct TemporalScopeDimensions {

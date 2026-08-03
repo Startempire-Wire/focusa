@@ -3,16 +3,30 @@ import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { performance } from "node:perf_hooks";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { Key } from "@earendil-works/pi-tui";
+import { Key, visibleWidth } from "@earendil-works/pi-tui";
 import ts from "typescript";
 
 const root = resolve(import.meta.dirname, "..");
 const source = readFileSync(resolve(root, "src/mission-canvas-view.ts"), "utf8");
-const compiled = ts.transpileModule(source, {
-  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-}).outputText;
+const accessibilitySource = readFileSync(
+  resolve(root, "src/mission-canvas-accessibility.ts"),
+  "utf8"
+);
+const accessibilityName = `.mission-canvas-accessibility-performance-${process.pid}.mjs`;
+const compiled = ts
+  .transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+  })
+  .outputText.replace("./mission-canvas-accessibility.js", `./${accessibilityName}`);
 const modulePath = resolve(root, `.mission-canvas-performance-${process.pid}.mjs`);
+const accessibilityPath = resolve(root, accessibilityName);
 writeFileSync(modulePath, compiled);
+writeFileSync(
+  accessibilityPath,
+  ts.transpileModule(accessibilitySource, {
+    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+  }).outputText
+);
 const { MissionCanvasView } = await import(`${pathToFileURL(modulePath).href}?v=${Date.now()}`);
 
 const many = Array.from({ length: 200 }, (_, index) => `row-${index} evidence and bounded detail`);
@@ -60,11 +74,67 @@ for (let index = 0; index < 100; index++) {
   const lines = view.render(120);
   timings.push(performance.now() - started);
   assert(lines.length <= 60, lines.length);
-  assert(lines.every((line) => line.length <= 120));
+  assert(lines.every((line) => visibleWidth(line) <= 120));
 }
+const heapBefore = process.memoryUsage().heapUsed;
+for (let index = 0; index < 5_000; index++) {
+  if (index % 7 === 0) view.handleInput("mode-next");
+  if (index % 11 === 0) view.handleInput("profile-next");
+  if (index % 13 === 0) view.handleInput("surface-next");
+  const lines = view.render(index % 2 ? 80 : 160);
+  assert(lines.length <= 60);
+}
+const heapGrowth = process.memoryUsage().heapUsed - heapBefore;
+assert(heapGrowth < 32 * 1024 * 1024, `Mission Canvas long-session heap growth ${heapGrowth} exceeded 32 MiB`);
+for (let width = 1; width < 40; width++) {
+  const lines = view.render(width);
+  assert(
+    lines.every((line) => visibleWidth(line) <= width),
+    `Mission Canvas emitted a line wider than ${width} columns`
+  );
+}
+const priorCi = process.env.CI;
+const priorHighContrast = process.env.FOCUSA_HIGH_CONTRAST;
+const priorNoColor = process.env.NO_COLOR;
+const priorAscii = process.env.FOCUSA_ASCII_UI;
+const priorTerm = process.env.TERM;
+process.env.CI = "false";
+delete process.env.FOCUSA_HIGH_CONTRAST;
+delete process.env.NO_COLOR;
+const renderVariant = (visualVariant) => {
+  const variantView = new MissionCanvasView(
+    { ...model, visualVariant },
+    theme,
+    () => {},
+    () => {},
+    async () => model,
+    () => {}
+  );
+  const output = variantView.render(120).join("\n");
+  variantView.dispose();
+  return output;
+};
+const defaultPalette = renderVariant("default");
+assert.notEqual(renderVariant("high-contrast"), defaultPalette);
+assert.notEqual(renderVariant("monochrome"), defaultPalette);
+process.env.FOCUSA_ASCII_UI = "1";
+assert.doesNotMatch(renderVariant("default"), /[┌┐└┘─│◆◇●✓○→╲▁▂▄▅▆█]/);
+process.env.TERM = "dumb";
+assert.doesNotMatch(renderVariant("default"), /\x1b/);
+if (priorCi === undefined) delete process.env.CI;
+else process.env.CI = priorCi;
+if (priorHighContrast === undefined) delete process.env.FOCUSA_HIGH_CONTRAST;
+else process.env.FOCUSA_HIGH_CONTRAST = priorHighContrast;
+if (priorNoColor === undefined) delete process.env.NO_COLOR;
+else process.env.NO_COLOR = priorNoColor;
+if (priorAscii === undefined) delete process.env.FOCUSA_ASCII_UI;
+else process.env.FOCUSA_ASCII_UI = priorAscii;
+if (priorTerm === undefined) delete process.env.TERM;
+else process.env.TERM = priorTerm;
 view.dispose();
 timings.sort((a, b) => a - b);
 const p95 = timings[Math.floor(timings.length * 0.95)];
 rmSync(modulePath, { force: true });
+rmSync(accessibilityPath, { force: true });
 assert(p95 < 100, `Mission Canvas render p95 ${p95.toFixed(2)}ms exceeded 100ms`);
-console.log(`Mission Canvas performance: PASS (200 rows, render p95=${p95.toFixed(2)}ms)`);
+console.log(`Mission Canvas performance: PASS (5,000 transitions, render p95=${p95.toFixed(2)}ms, heap growth=${heapGrowth})`);

@@ -504,6 +504,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/interviews/closure-package": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Governed Interview Closure Package
+         * @description Get Governed Interview Closure Package — family=project_interview budget=standard_read materialization=canonical_read
+         */
+        get: operations["focusa.interview.closure_package.get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/interviews/sessions": {
         parameters: {
             query?: never;
@@ -764,6 +784,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/mission-canvas/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rehydrate exact Mission Canvas client state */
+        get: operations["focusa.mission_canvas.state.get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/mission-canvas/state/mutate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Persist exact Mission Canvas client state */
+        post: operations["focusa.mission_canvas.state.mutate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/mission-canvas/surface-bindings": {
         parameters: {
             query?: never;
@@ -844,6 +898,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/prediction-authority/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Append canonical prediction authority event */
+        post: operations["focusa.prediction_authority.append"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/prediction-authority/projection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Prediction authority projection */
+        get: operations["focusa.prediction_authority.projection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/predictions/evaluate": {
         parameters: {
             query?: never;
@@ -898,6 +986,142 @@ export interface paths {
          * @description Prediction Record — family=prediction budget=standard_mutation materialization=daemon_dispatch
          */
         post: operations["focusa.prediction.record"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/project/bootstrap/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Project Bootstrap apply */
+        post: operations["focusa.project.bootstrap.apply"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/project/bootstrap/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Project Bootstrap preview */
+        post: operations["focusa.project.bootstrap.preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/project/bootstrap/repair": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Project Bootstrap repair */
+        post: operations["focusa.project.bootstrap.repair"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/project/bootstrap/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Project Bootstrap status */
+        get: operations["focusa.project.bootstrap.status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/project/genesis/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Project Genesis commit */
+        post: operations["focusa.project.genesis.commit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/project/genesis/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Project Genesis resume */
+        post: operations["focusa.project.genesis.resume"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/project/genesis/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Project Genesis start */
+        post: operations["focusa.project.genesis.start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/project/genesis/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Project Genesis status */
+        get: operations["focusa.project.genesis.status"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1178,6 +1402,210 @@ export interface paths {
          * @description Draft, Preview, Edit, and Approve Task Plan — family=task_plan budget=standard_mutation materialization=canonical_event
          */
         post: operations["focusa.task_plan.mutate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/temporal/civil/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Temporal commit */
+        post: operations["focusa.temporal.civil.resolve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/temporal/clock/capture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Temporal commit */
+        post: operations["focusa.temporal.clock.capture"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/temporal/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Temporal commit */
+        post: operations["focusa.temporal.commit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/temporal/forecast": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Temporal forecast */
+        post: operations["focusa.temporal.forecast"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/temporal/high-consequence/preflight": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Temporal commit */
+        post: operations["focusa.temporal.high_consequence_preflight"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/temporal/migrate-signatures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Temporal commit */
+        post: operations["focusa.temporal.migrate_signatures"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/temporal/observe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Temporal observe */
+        post: operations["focusa.temporal.observe"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/temporal/preflight": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Temporal preflight */
+        post: operations["focusa.temporal.preflight"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/temporal/priority/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Temporal commit */
+        post: operations["focusa.temporal.priority.commit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/temporal/revise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Temporal revise */
+        post: operations["focusa.temporal.revise"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/temporal/settle-closure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Temporal commit */
+        post: operations["focusa.temporal.settle_closure"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/temporal/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Temporal status */
+        get: operations["focusa.temporal.status"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1664,434 +2092,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/mission-canvas/state": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Rehydrate exact Mission Canvas client state */
-        get: operations["focusa.mission_canvas.state.get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/mission-canvas/state/mutate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Persist exact Mission Canvas client state */
-        post: operations["focusa.mission_canvas.state.mutate"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/interviews/closure-package": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Governed Interview Closure Package
-         * @description Get Governed Interview Closure Package — family=project_interview budget=standard_read materialization=canonical_read
-         */
-        get: operations["focusa.interview.closure_package.get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/project/genesis/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Project Genesis start */
-        post: operations["focusa.project.genesis.start"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/project/genesis/resume": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Project Genesis resume */
-        post: operations["focusa.project.genesis.resume"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/project/genesis/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Project Genesis status */
-        get: operations["focusa.project.genesis.status"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/project/genesis/commit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Project Genesis commit */
-        post: operations["focusa.project.genesis.commit"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/project/bootstrap/preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Project Bootstrap preview */
-        post: operations["focusa.project.bootstrap.preview"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/project/bootstrap/apply": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Project Bootstrap apply */
-        post: operations["focusa.project.bootstrap.apply"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/project/bootstrap/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Project Bootstrap status */
-        get: operations["focusa.project.bootstrap.status"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/project/bootstrap/repair": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Project Bootstrap repair */
-        post: operations["focusa.project.bootstrap.repair"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/temporal/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Temporal status */
-        get: operations["focusa.temporal.status"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/temporal/commit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Temporal commit */
-        post: operations["focusa.temporal.commit"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/temporal/revise": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Temporal revise */
-        post: operations["focusa.temporal.revise"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/temporal/observe": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Temporal observe */
-        post: operations["focusa.temporal.observe"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/temporal/forecast": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Temporal forecast */
-        post: operations["focusa.temporal.forecast"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/temporal/preflight": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Temporal preflight */
-        post: operations["focusa.temporal.preflight"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/temporal/clock/capture": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Temporal commit */
-        post: operations["focusa.temporal.clock.capture"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/temporal/priority/commit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Temporal commit */
-        post: operations["focusa.temporal.priority.commit"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/temporal/civil/resolve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Temporal commit */
-        post: operations["focusa.temporal.civil.resolve"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/temporal/high-consequence/preflight": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Temporal commit */
-        post: operations["focusa.temporal.high_consequence_preflight"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/temporal/migrate-signatures": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Temporal commit */
-        post: operations["focusa.temporal.migrate_signatures"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/temporal/settle-closure": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Temporal commit */
-        post: operations["focusa.temporal.settle_closure"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/prediction-authority/projection": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Prediction authority projection */
-        get: operations["focusa.prediction_authority.projection"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/prediction-authority/events": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Append canonical prediction authority event */
-        post: operations["focusa.prediction_authority.append"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2549,72 +2549,41 @@ export interface components {
             replayed: boolean;
             /** @constant */
             schema: "focusa.context_source_commit_result.v1";
-            source: {
-                adapter_id?: string;
-                attachment_id: string;
-                /** Format: date-time */
-                committed_at: string;
-                content: string;
-                content_hash: string;
-                continuity_id: string;
-                evidence: {
-                    /** Format: date-time */
-                    captured_at: string;
-                    content_hash: string;
-                    evidence_ref: string;
-                    result: string;
-                    target_ref: string;
-                };
-                extraction_diagnostics?: string[];
-                health?: {
-                    adapter_id: string;
-                    /** Format: date-time */
-                    last_successful_sync?: string;
-                    message: string;
-                    recovery_action?: string;
-                    status: string;
-                };
-                idempotency_key: string;
-                ingestion_status?: string;
-                mime_type?: string;
-                project_root: string;
-                receipt: {
-                    after_state_version: number;
-                    before_state_version: number;
-                    /** Format: date-time */
-                    committed_at: string;
-                    idempotency_key: string;
-                    /** @enum {unknown} */
-                    operation_id: "focusa.context.source.commit" | "focusa.context.source.ingest";
-                    receipt_ref: string;
-                    reversible: boolean;
-                };
-                revision: number;
-                source_id: string;
-                /** @enum {unknown} */
-                source_kind: "markdown" | "text" | "code" | "pdf";
-                source_locator?: string;
-                source_revision?: string;
-                title: string;
-            };
+            source: components["schemas"]["focusa_context_source_record_v1"];
             state_version: number;
             tool_result: Record<string, never>;
         };
         /** focusa.context_source_ingest.request.v1 */
         focusa_context_source_ingest_request_v1: {
+            account_ref?: string;
             attachment_id: string;
+            author?: string;
+            confidentiality?: string;
+            connector_id?: string;
             content?: string;
             content_base64?: string;
             continuity_id: string;
+            domain_pack_refs?: string[];
             expected_state_version: number;
+            freshness_status?: string;
             idempotency_key: string;
+            incremental_sync_method?: string;
             mime_type: string;
+            oauth_scopes?: string[];
+            page_or_message_ref?: string;
             project_root: string;
+            rate_limit_posture?: string;
+            recovery_action?: string;
+            retention_class?: string;
+            sensitivity?: string;
             /** @enum {unknown} */
-            source_kind: "markdown" | "code" | "pdf";
+            source_kind: "markdown" | "code" | "pdf" | "file" | "web" | "research" | "connected" | "focusa_native";
             source_locator: string;
             source_revision: string;
+            source_url?: string;
+            sync_cursor?: string;
             title: string;
+            verification_policy_refs?: string[];
         };
         /** focusa.context_source_ingest_result.v1 */
         focusa_context_source_ingest_result_v1: {
@@ -2625,54 +2594,7 @@ export interface components {
             replayed: boolean;
             /** @constant */
             schema: "focusa.context_source_ingest_result.v1";
-            source: {
-                adapter_id?: string;
-                attachment_id: string;
-                /** Format: date-time */
-                committed_at: string;
-                content: string;
-                content_hash: string;
-                continuity_id: string;
-                evidence: {
-                    /** Format: date-time */
-                    captured_at: string;
-                    content_hash: string;
-                    evidence_ref: string;
-                    result: string;
-                    target_ref: string;
-                };
-                extraction_diagnostics?: string[];
-                health?: {
-                    adapter_id: string;
-                    /** Format: date-time */
-                    last_successful_sync?: string;
-                    message: string;
-                    recovery_action?: string;
-                    status: string;
-                };
-                idempotency_key: string;
-                ingestion_status?: string;
-                mime_type?: string;
-                project_root: string;
-                receipt: {
-                    after_state_version: number;
-                    before_state_version: number;
-                    /** Format: date-time */
-                    committed_at: string;
-                    idempotency_key: string;
-                    /** @enum {unknown} */
-                    operation_id: "focusa.context.source.commit" | "focusa.context.source.ingest";
-                    receipt_ref: string;
-                    reversible: boolean;
-                };
-                revision: number;
-                source_id: string;
-                /** @enum {unknown} */
-                source_kind: "markdown" | "text" | "code" | "pdf";
-                source_locator?: string;
-                source_revision?: string;
-                title: string;
-            };
+            source: components["schemas"]["focusa_context_source_record_v1"];
             state_version: number;
             tool_result: Record<string, never>;
         };
@@ -2688,55 +2610,81 @@ export interface components {
             canonical: true;
             /** @constant */
             schema: "focusa.context_source_list.v1";
-            sources: {
-                adapter_id?: string;
-                attachment_id: string;
+            sources: components["schemas"]["focusa_context_source_record_v1"][];
+            state_version: number;
+        };
+        focusa_context_source_record_v1: {
+            adapter_id?: string;
+            artifact: components["schemas"]["focusa_project_context_artifact_v1"];
+            attachment_id: string;
+            /** Format: date-time */
+            committed_at: string;
+            content: string;
+            content_hash: string;
+            continuity_id: string;
+            evidence: {
+                /** Format: date-time */
+                captured_at: string;
+                content_hash: string;
+                evidence_ref: string;
+                result: string;
+                target_ref: string;
+            };
+            extraction_diagnostics?: string[];
+            health: {
+                adapter_id: string;
+                cursor_state?: string | null;
+                incremental_sync_method: string;
+                /** Format: date-time */
+                last_successful_sync?: string | null;
+                message: string;
+                oauth_scopes: string[];
+                rate_limit_posture: string;
+                read_write_posture: string;
+                recovery_action?: string | null;
+                revocation_behavior: string;
+                status: string;
+            };
+            idempotency_key: string;
+            ingestion_status?: string;
+            mime_type?: string;
+            project_root: string;
+            receipt: {
+                after_state_version: number;
+                before_state_version: number;
                 /** Format: date-time */
                 committed_at: string;
-                content: string;
-                content_hash: string;
-                continuity_id: string;
-                evidence: {
-                    /** Format: date-time */
-                    captured_at: string;
-                    content_hash: string;
-                    evidence_ref: string;
-                    result: string;
-                    target_ref: string;
-                };
-                extraction_diagnostics?: string[];
-                health?: {
-                    adapter_id: string;
-                    /** Format: date-time */
-                    last_successful_sync?: string;
-                    message: string;
-                    recovery_action?: string;
-                    status: string;
-                };
                 idempotency_key: string;
-                ingestion_status?: string;
-                mime_type?: string;
-                project_root: string;
-                receipt: {
-                    after_state_version: number;
-                    before_state_version: number;
-                    /** Format: date-time */
-                    committed_at: string;
-                    idempotency_key: string;
-                    /** @enum {unknown} */
-                    operation_id: "focusa.context.source.commit" | "focusa.context.source.ingest";
-                    receipt_ref: string;
-                    reversible: boolean;
-                };
-                revision: number;
-                source_id: string;
                 /** @enum {unknown} */
-                source_kind: "markdown" | "text" | "code" | "pdf";
-                source_locator?: string;
-                source_revision?: string;
-                title: string;
-            }[];
-            state_version: number;
+                operation_id: "focusa.context.source.commit" | "focusa.context.source.ingest";
+                receipt_ref: string;
+                reversible: boolean;
+            };
+            revision: number;
+            source_id: string;
+            /** @enum {unknown} */
+            source_kind: "markdown" | "text" | "code" | "pdf";
+            source_locator?: string;
+            source_revision?: string;
+            title: string;
+        };
+        focusa_crist_spec_handoff_v1: {
+            accepted_project_claim_refs: string[];
+            active_domain_pack_refs: string[];
+            context_pack_refs: string[];
+            continuity_id: string;
+            current_ask: string;
+            /** @constant */
+            desired_spec_template: "project_genesis";
+            interview_session_refs: string[];
+            known_contradictions: string[];
+            project_root: string;
+            role_profile_ref: string;
+            /** @constant */
+            schema: "focusa.crist_spec_handoff.v1";
+            semantic_registry_version: string;
+            unresolved_questions: string[];
+            workspace_profile_ref: string;
         };
         /**
          * focusa.device_pair_start.request.v1
@@ -2802,6 +2750,18 @@ export interface components {
          */
         focusa_evidence_capture_response_v1: {
             [key: string]: unknown;
+        };
+        focusa_genesis_first_workpoint_v1: {
+            acceptance_criteria: string[];
+            /** @constant */
+            canonical: true;
+            continuity_id: string;
+            evidence_refs: string[];
+            project_root: string;
+            /** @constant */
+            status: "active";
+            work_item_id?: string | null;
+            workpoint_id: string;
         };
         /** focusa.grill_interview_context.v1 */
         focusa_grill_interview_context_v1: {
@@ -2912,6 +2872,41 @@ export interface components {
          */
         focusa_health_response_v1: {
             [key: string]: unknown;
+        };
+        focusa_interview_answer_provenance_v1: {
+            answer_id: string;
+            confidence?: number | null;
+            /** Format: date-time */
+            created_at: string;
+            operator_id: string;
+            status: string;
+            supersedes?: string | null;
+        };
+        /** focusa.interview_closure_package.v1 */
+        focusa_interview_closure_package_v1: {
+            adr_candidates: Record<string, never>[];
+            approved_role_profile_ref?: string | null;
+            attachment_id: string;
+            closure_ref: string;
+            compendium: components["schemas"]["focusa_interview_compendium_entry_v1"][];
+            continuity_id: string;
+            glossary_candidates: Record<string, never>[];
+            interview_session_id: string;
+            project_root: string;
+            receipt_ref: string;
+            /** @constant */
+            schema: "focusa.interview_closure_package.v1";
+            source_state_revision: number;
+        };
+        focusa_interview_compendium_entry_v1: {
+            answer: unknown;
+            answer_provenance: components["schemas"]["focusa_interview_answer_provenance_v1"] | null;
+            attachment_refs: string[];
+            context_refs: string[];
+            notes: string | null;
+            question: string;
+            question_id: string;
+            spec_sections: string[];
         };
         /**
          * focusa.license_validate.request.v1
@@ -3067,6 +3062,131 @@ export interface components {
         focusa_metacog_retrieve_response_v1: {
             [key: string]: unknown;
         };
+        /** focusa.mission_canvas_state_get.request.v1 */
+        focusa_mission_canvas_state_get_request_v1: {
+            client_instance_id: string;
+            continuity_id: string;
+            device_id: string;
+            project_root: string;
+            user_id: string;
+        };
+        /** focusa.mission_canvas_state_mutation.request.v1 */
+        focusa_mission_canvas_state_mutation_request_v1: {
+            aggregate_continuity_ids?: string[];
+            aggregate_project_roots?: string[];
+            aggregate_surface_kinds?: string[];
+            aggregate_surface_states?: string[];
+            client_instance_id: string;
+            continuity_id: string;
+            device_id: string;
+            expected_canvas_revision: number;
+            expected_state_version: number;
+            focused_work_surface_id?: string;
+            group_order?: string[];
+            idempotency_key: string;
+            open_work_surface_ids?: string[];
+            project_root: string;
+            secondary_focused_surface_id?: string;
+            selected_context_refs?: string[];
+            session_projection_revision: number;
+            split_layout_ref?: string;
+            unread_event_cursor?: number;
+            user_id: string;
+        };
+        /** focusa.mission_canvas_state_mutation_result.v1 */
+        focusa_mission_canvas_state_mutation_result_v1: {
+            canvas: {
+                aggregate_continuity_ids: string[];
+                aggregate_project_roots: string[];
+                aggregate_surface_kinds: string[];
+                aggregate_surface_states: string[];
+                canvas_id: string;
+                client_instance_id: string;
+                continuity_id: string;
+                /** Format: date-time */
+                created_at: string;
+                device_id: string;
+                focused_work_surface_id?: string;
+                group_order: string[];
+                idempotency_key: string;
+                open_work_surface_ids: string[];
+                project_root: string;
+                secondary_focused_surface_id?: string;
+                selected_context_refs: string[];
+                session_projection_revision: number;
+                split_layout_ref?: string;
+                state_revision: number;
+                unread_event_cursor?: number;
+                /** Format: date-time */
+                updated_at: string;
+                user_id: string;
+            };
+            evidence_ref: string;
+            receipt_ref: string;
+            replayed: boolean;
+            /** @constant */
+            schema: "focusa.mission_canvas_state_mutation_result.v1";
+            state_version: number;
+            tool_result: components["schemas"]["focusa_tool_result_v1"];
+        };
+        /** focusa.mission_canvas_state.v1 */
+        focusa_mission_canvas_state_v1: {
+            canvas: {
+                aggregate_continuity_ids: string[];
+                aggregate_project_roots: string[];
+                aggregate_surface_kinds: string[];
+                aggregate_surface_states: string[];
+                canvas_id: string;
+                client_instance_id: string;
+                continuity_id: string;
+                /** Format: date-time */
+                created_at: string;
+                device_id: string;
+                focused_work_surface_id?: string;
+                group_order: string[];
+                idempotency_key: string;
+                open_work_surface_ids: string[];
+                project_root: string;
+                secondary_focused_surface_id?: string;
+                selected_context_refs: string[];
+                session_projection_revision: number;
+                split_layout_ref?: string;
+                state_revision: number;
+                unread_event_cursor?: number;
+                /** Format: date-time */
+                updated_at: string;
+                user_id: string;
+            };
+            recovery_actions: string[];
+            /** @constant */
+            schema: "focusa.mission_canvas_state.v1";
+            state_version: number;
+            surfaces: {
+                attachment_id: string;
+                canonical_state_refs: string[];
+                continuity_id: string;
+                /** Format: date-time */
+                created_at: string;
+                idempotency_key: string;
+                instance_id: string;
+                mission_ref: string;
+                pane_id: string;
+                pinned: boolean;
+                project_root: string;
+                session_id?: string;
+                state_revision: number;
+                /** @enum {unknown} */
+                status: "active" | "suspended" | "view_closed";
+                surface_kind: string;
+                tab_index: number;
+                title: string;
+                unread: boolean;
+                /** Format: date-time */
+                updated_at: string;
+                work_surface_id: string;
+                workpoint_id?: string;
+            }[];
+        };
         /** focusa.mission_canvas_surface_binding_list.request.v1 */
         focusa_mission_canvas_surface_binding_list_request_v1: {
             attachment_id: string;
@@ -3081,25 +3201,25 @@ export interface components {
                 access_mode: string;
                 active: boolean;
                 attachment_id: string;
+                /** @enum {string} */
+                authentication_sharing?: "shared_explicit" | "isolated";
                 binding_id: string;
                 /** @enum {unknown} */
                 binding_kind: "session" | "browser_context" | "browser_target" | "file" | "operation" | "evidence" | "action";
+                /** @enum {string} */
+                browser_isolation_class?: "shared_authenticated" | "isolated_authenticated" | "ephemeral_isolated" | "read_only_observer" | "capture_worker";
                 continuity_id: string;
                 /** Format: date-time */
                 created_at: string;
                 idempotency_key: string;
                 project_root: string;
+                /** @enum {string} */
+                retention_policy?: "persistent" | "dispose_on_close" | "manual";
                 state_revision: number;
                 target_ref: string;
                 /** Format: date-time */
                 updated_at: string;
                 work_surface_id: string;
-                /** @enum {string} */
-                browser_isolation_class?: "shared_authenticated" | "isolated_authenticated" | "ephemeral_isolated" | "read_only_observer" | "capture_worker";
-                /** @enum {string} */
-                authentication_sharing?: "shared_explicit" | "isolated";
-                /** @enum {string} */
-                retention_policy?: "persistent" | "dispose_on_close" | "manual";
             }[];
             /** @constant */
             schema: "focusa.mission_canvas_surface_binding_list.v1";
@@ -3111,22 +3231,22 @@ export interface components {
             /** @enum {unknown} */
             action: "bind" | "unbind";
             attachment_id: string;
+            /** @enum {string} */
+            authentication_sharing?: "shared_explicit" | "isolated";
             binding_id?: string;
             /** @enum {unknown} */
             binding_kind?: "session" | "browser_context" | "browser_target" | "file" | "operation" | "evidence" | "action";
+            /** @enum {string} */
+            browser_isolation_class?: "shared_authenticated" | "isolated_authenticated" | "ephemeral_isolated" | "read_only_observer" | "capture_worker";
             continuity_id: string;
             expected_binding_revision: number;
             expected_state_version: number;
             idempotency_key: string;
             project_root: string;
-            target_ref?: string;
-            work_surface_id: string;
-            /** @enum {string} */
-            browser_isolation_class?: "shared_authenticated" | "isolated_authenticated" | "ephemeral_isolated" | "read_only_observer" | "capture_worker";
-            /** @enum {string} */
-            authentication_sharing?: "shared_explicit" | "isolated";
             /** @enum {string} */
             retention_policy?: "persistent" | "dispose_on_close" | "manual";
+            target_ref?: string;
+            work_surface_id: string;
         } & (unknown & unknown & unknown);
         /** focusa.mission_canvas_surface_binding_mutation_result.v1 */
         focusa_mission_canvas_surface_binding_mutation_result_v1: {
@@ -3134,25 +3254,25 @@ export interface components {
                 access_mode: string;
                 active: boolean;
                 attachment_id: string;
+                /** @enum {string} */
+                authentication_sharing?: "shared_explicit" | "isolated";
                 binding_id: string;
                 /** @enum {unknown} */
                 binding_kind: "session" | "browser_context" | "browser_target" | "file" | "operation" | "evidence" | "action";
+                /** @enum {string} */
+                browser_isolation_class?: "shared_authenticated" | "isolated_authenticated" | "ephemeral_isolated" | "read_only_observer" | "capture_worker";
                 continuity_id: string;
                 /** Format: date-time */
                 created_at: string;
                 idempotency_key: string;
                 project_root: string;
+                /** @enum {string} */
+                retention_policy?: "persistent" | "dispose_on_close" | "manual";
                 state_revision: number;
                 target_ref: string;
                 /** Format: date-time */
                 updated_at: string;
                 work_surface_id: string;
-                /** @enum {string} */
-                browser_isolation_class?: "shared_authenticated" | "isolated_authenticated" | "ephemeral_isolated" | "read_only_observer" | "capture_worker";
-                /** @enum {string} */
-                authentication_sharing?: "shared_explicit" | "isolated";
-                /** @enum {string} */
-                retention_policy?: "persistent" | "dispose_on_close" | "manual";
             };
             evidence_ref: string;
             receipt_ref: string;
@@ -3268,6 +3388,44 @@ export interface components {
         focusa_operation_registry_response_v1: {
             [key: string]: unknown;
         };
+        focusa_prediction_authority_append_request_v1: {
+            event: {
+                [key: string]: unknown;
+            };
+            scope: {
+                [key: string]: unknown;
+            };
+        };
+        focusa_prediction_authority_append_response_v1: {
+            canonical: boolean;
+            durability?: string;
+            event_id: string;
+            receipt_ref: string;
+            sequence: number;
+            status: string;
+            warnings?: string[];
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_prediction_authority_projection_request_v1: {
+            continuity_id: string;
+            project_root: string;
+        };
+        focusa_prediction_authority_projection_response_v1: {
+            canonical: boolean;
+            durability?: string;
+            event_count: number;
+            legacy_event_count?: number;
+            profile_conformance?: {
+                [key: string]: unknown;
+            };
+            projection: {
+                [key: string]: unknown;
+            };
+            status: string;
+        } & {
+            [key: string]: unknown;
+        };
         /**
          * focusa.prediction_evaluate.request.v1
          * @description Generated contract for Focusa schema focusa.prediction_evaluate.request.v1
@@ -3312,6 +3470,12 @@ export interface components {
         };
         /** focusa.project_agent_role_profile_draft.request.v1 */
         focusa_project_agent_role_profile_draft_request_v1: {
+            alternatives?: {
+                grounding_refs: string[];
+                purpose: string;
+                title: string;
+                tradeoffs: string[];
+            }[];
             assumptions: {
                 source_refs: string[];
                 statement: string;
@@ -3364,6 +3528,7 @@ export interface components {
         /** focusa.project_agent_role_profile_list.v1 */
         focusa_project_agent_role_profile_list_v1: {
             approved?: {
+                alternatives: components["schemas"]["focusa_role_alternative_v1"][];
                 assumptions: {
                     assumption_id: string;
                     source_refs: string[];
@@ -3428,6 +3593,7 @@ export interface components {
                 updated_at: string;
             };
             latest?: {
+                alternatives: components["schemas"]["focusa_role_alternative_v1"][];
                 assumptions: {
                     assumption_id: string;
                     source_refs: string[];
@@ -3492,6 +3658,7 @@ export interface components {
                 updated_at: string;
             };
             profiles: {
+                alternatives: components["schemas"]["focusa_role_alternative_v1"][];
                 assumptions: {
                     assumption_id: string;
                     source_refs: string[];
@@ -3567,6 +3734,7 @@ export interface components {
             canonical: true;
             evidence_ref: string;
             profile: {
+                alternatives: components["schemas"]["focusa_role_alternative_v1"][];
                 assumptions: {
                     assumption_id: string;
                     source_refs: string[];
@@ -3652,6 +3820,200 @@ export interface components {
             rationale: string;
             reviewed_by: string;
             role_profile_id: string;
+        };
+        focusa_project_bootstrap_apply_request_v1: {
+            acceptance_criteria?: string[];
+            canonical_name: string;
+            confirm: boolean;
+            continuity_id: string;
+            current_state?: string;
+            desired_end_state?: string;
+            discipline_profile?: string;
+            hlt?: string;
+            hlt_confirmed?: boolean;
+            idempotency_key: string;
+            initialize_git?: boolean;
+            initialize_task_provider?: boolean;
+            project_id: string;
+            project_root: string;
+            repair_action?: string;
+            specification_ref?: string;
+            task_provider?: string;
+        };
+        focusa_project_bootstrap_preview_request_v1: {
+            acceptance_criteria?: string[];
+            canonical_name: string;
+            confirm?: boolean;
+            continuity_id: string;
+            current_state?: string;
+            desired_end_state?: string;
+            discipline_profile?: string;
+            hlt?: string;
+            hlt_confirmed?: boolean;
+            idempotency_key: string;
+            initialize_git?: boolean;
+            initialize_task_provider?: boolean;
+            project_id: string;
+            project_root: string;
+            repair_action?: string;
+            specification_ref?: string;
+            task_provider?: string;
+        };
+        focusa_project_bootstrap_repair_request_v1: {
+            acceptance_criteria?: string[];
+            canonical_name: string;
+            confirm: boolean;
+            continuity_id: string;
+            current_state?: string;
+            desired_end_state?: string;
+            discipline_profile?: string;
+            hlt?: string;
+            hlt_confirmed?: boolean;
+            idempotency_key: string;
+            initialize_git?: boolean;
+            initialize_task_provider?: boolean;
+            project_id: string;
+            project_root: string;
+            repair_action?: string;
+            specification_ref?: string;
+            task_provider?: string;
+        };
+        focusa_project_bootstrap_response_v1: {
+            next_action?: string;
+            project_root: string;
+            receipt?: Record<string, never> | null;
+            status: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_project_bootstrap_status_request_v1: {
+            project_root: string;
+        };
+        focusa_project_context_artifact_v1: {
+            artifact_id: string;
+            classification: {
+                confidentiality: string;
+                freshness_status: string;
+                retention_class: string;
+                sensitivity: string;
+            };
+            content_handle: string;
+            content_sha256: string;
+            /** Format: date-time */
+            created_at: string;
+            duplicate_of_artifact_ref?: string | null;
+            extraction: {
+                contradiction_refs: string[];
+                date_refs: string[];
+                diagnostic_refs: string[];
+                entity_refs: string[];
+                extracted_claim_ids: string[];
+                status: string;
+                task_refs: string[];
+            };
+            mime_type: string;
+            /** Format: date-time */
+            observed_at: string;
+            provenance: {
+                account_ref: string;
+                author: string;
+                connector_id: string;
+                page_or_message_ref: string;
+                source_url: string;
+            };
+            /** @constant */
+            schema: "focusa.project_context_artifact.v1";
+            scope: {
+                continuity_id: string;
+                project_root: string;
+            };
+            semantic: {
+                candidate_link_refs: string[];
+                candidate_object_refs: string[];
+                domain_pack_refs: string[];
+                verification_policy_refs: string[];
+            };
+            source_kind: string;
+            source_ref: string;
+            source_revision: string;
+            title: string;
+        };
+        focusa_project_genesis_commit_request_v1: {
+            acceptance_criteria?: string[];
+            allow_task_decomposition?: boolean;
+            confirm: boolean;
+            continuity_id: string;
+            current_state?: string;
+            desired_end_state?: string;
+            hlt?: string;
+            hlt_confirmed?: boolean;
+            idempotency_key: string;
+            mid_level_goal?: string;
+            project_root: string;
+            short_term_goal?: string;
+            specification_ref?: string;
+            takeover?: boolean;
+            task_provider?: string;
+            waypoints?: string[];
+        };
+        focusa_project_genesis_response_v1: {
+            bootstrap_receipt?: Record<string, never>;
+            coordination_owner?: Record<string, never> | null;
+            first_workpoint?: components["schemas"]["focusa_genesis_first_workpoint_v1"] | null;
+            hlt?: string | null;
+            missing_links?: string[];
+            mlg?: string;
+            next_action: string;
+            project_identity: Record<string, never>;
+            readiness_receipt?: Record<string, never> | null;
+            /** @enum {string} */
+            schema: "focusa.project_genesis.v1";
+            /** @enum {string} */
+            status: "hlt_impasse" | "incomplete" | "staged" | "preparing" | "ready" | "blocked";
+            stg?: string;
+            task_provider_and_task_graph?: Record<string, never>;
+            waypoints?: unknown[];
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_project_genesis_resume_request_v1: {
+            acceptance_criteria?: string[];
+            allow_task_decomposition?: boolean;
+            confirm?: boolean;
+            continuity_id: string;
+            current_state?: string;
+            desired_end_state?: string;
+            hlt?: string;
+            hlt_confirmed?: boolean;
+            idempotency_key: string;
+            mid_level_goal?: string;
+            project_root: string;
+            short_term_goal?: string;
+            specification_ref?: string;
+            takeover?: boolean;
+            task_provider?: string;
+            waypoints?: string[];
+        };
+        focusa_project_genesis_start_request_v1: {
+            acceptance_criteria?: string[];
+            allow_task_decomposition?: boolean;
+            confirm?: boolean;
+            continuity_id: string;
+            current_state?: string;
+            desired_end_state?: string;
+            hlt?: string;
+            hlt_confirmed?: boolean;
+            idempotency_key: string;
+            mid_level_goal?: string;
+            project_root: string;
+            short_term_goal?: string;
+            specification_ref?: string;
+            takeover?: boolean;
+            task_provider?: string;
+            waypoints?: string[];
+        };
+        focusa_project_genesis_status_request_v1: {
+            project_root: string;
         };
         /**
          * focusa.project_identity.request.v1
@@ -4017,6 +4379,7 @@ export interface components {
         };
         /** focusa.provider_neutral_task_plan_list.v1 */
         focusa_provider_neutral_task_plan_list_v1: {
+            provider_capabilities: components["schemas"]["focusa_task_provider_capability_truth_v1"][];
             /** @constant */
             schema: "focusa.provider_neutral_task_plan_list.v1";
             state_version: number;
@@ -4171,6 +4534,13 @@ export interface components {
         focusa_resource_mode_response_v1: {
             [key: string]: unknown;
         };
+        focusa_role_alternative_v1: {
+            alternative_id?: string;
+            grounding_refs: string[];
+            purpose: string;
+            title: string;
+            tradeoffs: string[];
+        };
         /** focusa.spec_workbench_mutation.request.v1 */
         focusa_spec_workbench_mutation_request_v1: {
             /** @enum {unknown} */
@@ -4184,6 +4554,8 @@ export interface components {
             decision?: {
                 [key: string]: unknown;
             };
+            /** @enum {string} */
+            desired_spec_template?: "adversarial" | "project_genesis";
             expected_session_revision: number;
             expected_state_version: number;
             idempotency_key: string;
@@ -4222,8 +4594,10 @@ export interface components {
                 continuity_id: string;
                 /** Format: date-time */
                 created_at: string;
+                crist_handoff: components["schemas"]["focusa_crist_spec_handoff_v1"];
                 current_ask: string;
                 current_section_id?: string;
+                desired_spec_template: string;
                 final_spec_id?: string;
                 gates: Record<string, never>[];
                 idempotency_key: string;
@@ -4291,8 +4665,10 @@ export interface components {
                 continuity_id: string;
                 /** Format: date-time */
                 created_at: string;
+                crist_handoff: components["schemas"]["focusa_crist_spec_handoff_v1"];
                 current_ask: string;
                 current_section_id?: string;
+                desired_spec_template: string;
                 final_spec_id?: string;
                 gates: Record<string, never>[];
                 idempotency_key: string;
@@ -4420,6 +4796,355 @@ export interface components {
             schema: "focusa.task_plan_beads_materialization_result.v1";
             state_version: number;
             tool_result: Record<string, never>;
+        };
+        focusa_task_provider_capability_truth_v1: {
+            adapter_ref: string;
+            configured: boolean;
+            credential_reference_present: boolean;
+            mutation_approval_required: boolean;
+            /** @enum {string} */
+            provider: "beads" | "github_issues" | "linear" | "asana" | "markdown_checklist";
+            /** @enum {string} */
+            read_write_posture: "read-only" | "read-write";
+            recovery_action: string;
+            /** @enum {string} */
+            status: "configured and operational" | "configured but unhealthy" | "read-only" | "credentials missing" | "adapter unavailable" | "schema-only support" | "mutation approval required";
+        };
+        focusa_temporal_civil_resolve_request_v1: {
+            actual_duration_ms?: number;
+            civil_time_intent?: Record<string, never>;
+            confirm?: boolean;
+            continuity_id: string;
+            evidence_refs?: string[];
+            forecast_evaluation_refs?: string[];
+            high_consequence_packet?: Record<string, never>;
+            host_id?: string;
+            human_calendar_context?: Record<string, never>;
+            idempotency_key: string;
+            item_id?: string;
+            learning_candidate_refs?: string[];
+            lost_time_incident?: Record<string, never>;
+            operator_id?: string;
+            outcome?: string;
+            project_root: string;
+            receipt_ref?: string;
+            reflection_refs?: string[];
+            subject_ref?: string;
+            target_ref?: string;
+            task_id?: string;
+            temporal_execution_guard?: Record<string, never>;
+            temporal_priority_frame?: Record<string, never>;
+            timezone?: string;
+            tzdb_version?: string;
+            workpoint_id?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_civil_resolve_response_v1: {
+            next_action?: string;
+            status: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_clock_capture_request_v1: {
+            actual_duration_ms?: number;
+            civil_time_intent?: Record<string, never>;
+            confirm?: boolean;
+            continuity_id: string;
+            evidence_refs?: string[];
+            forecast_evaluation_refs?: string[];
+            high_consequence_packet?: Record<string, never>;
+            host_id?: string;
+            human_calendar_context?: Record<string, never>;
+            idempotency_key: string;
+            item_id?: string;
+            learning_candidate_refs?: string[];
+            lost_time_incident?: Record<string, never>;
+            operator_id?: string;
+            outcome?: string;
+            project_root: string;
+            receipt_ref?: string;
+            reflection_refs?: string[];
+            subject_ref?: string;
+            target_ref?: string;
+            task_id?: string;
+            temporal_execution_guard?: Record<string, never>;
+            temporal_priority_frame?: Record<string, never>;
+            timezone: string;
+            tzdb_version?: string;
+            workpoint_id?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_clock_capture_response_v1: {
+            next_action?: string;
+            status: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_commit_request_v1: {
+            actual_ms?: number;
+            as_of?: string;
+            claim?: Record<string, never>;
+            confirm?: boolean;
+            continuity_id: string;
+            duration_ms?: number;
+            envelope?: Record<string, never>;
+            idempotency_key?: string;
+            phase?: string;
+            project_root: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_commit_response_v1: {
+            next_action?: string;
+            status: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_forecast_request_v1: {
+            actual_ms?: number;
+            as_of?: string;
+            claim?: Record<string, never>;
+            confirm?: boolean;
+            continuity_id: string;
+            duration_ms?: number;
+            envelope?: Record<string, never>;
+            idempotency_key?: string;
+            phase?: string;
+            project_root: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_forecast_response_v1: {
+            next_action?: string;
+            status: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_high_consequence_preflight_request_v1: {
+            actual_duration_ms?: number;
+            civil_time_intent?: Record<string, never>;
+            confirm?: boolean;
+            continuity_id: string;
+            evidence_refs?: string[];
+            forecast_evaluation_refs?: string[];
+            high_consequence_packet?: Record<string, never>;
+            host_id?: string;
+            human_calendar_context?: Record<string, never>;
+            idempotency_key: string;
+            item_id?: string;
+            learning_candidate_refs?: string[];
+            lost_time_incident?: Record<string, never>;
+            operator_id?: string;
+            outcome?: string;
+            project_root: string;
+            receipt_ref?: string;
+            reflection_refs?: string[];
+            subject_ref?: string;
+            target_ref?: string;
+            task_id?: string;
+            temporal_execution_guard?: Record<string, never>;
+            temporal_priority_frame?: Record<string, never>;
+            timezone?: string;
+            tzdb_version?: string;
+            workpoint_id?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_high_consequence_preflight_response_v1: {
+            next_action?: string;
+            status: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_migrate_signatures_request_v1: {
+            actual_duration_ms?: number;
+            civil_time_intent?: Record<string, never>;
+            confirm: boolean;
+            continuity_id: string;
+            evidence_refs?: string[];
+            forecast_evaluation_refs?: string[];
+            high_consequence_packet?: Record<string, never>;
+            host_id?: string;
+            human_calendar_context?: Record<string, never>;
+            idempotency_key: string;
+            item_id?: string;
+            learning_candidate_refs?: string[];
+            lost_time_incident?: Record<string, never>;
+            operator_id?: string;
+            outcome?: string;
+            project_root: string;
+            receipt_ref?: string;
+            reflection_refs?: string[];
+            subject_ref?: string;
+            target_ref?: string;
+            task_id?: string;
+            temporal_execution_guard?: Record<string, never>;
+            temporal_priority_frame?: Record<string, never>;
+            timezone?: string;
+            tzdb_version?: string;
+            workpoint_id?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_migrate_signatures_response_v1: {
+            next_action?: string;
+            status: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_observe_request_v1: {
+            actual_ms?: number;
+            as_of?: string;
+            claim?: Record<string, never>;
+            confirm?: boolean;
+            continuity_id: string;
+            duration_ms?: number;
+            envelope?: Record<string, never>;
+            idempotency_key?: string;
+            phase?: string;
+            project_root: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_observe_response_v1: {
+            next_action?: string;
+            status: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_preflight_request_v1: {
+            actual_ms?: number;
+            as_of?: string;
+            claim?: Record<string, never>;
+            confirm?: boolean;
+            continuity_id: string;
+            duration_ms?: number;
+            envelope?: Record<string, never>;
+            idempotency_key?: string;
+            phase?: string;
+            project_root: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_preflight_response_v1: {
+            next_action?: string;
+            status: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_priority_commit_request_v1: {
+            actual_duration_ms?: number;
+            civil_time_intent?: Record<string, never>;
+            confirm?: boolean;
+            continuity_id: string;
+            evidence_refs?: string[];
+            forecast_evaluation_refs?: string[];
+            high_consequence_packet?: Record<string, never>;
+            host_id?: string;
+            human_calendar_context?: Record<string, never>;
+            idempotency_key: string;
+            item_id?: string;
+            learning_candidate_refs?: string[];
+            lost_time_incident?: Record<string, never>;
+            operator_id?: string;
+            outcome?: string;
+            project_root: string;
+            receipt_ref?: string;
+            reflection_refs?: string[];
+            subject_ref?: string;
+            target_ref?: string;
+            task_id?: string;
+            temporal_execution_guard?: Record<string, never>;
+            temporal_priority_frame?: Record<string, never>;
+            timezone?: string;
+            tzdb_version?: string;
+            workpoint_id?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_priority_commit_response_v1: {
+            next_action?: string;
+            status: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_revise_request_v1: {
+            actual_ms?: number;
+            as_of?: string;
+            claim?: Record<string, never>;
+            confirm?: boolean;
+            continuity_id: string;
+            duration_ms?: number;
+            envelope?: Record<string, never>;
+            idempotency_key?: string;
+            phase?: string;
+            project_root: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_revise_response_v1: {
+            next_action?: string;
+            status: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_settle_closure_request_v1: {
+            actual_duration_ms?: number;
+            civil_time_intent?: Record<string, never>;
+            confirm: boolean;
+            continuity_id: string;
+            evidence_refs: string[];
+            forecast_evaluation_refs?: string[];
+            high_consequence_packet?: Record<string, never>;
+            host_id?: string;
+            human_calendar_context?: Record<string, never>;
+            idempotency_key: string;
+            item_id?: string;
+            learning_candidate_refs?: string[];
+            lost_time_incident?: Record<string, never>;
+            operator_id?: string;
+            outcome: string;
+            project_root: string;
+            receipt_ref: string;
+            reflection_refs?: string[];
+            subject_ref: string;
+            target_ref?: string;
+            task_id?: string;
+            temporal_execution_guard?: Record<string, never>;
+            temporal_priority_frame?: Record<string, never>;
+            timezone?: string;
+            tzdb_version?: string;
+            workpoint_id?: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_settle_closure_response_v1: {
+            next_action?: string;
+            status: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_status_request_v1: {
+            actual_ms?: number;
+            as_of?: string;
+            claim?: Record<string, never>;
+            confirm?: boolean;
+            continuity_id: string;
+            duration_ms?: number;
+            envelope?: Record<string, never>;
+            idempotency_key?: string;
+            phase?: string;
+            project_root: string;
+        } & {
+            [key: string]: unknown;
+        };
+        focusa_temporal_status_response_v1: {
+            next_action?: string;
+            status: string;
+        } & {
+            [key: string]: unknown;
         };
         /**
          * focusa.tool_doctor.request.v1
@@ -4668,6 +5393,15 @@ export interface components {
         focusa_work_loop_status_response_v1: {
             [key: string]: unknown;
         };
+        focusa_work_rail_interaction_v1: {
+            action: string;
+            actor_ref: string;
+            /** Format: date-time */
+            committed_at: string;
+            interaction_id: string;
+            reason: string;
+            receipt_ref: string;
+        };
         focusa_work_rail_list_request_v1: {
             attachment_id: string;
             continuity_id: string;
@@ -4680,6 +5414,7 @@ export interface components {
                 artifact_refs: string[];
                 attachment_id: string;
                 blockers: string[];
+                change_set_ref?: string | null;
                 closure_claim_ref?: string;
                 continuity_id: string;
                 /** Format: date-time */
@@ -4689,17 +5424,23 @@ export interface components {
                 /** @enum {unknown} */
                 focusa_status: "ready" | "active" | "verifying" | "proof_missing" | "reconciling" | "verified_complete" | "provider_closed_focusa_unverified" | "cancelled";
                 idempotency_key: string;
+                instance_id?: string | null;
+                interaction_history?: components["schemas"]["focusa_work_rail_interaction_v1"][];
+                priority?: number | null;
                 project_root: string;
                 /** @constant */
                 provider: "work_item.bd";
                 provider_item_id: string;
                 provider_status: string;
+                rank?: number | null;
                 receipt_ref?: string;
+                session_id?: string | null;
                 state_revision: number;
                 title: string;
                 /** Format: date-time */
                 updated_at: string;
                 work_rail_id: string;
+                work_surface_ids?: string[];
                 working_subpath_id: string;
                 /** Format: uuid */
                 workpoint_id: string;
@@ -4710,32 +5451,46 @@ export interface components {
         };
         focusa_work_rail_mutation_request_v1: {
             /** @enum {unknown} */
-            action: "bind" | "activate" | "verify_close" | "cancel";
+            action: "bind" | "activate" | "verify_close" | "cancel" | "steer" | "defer" | "request_approval" | "reopen";
+            actor_ref?: string;
             artifact_refs?: string[];
             attachment_id: string;
             cancellation_reason?: string;
+            change_set_ref?: string;
             closure_claim_ref?: string;
             continuity_id: string;
             evidence_refs?: string[];
             expected_rail_revision: number;
             expected_state_version: number;
             idempotency_key: string;
+            instance_id?: string;
+            interaction_reason?: string;
+            preview_token?: string;
+            priority?: number;
             project_root: string;
             provider_item_id: string;
+            rank?: number;
+            session_id?: string;
+            /** @enum {string} */
+            side_effect_policy: "preview" | "commit";
             title?: string;
             work_rail_id?: string;
+            work_surface_ids?: string[];
             working_subpath_id: string;
             /** Format: uuid */
             workpoint_id: string;
         };
         focusa_work_rail_mutation_result_v1: {
+            committed: boolean;
             evidence_ref: string;
+            preview_token: string;
             receipt_ref: string;
             replayed: boolean;
             row: {
                 artifact_refs: string[];
                 attachment_id: string;
                 blockers: string[];
+                change_set_ref?: string | null;
                 closure_claim_ref?: string;
                 continuity_id: string;
                 /** Format: date-time */
@@ -4745,17 +5500,23 @@ export interface components {
                 /** @enum {unknown} */
                 focusa_status: "ready" | "active" | "verifying" | "proof_missing" | "reconciling" | "verified_complete" | "provider_closed_focusa_unverified" | "cancelled";
                 idempotency_key: string;
+                instance_id?: string | null;
+                interaction_history?: components["schemas"]["focusa_work_rail_interaction_v1"][];
+                priority?: number | null;
                 project_root: string;
                 /** @constant */
                 provider: "work_item.bd";
                 provider_item_id: string;
                 provider_status: string;
+                rank?: number | null;
                 receipt_ref?: string;
+                session_id?: string | null;
                 state_revision: number;
                 title: string;
                 /** Format: date-time */
                 updated_at: string;
                 work_rail_id: string;
+                work_surface_ids?: string[];
                 working_subpath_id: string;
                 /** Format: uuid */
                 workpoint_id: string;
@@ -5080,666 +5841,6 @@ export interface components {
             uiai_session_id?: string;
             work_surface_id?: string;
             workpoint_id?: string;
-        };
-        /** focusa.mission_canvas_state_get.request.v1 */
-        focusa_mission_canvas_state_get_request_v1: {
-            project_root: string;
-            continuity_id: string;
-            client_instance_id: string;
-            user_id: string;
-            device_id: string;
-        };
-        /** focusa.mission_canvas_state.v1 */
-        focusa_mission_canvas_state_v1: {
-            /** @constant */
-            schema: "focusa.mission_canvas_state.v1";
-            state_version: number;
-            canvas: {
-                canvas_id: string;
-                state_revision: number;
-                project_root: string;
-                continuity_id: string;
-                client_instance_id: string;
-                user_id: string;
-                device_id: string;
-                open_work_surface_ids: string[];
-                focused_work_surface_id?: string;
-                secondary_focused_surface_id?: string;
-                split_layout_ref?: string;
-                group_order: string[];
-                aggregate_project_roots: string[];
-                aggregate_continuity_ids: string[];
-                aggregate_surface_kinds: string[];
-                aggregate_surface_states: string[];
-                selected_context_refs: string[];
-                unread_event_cursor?: number;
-                session_projection_revision: number;
-                idempotency_key: string;
-                /** Format: date-time */
-                created_at: string;
-                /** Format: date-time */
-                updated_at: string;
-            };
-            surfaces: {
-                attachment_id: string;
-                canonical_state_refs: string[];
-                continuity_id: string;
-                /** Format: date-time */
-                created_at: string;
-                idempotency_key: string;
-                instance_id: string;
-                mission_ref: string;
-                pane_id: string;
-                pinned: boolean;
-                project_root: string;
-                session_id?: string;
-                state_revision: number;
-                /** @enum {unknown} */
-                status: "active" | "suspended" | "view_closed";
-                surface_kind: string;
-                tab_index: number;
-                title: string;
-                unread: boolean;
-                /** Format: date-time */
-                updated_at: string;
-                work_surface_id: string;
-                workpoint_id?: string;
-            }[];
-            recovery_actions: string[];
-        };
-        /** focusa.mission_canvas_state_mutation.request.v1 */
-        focusa_mission_canvas_state_mutation_request_v1: {
-            project_root: string;
-            continuity_id: string;
-            client_instance_id: string;
-            user_id: string;
-            device_id: string;
-            idempotency_key: string;
-            expected_state_version: number;
-            expected_canvas_revision: number;
-            open_work_surface_ids?: string[];
-            focused_work_surface_id?: string;
-            secondary_focused_surface_id?: string;
-            split_layout_ref?: string;
-            group_order?: string[];
-            aggregate_project_roots?: string[];
-            aggregate_continuity_ids?: string[];
-            aggregate_surface_kinds?: string[];
-            aggregate_surface_states?: string[];
-            selected_context_refs?: string[];
-            unread_event_cursor?: number;
-            session_projection_revision: number;
-        };
-        /** focusa.mission_canvas_state_mutation_result.v1 */
-        focusa_mission_canvas_state_mutation_result_v1: {
-            /** @constant */
-            schema: "focusa.mission_canvas_state_mutation_result.v1";
-            state_version: number;
-            replayed: boolean;
-            canvas: {
-                canvas_id: string;
-                state_revision: number;
-                project_root: string;
-                continuity_id: string;
-                client_instance_id: string;
-                user_id: string;
-                device_id: string;
-                open_work_surface_ids: string[];
-                focused_work_surface_id?: string;
-                secondary_focused_surface_id?: string;
-                split_layout_ref?: string;
-                group_order: string[];
-                aggregate_project_roots: string[];
-                aggregate_continuity_ids: string[];
-                aggregate_surface_kinds: string[];
-                aggregate_surface_states: string[];
-                selected_context_refs: string[];
-                unread_event_cursor?: number;
-                session_projection_revision: number;
-                idempotency_key: string;
-                /** Format: date-time */
-                created_at: string;
-                /** Format: date-time */
-                updated_at: string;
-            };
-            evidence_ref: string;
-            receipt_ref: string;
-            tool_result: components["schemas"]["focusa_tool_result_v1"];
-        };
-        /** focusa.interview_closure_package.v1 */
-        focusa_interview_closure_package_v1: {
-            adr_candidates: Record<string, never>[];
-            approved_role_profile_ref?: string | null;
-            attachment_id: string;
-            closure_ref: string;
-            compendium: Record<string, never>[];
-            continuity_id: string;
-            glossary_candidates: Record<string, never>[];
-            interview_session_id: string;
-            project_root: string;
-            receipt_ref: string;
-            /** @constant */
-            schema: "focusa.interview_closure_package.v1";
-            source_state_revision: number;
-        };
-        focusa_project_genesis_start_request_v1: {
-            project_root: string;
-            continuity_id: string;
-            idempotency_key: string;
-            hlt?: string;
-            hlt_confirmed?: boolean;
-            desired_end_state?: string;
-            current_state?: string;
-            specification_ref?: string;
-            acceptance_criteria?: string[];
-            mid_level_goal?: string;
-            short_term_goal?: string;
-            waypoints?: string[];
-            task_provider?: string;
-            allow_task_decomposition?: boolean;
-            confirm?: boolean;
-            takeover?: boolean;
-        };
-        focusa_project_genesis_resume_request_v1: {
-            project_root: string;
-            continuity_id: string;
-            idempotency_key: string;
-            hlt?: string;
-            hlt_confirmed?: boolean;
-            desired_end_state?: string;
-            current_state?: string;
-            specification_ref?: string;
-            acceptance_criteria?: string[];
-            mid_level_goal?: string;
-            short_term_goal?: string;
-            waypoints?: string[];
-            task_provider?: string;
-            allow_task_decomposition?: boolean;
-            confirm?: boolean;
-            takeover?: boolean;
-        };
-        focusa_project_genesis_commit_request_v1: {
-            project_root: string;
-            continuity_id: string;
-            idempotency_key: string;
-            hlt?: string;
-            hlt_confirmed?: boolean;
-            desired_end_state?: string;
-            current_state?: string;
-            specification_ref?: string;
-            acceptance_criteria?: string[];
-            mid_level_goal?: string;
-            short_term_goal?: string;
-            waypoints?: string[];
-            task_provider?: string;
-            allow_task_decomposition?: boolean;
-            confirm: boolean;
-            takeover?: boolean;
-        };
-        focusa_project_genesis_status_request_v1: {
-            project_root: string;
-        };
-        focusa_project_genesis_response_v1: {
-            /** @enum {string} */
-            schema: "focusa.project_genesis.v1";
-            /** @enum {string} */
-            status: "hlt_impasse" | "incomplete" | "staged" | "preparing" | "ready" | "blocked";
-            project_identity: Record<string, never>;
-            bootstrap_receipt?: Record<string, never>;
-            hlt?: string | null;
-            mlg?: string;
-            stg?: string;
-            waypoints?: unknown[];
-            task_provider_and_task_graph?: Record<string, never>;
-            first_workpoint?: Record<string, never> | null;
-            coordination_owner?: Record<string, never> | null;
-            readiness_receipt?: Record<string, never> | null;
-            missing_links?: string[];
-            next_action: string;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_project_bootstrap_preview_request_v1: {
-            project_root: string;
-            project_id: string;
-            canonical_name: string;
-            continuity_id: string;
-            idempotency_key: string;
-            discipline_profile?: string;
-            initialize_git?: boolean;
-            initialize_task_provider?: boolean;
-            task_provider?: string;
-            hlt?: string;
-            hlt_confirmed?: boolean;
-            desired_end_state?: string;
-            current_state?: string;
-            specification_ref?: string;
-            acceptance_criteria?: string[];
-            confirm?: boolean;
-            repair_action?: string;
-        };
-        focusa_project_bootstrap_apply_request_v1: {
-            project_root: string;
-            project_id: string;
-            canonical_name: string;
-            continuity_id: string;
-            idempotency_key: string;
-            discipline_profile?: string;
-            initialize_git?: boolean;
-            initialize_task_provider?: boolean;
-            task_provider?: string;
-            hlt?: string;
-            hlt_confirmed?: boolean;
-            desired_end_state?: string;
-            current_state?: string;
-            specification_ref?: string;
-            acceptance_criteria?: string[];
-            confirm: boolean;
-            repair_action?: string;
-        };
-        focusa_project_bootstrap_repair_request_v1: {
-            project_root: string;
-            project_id: string;
-            canonical_name: string;
-            continuity_id: string;
-            idempotency_key: string;
-            discipline_profile?: string;
-            initialize_git?: boolean;
-            initialize_task_provider?: boolean;
-            task_provider?: string;
-            hlt?: string;
-            hlt_confirmed?: boolean;
-            desired_end_state?: string;
-            current_state?: string;
-            specification_ref?: string;
-            acceptance_criteria?: string[];
-            confirm: boolean;
-            repair_action?: string;
-        };
-        focusa_project_bootstrap_status_request_v1: {
-            project_root: string;
-        };
-        focusa_project_bootstrap_response_v1: {
-            status: string;
-            project_root: string;
-            receipt?: Record<string, never> | null;
-            next_action?: string;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_temporal_status_request_v1: {
-            project_root: string;
-            continuity_id: string;
-            idempotency_key?: string;
-            confirm?: boolean;
-            as_of?: string;
-            phase?: string;
-            duration_ms?: number;
-            actual_ms?: number;
-            claim?: Record<string, never>;
-            envelope?: Record<string, never>;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_temporal_status_response_v1: {
-            status: string;
-            next_action?: string;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_temporal_commit_request_v1: {
-            project_root: string;
-            continuity_id: string;
-            idempotency_key?: string;
-            confirm?: boolean;
-            as_of?: string;
-            phase?: string;
-            duration_ms?: number;
-            actual_ms?: number;
-            claim?: Record<string, never>;
-            envelope?: Record<string, never>;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_temporal_commit_response_v1: {
-            status: string;
-            next_action?: string;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_temporal_revise_request_v1: {
-            project_root: string;
-            continuity_id: string;
-            idempotency_key?: string;
-            confirm?: boolean;
-            as_of?: string;
-            phase?: string;
-            duration_ms?: number;
-            actual_ms?: number;
-            claim?: Record<string, never>;
-            envelope?: Record<string, never>;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_temporal_revise_response_v1: {
-            status: string;
-            next_action?: string;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_temporal_observe_request_v1: {
-            project_root: string;
-            continuity_id: string;
-            idempotency_key?: string;
-            confirm?: boolean;
-            as_of?: string;
-            phase?: string;
-            duration_ms?: number;
-            actual_ms?: number;
-            claim?: Record<string, never>;
-            envelope?: Record<string, never>;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_temporal_observe_response_v1: {
-            status: string;
-            next_action?: string;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_temporal_forecast_request_v1: {
-            project_root: string;
-            continuity_id: string;
-            idempotency_key?: string;
-            confirm?: boolean;
-            as_of?: string;
-            phase?: string;
-            duration_ms?: number;
-            actual_ms?: number;
-            claim?: Record<string, never>;
-            envelope?: Record<string, never>;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_temporal_forecast_response_v1: {
-            status: string;
-            next_action?: string;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_temporal_preflight_request_v1: {
-            project_root: string;
-            continuity_id: string;
-            idempotency_key?: string;
-            confirm?: boolean;
-            as_of?: string;
-            phase?: string;
-            duration_ms?: number;
-            actual_ms?: number;
-            claim?: Record<string, never>;
-            envelope?: Record<string, never>;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_temporal_preflight_response_v1: {
-            status: string;
-            next_action?: string;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_temporal_clock_capture_request_v1: {
-            actual_duration_ms?: number;
-            civil_time_intent?: Record<string, never>;
-            confirm?: boolean;
-            continuity_id: string;
-            evidence_refs?: string[];
-            forecast_evaluation_refs?: string[];
-            high_consequence_packet?: Record<string, never>;
-            host_id?: string;
-            human_calendar_context?: Record<string, never>;
-            idempotency_key: string;
-            item_id?: string;
-            learning_candidate_refs?: string[];
-            lost_time_incident?: Record<string, never>;
-            operator_id?: string;
-            outcome?: string;
-            project_root: string;
-            receipt_ref?: string;
-            reflection_refs?: string[];
-            subject_ref?: string;
-            target_ref?: string;
-            task_id?: string;
-            temporal_execution_guard?: Record<string, never>;
-            temporal_priority_frame?: Record<string, never>;
-            timezone: string;
-            tzdb_version?: string;
-            workpoint_id?: string;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_temporal_clock_capture_response_v1: {
-            next_action?: string;
-            status: string;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_temporal_priority_commit_request_v1: {
-            actual_duration_ms?: number;
-            civil_time_intent?: Record<string, never>;
-            confirm?: boolean;
-            continuity_id: string;
-            evidence_refs?: string[];
-            forecast_evaluation_refs?: string[];
-            high_consequence_packet?: Record<string, never>;
-            host_id?: string;
-            human_calendar_context?: Record<string, never>;
-            idempotency_key: string;
-            item_id?: string;
-            learning_candidate_refs?: string[];
-            lost_time_incident?: Record<string, never>;
-            operator_id?: string;
-            outcome?: string;
-            project_root: string;
-            receipt_ref?: string;
-            reflection_refs?: string[];
-            subject_ref?: string;
-            target_ref?: string;
-            task_id?: string;
-            temporal_execution_guard?: Record<string, never>;
-            temporal_priority_frame?: Record<string, never>;
-            timezone?: string;
-            tzdb_version?: string;
-            workpoint_id?: string;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_temporal_priority_commit_response_v1: {
-            next_action?: string;
-            status: string;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_temporal_civil_resolve_request_v1: {
-            actual_duration_ms?: number;
-            civil_time_intent?: Record<string, never>;
-            confirm?: boolean;
-            continuity_id: string;
-            evidence_refs?: string[];
-            forecast_evaluation_refs?: string[];
-            high_consequence_packet?: Record<string, never>;
-            host_id?: string;
-            human_calendar_context?: Record<string, never>;
-            idempotency_key: string;
-            item_id?: string;
-            learning_candidate_refs?: string[];
-            lost_time_incident?: Record<string, never>;
-            operator_id?: string;
-            outcome?: string;
-            project_root: string;
-            receipt_ref?: string;
-            reflection_refs?: string[];
-            subject_ref?: string;
-            target_ref?: string;
-            task_id?: string;
-            temporal_execution_guard?: Record<string, never>;
-            temporal_priority_frame?: Record<string, never>;
-            timezone?: string;
-            tzdb_version?: string;
-            workpoint_id?: string;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_temporal_civil_resolve_response_v1: {
-            next_action?: string;
-            status: string;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_temporal_high_consequence_preflight_request_v1: {
-            actual_duration_ms?: number;
-            civil_time_intent?: Record<string, never>;
-            confirm?: boolean;
-            continuity_id: string;
-            evidence_refs?: string[];
-            forecast_evaluation_refs?: string[];
-            high_consequence_packet?: Record<string, never>;
-            host_id?: string;
-            human_calendar_context?: Record<string, never>;
-            idempotency_key: string;
-            item_id?: string;
-            learning_candidate_refs?: string[];
-            lost_time_incident?: Record<string, never>;
-            operator_id?: string;
-            outcome?: string;
-            project_root: string;
-            receipt_ref?: string;
-            reflection_refs?: string[];
-            subject_ref?: string;
-            target_ref?: string;
-            task_id?: string;
-            temporal_execution_guard?: Record<string, never>;
-            temporal_priority_frame?: Record<string, never>;
-            timezone?: string;
-            tzdb_version?: string;
-            workpoint_id?: string;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_temporal_high_consequence_preflight_response_v1: {
-            next_action?: string;
-            status: string;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_temporal_migrate_signatures_request_v1: {
-            actual_duration_ms?: number;
-            civil_time_intent?: Record<string, never>;
-            confirm: boolean;
-            continuity_id: string;
-            evidence_refs?: string[];
-            forecast_evaluation_refs?: string[];
-            high_consequence_packet?: Record<string, never>;
-            host_id?: string;
-            human_calendar_context?: Record<string, never>;
-            idempotency_key: string;
-            item_id?: string;
-            learning_candidate_refs?: string[];
-            lost_time_incident?: Record<string, never>;
-            operator_id?: string;
-            outcome?: string;
-            project_root: string;
-            receipt_ref?: string;
-            reflection_refs?: string[];
-            subject_ref?: string;
-            target_ref?: string;
-            task_id?: string;
-            temporal_execution_guard?: Record<string, never>;
-            temporal_priority_frame?: Record<string, never>;
-            timezone?: string;
-            tzdb_version?: string;
-            workpoint_id?: string;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_temporal_migrate_signatures_response_v1: {
-            next_action?: string;
-            status: string;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_temporal_settle_closure_request_v1: {
-            actual_duration_ms?: number;
-            civil_time_intent?: Record<string, never>;
-            confirm: boolean;
-            continuity_id: string;
-            evidence_refs: string[];
-            forecast_evaluation_refs?: string[];
-            high_consequence_packet?: Record<string, never>;
-            host_id?: string;
-            human_calendar_context?: Record<string, never>;
-            idempotency_key: string;
-            item_id?: string;
-            learning_candidate_refs?: string[];
-            lost_time_incident?: Record<string, never>;
-            operator_id?: string;
-            outcome: string;
-            project_root: string;
-            receipt_ref: string;
-            reflection_refs?: string[];
-            subject_ref: string;
-            target_ref?: string;
-            task_id?: string;
-            temporal_execution_guard?: Record<string, never>;
-            temporal_priority_frame?: Record<string, never>;
-            timezone?: string;
-            tzdb_version?: string;
-            workpoint_id?: string;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_temporal_settle_closure_response_v1: {
-            next_action?: string;
-            status: string;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_prediction_authority_projection_response_v1: {
-            status: string;
-            canonical: boolean;
-            durability?: string;
-            projection: {
-                [key: string]: unknown;
-            };
-            profile_conformance?: {
-                [key: string]: unknown;
-            };
-            event_count: number;
-            legacy_event_count?: number;
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_prediction_authority_append_request_v1: {
-            scope: {
-                [key: string]: unknown;
-            };
-            event: {
-                [key: string]: unknown;
-            };
-        };
-        focusa_prediction_authority_append_response_v1: {
-            status: string;
-            canonical: boolean;
-            durability?: string;
-            event_id: string;
-            sequence: number;
-            receipt_ref: string;
-            warnings?: string[];
-        } & {
-            [key: string]: unknown;
-        };
-        focusa_prediction_authority_projection_request_v1: {
-            project_root: string;
-            continuity_id: string;
         };
     };
     responses: never;
@@ -6643,6 +6744,42 @@ export interface operations {
             };
         };
     };
+    "focusa.interview.closure_package.get": {
+        parameters: {
+            query: {
+                /** @description Required Focusa scope key: project_root */
+                project_root: string;
+                /** @description Required Focusa scope key: continuity_id */
+                continuity_id: string;
+                /** @description Required Focusa scope key: attachment_id */
+                attachment_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Get Governed Interview Closure Package response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_interview_closure_package_v1"];
+                };
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
     "focusa.interview.session.list": {
         parameters: {
             query: {
@@ -7112,6 +7249,95 @@ export interface operations {
             };
         };
     };
+    "focusa.mission_canvas.state.get": {
+        parameters: {
+            query: {
+                project_root: string;
+                continuity_id: string;
+                client_instance_id: string;
+                user_id: string;
+                device_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Exact restorable Mission Canvas state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_mission_canvas_state_v1"];
+                };
+            };
+            /** @description No persisted state; no replacement identity is manufactured */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.mission_canvas.state.mutate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_mission_canvas_state_mutation_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Persisted restoration revision */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_mission_canvas_state_mutation_result_v1"];
+                };
+            };
+            /** @description Optimistic writer conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Scope or topology validation rejected */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Standard error envelope */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
     "focusa.mission_canvas.surface_binding.list": {
         parameters: {
             query: {
@@ -7268,6 +7494,53 @@ export interface operations {
             };
         };
     };
+    "focusa.prediction_authority.append": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_prediction_authority_append_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Durable append result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_prediction_authority_append_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.prediction_authority.projection": {
+        parameters: {
+            query: {
+                project_root: string;
+                continuity_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Canonical projection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_prediction_authority_projection_response_v1"];
+                };
+            };
+        };
+    };
     "focusa.prediction.evaluate": {
         parameters: {
             query: {
@@ -7374,6 +7647,194 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.project.bootstrap.apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_project_bootstrap_apply_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Project bootstrap packet */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_project_bootstrap_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.project.bootstrap.preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_project_bootstrap_preview_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Project bootstrap packet */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_project_bootstrap_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.project.bootstrap.repair": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_project_bootstrap_repair_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Project bootstrap packet */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_project_bootstrap_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.project.bootstrap.status": {
+        parameters: {
+            query: {
+                project_root: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Project bootstrap packet */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_project_bootstrap_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.project.genesis.commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_project_genesis_commit_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Typed Project Genesis packet */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_project_genesis_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.project.genesis.resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_project_genesis_resume_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Typed Project Genesis packet */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_project_genesis_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.project.genesis.start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_project_genesis_start_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Typed Project Genesis packet */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_project_genesis_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.project.genesis.status": {
+        parameters: {
+            query: {
+                project_root: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Typed Project Genesis packet */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_project_genesis_response_v1"];
                 };
             };
         };
@@ -7886,6 +8347,293 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["focusa_tool_result_v1"];
+                };
+            };
+        };
+    };
+    "focusa.temporal.civil.resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_temporal_civil_resolve_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Temporal result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_temporal_civil_resolve_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.temporal.clock.capture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_temporal_clock_capture_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Temporal result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_temporal_clock_capture_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.temporal.commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_temporal_commit_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Temporal result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_temporal_commit_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.temporal.forecast": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_temporal_forecast_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Temporal result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_temporal_forecast_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.temporal.high_consequence_preflight": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_temporal_high_consequence_preflight_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Temporal result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_temporal_high_consequence_preflight_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.temporal.migrate_signatures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_temporal_migrate_signatures_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Temporal result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_temporal_migrate_signatures_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.temporal.observe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_temporal_observe_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Temporal result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_temporal_observe_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.temporal.preflight": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_temporal_preflight_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Temporal result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_temporal_preflight_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.temporal.priority.commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_temporal_priority_commit_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Temporal result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_temporal_priority_commit_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.temporal.revise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_temporal_revise_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Temporal result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_temporal_revise_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.temporal.settle_closure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["focusa_temporal_settle_closure_request_v1"];
+            };
+        };
+        responses: {
+            /** @description Temporal result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_temporal_settle_closure_response_v1"];
+                };
+            };
+        };
+    };
+    "focusa.temporal.status": {
+        parameters: {
+            query: {
+                project_root: string;
+                continuity_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Temporal result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["focusa_temporal_status_response_v1"];
                 };
             };
         };
@@ -8783,653 +9531,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["focusa_tool_result_v1"];
-                };
-            };
-        };
-    };
-    "focusa.mission_canvas.state.get": {
-        parameters: {
-            query: {
-                project_root: string;
-                continuity_id: string;
-                client_instance_id: string;
-                user_id: string;
-                device_id: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Exact restorable Mission Canvas state */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_mission_canvas_state_v1"];
-                };
-            };
-            /** @description No persisted state; no replacement identity is manufactured */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Standard error envelope */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_tool_result_v1"];
-                };
-            };
-        };
-    };
-    "focusa.mission_canvas.state.mutate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["focusa_mission_canvas_state_mutation_request_v1"];
-            };
-        };
-        responses: {
-            /** @description Persisted restoration revision */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_mission_canvas_state_mutation_result_v1"];
-                };
-            };
-            /** @description Optimistic writer conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Scope or topology validation rejected */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Standard error envelope */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_tool_result_v1"];
-                };
-            };
-        };
-    };
-    "focusa.interview.closure_package.get": {
-        parameters: {
-            query: {
-                /** @description Required Focusa scope key: project_root */
-                project_root: string;
-                /** @description Required Focusa scope key: continuity_id */
-                continuity_id: string;
-                /** @description Required Focusa scope key: attachment_id */
-                attachment_id: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Get Governed Interview Closure Package response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_interview_closure_package_v1"];
-                };
-            };
-            /** @description Standard error envelope */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_tool_result_v1"];
-                };
-            };
-        };
-    };
-    "focusa.project.genesis.start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["focusa_project_genesis_start_request_v1"];
-            };
-        };
-        responses: {
-            /** @description Typed Project Genesis packet */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_project_genesis_response_v1"];
-                };
-            };
-        };
-    };
-    "focusa.project.genesis.resume": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["focusa_project_genesis_resume_request_v1"];
-            };
-        };
-        responses: {
-            /** @description Typed Project Genesis packet */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_project_genesis_response_v1"];
-                };
-            };
-        };
-    };
-    "focusa.project.genesis.status": {
-        parameters: {
-            query: {
-                project_root: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Typed Project Genesis packet */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_project_genesis_response_v1"];
-                };
-            };
-        };
-    };
-    "focusa.project.genesis.commit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["focusa_project_genesis_commit_request_v1"];
-            };
-        };
-        responses: {
-            /** @description Typed Project Genesis packet */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_project_genesis_response_v1"];
-                };
-            };
-        };
-    };
-    "focusa.project.bootstrap.preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["focusa_project_bootstrap_preview_request_v1"];
-            };
-        };
-        responses: {
-            /** @description Project bootstrap packet */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_project_bootstrap_response_v1"];
-                };
-            };
-        };
-    };
-    "focusa.project.bootstrap.apply": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["focusa_project_bootstrap_apply_request_v1"];
-            };
-        };
-        responses: {
-            /** @description Project bootstrap packet */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_project_bootstrap_response_v1"];
-                };
-            };
-        };
-    };
-    "focusa.project.bootstrap.status": {
-        parameters: {
-            query: {
-                project_root: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Project bootstrap packet */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_project_bootstrap_response_v1"];
-                };
-            };
-        };
-    };
-    "focusa.project.bootstrap.repair": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["focusa_project_bootstrap_repair_request_v1"];
-            };
-        };
-        responses: {
-            /** @description Project bootstrap packet */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_project_bootstrap_response_v1"];
-                };
-            };
-        };
-    };
-    "focusa.temporal.status": {
-        parameters: {
-            query: {
-                project_root: string;
-                continuity_id: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Temporal result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_temporal_status_response_v1"];
-                };
-            };
-        };
-    };
-    "focusa.temporal.commit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["focusa_temporal_commit_request_v1"];
-            };
-        };
-        responses: {
-            /** @description Temporal result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_temporal_commit_response_v1"];
-                };
-            };
-        };
-    };
-    "focusa.temporal.revise": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["focusa_temporal_revise_request_v1"];
-            };
-        };
-        responses: {
-            /** @description Temporal result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_temporal_revise_response_v1"];
-                };
-            };
-        };
-    };
-    "focusa.temporal.observe": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["focusa_temporal_observe_request_v1"];
-            };
-        };
-        responses: {
-            /** @description Temporal result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_temporal_observe_response_v1"];
-                };
-            };
-        };
-    };
-    "focusa.temporal.forecast": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["focusa_temporal_forecast_request_v1"];
-            };
-        };
-        responses: {
-            /** @description Temporal result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_temporal_forecast_response_v1"];
-                };
-            };
-        };
-    };
-    "focusa.temporal.preflight": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["focusa_temporal_preflight_request_v1"];
-            };
-        };
-        responses: {
-            /** @description Temporal result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_temporal_preflight_response_v1"];
-                };
-            };
-        };
-    };
-    "focusa.temporal.clock.capture": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["focusa_temporal_clock_capture_request_v1"];
-            };
-        };
-        responses: {
-            /** @description Temporal result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_temporal_clock_capture_response_v1"];
-                };
-            };
-        };
-    };
-    "focusa.temporal.priority.commit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["focusa_temporal_priority_commit_request_v1"];
-            };
-        };
-        responses: {
-            /** @description Temporal result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_temporal_priority_commit_response_v1"];
-                };
-            };
-        };
-    };
-    "focusa.temporal.civil.resolve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["focusa_temporal_civil_resolve_request_v1"];
-            };
-        };
-        responses: {
-            /** @description Temporal result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_temporal_civil_resolve_response_v1"];
-                };
-            };
-        };
-    };
-    "focusa.temporal.high_consequence_preflight": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["focusa_temporal_high_consequence_preflight_request_v1"];
-            };
-        };
-        responses: {
-            /** @description Temporal result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_temporal_high_consequence_preflight_response_v1"];
-                };
-            };
-        };
-    };
-    "focusa.temporal.migrate_signatures": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["focusa_temporal_migrate_signatures_request_v1"];
-            };
-        };
-        responses: {
-            /** @description Temporal result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_temporal_migrate_signatures_response_v1"];
-                };
-            };
-        };
-    };
-    "focusa.temporal.settle_closure": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["focusa_temporal_settle_closure_request_v1"];
-            };
-        };
-        responses: {
-            /** @description Temporal result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_temporal_settle_closure_response_v1"];
-                };
-            };
-        };
-    };
-    "focusa.prediction_authority.projection": {
-        parameters: {
-            query: {
-                project_root: string;
-                continuity_id: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Canonical projection */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_prediction_authority_projection_response_v1"];
-                };
-            };
-        };
-    };
-    "focusa.prediction_authority.append": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["focusa_prediction_authority_append_request_v1"];
-            };
-        };
-        responses: {
-            /** @description Durable append result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["focusa_prediction_authority_append_response_v1"];
                 };
             };
         };

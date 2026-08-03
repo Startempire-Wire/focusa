@@ -83,12 +83,13 @@ export function projectWorkSurfaces(payload: any): WorkSurfaceProjection[] {
   return rows.slice(0, MAX_MISSION_CANVAS_ROWS).flatMap((row: any) => {
     const id = value(row?.work_surface_id, row?.surface_id);
     if (!id) return [];
-    const rawKind = value(row?.kind, "custom") as WorkSurfaceKind;
+    const rawKind = value(row?.kind, row?.surface_kind, "custom") as WorkSurfaceKind;
     const kind = KINDS.has(rawKind) ? rawKind : "custom";
+    const paneId = value(row?.pane_id);
     return [
       {
         workSurfaceId: id,
-        displayName: value(row?.display_name, row?.presentation?.title, id),
+        displayName: value(row?.display_name, row?.presentation?.title, row?.title, id),
         kind,
         projectRoot: value(row?.scope?.project_root, row?.project_root),
         continuityId: value(row?.scope?.continuity_id, row?.continuity_id),
@@ -100,12 +101,18 @@ export function projectWorkSurfaces(payload: any): WorkSurfaceProjection[] {
         role: value(row?.primary_attachment?.role, row?.role),
         rendererId: value(row?.presentation?.renderer_id, row?.renderer_id),
         pinned: Boolean(row?.presentation?.pinned ?? row?.pinned),
-        groupId: value(row?.presentation?.group_id, row?.group_id),
-        splitGroupId: value(row?.presentation?.split_group_id, row?.split_group_id),
-        lifecycleState: value(row?.activity?.lifecycle_state, row?.lifecycle_state, "unknown"),
+        groupId: value(row?.presentation?.group_id, row?.group_id, row?.continuity_id),
+        splitGroupId: value(
+          row?.presentation?.split_group_id,
+          row?.split_group_id,
+          paneId && paneId !== "primary" ? paneId : ""
+        ),
+        lifecycleState: value(row?.activity?.lifecycle_state, row?.lifecycle_state, row?.status, "unknown"),
         semanticActivity: value(row?.activity?.semantic_activity, row?.semantic_activity),
         health: value(row?.activity?.health, row?.health, "unknown"),
-        unreadEventCount: count(row?.activity?.unread_event_count ?? row?.unread_event_count),
+        unreadEventCount: count(
+          row?.activity?.unread_event_count ?? row?.unread_event_count ?? (row?.unread ? 1 : 0)
+        ),
         pendingApprovalCount: count(row?.activity?.pending_approval_count ?? row?.pending_approval_count),
         conflictCount: count(row?.activity?.conflict_count ?? row?.conflict_count),
         blockerCount: count(row?.activity?.blocker_count ?? row?.blocker_count),

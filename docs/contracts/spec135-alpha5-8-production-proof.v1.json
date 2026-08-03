@@ -1,0 +1,50 @@
+{
+  "schema": "focusa.spec135.alpha5_8_production_proof.v1",
+  "acceptance_criteria": "Alpha 5\u20138 pass production paths without static-marker substitution or waived defects.",
+  "workflows": [
+    {
+      "alpha": 5,
+      "proof_ref": "docs/contracts/spec135/generated-contract-v1/spec135-alpha5-alpha6-proof.json",
+      "status": "passed",
+      "acceptance": {}
+    },
+    {
+      "alpha": 6,
+      "proof_ref": "docs/contracts/spec135/generated-contract-v1/spec135-alpha5-alpha6-proof.json",
+      "status": "passed",
+      "acceptance": {}
+    },
+    {
+      "alpha": 7,
+      "proof_ref": "docs/contracts/spec135/generated-contract-v1/spec135-alpha7-domain-parity-proof.json",
+      "status": "passed",
+      "acceptance": {
+        "three_domain_projections": true,
+        "identical_canonical_state": true,
+        "state_not_forked_or_lost": true
+      }
+    },
+    {
+      "alpha": 8,
+      "proof_ref": "docs/contracts/spec135/generated-contract-v1/spec135-alpha8-nontechnical-dogfood-proof.json",
+      "status": "passed",
+      "acceptance": {
+        "full_generated_path": true,
+        "nontechnical_labels": true,
+        "recovery_for_every_step": true,
+        "permanent_not_demo_only": true
+      }
+    }
+  ],
+  "runtime_proof_refs": [
+    "tests/spec135_c3_workspace_invalidation_test.py",
+    "tests/spec135_g6_multiplexing_proof_test.py",
+    "tests/spec135_f4_reactive_domain_parity_test.py",
+    "tests/spec135_k4_usability_headless_test.py",
+    "apps/pi-extension/tests/workspace-invalidation.test.mjs",
+    "apps/pi-extension/tests/mission-canvas-performance.test.mjs"
+  ],
+  "static_marker_substitution": false,
+  "waived_defects": [],
+  "blockers": []
+}

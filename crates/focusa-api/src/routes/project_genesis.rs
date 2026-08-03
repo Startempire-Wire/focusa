@@ -30,7 +30,14 @@ use std::{
 };
 use uuid::Uuid;
 
+#[path = "project_genesis_crist.rs"]
+mod crist;
+#[path = "project_genesis_resume.rs"]
+mod resume_flow;
+
 use super::project_genesis_support::*;
+use crist::{initialize_crist_state, record_crist_transition};
+use resume_flow::resume;
 
 async fn enrich_from_existing_trajectory(
     state: &Arc<AppState>,
@@ -79,21 +86,16 @@ async fn enrich_from_existing_trajectory(
     Some(record.long_term_goal.clone())
 }
 
-fn existing_readiness_gate(
-    root: &Path,
+fn continuity_access(
     req: &ProjectGenesisRequest,
-) -> Result<Option<Value>, (StatusCode, Json<Value>)> {
-    let marker = read_json(&root.join(".focusa-project.json")).unwrap_or(Value::Null);
-    let binding = &marker["genesis_binding"];
-    if binding["status"] != "ready" {
-        return Ok(None);
-    }
-    let same_continuity = binding["continuity_id"].as_str() == Some(req.continuity_id.as_str());
-    if same_continuity {
-        return Ok(read_json(&packet_path(root)).filter(|packet| packet["status"] == "ready"));
+    existing_continuity_id: &str,
+    message: &str,
+) -> Result<bool, (StatusCode, Json<Value>)> {
+    if existing_continuity_id == req.continuity_id {
+        return Ok(true);
     }
     if req.takeover == Some(true) && req.confirm == Some(true) {
-        return Ok(None);
+        return Ok(false);
     }
     if req.takeover == Some(true) {
         return Err(reject(
@@ -108,7 +110,7 @@ fn existing_readiness_gate(
             "schema": GENESIS_SCHEMA,
             "status": "coordination_conflict",
             "code": "active_agent_coordination_conflict",
-            "message": "Another project workstream currently owns the active first Workpoint.",
+            "message": message,
             "choices": [
                 "View current work",
                 "Coordinate with that agent",
@@ -116,10 +118,53 @@ fn existing_readiness_gate(
                 "Continue read-only"
             ],
             "next_action": "choose one plain-language coordination option",
-            "existing_continuity_id": binding["continuity_id"],
+            "existing_continuity_id": existing_continuity_id,
             "requested_continuity_id": req.continuity_id,
         })),
     ))
+}
+
+fn existing_readiness_gate(
+    root: &Path,
+    req: &ProjectGenesisRequest,
+) -> Result<Option<Value>, (StatusCode, Json<Value>)> {
+    let marker = read_json(&root.join(".focusa-project.json")).unwrap_or(Value::Null);
+    let binding = &marker["genesis_binding"];
+    if binding["status"] != "ready" {
+        return Ok(None);
+    }
+    let existing_continuity_id = binding["continuity_id"].as_str().unwrap_or_default();
+    if continuity_access(
+        req,
+        existing_continuity_id,
+        "Another project workstream currently owns the active first Workpoint.",
+    )? {
+        return Ok(read_json(&packet_path(root)).filter(|packet| packet["status"] == "ready"));
+    }
+    Ok(None)
+}
+
+fn existing_genesis_guard(
+    root: &Path,
+    req: &ProjectGenesisRequest,
+    return_staged_for_same_owner: bool,
+) -> Result<Option<Value>, (StatusCode, Json<Value>)> {
+    if let Some(packet) = read_json(&packet_path(root))
+        && let Some(existing_continuity_id) = packet["ownership"]["continuity_id"].as_str()
+    {
+        let same_owner = continuity_access(
+            req,
+            existing_continuity_id,
+            "Another project workstream currently owns the staged Project Genesis state.",
+        )?;
+        if same_owner && (return_staged_for_same_owner || packet["status"] == "ready") {
+            return Ok(Some(packet));
+        }
+        if !same_owner {
+            return Ok(None);
+        }
+    }
+    existing_readiness_gate(root, req)
 }
 
 pub(super) async fn start(
@@ -134,11 +179,13 @@ pub(super) async fn start(
         ));
     }
     let root = canonical_root(&req.project_root)?;
-    if let Some(packet) = existing_readiness_gate(&root, &req)? {
+    if let Some(packet) = existing_genesis_guard(&root, &req, true)? {
         return Ok(Json(packet));
     }
     let existing_hlt = enrich_from_existing_trajectory(&state, &root, &mut req).await;
-    let packet = build_staged_packet(&root, &req, existing_hlt);
+    let mut packet = build_staged_packet(&root, &req, existing_hlt);
+    initialize_crist_state(&root, &mut packet)
+        .map_err(|receipt| (StatusCode::CONFLICT, Json(receipt)))?;
     write_json_atomic(&packet_path(&root), &packet).map_err(|error| {
         reject(
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -162,21 +209,6 @@ async fn status(
     })
 }
 
-async fn resume(
-    State(state): State<Arc<AppState>>,
-    Json(req): Json<ProjectGenesisRequest>,
-) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let root = canonical_root(&req.project_root)?;
-    if let Some(packet) = read_json(&packet_path(&root))
-        && packet.get("idempotency_key").and_then(Value::as_str)
-            == Some(req.idempotency_key.as_str())
-        && packet.get("status").and_then(Value::as_str) == Some("ready")
-    {
-        return Ok(Json(packet));
-    }
-    start(State(state), Json(req)).await
-}
-
 pub(super) async fn commit(
     State(state): State<Arc<AppState>>,
     Json(mut req): Json<ProjectGenesisRequest>,
@@ -189,12 +221,20 @@ pub(super) async fn commit(
         ));
     }
     let root = canonical_root(&req.project_root)?;
-    if let Some(packet) = existing_readiness_gate(&root, &req)? {
+    if let Some(packet) = existing_genesis_guard(&root, &req, false)? {
         return Ok(Json(packet));
     }
     let existing_hlt = enrich_from_existing_trajectory(&state, &root, &mut req).await;
     let mut packet = build_staged_packet(&root, &req, existing_hlt);
+    initialize_crist_state(&root, &mut packet)
+        .map_err(|receipt| (StatusCode::CONFLICT, Json(receipt)))?;
     if packet["status"] != "staged" {
+        let _ = record_crist_transition(
+            &root,
+            &mut packet,
+            "first_workpoint_ready",
+            "commit_without_complete_genesis",
+        );
         write_json_atomic(&packet_path(&root), &packet).map_err(|error| {
             reject(
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -313,7 +353,7 @@ pub(super) async fn commit(
         .to_string();
     let workpoint = WorkpointRecord {
         workpoint_id,
-        work_item_id,
+        work_item_id: work_item_id.clone(),
         continuity_id: Some(req.continuity_id.clone()),
         project_root: Some(root.to_string_lossy().to_string()),
         status: WorkpointStatus::Proposed,
@@ -362,9 +402,33 @@ pub(super) async fn commit(
     }
 
     let owner_id = stable_id("coordination", &root, &req.idempotency_key);
+    let mut first_workpoint_evidence_refs = first_task
+        .get("evidence_refs")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(str::to_string)
+        .collect::<Vec<_>>();
+    if let Some(specification_ref) = req.specification_ref.as_ref() {
+        first_workpoint_evidence_refs.push(specification_ref.clone());
+    }
+    if let Some(bootstrap_receipt_ref) = packet["bootstrap_receipt"]["receipt_id"].as_str() {
+        first_workpoint_evidence_refs.push(bootstrap_receipt_ref.to_string());
+    }
+    first_workpoint_evidence_refs.sort();
+    first_workpoint_evidence_refs.dedup();
     packet["status"] = json!("ready");
-    packet["first_workpoint"] =
-        json!({"workpoint_id": workpoint_id, "status": "active", "canonical": true});
+    packet["first_workpoint"] = json!({
+        "workpoint_id": workpoint_id,
+        "work_item_id": work_item_id,
+        "project_root": root.to_string_lossy(),
+        "continuity_id": req.continuity_id.clone(),
+        "status": "active",
+        "canonical": true,
+        "acceptance_criteria": req.acceptance_criteria.clone(),
+        "evidence_refs": first_workpoint_evidence_refs,
+    });
     packet["coordination_owner"] = json!({"owner_id": owner_id, "workpoint_id": workpoint_id, "status": "active", "internal": true});
     packet["readiness_receipt"] = json!({"receipt_id": stable_id("ready", &root, &req.idempotency_key), "trajectory_id": trajectory_id, "workpoint_id": workpoint_id, "marker_guard": "verified", "recorded_at": Utc::now().to_rfc3339()});
     packet["missing_links"] = json!([]);

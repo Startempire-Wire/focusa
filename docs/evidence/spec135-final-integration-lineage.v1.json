@@ -1,0 +1,77 @@
+{
+  "schema": "focusa.spec135.final_integration_lineage_evidence.v1",
+  "generated_at": "2026-08-01T13:33:49.426657+00:00",
+  "branch": "feature/spec-135-context-connectors-b2",
+  "head": "7cad32e9ff48ce3e42ce33a63ffc2500a6daea0b",
+  "base_ref": "main",
+  "merge_base": "604339739d6f093b49c57c881ed3dd9122f48cec",
+  "commits": [
+    "7cad32e9ff48ce3e42ce33a63ffc2500a6daea0b\ttest: harden strict gates for linked worktree authority",
+    "b226f63f00eb61787b228bf901cff28fbdc41099\tchore(canvas): verify local release candidates and advance closure graph",
+    "d47854abee60c13818b3a2eca5c707644230801b\ttest(canvas): close Pi-native hardening and UIAI proof phases",
+    "7d78c240802cc59a037ae53f66dcb086874abe45\tfeat(canvas): close Work Surface and vertical recomposition phases",
+    "ea4092a55e409c1d89b3d78eb9112c275e39e9c4\tfeat(canvas): replace compatibility dashboard with Pi-native workspace",
+    "22a924f61df21ce2bbd0eb3e93da35f8539f0f21\tfix(canvas): restore Pi-native host authority",
+    "1577b694aef8dc17a0219b1b05422f881696c99c\tchore(spec135): close completed phase parents",
+    "4839231f0fdbc7aae7f99b4afe4f4bd0de7ab3e6\tchore(spec135): reconcile rich host delivery truth",
+    "7180ce933b9191fd66f1142725589d5477900a1e\ttest(canvas): add governed evaluation harness",
+    "4e729416a404f1598eae1fe297047acb15346a9a\ttest(canvas): harden rich host continuity and security",
+    "aed057bb3c97faf1d7084c74c5f5fd9dd5260496\tfeat(canvas): bind generated and browser surfaces",
+    "4d84335b3de7990d0bb0a67bfb182e0f40394588\tfeat(canvas): add workspace profile registries",
+    "df40bdc4a1cd0e603cb0bc6c3a2d2b7b03db9e49\tfeat(canvas): bind live pi work surfaces",
+    "1a06e185f490ef7b7bc73067fbbbe40c0eddbffd\tfeat(canvas): build adaptive rich shell",
+    "e0122b4122997119f1e67d83db7844e2df04a0a3\tfeat(pi): add portable mission canvas rich host",
+    "a79b454ec9c50f08d7ddb4e27d0205f3e2cfaeaa\tfeat(api): expose mission canvas runtime authority",
+    "fbe05369af7a8cfa9c8091012a83652bfbccc44e\tfeat(core): implement mission canvas resolver",
+    "93ca683a509dc24341f40f1cd8b51a160065d674\tfeat(core): add mission canvas persistence authority",
+    "454efb7cb92002384a67e6cc7802805f92f7a5bb\tfeat(spec135): generate mission canvas client contracts",
+    "24027d5ef8f4a59b825dc84484ed4801e42101a7\tfeat(spec135): define mission canvas operations",
+    "d9100b3a90efb1039058ba0a817a4239b6cc128e\tfeat(spec135): add projection events and proof contracts",
+    "04153f2131bca5e13dc74d5a896dfa569083d4f2\tfeat(spec135): define mission canvas projection contracts",
+    "fa6e3173a544547a3e8c17f63ca9a30c8bc66480\tdocs(spec135): close adaptive composition authority phase",
+    "29a40740d051255bb7e55f9251faad19e800772d\tchore(spec135): complete P00 recovery and governance",
+    "9e014aee04c9b3e1ab7eb106143706472acc4a05\ttest(spec135): align delivery gate with corrected traversal",
+    "725758be27b2dda652ed44031dc756425e547d98\tdocs(spec135): restore generated UI audit authority",
+    "e44302ebc8db59f18e18220c9033ef7ee72a1838\tdocs(spec135): restore generated UI discoverability law",
+    "58fefd90950b0e704d36c6343a1da850387ca8f1\tdocs(spec135): restore acceleration closure laws",
+    "b0a5a7874010a08a17fe1dbab0853373b713194e\ttest(spec135): honor daemon override in context E2E",
+    "5b99f0f21e9ba27463f830962e06264cc85cb1b3\ttest(spec135): align P00 baseline with terminal projection truth"
+  ],
+  "changed_file_count": 1689,
+  "workpoint_id": "019fbd87-01e8-72f2-be33-701fbcaef814",
+  "acceptance": {
+    "passed_count": 14,
+    "gate_count": 14,
+    "merge_ready": true,
+    "status": "verified"
+  },
+  "proofs": [
+    {
+      "ref": "docs/evidence/spec135-pi-native-live-capture.png",
+      "result": "installed Pi-native Canvas live capture"
+    },
+    {
+      "ref": "docs/evidence/spec135-uiai-reference-comparison.png",
+      "result": "UIAI authoritative/reference/live comparison"
+    },
+    {
+      "ref": "docs/evidence/spec135-pi-extension-package-candidate.json",
+      "result": "portable package candidate"
+    },
+    {
+      "ref": "/tmp/spec135-final-strict-3.log",
+      "result": "strict suite passed through work-loop boundary; discovered stale linked-worktree tests"
+    },
+    {
+      "ref": "/tmp/spec135-strict-tail-9.log",
+      "result": "remaining strict gates 224-239 passed after corrections"
+    },
+    {
+      "ref": "/tmp/spec135-restart-recovery-6.log",
+      "result": "restart recovery 14/14 passed"
+    }
+  ],
+  "closure_boundary": "Merge, canonical release, and installed Windows/Linux release verification remain protected external actions.",
+  "commit_count": 685,
+  "commits_bounded": true
+}

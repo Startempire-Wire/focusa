@@ -1,0 +1,180 @@
+{
+  "bindings": [
+    {
+      "action_id": "action:focusa.mission_canvas.projection.get",
+      "confirmation": "none",
+      "disabled_reason": null,
+      "enabled": true,
+      "operation_id": "focusa.mission_canvas.projection.get"
+    },
+    {
+      "action_id": "action:focusa.mission_canvas.projection.resolve",
+      "confirmation": "none",
+      "disabled_reason": null,
+      "enabled": true,
+      "operation_id": "focusa.mission_canvas.projection.resolve"
+    },
+    {
+      "action_id": "action:focusa.mission_canvas.profile.list",
+      "confirmation": "none",
+      "disabled_reason": null,
+      "enabled": true,
+      "operation_id": "focusa.mission_canvas.profile.list"
+    },
+    {
+      "action_id": "action:focusa.mission_canvas.profile.select",
+      "confirmation": "none",
+      "disabled_reason": null,
+      "enabled": true,
+      "operation_id": "focusa.mission_canvas.profile.select"
+    },
+    {
+      "action_id": "action:focusa.mission_canvas.profile.get",
+      "confirmation": "none",
+      "disabled_reason": null,
+      "enabled": true,
+      "operation_id": "focusa.mission_canvas.profile.get"
+    },
+    {
+      "action_id": "action:focusa.mission_canvas.activity.list",
+      "confirmation": "none",
+      "disabled_reason": null,
+      "enabled": true,
+      "operation_id": "focusa.mission_canvas.activity.list"
+    },
+    {
+      "action_id": "action:focusa.mission_canvas.activity.select",
+      "confirmation": "none",
+      "disabled_reason": null,
+      "enabled": true,
+      "operation_id": "focusa.mission_canvas.activity.select"
+    },
+    {
+      "action_id": "action:focusa.mission_canvas.domain_pack.install",
+      "confirmation": "explicit",
+      "disabled_reason": null,
+      "enabled": true,
+      "operation_id": "focusa.mission_canvas.domain_pack.install"
+    },
+    {
+      "action_id": "action:focusa.mission_canvas.registry.list",
+      "confirmation": "none",
+      "disabled_reason": null,
+      "enabled": true,
+      "operation_id": "focusa.mission_canvas.registry.list"
+    },
+    {
+      "action_id": "action:focusa.mission_canvas.layout_memory.get",
+      "confirmation": "none",
+      "disabled_reason": null,
+      "enabled": true,
+      "operation_id": "focusa.mission_canvas.layout_memory.get"
+    },
+    {
+      "action_id": "action:focusa.mission_canvas.layout_memory.update",
+      "confirmation": "none",
+      "disabled_reason": null,
+      "enabled": true,
+      "operation_id": "focusa.mission_canvas.layout_memory.update"
+    },
+    {
+      "action_id": "action:focusa.mission_canvas.layout.mutate",
+      "confirmation": "none",
+      "disabled_reason": null,
+      "enabled": true,
+      "operation_id": "focusa.mission_canvas.layout.mutate"
+    },
+    {
+      "action_id": "action:focusa.mission_canvas.rich_host.resolve",
+      "confirmation": "none",
+      "disabled_reason": null,
+      "enabled": true,
+      "operation_id": "focusa.mission_canvas.rich_host.resolve"
+    },
+    {
+      "action_id": "action:focusa.mission_canvas.rich_host.launch",
+      "confirmation": "none",
+      "disabled_reason": null,
+      "enabled": true,
+      "operation_id": "focusa.mission_canvas.rich_host.launch"
+    },
+    {
+      "action_id": "action:focusa.mission_canvas.rich_host.focus",
+      "confirmation": "none",
+      "disabled_reason": null,
+      "enabled": true,
+      "operation_id": "focusa.mission_canvas.rich_host.focus"
+    },
+    {
+      "action_id": "action:focusa.mission_canvas.rich_host.hide",
+      "confirmation": "none",
+      "disabled_reason": null,
+      "enabled": true,
+      "operation_id": "focusa.mission_canvas.rich_host.hide"
+    },
+    {
+      "action_id": "action:focusa.mission_canvas.rich_host.close",
+      "confirmation": "explicit",
+      "disabled_reason": null,
+      "enabled": true,
+      "operation_id": "focusa.mission_canvas.rich_host.close"
+    },
+    {
+      "action_id": "action:focusa.mission_canvas.draft.get",
+      "confirmation": "none",
+      "disabled_reason": null,
+      "enabled": true,
+      "operation_id": "focusa.mission_canvas.draft.get"
+    },
+    {
+      "action_id": "action:focusa.mission_canvas.draft.sync",
+      "confirmation": "none",
+      "disabled_reason": null,
+      "enabled": true,
+      "operation_id": "focusa.mission_canvas.draft.sync"
+    },
+    {
+      "action_id": "action:focusa.mission_canvas.recipient.resolve",
+      "confirmation": "none",
+      "disabled_reason": null,
+      "enabled": true,
+      "operation_id": "focusa.mission_canvas.recipient.resolve"
+    },
+    {
+      "action_id": "action:focusa.mission_canvas.recomposition.evidence.get",
+      "confirmation": "none",
+      "disabled_reason": null,
+      "enabled": true,
+      "operation_id": "focusa.mission_canvas.recomposition.evidence.get"
+    },
+    {
+      "action_id": "action:focusa.mission_canvas.recomposition.receipt.get",
+      "confirmation": "none",
+      "disabled_reason": null,
+      "enabled": true,
+      "operation_id": "focusa.mission_canvas.recomposition.receipt.get"
+    },
+    {
+      "action_id": "action:focusa.mission_canvas.recomposition.diagnostics.list",
+      "confirmation": "none",
+      "disabled_reason": null,
+      "enabled": true,
+      "operation_id": "focusa.mission_canvas.recomposition.diagnostics.list"
+    },
+    {
+      "action_id": "action:focusa.mission_canvas.pi_session.event.append",
+      "confirmation": "none",
+      "disabled_reason": null,
+      "enabled": true,
+      "operation_id": "focusa.mission_canvas.pi_session.event.append"
+    },
+    {
+      "action_id": "action:focusa.mission_canvas.events.stream",
+      "confirmation": "none",
+      "disabled_reason": null,
+      "enabled": true,
+      "operation_id": "focusa.mission_canvas.events.stream"
+    }
+  ],
+  "schema": "focusa.mission_canvas.ui_action_bindings.v1"
+}

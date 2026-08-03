@@ -9,8 +9,9 @@ use chrono::Utc;
 use focusa_core::{
     tool_result::{FailureClass, ToolResultV1, ToolStatus},
     types::{
-        Action, FocusaEvent, ProjectAgentRoleProfile, RoleAssumptionRecord, RoleProfileGrounding,
-        RoleProfileStatus, RoleRedlineRecord, RoleReviewDecision, RoleReviewRecord,
+        Action, FocusaEvent, ProjectAgentRoleProfile, RoleAlternativeRecord, RoleAssumptionRecord,
+        RoleProfileGrounding, RoleProfileStatus, RoleRedlineRecord, RoleReviewDecision,
+        RoleReviewRecord,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -40,6 +41,16 @@ pub struct RoleRedlineInput {
     pub before: String,
     pub after: String,
     pub rationale: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RoleAlternativeInput {
+    pub title: String,
+    pub purpose: String,
+    #[serde(default)]
+    pub tradeoffs: Vec<String>,
+    #[serde(default)]
+    pub grounding_refs: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -81,6 +92,8 @@ pub struct RoleProfileDraftRequest {
     pub tool_preferences: Vec<String>,
     #[serde(default)]
     pub reviewer_lenses: Vec<String>,
+    #[serde(default)]
+    pub alternatives: Vec<RoleAlternativeInput>,
     #[serde(default)]
     pub context_artifact_refs: Vec<String>,
     #[serde(default)]
@@ -425,6 +438,78 @@ async fn draft(
         "project-role-profile",
         &[&project_root, &continuity_id, &attachment_id],
     );
+    let default_grounding_ref = context_artifact_refs
+        .first()
+        .or_else(|| context_claim_refs.first())
+        .or_else(|| interview_answer_refs.first())
+        .cloned()
+        .unwrap_or_default();
+    let alternative_inputs = if request.alternatives.is_empty() {
+        vec![RoleAlternativeInput {
+            title: format!("{} — narrow-scope alternative", request.title.trim()),
+            purpose: format!(
+                "Serve the same grounded purpose with reduced responsibilities: {}",
+                request.purpose.trim()
+            ),
+            tradeoffs: vec![
+                "Lower authority ambiguity, with narrower project coverage".to_string(),
+            ],
+            grounding_refs: vec![default_grounding_ref],
+        }]
+    } else {
+        request.alternatives
+    };
+    let mut alternatives = Vec::with_capacity(alternative_inputs.len());
+    for (index, alternative) in alternative_inputs.into_iter().enumerate() {
+        let title = text(&alternative.title, "alternative.title", 200, TOOL, ENDPOINT)?;
+        let grounding_refs = strings(
+            alternative.grounding_refs,
+            "alternative.grounding_refs",
+            1,
+            32,
+            512,
+            TOOL,
+            ENDPOINT,
+        )?;
+        if grounding_refs.iter().any(|reference| {
+            !context_artifact_refs.contains(reference)
+                && !context_claim_refs.contains(reference)
+                && !interview_answer_refs.contains(reference)
+        }) {
+            return Err(fail(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                ToolStatus::ValidationRejected,
+                FailureClass::ValidationRejected,
+                "role alternatives may cite only grounding refs accepted by the draft",
+                TOOL,
+                ENDPOINT,
+            ));
+        }
+        alternatives.push(RoleAlternativeRecord {
+            alternative_id: stable(
+                "role-alternative",
+                &[&role_profile_id, &index.to_string(), &title],
+            ),
+            title,
+            purpose: text(
+                &alternative.purpose,
+                "alternative.purpose",
+                2000,
+                TOOL,
+                ENDPOINT,
+            )?,
+            tradeoffs: strings(
+                alternative.tradeoffs,
+                "alternative.tradeoffs",
+                1,
+                16,
+                512,
+                TOOL,
+                ENDPOINT,
+            )?,
+            grounding_refs,
+        });
+    }
     let now = Utc::now();
     let mut profile = ProjectAgentRoleProfile {
         role_profile_id: role_profile_id.clone(),
@@ -565,6 +650,7 @@ async fn draft(
             TOOL,
             ENDPOINT,
         )?,
+        alternatives,
         grounding: RoleProfileGrounding {
             context_artifact_refs,
             context_claim_refs,

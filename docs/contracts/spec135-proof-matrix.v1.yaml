@@ -1,6 +1,9 @@
 {
   "authority": "docs/135e-cross-spec-amendments-migration-and-closure-matrix.md",
+  "adaptive_composition_proof_matrix": "docs/contracts/spec135-adaptive-composition-proof-matrix.v1.yaml",
+  "adaptive_composition_status": "reopened_runtime_proof_required",
   "global_closure_gates": [
+    "all 13 adaptive-composition no-dead-chrome runtime proofs",
     "permanent onboarding-to-exact-resume traversal",
     "generated contract compatibility",
     "client parity",

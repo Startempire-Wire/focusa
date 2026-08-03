@@ -42,6 +42,18 @@ Focusa tools should put structured `tool_result_v1` data under `details.tool_res
 
 When adding a new `FocusaToolFamily`, update all family-indexed registries together. For example, adding `awareness` requires entries in default inputs, next tools, and not-to-use guidance.
 
+## Mission Canvas in the current Pi terminal
+
+Mission Canvas is mounted by this TypeScript extension through `ctx.ui.custom()`; it must not launch a browser, webview, sidecar, or remote host.
+
+```text
+/mission-canvas on      # replace only the visible Pi root
+/mission-canvas off     # restore stock Pi in the same session
+/mission-canvas toggle
+```
+
+After changing installed extension sources, run `/reload` in the current Pi session, then toggle Canvas on. A safe local update copies the existing `src/` files to `~/.pi/agent/extension-backups/<timestamp>/` before replacing them. If validation fails, restore that backup and run `/reload` again. The worktree remains the source of truth; never edit or commit the main worktree for a feature-branch Canvas update.
+
 ## Verification
 
 From the repository root or `apps/pi-extension`:

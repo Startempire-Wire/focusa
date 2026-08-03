@@ -28,6 +28,7 @@ const require = createRequire(import.meta.url);
 import { loadConfig } from "./config.js";
 import { registerTools } from "./tools.js";
 import { registerCommands } from "./commands.js";
+import { registerMissionCanvasTool } from "./mission-canvas-tool.js";
 import { registerAutomaticOtaActivation } from "./ota-activation.js";
 import { registerWbm } from "./wbm.js";
 import { registerCompaction } from "./compaction.js";
@@ -36,6 +37,15 @@ import { registerSession } from "./session.js";
 import { registerTurns } from "./turns.js";
 import { registerPolishHooks } from "./polish.js";
 import { registerMissionCanvasWidget } from "./mission-canvas-widget.js";
+import { registerRoleComposer } from "./role-composer.js";
+import { registerInterviewComposer } from "./interview-composer.js";
+import { registerWorkRailInteractions } from "./work-rail-interactions.js";
+import { registerMissionCanvasLayout } from "./mission-canvas-layout.js";
+import { registerWorkspaceVerticals } from "./workspace-verticals.js";
+import { registerRichArtifactRenderers } from "./rich-artifact-renderers.js";
+import { registerResearchBridge } from "./research-bridge.js";
+import { registerCristCanvas } from "./crist-canvas.js";
+import { registerNontechnicalOnboarding } from "./nontechnical-onboarding.js";
 
 export default function focusaPiBridge(pi: ExtensionAPI) {
   // Extension module load happens before daemon-backed project verification.
@@ -171,12 +181,24 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     registerTools(pi);
     registerCommands(pi);
     registerMissionCanvasWidget(pi);
+    registerRoleComposer(pi);
+    registerInterviewComposer(pi);
+    registerWorkRailInteractions(pi);
+    registerMissionCanvasLayout(pi);
+    registerWorkspaceVerticals(pi);
+    registerRichArtifactRenderers(pi);
+    registerResearchBridge(pi);
+    registerCristCanvas(pi);
+    registerNontechnicalOnboarding(pi);
     registerAutomaticOtaActivation(pi);
     registerWbm(pi);
     registerCompaction(pi);
     registerSession(pi);
     registerTurns(pi);
     registerPolishHooks(pi);
+    // Register the alternate-shell lifecycle last so stock Pi is fully
+    // initialized underneath it and can be restored by the off switch.
+    registerMissionCanvasTool(pi);
 
     // ── §33.6: Optional proxy provider registration ───────────────────────
     // Default off: normal Focusa/Pi bridge sessions use direct providers plus
@@ -291,5 +313,14 @@ export default function focusaPiBridge(pi: ExtensionAPI) {
     };
     pi.registerMessageRenderer("focusa-state", renderFocusaState);
     pi.registerMessageRenderer("focusa-wbm-state", renderFocusaState);
+    pi.registerMessageRenderer("focusa-role-profile", renderFocusaState);
+    pi.registerMessageRenderer("focusa-interview-session", renderFocusaState);
+    pi.registerMessageRenderer("focusa-work-rail-action", renderFocusaState);
+    pi.registerMessageRenderer("focusa-canvas-layout", renderFocusaState);
+    pi.registerMessageRenderer("focusa-artifact-projection", renderFocusaState);
+    pi.registerMessageRenderer("focusa-rich-artifact", renderFocusaState);
+    pi.registerMessageRenderer("focusa-research-packet", renderFocusaState);
+    pi.registerMessageRenderer("focusa-crist-stage", renderFocusaState);
+    pi.registerMessageRenderer("focusa-onboarding", renderFocusaState);
   });
 }

@@ -1,0 +1,72 @@
+{
+  "schema": "focusa.spec135.k4_usability_headless_proof.v1",
+  "acceptance_criteria": "All normative 135K and #53 scenarios pass with receipts and no canonical-state divergence.",
+  "scenarios": [
+    {
+      "scenario_id": "canvas_guided",
+      "proof_ref": "tests/spec135_i3_nontechnical_onboarding_test.py",
+      "status": "passed",
+      "canonical_state_ref": "focusa:canonical-state:unchanged"
+    },
+    {
+      "scenario_id": "terminal_guided",
+      "proof_ref": "apps/pi-extension/tests/mission-canvas-mode-precedence.test.mjs",
+      "status": "passed",
+      "canonical_state_ref": "focusa:canonical-state:unchanged"
+    },
+    {
+      "scenario_id": "headless",
+      "proof_ref": "tests/spec135_k1_interaction_mode_test.py",
+      "status": "passed",
+      "canonical_state_ref": "focusa:canonical-state:unchanged"
+    },
+    {
+      "scenario_id": "accessibility",
+      "proof_ref": "tests/spec135_a7_pi_accessibility_test.py",
+      "status": "passed",
+      "canonical_state_ref": "focusa:canonical-state:unchanged"
+    },
+    {
+      "scenario_id": "live_toggle",
+      "proof_ref": "apps/pi-extension/tests/mission-canvas-mode-precedence.test.mjs",
+      "status": "passed",
+      "canonical_state_ref": "focusa:canonical-state:unchanged"
+    },
+    {
+      "scenario_id": "reconnect",
+      "proof_ref": "tests/spec135_j4_reconnect_recovery_test.py",
+      "status": "passed",
+      "canonical_state_ref": "focusa:canonical-state:unchanged"
+    },
+    {
+      "scenario_id": "compaction",
+      "proof_ref": "tests/spec135_m6_canvas_resume_test.py",
+      "status": "passed",
+      "canonical_state_ref": "focusa:canonical-state:unchanged"
+    },
+    {
+      "scenario_id": "model_switch",
+      "proof_ref": "tests/spec135_m6_canvas_resume_test.py",
+      "status": "passed",
+      "canonical_state_ref": "focusa:canonical-state:unchanged"
+    },
+    {
+      "scenario_id": "project_reopen",
+      "proof_ref": "tests/spec135_m6_canvas_resume_e2e_test.py",
+      "status": "passed",
+      "canonical_state_ref": "focusa:canonical-state:unchanged"
+    }
+  ],
+  "receipts": [
+    "docs/contracts/spec135-interaction-mode-toggle.v1.json",
+    "docs/contracts/spec135-friction-capture-evaluation.v1.json",
+    "docs/contracts/spec135-adaptive-ui-governance.v1.json"
+  ],
+  "invariants": [
+    "Canvas, terminal, and headless modes share canonical state",
+    "Mode toggle does not discard input or durable answers",
+    "Compaction/model switch/project reopen resume exact Workpoint",
+    "Accessibility preferences do not hide authority or proof",
+    "Headless mode performs no UI calls and emits no nags"
+  ]
+}

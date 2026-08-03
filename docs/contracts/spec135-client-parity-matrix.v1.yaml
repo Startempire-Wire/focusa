@@ -67,7 +67,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -80,7 +79,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -93,7 +91,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -106,7 +103,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -119,7 +115,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -132,7 +127,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -145,7 +139,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -158,7 +151,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -171,7 +163,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -184,7 +175,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -197,7 +187,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -210,7 +199,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -223,7 +211,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -236,7 +223,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -249,7 +235,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -262,7 +247,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -275,7 +259,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -549,7 +532,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -562,7 +544,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -575,7 +556,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -588,7 +568,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -601,7 +580,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -614,7 +592,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "tui",
@@ -627,7 +604,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "pi",
         "typescript",
         "uiai_engine_cockpit"
@@ -639,7 +615,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "pi",
         "typescript",
         "uiai_engine_cockpit"
@@ -651,7 +626,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "pi",
         "typescript",
         "uiai_engine_cockpit"
@@ -663,7 +637,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "pi",
         "typescript",
         "uiai_engine_cockpit"
@@ -675,7 +648,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "pi",
         "typescript",
         "uiai_engine_cockpit"
@@ -853,7 +825,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -866,7 +837,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -879,7 +849,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -892,7 +861,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -905,7 +873,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "mission_canvas",
         "pi",
         "typescript",
@@ -918,7 +885,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "menubar",
         "mission_canvas",
         "pi",
@@ -934,7 +900,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "menubar",
         "mission_canvas",
         "pi",
@@ -950,7 +915,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "menubar",
         "mission_canvas",
         "pi",
@@ -966,7 +930,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "menubar",
         "mission_canvas",
         "pi",
@@ -982,7 +945,6 @@
       "required_clients": [
         "api",
         "cli",
-        "go",
         "menubar",
         "mission_canvas",
         "pi",

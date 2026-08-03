@@ -5,6 +5,9 @@ set -euo pipefail
 
 BASE_URL="${FOCUSA_BASE_URL:-http://127.0.0.1:8787}"
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+# Work-loop authority is canonical-project scoped, not linked-worktree scoped.
+SCOPE_ROOT="$(git -C "$ROOT_DIR" worktree list --porcelain 2>/dev/null | awk '/^worktree / {sub(/^worktree /, ""); print; exit}')"
+SCOPE_ROOT="${SCOPE_ROOT:-$ROOT_DIR}"
 FAILED=0
 PASSED=0
 
@@ -16,7 +19,7 @@ log_pass() { echo -e "${GREEN}✓ PASS${NC}: $1"; PASSED=$((PASSED+1)); }
 log_fail() { echo -e "${RED}✗ FAIL${NC}: $1"; FAILED=$((FAILED+1)); }
 curl() {
   command curl \
-    -H "x-scope-project-root: ${ROOT_DIR}" \
+    -H "x-scope-project-root: ${SCOPE_ROOT}" \
     -H "x-scope-continuity-id: work-loop-continuation-test" \
     "$@"
 }
@@ -37,7 +40,7 @@ wait_for_jq() {
 
 CHECKPOINT_RESP=$(http_json -X POST "${BASE_URL}/v1/workpoint/checkpoint" \
   -H 'Content-Type: application/json' \
-  -d "{\"project_root\":\"${ROOT_DIR}\",\"continuity_id\":\"work-loop-continuation-test\",\"work_item_id\":\"spec79-context-test\",\"mission\":\"verify work-loop continuation inputs\",\"current_action\":\"spec79_context_contract\",\"next_slice\":\"verify continuation context persistence\",\"canonical\":true}")
+  -d "{\"project_root\":\"${SCOPE_ROOT}\",\"continuity_id\":\"work-loop-continuation-test\",\"work_item_id\":\"spec79-context-test\",\"mission\":\"verify work-loop continuation inputs\",\"current_action\":\"spec79_context_contract\",\"next_slice\":\"verify continuation context persistence\",\"canonical\":true}")
 if ! echo "$CHECKPOINT_RESP" | jq -e '.canonical == true and .workpoint_id != null' >/dev/null 2>&1; then
   log_fail "canonical Workpoint checkpoint rejected: ${CHECKPOINT_RESP}"
 fi
@@ -59,7 +62,7 @@ fi
 CTX_RESP=$(http_json -X POST "${BASE_URL}/v1/work-loop/context" \
   -H 'Content-Type: application/json' \
   -H "x-focusa-writer-id: ${ACTIVE_WRITER}" \
-  "${FENCING_HEADERS[@]}" \
+  ${FENCING_HEADERS[@]+"${FENCING_HEADERS[@]}"} \
   -d '{"current_ask":"Why did the loop pause?","ask_kind":"question","scope_kind":"fresh_question","carryover_policy":"suppress_by_default","excluded_context_reason":"fresh_scope","excluded_context_labels":["MISSION","OLD_WORKING_SET"],"source_turn_id":"spec79-turn-ctx","operator_steering_detected":true}')
 if echo "$CTX_RESP" | jq -e '.status == "accepted"' >/dev/null 2>&1; then
   log_pass "work-loop context update accepted"
@@ -90,7 +93,7 @@ fi
 STOP_RESP=$(http_json -X POST "${BASE_URL}/v1/work-loop/stop" \
   -H 'Content-Type: application/json' \
   -H "x-focusa-writer-id: ${ACTIVE_WRITER}" \
-  "${FENCING_HEADERS[@]}" \
+  ${FENCING_HEADERS[@]+"${FENCING_HEADERS[@]}"} \
   -H 'x-focusa-approval: approved' \
   -d '{}')
 if echo "$STOP_RESP" | jq -e '.status == "accepted" or .state == "stopped" or .ok == true' >/dev/null 2>&1; then

@@ -1,0 +1,1057 @@
+{
+  "client_count": 6,
+  "operation_count": 25,
+  "rows": [
+    {
+      "client": "core_api",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.projection.get",
+      "schema_ref": "ResolvedWorkspaceProjection",
+      "support": "full"
+    },
+    {
+      "client": "pi_extension",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.projection.get",
+      "schema_ref": "ResolvedWorkspaceProjection",
+      "support": "full"
+    },
+    {
+      "client": "rich_host_typescript",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.projection.get",
+      "schema_ref": "ResolvedWorkspaceProjection",
+      "support": "full"
+    },
+    {
+      "client": "cli",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.projection.get",
+      "schema_ref": "ResolvedWorkspaceProjection",
+      "support": "unsupported"
+    },
+    {
+      "client": "uiai_engine_cockpit",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.projection.get",
+      "schema_ref": "ResolvedWorkspaceProjection",
+      "support": "read_only"
+    },
+    {
+      "client": "menubar",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.projection.get",
+      "schema_ref": "ResolvedWorkspaceProjection",
+      "support": "unsupported"
+    },
+    {
+      "client": "core_api",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.projection.resolve",
+      "schema_ref": "ResolvedWorkspaceProjection",
+      "support": "full"
+    },
+    {
+      "client": "pi_extension",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.projection.resolve",
+      "schema_ref": "ResolvedWorkspaceProjection",
+      "support": "full"
+    },
+    {
+      "client": "rich_host_typescript",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.projection.resolve",
+      "schema_ref": "ResolvedWorkspaceProjection",
+      "support": "full"
+    },
+    {
+      "client": "cli",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.projection.resolve",
+      "schema_ref": "ResolvedWorkspaceProjection",
+      "support": "unsupported"
+    },
+    {
+      "client": "uiai_engine_cockpit",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.projection.resolve",
+      "schema_ref": "ResolvedWorkspaceProjection",
+      "support": "unsupported"
+    },
+    {
+      "client": "menubar",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.projection.resolve",
+      "schema_ref": "ResolvedWorkspaceProjection",
+      "support": "unsupported"
+    },
+    {
+      "client": "core_api",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.profile.list",
+      "schema_ref": "WorkspaceProfile[]",
+      "support": "full"
+    },
+    {
+      "client": "pi_extension",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.profile.list",
+      "schema_ref": "WorkspaceProfile[]",
+      "support": "full"
+    },
+    {
+      "client": "rich_host_typescript",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.profile.list",
+      "schema_ref": "WorkspaceProfile[]",
+      "support": "full"
+    },
+    {
+      "client": "cli",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.profile.list",
+      "schema_ref": "WorkspaceProfile[]",
+      "support": "unsupported"
+    },
+    {
+      "client": "uiai_engine_cockpit",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.profile.list",
+      "schema_ref": "WorkspaceProfile[]",
+      "support": "read_only"
+    },
+    {
+      "client": "menubar",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.profile.list",
+      "schema_ref": "WorkspaceProfile[]",
+      "support": "unsupported"
+    },
+    {
+      "client": "core_api",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.profile.select",
+      "schema_ref": "ResolvedWorkspaceProjection",
+      "support": "full"
+    },
+    {
+      "client": "pi_extension",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.profile.select",
+      "schema_ref": "ResolvedWorkspaceProjection",
+      "support": "full"
+    },
+    {
+      "client": "rich_host_typescript",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.profile.select",
+      "schema_ref": "ResolvedWorkspaceProjection",
+      "support": "full"
+    },
+    {
+      "client": "cli",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.profile.select",
+      "schema_ref": "ResolvedWorkspaceProjection",
+      "support": "unsupported"
+    },
+    {
+      "client": "uiai_engine_cockpit",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.profile.select",
+      "schema_ref": "ResolvedWorkspaceProjection",
+      "support": "unsupported"
+    },
+    {
+      "client": "menubar",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.profile.select",
+      "schema_ref": "ResolvedWorkspaceProjection",
+      "support": "unsupported"
+    },
+    {
+      "client": "core_api",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.profile.get",
+      "schema_ref": "WorkspaceProfile",
+      "support": "full"
+    },
+    {
+      "client": "pi_extension",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.profile.get",
+      "schema_ref": "WorkspaceProfile",
+      "support": "full"
+    },
+    {
+      "client": "rich_host_typescript",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.profile.get",
+      "schema_ref": "WorkspaceProfile",
+      "support": "full"
+    },
+    {
+      "client": "cli",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.profile.get",
+      "schema_ref": "WorkspaceProfile",
+      "support": "unsupported"
+    },
+    {
+      "client": "uiai_engine_cockpit",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.profile.get",
+      "schema_ref": "WorkspaceProfile",
+      "support": "read_only"
+    },
+    {
+      "client": "menubar",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.profile.get",
+      "schema_ref": "WorkspaceProfile",
+      "support": "unsupported"
+    },
+    {
+      "client": "core_api",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.activity.list",
+      "schema_ref": "ActivityMode[]",
+      "support": "full"
+    },
+    {
+      "client": "pi_extension",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.activity.list",
+      "schema_ref": "ActivityMode[]",
+      "support": "full"
+    },
+    {
+      "client": "rich_host_typescript",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.activity.list",
+      "schema_ref": "ActivityMode[]",
+      "support": "full"
+    },
+    {
+      "client": "cli",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.activity.list",
+      "schema_ref": "ActivityMode[]",
+      "support": "unsupported"
+    },
+    {
+      "client": "uiai_engine_cockpit",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.activity.list",
+      "schema_ref": "ActivityMode[]",
+      "support": "read_only"
+    },
+    {
+      "client": "menubar",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.activity.list",
+      "schema_ref": "ActivityMode[]",
+      "support": "unsupported"
+    },
+    {
+      "client": "core_api",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.activity.select",
+      "schema_ref": "ResolvedWorkspaceProjection",
+      "support": "full"
+    },
+    {
+      "client": "pi_extension",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.activity.select",
+      "schema_ref": "ResolvedWorkspaceProjection",
+      "support": "full"
+    },
+    {
+      "client": "rich_host_typescript",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.activity.select",
+      "schema_ref": "ResolvedWorkspaceProjection",
+      "support": "full"
+    },
+    {
+      "client": "cli",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.activity.select",
+      "schema_ref": "ResolvedWorkspaceProjection",
+      "support": "unsupported"
+    },
+    {
+      "client": "uiai_engine_cockpit",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.activity.select",
+      "schema_ref": "ResolvedWorkspaceProjection",
+      "support": "unsupported"
+    },
+    {
+      "client": "menubar",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.activity.select",
+      "schema_ref": "ResolvedWorkspaceProjection",
+      "support": "unsupported"
+    },
+    {
+      "client": "core_api",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.domain_pack.install",
+      "schema_ref": "focusa.mission_canvas.domain_pack_install_receipt.v1",
+      "support": "full"
+    },
+    {
+      "client": "pi_extension",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.domain_pack.install",
+      "schema_ref": "focusa.mission_canvas.domain_pack_install_receipt.v1",
+      "support": "full"
+    },
+    {
+      "client": "rich_host_typescript",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.domain_pack.install",
+      "schema_ref": "focusa.mission_canvas.domain_pack_install_receipt.v1",
+      "support": "full"
+    },
+    {
+      "client": "cli",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.domain_pack.install",
+      "schema_ref": "focusa.mission_canvas.domain_pack_install_receipt.v1",
+      "support": "unsupported"
+    },
+    {
+      "client": "uiai_engine_cockpit",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.domain_pack.install",
+      "schema_ref": "focusa.mission_canvas.domain_pack_install_receipt.v1",
+      "support": "unsupported"
+    },
+    {
+      "client": "menubar",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.domain_pack.install",
+      "schema_ref": "focusa.mission_canvas.domain_pack_install_receipt.v1",
+      "support": "unsupported"
+    },
+    {
+      "client": "core_api",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.registry.list",
+      "schema_ref": "RegistryEntry[]",
+      "support": "full"
+    },
+    {
+      "client": "pi_extension",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.registry.list",
+      "schema_ref": "RegistryEntry[]",
+      "support": "full"
+    },
+    {
+      "client": "rich_host_typescript",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.registry.list",
+      "schema_ref": "RegistryEntry[]",
+      "support": "full"
+    },
+    {
+      "client": "cli",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.registry.list",
+      "schema_ref": "RegistryEntry[]",
+      "support": "unsupported"
+    },
+    {
+      "client": "uiai_engine_cockpit",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.registry.list",
+      "schema_ref": "RegistryEntry[]",
+      "support": "read_only"
+    },
+    {
+      "client": "menubar",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.registry.list",
+      "schema_ref": "RegistryEntry[]",
+      "support": "unsupported"
+    },
+    {
+      "client": "core_api",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.layout_memory.get",
+      "schema_ref": "ProfileLayoutMemory",
+      "support": "full"
+    },
+    {
+      "client": "pi_extension",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.layout_memory.get",
+      "schema_ref": "ProfileLayoutMemory",
+      "support": "full"
+    },
+    {
+      "client": "rich_host_typescript",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.layout_memory.get",
+      "schema_ref": "ProfileLayoutMemory",
+      "support": "full"
+    },
+    {
+      "client": "cli",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.layout_memory.get",
+      "schema_ref": "ProfileLayoutMemory",
+      "support": "unsupported"
+    },
+    {
+      "client": "uiai_engine_cockpit",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.layout_memory.get",
+      "schema_ref": "ProfileLayoutMemory",
+      "support": "read_only"
+    },
+    {
+      "client": "menubar",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.layout_memory.get",
+      "schema_ref": "ProfileLayoutMemory",
+      "support": "unsupported"
+    },
+    {
+      "client": "core_api",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.layout_memory.update",
+      "schema_ref": "RecompositionReceipt",
+      "support": "full"
+    },
+    {
+      "client": "pi_extension",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.layout_memory.update",
+      "schema_ref": "RecompositionReceipt",
+      "support": "full"
+    },
+    {
+      "client": "rich_host_typescript",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.layout_memory.update",
+      "schema_ref": "RecompositionReceipt",
+      "support": "full"
+    },
+    {
+      "client": "cli",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.layout_memory.update",
+      "schema_ref": "RecompositionReceipt",
+      "support": "unsupported"
+    },
+    {
+      "client": "uiai_engine_cockpit",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.layout_memory.update",
+      "schema_ref": "RecompositionReceipt",
+      "support": "unsupported"
+    },
+    {
+      "client": "menubar",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.layout_memory.update",
+      "schema_ref": "RecompositionReceipt",
+      "support": "unsupported"
+    },
+    {
+      "client": "core_api",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.layout.mutate",
+      "schema_ref": "LayoutMutationResult",
+      "support": "full"
+    },
+    {
+      "client": "pi_extension",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.layout.mutate",
+      "schema_ref": "LayoutMutationResult",
+      "support": "full"
+    },
+    {
+      "client": "rich_host_typescript",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.layout.mutate",
+      "schema_ref": "LayoutMutationResult",
+      "support": "full"
+    },
+    {
+      "client": "cli",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.layout.mutate",
+      "schema_ref": "LayoutMutationResult",
+      "support": "unsupported"
+    },
+    {
+      "client": "uiai_engine_cockpit",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.layout.mutate",
+      "schema_ref": "LayoutMutationResult",
+      "support": "unsupported"
+    },
+    {
+      "client": "menubar",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.layout.mutate",
+      "schema_ref": "LayoutMutationResult",
+      "support": "unsupported"
+    },
+    {
+      "client": "core_api",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.resolve",
+      "schema_ref": "HostRendererResolution",
+      "support": "full"
+    },
+    {
+      "client": "pi_extension",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.resolve",
+      "schema_ref": "HostRendererResolution",
+      "support": "full"
+    },
+    {
+      "client": "rich_host_typescript",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.resolve",
+      "schema_ref": "HostRendererResolution",
+      "support": "full"
+    },
+    {
+      "client": "cli",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.resolve",
+      "schema_ref": "HostRendererResolution",
+      "support": "unsupported"
+    },
+    {
+      "client": "uiai_engine_cockpit",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.resolve",
+      "schema_ref": "HostRendererResolution",
+      "support": "read_only"
+    },
+    {
+      "client": "menubar",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.resolve",
+      "schema_ref": "HostRendererResolution",
+      "support": "unsupported"
+    },
+    {
+      "client": "core_api",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.launch",
+      "schema_ref": "HostLifecycleState",
+      "support": "full"
+    },
+    {
+      "client": "pi_extension",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.launch",
+      "schema_ref": "HostLifecycleState",
+      "support": "full"
+    },
+    {
+      "client": "rich_host_typescript",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.launch",
+      "schema_ref": "HostLifecycleState",
+      "support": "full"
+    },
+    {
+      "client": "cli",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.launch",
+      "schema_ref": "HostLifecycleState",
+      "support": "unsupported"
+    },
+    {
+      "client": "uiai_engine_cockpit",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.launch",
+      "schema_ref": "HostLifecycleState",
+      "support": "unsupported"
+    },
+    {
+      "client": "menubar",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.launch",
+      "schema_ref": "HostLifecycleState",
+      "support": "unsupported"
+    },
+    {
+      "client": "core_api",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.focus",
+      "schema_ref": "HostLifecycleState",
+      "support": "full"
+    },
+    {
+      "client": "pi_extension",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.focus",
+      "schema_ref": "HostLifecycleState",
+      "support": "full"
+    },
+    {
+      "client": "rich_host_typescript",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.focus",
+      "schema_ref": "HostLifecycleState",
+      "support": "full"
+    },
+    {
+      "client": "cli",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.focus",
+      "schema_ref": "HostLifecycleState",
+      "support": "unsupported"
+    },
+    {
+      "client": "uiai_engine_cockpit",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.focus",
+      "schema_ref": "HostLifecycleState",
+      "support": "unsupported"
+    },
+    {
+      "client": "menubar",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.focus",
+      "schema_ref": "HostLifecycleState",
+      "support": "unsupported"
+    },
+    {
+      "client": "core_api",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.hide",
+      "schema_ref": "HostLifecycleState",
+      "support": "full"
+    },
+    {
+      "client": "pi_extension",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.hide",
+      "schema_ref": "HostLifecycleState",
+      "support": "full"
+    },
+    {
+      "client": "rich_host_typescript",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.hide",
+      "schema_ref": "HostLifecycleState",
+      "support": "full"
+    },
+    {
+      "client": "cli",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.hide",
+      "schema_ref": "HostLifecycleState",
+      "support": "unsupported"
+    },
+    {
+      "client": "uiai_engine_cockpit",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.hide",
+      "schema_ref": "HostLifecycleState",
+      "support": "unsupported"
+    },
+    {
+      "client": "menubar",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.hide",
+      "schema_ref": "HostLifecycleState",
+      "support": "unsupported"
+    },
+    {
+      "client": "core_api",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.close",
+      "schema_ref": "HostLifecycleState",
+      "support": "full"
+    },
+    {
+      "client": "pi_extension",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.close",
+      "schema_ref": "HostLifecycleState",
+      "support": "full"
+    },
+    {
+      "client": "rich_host_typescript",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.close",
+      "schema_ref": "HostLifecycleState",
+      "support": "full"
+    },
+    {
+      "client": "cli",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.close",
+      "schema_ref": "HostLifecycleState",
+      "support": "unsupported"
+    },
+    {
+      "client": "uiai_engine_cockpit",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.close",
+      "schema_ref": "HostLifecycleState",
+      "support": "unsupported"
+    },
+    {
+      "client": "menubar",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.rich_host.close",
+      "schema_ref": "HostLifecycleState",
+      "support": "unsupported"
+    },
+    {
+      "client": "core_api",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.draft.get",
+      "schema_ref": "CanvasDraftState",
+      "support": "full"
+    },
+    {
+      "client": "pi_extension",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.draft.get",
+      "schema_ref": "CanvasDraftState",
+      "support": "full"
+    },
+    {
+      "client": "rich_host_typescript",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.draft.get",
+      "schema_ref": "CanvasDraftState",
+      "support": "full"
+    },
+    {
+      "client": "cli",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.draft.get",
+      "schema_ref": "CanvasDraftState",
+      "support": "unsupported"
+    },
+    {
+      "client": "uiai_engine_cockpit",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.draft.get",
+      "schema_ref": "CanvasDraftState",
+      "support": "read_only"
+    },
+    {
+      "client": "menubar",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.draft.get",
+      "schema_ref": "CanvasDraftState",
+      "support": "unsupported"
+    },
+    {
+      "client": "core_api",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.draft.sync",
+      "schema_ref": "CanvasDraftState",
+      "support": "full"
+    },
+    {
+      "client": "pi_extension",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.draft.sync",
+      "schema_ref": "CanvasDraftState",
+      "support": "full"
+    },
+    {
+      "client": "rich_host_typescript",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.draft.sync",
+      "schema_ref": "CanvasDraftState",
+      "support": "full"
+    },
+    {
+      "client": "cli",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.draft.sync",
+      "schema_ref": "CanvasDraftState",
+      "support": "unsupported"
+    },
+    {
+      "client": "uiai_engine_cockpit",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.draft.sync",
+      "schema_ref": "CanvasDraftState",
+      "support": "unsupported"
+    },
+    {
+      "client": "menubar",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.draft.sync",
+      "schema_ref": "CanvasDraftState",
+      "support": "unsupported"
+    },
+    {
+      "client": "core_api",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.recipient.resolve",
+      "schema_ref": "focusa.mission_canvas.recipient_resolution.v1",
+      "support": "full"
+    },
+    {
+      "client": "pi_extension",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.recipient.resolve",
+      "schema_ref": "focusa.mission_canvas.recipient_resolution.v1",
+      "support": "full"
+    },
+    {
+      "client": "rich_host_typescript",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.recipient.resolve",
+      "schema_ref": "focusa.mission_canvas.recipient_resolution.v1",
+      "support": "full"
+    },
+    {
+      "client": "cli",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.recipient.resolve",
+      "schema_ref": "focusa.mission_canvas.recipient_resolution.v1",
+      "support": "unsupported"
+    },
+    {
+      "client": "uiai_engine_cockpit",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.recipient.resolve",
+      "schema_ref": "focusa.mission_canvas.recipient_resolution.v1",
+      "support": "read_only"
+    },
+    {
+      "client": "menubar",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.recipient.resolve",
+      "schema_ref": "focusa.mission_canvas.recipient_resolution.v1",
+      "support": "unsupported"
+    },
+    {
+      "client": "core_api",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.recomposition.evidence.get",
+      "schema_ref": "RecompositionEvidence",
+      "support": "full"
+    },
+    {
+      "client": "pi_extension",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.recomposition.evidence.get",
+      "schema_ref": "RecompositionEvidence",
+      "support": "full"
+    },
+    {
+      "client": "rich_host_typescript",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.recomposition.evidence.get",
+      "schema_ref": "RecompositionEvidence",
+      "support": "full"
+    },
+    {
+      "client": "cli",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.recomposition.evidence.get",
+      "schema_ref": "RecompositionEvidence",
+      "support": "unsupported"
+    },
+    {
+      "client": "uiai_engine_cockpit",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.recomposition.evidence.get",
+      "schema_ref": "RecompositionEvidence",
+      "support": "read_only"
+    },
+    {
+      "client": "menubar",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.recomposition.evidence.get",
+      "schema_ref": "RecompositionEvidence",
+      "support": "unsupported"
+    },
+    {
+      "client": "core_api",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.recomposition.receipt.get",
+      "schema_ref": "RecompositionReceipt",
+      "support": "full"
+    },
+    {
+      "client": "pi_extension",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.recomposition.receipt.get",
+      "schema_ref": "RecompositionReceipt",
+      "support": "full"
+    },
+    {
+      "client": "rich_host_typescript",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.recomposition.receipt.get",
+      "schema_ref": "RecompositionReceipt",
+      "support": "full"
+    },
+    {
+      "client": "cli",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.recomposition.receipt.get",
+      "schema_ref": "RecompositionReceipt",
+      "support": "unsupported"
+    },
+    {
+      "client": "uiai_engine_cockpit",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.recomposition.receipt.get",
+      "schema_ref": "RecompositionReceipt",
+      "support": "read_only"
+    },
+    {
+      "client": "menubar",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.recomposition.receipt.get",
+      "schema_ref": "RecompositionReceipt",
+      "support": "unsupported"
+    },
+    {
+      "client": "core_api",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.recomposition.diagnostics.list",
+      "schema_ref": "OmissionDiagnostic[]",
+      "support": "full"
+    },
+    {
+      "client": "pi_extension",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.recomposition.diagnostics.list",
+      "schema_ref": "OmissionDiagnostic[]",
+      "support": "full"
+    },
+    {
+      "client": "rich_host_typescript",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.recomposition.diagnostics.list",
+      "schema_ref": "OmissionDiagnostic[]",
+      "support": "full"
+    },
+    {
+      "client": "cli",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.recomposition.diagnostics.list",
+      "schema_ref": "OmissionDiagnostic[]",
+      "support": "unsupported"
+    },
+    {
+      "client": "uiai_engine_cockpit",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.recomposition.diagnostics.list",
+      "schema_ref": "OmissionDiagnostic[]",
+      "support": "read_only"
+    },
+    {
+      "client": "menubar",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.recomposition.diagnostics.list",
+      "schema_ref": "OmissionDiagnostic[]",
+      "support": "unsupported"
+    },
+    {
+      "client": "core_api",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.pi_session.event.append",
+      "schema_ref": "focusa.mission_canvas.pi_session_event_receipt.v1",
+      "support": "full"
+    },
+    {
+      "client": "pi_extension",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.pi_session.event.append",
+      "schema_ref": "focusa.mission_canvas.pi_session_event_receipt.v1",
+      "support": "full"
+    },
+    {
+      "client": "rich_host_typescript",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.pi_session.event.append",
+      "schema_ref": "focusa.mission_canvas.pi_session_event_receipt.v1",
+      "support": "full"
+    },
+    {
+      "client": "cli",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.pi_session.event.append",
+      "schema_ref": "focusa.mission_canvas.pi_session_event_receipt.v1",
+      "support": "unsupported"
+    },
+    {
+      "client": "uiai_engine_cockpit",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.pi_session.event.append",
+      "schema_ref": "focusa.mission_canvas.pi_session_event_receipt.v1",
+      "support": "unsupported"
+    },
+    {
+      "client": "menubar",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.pi_session.event.append",
+      "schema_ref": "focusa.mission_canvas.pi_session_event_receipt.v1",
+      "support": "unsupported"
+    },
+    {
+      "client": "core_api",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.events.stream",
+      "schema_ref": "ProjectionLifecycleEvent[]",
+      "support": "full"
+    },
+    {
+      "client": "pi_extension",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.events.stream",
+      "schema_ref": "ProjectionLifecycleEvent[]",
+      "support": "full"
+    },
+    {
+      "client": "rich_host_typescript",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.events.stream",
+      "schema_ref": "ProjectionLifecycleEvent[]",
+      "support": "full"
+    },
+    {
+      "client": "cli",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.events.stream",
+      "schema_ref": "ProjectionLifecycleEvent[]",
+      "support": "unsupported"
+    },
+    {
+      "client": "uiai_engine_cockpit",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.events.stream",
+      "schema_ref": "ProjectionLifecycleEvent[]",
+      "support": "read_only"
+    },
+    {
+      "client": "menubar",
+      "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
+      "operation_id": "focusa.mission_canvas.events.stream",
+      "schema_ref": "ProjectionLifecycleEvent[]",
+      "support": "unsupported"
+    }
+  ],
+  "schema": "focusa.mission_canvas.client_parity_matrix.v1"
+}
