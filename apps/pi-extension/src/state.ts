@@ -14,7 +14,10 @@ import {
   type AttachmentKey,
 } from "./scoped-state.js";
 import { projectBindingAllowsDurableWrites, type ProjectBindingDecisionV1 } from "./project-binding.js";
-import { resolveProjectIdentityLookupCwd } from "./project-identity-working-context.js";
+import {
+  resolveCanonicalMarkerProjectRoot,
+  resolveProjectIdentityLookupCwd,
+} from "./project-identity-working-context.js";
 import {
   COMPACTION_PERSISTENCE_ANCHOR_REF_SCHEMA,
   COMPACTION_PERSISTENCE_ANCHOR_SCHEMA,
@@ -3216,8 +3219,9 @@ export async function buildFocusaSessionIdentity(
     const query = new URLSearchParams();
     query.set("cwd", cwdForIdentity);
     // `projectRoot` is normally the ambient Pi cwd, not operator-confirmed
-    // authority. Sending it as project_root would outrank a canonical marker
-    // and collapse a linked worktree into an independent primary project.
+    // authority. Only a local project marker may promote a canonical root.
+    const markerProjectRoot = resolveCanonicalMarkerProjectRoot(cwdForIdentity);
+    if (markerProjectRoot) query.set("project_root", markerProjectRoot);
     if (sessionId) query.set("pi_session_id", sessionId);
     const remoteContext: any = persistedBody.remote_context || {};
     if (remoteContext.remote_host) query.set("remote_host", String(remoteContext.remote_host));

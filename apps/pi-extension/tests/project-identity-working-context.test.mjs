@@ -10,8 +10,19 @@ const source = readFileSync(
 const compiled = ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
 }).outputText;
-const { resolveProjectIdentityLookupCwd } = await import(
+const { resolveCanonicalMarkerProjectRoot, resolveProjectIdentityLookupCwd } = await import(
   `data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`
+);
+
+assert.equal(
+  resolveCanonicalMarkerProjectRoot(fileURLToPath(new URL("..", import.meta.url))),
+  "/home/wirebot/focusa",
+  "a linked worktree marker declares the canonical parent independently of ambient cwd"
+);
+assert.equal(
+  resolveCanonicalMarkerProjectRoot("/root"),
+  "",
+  "broad unmarked launchers must not invent canonical project authority"
 );
 
 const richIdentity = {

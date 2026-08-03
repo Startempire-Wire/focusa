@@ -1,7 +1,32 @@
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, isAbsolute, join, resolve } from "node:path";
+
 function normalizeRoot(value: unknown): string {
   const raw = String(value || "").trim();
   if (!raw) return "";
   return raw.length > 1 ? raw.replace(/\/+$/, "") : raw;
+}
+
+export function resolveCanonicalMarkerProjectRoot(start: string, maxDepth = 12): string {
+  let current = resolve(String(start || ""));
+  for (let depth = 0; depth <= maxDepth; depth += 1) {
+    const markerPath = join(current, ".focusa-project.json");
+    if (existsSync(markerPath)) {
+      try {
+        const marker = JSON.parse(readFileSync(markerPath, "utf8"));
+        const declared = normalizeRoot(marker?.project_root);
+        if (declared && isAbsolute(declared) && declared !== "/" && declared !== "/root" && declared !== "/tmp") {
+          return declared;
+        }
+      } catch {
+        return "";
+      }
+    }
+    const parent = dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
+  return "";
 }
 
 function identityBody(identity: any): any {
