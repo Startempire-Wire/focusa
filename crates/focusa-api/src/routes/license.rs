@@ -3,7 +3,7 @@
 //! Returns current tier, capability posture, key fingerprint, and expiry.
 
 use axum::{Json, Router, extract::State, routing::get};
-use focusa_license::{Capability, CapabilityCheck, LicenseGuard};
+use focusa_license::{Capability, CapabilityCheck, authority::EntitlementState};
 use serde::Serialize;
 use std::sync::Arc;
 
@@ -48,8 +48,25 @@ async fn license_status(
         })
         .collect();
 
+    let authority_state = g.entitlement.as_ref().map(|snapshot| snapshot.state);
+    let status = match authority_state {
+        Some(EntitlementState::Unactivated) => "unactivated",
+        Some(EntitlementState::RecoveryOnly) => "recovery_only",
+        Some(EntitlementState::OfflineGrace) => "offline_grace",
+        Some(EntitlementState::Active) => "active",
+        None if g.is_expired() => "expired",
+        None => "legacy_migration_only",
+    };
+    let next_action = match authority_state {
+        Some(EntitlementState::Unactivated) => "begin authority device-code activation",
+        Some(EntitlementState::RecoveryOnly) => "repair or refresh signed authority lease",
+        Some(EntitlementState::OfflineGrace) => "refresh signed authority lease before grace expiry",
+        Some(EntitlementState::Active) => "authority entitlement ready",
+        None => "migrate legacy license through authority activation",
+    };
+
     Json(serde_json::json!({
-        "status": if g.is_expired() { "expired" } else { "ok" },
+        "status": status,
         "tier": g.tier.label(),
         "issued_at": g.issued_at.to_rfc3339(),
         "expires_at": g.expires_at.map(|d| d.to_rfc3339()),
@@ -57,16 +74,13 @@ async fn license_status(
         "customer_email": g.customer_email,
         "key_hash": g.key_hash,
         "expired": g.is_expired(),
+        "authority": g.entitlement,
         "capabilities": posture,
         "summary": format!(
             "tier={} capabilities={}",
             g.tier.label(),
             posture.iter().filter(|p| p.outcome == "denied").count()
         ),
-        "next_action": if g.is_expired() {
-            "renew or purchase commercial license"
-        } else {
-            "license plane ready"
-        },
+        "next_action": next_action,
     }))
 }

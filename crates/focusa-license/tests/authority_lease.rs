@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use chrono::{DateTime, Utc};
 use ed25519_dalek::{Signer, SigningKey, VerifyingKey};
+use focusa_license::{resolve_license_guard_from, Capability, CapabilityCheck, Tier};
 use focusa_license::authority::{
     AuthorityKeySet, AuthorityKeyStatus, AuthorityLeasePayload, AuthorityLeaseStatus,
     AuthorityLeaseVerifier, AuthorityVerificationError, EntitlementState, LeaseVerificationContext,
@@ -228,6 +229,47 @@ fn production_trust_root_parser_rejects_test_and_local_roots() {
     })
     .to_string();
     assert_eq!(parse_production_trust_roots(&production).unwrap().len(), 1);
+}
+
+#[test]
+fn signed_feature_claim_is_the_only_capability_grant() {
+    let vector = vector();
+    let signed = resign_lease(|payload| {
+        payload.features.insert("hosted_mode".to_string(), true);
+        payload.features.insert("commercial_use".to_string(), false);
+    });
+    let snapshot = verifier(&vector)
+        .verify_lease(&signed, &context("2026-08-03T00:00:00Z"))
+        .unwrap();
+    let guard = focusa_license::LicenseGuard::from_entitlement(snapshot);
+    assert_eq!(guard.check(Capability::HostedMode), CapabilityCheck::Permitted);
+    assert!(guard.check(Capability::CommercialUse).is_denied());
+}
+
+#[test]
+fn production_guard_ignores_plaintext_legacy_license_and_missing_state_is_unactivated() {
+    let directory = std::env::temp_dir().join(format!(
+        "focusa-production-guard-{}-{}",
+        std::process::id(),
+        Utc::now().timestamp_nanos_opt().unwrap_or_default()
+    ));
+    std::fs::create_dir_all(&directory).unwrap();
+    std::fs::write(
+        directory.join("license.json"),
+        r#"{"tier":"enterprise","status":"active","features":["hosted_mode"]}"#,
+    )
+    .unwrap();
+    let guard = resolve_license_guard_from(
+        &directory,
+        Err(AuthorityStoreError::MissingTrustRoots),
+        at("2026-08-03T00:00:00Z"),
+    );
+    assert_eq!(guard.tier, Tier::Unactivated);
+    assert!(matches!(
+        guard.check(Capability::HostedMode),
+        CapabilityCheck::Denied { .. }
+    ));
+    std::fs::remove_dir_all(directory).unwrap();
 }
 
 #[test]

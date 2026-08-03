@@ -2,14 +2,9 @@
 //!
 //! Bead: focusa-nbai (MVP BLOCKER).
 //!
-//! Three-tier license model mirroring Focusa BSL 1.1 licensing:
-//!   - `Eval`: self-issued; offline grace window; capability `commercial_use = false`.
-//!   - `Licensed`: key-based; verified against `LICENSE_REGISTRY`; commercial_use allowed.
-//!   - `Open`: source-available universal use after BSL change date (placeholder; expires
-//!     automatically).
-//!
-//! Capability map is a static enum set checked at call sites. Soft-warn in eval, hard-fail
-//! in production-only paths (e.g., hosted_mode, commercial_signal).
+//! Runtime capability authority comes only from a signed Spec 152 authority lease.
+//! Legacy tier/file parsing is retained solely as non-authoritative migration input;
+//! missing, edited, expired, revoked, or unverifiable state cannot grant capability.
 
 pub mod authority;
 pub mod authority_store;
@@ -22,30 +17,34 @@ use std::path::{Path, PathBuf};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Tier {
+    Unactivated,
+    RecoveryOnly,
+    Entitled,
+    OfflineGrace,
     Eval,
     Licensed,
     Open,
 }
 
 impl Tier {
-    /// Returns true if this tier permits commercial use.
     pub fn permits_commercial_use(self) -> bool {
-        matches!(self, Tier::Licensed | Tier::Open)
+        matches!(self, Tier::Entitled | Tier::OfflineGrace)
     }
 
-    /// Returns true if this tier permits hosted/multi-tenant deployment.
     pub fn permits_hosted_deployment(self) -> bool {
-        matches!(self, Tier::Licensed | Tier::Open)
+        matches!(self, Tier::Entitled | Tier::OfflineGrace)
     }
 
-    /// Returns true if this tier permits local-only/eval/educational use.
     pub fn permits_local_eval(self) -> bool {
-        true // All tiers permit local eval; eval just adds offline grace.
+        matches!(self, Tier::Entitled | Tier::OfflineGrace)
     }
 
-    /// Returns the human-readable label.
     pub fn label(self) -> &'static str {
         match self {
+            Tier::Unactivated => "unactivated",
+            Tier::RecoveryOnly => "recovery_only",
+            Tier::Entitled => "entitled",
+            Tier::OfflineGrace => "offline_grace",
             Tier::Eval => "eval",
             Tier::Licensed => "licensed",
             Tier::Open => "open",
@@ -122,6 +121,8 @@ pub struct LicenseGuard {
     pub issued_at: DateTime<Utc>,
     pub expires_at: Option<DateTime<Utc>>,
     pub bsl_change_date: DateTime<Utc>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub entitlement: Option<authority::EntitlementSnapshot>,
 }
 
 impl LicenseGuard {
@@ -135,6 +136,7 @@ impl LicenseGuard {
             issued_at: now,
             expires_at: Some(now + chrono::Duration::days(duration_days)),
             bsl_change_date: bsl_change_date(),
+            entitlement: None,
         }
     }
 
@@ -148,10 +150,29 @@ impl LicenseGuard {
             issued_at: now,
             expires_at: None,
             bsl_change_date: bsl_change_date(),
+            entitlement: None,
         }
     }
 
-    /// Returns true if the license has expired (only relevant for Eval).
+    pub fn from_entitlement(entitlement: authority::EntitlementSnapshot) -> Self {
+        let tier = match entitlement.state {
+            authority::EntitlementState::Unactivated => Tier::Unactivated,
+            authority::EntitlementState::RecoveryOnly => Tier::RecoveryOnly,
+            authority::EntitlementState::Active => Tier::Entitled,
+            authority::EntitlementState::OfflineGrace => Tier::OfflineGrace,
+        };
+        Self {
+            tier,
+            key_hash: entitlement.lease_digest.clone(),
+            customer_email: None,
+            issued_at: Utc::now(),
+            expires_at: entitlement.expires_at,
+            bsl_change_date: bsl_change_date(),
+            entitlement: Some(entitlement),
+        }
+    }
+
+    /// Returns true if the authority lease or legacy evaluation has expired.
     pub fn is_expired(&self) -> bool {
         match self.expires_at {
             Some(e) => Utc::now() > e,
@@ -161,6 +182,22 @@ impl LicenseGuard {
 
     /// Check a capability against the current tier.
     pub fn check(&self, capability: Capability) -> CapabilityCheck {
+        if let Some(entitlement) = &self.entitlement {
+            if entitlement.feature_enabled(capability.label()) {
+                return CapabilityCheck::Permitted;
+            }
+            return CapabilityCheck::Denied {
+                reason: format!(
+                    "authority entitlement state={} does not grant {}",
+                    self.tier.label(),
+                    capability.label()
+                ),
+            };
+        }
+        return CapabilityCheck::Denied {
+            reason: "signed authority entitlement required; legacy tier is migration-only".into(),
+        };
+        #[allow(unreachable_code)]
         match (self.tier, capability) {
             // Local-eval: always permitted.
             (_, Capability::LocalEval) => CapabilityCheck::Permitted,
@@ -194,10 +231,14 @@ impl LicenseGuard {
             (Tier::Eval, Capability::TelemetrySend) => CapabilityCheck::Denied {
                 reason: "eval/license/open tiers: Focusa is no-telemetry by default".into(),
             },
-            // Licensed tier: all capabilities permitted (subject to expiry checks elsewhere).
-            (Tier::Licensed, _) => CapabilityCheck::Permitted,
-            // Open tier: same as licensed for capability gating; commercial/hosted permitted.
-            (Tier::Open, _) => CapabilityCheck::Permitted,
+            // Legacy constructors remain migration/test inputs, never production resolution.
+            (Tier::Licensed, _) | (Tier::Open, _) => CapabilityCheck::Permitted,
+            (Tier::Unactivated, _)
+            | (Tier::RecoveryOnly, _)
+            | (Tier::Entitled, _)
+            | (Tier::OfflineGrace, _) => CapabilityCheck::Denied {
+                reason: "signed authority entitlement required".into(),
+            },
         }
     }
 
@@ -236,31 +277,44 @@ fn bsl_change_date() -> DateTime<Utc> {
         .unwrap_or_else(|_| Utc::now())
 }
 
-/// Resolve a LicenseGuard from the operator's license state. Reads in this order:
-///   1. env FOCUSA_LICENSE_KEY + LICENSE_REGISTRY (commercial validate)
-///   2. ~/.config/focusa/license.json (cached license record)
-///   3. ~/.focusa/license.toml (per-project override)
-///   4. Self-issued eval (default)
+/// Resolve a LicenseGuard only from signed, persisted authority state.
 pub fn resolve_license_guard() -> LicenseGuard {
-    if let Ok(key) = std::env::var("FOCUSA_LICENSE_KEY")
-        && !key.trim().is_empty()
-        && let Ok(registry) = std::env::var("FOCUSA_LICENSE_REGISTRY")
-    {
-        let key_hash = sha256_short(&key);
-        if let Ok(email) = std::env::var("FOCUSA_LICENSE_EMAIL") {
-            return LicenseGuard::licensed(key_hash, email);
-        }
-        // Key without email \u2014 default to licensed with placeholder email from registry host.
-        return LicenseGuard::licensed(key_hash, format!("owner@{registry}"));
-    }
+    let home = std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("."));
+    resolve_license_guard_from(
+        &home.join(".config/focusa"),
+        authority_store::embedded_production_trust_roots(),
+        Utc::now(),
+    )
+}
 
-    if let Some(guard) = read_license_json() {
-        return guard;
-    }
-    if let Some(guard) = read_license_toml() {
-        return guard;
-    }
-    LicenseGuard::eval(7) // default 7-day offline grace
+pub fn resolve_license_guard_from(
+    config_dir: &Path,
+    roots: Result<
+        std::collections::BTreeMap<String, ed25519_dalek::VerifyingKey>,
+        authority_store::AuthorityStoreError,
+    >,
+    now: DateTime<Utc>,
+) -> LicenseGuard {
+    let state_path = config_dir.join(authority_store::AUTHORITY_STATE_FILE);
+    let expected_node_id = std::fs::read_to_string(config_dir.join("node-id"))
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| "unbound".to_string());
+    let context = authority::LeaseVerificationContext {
+        expected_product: "focusa".to_string(),
+        expected_node_id,
+        now,
+        minimum_sequence: None,
+        expected_previous_digest: None,
+    };
+    LicenseGuard::from_entitlement(authority_store::resolve_authority_state(
+        &state_path,
+        roots,
+        &context,
+    ))
 }
 
 /// Read ~/.config/focusa/license.json and construct a guard.
@@ -289,6 +343,7 @@ fn read_license_json() -> Option<LicenseGuard> {
             .and_then(parse_iso),
         bsl_change_date: parse_iso(json.get("bsl_change_date")?.as_str()?)
             .unwrap_or_else(bsl_change_date),
+        entitlement: None,
     })
 }
 
@@ -318,6 +373,7 @@ fn read_license_toml() -> Option<LicenseGuard> {
             .and_then(parse_iso),
         bsl_change_date: parse_iso(table.get("bsl_change_date")?.as_str()?)
             .unwrap_or_else(bsl_change_date),
+        entitlement: None,
     })
 }
 
@@ -361,16 +417,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn eval_tier_permits_local_eval() {
+    fn self_issued_eval_cannot_grant_local_eval() {
         let g = LicenseGuard::eval(7);
-        assert_eq!(g.check(Capability::LocalEval), CapabilityCheck::Permitted);
+        assert!(g.check(Capability::LocalEval).is_denied());
     }
 
     #[test]
-    fn eval_tier_warns_on_commercial_use_when_fresh() {
+    fn self_issued_eval_cannot_grant_commercial_use() {
         let g = LicenseGuard::eval(7);
-        let c = g.check(Capability::CommercialUse);
-        assert!(matches!(c, CapabilityCheck::PermittedWithWarning { .. }));
+        assert!(g.check(Capability::CommercialUse).is_denied());
     }
 
     #[test]
@@ -388,22 +443,19 @@ mod tests {
     }
 
     #[test]
-    fn licensed_tier_permits_commercial_use() {
+    fn plaintext_licensed_tier_cannot_grant_commercial_use() {
         let g = LicenseGuard::licensed("abc123".into(), "v@x.com".into());
-        assert_eq!(
-            g.check(Capability::CommercialUse),
-            CapabilityCheck::Permitted
-        );
+        assert!(g.check(Capability::CommercialUse).is_denied());
     }
 
     #[test]
-    fn licensed_tier_permits_hosted_mode() {
+    fn plaintext_licensed_tier_cannot_grant_hosted_mode() {
         let g = LicenseGuard::licensed("abc123".into(), "v@x.com".into());
-        assert_eq!(g.check(Capability::HostedMode), CapabilityCheck::Permitted);
+        assert!(g.check(Capability::HostedMode).is_denied());
     }
 
     #[test]
-    fn open_tier_permits_everything() {
+    fn plaintext_open_tier_cannot_grant_capabilities() {
         let g = LicenseGuard {
             tier: Tier::Open,
             key_hash: None,
@@ -411,27 +463,18 @@ mod tests {
             issued_at: Utc::now(),
             expires_at: None,
             bsl_change_date: bsl_change_date(),
+            entitlement: None,
         };
-        assert_eq!(
-            g.check(Capability::CommercialUse),
-            CapabilityCheck::Permitted
-        );
-        assert_eq!(g.check(Capability::HostedMode), CapabilityCheck::Permitted);
-        assert_eq!(
-            g.check(Capability::ProductEmbedding),
-            CapabilityCheck::Permitted
-        );
+        assert!(g.check(Capability::CommercialUse).is_denied());
+        assert!(g.check(Capability::HostedMode).is_denied());
+        assert!(g.check(Capability::ProductEmbedding).is_denied());
     }
 
     #[test]
-    fn require_returns_warning_or_denied() {
+    fn require_denies_without_signed_entitlement() {
         let g = LicenseGuard::eval(7);
-        // CommercialUse should warn.
-        let r = g.require(Capability::CommercialUse);
-        assert!(r.is_ok());
-        // HostedMode should deny.
-        let r = g.require(Capability::HostedMode);
-        assert!(r.is_err());
+        assert!(g.require(Capability::CommercialUse).is_err());
+        assert!(g.require(Capability::HostedMode).is_err());
     }
 
     #[test]
@@ -439,7 +482,15 @@ mod tests {
         assert_eq!(Tier::Eval.label(), "eval");
         assert_eq!(Tier::Licensed.label(), "licensed");
         assert_eq!(Tier::Open.label(), "open");
-        for t in [Tier::Eval, Tier::Licensed, Tier::Open] {
+        for t in [
+            Tier::Unactivated,
+            Tier::RecoveryOnly,
+            Tier::Entitled,
+            Tier::OfflineGrace,
+            Tier::Eval,
+            Tier::Licensed,
+            Tier::Open,
+        ] {
             let json = serde_json::to_string(&t).unwrap();
             let back: Tier = serde_json::from_str(&json).unwrap();
             assert_eq!(t, back);

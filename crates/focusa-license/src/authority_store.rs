@@ -91,16 +91,6 @@ pub fn resolve_authority_state(
     roots: Result<BTreeMap<String, VerifyingKey>, AuthorityStoreError>,
     context: &LeaseVerificationContext,
 ) -> EntitlementSnapshot {
-    let roots = match roots {
-        Ok(roots) => roots,
-        Err(error) => {
-            return EntitlementSnapshot::recovery_only(
-                &context.expected_product,
-                &context.expected_node_id,
-                store_error_code(&error),
-            );
-        }
-    };
     let state = match PersistedAuthorityState::read(path) {
         Ok(state) => state,
         Err(AuthorityStoreError::Missing) => {
@@ -109,6 +99,16 @@ pub fn resolve_authority_state(
                 &context.expected_node_id,
             );
         }
+        Err(error) => {
+            return EntitlementSnapshot::recovery_only(
+                &context.expected_product,
+                &context.expected_node_id,
+                store_error_code(&error),
+            );
+        }
+    };
+    let roots = match roots {
+        Ok(roots) => roots,
         Err(error) => {
             return EntitlementSnapshot::recovery_only(
                 &context.expected_product,
