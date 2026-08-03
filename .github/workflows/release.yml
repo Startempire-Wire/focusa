@@ -786,7 +786,11 @@ jobs:
           set -euo pipefail
           TAG="${{ github.ref_name }}"
           tar -C apps -czf "focusa-pi-extension-${TAG}.tar.gz" pi-extension
+          tar -czf "focusa-generated-clients-${TAG}.tar.gz" \
+            packages/generated/spec135 \
+            docs/contracts/spec135/generated-contract-v1
           cp scripts/install-focusa.sh "focusa-installer-${TAG}.sh"
+          cp scripts/install-focusa.ps1 "focusa-installer-${TAG}.ps1"
           sed -i "s/FOCUSA_INSTALLER_VERSION=\"dev-source\"/FOCUSA_INSTALLER_VERSION=\"${TAG#v}\"/" "focusa-installer-${TAG}.sh"
           chmod 0755 "focusa-installer-${TAG}.sh"
           "./focusa-installer-${TAG}.sh" --version | grep -F "${TAG#v}"
@@ -799,13 +803,15 @@ jobs:
           test -x bundle/focusa-agent-context/bin/focusa-skill-doctor
           find bundle/focusa-agent-context/skills -name SKILL.md -type f | grep -q .
           tar -C bundle -czf "focusa-agent-context-${TAG}.tar.gz" focusa-agent-context
-      - name: Upload Pi extension, installer, and agent context archives
+      - name: Upload Pi extension, installers, generated clients, and agent context archives
         uses: softprops/action-gh-release@v2
         with:
           files: |
             focusa-pi-extension-*.tar.gz
             focusa-installer-*.sh
+            focusa-installer-*.ps1
             focusa-agent-context-*.tar.gz
+            focusa-generated-clients-*.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -842,34 +848,12 @@ jobs:
           mkdir -p dist
           gh release download "$TAG" --repo "${{ github.repository }}" --dir dist --clobber
 
-      - name: Require canonical cross-platform release assets
+      - name: Require every canonical surface on every supported system
         run: |
           set -euo pipefail
-          TAG="${{ github.ref_name }}"
-          for target in x86_64-pc-windows-msvc aarch64-pc-windows-msvc; do
-            for bin in focusa focusa-daemon focusa-tui; do
-              test -s "dist/${bin}-${TAG}-${target}.exe" || {
-                echo "::error::Canonical release missing Windows binary ${bin}-${TAG}-${target}.exe"
-                exit 1
-              }
-            done
-          done
-          compgen -G 'dist/Focusa_*x64*setup.exe' >/dev/null || {
-            echo "::error::Canonical release missing Windows x64 desktop installer"
-            exit 1
-          }
-          compgen -G 'dist/Focusa_*arm64*setup.exe' >/dev/null || {
-            echo "::error::Canonical release missing Windows ARM64 desktop installer"
-            exit 1
-          }
-          compgen -G 'dist/Focusa_*x64*.msi' >/dev/null || {
-            echo "::error::Canonical release missing Windows x64 MSI"
-            exit 1
-          }
-          compgen -G 'dist/Focusa_*arm64*.msi' >/dev/null || {
-            echo "::error::Canonical release missing Windows ARM64 MSI"
-            exit 1
-          }
+          python3 scripts/verify-canonical-release-assets.py \
+            --dist dist \
+            --tag "${{ github.ref_name }}"
 
       - name: Generate typed release intelligence packet and page
         env:

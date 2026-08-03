@@ -16,9 +16,9 @@ done
 grep -q 'os: windows-latest' "$WORKFLOW" || fail "Rust release matrix lacks Windows runner"
 grep -q 'platform: windows-latest' "$WORKFLOW" || fail "desktop release matrix lacks Windows runner"
 grep -q 'exe: .exe' "$WORKFLOW" || fail "Windows Rust binaries lack .exe packaging"
-grep -q 'Require canonical cross-platform release assets' "$WORKFLOW" || fail "final release lacks cross-platform asset gate"
-grep -q 'Canonical release missing Windows x64 desktop installer' "$WORKFLOW" || fail "x64 desktop installer is not release-blocking"
-grep -q 'Canonical release missing Windows ARM64 desktop installer' "$WORKFLOW" || fail "ARM64 desktop installer is not release-blocking"
-grep -q 'for bin in focusa focusa-daemon focusa-tui' "$WORKFLOW" || fail "CLI/daemon/TUI Windows assets are not release-blocking"
+grep -q 'Require every canonical surface on every supported system' "$WORKFLOW" || fail "final release lacks all-surface asset gate"
+grep -q 'verify-canonical-release-assets.py' "$WORKFLOW" || fail "canonical asset verifier is not release-blocking"
+grep -q 'focusa-installer-.*\.ps1' "$WORKFLOW" || fail "PowerShell installer is not published"
+grep -q 'focusa-generated-clients-' "$WORKFLOW" || fail "generated clients are not published"
 
 echo "canonical_all_platform_release=pass windows=x64,arm64 surfaces=cli,daemon,tui,desktop"
