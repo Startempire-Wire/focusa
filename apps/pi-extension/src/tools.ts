@@ -5307,10 +5307,15 @@ export function registerTools(pi: ExtensionAPI) {
       const recoveredRoot = normalizeProjectRoot(
         body.project_identity?.canonical_parent_root || body.project_identity?.project_root
       );
+      const continuityBeforeRecovery = getContinuityId();
+      let continuityRecoveryAdopted = false;
       if (
         recoveredContinuity &&
-        recoveredContinuity !== getContinuityId() &&
-        adoptVerifiedContinuityForCurrentSession(recoveredRoot, recoveredContinuity)
+        recoveredContinuity !== continuityBeforeRecovery &&
+        (continuityRecoveryAdopted = adoptVerifiedContinuityForCurrentSession(
+          recoveredRoot,
+          recoveredContinuity
+        ))
       ) {
         result = await focusaFetchDetailed(`/project/card?${query.toString()}`, { method: "GET" });
         body = result.body || {};
@@ -5413,6 +5418,13 @@ export function registerTools(pi: ExtensionAPI) {
           temporal_context: body.temporal_context || { status: "unavailable" },
           efficiency_summary: efficiency,
           crosswire_health: crosswire,
+          continuity_recovery: {
+            candidate: recoveredContinuity || null,
+            project_root: recoveredRoot || null,
+            before: continuityBeforeRecovery || null,
+            adopted: continuityRecoveryAdopted,
+            after: getContinuityId() || null,
+          },
           prior_session_context: prior,
           success_sequence: sequence,
           ontology,
