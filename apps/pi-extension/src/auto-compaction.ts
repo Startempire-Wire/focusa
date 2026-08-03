@@ -15,6 +15,7 @@ import {
   type ProviderCompactionCapabilities,
 } from "./provider-compaction-capabilities.js";
 import { contextPressureTelemetry } from "./context-pressure-telemetry.js";
+import { selectCompactionPolicy } from "./compaction-policy-selector.js";
 
 declare module "@earendil-works/pi-coding-agent" {
   interface ExtensionAPI {
@@ -820,10 +821,24 @@ export function registerAutoCompaction(
     const usage = ctx.getContextUsage();
     const capabilities = providerCompactionCapabilities(ctx);
     const pressureTelemetry = contextPressureTelemetry(ctx, capabilities);
+    const policySelection = selectCompactionPolicy(pressureTelemetry, capabilities);
     persist("pressure_observed", {
       pressure_telemetry: pressureTelemetry,
       provider_capabilities: capabilities,
+      policy_selection: policySelection,
     });
+    if (["no_op", "curate_context", "checkpoint"].includes(policySelection.route)) {
+      return "suppressed";
+    }
+    if (policySelection.route === "rollover") {
+      notifyOnce(
+        ctx,
+        `rollover:${policySelection.deterministicKey}`,
+        "Focusa cannot safely compact with the current provider capability; checkpoint and rollover are required.",
+        "warning"
+      );
+      return "ineligible";
+    }
     const policy = getPolicy();
     const decision = proactiveCompactionDecision(usage, policy);
     if (!usage) return "suppressed";
