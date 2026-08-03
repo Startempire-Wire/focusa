@@ -45,9 +45,9 @@ function recentConversation(ctx: ExtensionContext): string[] {
 }
 
 /**
- * Authoritative Pi-native Mission Canvas. It replaces only Pi's visible root
- * while mounted; the same ExtensionContext, SessionManager, model stream,
- * tools, editor target, and history remain active in the current terminal.
+ * Pi-native Mission Canvas overlay. It leaves Pi's transcript and editor
+ * mounted underneath, owns input only while visible, and always provides a
+ * direct Escape/Ctrl+G path back to the normal terminal.
  */
 export class MissionCanvasShell implements Component, Focusable {
   private readonly input = new Input();
@@ -88,19 +88,6 @@ export class MissionCanvasShell implements Component, Focusable {
       copyReference,
       changeWorkspaceProfile
     );
-    this.ctx.ui.setTitle("Focusa Mission Canvas");
-    this.ctx.ui.setFooter((_tui, footerTheme) => ({
-      render: (width: number) => [
-        truncateToWidth(
-          footerTheme.fg(
-            "accent",
-            `FOCUSA MISSION CANVAS · CURRENT PI SESSION · ${this.ctx.model?.id ?? "model unavailable"} · /mission-canvas off`
-          ),
-          Math.max(1, width)
-        ),
-      ],
-      invalidate() {},
-    }));
     this.focused = true;
     this.input.onSubmit = (value) => {
       const prompt = value.trim();
@@ -166,9 +153,8 @@ export class MissionCanvasShell implements Component, Focusable {
       this.canvas.handleInput("copy");
       return;
     }
-    if (matchesKey(data, Key.escape)) {
-      this.input.setValue("");
-      this.requestRender();
+    if (matchesKey(data, Key.escape) || matchesKey(data, Key.ctrl("g"))) {
+      this.closeShell();
       return;
     }
     this.input.handleInput(data);
@@ -184,8 +170,6 @@ export class MissionCanvasShell implements Component, Focusable {
     if (this.disposed) return;
     this.disposed = true;
     this.canvas.dispose();
-    this.ctx.ui.setFooter(undefined);
-    this.ctx.ui.setTitle("Pi");
     if (activeShell === this) activeShell = undefined;
   }
 
@@ -194,24 +178,22 @@ export class MissionCanvasShell implements Component, Focusable {
     this.canvas.setConversation(recentConversation(this.ctx));
     const canvasRows = this.canvas.render(safeWidth);
     const inputRows = this.input.render(Math.max(1, safeWidth - 6));
+    const availableRows = Math.max(1, this.terminalRows() - inputRows.length - 3);
+    const visibleCanvasRows = canvasRows.slice(0, availableRows);
     if (safeWidth < 8) {
       return [
-        ...canvasRows,
+        ...visibleCanvasRows,
         ...inputRows.map((line) => truncateToWidth(line, safeWidth)),
       ];
     }
-    const fixedRows = canvasRows.length + inputRows.length + 4;
-    const fillRows = Math.max(0, this.terminalRows() - fixedRows - 1);
-    const canvasFill = `\x1b[48;2;8;13;20m${" ".repeat(safeWidth)}\x1b[0m`;
     const promptLabel = " PROMPT EDITOR · To: Pi · current session · New Workpoint: /focus-work ";
     const promptTop = `┌${promptLabel}${"─".repeat(Math.max(0, safeWidth - visibleWidth(promptLabel) - 2))}┐`;
     return [
-      ...canvasRows,
-      ...Array.from({ length: fillRows }, () => canvasFill),
+      ...visibleCanvasRows,
       this.theme.fg("accent", truncateToWidth(promptTop, safeWidth)),
       ...inputRows.map((line) => `${this.theme.fg("dim", "│ ")}${truncateToWidth(line, safeWidth - 4)}${" ".repeat(Math.max(0, safeWidth - 4 - visibleWidth(line)))}${this.theme.fg("dim", " │")}`),
       this.theme.fg("dim", `└${"─".repeat(Math.max(1, safeWidth - 2))}┘`),
-      truncateToWidth(this.theme.fg("muted", "Enter send · Ctrl+↑/↓ activity · Ctrl+←/→ workspace · Alt+←/→ Work Surface · /mission-canvas off restores stock Pi"), safeWidth),
+      truncateToWidth(this.theme.fg("muted", "Esc/Ctrl+G close · Enter send · Ctrl+↑/↓ activity · Ctrl+←/→ workspace · Alt+←/→ surface"), safeWidth),
     ];
   }
 }

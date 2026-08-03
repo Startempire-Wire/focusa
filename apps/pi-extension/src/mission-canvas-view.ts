@@ -293,7 +293,6 @@ export class MissionCanvasView implements Component {
   private refreshing = false;
   private renderCache?: { width: number; signature: string; lines: string[] };
   private readonly layoutMemory = new Map<string, MissionCanvasActivity>();
-  private readonly refreshTimer: ReturnType<typeof setInterval>;
 
   constructor(
     private model: MissionCanvasModel,
@@ -305,7 +304,6 @@ export class MissionCanvasView implements Component {
     private readonly changeWorkspaceProfile?: (profile: string) => void
   ) {
     this.activity = (PROFILES.find((profile) => profile.id === model.workspaceProfile)?.defaultActivity ?? "Overview") as MissionCanvasActivity;
-    this.refreshTimer = setInterval(() => void this.refresh(), 5_000);
   }
 
   setConversation(rows: string[]): void {
@@ -319,9 +317,7 @@ export class MissionCanvasView implements Component {
     this.renderCache = undefined;
   }
 
-  dispose(): void {
-    clearInterval(this.refreshTimer);
-  }
+  dispose(): void {}
 
   handleInput(data: string): void {
     if (data === "mode-prev") this.selectActivity(-1);

@@ -35,8 +35,8 @@ assert.match(tool, /mission_canvas_session_restored/);
 assert.match(tool, /mission_canvas_lifecycle_receipt/);
 assert.match(index, /registerMissionCanvasTool\(pi\)/);
 
-// The mounted component is the authoritative Canvas, not a compatibility dashboard.
-assert.match(shell, /Authoritative Pi-native Mission Canvas/);
+// The mounted component is a dismissible native overlay, not a root takeover.
+assert.match(shell, /Pi-native Mission Canvas overlay/);
 assert.doesNotMatch(shell, /Terminal compatibility projection/);
 assert.doesNotMatch(shell, /AGENT STREAM · SAME SESSION/);
 assert.match(shell, /setConversation\(recentConversation\(this\.ctx\)\)/);
@@ -46,17 +46,18 @@ assert.match(shell, /this\.input\.focused = value/);
 assert.match(shell, /queueMicrotask/);
 assert.match(shell, /this\.disableCanvas\(\)\.catch/);
 assert.doesNotMatch(shell, /Use the focusa_mission_canvas tool with action off now/);
-assert.match(shell, /setTitle\("Focusa Mission Canvas"\)/);
-assert.match(shell, /FOCUSA MISSION CANVAS · CURRENT PI SESSION/);
+assert.doesNotMatch(shell, /setTitle\(/);
+assert.doesNotMatch(shell, /setFooter\(/);
 assert.match(shell, /PROMPT EDITOR · To: Pi · current session · New Workpoint: \/focus-work/);
-assert.match(shell, /setFooter\(undefined\)/);
 assert.match(shell, /this\.dispose\(\);\n    this\.done\(\);/);
 // Redraws must be event-driven; an unconditional shell interval causes terminal scroll storms.
 assert.doesNotMatch(shell, /setInterval\(/);
 assert.doesNotMatch(shell, /clearInterval\(this\.refreshTimer\)/);
 assert.match(shell, /this\.input\.getValue\(\)/);
 assert.match(shell, /setEditorText\(draft\)/);
-assert.match(shell, /\/mission-canvas off restores stock Pi/);
+assert.match(shell, /Esc\/Ctrl\+G close/);
+assert.match(shell, /this\.closeShell\(\)/);
+assert.match(shell, /canvasRows\.slice\(0, availableRows\)/);
 assert.doesNotMatch(shell, /Math\.max\(40, width\)/);
 
 // Reference-design composition exists in the Pi-native renderer.
@@ -78,14 +79,16 @@ assert.match(view, /Semantic Graph/);
 assert.match(view, /Evidence Matrix/);
 for (const action of ["/focusa-context", "/focusa-role", "/focusa-interview", "/focusa-crist", "/focusa-rail"]) assert.ok(view.includes(action), `missing generated action ${action}`);
 assert.match(view, /Canvas ●/);
-assert.match(view, /setInterval\(\(\) => void this\.refresh\(\), 5_000\)/);
-assert.match(view, /clearInterval\(this\.refreshTimer\)/);
+assert.doesNotMatch(view, /setInterval\(/);
+assert.doesNotMatch(view, /refreshTimer/);
 assert.doesNotMatch(view, /WHAT CHANGES/);
 assert.doesNotMatch(view, /WHAT STAYS THE SAME/);
 assert.doesNotMatch(view, /CURRENT WORKSPACE COCKPIT/);
 
 // The current command surface owns the same-session Pi custom component and mode.
 assert.match(commands, /new MissionCanvasShell/);
+assert.match(commands, /overlay: true/);
+assert.match(commands, /maxHeight: "90%"/);
 assert.match(commands, /canvas-guided/);
 assert.match(commands, /hasActiveMissionCanvasShell/);
 assert.match(commands, /refreshMissionCanvasWidget/);

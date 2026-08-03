@@ -547,7 +547,7 @@ export function registerCommands(pi: ExtensionAPI) {
             model,
             theme,
             () => tui.requestRender(),
-            () => tui.terminal.rows,
+            () => Math.max(6, Math.floor(tui.terminal.rows * 0.9) - 2),
             () => done(undefined),
             loadModel,
             pi,
@@ -570,7 +570,16 @@ export function registerCommands(pi: ExtensionAPI) {
               ctx.ui.notify(`Workspace switched to ${profile}; canonical agent state is unchanged.`, "info");
             },
             () => handleMissionCanvasAction("off", ctx)
-          )
+          ),
+          {
+            overlay: true,
+            overlayOptions: {
+              width: "92%",
+              maxHeight: "90%",
+              anchor: "center",
+              margin: 1,
+            },
+          }
         )
         .catch((error) => ctx.ui.notify(`Mission Canvas shell failed: ${String(error)}`, "error"));
   };

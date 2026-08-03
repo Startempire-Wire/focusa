@@ -26,7 +26,7 @@ writeFileSync(
     handleInput() {}
     invalidate() {}
     dispose() {}
-    render(width) { return ["C".repeat(width)]; }
+    render(width) { return Array.from({ length: 100 }, () => "C".repeat(width)); }
   }\n`
 );
 
@@ -36,13 +36,16 @@ try {
   const sent = [];
   let disabled = 0;
   let done = 0;
+  let restoredDraft = "";
   const ctx = {
     model: { id: "runtime-test-model" },
     sessionManager: { getEntries: () => [] },
     ui: {
       setTitle() {},
       setFooter() {},
-      setEditorText() {},
+      setEditorText(value) {
+        restoredDraft = value;
+      },
       notify(message, level) {
         notifications.push({ message, level });
       },
@@ -77,10 +80,12 @@ try {
   assert.equal(shell.input.focused, true);
 
   for (let width = 1; width < 40; width++) {
+    const lines = shell.render(width);
     assert(
-      shell.render(width).every((line) => visibleWidth(line) <= width),
+      lines.every((line) => visibleWidth(line) <= width),
       `Mission Canvas shell emitted a line wider than ${width} columns`
     );
+    assert(lines.length <= 20, "Mission Canvas shell must not scroll beyond terminal height");
   }
 
   for (const character of "/mission-canvas off") shell.handleInput(character);
@@ -95,9 +100,12 @@ try {
   assert.deepEqual(sent, ["continue the work"]);
   assert.deepEqual(notifications, []);
 
-  shell.closeShell();
-  assert.equal(done, 1);
-  console.log("Mission Canvas shell runtime: PASS (IME focus, width safety, local close)");
+  for (const character of "preserve this draft") shell.handleInput(character);
+  shell.handleInput("\x1b");
+  await new Promise((resolvePromise) => setImmediate(resolvePromise));
+  assert.equal(done, 1, "Escape must close the Canvas immediately");
+  assert.equal(restoredDraft, "preserve this draft");
+  console.log("Mission Canvas shell runtime: PASS (stable overlay, bounded height, IME focus, local close)");
 } finally {
   rmSync(shellPath, { force: true });
   rmSync(viewPath, { force: true });
