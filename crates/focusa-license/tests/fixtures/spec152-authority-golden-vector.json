@@ -1,0 +1,18 @@
+{
+  "schema": "focusa.spec152.golden_vector.v1",
+  "root_key_id": "authority-root-2026-01",
+  "root_public_key_b64": "A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg=",
+  "key_set_envelope": {
+    "schema": "focusa.signed_envelope.v1",
+    "signer_key_id": "authority-root-2026-01",
+    "payload_b64": "eyJleHBpcmVzX2F0IjoiMjAzMC0wMS0wMVQwMDowMDowMFoiLCJpc3N1ZWRfYXQiOiIyMDI2LTA4LTAxVDAwOjAwOjAwWiIsImtleXMiOlt7ImtleV9pZCI6ImF1dGhvcml0eS1sZWFzZS0yMDI2LTAxIiwibm90X2FmdGVyIjoiMjAyOS0wMS0wMVQwMDowMDowMFoiLCJub3RfYmVmb3JlIjoiMjAyNi0wOC0wMVQwMDowMDowMFoiLCJwdWJsaWNfa2V5X2I2NCI6IktheTY0VUc4eXZDeUxocVUwMDBMeHpZZVVtMEwvaExJbDVTOGt5S1diZGM9Iiwic3RhdHVzIjoiYWN0aXZlIn1dLCJzY2hlbWEiOiJmb2N1c2EuYXV0aG9yaXR5X2tleV9zZXQudjEiLCJzZXF1ZW5jZSI6N30=",
+    "signature_b64": "zHkLUrbBnvUsf2zT4da8MnB//tN6gH/jpZf/aXdDko5aL2IjHfDOjVmTy43o9MJ3ew6o2bMv8Eiqh7FMswe8DQ=="
+  },
+  "lease_envelope": {
+    "schema": "focusa.signed_envelope.v1",
+    "signer_key_id": "authority-lease-2026-01",
+    "payload_b64": "eyJhdXRob3JpdHlfa2V5X2lkIjoiYXV0aG9yaXR5LWxlYXNlLTIwMjYtMDEiLCJleHBpcmVzX2F0IjoiMjAyNi0wOS0wMVQwMDowMDowMFoiLCJmZWF0dXJlcyI6eyJhZ2VudF9ydW50aW1lIjp0cnVlLCJtaXNzaW9uX2NhbnZhcyI6dHJ1ZSwicmVsZWFzZSI6ZmFsc2V9LCJpc3N1ZWRfYXQiOiIyMDI2LTA4LTAyVDAwOjAwOjAwWiIsImxlYXNlX2lkIjoibGVhc2UtZ29sZGVuLTAwMDEiLCJsaW1pdHMiOnsiYWN0aXZlX3Nlc3Npb25zIjo0LCJtb250aGx5X2FnZW50X3R1cm5zIjoxMDAwMH0sIm5vZGVfaWQiOiJub2RlLWdvbGRlbi0wMDEiLCJub3RfYmVmb3JlIjoiMjAyNi0wOC0wMlQwMDowMDowMFoiLCJvZmZsaW5lX2dyYWNlX3VudGlsIjoiMjAyNi0xMC0wMVQwMDowMDowMFoiLCJwcmV2aW91c19sZWFzZV9kaWdlc3QiOiJzaGEyNTY6NGU3MzhjYTU1NjNjMDZjZmQwMDE4Mjk5OTMzZDU4ZGIxZGQ4YmY5N2Y2OTczZGM5OWJmNmNkYzY0YjU1NTBiZCIsInByb2R1Y3QiOiJmb2N1c2EiLCJzY2hlbWEiOiJmb2N1c2EuYXV0aG9yaXR5X2xlYXNlLnYxIiwic2VxdWVuY2UiOjQyLCJzdGF0dXMiOiJhY3RpdmUiLCJzdWJqZWN0X2lkIjoiY3VzdG9tZXItZ29sZGVuLTAwMSJ9",
+    "signature_b64": "NSlFoXzdFqNQzgdGQeZy6Rs4WsUW/kgOXK84yT2rckOLDupumL8mAhRj9y4/tKl+u8DIE0qfopDYLGQixijuBQ=="
+  },
+  "expected_lease_digest": "sha256:9c743760745a7365932a5096de5167f7d3b8d9b795f027d5ddaecbfc31684d29"
+}

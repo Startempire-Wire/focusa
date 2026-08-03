@@ -11,6 +11,8 @@
 //! Capability map is a static enum set checked at call sites. Soft-warn in eval, hard-fail
 //! in production-only paths (e.g., hosted_mode, commercial_signal).
 
+pub mod authority;
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
