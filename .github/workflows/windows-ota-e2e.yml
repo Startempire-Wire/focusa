@@ -118,7 +118,7 @@ jobs:
           # updater against prior signed releases.
           $env:FOCUSA_RELEASE_TAG = 'v0.9.116-dev'
           $env:FOCUSA_RELEASE_BASE_URL = 'https://github.com/Startempire-Wire/focusa/releases/download/v0.9.116-dev'
-          & $candidate install --target=windows-x64 --channel=preview --eval --no-service
+          & $candidate install --target=windows-x64 --channel=preview --eval --no-service --install-dependencies --assume-yes
           if ($LASTEXITCODE -ne 0) { throw 'candidate clean install failed' }
 
           $bin = Join-Path $env:HOME '.focusa\bin'
