@@ -114,6 +114,14 @@ jobs:
             -ReleaseTag v0.9.116-dev `
             -ReleaseBaseUrl 'https://github.com/Startempire-Wire/focusa/releases/download/v0.9.116-dev'
 
+          # Dependency shims isolate OTA mechanics from external Pi/UIAI package
+          # availability while still exercising native Windows PATH detection.
+          $shimDir = Join-Path $root 'dependency-shims'
+          New-Item -ItemType Directory -Force -Path $shimDir | Out-Null
+          "@echo off`necho pi-ci-shim" | Set-Content -Encoding ascii (Join-Path $shimDir 'pi.cmd')
+          "@echo off`necho uiai-ci-shim" | Set-Content -Encoding ascii (Join-Path $shimDir 'uiai-engine.cmd')
+          $env:PATH = "$shimDir;$env:PATH"
+
           # Use the exact candidate to exercise the transactional installer and
           # updater against prior signed releases.
           $env:FOCUSA_RELEASE_TAG = 'v0.9.116-dev'
