@@ -1245,7 +1245,8 @@ fn uiai_engine_install_command() -> String {
 }
 
 fn command_semver(name: &str) -> Option<(u64, u64, u64)> {
-    let output = std::process::Command::new(name)
+    let command = find_command(name)?;
+    let output = std::process::Command::new(command)
         .arg("--version")
         .output()
         .ok()?;
