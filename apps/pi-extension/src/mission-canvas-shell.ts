@@ -14,6 +14,12 @@ export function hasActiveMissionCanvasShell(): boolean {
   return Boolean(activeShell);
 }
 
+export function refreshActiveMissionCanvasShell(): boolean {
+  if (!activeShell) return false;
+  activeShell.refreshFromEvent();
+  return true;
+}
+
 function contentText(value: unknown): string {
   if (typeof value === "string") return value;
   if (Array.isArray(value)) {
@@ -57,6 +63,7 @@ export class MissionCanvasShell implements Component, Focusable {
   private scrollOffset = 0;
   private canvasRowCount = 0;
   private viewportRows = 1;
+  private eventRefreshTimer?: ReturnType<typeof setTimeout>;
 
   get focused(): boolean {
     return this._focused;
@@ -78,6 +85,7 @@ export class MissionCanvasShell implements Component, Focusable {
     private readonly ctx: ExtensionContext,
     copyReference: (reference: string) => void,
     changeWorkspaceProfile: (profile: string) => void,
+    changeVisualVariant: (variant: string) => void,
     private readonly manageSurfaces: () => Promise<void>,
     private readonly disableCanvas: () => Promise<void>
   ) {
@@ -90,7 +98,8 @@ export class MissionCanvasShell implements Component, Focusable {
       () => {},
       reload,
       copyReference,
-      changeWorkspaceProfile
+      changeWorkspaceProfile,
+      changeVisualVariant
     );
     this.focused = true;
     this.input.onSubmit = (value) => {
@@ -154,6 +163,10 @@ export class MissionCanvasShell implements Component, Focusable {
       this.canvas.handleInput("profile-next");
       return;
     }
+    if (matchesKey(data, Key.alt("v"))) {
+      this.canvas.handleInput("variant-next");
+      return;
+    }
     if (matchesKey(data, Key.alt("left"))) {
       this.scrollOffset = 0;
       this.canvas.handleInput("surface-prev");
@@ -196,9 +209,19 @@ export class MissionCanvasShell implements Component, Focusable {
     this.input.invalidate();
   }
 
+  refreshFromEvent(): void {
+    if (this.disposed || this.eventRefreshTimer) return;
+    this.eventRefreshTimer = setTimeout(() => {
+      this.eventRefreshTimer = undefined;
+      if (!this.disposed) this.canvas.handleInput("refresh");
+    }, 150);
+  }
+
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    if (this.eventRefreshTimer) clearTimeout(this.eventRefreshTimer);
+    this.eventRefreshTimer = undefined;
     this.canvas.dispose();
     if (activeShell === this) activeShell = undefined;
   }
@@ -235,7 +258,7 @@ export class MissionCanvasShell implements Component, Focusable {
       this.theme.fg("accent", truncateToWidth(promptTop, safeWidth)),
       ...inputRows.map((line) => `${this.theme.fg("dim", "│ ")}${truncateToWidth(line, safeWidth - 4)}${" ".repeat(Math.max(0, safeWidth - 4 - visibleWidth(line)))}${this.theme.fg("dim", " │")}`),
       this.theme.fg("dim", `└${"─".repeat(Math.max(1, safeWidth - 2))}┘`),
-      truncateToWidth(this.theme.fg("muted", `${viewportStatus} · Ctrl+O manage surfaces · Esc/Ctrl+G close · PgUp/PgDn scroll · Enter send · Ctrl+↑/↓ activity · Alt+←/→ surface`), safeWidth),
+      truncateToWidth(this.theme.fg("muted", `${viewportStatus} · Ctrl+O surfaces · Alt+V theme · Esc/Ctrl+G close · PgUp/PgDn scroll · Enter send · Ctrl+↑/↓ activity · Alt+←/→ surface`), safeWidth),
     ];
   }
 }

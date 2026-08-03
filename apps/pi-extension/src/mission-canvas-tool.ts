@@ -2,6 +2,7 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { Type } from "@sinclair/typebox";
 import { executeMissionCanvasAction } from "./commands.js";
 import { loadConfig, resolveInteractionMode, type MissionCanvasWorkspaceProfile } from "./config.js";
+import { refreshActiveMissionCanvasShell } from "./mission-canvas-shell.js";
 import { getAttachmentRuntime, getSessionCwd } from "./state.js";
 
 interface MissionCanvasScope {
@@ -93,15 +94,18 @@ export function registerMissionCanvasTool(pi: ExtensionAPI): void {
   });
   pi.on("turn_end", (event, ctx) => {
     appendPiEventSafely(ctx, "pi_turn_completed", event);
+    refreshActiveMissionCanvasShell();
   });
   pi.on("message_update", (event, ctx) => {
     appendPiEventSafely(ctx, "pi_message_updated", event);
+    refreshActiveMissionCanvasShell();
   });
   pi.on("tool_execution_start", (event, ctx) => {
     appendPiEventSafely(ctx, "pi_tool_started", event);
   });
   pi.on("tool_execution_end", (event, ctx) => {
     appendPiEventSafely(ctx, "pi_tool_completed", event);
+    refreshActiveMissionCanvasShell();
   });
   pi.registerTool({
     name: "focusa_mission_canvas",

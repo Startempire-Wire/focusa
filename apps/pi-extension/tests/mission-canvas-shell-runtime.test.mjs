@@ -21,9 +21,9 @@ writeFileSync(shellPath, compiled);
 writeFileSync(
   viewPath,
   `export class MissionCanvasView {
-    constructor() {}
+    constructor() { this.inputs = []; }
     setConversation() {}
-    handleInput() {}
+    handleInput(value) { this.inputs.push(value); }
     invalidate() {}
     dispose() {}
     render(width) { return Array.from({ length: 100 }, () => "C".repeat(width)); }
@@ -68,6 +68,7 @@ try {
     ctx,
     () => {},
     () => {},
+    () => {},
     async () => {},
     async () => {
       disabled++;
@@ -92,6 +93,15 @@ try {
   shell.handleInput("\x1b[6~");
   assert(shell.scrollOffset > 0, "PageDown must expose Canvas rows below the viewport");
   assert(shell.render(39).length <= 20);
+
+  shell.refreshFromEvent();
+  shell.refreshFromEvent();
+  await new Promise((resolvePromise) => setTimeout(resolvePromise, 200));
+  assert.deepEqual(
+    shell.canvas.inputs.filter((value) => value === "refresh"),
+    ["refresh"],
+    "event-driven Canvas refreshes must be coalesced"
+  );
 
   for (const character of "/mission-canvas off") shell.handleInput(character);
   shell.handleInput("\n");
@@ -119,6 +129,7 @@ try {
     ctx,
     () => {},
     () => {},
+    () => {},
     async () => {
       managed++;
     },
@@ -140,6 +151,7 @@ try {
     async () => ({}),
     pi,
     ctx,
+    () => {},
     () => {},
     () => {},
     async () => {},

@@ -92,6 +92,7 @@ try {
     },
     () => {},
     () => {},
+    () => {},
     async () => {},
     async () => {}
   );
@@ -103,6 +104,9 @@ try {
   assert(first.some((line) => line.includes("canvas-only-content")));
   assert(first.some((line) => line.includes("PROMPT EDITOR")));
   assert(first.some((line) => line.includes("Rows 1-")));
+
+  shell.canvas.handleInput("variant-next");
+  assert.equal(shell.canvas.model.visualVariant, "high-contrast");
 
   shell.canvas.handleInput("surface-next");
   const switched = shell.render(100);

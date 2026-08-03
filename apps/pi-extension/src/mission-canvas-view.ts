@@ -90,6 +90,8 @@ const PROFILES = [
   { id: "custom", label: "Custom", defaultActivity: "Overview" },
 ] as const;
 
+const VISUAL_VARIANTS = ["default", "high-contrast", "monochrome"] as const;
+
 const COLORS = {
   canvas: [8, 13, 20] as RGB,
   panel: [13, 21, 32] as RGB,
@@ -420,7 +422,8 @@ export class MissionCanvasView implements Component {
     private readonly close: () => void,
     private readonly reload: () => Promise<MissionCanvasModel>,
     private readonly copyReference: (reference: string) => void,
-    private readonly changeWorkspaceProfile?: (profile: string) => void
+    private readonly changeWorkspaceProfile?: (profile: string) => void,
+    private readonly changeVisualVariant?: (variant: string) => void
   ) {
     this.activity = (PROFILES.find((profile) => profile.id === model.workspaceProfile)?.defaultActivity ?? "Overview") as MissionCanvasActivity;
   }
@@ -445,6 +448,7 @@ export class MissionCanvasView implements Component {
     else if (data === "surface-next") this.selectSurface(1);
     else if (data === "profile-prev") this.selectProfile(-1);
     else if (data === "profile-next") this.selectProfile(1);
+    else if (data === "variant-next") this.selectVisualVariant(1);
     else if (data === "refresh") void this.refresh();
     else if (data === "copy") this.copyReference(this.model.workpointId || this.model.workItemId || this.model.continuityId);
     else if (data === "close") this.close();
@@ -472,6 +476,20 @@ export class MissionCanvasView implements Component {
     this.model = { ...this.model, workspaceProfile: next.id };
     this.activity = this.layoutMemory.get(next.id) ?? next.defaultActivity;
     this.changeWorkspaceProfile?.(next.id);
+    this.invalidate();
+    this.requestRender();
+  }
+
+  private selectVisualVariant(direction: number): void {
+    const current = Math.max(
+      0,
+      VISUAL_VARIANTS.findIndex((variant) => variant === this.model.visualVariant)
+    );
+    const next = VISUAL_VARIANTS[
+      (current + direction + VISUAL_VARIANTS.length) % VISUAL_VARIANTS.length
+    ];
+    this.model = { ...this.model, visualVariant: next };
+    this.changeVisualVariant?.(next);
     this.invalidate();
     this.requestRender();
   }

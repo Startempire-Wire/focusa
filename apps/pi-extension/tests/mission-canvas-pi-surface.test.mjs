@@ -33,6 +33,9 @@ assert.doesNotMatch(tool, /richHostLifecycle\.on/);
 assert.match(tool, /mission-canvas\/pi-session\/events/);
 assert.match(tool, /mission_canvas_session_restored/);
 assert.match(tool, /mission_canvas_lifecycle_receipt/);
+assert.match(tool, /refreshActiveMissionCanvasShell/);
+assert.match(shell, /eventRefreshTimer/);
+assert.match(shell, /150/);
 assert.match(index, /registerMissionCanvasTool\(pi\)/);
 
 // The mounted component is a dismissible native overlay, not a root takeover.

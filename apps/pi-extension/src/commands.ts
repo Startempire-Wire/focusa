@@ -576,6 +576,19 @@ export function registerCommands(pi: ExtensionAPI) {
               refreshMissionCanvasWidget(ctx);
               ctx.ui.notify(`Workspace switched to ${profile}; canonical agent state is unchanged.`, "info");
             },
+            (variant) => {
+              const saved = saveConfigOverrides(
+                getSessionCwd(),
+                { missionCanvasVisualVariant: variant as MissionCanvasVisualVariant },
+                "project"
+              );
+              if (saved.errors.length) {
+                ctx.ui.notify(saved.errors.join("; "), "error");
+                return;
+              }
+              refreshMissionCanvasWidget(ctx);
+              ctx.ui.notify(`Mission Canvas theme switched to ${variant}.`, "info");
+            },
             async () => {
               await openMissionCanvasSurfaceManager(pi, ctx);
               await handleMissionCanvasAction("", ctx);
