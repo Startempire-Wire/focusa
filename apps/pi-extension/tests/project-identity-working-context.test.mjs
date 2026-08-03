@@ -111,6 +111,11 @@ assert.match(
   /normalizeProjectRoot\(persistedBody\.project_root\) === authorityProjectRoot/,
   "stale ambient persistence must not conflict with marker-derived authority"
 );
+assert.match(
+  stateSource,
+  /decision\.selected_project_root \|\|\s*resolveCanonicalMarkerProjectRoot\(process\.cwd\(\)\)/,
+  "verified continuity adoption must survive transition from bootstrap to typed attachment"
+);
 const toolsSource = readFileSync(
   fileURLToPath(new URL("../src/tools.ts", import.meta.url)),
   "utf8"
