@@ -3548,8 +3548,8 @@ export function adoptVerifiedContinuityForCurrentSession(
   const verifiedRoot = normalizeProjectRoot(
     identity.canonical_parent_root ||
       identity.project_root ||
-      decision.selected_project_root ||
-      resolveCanonicalMarkerProjectRoot(process.cwd())
+      resolveCanonicalMarkerProjectRoot(process.cwd()) ||
+      decision.selected_project_root
   );
   if (!root || !continuity || !isProjectRootAuthoritySafe(root) || verifiedRoot !== root) return false;
   getAttachmentRuntime().continuityId = continuity;

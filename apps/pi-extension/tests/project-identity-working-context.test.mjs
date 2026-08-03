@@ -113,7 +113,7 @@ assert.match(
 );
 assert.match(
   stateSource,
-  /decision\.selected_project_root \|\|\s*resolveCanonicalMarkerProjectRoot\(process\.cwd\(\)\)/,
+  /resolveCanonicalMarkerProjectRoot\(process\.cwd\(\)\) \|\|\s*decision\.selected_project_root/,
   "verified continuity adoption must survive transition from bootstrap to typed attachment"
 );
 assert.match(stateSource, /verifiedContinuityBySessionRoot = new Map<string, string>\(\)/);
