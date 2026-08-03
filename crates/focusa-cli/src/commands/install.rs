@@ -1206,14 +1206,9 @@ fn uiai_engine_healthy() -> bool {
         .filter(|token| !token.is_empty())
         .map(|token| format!("Authorization: Bearer {token}"));
     let mut command = std::process::Command::new("curl");
-    command.args([
-        "--max-time",
-        "2",
-        "--fail",
-        "--silent",
-        "--output",
-        "/dev/null",
-    ]);
+    command.args(["--max-time", "2", "--fail", "--silent"]);
+    command.stdout(std::process::Stdio::null());
+    command.stderr(std::process::Stdio::null());
     if let Some(header) = auth_header.as_deref() {
         command.args(["--header", header]);
     }
@@ -4764,6 +4759,61 @@ mod tests {
         assert_eq!(execution.installed, vec!["python3"]);
         assert_eq!(execution.retryable_failures.len(), 1);
         assert_eq!(execution.rollback_status, "not_needed");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_dependency_preflight_native_resolves_path_semver_and_health() {
+        use std::io::{Read, Write};
+        use std::net::TcpListener;
+
+        static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+        let _lock = ENV_LOCK.lock().unwrap();
+        let fixture = std::env::temp_dir().join(format!(
+            "focusa-windows-dependency-preflight-{}",
+            uuid::Uuid::now_v7()
+        ));
+        std::fs::create_dir_all(&fixture).unwrap();
+        std::fs::write(fixture.join("pi.cmd"), "@echo off\r\necho pi 0.81.1\r\n").unwrap();
+        let previous_path = std::env::var_os("PATH");
+        let previous_uiai = std::env::var_os("UIAI_ENGINE_URL");
+        let mut paths = vec![fixture.clone()];
+        if let Some(path) = previous_path.as_ref() {
+            paths.extend(std::env::split_paths(path));
+        }
+        std::env::set_var("PATH", std::env::join_paths(paths).unwrap());
+
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut request = [0_u8; 1024];
+            let _ = stream.read(&mut request);
+            stream
+                .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nOK")
+                .unwrap();
+        });
+        std::env::set_var("UIAI_ENGINE_URL", format!("http://{address}"));
+
+        let result = std::panic::catch_unwind(|| {
+            assert!(find_command("pi").is_some_and(|path| path.ends_with("pi.cmd")));
+            assert_eq!(command_semver("pi"), Some((0, 81, 1)));
+            assert!(dependency_present("pi"));
+            assert!(dependency_present("uiai-engine"));
+        });
+        server.join().unwrap();
+        if let Some(path) = previous_path {
+            std::env::set_var("PATH", path);
+        } else {
+            std::env::remove_var("PATH");
+        }
+        if let Some(url) = previous_uiai {
+            std::env::set_var("UIAI_ENGINE_URL", url);
+        } else {
+            std::env::remove_var("UIAI_ENGINE_URL");
+        }
+        let _ = std::fs::remove_dir_all(fixture);
+        result.unwrap();
     }
 
     #[test]

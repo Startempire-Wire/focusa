@@ -49,7 +49,26 @@ jobs:
           bun install
           bunx tauri build --no-bundle --target "${{ matrix.target }}"
 
+  windows-dependency-preflight:
+    name: Windows native dependency preflight
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: nightly-2026-01-08
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: windows-dependency-preflight
+      - name: Prove PATH, PATHEXT, semver, and UIAI health detection
+        shell: pwsh
+        run: |
+          cargo test -p focusa-cli windows_dependency_preflight_native_resolves_path_semver_and_health -- --nocapture
+          if ($LASTEXITCODE -ne 0) { throw 'Windows native dependency preflight failed' }
+
   windows-ota:
+    needs: [windows-dependency-preflight]
     runs-on: windows-latest
     timeout-minutes: 45
     steps:
@@ -79,6 +98,34 @@ jobs:
           $env:FOCUSA_HOME = $data
           $env:FOCUSA_BIND = '127.0.0.1:18791'
           $env:FOCUSA_DAEMON_HEALTH_URL = 'http://127.0.0.1:18791/v1/health'
+
+          # UIAI availability means a responsive Engine, not merely a file on
+          # PATH. Keep the OTA fixture native and deterministic with a bounded
+          # local health endpoint.
+          $uiaiFixture = Join-Path $root 'uiai-health.py'
+          @'
+          from http.server import BaseHTTPRequestHandler, HTTPServer
+          class Handler(BaseHTTPRequestHandler):
+              def do_GET(self):
+                  self.send_response(200 if self.path == "/health" else 404)
+                  self.end_headers()
+                  self.wfile.write(b"OK")
+              def log_message(self, *_):
+                  pass
+          HTTPServer(("127.0.0.1", 17456), Handler).serve_forever()
+          '@ | Set-Content -Path $uiaiFixture -Encoding utf8
+          $python = (Get-Command python.exe -ErrorAction Stop).Source
+          $uiaiFixtureProcess = Start-Process -FilePath $python -ArgumentList @('-u', $uiaiFixture) -PassThru -WindowStyle Hidden
+          $env:UIAI_ENGINE_URL = 'http://127.0.0.1:17456'
+          for ($attempt = 1; $attempt -le 20; $attempt++) {
+            try {
+              Invoke-WebRequest "$env:UIAI_ENGINE_URL/health" -UseBasicParsing | Out-Null
+              break
+            } catch {
+              if ($attempt -eq 20) { throw 'UIAI health fixture did not become ready' }
+              Start-Sleep -Milliseconds 250
+            }
+          }
 
           function Invoke-FocusaJson {
             param(
@@ -121,6 +168,14 @@ jobs:
           Copy-Item $candidate (Join-Path $shimDir 'pi.exe')
           Copy-Item $candidate (Join-Path $shimDir 'uiai-engine.exe')
           $env:PATH = "$shimDir;$env:PATH"
+          $piResolved = (Get-Command pi.exe -ErrorAction Stop).Source
+          $piVersion = & $piResolved --version
+          if ($LASTEXITCODE -ne 0 -or $piVersion -notmatch '\d+\.\d+') {
+            throw "Pi PATH fixture is not executable/versioned: $piResolved $piVersion"
+          }
+          if ((Invoke-WebRequest "$env:UIAI_ENGINE_URL/health" -UseBasicParsing).StatusCode -ne 200) {
+            throw 'UIAI dependency fixture is not healthy'
+          }
 
           # Use the exact candidate to exercise the transactional installer and
           # updater against prior signed releases.
@@ -190,4 +245,5 @@ jobs:
           if ((& $cli --version) -notmatch '0.9.117-dev') { throw 'reapply CLI mismatch' }
           $health = Invoke-RestMethod 'http://127.0.0.1:18791/v1/health'
           if ($health.version -ne '0.9.117-dev') { throw 'reapply health mismatch' }
+          Stop-Process -Id $uiaiFixtureProcess.Id -Force -ErrorAction SilentlyContinue
           'WINDOWS_OTA_E2E=PASS'
