@@ -75,6 +75,7 @@ const model = {
 
 try {
   const { MissionCanvasShell } = await import(`${pathToFileURL(shellPath).href}?v=${Date.now()}`);
+  const { MissionCanvasView } = await import(`${pathToFileURL(viewPath).href}?v=${Date.now()}`);
   let closed = 0;
   const shell = new MissionCanvasShell(
     model,
@@ -114,7 +115,27 @@ try {
 
   shell.handleInput("\x1b");
   assert.equal(closed, 1, "Escape must dismiss the overlay");
-  console.log("Mission Canvas real overlay render: PASS (bounded viewport, scroll, prompt, dismiss)");
+
+  const emptyModel = Object.fromEntries(
+    Object.entries(model).map(([key, value]) => [
+      key,
+      Array.isArray(value) ? [] : key === "workspaceProfile" ? "general" : key === "visualVariant" ? "default" : "",
+    ])
+  );
+  const emptyView = new MissionCanvasView(
+    emptyModel,
+    { fg: (_name, text) => text },
+    () => {},
+    () => {},
+    async () => emptyModel,
+    () => {}
+  );
+  assert(
+    emptyView.render(100).some((line) => line.includes("no verified data")),
+    "empty scopes must render an honest recovery state instead of a blank Canvas"
+  );
+  emptyView.dispose();
+  console.log("Mission Canvas real overlay render: PASS (bounded viewport, tabs, scroll, empty state, prompt, dismiss)");
 } finally {
   rmSync(accessibilityPath, { force: true });
   rmSync(viewPath, { force: true });

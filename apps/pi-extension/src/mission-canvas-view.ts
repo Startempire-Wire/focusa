@@ -305,7 +305,10 @@ function resolveContributions(
   selectedSurface: number
 ): Contribution[] {
   const result: Array<Contribution | undefined> = [];
-  const surface = useful(model.workSurfaceDetails[selectedSurface]);
+  const surfaceDetails = useful(model.workSurfaceDetails[selectedSurface]);
+  const surface = surfaceDetails.length
+    ? surfaceDetails
+    : useful([model.workSurfaces[selectedSurface]]);
   const evidence = useful(model.evidenceRefs);
   const research = useful(model.researchArtifacts);
   const sessions = useful(model.sessions);
@@ -322,7 +325,13 @@ function resolveContributions(
         contribution("mission", "Mission Status", [model.mission, model.trajectory], "purple", 100),
         contribution("focus", "Today’s Focus", [model.nextAction], "green", 95),
         contribution("work", "Active Work", [model.workpointId, model.workItemId, ...work], "blue", 90),
-        contribution("proof", "Evidence Posture", [`${evidence.length} evidence refs`, ...evidence], "green", 85),
+        contribution(
+          "proof",
+          "Evidence Posture",
+          evidence.length ? [`${evidence.length} evidence refs`, ...evidence] : [],
+          "green",
+          85
+        ),
         contribution("surface", profile === "markets" ? "Active Thesis" : "Focused Work Surface", profile === "markets" ? graphLines(profile) : surface, "purple", 80),
         contribution("transcript", "Pi Transcript · live", transcript, "blue", 75)
       );
@@ -376,7 +385,23 @@ function resolveContributions(
 
   if (steering.length) result.push({ id: "steering", title: "Steering Queue", lines: steering, tone: "purple", priority: 65 });
   if (followUp.length) result.push({ id: "follow-up", title: "Follow-up Queue", lines: followUp, tone: "blue", priority: 60 });
-  return result.filter((item): item is Contribution => Boolean(item)).sort((a, b) => b.priority - a.priority);
+  const resolved = result
+    .filter((item): item is Contribution => Boolean(item))
+    .sort((a, b) => b.priority - a.priority);
+  return resolved.length
+    ? resolved
+    : [
+        {
+          id: "empty",
+          title: `${activity} · no verified data`,
+          lines: [
+            "Nothing verified is available for this scope yet.",
+            "Close with Esc, establish or resume a Workpoint, then reopen the Canvas.",
+          ],
+          tone: "amber",
+          priority: 1,
+        },
+      ];
 }
 
 /** Pi-native authoritative Mission Canvas. Canonical state remains external. */
