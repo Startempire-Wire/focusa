@@ -101,6 +101,7 @@ try {
   assert(first.some((line) => line.includes("Canvas repair")));
   assert(first.some((line) => line.includes("canvas-only-content")));
   assert(first.some((line) => line.includes("PROMPT EDITOR")));
+  assert(first.some((line) => line.includes("Rows 1-")));
 
   shell.canvas.handleInput("surface-next");
   const switched = shell.render(100);
@@ -112,6 +113,7 @@ try {
   assert.notDeepEqual(scrolled, first, "PageDown must move the bounded Canvas viewport");
   assert(scrolled.length <= 24);
   assert(scrolled.some((line) => line.includes("PROMPT EDITOR")));
+  assert(scrolled.some((line) => /Rows \d+-/.test(line) && !line.includes("Rows 1-")));
 
   shell.handleInput("\x1b");
   assert.equal(closed, 1, "Escape must dismiss the overlay");

@@ -215,6 +215,9 @@ export class MissionCanvasShell implements Component, Focusable {
         ...inputRows.map((line) => truncateToWidth(line, safeWidth)),
       ];
     }
+    const viewportStatus = this.canvasRowCount > this.viewportRows
+      ? `Rows ${this.scrollOffset + 1}-${Math.min(this.canvasRowCount, this.scrollOffset + this.viewportRows)}/${this.canvasRowCount}`
+      : `Rows 1-${this.canvasRowCount}/${this.canvasRowCount}`;
     const promptLabel = " PROMPT EDITOR · To: Pi · current session · New Workpoint: /focus-work ";
     const promptTop = `┌${promptLabel}${"─".repeat(Math.max(0, safeWidth - visibleWidth(promptLabel) - 2))}┐`;
     return [
@@ -222,7 +225,7 @@ export class MissionCanvasShell implements Component, Focusable {
       this.theme.fg("accent", truncateToWidth(promptTop, safeWidth)),
       ...inputRows.map((line) => `${this.theme.fg("dim", "│ ")}${truncateToWidth(line, safeWidth - 4)}${" ".repeat(Math.max(0, safeWidth - 4 - visibleWidth(line)))}${this.theme.fg("dim", " │")}`),
       this.theme.fg("dim", `└${"─".repeat(Math.max(1, safeWidth - 2))}┘`),
-      truncateToWidth(this.theme.fg("muted", "Esc/Ctrl+G close · PgUp/PgDn scroll · Enter send · Ctrl+↑/↓ activity · Alt+←/→ surface"), safeWidth),
+      truncateToWidth(this.theme.fg("muted", `${viewportStatus} · Esc/Ctrl+G close · PgUp/PgDn scroll · Enter send · Ctrl+↑/↓ activity · Alt+←/→ surface`), safeWidth),
     ];
   }
 }
