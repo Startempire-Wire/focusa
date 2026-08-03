@@ -8972,8 +8972,8 @@ export function registerTools(pi: ExtensionAPI) {
     const requestScopeHeaders: Record<string, string> =
       isProjectRootAuthoritySafe(requestProjectRoot) && requestContinuityId
         ? {
-            "X-Scope-Project-Root": requestProjectRoot,
-            "X-Scope-Continuity-Id": requestContinuityId,
+            "x-scope-project-root": requestProjectRoot,
+            "x-scope-continuity-id": requestContinuityId,
           }
         : {};
     const req: RequestInit = {
@@ -8981,7 +8981,7 @@ export function registerTools(pi: ExtensionAPI) {
       headers: {
         ...(writerId ? writerLeaseHeaders(writerId, writerLease) : {}),
         ...requestScopeHeaders,
-        ...(requestSessionId ? { "X-Scope-Session-Id": requestSessionId } : {}),
+        ...(requestSessionId ? { "x-scope-session-id": requestSessionId } : {}),
       },
       body: method === "POST" ? JSON.stringify(request) : undefined,
     };
