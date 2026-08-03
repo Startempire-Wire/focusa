@@ -76,6 +76,7 @@ pub mod focus;
 pub mod gate;
 pub mod google_drive_connector;
 pub mod install_lifecycle;
+pub mod installation_convergence;
 pub mod intuition;
 pub mod license;
 pub mod memory;
