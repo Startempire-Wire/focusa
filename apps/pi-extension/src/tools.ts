@@ -5297,6 +5297,8 @@ export function registerTools(pi: ExtensionAPI) {
       let body = result.body || {};
       const recoveredContinuity = String(
         body.trajectory_ladder?.fallback_source_continuity_id ||
+          body.prior_session_context?.trajectory_ladder?.fallback_source_continuity_id ||
+          body.prior_session_context?.fallback_source_continuity_id ||
           body.inferred_workpoint_candidate?.source_signals?.prior_session_workpath?.find(
             (entry: any) => entry?.continuity_id
           )?.continuity_id ||
