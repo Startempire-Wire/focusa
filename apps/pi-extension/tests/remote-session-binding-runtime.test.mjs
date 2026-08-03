@@ -11,6 +11,11 @@ const project = readFileSync(
 );
 
 assert.match(session, /sessionManager\.getSessionId\(\)/);
+assert.ok(
+  index.indexOf("ctx?.sessionManager?.getSessionId?.()") <
+    index.indexOf("ctx?.sessionManager?.getSessionFile?.()"),
+  "attachment routing must prefer native Pi UUID over session file path"
+);
 assert.doesNotMatch(index, /sessionId\s*[:=][^\n]*getSessionFile\(/);
 assert.doesNotMatch(session, /sessionId\s*[:=][^\n]*getSessionFile\(/);
 assert.match(state, /query\.set\("pi_session_id", sessionId\)/);
