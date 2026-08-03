@@ -8954,9 +8954,13 @@ export function registerTools(pi: ExtensionAPI) {
     const method = opts.method || "POST";
     const writerId = opts.writer ? await preferredWriterId() : undefined;
     const writerLease = writerId ? await currentWorkLoopLease() : null;
+    const requestSessionId = String(request.session_id || "").trim();
     const req: RequestInit = {
       method,
-      headers: writerId ? writerLeaseHeaders(writerId, writerLease) : undefined,
+      headers: {
+        ...(writerId ? writerLeaseHeaders(writerId, writerLease) : {}),
+        ...(requestSessionId ? { "X-Scope-Session-Id": requestSessionId } : {}),
+      },
       body: method === "POST" ? JSON.stringify(request) : undefined,
     };
     const first = await focusaFetchDetailed(endpoint, req);

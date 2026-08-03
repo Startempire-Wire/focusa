@@ -22,6 +22,9 @@ function block(source, startToken, endToken) {
 }
 
 test("Pi lineage tools default to the active native session and never global lineage", () => {
+  const spec80Caller = block(tools, "async function callSpec80Tool", "const SPEC81_ID_PATTERN");
+  assert.match(spec80Caller, /"X-Scope-Session-Id": requestSessionId/);
+
   const treeHead = block(tools, 'name: "focusa_tree_head"', 'name: "focusa_tree_path"');
   assert.match(treeHead, /getAttachmentRuntime\(\)\.sessionFrameKey/);
   assert.match(treeHead, /global lineage fallback is prohibited/);
