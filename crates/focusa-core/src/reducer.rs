@@ -4446,16 +4446,23 @@ pub fn reduce_with_meta(
                 .iter()
                 .find(|record| record.workpoint_id == workpoint_id)
                 .map(|record| (record.project_root.clone(), record.continuity_id.clone()));
-            if let (Some(active_trajectory_id), Some((Some(project_root), Some(continuity_id)))) =
-                (state.trajectory.active_trajectory_id.clone(), promoted_scope)
-                && let Some(trajectory) = state.trajectory.records.iter_mut().find(|trajectory| {
-                    trajectory.trajectory_id == active_trajectory_id
-                        && trajectory.project_root.as_deref() == Some(project_root.as_str())
+            if let Some((Some(project_root), Some(continuity_id))) = promoted_scope {
+                let active_trajectory_id = state.trajectory.active_trajectory_id.as_deref();
+                let exact_scope = |trajectory: &TrajectoryProjectionRecord| {
+                    trajectory.project_root.as_deref() == Some(project_root.as_str())
                         && trajectory.continuity_id.as_deref() == Some(continuity_id.as_str())
-                })
-            {
-                trajectory.active_workpoint_id = Some(workpoint_id);
-                trajectory.updated_at = Some(now);
+                };
+                let trajectory_index = active_trajectory_id
+                    .and_then(|active_id| {
+                        state.trajectory.records.iter().position(|trajectory| {
+                            trajectory.trajectory_id == active_id && exact_scope(trajectory)
+                        })
+                    })
+                    .or_else(|| state.trajectory.records.iter().rposition(exact_scope));
+                if let Some(index) = trajectory_index {
+                    state.trajectory.records[index].active_workpoint_id = Some(workpoint_id);
+                    state.trajectory.records[index].updated_at = Some(now);
+                }
             }
         }
         FocusaEvent::WorkpointCheckpointRejected {
@@ -5217,7 +5224,7 @@ mod tests {
             continuity_id: Some("cont-test".to_string()),
             ..TrajectoryProjectionRecord::default()
         };
-        state.trajectory.active_trajectory_id = Some(trajectory.trajectory_id.clone());
+        state.trajectory.active_trajectory_id = Some("stale-trajectory-id".to_string());
         state.trajectory.records.push(trajectory);
         let record = workpoint_record("focusa-a2w2.2");
         let workpoint_id = record.workpoint_id;
