@@ -125,4 +125,9 @@ assert.match(
   /!explicit && markerCanonical && isProjectRootAuthoritySafe\(markerCanonical\)/,
   "scope-free Pi tools must promote a safe local canonical marker before ambient cwd"
 );
+assert.match(
+  toolsSource,
+  /const sessionCwd = ambientMarkerCanonical\s*\? ambientCwd/,
+  "fresh process cwd with a marker must outrank stale broad session cwd"
+);
 console.log("project identity working-context retention passed");

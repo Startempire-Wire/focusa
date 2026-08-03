@@ -1848,8 +1848,12 @@ function focusaToolWorkpointScope(packet: any): { projectRoot: string; continuit
 
 async function resolveFocusaToolProjectRoot(explicitProjectRoot?: unknown): Promise<string> {
   const explicit = normalizeProjectRoot(explicitProjectRoot);
-  const sessionCwd = normalizeProjectRoot(getSessionCwd() || process.cwd());
-  const markerCanonical = resolveCanonicalMarkerProjectRoot(sessionCwd);
+  const ambientCwd = normalizeProjectRoot(process.cwd());
+  const ambientMarkerCanonical = resolveCanonicalMarkerProjectRoot(ambientCwd);
+  const sessionCwd = ambientMarkerCanonical
+    ? ambientCwd
+    : normalizeProjectRoot(getSessionCwd() || ambientCwd);
+  const markerCanonical = ambientMarkerCanonical || resolveCanonicalMarkerProjectRoot(sessionCwd);
   if (!explicit && markerCanonical && isProjectRootAuthoritySafe(markerCanonical)) {
     return markerCanonical;
   }
