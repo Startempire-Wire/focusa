@@ -141,6 +141,7 @@ type CompactionLeaseOwner = {
   attachmentId: string;
   nativeSession?: string;
   registeredHandlers: string[];
+  moduleLoadId: string;
 };
 
 type ProcessCompactionLease = {
@@ -395,19 +396,24 @@ function estimateEntryRange(entries: readonly BranchEntry[], start: number, end:
   return total;
 }
 
+const MODULE_LOAD_ID = randomUUID();
+
 export function registerAutoCompaction(
   pi: ExtensionAPI,
   getPolicy: () => ProactiveCompactionPolicy = () => DEFAULT_PROACTIVE_COMPACTION_POLICY
 ): boolean {
   const processLease = processCompactionLease();
   if (processLease.owner) {
-    if (!processLease.duplicateDiagnosticEmitted) {
-      processLease.duplicateDiagnosticEmitted = true;
-      console.warn(
-        `[focusa] duplicate extension suppressed; active compaction owner=${processLease.owner.registrationId} build=${processLease.owner.extensionBuild} source=${processLease.owner.registrationSource}. Remove the duplicate Focusa installation and reload Pi.`
-      );
+    if (processLease.owner.moduleLoadId === MODULE_LOAD_ID) {
+      if (!processLease.duplicateDiagnosticEmitted) {
+        processLease.duplicateDiagnosticEmitted = true;
+        console.warn(
+          `[focusa] duplicate extension suppressed; active compaction owner=${processLease.owner.registrationId} build=${processLease.owner.extensionBuild} source=${processLease.owner.registrationSource}. Remove the duplicate Focusa installation and reload Pi.`
+        );
+      }
+      return false;
     }
-    return false;
+    processLease.owner = undefined;
   }
 
   // Spec130A §16 permits one linked retry per pressure crossing. Provider
@@ -423,6 +429,7 @@ export function registerAutoCompaction(
     registrationSource: REGISTRATION_SOURCE,
     attachmentId: `pending:${registrationId}`,
     registeredHandlers: [...REGISTERED_HANDLERS],
+    moduleLoadId: MODULE_LOAD_ID,
   };
   processLease.duplicateDiagnosticEmitted = false;
   const ownsRegistrationLease = (): boolean => processLease.owner?.registrationId === registrationId;

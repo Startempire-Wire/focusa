@@ -28,6 +28,13 @@ function handlerBody(eventName) {
   return handlerBodyFrom(source, eventName);
 }
 
+test("module reload clears stale global owner and re-registers", () => {
+  assert.match(source, /const MODULE_LOAD_ID = randomUUID\(\)/);
+  assert.match(source, /processLease\.owner\.moduleLoadId === MODULE_LOAD_ID/);
+  assert.match(source, /processLease\.owner = undefined/);
+  assert.match(source, /moduleLoadId: MODULE_LOAD_ID/);
+});
+
 test("session reload preserves and rebinds the compaction coordinator", () => {
   const shutdown = handlerBody("session_shutdown");
   const start = handlerBody("session_start");
