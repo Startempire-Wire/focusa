@@ -1246,6 +1246,14 @@ fn uiai_engine_install_command() -> String {
 
 fn command_semver(name: &str) -> Option<(u64, u64, u64)> {
     let command = find_command(name)?;
+    #[cfg(windows)]
+    let output = std::process::Command::new("cmd.exe")
+        .args(["/D", "/C"])
+        .arg(command)
+        .arg("--version")
+        .output()
+        .ok()?;
+    #[cfg(not(windows))]
     let output = std::process::Command::new(command)
         .arg("--version")
         .output()
