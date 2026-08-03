@@ -9,6 +9,7 @@
 pub mod authority;
 pub mod authority_client;
 pub mod authority_credentials;
+pub mod authority_http;
 pub mod authority_store;
 
 use chrono::{DateTime, Utc};

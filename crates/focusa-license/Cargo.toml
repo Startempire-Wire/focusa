@@ -17,6 +17,7 @@ ed25519-dalek = { workspace = true }
 sha2 = { workspace = true }
 uuid = { workspace = true }
 keyring = { workspace = true }
+reqwest = { workspace = true }
 
 [lints]
 workspace = true

@@ -10,7 +10,7 @@ pub struct DeviceCodeStartRequest {
     pub requested_features: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DeviceCodeChallenge {
     pub request_id: Uuid,
     pub device_code: String,
@@ -20,7 +20,7 @@ pub struct DeviceCodeChallenge {
     pub interval_ms: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "status", rename_all = "snake_case")]
 pub enum DeviceCodePollResponse {
     AuthorizationPending,
@@ -71,7 +71,7 @@ impl std::fmt::Display for SensitiveCredential {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct AuthorizedLeaseMaterial {
     pub signed_lease: String,
     pub refresh_credential: SensitiveCredential,
@@ -92,7 +92,7 @@ pub enum DeviceAuthorizationStatus {
     Expired,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct DeviceAuthorizationSession {
     challenge: DeviceCodeChallenge,
     status: DeviceAuthorizationStatus,
