@@ -1,0 +1,15 @@
+[package]
+name = "agent-stateful-cognitive-runtime"
+description = "Provider-neutral stateful cognitive runtime authority contract"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license-file.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true }
+
+[lints]
+workspace = true
