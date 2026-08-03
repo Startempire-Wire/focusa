@@ -2,7 +2,7 @@
 
 use std::{collections::BTreeMap, path::Path};
 
-use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use chrono::{DateTime, Utc};
 use ed25519_dalek::VerifyingKey;
 use serde::{Deserialize, Serialize};
@@ -52,7 +52,8 @@ impl PersistedAuthorityState {
         if !path.exists() {
             return Err(AuthorityStoreError::Missing);
         }
-        let raw = std::fs::read(path).map_err(|error| AuthorityStoreError::Read(error.to_string()))?;
+        let raw =
+            std::fs::read(path).map_err(|error| AuthorityStoreError::Read(error.to_string()))?;
         let state: Self =
             serde_json::from_slice(&raw).map_err(|_| AuthorityStoreError::InvalidJson)?;
         if state.schema != AUTHORITY_STATE_SCHEMA {
@@ -78,8 +79,8 @@ impl PersistedAuthorityState {
 
 /// Parse roots embedded at compile time by the trusted distribution build.
 /// Runtime environment variables and local files are intentionally excluded.
-pub fn embedded_production_trust_roots(
-) -> Result<BTreeMap<String, VerifyingKey>, AuthorityStoreError> {
+pub fn embedded_production_trust_roots()
+-> Result<BTreeMap<String, VerifyingKey>, AuthorityStoreError> {
     let raw = option_env!("FOCUSA_AUTHORITY_ROOT_KEYS_JSON").unwrap_or("");
     parse_production_trust_roots(raw)
 }
@@ -132,8 +133,8 @@ pub fn parse_production_trust_roots(
     if raw.trim().is_empty() {
         return Err(AuthorityStoreError::MissingTrustRoots);
     }
-    let encoded: BTreeMap<String, String> =
-        serde_json::from_str(raw).map_err(|_| AuthorityStoreError::InvalidTrustRoot("json".into()))?;
+    let encoded: BTreeMap<String, String> = serde_json::from_str(raw)
+        .map_err(|_| AuthorityStoreError::InvalidTrustRoot("json".into()))?;
     if encoded.is_empty() {
         return Err(AuthorityStoreError::MissingTrustRoots);
     }

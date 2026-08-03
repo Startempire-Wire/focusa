@@ -5,10 +5,10 @@
 
 use std::collections::BTreeMap;
 
-use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use chrono::{DateTime, Utc};
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use sha2::{Digest, Sha256};
 use thiserror::Error;
 
@@ -136,14 +136,19 @@ impl EntitlementSnapshot {
     }
 
     pub fn feature_enabled(&self, feature: &str) -> bool {
-        matches!(self.state, EntitlementState::Active | EntitlementState::OfflineGrace)
-            && self.features.get(feature).copied().unwrap_or(false)
+        matches!(
+            self.state,
+            EntitlementState::Active | EntitlementState::OfflineGrace
+        ) && self.features.get(feature).copied().unwrap_or(false)
     }
 
     pub fn limit(&self, limit: &str) -> Option<u64> {
-        matches!(self.state, EntitlementState::Active | EntitlementState::OfflineGrace)
-            .then(|| self.limits.get(limit).copied())
-            .flatten()
+        matches!(
+            self.state,
+            EntitlementState::Active | EntitlementState::OfflineGrace
+        )
+        .then(|| self.limits.get(limit).copied())
+        .flatten()
     }
 }
 
@@ -208,15 +213,11 @@ impl AuthorityLeaseVerifier {
         now: DateTime<Utc>,
         minimum_sequence: Option<u64>,
     ) -> Result<Self, AuthorityVerificationError> {
-        let root = trusted_roots
-            .get(&envelope.signer_key_id)
-            .ok_or_else(|| AuthorityVerificationError::UnknownKey(envelope.signer_key_id.clone()))?;
-        let (payload_bytes, key_set) = verify_and_parse::<AuthorityKeySet>(
-            envelope,
-            root,
-            KEY_SET_DOMAIN,
-            KEY_SET_SCHEMA,
-        )?;
+        let root = trusted_roots.get(&envelope.signer_key_id).ok_or_else(|| {
+            AuthorityVerificationError::UnknownKey(envelope.signer_key_id.clone())
+        })?;
+        let (payload_bytes, key_set) =
+            verify_and_parse::<AuthorityKeySet>(envelope, root, KEY_SET_DOMAIN, KEY_SET_SCHEMA)?;
         let _ = payload_bytes;
         if key_set.expires_at < now {
             return Err(AuthorityVerificationError::ExpiredKeySet);
@@ -227,7 +228,11 @@ impl AuthorityLeaseVerifier {
                 actual: key_set.sequence,
             });
         }
-        if !key_set.keys.iter().any(|key| key.status == AuthorityKeyStatus::Active) {
+        if !key_set
+            .keys
+            .iter()
+            .any(|key| key.status == AuthorityKeyStatus::Active)
+        {
             return Err(AuthorityVerificationError::EmptyKeySet);
         }
         Ok(Self { key_set })
@@ -248,12 +253,16 @@ impl AuthorityLeaseVerifier {
             .keys
             .iter()
             .find(|candidate| candidate.key_id == envelope.signer_key_id)
-            .ok_or_else(|| AuthorityVerificationError::UnknownKey(envelope.signer_key_id.clone()))?;
+            .ok_or_else(|| {
+                AuthorityVerificationError::UnknownKey(envelope.signer_key_id.clone())
+            })?;
         if key.status == AuthorityKeyStatus::Revoked {
             return Err(AuthorityVerificationError::RevokedKey(key.key_id.clone()));
         }
         if context.now < key.not_before || context.now > key.not_after {
-            return Err(AuthorityVerificationError::KeyOutsideValidity(key.key_id.clone()));
+            return Err(AuthorityVerificationError::KeyOutsideValidity(
+                key.key_id.clone(),
+            ));
         }
         let verifying_key = decode_verifying_key(&key.public_key_b64)?;
         let (payload_bytes, payload) = verify_and_parse::<AuthorityLeasePayload>(
@@ -333,13 +342,14 @@ impl AuthorityLeaseVerifier {
                 &context.expected_node_id,
             );
         };
-        self.verify_lease(envelope, context).unwrap_or_else(|error| {
-            EntitlementSnapshot::recovery_only(
-                &context.expected_product,
-                &context.expected_node_id,
-                error_code(&error),
-            )
-        })
+        self.verify_lease(envelope, context)
+            .unwrap_or_else(|error| {
+                EntitlementSnapshot::recovery_only(
+                    &context.expected_product,
+                    &context.expected_node_id,
+                    error_code(&error),
+                )
+            })
     }
 }
 
@@ -367,11 +377,17 @@ fn verify_and_parse<T: DeserializeOwned>(
         .map_err(|_| AuthorityVerificationError::InvalidSignature)?;
     let value: serde_json::Value =
         serde_json::from_slice(&payload).map_err(|_| AuthorityVerificationError::InvalidPayload)?;
-    let schema = value.get("schema").and_then(|value| value.as_str()).unwrap_or_default();
+    let schema = value
+        .get("schema")
+        .and_then(|value| value.as_str())
+        .unwrap_or_default();
     if schema != expected_schema {
-        return Err(AuthorityVerificationError::UnsupportedPayloadSchema(schema.to_string()));
+        return Err(AuthorityVerificationError::UnsupportedPayloadSchema(
+            schema.to_string(),
+        ));
     }
-    let typed = serde_json::from_value(value).map_err(|_| AuthorityVerificationError::InvalidPayload)?;
+    let typed =
+        serde_json::from_value(value).map_err(|_| AuthorityVerificationError::InvalidPayload)?;
     Ok((payload, typed))
 }
 
