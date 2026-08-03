@@ -63,6 +63,7 @@ pub mod clt;
 pub mod connector_auth;
 pub mod connectors;
 pub mod constitution;
+pub mod daemon_multiplex;
 pub mod dxux;
 pub mod epistemic_conformance;
 pub mod epistemic_fusion;
