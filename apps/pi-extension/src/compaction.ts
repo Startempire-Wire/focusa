@@ -1232,11 +1232,12 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
     });
     if (requestResult === "coordinator_unavailable") {
       ctx.ui.notify("Compaction blocked: Focusa compaction coordinator is unavailable", "error");
+    } else if (requestResult === "deferred_to_native") {
+      ctx.ui.notify(`📊 Context ${pct.toFixed(0)}% — Pi owns safe native compaction`, "warning");
     }
   } else if (pressureAction === "auto") {
     getAttachmentRuntime().currentTier = "auto";
     setContextStatus(ctx, "auto", pct);
-    ctx.ui.notify(`📊 Context ${pct.toFixed(0)}% — compacting`, "info");
     const requestResult = requestCoordinatedCompaction(ctx, {
       triggerClass: "predicted_pressure",
       customInstructions: buildCompactInstructions(
@@ -1247,6 +1248,8 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
     });
     if (requestResult === "coordinator_unavailable") {
       ctx.ui.notify("Compaction blocked: Focusa compaction coordinator is unavailable", "error");
+    } else if (requestResult === "deferred_to_native") {
+      ctx.ui.notify(`📊 Context ${pct.toFixed(0)}% — Pi owns safe native compaction`, "info");
     }
   } else if (pressureAction === "warn") {
     getAttachmentRuntime().currentTier = "warn";

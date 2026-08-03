@@ -34,8 +34,14 @@ test("agent_end never races Pi native compaction with extension compaction", () 
   assert.match(body, /native post-run compaction/);
 });
 
-test("agent_settled is the extension-owned compaction boundary", () => {
+test("agent_settled evaluates pressure without starting a competing native call", () => {
   assert.match(handlerBody("agent_settled"), /maybeCompact\(ctx\)/);
+  assert.match(source, /pi_compact_api_is_fire_and_forget/);
+  assert.match(source, /return "deferred_to_native"/);
+  const maybeStart = source.indexOf("const maybeCompact =");
+  const maybeEnd = source.indexOf("processLease.request = maybeCompact", maybeStart);
+  const maybeBody = source.slice(maybeStart, maybeEnd);
+  assert.doesNotMatch(maybeBody, /attemptCompaction\(ctx, usage\)/);
 });
 
 test("provider transport failures retain bounded recovery for unchanged context", () => {
@@ -59,10 +65,14 @@ test("pressure alone cannot invoke compaction without preflight and exact live e
     indexSource.indexOf("registerAutoCompaction(") < indexSource.indexOf("registerCompaction(pi)"),
     "eligibility handler must register before authoritative checkpoint/summary work"
   );
-  const settledPath = source.slice(source.indexOf("const maybeCompact"));
+  const settledPath = source.slice(
+    source.indexOf("const maybeCompact"),
+    source.indexOf("processLease.request = maybeCompact")
+  );
   const preflightIndex = settledPath.indexOf("evaluateProactiveCompactionEligibility");
-  const compactIndex = settledPath.indexOf("attemptCompaction(ctx, usage)");
-  assert.ok(preflightIndex >= 0 && preflightIndex < compactIndex);
+  const delegationIndex = settledPath.indexOf('return "deferred_to_native"');
+  assert.ok(preflightIndex >= 0 && preflightIndex < delegationIndex);
+  assert.doesNotMatch(settledPath, /ctx\.compact|legacyUnsafeAttemptCompaction/);
 
   const exactGate = handlerBody("session_before_compact");
   assert.match(exactGate, /messagesToSummarize/);

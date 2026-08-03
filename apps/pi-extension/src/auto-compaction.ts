@@ -10,6 +10,10 @@ import {
 } from "@earendil-works/pi-coding-agent";
 
 import type { FocusaConfig } from "./config.js";
+import {
+  providerCompactionCapabilities,
+  type ProviderCompactionCapabilities,
+} from "./provider-compaction-capabilities.js";
 
 declare module "@earendil-works/pi-coding-agent" {
   interface ExtensionAPI {
@@ -68,7 +72,7 @@ export interface CoordinatedCompactionRequest {
 }
 
 export type CoordinatedCompactionRequestResult =
-  "requested" | "suppressed" | "ineligible" | "coordinator_unavailable";
+  "requested" | "deferred_to_native" | "suppressed" | "ineligible" | "coordinator_unavailable";
 
 export interface ProactiveCompactionEligibility {
   eligible: boolean;
@@ -119,6 +123,7 @@ type ActiveEpoch = {
   settlement?: "complete" | "failed";
   primaryError?: string;
   exactEligibility?: ProactiveCompactionEligibility;
+  providerCapabilities: ProviderCompactionCapabilities;
 };
 
 type CompactionLeaseOwner = {
@@ -459,6 +464,7 @@ export function registerAutoCompaction(
       startedAt: 0,
       nativeCompactionCallCount: 0,
       state: "prepare_requested",
+      providerCapabilities: providerCompactionCapabilities(ctx),
     };
   };
 
@@ -477,6 +483,7 @@ export function registerAutoCompaction(
         attempt: epoch?.attempt,
         coordinator_state: epoch?.state,
         native_compaction_call_count: epoch?.nativeCompactionCallCount,
+        provider_capabilities: epoch?.providerCapabilities,
         registration_id: registrationId,
         registration_generation: processLease.generation,
         ...details,
@@ -542,7 +549,10 @@ export function registerAutoCompaction(
     if (processLease.retryOwnerId === registrationId) processLease.retryOwnerId = undefined;
   };
 
-  const attemptCompaction = (ctx: ExtensionContext, usageBefore: ContextUsage): void => {
+  // Quarantined legacy path retained only for recovery-state compatibility.
+  // No caller may invoke Pi's fire-and-forget compact() until Pi exposes a
+  // serialized acquisition API.
+  const _legacyUnsafeAttemptCompaction = (ctx: ExtensionContext, usageBefore: ContextUsage): void => {
     if (!activeEpoch) return;
     if (!ownsRegistrationLease()) {
       persist("attempt_suppressed", { reason: "registration_lease_lost" });
@@ -747,7 +757,7 @@ export function registerAutoCompaction(
               setActiveEpoch(undefined);
               return;
             }
-            attemptCompaction(ctx, liveUsage);
+            _legacyUnsafeAttemptCompaction(ctx, liveUsage);
           }, retryDelay);
           retryTimer.unref?.();
           return;
@@ -855,11 +865,31 @@ export function registerAutoCompaction(
       return "ineligible";
     }
 
-    activeRequest = request;
-    setActiveEpoch(createEpoch(ctx, request.triggerClass, usage.contextWindow));
-    consecutiveTransientFailures = 0;
-    attemptCompaction(ctx, usage);
-    return "requested";
+    // Pi 0.82/0.83 exposes only a fire-and-forget compact() call. It has no
+    // serialized/awaitable acquisition API, so racing an operator or native
+    // compaction can replace and clear Pi's abort controller mid-flight. Focusa
+    // must observe/enrich native compaction rather than starting a second one.
+    lastAttemptAt = Date.now();
+    const delegatedEpoch = createEpoch(ctx, request.triggerClass, usage.contextWindow);
+    delegatedEpoch.startedAt = lastAttemptAt;
+    delegatedEpoch.state = "observing";
+    persist(
+      "native_compaction_delegated",
+      {
+        reason: "pi_compact_api_is_fire_and_forget",
+        tokens_before: usage.tokens,
+        context_window: usage.contextWindow,
+        eligibility,
+      },
+      delegatedEpoch
+    );
+    notifyOnce(
+      ctx,
+      `native-delegation:${contextKey}`,
+      "Focusa preserved compaction safety; Pi owns the next native compaction.",
+      "warning"
+    );
+    return "deferred_to_native";
   };
 
   processLease.request = maybeCompact;
