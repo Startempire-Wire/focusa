@@ -4784,7 +4784,19 @@ mod tests {
         ));
         std::fs::create_dir_all(&fixture).unwrap();
         let rustc = find_command("rustc").expect("Windows Rust toolchain must expose rustc.exe");
-        std::fs::copy(rustc, fixture.join("pi.exe")).unwrap();
+        let pi_source = fixture.join("pi_fixture.rs");
+        std::fs::write(&pi_source, "fn main() { println!(\"pi 0.81.1\"); }").unwrap();
+        let pi_exe = fixture.join("pi.exe");
+        assert!(
+            std::process::Command::new(rustc)
+                .arg(&pi_source)
+                .arg("-o")
+                .arg(&pi_exe)
+                .status()
+                .unwrap()
+                .success(),
+            "failed to compile native pi.exe fixture"
+        );
         std::fs::write(fixture.join("pi.cmd"), "@echo off\r\necho pi 0.81.1\r\n").unwrap();
         let previous_path = std::env::var_os("PATH");
         let previous_uiai = std::env::var_os("UIAI_ENGINE_URL");
