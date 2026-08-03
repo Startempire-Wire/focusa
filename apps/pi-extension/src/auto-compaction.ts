@@ -1024,6 +1024,9 @@ export function registerAutoCompaction(
 
   pi.on("session_start", async (_event, ctx) => {
     if (!ownsRegistrationLease()) return;
+    // Rebind on every session activation. This is idempotent and repairs any
+    // prior lifecycle that cleared the callable while retaining ownership.
+    processLease.request = maybeCompact;
     if (processLease.owner) {
       processLease.owner.nativeSession = ctx.sessionManager.getSessionId();
       processLease.owner.attachmentId =
@@ -1060,8 +1063,10 @@ export function registerAutoCompaction(
     inFlight = false;
     if (!processLease.inFlightEpochId) {
       processLease.attemptOwnerId = undefined;
-      processLease.request = undefined;
-      processLease.owner = undefined;
+      // session_shutdown is a session lifecycle boundary, not an extension
+      // unload. Preserve coordinator ownership and its request function so the
+      // next session_start can resume compaction without re-registering code.
+      if (processLease.owner) processLease.owner.nativeSession = undefined;
       processLease.duplicateDiagnosticEmitted = false;
     }
   });

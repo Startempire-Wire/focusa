@@ -28,6 +28,16 @@ function handlerBody(eventName) {
   return handlerBodyFrom(source, eventName);
 }
 
+test("session reload preserves and rebinds the compaction coordinator", () => {
+  const shutdown = handlerBody("session_shutdown");
+  const start = handlerBody("session_start");
+  assert.doesNotMatch(shutdown, /processLease\.request = undefined/);
+  assert.doesNotMatch(shutdown, /processLease\.owner = undefined/);
+  assert.match(shutdown, /processLease\.owner\.nativeSession = undefined/);
+  assert.match(start, /processLease\.request = maybeCompact/);
+  assert.match(start, /reduceCompactionAuthorityEvents\(persistedEvents\)/);
+});
+
 test("agent_end never races Pi native compaction with extension compaction", () => {
   const body = handlerBody("agent_end");
   assert.doesNotMatch(body, /maybeCompact\s*\(/);
