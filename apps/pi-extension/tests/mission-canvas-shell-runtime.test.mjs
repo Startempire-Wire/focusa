@@ -88,6 +88,10 @@ try {
     assert(lines.length <= 20, "Mission Canvas shell must not scroll beyond terminal height");
   }
 
+  shell.handleInput("\x1b[6~");
+  assert(shell.scrollOffset > 0, "PageDown must expose Canvas rows below the viewport");
+  assert(shell.render(39).length <= 20);
+
   for (const character of "/mission-canvas off") shell.handleInput(character);
   shell.handleInput("\n");
   await new Promise((resolvePromise) => setImmediate(resolvePromise));

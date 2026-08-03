@@ -54,6 +54,9 @@ export class MissionCanvasShell implements Component, Focusable {
   private readonly canvas: MissionCanvasView;
   private disposed = false;
   private _focused = false;
+  private scrollOffset = 0;
+  private canvasRowCount = 0;
+  private viewportRows = 1;
 
   get focused(): boolean {
     return this._focused;
@@ -122,26 +125,32 @@ export class MissionCanvasShell implements Component, Focusable {
 
   handleInput(data: string): void {
     if (matchesKey(data, Key.ctrl("up"))) {
+      this.scrollOffset = 0;
       this.canvas.handleInput("mode-prev");
       return;
     }
     if (matchesKey(data, Key.ctrl("down"))) {
+      this.scrollOffset = 0;
       this.canvas.handleInput("mode-next");
       return;
     }
     if (matchesKey(data, Key.ctrl("left"))) {
+      this.scrollOffset = 0;
       this.canvas.handleInput("profile-prev");
       return;
     }
     if (matchesKey(data, Key.ctrl("right"))) {
+      this.scrollOffset = 0;
       this.canvas.handleInput("profile-next");
       return;
     }
     if (matchesKey(data, Key.alt("left"))) {
+      this.scrollOffset = 0;
       this.canvas.handleInput("surface-prev");
       return;
     }
     if (matchesKey(data, Key.alt("right"))) {
+      this.scrollOffset = 0;
       this.canvas.handleInput("surface-next");
       return;
     }
@@ -151,6 +160,17 @@ export class MissionCanvasShell implements Component, Focusable {
     }
     if (matchesKey(data, Key.ctrl("y"))) {
       this.canvas.handleInput("copy");
+      return;
+    }
+    if (matchesKey(data, Key.pageUp)) {
+      this.scrollOffset = Math.max(0, this.scrollOffset - this.viewportRows);
+      this.requestRender();
+      return;
+    }
+    if (matchesKey(data, Key.pageDown)) {
+      const maxOffset = Math.max(0, this.canvasRowCount - this.viewportRows);
+      this.scrollOffset = Math.min(maxOffset, this.scrollOffset + this.viewportRows);
+      this.requestRender();
       return;
     }
     if (matchesKey(data, Key.escape) || matchesKey(data, Key.ctrl("g"))) {
@@ -179,7 +199,16 @@ export class MissionCanvasShell implements Component, Focusable {
     const canvasRows = this.canvas.render(safeWidth);
     const inputRows = this.input.render(Math.max(1, safeWidth - 6));
     const availableRows = Math.max(1, this.terminalRows() - inputRows.length - 3);
-    const visibleCanvasRows = canvasRows.slice(0, availableRows);
+    this.canvasRowCount = canvasRows.length;
+    this.viewportRows = availableRows;
+    this.scrollOffset = Math.min(
+      this.scrollOffset,
+      Math.max(0, this.canvasRowCount - this.viewportRows)
+    );
+    const visibleCanvasRows = canvasRows.slice(
+      this.scrollOffset,
+      this.scrollOffset + availableRows
+    );
     if (safeWidth < 8) {
       return [
         ...visibleCanvasRows,
@@ -193,7 +222,7 @@ export class MissionCanvasShell implements Component, Focusable {
       this.theme.fg("accent", truncateToWidth(promptTop, safeWidth)),
       ...inputRows.map((line) => `${this.theme.fg("dim", "│ ")}${truncateToWidth(line, safeWidth - 4)}${" ".repeat(Math.max(0, safeWidth - 4 - visibleWidth(line)))}${this.theme.fg("dim", " │")}`),
       this.theme.fg("dim", `└${"─".repeat(Math.max(1, safeWidth - 2))}┘`),
-      truncateToWidth(this.theme.fg("muted", "Esc/Ctrl+G close · Enter send · Ctrl+↑/↓ activity · Ctrl+←/→ workspace · Alt+←/→ surface"), safeWidth),
+      truncateToWidth(this.theme.fg("muted", "Esc/Ctrl+G close · PgUp/PgDn scroll · Enter send · Ctrl+↑/↓ activity · Alt+←/→ surface"), safeWidth),
     ];
   }
 }

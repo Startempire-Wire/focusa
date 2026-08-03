@@ -57,7 +57,8 @@ assert.match(shell, /this\.input\.getValue\(\)/);
 assert.match(shell, /setEditorText\(draft\)/);
 assert.match(shell, /Esc\/Ctrl\+G close/);
 assert.match(shell, /this\.closeShell\(\)/);
-assert.match(shell, /canvasRows\.slice\(0, availableRows\)/);
+assert.match(shell, /this\.scrollOffset \+ availableRows/);
+assert.match(shell, /Key\.pageDown/);
 assert.doesNotMatch(shell, /Math\.max\(40, width\)/);
 
 // Reference-design composition exists in the Pi-native renderer.
@@ -89,6 +90,9 @@ assert.doesNotMatch(view, /CURRENT WORKSPACE COCKPIT/);
 assert.match(commands, /new MissionCanvasShell/);
 assert.match(commands, /overlay: true/);
 assert.match(commands, /maxHeight: "90%"/);
+assert.doesNotMatch(commands, /action = ""/);
+assert.doesNotMatch(commands, /Run \/mission-canvas on to open it/);
+assert.match(commands, /if \(mode !== "canvas-guided"\) closeActiveMissionCanvasShell\(\)/);
 assert.match(commands, /canvas-guided/);
 assert.match(commands, /hasActiveMissionCanvasShell/);
 assert.match(commands, /refreshMissionCanvasWidget/);

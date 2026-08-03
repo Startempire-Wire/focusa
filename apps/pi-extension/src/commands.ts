@@ -348,7 +348,7 @@ export function registerCommands(pi: ExtensionAPI) {
   });
 
   const handleMissionCanvasAction: MissionCanvasActionHandler = async (args, ctx) => {
-      let action = String(args || "").trim().toLowerCase();
+      const action = String(args || "").trim().toLowerCase();
       const currentMode = resolveInteractionMode(getSessionCwd());
       if (action.startsWith("profile ")) {
         const profile = action.slice("profile ".length) as MissionCanvasWorkspaceProfile;
@@ -393,26 +393,15 @@ export function registerCommands(pi: ExtensionAPI) {
           `Mission Canvas switched ${mode === "canvas-guided" ? "on" : "off"}; Focusa canonical runtime remains active.`,
           "info"
         );
-        if (mode !== "canvas-guided") {
-          closeActiveMissionCanvasShell();
-          return;
-        }
-        if (hasActiveMissionCanvasShell() || !ctx.hasUI) return;
-        action = "";
+        if (mode !== "canvas-guided") closeActiveMissionCanvasShell();
+        return;
       }
       if (action) {
         ctx.ui.notify("Usage: /mission-canvas [on|off|toggle|status|profile <id>]", "info");
         return;
       }
       const interactionMode = resolveInteractionMode(getSessionCwd());
-      if (interactionMode.mode !== "canvas-guided") {
-        ctx.ui.notify(
-          `Mission Canvas is off (${interactionMode.mode}, source: ${interactionMode.source}). Run /mission-canvas on to open it.`,
-          "info"
-        );
-        return;
-      }
-      if (hasActiveMissionCanvasShell()) return;
+      if (hasActiveMissionCanvasShell() || !ctx.hasUI) return;
       const loadModel = async (): Promise<MissionCanvasModel> => {
         const [
           workpoint,
