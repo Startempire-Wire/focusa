@@ -130,4 +130,14 @@ assert.match(
   /const sessionCwd = ambientMarkerCanonical\s*\? ambientCwd/,
   "fresh process cwd with a marker must outrank stale broad session cwd"
 );
+assert.match(
+  toolsSource,
+  /const authorityProjectRoot = normalizeProjectRoot\(p\.project_root \|\| markerProjectRoot\)/,
+  "project identity reads must bind a scope-free request to its local canonical marker"
+);
+assert.match(
+  toolsSource,
+  /query\.set\("pi_session_id", getSessionFrameKey\(\)\)/,
+  "project identity reads must carry the native Pi session UUID"
+);
 console.log("project identity working-context retention passed");

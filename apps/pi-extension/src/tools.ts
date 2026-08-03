@@ -5023,15 +5023,26 @@ export function registerTools(pi: ExtensionAPI) {
         remote_deploy_root?: string;
       };
       const query = new URLSearchParams();
-      query.set("cwd", p.cwd || getSessionCwd() || process.cwd());
-      if (p.project_root) query.set("project_root", p.project_root);
-      const persistedProjectRoot =
+      const ambientCwd = normalizeProjectRoot(p.cwd || process.cwd());
+      const markerProjectRoot = resolveCanonicalMarkerProjectRoot(ambientCwd);
+      const requestCwd = p.cwd || (markerProjectRoot ? ambientCwd : getSessionCwd() || process.cwd());
+      const authorityProjectRoot = normalizeProjectRoot(p.project_root || markerProjectRoot);
+      query.set("cwd", requestCwd);
+      if (authorityProjectRoot) query.set("project_root", authorityProjectRoot);
+      if (getSessionFrameKey()) query.set("pi_session_id", getSessionFrameKey());
+      const persistedProjectRoot = normalizeProjectRoot(
         p.persisted_project_root ||
-        getActiveWorkpointPacket()?.scope?.project_root ||
-        getActiveWorkpointPacket()?.project_root ||
-        getLastProjectRootResolution()?.projectRoot ||
-        getLastProjectIdentity()?.project_root;
-      if (persistedProjectRoot) query.set("persisted_project_root", persistedProjectRoot);
+          getActiveWorkpointPacket()?.scope?.project_root ||
+          getActiveWorkpointPacket()?.project_root ||
+          getLastProjectRootResolution()?.projectRoot ||
+          getLastProjectIdentity()?.project_root
+      );
+      if (
+        persistedProjectRoot &&
+        (!authorityProjectRoot || persistedProjectRoot === authorityProjectRoot)
+      ) {
+        query.set("persisted_project_root", persistedProjectRoot);
+      }
       if (p.remote_host) query.set("remote_host", p.remote_host);
       if (p.remote_user) query.set("remote_user", p.remote_user);
       if (p.remote_port) query.set("remote_port", String(p.remote_port));
