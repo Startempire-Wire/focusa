@@ -65,10 +65,7 @@ import {
 } from "./state.js";
 import { loadPersistedRecoveryState } from "./persistence.js";
 import { measureNativeSessionPressure, type NativeSessionPressureV1 } from "./session-pressure.js";
-import {
-  queueLifecycleAdvisory,
-  queueStartupReceptionistTurn,
-} from "./lifecycle-advisory.js";
+import { queueLifecycleAdvisory, queueStartupReceptionistTurn } from "./lifecycle-advisory.js";
 import { pushDelta } from "./tools.js";
 import { updateNorthStarCard } from "./north-star.js";
 import { LifecycleGenerationGuard } from "./lifecycle-guard.js";
@@ -78,7 +75,7 @@ import {
   shouldEmitProjectScopeRecoveryPacket,
   type ProjectBindingDecisionV1,
 } from "./project-binding.js";
-import { publishScopedStateChange } from "./scoped-surface-refresh.js";
+import { publishScopedStateChange, rehydrateScopedStateChanges } from "./scoped-surface-refresh.js";
 
 // §30 + §37.10: SSE connection for metacognitive + cross-surface events
 let sseAbort: AbortController | null = null;
@@ -699,9 +696,7 @@ async function promptForProjectVerifyIfNeeded(
     if (startupBlocked) {
       getAttachmentRuntime().startupReceptionistActive = true;
       getAttachmentRuntime().startupReceptionistStartedAt = Date.now();
-      getAttachmentRuntime().startupReceptionistPreviousThinkingLevel = String(
-        pi.getThinkingLevel?.() || ""
-      );
+      getAttachmentRuntime().startupReceptionistPreviousThinkingLevel = String(pi.getThinkingLevel?.() || "");
       pi.setThinkingLevel?.("off");
       queueStartupReceptionistTurn(pi, ctx, {
         advisoryKey: `${recoveryRef}:receptionist:${getAttachmentRuntime().sessionFrameKey || "no-session"}`,
@@ -1179,6 +1174,7 @@ export function registerSession(pi: ExtensionAPI) {
     getAttachmentRuntime().sessionFrameKey = eventSessionId;
     getAttachmentRuntime().sessionCwd = adoptPiProjectRoot(ctx.cwd);
     resetPiSessionScopedState("session_start");
+    rehydrateScopedStateChanges(ctx.sessionManager.getBranch());
     syncRuntimeFieldsToScopeStore();
 
     // §37.5: Check CLI flags FIRST

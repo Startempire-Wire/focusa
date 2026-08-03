@@ -1,6 +1,7 @@
 import {
   currentProjectBindingDecision,
   getActiveWorkpointPacket,
+  getAttachmentRuntime,
   getContinuityId,
   getLastTrajectoryClarity,
   getSessionCwd,
@@ -82,10 +83,37 @@ export function publishScopedStateChange(
     continuity_id: continuityId,
   };
   latestByScope.set(scopeKey(projectRoot, continuityId), receipt);
+  try {
+    getAttachmentRuntime().pi?.appendEntry("focusa-scoped-state-change", receipt);
+  } catch {
+    // The durable mutation already succeeded. Surface refresh remains useful,
+    // but a session-ledger write must never fabricate a failed mutation.
+  }
   queueMicrotask(() => {
     for (const listener of listeners) listener(receipt);
   });
   return receipt;
+}
+
+export function rehydrateScopedStateChanges(entries: unknown[]): number {
+  let accepted = 0;
+  for (const candidate of entries) {
+    if (!candidate || typeof candidate !== "object") continue;
+    const entry = candidate as Record<string, any>;
+    if (entry.type !== "custom" || entry.customType !== "focusa-scoped-state-change") continue;
+    const receipt = entry.data as ScopedStateChangeReceiptV1 | undefined;
+    if (receipt?.schema !== "focusa.scoped_state_change_receipt.v1") continue;
+    const projectRoot = normalizeProjectRoot(receipt.project_root);
+    const continuityId = bounded(receipt.continuity_id);
+    if (!projectRoot || !continuityId || !bounded(receipt.receipt_id)) continue;
+    latestByScope.set(scopeKey(projectRoot, continuityId), {
+      ...receipt,
+      project_root: projectRoot,
+      continuity_id: continuityId,
+    });
+    accepted += 1;
+  }
+  return accepted;
 }
 
 export function subscribeScopedStateChanges(listener: ScopedRefreshListener): () => void {

@@ -15,6 +15,7 @@ export const getActiveWorkpointPacket = () => state.workpoint;
 export const getContinuityId = () => state.continuityId;
 export const getLastTrajectoryClarity = () => state.trajectory;
 export const getSessionCwd = () => state.projectRoot;
+export const getAttachmentRuntime = () => state.runtime;
 export const normalizeProjectRoot = (value) => {
   const root = String(value || "").trim().replace(/\\/+$/, "");
   return root === "/" ? "/" : root;
@@ -42,6 +43,13 @@ globalThis.__focusaScopedRefreshState = {
     short_term_goal: "Refresh surfaces",
   },
   workpoint: null,
+  appended: [],
+  runtime: {
+    pi: {
+      appendEntry: (customType, data) =>
+        globalThis.__focusaScopedRefreshState.appended.push({ type: "custom", customType, data }),
+    },
+  },
 };
 const refresh = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`);
 
@@ -108,6 +116,13 @@ test("one exact-scope receipt refreshes subscribers and exposes freshness", asyn
   const snapshot = refresh.buildTruthfulScopedSurfaceSnapshot("/root", Date.parse("2026-07-31T00:01:00Z"));
   assert.equal(snapshot.last_refresh_status, "accepted");
   assert.equal(snapshot.stale_age_ms, 30_000);
+  assert.equal(globalThis.__focusaScopedRefreshState.appended.at(-1).data.receipt_id, receipt.receipt_id);
+});
+
+test("durable scoped receipts rehydrate after session reload", () => {
+  const accepted = refresh.rehydrateScopedStateChanges(globalThis.__focusaScopedRefreshState.appended);
+  assert.ok(accepted >= 1);
+  assert.equal(refresh.latestScopedStateChange()?.schema, "focusa.scoped_state_change_receipt.v1");
 });
 
 test("foreign receipts never refresh the current project", () => {
