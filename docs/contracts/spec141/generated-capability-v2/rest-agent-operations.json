@@ -1,6 +1,6 @@
 {
   "schema": "focusa.rest_agent_operation_projection.v2",
-  "registry_digest": "sha256:4231361362502c49a10c5ca1ff570e54f8e296e1e1356ac72cd0ad7e09c10915",
+  "registry_digest": "sha256:c7392ed838c10d4117584ee11a47c93214e4a887aeec4bd838cf3c1bb570305f",
   "operations": [
     {
       "method": "POST",
@@ -40065,6 +40065,10 @@
               {
                 "const": "commit-priority",
                 "type": "string"
+              },
+              {
+                "const": "settle-closure",
+                "type": "string"
               }
             ]
           },
@@ -40184,6 +40188,7 @@
           "high_consequence_packet": {},
           "civil_time_packet": {},
           "temporal_priority_packet": {},
+          "closure_packet": {},
           "duration_ms": {
             "type": "number"
           },
@@ -40639,6 +40644,10 @@
               {
                 "const": "commit-priority",
                 "type": "string"
+              },
+              {
+                "const": "settle-closure",
+                "type": "string"
               }
             ]
           },
@@ -40758,6 +40767,7 @@
           "high_consequence_packet": {},
           "civil_time_packet": {},
           "temporal_priority_packet": {},
+          "closure_packet": {},
           "duration_ms": {
             "type": "number"
           },
@@ -41213,6 +41223,10 @@
               {
                 "const": "commit-priority",
                 "type": "string"
+              },
+              {
+                "const": "settle-closure",
+                "type": "string"
               }
             ]
           },
@@ -41332,6 +41346,7 @@
           "high_consequence_packet": {},
           "civil_time_packet": {},
           "temporal_priority_packet": {},
+          "closure_packet": {},
           "duration_ms": {
             "type": "number"
           },
@@ -41787,6 +41802,10 @@
               {
                 "const": "commit-priority",
                 "type": "string"
+              },
+              {
+                "const": "settle-closure",
+                "type": "string"
               }
             ]
           },
@@ -41906,6 +41925,7 @@
           "high_consequence_packet": {},
           "civil_time_packet": {},
           "temporal_priority_packet": {},
+          "closure_packet": {},
           "duration_ms": {
             "type": "number"
           },
@@ -42361,6 +42381,10 @@
               {
                 "const": "commit-priority",
                 "type": "string"
+              },
+              {
+                "const": "settle-closure",
+                "type": "string"
               }
             ]
           },
@@ -42480,6 +42504,7 @@
           "high_consequence_packet": {},
           "civil_time_packet": {},
           "temporal_priority_packet": {},
+          "closure_packet": {},
           "duration_ms": {
             "type": "number"
           },
@@ -42935,6 +42960,10 @@
               {
                 "const": "commit-priority",
                 "type": "string"
+              },
+              {
+                "const": "settle-closure",
+                "type": "string"
               }
             ]
           },
@@ -43054,6 +43083,7 @@
           "high_consequence_packet": {},
           "civil_time_packet": {},
           "temporal_priority_packet": {},
+          "closure_packet": {},
           "duration_ms": {
             "type": "number"
           },

@@ -1,0 +1,89 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import ts from "typescript";
+
+const source = readFileSync(
+  fileURLToPath(new URL("../src/project-identity-working-context.ts", import.meta.url)),
+  "utf8"
+);
+const compiled = ts.transpileModule(source, {
+  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+}).outputText;
+const { resolveProjectIdentityLookupCwd } = await import(
+  `data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`
+);
+
+const richIdentity = {
+  status: "verified",
+  canonical_parent_root: "/home/wirebot/focusa",
+  project_root: "/home/wirebot/focusa",
+  active_worktree_root: "/tmp/focusa-next-locked-release",
+  working_context: {
+    active_worktree_root: "/tmp/focusa-next-locked-release",
+    working_subpath: { working_subpath_id: "working-subpath:06c27313" },
+  },
+};
+
+assert.equal(
+  resolveProjectIdentityLookupCwd({
+    projectRoot: "/home/wirebot/focusa",
+    ambientCwd: "/root",
+    persistedIdentity: richIdentity,
+  }),
+  "/tmp/focusa-next-locked-release",
+  "a broad launcher cwd must not collapse a verified resumed worktree to primary"
+);
+assert.equal(
+  resolveProjectIdentityLookupCwd({
+    projectRoot: "/home/wirebot/focusa",
+    ambientCwd: "/home/wirebot/focusa/apps/pi-extension",
+    persistedIdentity: richIdentity,
+  }),
+  "/home/wirebot/focusa/apps/pi-extension",
+  "an ambient cwd inside the canonical project is authoritative for the lookup"
+);
+assert.equal(
+  resolveProjectIdentityLookupCwd({
+    projectRoot: "/home/wirebot/focusa",
+    ambientCwd: "/root",
+    persistedIdentity: { ...richIdentity, canonical_parent_root: "/tmp/foreign-project" },
+  }),
+  "/home/wirebot/focusa",
+  "foreign persisted working context must fail closed"
+);
+assert.equal(
+  resolveProjectIdentityLookupCwd({
+    projectRoot: "/home/wirebot/focusa",
+    ambientCwd: "/root",
+    persistedIdentity: {
+      ...richIdentity,
+      working_context: {
+        ...richIdentity.working_context,
+        working_subpath: { working_subpath_id: "primary" },
+      },
+    },
+  }),
+  "/home/wirebot/focusa",
+  "primary context must not invent a detached worktree"
+);
+assert.equal(
+  resolveProjectIdentityLookupCwd({
+    projectRoot: "/home/wirebot/focusa",
+    ambientCwd: "/root",
+    persistedIdentity: { project_identity: richIdentity },
+  }),
+  "/tmp/focusa-next-locked-release",
+  "wrapped project identity envelopes preserve the verified worktree"
+);
+const stateSource = readFileSync(
+  fileURLToPath(new URL("../src/state.ts", import.meta.url)),
+  "utf8"
+);
+assert.match(stateSource, /resolveProjectIdentityLookupCwd\(\{ projectRoot, ambientCwd, persistedIdentity: persisted \}\)/);
+assert.doesNotMatch(
+  stateSource,
+  /const cwdForIdentity = safe && !ambientInsideProject \? projectRoot : ambientCwd/,
+  "session identity must not collapse a verified resumed worktree to canonical primary"
+);
+console.log("project identity working-context retention passed");

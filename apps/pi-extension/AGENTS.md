@@ -2,6 +2,10 @@
 
 This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get started.
 
+## Agent-KB API Default Reference
+
+Inherit the workspace rule: use `agent-kb-api` first for KH/OVH/operator policy, verify freshness, and use local Agent KB files only as a read-only fallback.
+
 ## Quick Reference
 
 ```bash

@@ -9,6 +9,7 @@ use crate::routes::bounded::{
     BoundedReadOptions, bounded_metadata, budgeted_default_limit, budgeted_hard_limit,
     budgeted_requested_limit,
 };
+use crate::routes::clt::scoped_clt_state;
 use crate::routes::permissions::{forbid, permission_context};
 use crate::scope::ScopeContext;
 use crate::server::AppState;
@@ -19,6 +20,7 @@ use axum::{
     routing::{get, post},
 };
 use chrono::Utc;
+use focusa_core::scoped_state::WorkstreamKey;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::collections::HashMap;
@@ -36,6 +38,55 @@ pub(crate) struct SnapshotRecord {
     state_version: u64,
     lineage_head: Option<String>,
     storage_path: String,
+    #[serde(default)]
+    project_root: String,
+    #[serde(default)]
+    continuity_id: String,
+    #[serde(default)]
+    session_id: String,
+}
+
+fn require_snapshot_session(scope: &ScopeContext) -> Result<String, (StatusCode, Json<Value>)> {
+    scope
+        .session_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty() && *value != "global")
+        .map(str::to_string)
+        .ok_or_else(|| {
+            (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(json!({
+                    "status": "blocked",
+                    "code": "SESSION_SCOPE_REQUIRED",
+                    "reason": "snapshot lineage requires an exact non-global native session scope"
+                })),
+            )
+        })
+}
+
+fn snapshot_scope_matches(
+    record: &SnapshotRecord,
+    scope: &WorkstreamKey,
+    session_id: &str,
+) -> bool {
+    record.project_root == scope.root_scope.root_path.display().to_string()
+        && record.continuity_id == scope.continuity_id
+        && record.session_id == session_id
+}
+
+fn snapshot_quarantined_response(record: &SnapshotRecord) -> (StatusCode, Json<Value>) {
+    (
+        StatusCode::CONFLICT,
+        Json(json!({
+            "status": "quarantined",
+            "code": "SNAPSHOT_SCOPE_QUARANTINED",
+            "snapshot_id": record.snapshot_id,
+            "reason": "snapshot lacks exact project, continuity, and native-session provenance or belongs to another scope",
+            "restored": false,
+            "recovery": "create a fresh snapshot from verified current scope; contaminated history remains immutable"
+        })),
+    )
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -189,6 +240,9 @@ fn persist_snapshot_record(
         "state_version": rec.state_version,
         "lineage_head": rec.lineage_head,
         "storage_path": rec.storage_path,
+        "project_root": rec.project_root,
+        "continuity_id": rec.continuity_id,
+        "session_id": rec.session_id,
     });
     if let Ok(bytes) = serde_json::to_vec_pretty(&payload) {
         let _ = fs::write(path, bytes);
@@ -223,20 +277,40 @@ fn load_snapshot_record(
             .and_then(|x| x.as_str())
             .unwrap_or_default()
             .to_string(),
+        project_root: v
+            .get("project_root")
+            .and_then(|x| x.as_str())
+            .unwrap_or_default()
+            .to_string(),
+        continuity_id: v
+            .get("continuity_id")
+            .and_then(|x| x.as_str())
+            .unwrap_or_default()
+            .to_string(),
+        session_id: v
+            .get("session_id")
+            .and_then(|x| x.as_str())
+            .unwrap_or_default()
+            .to_string(),
     })
 }
 
 fn snapshot_authority_posture(rec: &SnapshotRecord) -> Value {
+    let exact_scope = !rec.project_root.is_empty()
+        && !rec.continuity_id.is_empty()
+        && !rec.session_id.is_empty()
+        && rec.session_id != "global";
     json!({
-        "migration_class": "old_snapshots_and_clt_nodes",
-        "read_behavior": "readable_history_only",
+        "migration_class": if exact_scope { "typed_snapshot_lineage" } else { "old_snapshots_and_clt_nodes" },
+        "read_behavior": if exact_scope { "exact_scope_only" } else { "quarantined_history_only" },
         "authority_status": "lineage_not_current_action_authority",
-        "migration_warnings": ["clt_snapshot_authority_unscoped"],
+        "migration_warnings": if exact_scope { Vec::<String>::new() } else { vec!["clt_snapshot_authority_unscoped".to_string()] },
         "scope": {
-            "project_root": null,
-            "continuity_id": null,
-            "scope_status": "unknown",
-            "scope_source": "legacy_snapshot_or_lineage_record",
+            "project_root": if exact_scope { Some(rec.project_root.as_str()) } else { None },
+            "continuity_id": if exact_scope { Some(rec.continuity_id.as_str()) } else { None },
+            "session_id": if exact_scope { Some(rec.session_id.as_str()) } else { None },
+            "scope_status": if exact_scope { "exact" } else { "quarantined" },
+            "scope_source": if exact_scope { "typed_snapshot_record" } else { "legacy_snapshot_or_lineage_record" },
         },
         "promotion_path": ["focusa_workpoint_resume", "focusa_workpoint_checkpoint"],
         "snapshot_id": rec.snapshot_id,
@@ -261,14 +335,16 @@ async fn create_snapshot(
     Json(body): Json<SnapshotCreateBody>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     require_scope(&headers, &state, "state:write")?;
+    let session_id = require_snapshot_session(&scope_context)?;
     let scope = scope_context
         .require_workstream_key()
         .map_err(scope_required_response)?;
 
     let s = state.focusa.read().await;
+    let scoped_clt = scoped_clt_state(&s.clt, &scope_context);
     let clt_node_id = body
         .clt_node_id
-        .or_else(|| s.clt.head_id.clone())
+        .or_else(|| scoped_clt.head_id.clone())
         .ok_or_else(|| {
             (
                 StatusCode::BAD_REQUEST,
@@ -280,11 +356,26 @@ async fn create_snapshot(
             )
         })?;
 
+    if !scoped_clt
+        .nodes
+        .iter()
+        .any(|node| node.node_id == clt_node_id)
+    {
+        return Err((
+            StatusCode::NOT_FOUND,
+            Json(json!({
+                "status": "blocked",
+                "code": "CLT_NODE_SCOPE_MISMATCH",
+                "reason": "clt_node_id is not present in the exact project, continuity, and native-session lineage"
+            })),
+        ));
+    }
+
     let snapshot_id = format!(
         "snap-{}",
         Utc::now().timestamp_nanos_opt().unwrap_or_default()
     );
-    let checksum = compute_checksum(s.version, s.clt.head_id.as_deref(), &clt_node_id);
+    let checksum = compute_checksum(s.version, scoped_clt.head_id.as_deref(), &clt_node_id);
     let created_at = Utc::now();
 
     let storage_path = snapshot_record_path(&state, &scope, &snapshot_id)
@@ -297,8 +388,11 @@ async fn create_snapshot(
         accessed_at: created_at,
         checksum: checksum.clone(),
         state_version: s.version,
-        lineage_head: s.clt.head_id.clone(),
+        lineage_head: scoped_clt.head_id.clone(),
         storage_path: storage_path.clone(),
+        project_root: scope.root_scope.root_path.display().to_string(),
+        continuity_id: scope.continuity_id.clone(),
+        session_id: session_id.clone(),
     };
 
     drop(s);
@@ -320,7 +414,13 @@ async fn create_snapshot(
         "snapshot_reason": body.snapshot_reason,
         "storage_path": storage_path,
         "authority_posture": snapshot_authority_posture(&rec),
-        "migration_warnings": ["clt_snapshot_authority_unscoped"],
+        "scope_provenance": {
+            "project_root": rec.project_root,
+            "continuity_id": rec.continuity_id,
+            "session_id": rec.session_id,
+            "global_fallback": false
+        },
+        "migration_warnings": [],
     })))
 }
 
@@ -342,6 +442,7 @@ async fn restore_snapshot(
     Json(body): Json<SnapshotRestoreBody>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     require_scope(&headers, &state, "state:write")?;
+    let session_id = require_snapshot_session(&scope_context)?;
     let scope = scope_context
         .require_workstream_key()
         .map_err(scope_required_response)?;
@@ -384,8 +485,12 @@ async fn restore_snapshot(
         cloned
     };
 
+    if !snapshot_scope_matches(&record, &scope, &session_id) {
+        return Err(snapshot_quarantined_response(&record));
+    }
+
     let s = state.focusa.read().await;
-    let current_head = s.clt.head_id.clone();
+    let current_head = scoped_clt_state(&s.clt, &scope_context).head_id;
 
     let conflicts = if body.restore_mode == "merge" && current_head != record.lineage_head {
         vec![json!({
@@ -407,7 +512,13 @@ async fn restore_snapshot(
         "checksum": record.checksum,
         "conflicts": conflicts,
         "authority_posture": snapshot_authority_posture(&record),
-        "migration_warnings": ["clt_snapshot_authority_unscoped"],
+        "scope_provenance": {
+            "project_root": record.project_root,
+            "continuity_id": record.continuity_id,
+            "session_id": record.session_id,
+            "global_fallback": false
+        },
+        "migration_warnings": [],
     })))
 }
 
@@ -424,6 +535,7 @@ async fn recent_snapshots(
     Query(query): Query<RecentSnapshotsQuery>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     require_scope(&headers, &state, "lineage:read")?;
+    let session_id = require_snapshot_session(&scope_context)?;
     let scope = scope_context
         .require_workstream_key()
         .map_err(scope_required_response)?;
@@ -440,6 +552,12 @@ async fn recent_snapshots(
     for rec in load_snapshot_index(&state, &scope) {
         by_id.entry(rec.snapshot_id.clone()).or_insert(rec);
     }
+
+    let quarantined_count = by_id
+        .values()
+        .filter(|record| !snapshot_scope_matches(record, &scope, &session_id))
+        .count();
+    by_id.retain(|_, record| snapshot_scope_matches(record, &scope, &session_id));
 
     let default_limit = budgeted_default_limit("FOCUSA_SNAPSHOT_RECENT_DEFAULT_LIMIT", 5);
     let hard_limit = budgeted_hard_limit("FOCUSA_SNAPSHOT_RECENT_HARD_LIMIT", 20, default_limit);
@@ -474,6 +592,13 @@ async fn recent_snapshots(
             full_limit: hard_limit,
         }),
         "cold_full_payload_opt_in": false,
+        "quarantined_count": quarantined_count,
+        "scope_provenance": {
+            "project_root": scope.root_scope.root_path,
+            "continuity_id": scope.continuity_id,
+            "session_id": session_id,
+            "global_fallback": false
+        },
         "snapshots": window.into_iter().map(|rec| json!({
             "snapshot_id": rec.snapshot_id,
             "clt_node_id": rec.clt_node_id,
@@ -482,7 +607,13 @@ async fn recent_snapshots(
             "state_version": rec.state_version,
             "lineage_head": rec.lineage_head,
             "authority_posture": snapshot_authority_posture(&rec),
-            "migration_warnings": ["clt_snapshot_authority_unscoped"],
+            "scope_provenance": {
+                "project_root": rec.project_root,
+                "continuity_id": rec.continuity_id,
+                "session_id": rec.session_id,
+                "global_fallback": false
+            },
+            "migration_warnings": [],
         })).collect::<Vec<_>>()
     })))
 }
@@ -500,6 +631,7 @@ async fn diff_snapshots(
     Json(body): Json<SnapshotDiffBody>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     require_scope(&headers, &state, "lineage:read")?;
+    let session_id = require_snapshot_session(&scope_context)?;
     let scope = scope_context
         .require_workstream_key()
         .map_err(scope_required_response)?;
@@ -554,6 +686,13 @@ async fn diff_snapshots(
         (from_cloned, to_cloned)
     };
 
+    if !snapshot_scope_matches(&from, &scope, &session_id) {
+        return Err(snapshot_quarantined_response(&from));
+    }
+    if !snapshot_scope_matches(&to, &scope, &session_id) {
+        return Err(snapshot_quarantined_response(&to));
+    }
+
     let checksum_changed = from.checksum != to.checksum;
     let clt_changed = from.clt_node_id != to.clt_node_id;
     let version_delta = (to.state_version as i128 - from.state_version as i128).abs();
@@ -575,7 +714,13 @@ async fn diff_snapshots(
             "from": snapshot_authority_posture(&from),
             "to": snapshot_authority_posture(&to),
         },
-        "migration_warnings": ["clt_snapshot_authority_unscoped"]
+        "scope_provenance": {
+            "project_root": from.project_root,
+            "continuity_id": from.continuity_id,
+            "session_id": from.session_id,
+            "global_fallback": false
+        },
+        "migration_warnings": []
     })))
 }
 
@@ -606,7 +751,74 @@ mod tests {
             state_version: 1,
             lineage_head: Some("head".to_string()),
             storage_path: format!("/tmp/{id}.json"),
+            project_root: "/tmp/focusa-snapshot-tests".to_string(),
+            continuity_id: "continuity-a".to_string(),
+            session_id: "session-a".to_string(),
         }
+    }
+
+    fn workstream() -> WorkstreamKey {
+        WorkstreamKey::new(
+            focusa_core::scoped_state::ScopeRef::project(
+                "project-snapshot-tests",
+                "/tmp/focusa-snapshot-tests",
+                "focusa-snapshot-tests",
+                "fingerprint-snapshot-tests",
+            )
+            .unwrap(),
+            "continuity-a",
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn snapshot_scope_requires_exact_non_global_session() {
+        let missing = ScopeContext {
+            project_root: Some("/tmp/focusa-snapshot-tests".to_string()),
+            continuity_id: Some("continuity-a".to_string()),
+            ..ScopeContext::default()
+        };
+        assert_eq!(
+            require_snapshot_session(&missing).unwrap_err().0,
+            StatusCode::UNPROCESSABLE_ENTITY
+        );
+        let global = ScopeContext {
+            session_id: Some("global".to_string()),
+            ..missing.clone()
+        };
+        assert_eq!(
+            require_snapshot_session(&global).unwrap_err().0,
+            StatusCode::UNPROCESSABLE_ENTITY
+        );
+    }
+
+    #[test]
+    fn legacy_or_foreign_snapshot_is_quarantined() {
+        let now = chrono::Utc.with_ymd_and_hms(2026, 4, 21, 20, 0, 0).unwrap();
+        let current = rec("current", now, now);
+        assert!(snapshot_scope_matches(&current, &workstream(), "session-a"));
+        assert!(!snapshot_scope_matches(
+            &current,
+            &workstream(),
+            "session-b"
+        ));
+
+        let legacy_json = serde_json::json!({
+            "snapshot_id": "legacy",
+            "clt_node_id": "clt-legacy",
+            "created_at": now,
+            "accessed_at": now,
+            "checksum": "chk-legacy",
+            "state_version": 1,
+            "lineage_head": "head",
+            "storage_path": "/tmp/legacy.json"
+        });
+        let legacy: SnapshotRecord = serde_json::from_value(legacy_json).unwrap();
+        assert!(!snapshot_scope_matches(&legacy, &workstream(), "session-a"));
+        assert_eq!(
+            snapshot_quarantined_response(&legacy).0,
+            StatusCode::CONFLICT
+        );
     }
 
     #[test]
