@@ -9363,7 +9363,19 @@ export function registerTools(pi: ExtensionAPI) {
           sessionIdCheck.error
         );
       }
-      const session_id = String(sessionIdCheck.value || getAttachmentRuntime().sessionFrameKey || "").trim();
+      const activeSessionId = String(getSessionFrameKey() || "").trim();
+      const requestedSessionId = String(sessionIdCheck.value || "").trim();
+      if (requestedSessionId && activeSessionId && requestedSessionId !== activeSessionId) {
+        return spec80ValidationResult(
+          "focusa_tree_head",
+          "/v1/lineage/head",
+          params as Record<string, any>,
+          "tree head",
+          "session_id must match the active native Pi session; foreign lineage is quarantined",
+          "SCOPE_MISMATCH"
+        );
+      }
+      const session_id = requestedSessionId || activeSessionId;
       if (!session_id) {
         return spec80ValidationResult(
           "focusa_tree_head",

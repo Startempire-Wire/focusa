@@ -29,9 +29,10 @@ test("Pi lineage tools default to the active native session and never global lin
   assert.match(spec80Caller, /resolveCanonicalMarkerProjectRoot\(process\.cwd\(\)\)/);
 
   const treeHead = block(tools, 'name: "focusa_tree_head"', 'name: "focusa_tree_path"');
-  assert.match(treeHead, /getAttachmentRuntime\(\)\.sessionFrameKey/);
+  assert.match(treeHead, /getSessionFrameKey\(\)/);
   assert.match(treeHead, /global lineage fallback is prohibited/);
   assert.match(treeHead, /lineage response session scope mismatch/);
+  assert.match(treeHead, /session_id must match the active native Pi session; foreign lineage is quarantined/);
   assert.doesNotMatch(treeHead, /\|\| "global"/);
 
   const lineageTree = block(tools, 'name: "focusa_lineage_tree"', 'name: "focusa_li_tree_extract"');
