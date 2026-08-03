@@ -105,6 +105,8 @@ assert.match(commands, /if \(mode !== "canvas-guided"\) closeActiveMissionCanvas
 assert.match(commands, /canvas-guided/);
 assert.match(commands, /hasActiveMissionCanvasShell/);
 assert.match(commands, /refreshMissionCanvasWidget/);
+assert.match(commands, /mission-canvas\/surfaces\?\$\{canvasScope\}/);
+assert.doesNotMatch(commands, /focusaFetch\("\/v1\//, "focusaFetch already prefixes the daemon API with /v1");
 assert.match(inventory, /projectSessionInventory/);
 assert.match(model, /workpointId/);
 assert.match(config, /missionCanvasWorkspaceProfile/);

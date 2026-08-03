@@ -13,6 +13,7 @@ import {
   getFocusState,
   getEffectiveFocusSnapshot,
   getEcsArtifact,
+  getActiveWorkpointPacket,
   persistState,
   persistAuthoritativeState,
   createPiFrame,
@@ -42,6 +43,7 @@ import { prepareCompactionRollover } from "./compaction.js";
 import { dirname, resolve } from "path";
 import type { MissionCanvasModel } from "./mission-canvas-view.js";
 import { MissionCanvasShell, closeActiveMissionCanvasShell, hasActiveMissionCanvasShell } from "./mission-canvas-shell.js";
+import { openMissionCanvasSurfaceManager } from "./mission-canvas-layout.js";
 import { refreshMissionCanvasWidget } from "./mission-canvas-widget.js";
 import { workRailDetailRows, workRailSnapshotFromPacket } from "./work-rail-widget.js";
 import {
@@ -405,6 +407,20 @@ export function registerCommands(pi: ExtensionAPI) {
       const interactionMode = resolveInteractionMode(getSessionCwd());
       if (hasActiveMissionCanvasShell() || !ctx.hasUI) return;
       const loadModel = async (): Promise<MissionCanvasModel> => {
+        const activePacket = getActiveWorkpointPacket();
+        const activeWorkpoint =
+          activePacket?.workpoint && typeof activePacket.workpoint === "object"
+            ? activePacket.workpoint
+            : activePacket ?? {};
+        const canvasScope = new URLSearchParams({
+          project_root: getSessionCwd(),
+          continuity_id: getContinuityId(),
+          attachment_id: String(
+            activeWorkpoint?.attachment_id ||
+              activePacket?.attachment_id ||
+              `attachment:canvas:${getContinuityId()}`
+          ),
+        });
         const [
           workpoint,
           trajectory,
@@ -416,15 +432,15 @@ export function registerCommands(pi: ExtensionAPI) {
           closurePackage,
           artifacts,
         ] = await Promise.all([
-          focusaFetch("/v1/workpoint/resume").catch(() => null),
-          focusaFetch("/v1/trajectory/view").catch(() => null),
+          focusaFetch("/workpoint/resume").catch(() => null),
+          focusaFetch("/trajectory/view").catch(() => null),
           focusaFetch("/work-loop/status?summary_only=true").catch(() => null),
-          focusaFetch("/v1/session/discover").catch(() => null),
-          focusaFetch("/v1/silent-sessions").catch(() => null),
-          focusaFetch("/v1/mission-canvas/surfaces").catch(() => null),
-          focusaFetch("/v1/interviews/sessions").catch(() => null),
-          focusaFetch("/v1/interviews/closure-package").catch(() => null),
-          focusaFetch("/v1/workspace/artifacts").catch(() => null),
+          focusaFetch("/session/discover").catch(() => null),
+          focusaFetch("/silent-sessions").catch(() => null),
+          focusaFetch(`/mission-canvas/surfaces?${canvasScope}`).catch(() => null),
+          focusaFetch("/interviews/sessions").catch(() => null),
+          focusaFetch("/interviews/closure-package").catch(() => null),
+          focusaFetch("/workspace/artifacts").catch(() => null),
         ]);
         const packet = workpoint?.workpoint ?? workpoint?.resume_packet ?? workpoint ?? {};
         const evidenceRefs = Array.isArray(packet?.verification_records)
@@ -559,6 +575,10 @@ export function registerCommands(pi: ExtensionAPI) {
               }
               refreshMissionCanvasWidget(ctx);
               ctx.ui.notify(`Workspace switched to ${profile}; canonical agent state is unchanged.`, "info");
+            },
+            async () => {
+              await openMissionCanvasSurfaceManager(pi, ctx);
+              await handleMissionCanvasAction("", ctx);
             },
             () => handleMissionCanvasAction("off", ctx)
           ),

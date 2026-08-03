@@ -68,6 +68,7 @@ try {
     ctx,
     () => {},
     () => {},
+    async () => {},
     async () => {
       disabled++;
     }
@@ -105,6 +106,29 @@ try {
   assert.equal(done, 1, "submitting work must return to the normal Pi transcript");
   assert.deepEqual(notifications, []);
 
+  let managed = 0;
+  let manageDone = 0;
+  const manageShell = new MissionCanvasShell(
+    {},
+    theme,
+    () => {},
+    () => 20,
+    () => manageDone++,
+    async () => ({}),
+    pi,
+    ctx,
+    () => {},
+    () => {},
+    async () => {
+      managed++;
+    },
+    async () => {}
+  );
+  manageShell.handleInput("\x0f");
+  await new Promise((resolvePromise) => setImmediate(resolvePromise));
+  assert.equal(manageDone, 1, "Ctrl+O must leave the Canvas before opening surface controls");
+  assert.equal(managed, 1, "Ctrl+O must open the native Work Surface manager");
+
   let escapeDone = 0;
   restoredDraft = "";
   const escapeShell = new MissionCanvasShell(
@@ -118,6 +142,7 @@ try {
     ctx,
     () => {},
     () => {},
+    async () => {},
     async () => {}
   );
   for (const character of "preserve this draft") escapeShell.handleInput(character);

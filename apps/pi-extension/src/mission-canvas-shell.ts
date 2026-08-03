@@ -78,6 +78,7 @@ export class MissionCanvasShell implements Component, Focusable {
     private readonly ctx: ExtensionContext,
     copyReference: (reference: string) => void,
     changeWorkspaceProfile: (profile: string) => void,
+    private readonly manageSurfaces: () => Promise<void>,
     private readonly disableCanvas: () => Promise<void>
   ) {
     activeShell?.closeShell();
@@ -124,6 +125,15 @@ export class MissionCanvasShell implements Component, Focusable {
   }
 
   handleInput(data: string): void {
+    if (matchesKey(data, Key.ctrl("o"))) {
+      this.closeShell();
+      queueMicrotask(() => {
+        void this.manageSurfaces().catch((error) =>
+          this.ctx.ui.notify(`Mission Canvas Work Surfaces failed: ${String(error)}`, "error")
+        );
+      });
+      return;
+    }
     if (matchesKey(data, Key.ctrl("up"))) {
       this.scrollOffset = 0;
       this.canvas.handleInput("mode-prev");
@@ -225,7 +235,7 @@ export class MissionCanvasShell implements Component, Focusable {
       this.theme.fg("accent", truncateToWidth(promptTop, safeWidth)),
       ...inputRows.map((line) => `${this.theme.fg("dim", "│ ")}${truncateToWidth(line, safeWidth - 4)}${" ".repeat(Math.max(0, safeWidth - 4 - visibleWidth(line)))}${this.theme.fg("dim", " │")}`),
       this.theme.fg("dim", `└${"─".repeat(Math.max(1, safeWidth - 2))}┘`),
-      truncateToWidth(this.theme.fg("muted", `${viewportStatus} · Esc/Ctrl+G close · PgUp/PgDn scroll · Enter send · Ctrl+↑/↓ activity · Alt+←/→ surface`), safeWidth),
+      truncateToWidth(this.theme.fg("muted", `${viewportStatus} · Ctrl+O manage surfaces · Esc/Ctrl+G close · PgUp/PgDn scroll · Enter send · Ctrl+↑/↓ activity · Alt+←/→ surface`), safeWidth),
     ];
   }
 }
