@@ -3197,6 +3197,15 @@ export function registerTools(pi: ExtensionAPI) {
       } catch {
         body = null;
       }
+      if (!r.ok && body === null) {
+        body = {
+          status: "blocked",
+          failure_class: "non_json_http_error",
+          error: `daemon returned HTTP ${r.status} without a JSON recovery envelope`,
+          request_scope: scopeHeaders,
+          request_overrides: (opts.headers as Record<string, string>) || {},
+        };
+      }
       if (r.ok && !["GET", "HEAD", "OPTIONS"].includes(method)) {
         const responseRoot = normalizeProjectRoot(
           body?.scope?.root_scope?.root_path || body?.project_root || body?.project_identity?.project_root
