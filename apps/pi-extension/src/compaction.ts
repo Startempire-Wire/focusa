@@ -54,6 +54,7 @@ import {
 } from "./state.js";
 import { pushDelta } from "./tools.js";
 import { updateNorthStarCard } from "./north-star.js";
+import { canInjectCompactionMission, safeCompactionRecoveryContext } from "./compaction-resume-safety.js";
 
 function basename(value: string): string {
   const parts = String(value || "")
@@ -244,15 +245,17 @@ function renderCompactionMissionPacket(packet: any): string {
     `WORKPOINT_ACTION_AUTHORITY: ${workpoint?.action_authority === true}`,
     `TEMPORAL_STATUS: ${compactText(temporal?.status, "unavailable", 32)}`,
     `DEADLINE_STATUS: ${compactText(temporal?.deadline_status, "none", 32)}`,
-    `TEMPORAL_REFS: ${[
-      temporal?.calendar_context_ref,
-      temporal?.priority_frame_ref,
-      temporal?.execution_guard_ref,
-      ...(Array.isArray(temporal?.evidence_refs) ? temporal.evidence_refs : []),
-    ]
-      .filter(Boolean)
-      .slice(0, 8)
-      .join(",") || "none"}`,
+    `TEMPORAL_REFS: ${
+      [
+        temporal?.calendar_context_ref,
+        temporal?.priority_frame_ref,
+        temporal?.execution_guard_ref,
+        ...(Array.isArray(temporal?.evidence_refs) ? temporal.evidence_refs : []),
+      ]
+        .filter(Boolean)
+        .slice(0, 8)
+        .join(",") || "none"
+    }`,
     `HLT: ${compactText(trajectory?.hlt, "missing", 300)}`,
     `MISSION: ${compactText(workpoint?.mission, "missing", 300)}`,
     `NEXT_SLICE: ${compactText(workpoint?.next_slice, "missing", 300)}`,
@@ -1074,9 +1077,11 @@ async function runPostCompactionVerification(event: any, ctx: any): Promise<void
     if (runtime.compactResumeDeliveryState === "superseded_by_operator") return;
     runtime.compactResumePending = true;
     const projection = epoch.prepare.resume_projection;
-    const resumeText = projection
-      ? renderCompactionMissionPacket(projection)
-      : "Focusa compaction state is preserved; continue from the next verified Workpoint on the next operator turn.";
+    const liveScope = currentCompactionScope();
+    const resumeText =
+      projection && liveScope && canInjectCompactionMission(projection, liveScope)
+        ? renderCompactionMissionPacket(projection)
+        : safeCompactionRecoveryContext();
     queueCompactionResumeContext(ctx, resumeText);
   } catch (error) {
     runtime.compactResumePending = false;
@@ -1091,6 +1096,13 @@ async function runPostCompactionVerification(event: any, ctx: any): Promise<void
   } finally {
     runtime.compactionVerifyPendingKey = "";
     activeCompactionEpoch = null;
+    const liveScope = currentCompactionScope();
+    if (liveScope?.root_scope?.root_path) {
+      await refreshTrajectoryClarityLifecycle(
+        "post_compaction",
+        String(liveScope.root_scope.root_path)
+      ).catch(() => null);
+    }
     persistState();
     updateNorthStarCard(ctx, "post_compaction");
   }

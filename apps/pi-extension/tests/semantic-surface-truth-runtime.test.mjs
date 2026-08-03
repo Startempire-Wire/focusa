@@ -39,9 +39,11 @@ assert.equal(degraded.operationCount, 43);
 assert.equal(degraded.mutationCount, 20);
 assert.equal(degraded.supportedCount, 20);
 assert.equal(degraded.schemaOnlyCount, 23);
-assert.equal(degraded.operationLines.length, 43);
+assert.equal(degraded.displayedOperationCount, 4);
+assert.equal(degraded.remainingOperationCount, 39);
+assert.equal(degraded.operationLines.length, 5);
 assert.match(degraded.operationLines[0], /supported/);
-assert.match(degraded.operationLines.at(-1), /schema_only/);
+assert.match(degraded.operationLines.at(-1), /39 remaining.*showing 4\/43/);
 assert.doesNotMatch(degraded.operationLines.join("\n"), /unsupported on this Pi surface/);
 
 const complete = semanticSurfaceTruth(
@@ -64,6 +66,8 @@ const complete = semanticSurfaceTruth(
 );
 assert.equal(complete.state, "supported");
 assert.equal(complete.schemaOnlyCount, 0);
+assert.equal(complete.displayedOperationCount, 2);
+assert.equal(complete.remainingOperationCount, 0);
 assert.equal(complete.operationLines.length, 2);
 assert.match(complete.operationLines[0], /semantic\.integrity\.status.*supported/);
 assert.match(complete.operationLines[1], /semantic\.integrity\.validate.*supported/);

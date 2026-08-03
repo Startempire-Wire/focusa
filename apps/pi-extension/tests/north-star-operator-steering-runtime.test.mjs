@@ -14,6 +14,7 @@ export const getLastProjectIdentity = () => state().projectIdentity || null;
 export const getLastProjectVerify = () => state().projectVerify || null;
 export const getLastTrajectoryClarity = () => state().trajectory || null;
 export const getAttachmentRuntime = () => state().runtime || { northStarSnapshot: null };
+export const currentProjectBindingDecision = () => state().binding || null;
 `;
 
 const source = await readFile(sourceUrl, "utf8");
@@ -62,8 +63,14 @@ try {
   assert.equal(operatorSteering.workpoint, "steered");
   assert.equal(operatorSteering.status, "stale");
   assert.match(operatorSteering.exact_recovery, /workpoint_resume.*workpoint_checkpoint/);
-  assert.match(renderNorthStarCard(operatorSteering)[0], /NORTH STAR STALE/);
-  assert.doesNotMatch(renderNorthStarCard(operatorSteering).join("\n"), /NORTH STAR BLOCKED/);
+  const renderedSteering = renderNorthStarCard(operatorSteering);
+  assert.match(renderedSteering[0], /NORTH STAR STALE/);
+  assert.match(renderedSteering.join("\n"), /WAYPOINT current.*GAP current/);
+  assert.equal(
+    renderedSteering.some((line) => line.length > 80),
+    false
+  );
+  assert.doesNotMatch(renderedSteering.join("\n"), /NORTH STAR BLOCKED/);
 
   const backgroundMismatch = buildNorthStarSnapshot("background_refresh");
   assert.equal(backgroundMismatch.project, "current");
@@ -71,8 +78,23 @@ try {
   assert.equal(backgroundMismatch.status, "stale");
 
   globalThis.__focusaNorthStarTestState.projectIdentity = null;
+  globalThis.__focusaNorthStarTestState.binding = {
+    state: "BOUND",
+    selected_project_root: "/home/wirebot/focusa",
+  };
+  const verifiedBinding = buildNorthStarSnapshot("post_compaction");
+  assert.equal(verifiedBinding.project, "current");
+
+  globalThis.__focusaNorthStarTestState.binding = null;
+  globalThis.__focusaNorthStarTestState.scopedWorkpoint = null;
+  globalThis.__focusaNorthStarTestState.activeWorkpoint = {
+    canonical: true,
+    workpoint_id: "foreign-workpoint",
+  };
   const genuinelyUnverified = buildNorthStarSnapshot("operator_input");
   assert.equal(genuinelyUnverified.project, "blocked");
+  assert.equal(genuinelyUnverified.workpoint, "missing");
+  assert.equal(genuinelyUnverified.workpoint_id, null);
   assert.equal(genuinelyUnverified.status, "blocked");
 } finally {
   delete globalThis.__focusaNorthStarTestState;

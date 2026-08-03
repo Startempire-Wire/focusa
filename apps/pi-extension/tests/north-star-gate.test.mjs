@@ -126,7 +126,12 @@ test("north-star card continuously refreshes at lifecycle boundaries", () => {
   assert.match(turns, /updateNorthStarCard\(_ctx, "model_switch"\)/);
   assert.match(compaction, /updateNorthStarCard\(ctx, "post_compaction"\)/);
   assert.match(session, /updateNorthStarCard\(ctx, "session_start_ready_check"\)/);
-  assert.match(northStar, /PROJECT .* HLT .* MLG .* STG .* WP .* FRONTIER/);
+  assert.match(northStar, /PROJECT .* → HLT/);
+  assert.match(northStar, /MLG .* → STG/);
+  assert.match(northStar, /WAYPOINT .* → GAP/);
+  assert.match(northStar, /WP .* → FRONTIER/);
+  assert.match(northStar, /const workpoint = getScopedWorkpointPacket\(\)/);
+  assert.doesNotMatch(northStar, /getScopedWorkpointPacket\(\) \|\| getActiveWorkpointPacket\(\)/);
   assert.match(northStar, /focusa_project_identity → focusa_project_verify/);
   assert.match(northStar, /focusa_workpoint_resume → focusa_workpoint_checkpoint/);
 });

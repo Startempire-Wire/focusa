@@ -1,5 +1,5 @@
 import {
-  getActiveWorkpointPacket,
+  currentProjectBindingDecision,
   getAttachmentRuntime,
   getLastProjectIdentity,
   getLastProjectVerify,
@@ -50,7 +50,12 @@ export function buildNorthStarSnapshot(trigger: string): NorthStarSnapshot {
   const verify = getLastProjectVerify() as any;
   const identity = getLastProjectIdentity() as any;
   const trajectory = getLastTrajectoryClarity() as any;
-  const workpoint = (getScopedWorkpointPacket() || getActiveWorkpointPacket()) as any;
+  // Never fall back to the process-global active packet. A foreign packet is
+  // less useful than an honest missing state and can project stale authority.
+  const workpoint = getScopedWorkpointPacket() as any;
+  const binding = currentProjectBindingDecision() as any;
+  const bindingVerified =
+    binding?.state === "BOUND" && Boolean(String(binding?.selected_project_root || "").trim());
   const identityVerified =
     identity?.status === "verified" ||
     identity?.project_identity?.status === "verified" ||
@@ -59,7 +64,8 @@ export function buildNorthStarSnapshot(trigger: string): NorthStarSnapshot {
     verify?.verification?.verified === true ||
     verify?.verified === true ||
     verify?.canonical === true ||
-    identityVerified;
+    identityVerified ||
+    bindingVerified;
   const hltStatus = firstString(trajectory, [
     "hlt_status",
     "trajectory.hlt_status",
@@ -144,7 +150,10 @@ export function renderNorthStarCard(snapshot: NorthStarSnapshot): string[] {
   const short = (value: string) => value.replace("mismatched", "mismatch").slice(0, 8);
   return [
     `🧭 NORTH STAR ${snapshot.status.toUpperCase()} · ${snapshot.trigger}`,
-    `PROJECT ${short(snapshot.project)} → HLT ${short(snapshot.hlt)} → MLG ${short(snapshot.mlg)} → STG ${short(snapshot.stg)} → WP ${short(snapshot.workpoint)} → FRONTIER ${short(snapshot.frontier)}`,
+    `PROJECT ${short(snapshot.project)} → HLT ${short(snapshot.hlt)}`,
+    `MLG ${short(snapshot.mlg)} → STG ${short(snapshot.stg)}`,
+    `WAYPOINT ${short(snapshot.waypoint)} → GAP ${short(snapshot.gap)}`,
+    `WP ${short(snapshot.workpoint)} → FRONTIER ${short(snapshot.frontier)}`,
     snapshot.status === "ready"
       ? `workpoint=${snapshot.workpoint_id || "unknown"}`
       : `recovery=${snapshot.exact_recovery}`,

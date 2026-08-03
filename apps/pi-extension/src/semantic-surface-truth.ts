@@ -4,6 +4,8 @@ export type SemanticSurfaceTruth = {
   mutationCount: number;
   supportedCount: number;
   schemaOnlyCount: number;
+  displayedOperationCount: number;
+  remainingOperationCount: number;
   operationLines: string[];
 };
 
@@ -22,7 +24,7 @@ function finiteCount(value: unknown, fallback: number): number {
 export function semanticSurfaceTruth(
   statusResult: unknown,
   registryResult: unknown,
-  visibleLimit = Number.MAX_SAFE_INTEGER
+  visibleLimit = 4
 ): SemanticSurfaceTruth {
   const status =
     statusResult && typeof statusResult === "object" ? (statusResult as Record<string, unknown>) : {};
@@ -46,13 +48,16 @@ export function semanticSurfaceTruth(
   ).length;
   const degraded = status.degraded === true || registry.degraded === true || schemaOnlyCount > 0;
   const visibleOperations = operations.filter((item) => item && typeof item === "object");
-  const operationLines = visibleOperations.slice(0, Math.max(0, visibleLimit)).map((item) => {
+  const boundedVisibleLimit = Number.isFinite(visibleLimit) ? Math.max(0, Math.floor(visibleLimit)) : 4;
+  const displayedOperationCount = Math.min(visibleOperations.length, boundedVisibleLimit);
+  const remainingOperationCount = Math.max(0, visibleOperations.length - displayedOperationCount);
+  const operationLines = visibleOperations.slice(0, displayedOperationCount).map((item) => {
     const operation = item as Record<string, unknown>;
     return `  ${bounded(operation.operation_id || "unknown", 48)} · ${bounded(operation.kind || "read", 12)} · ${bounded(operation.availability || "unknown", 24)}`;
   });
-  if (visibleOperations.length > visibleLimit) {
+  if (remainingOperationCount > 0) {
     operationLines.push(
-      `  … ${visibleOperations.length - visibleLimit} more operations · focusa semantic-integrity registry for full truth`
+      `  … ${remainingOperationCount} remaining · showing ${displayedOperationCount}/${visibleOperations.length} · focusa semantic-integrity registry`
     );
   }
   return {
@@ -61,6 +66,8 @@ export function semanticSurfaceTruth(
     mutationCount,
     supportedCount,
     schemaOnlyCount,
+    displayedOperationCount,
+    remainingOperationCount,
     operationLines,
   };
 }
