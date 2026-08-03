@@ -3139,10 +3139,15 @@ export function registerTools(pi: ExtensionAPI) {
     const currentKey = currentAttachmentKey();
     if (!currentKey) throw new Error("attachment_runtime_key_required");
     const activeWorkpoint = getActiveWorkpointPacket() as any;
+    const markerProjectRoot = resolveCanonicalMarkerProjectRoot(process.cwd());
+    const activeWorkpointRoot = normalizeProjectRoot(activeWorkpoint?.project_root);
+    const activeWorkpointContinuity = String(activeWorkpoint?.continuity_id || "").trim();
     const workpointScopeAuthoritative =
       !!activeWorkpoint &&
       activeWorkpoint.canonical !== false &&
-      activeWorkpoint.action_authority_for_current_ask !== false;
+      activeWorkpoint.action_authority_for_current_ask !== false &&
+      activeWorkpointContinuity !== "extension-bootstrap" &&
+      (!markerProjectRoot || activeWorkpointRoot === markerProjectRoot);
     const verifiedRoot = normalizeProjectRoot(
       (workpointScopeAuthoritative ? activeWorkpoint.project_root : "") ||
         getLastProjectIdentity()?.project_root ||
@@ -5295,19 +5300,26 @@ export function registerTools(pi: ExtensionAPI) {
       if (p.remote_deploy_root) query.set("remote_deploy_root", p.remote_deploy_root);
       let result = await focusaFetchDetailed(`/project/card?${query.toString()}`, { method: "GET" });
       let body = result.body || {};
-      const recoveredContinuity = String(
+      const continuityBeforeRecovery = getContinuityId();
+      const authoritativeFallbackContinuity = String(
         body.trajectory_ladder?.fallback_source_continuity_id ||
           body.prior_session_context?.trajectory_ladder?.fallback_source_continuity_id ||
           body.prior_session_context?.fallback_source_continuity_id ||
-          body.inferred_workpoint_candidate?.source_signals?.prior_session_workpath?.find(
-            (entry: any) => entry?.continuity_id
-          )?.continuity_id ||
           ""
       ).trim();
+      const inferredFallbackContinuity = String(
+        body.inferred_workpoint_candidate?.source_signals?.prior_session_workpath?.find(
+          (entry: any) => entry?.continuity_id
+        )?.continuity_id || ""
+      ).trim();
+      const recoveredContinuity =
+        authoritativeFallbackContinuity ||
+        (!continuityBeforeRecovery || continuityBeforeRecovery === "extension-bootstrap"
+          ? inferredFallbackContinuity
+          : "");
       const recoveredRoot = normalizeProjectRoot(
         body.project_identity?.canonical_parent_root || body.project_identity?.project_root
       );
-      const continuityBeforeRecovery = getContinuityId();
       let continuityRecoveryAdopted = false;
       if (
         recoveredContinuity &&
