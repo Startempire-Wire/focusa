@@ -86,4 +86,13 @@ assert.doesNotMatch(
   /const cwdForIdentity = safe && !ambientInsideProject \? projectRoot : ambientCwd/,
   "session identity must not collapse a verified resumed worktree to canonical primary"
 );
+const identityBuilderSource = stateSource.slice(
+  stateSource.indexOf("export async function buildFocusaSessionIdentity"),
+  stateSource.indexOf("export async function refreshTrajectoryClarity")
+);
+assert.doesNotMatch(
+  identityBuilderSource,
+  /query\.set\("project_root", projectRoot\)/,
+  "ambient Pi cwd must not masquerade as operator-confirmed project_root authority"
+);
 console.log("project identity working-context retention passed");

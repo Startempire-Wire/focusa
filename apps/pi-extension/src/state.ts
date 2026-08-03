@@ -3215,7 +3215,9 @@ export async function buildFocusaSessionIdentity(
   if (safe) {
     const query = new URLSearchParams();
     query.set("cwd", cwdForIdentity);
-    query.set("project_root", projectRoot);
+    // `projectRoot` is normally the ambient Pi cwd, not operator-confirmed
+    // authority. Sending it as project_root would outrank a canonical marker
+    // and collapse a linked worktree into an independent primary project.
     if (sessionId) query.set("pi_session_id", sessionId);
     const remoteContext: any = persistedBody.remote_context || {};
     if (remoteContext.remote_host) query.set("remote_host", String(remoteContext.remote_host));
