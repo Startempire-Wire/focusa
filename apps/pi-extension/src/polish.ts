@@ -5,6 +5,10 @@ import { dirname, join } from "node:path";
 import { otaActivationPaths } from "./ota-activation.js";
 import { saveConfigOverrides } from "./config.js";
 import {
+  classifyShellReminderInteraction,
+  type ShellReminderClassification,
+} from "./shell-reminder-classification.js";
+import {
   createOperatorWidgetRegistry,
   migrateOperatorStatusSettings,
   operatorStatusRollbackPatch,
@@ -29,6 +33,7 @@ const SPOOL_PATH = join(
   "pi-semantic-spool.json"
 );
 const offlineSemanticSpool: Array<Record<string, unknown>> = loadSemanticSpool();
+const shellReminderClassifications = new Map<string, ShellReminderClassification>();
 
 function loadSemanticSpool(): Array<Record<string, unknown>> {
   if (!existsSync(SPOOL_PATH)) return [];
@@ -507,7 +512,12 @@ export function registerPolishHooks(pi: ExtensionAPI) {
       tool_name: event?.toolName || event?.name || "unknown",
       args_size_bytes: safeJsonSize(event?.args),
     };
-    getAttachmentRuntime().spec92ToolStartTimes[String(record.tool_call_id)] = Date.now();
+    const toolCallId = String(record.tool_call_id);
+    getAttachmentRuntime().spec92ToolStartTimes[toolCallId] = Date.now();
+    shellReminderClassifications.set(
+      toolCallId,
+      classifyShellReminderInteraction(record.tool_name, event?.args)
+    );
     recordHookTelemetry(record);
     updateReceptionistProgress(ctx, receptionistToolProgress(String(record.tool_name)));
   });
@@ -537,21 +547,29 @@ export function registerPolishHooks(pi: ExtensionAPI) {
     recordHookTelemetry(record);
     bestEffortTelemetry("spec92.tool_execution_end", record);
     updateReceptionistProgress(ctx, "I’m comparing what I found and narrowing it to useful choices…");
-    // FOCUSA_FIX-tgij: shell-tool reminder — when the agent uses a shell-like
-    // tool that could touch the Focusa daemon, emit a visible reminder to
-    // prefer focusa_* tools for governed interactions.
-    const SHELL_TOOLS = ["bash", "sh", "fish", "zsh", "csh", "dash"];
+    const shellClassification =
+      shellReminderClassifications.get(id) || classifyShellReminderInteraction(toolName, event?.args);
+    shellReminderClassifications.delete(id);
+    bestEffortTelemetry("agent_shell_classification", {
+      tool_name: toolName,
+      classification: shellClassification.classification,
+      confidence: shellClassification.confidence,
+      equivalent_tool: shellClassification.equivalent_tool,
+      reason: shellClassification.reason,
+    });
     const reminderCfg = getAttachmentRuntime().cfg;
     if (
       reminderCfg?.agentReminderMode === "shell" &&
-      SHELL_TOOLS.includes(toolName) &&
+      shellClassification.classification === "actual_focusa_bypass" &&
+      shellClassification.confidence === "high" &&
+      shellClassification.equivalent_tool &&
       getFocusaAvailable()
     ) {
       const now = Date.now();
       const lastReminder = getAttachmentRuntime().lastShellReminderAt || 0;
       const turnCount = getTurnCount();
       const lastReminderTurn = getAttachmentRuntime().lastShellReminderTurn || 0;
-      const frequency = Math.max(1, reminderCfg.agentReminderShellFrequency || 1);
+      const frequency = Math.max(2, reminderCfg.agentReminderShellFrequency || 3);
       const cooldownMs = Math.max(0, reminderCfg.agentReminderCooldownMs || 30_000);
       if (turnCount !== lastReminderTurn && turnCount % frequency === 0 && now - lastReminder > cooldownMs) {
         getAttachmentRuntime().lastShellReminderAt = now;
@@ -559,11 +577,13 @@ export function registerPolishHooks(pi: ExtensionAPI) {
         const prefix = reminderCfg.agentReminderUseEmoji ? "🧭 " : "";
         const reminder = {
           customType: "focusa_agent_prompt",
-          content: `${prefix}For Focusa daemon/state interactions, prefer focusa_* Pi tools over shell/bash — they handle scope, authority, recovery, and evidence automatically.`,
+          content: `${prefix}Raw Focusa daemon/state access detected. Prefer ${shellClassification.equivalent_tool}; it preserves scope, authority, recovery, and evidence.`,
           display: true,
         };
         bestEffortTelemetry("agent_tool_layer_reminder", {
           tool_name: toolName,
+          classification: "actual_focusa_bypass",
+          equivalent_tool: shellClassification.equivalent_tool,
           turn: turnCount,
           frequency,
           cooldown_ms: cooldownMs,

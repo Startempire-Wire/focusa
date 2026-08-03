@@ -173,7 +173,7 @@ const DEFAULTS: FocusaConfig = {
   autoCompactionCooldownMs: 60_000,
   contextStatusMode: "actionable",
   agentReminderMode: "shell",
-  agentReminderShellFrequency: 1,
+  agentReminderShellFrequency: 3,
   agentReminderCooldownMs: 30_000,
   agentReminderUseEmoji: false,
   vitalInfoPromptMode: "prompt",
