@@ -21,6 +21,8 @@ assert.match(tools, /crosswire\.status \|\|/);
 assert.match(tools, /activeWorkpointContinuity !== "extension-bootstrap"/);
 assert.match(tools, /activeWorkpointRoot === markerProjectRoot/);
 assert.match(tools, /body\.trajectory_ladder\?\.fallback_source_continuity_id/);
+assert.match(tools, /priorContinuityCounts = new Map<string, number>/);
+assert.match(tools, /modalPriorContinuity/);
 assert.match(tools, /adoptVerifiedContinuityForCurrentSession\([\s\S]*?recoveredRoot,[\s\S]*?recoveredContinuity/);
 assert.doesNotMatch(
   tools,

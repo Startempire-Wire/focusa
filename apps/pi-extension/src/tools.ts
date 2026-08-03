@@ -5312,10 +5312,18 @@ export function registerTools(pi: ExtensionAPI) {
       let result = await focusaFetchDetailed(`/project/card?${query.toString()}`, { method: "GET" });
       let body = result.body || {};
       const continuityBeforeRecovery = getContinuityId();
+      const priorContinuityCounts = new Map<string, number>();
+      for (const frame of body.prior_session_context?.recent_frames || []) {
+        const candidate = String(frame?.continuity_id || "").trim();
+        if (candidate) priorContinuityCounts.set(candidate, (priorContinuityCounts.get(candidate) || 0) + 1);
+      }
+      const modalPriorContinuity = [...priorContinuityCounts.entries()]
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] || "";
       const authoritativeFallbackContinuity = String(
         body.trajectory_ladder?.fallback_source_continuity_id ||
           body.prior_session_context?.trajectory_ladder?.fallback_source_continuity_id ||
           body.prior_session_context?.fallback_source_continuity_id ||
+          modalPriorContinuity ||
           ""
       ).trim();
       const inferredFallbackContinuity = String(
