@@ -637,7 +637,12 @@ mod tests {
             events_tx,
             event_broadcaster: crate::routes::sse::EventBroadcaster::new(),
             config: cfg.clone(),
-            license_guard: focusa_license::LicenseGuard::eval(7),
+            license_guard: {
+                let mut entitlement =
+                    focusa_license::authority::EntitlementSnapshot::unactivated("focusa", "test-node");
+                entitlement.state = focusa_license::authority::EntitlementState::Active;
+                focusa_license::LicenseGuard::from_entitlement(entitlement)
+            },
             persistence: persistence.clone(),
             persistence_actor: None,
             write_serial_lock: Arc::new(Mutex::new(())),
