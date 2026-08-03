@@ -24,6 +24,7 @@ pub mod constitution;
 pub mod context_claims;
 pub mod context_cognition;
 pub mod context_sources;
+pub mod convergence;
 pub mod deck;
 pub mod device_pairing;
 pub mod dxux;
@@ -99,9 +100,9 @@ pub mod temporal;
 mod temporal_advanced;
 #[cfg(test)]
 mod temporal_advanced_test;
-pub mod temporal_context;
 pub mod temporal_closure;
 pub mod temporal_conformance;
+pub mod temporal_context;
 pub mod threads;
 pub mod tokens;
 pub mod training;
