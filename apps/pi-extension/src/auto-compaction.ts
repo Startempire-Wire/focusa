@@ -14,6 +14,7 @@ import {
   providerCompactionCapabilities,
   type ProviderCompactionCapabilities,
 } from "./provider-compaction-capabilities.js";
+import { contextPressureTelemetry } from "./context-pressure-telemetry.js";
 
 declare module "@earendil-works/pi-coding-agent" {
   interface ExtensionAPI {
@@ -817,6 +818,12 @@ export function registerAutoCompaction(
     }
 
     const usage = ctx.getContextUsage();
+    const capabilities = providerCompactionCapabilities(ctx);
+    const pressureTelemetry = contextPressureTelemetry(ctx, capabilities);
+    persist("pressure_observed", {
+      pressure_telemetry: pressureTelemetry,
+      provider_capabilities: capabilities,
+    });
     const policy = getPolicy();
     const decision = proactiveCompactionDecision(usage, policy);
     if (!usage) return "suppressed";
