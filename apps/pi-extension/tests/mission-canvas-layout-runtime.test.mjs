@@ -8,15 +8,25 @@ const root = resolve(import.meta.dirname, "..");
 const source = readFileSync(resolve(root, "src/mission-canvas-layout.ts"), "utf8");
 const token = `${process.pid}-${Date.now()}`;
 const stateName = `.mission-canvas-layout-state-${token}.mjs`;
+const configName = `.mission-canvas-layout-config-${token}.mjs`;
 const layoutPath = resolve(root, `.mission-canvas-layout-runtime-${token}.mjs`);
 const statePath = resolve(root, stateName);
+const configPath = resolve(root, configName);
 const compiled = ts
   .transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
   })
-  .outputText.replace("./state.js", `./${stateName}`);
+  .outputText.replace("./state.js", `./${stateName}`)
+  .replace("./config.js", `./${configName}`);
 
 writeFileSync(layoutPath, compiled);
+writeFileSync(
+  configPath,
+  `export const savedGroups = [];
+export function loadConfig() { return { config: { missionCanvasGroupMode: savedGroups.at(-1) || "workstream" }, errors: [] }; }
+export function saveConfigOverrides(_cwd, value) { savedGroups.push(value.missionCanvasGroupMode); return { config: value, errors: [], path: ".pi/settings.json" }; }
+`
+);
 writeFileSync(
   statePath,
   `export const calls = [];
@@ -72,9 +82,10 @@ export function getSessionCwd() { return "/workspace/focusa"; }
 );
 
 try {
-  const [{ openMissionCanvasSurfaceManager }, state] = await Promise.all([
+  const [{ openMissionCanvasSurfaceManager }, state, config] = await Promise.all([
     import(`${pathToFileURL(layoutPath).href}?v=${Date.now()}`),
     import(pathToFileURL(statePath).href),
+    import(pathToFileURL(configPath).href),
   ]);
   const messages = [];
   const notifications = [];
@@ -113,6 +124,14 @@ try {
   assert.equal(body.action, "suspend");
   assert.equal(body.expected_state_version, 5);
 
+  await run("Vertical split", "$first");
+  body = JSON.parse(state.calls.filter((call) => call.options.method === "POST").at(-1).options.body);
+  assert.equal(body.pane_id, "secondary:vertical");
+  assert(messages.at(-1).content.includes("Split: vertical"));
+
+  await run("Group by project");
+  assert.deepEqual(config.savedGroups, ["project"]);
+
   await run("Close view (work continues)", "$first");
   body = JSON.parse(state.calls.filter((call) => call.options.method === "POST").at(-1).options.body);
   assert.equal(body.action, "close_view");
@@ -130,4 +149,5 @@ try {
 } finally {
   rmSync(layoutPath, { force: true });
   rmSync(statePath, { force: true });
+  rmSync(configPath, { force: true });
 }

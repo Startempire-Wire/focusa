@@ -46,12 +46,14 @@ export type FocusaInteractionMode = "canvas-guided" | "terminal-guided" | "headl
 export type MissionCanvasWorkspaceProfile =
   "general" | "software" | "legal" | "markets" | "research" | "custom";
 export type MissionCanvasVisualVariant = "default" | "high-contrast" | "monochrome";
+export type MissionCanvasGroupMode = "project" | "workstream" | "session";
 
 export interface FocusaConfig {
   enabled: boolean;
   interactionMode: FocusaInteractionMode;
   missionCanvasWorkspaceProfile: MissionCanvasWorkspaceProfile;
   missionCanvasVisualVariant: MissionCanvasVisualVariant;
+  missionCanvasGroupMode: MissionCanvasGroupMode;
   warnPct: number;
   compactPct: number;
   hardPct: number;
@@ -163,6 +165,7 @@ const DEFAULTS: FocusaConfig = {
   interactionMode: "canvas-guided",
   missionCanvasWorkspaceProfile: "general",
   missionCanvasVisualVariant: "default",
+  missionCanvasGroupMode: "workstream",
   warnPct: 50,
   compactPct: 70,
   hardPct: 85,
@@ -247,6 +250,7 @@ const ENV_MAP: Record<string, keyof FocusaConfig> = {
   FOCUSA_PI_INTERACTION_MODE: "interactionMode",
   FOCUSA_PI_MISSION_CANVAS_WORKSPACE_PROFILE: "missionCanvasWorkspaceProfile",
   FOCUSA_PI_MISSION_CANVAS_VISUAL_VARIANT: "missionCanvasVisualVariant",
+  FOCUSA_PI_MISSION_CANVAS_GROUP_MODE: "missionCanvasGroupMode",
   FOCUSA_PI_CONTEXT_STATUS_MODE: "contextStatusMode",
   FOCUSA_PI_AGENT_REMINDER_MODE: "agentReminderMode",
   FOCUSA_PI_AGENT_REMINDER_SHELL_FREQUENCY: "agentReminderShellFrequency",
@@ -329,6 +333,8 @@ function validate(cfg: FocusaConfig): string[] {
     errs.push(`missionCanvasWorkspaceProfile(${cfg.missionCanvasWorkspaceProfile}) is unsupported`);
   if (!["default", "high-contrast", "monochrome"].includes(cfg.missionCanvasVisualVariant))
     errs.push(`missionCanvasVisualVariant(${cfg.missionCanvasVisualVariant}) is unsupported`);
+  if (!["project", "workstream", "session"].includes(cfg.missionCanvasGroupMode))
+    errs.push(`missionCanvasGroupMode(${cfg.missionCanvasGroupMode}) is unsupported`);
   if (!["off", "actionable", "all"].includes(cfg.contextStatusMode))
     errs.push(`contextStatusMode(${cfg.contextStatusMode}) must be one of: off, actionable, all`);
   if (cfg.vitalInfoPromptMode === "notify") cfg.vitalInfoPromptMode = "warn_only";

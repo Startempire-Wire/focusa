@@ -1,4 +1,5 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { loadConfig, saveConfigOverrides } from "./config.js";
 import { focusaFetch, getActiveWorkpointPacket, getContinuityId, getSessionCwd } from "./state.js";
 
 type SplitOrientation = "none" | "horizontal" | "vertical";
@@ -68,19 +69,35 @@ function replaceSurfaces(layout: LocalLayout, surfaces: any[]): void {
     activeId ? layout.surfaces.findIndex((surface) => surface.work_surface_id === activeId) : 0
   );
   if (layout.activeIndex < 0) layout.activeIndex = 0;
-  const secondaryIndex = secondaryId
+  let secondaryIndex = secondaryId
     ? layout.surfaces.findIndex((surface) => surface.work_surface_id === secondaryId)
     : -1;
+  if (secondaryIndex < 0) {
+    secondaryIndex = layout.surfaces.findIndex((surface) =>
+      String(surface?.pane_id ?? "").startsWith("secondary:")
+    );
+  }
   layout.secondaryIndex = secondaryIndex >= 0 ? secondaryIndex : null;
+  if (secondaryIndex >= 0) {
+    layout.split = String(layout.surfaces[secondaryIndex]?.pane_id ?? "").endsWith(":vertical")
+      ? "vertical"
+      : "horizontal";
+  }
   syncPresentationSets(layout);
 }
 
-function layoutFor(layoutScope: LayoutScope, stateVersion: number, surfaces: any[]): LocalLayout {
+function layoutFor(
+  layoutScope: LayoutScope,
+  stateVersion: number,
+  surfaces: any[],
+  group: GroupMode
+): LocalLayout {
   const layoutKey = key(layoutScope);
   const existing = layouts.get(layoutKey);
   if (existing) {
     existing.scope = layoutScope;
     existing.stateVersion = stateVersion;
+    existing.group = group;
     replaceSurfaces(existing, surfaces);
     return existing;
   }
@@ -91,7 +108,7 @@ function layoutFor(layoutScope: LayoutScope, stateVersion: number, surfaces: any
     activeIndex: 0,
     secondaryIndex: null,
     split: "none",
-    group: "workstream",
+    group,
     pinned: new Set(),
     unread: new Set(),
   };
@@ -170,7 +187,8 @@ async function loadLayout(): Promise<LocalLayout> {
   const surfaces = Array.isArray(response?.surfaces) ? response.surfaces : [];
   const layoutKey = key(layoutScope);
   activeLayoutKey = layoutKey;
-  return layoutFor(layoutScope, Number(response?.state_version ?? 0), surfaces);
+  const group = loadConfig(layoutScope.projectRoot).config.missionCanvasGroupMode;
+  return layoutFor(layoutScope, Number(response?.state_version ?? 0), surfaces, group);
 }
 
 function activeWorkpoint(): any {
@@ -341,6 +359,12 @@ export async function openMissionCanvasSurfaceManager(
       }
     } else if (action.startsWith("Group by ")) {
       layout.group = action.slice("Group by ".length) as GroupMode;
+      const saved = saveConfigOverrides(
+        layout.scope.projectRoot,
+        { missionCanvasGroupMode: layout.group },
+        "project"
+      );
+      if (saved.errors.length) throw new Error(saved.errors.join("; "));
     } else if (action === "Clear split") {
       const secondary =
         layout.secondaryIndex == null ? null : layout.surfaces[layout.secondaryIndex];
