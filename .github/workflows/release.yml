@@ -355,6 +355,11 @@ jobs:
           | Linux x64 glibc | \`focusa-${TAG}-x86_64-unknown-linux-gnu\` | CLI |
           | Linux x64 glibc | \`focusa-daemon-${TAG}-x86_64-unknown-linux-gnu\` | API daemon |
           | Linux x64 glibc | \`focusa-tui-${TAG}-x86_64-unknown-linux-gnu\` | TUI dashboard |
+          | Windows x64 | \`focusa-${TAG}-x86_64-pc-windows-msvc.exe\` | CLI |
+          | Windows ARM64 | \`focusa-${TAG}-aarch64-pc-windows-msvc.exe\` | CLI |
+          | Windows x64 / ARM64 | \`focusa-daemon-${TAG}-*-pc-windows-msvc.exe\` | API daemon |
+          | Windows x64 / ARM64 | \`focusa-tui-${TAG}-*-pc-windows-msvc.exe\` | TUI dashboard |
+          | Windows x64 / ARM64 | \`Focusa_*setup.exe\` / \`Focusa_*.msi\` | Desktop installers |
 
           ### Quick Start (macOS/Linux)
           \`\`\`bash
@@ -401,13 +406,24 @@ jobs:
           - platform: macos-latest
             args: '--target x86_64-apple-darwin'
             rust_target: x86_64-apple-darwin
+          - platform: windows-latest
+            args: '--target x86_64-pc-windows-msvc'
+            rust_target: x86_64-pc-windows-msvc
+          - platform: windows-latest
+            args: '--target aarch64-pc-windows-msvc'
+            rust_target: aarch64-pc-windows-msvc
+            windows_arm64: true
 
     runs-on: ${{ matrix.platform }}
-    # Menubar is mandatory. beta_ad_hoc works before revenue; production_notarized
-    # becomes mandatory only when the repository variable explicitly selects it.
-    timeout-minutes: 12
+    # Desktop artifacts are mandatory on macOS and Windows. beta_ad_hoc works
+    # before Apple revenue; production_notarized is selected explicitly.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
 
       - uses: dtolnay/rust-toolchain@nightly
         with:
@@ -415,24 +431,30 @@ jobs:
           targets: ${{ matrix.rust_target }}
       - uses: Swatinem/rust-cache@v2
 
+      - name: Activate MSVC ARM64 cross-build environment
+        if: ${{ matrix.windows_arm64 == true }}
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64_arm64
+
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.6
 
       - name: Stamp menubar version from release tag
-        run: python3 scripts/stamp-menubar-version.py "${{ github.ref_name }}"
+        run: python scripts/stamp-menubar-version.py "${{ github.ref_name }}"
 
       - name: Verify stamped version surfaces
-        run: python3 scripts/verify-version-surfaces.py "${{ github.ref_name }}"
+        run: python scripts/verify-version-surfaces.py "${{ github.ref_name }}"
 
       - name: Auto-heal audit trail
-        run: python3 scripts/auto-heal-audit.py
+        run: python scripts/auto-heal-audit.py
 
       - name: Validate audit schema
-        run: python3 scripts/audit-schema.py validate release-proof/audit/audit.jsonl
+        run: python scripts/audit-schema.py validate release-proof/audit/audit.jsonl
 
       - name: Regenerate CHANGELOG
-        run: python3 scripts/changelog-gen.py --tag "${{ github.ref_name }}"
+        run: python scripts/changelog-gen.py --tag "${{ github.ref_name }}"
 
       - name: Install frontend deps
         working-directory: apps/menubar
@@ -514,6 +536,7 @@ jobs:
           fi
 
       - name: Require Tauri updater signing authority
+        shell: bash
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
@@ -532,7 +555,7 @@ jobs:
           projectPath: apps/menubar
           tagName: ${{ github.ref_name }}
           releaseName: 'Focusa ${{ github.ref_name }}'
-          releaseBody: ${{ vars.FOCUSA_MACOS_RELEASE_MODE == 'production_notarized' && 'Apple Developer ID signed and notarized production release.' || '⚠️ Pre-license, unnotarized beta. Install with the bundled consent bootstrap. OTA authenticity is enforced by the pinned Tauri updater key.' }}
+          releaseBody: 'Canonical Focusa release for macOS, Windows, and Linux. OTA authenticity is enforced by the pinned updater key.'
           releaseDraft: false
           prerelease: false
           tauriScript: bunx tauri
@@ -669,6 +692,13 @@ jobs:
           - target: x86_64-unknown-linux-musl
             os: ubuntu-latest
             musl: true
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            exe: .exe
+          - target: aarch64-pc-windows-msvc
+            os: windows-latest
+            exe: .exe
+            windows_arm64: true
 
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
@@ -681,6 +711,12 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: release-target-${{ matrix.target }}
+
+      - name: Activate MSVC ARM64 cross-build environment
+        if: ${{ matrix.windows_arm64 == true }}
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64_arm64
 
       - name: Install cross for musl target
         if: ${{ matrix.musl == true }}
@@ -799,6 +835,35 @@ jobs:
           TAG="${{ github.ref_name }}"
           mkdir -p dist
           gh release download "$TAG" --repo "${{ github.repository }}" --dir dist --clobber
+
+      - name: Require canonical cross-platform release assets
+        run: |
+          set -euo pipefail
+          TAG="${{ github.ref_name }}"
+          for target in x86_64-pc-windows-msvc aarch64-pc-windows-msvc; do
+            for bin in focusa focusa-daemon focusa-tui; do
+              test -s "dist/${bin}-${TAG}-${target}.exe" || {
+                echo "::error::Canonical release missing Windows binary ${bin}-${TAG}-${target}.exe"
+                exit 1
+              }
+            done
+          done
+          compgen -G 'dist/Focusa_*x64*setup.exe' >/dev/null || {
+            echo "::error::Canonical release missing Windows x64 desktop installer"
+            exit 1
+          }
+          compgen -G 'dist/Focusa_*arm64*setup.exe' >/dev/null || {
+            echo "::error::Canonical release missing Windows ARM64 desktop installer"
+            exit 1
+          }
+          compgen -G 'dist/Focusa_*x64*.msi' >/dev/null || {
+            echo "::error::Canonical release missing Windows x64 MSI"
+            exit 1
+          }
+          compgen -G 'dist/Focusa_*arm64*.msi' >/dev/null || {
+            echo "::error::Canonical release missing Windows ARM64 MSI"
+            exit 1
+          }
 
       - name: Generate typed release intelligence packet and page
         env:
