@@ -62,7 +62,32 @@ pub trait PiClientToolGateway: Send + Sync {
     ) -> AdapterFuture<'a, Result<ClientToolResult, LettaAdapterError>>;
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LettaTurnIntent {
+    pub event_id: String,
+    pub request_id: Uuid,
+    pub provider_agent_id: String,
+    pub epoch_id: Uuid,
+    pub input_digest: String,
+}
+
+impl From<&LettaTurnRequest> for LettaTurnIntent {
+    fn from(request: &LettaTurnRequest) -> Self {
+        Self {
+            event_id: request.event_id.clone(),
+            request_id: request.request_id,
+            provider_agent_id: request.provider_agent_id.clone(),
+            epoch_id: request.epoch_id,
+            input_digest: request.input_digest.clone(),
+        }
+    }
+}
+
 pub trait LettaTurnJournal: Send + Sync {
+    fn reserve<'a>(
+        &'a self,
+        request: &'a LettaTurnRequest,
+    ) -> AdapterFuture<'a, Result<Uuid, LettaAdapterError>>;
     fn find<'a>(
         &'a self,
         event_id: &'a str,
@@ -154,6 +179,9 @@ where
         if let Some(receipt) = self.journal.find(&request.event_id).await? {
             return Ok(receipt);
         }
+        // Persist intent before remote I/O. A retry after an uncertain outcome
+        // reuses the first request id and therefore the same remote idempotency key.
+        request.request_id = self.journal.reserve(&request).await?;
 
         let mut tool_continuations = 0;
         loop {
@@ -197,10 +225,37 @@ where
 
 #[derive(Default)]
 pub struct InMemoryTurnJournal {
+    intents: Mutex<HashMap<String, LettaTurnIntent>>,
     receipts: Mutex<HashMap<String, LettaTurnReceipt>>,
 }
 
 impl LettaTurnJournal for InMemoryTurnJournal {
+    fn reserve<'a>(
+        &'a self,
+        request: &'a LettaTurnRequest,
+    ) -> AdapterFuture<'a, Result<Uuid, LettaAdapterError>> {
+        Box::pin(async move {
+            let candidate = LettaTurnIntent::from(request);
+            let mut intents = self.intents.lock().await;
+            match intents.get(&request.event_id) {
+                Some(existing)
+                    if existing.provider_agent_id != candidate.provider_agent_id
+                        || existing.epoch_id != candidate.epoch_id
+                        || existing.input_digest != candidate.input_digest =>
+                {
+                    Err(LettaAdapterError::Journal(
+                        "event_id_content_conflict".into(),
+                    ))
+                }
+                Some(existing) => Ok(existing.request_id),
+                None => {
+                    intents.insert(request.event_id.clone(), candidate);
+                    Ok(request.request_id)
+                }
+            }
+        })
+    }
+
     fn find<'a>(
         &'a self,
         event_id: &'a str,

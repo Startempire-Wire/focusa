@@ -1,4 +1,8 @@
-use crate::{AdapterFuture, LettaAdapterError, LettaTurnJournal, LettaTurnReceipt};
+use crate::{
+    AdapterFuture, LettaAdapterError, LettaTurnIntent, LettaTurnJournal, LettaTurnReceipt,
+    LettaTurnRequest,
+};
+use serde::{Serialize, de::DeserializeOwned};
 use std::{
     collections::BTreeMap,
     fs::{File, OpenOptions},
@@ -10,6 +14,8 @@ use std::{
 #[derive(Debug)]
 pub struct FileTurnJournal {
     path: PathBuf,
+    intents_path: PathBuf,
+    intents: Mutex<BTreeMap<String, LettaTurnIntent>>,
     state: Mutex<BTreeMap<String, LettaTurnReceipt>>,
 }
 
@@ -23,6 +29,9 @@ impl FileTurnJournal {
             std::fs::create_dir_all(parent)
                 .map_err(|_| LettaAdapterError::Journal("parent_create_failed".into()))?;
         }
+        let intents_path = path.with_extension("intents.jsonl");
+        let intents =
+            read_records::<LettaTurnIntent>(&intents_path, |intent| intent.event_id.clone())?;
         let mut state = BTreeMap::new();
         if path.exists() {
             let file = File::open(&path)
@@ -50,8 +59,35 @@ impl FileTurnJournal {
         }
         Ok(Self {
             path,
+            intents_path,
+            intents: Mutex::new(intents),
             state: Mutex::new(state),
         })
+    }
+
+    fn reserve_sync(&self, request: &LettaTurnRequest) -> Result<uuid::Uuid, LettaAdapterError> {
+        let candidate = LettaTurnIntent::from(request);
+        let mut intents = self
+            .intents
+            .lock()
+            .map_err(|_| LettaAdapterError::Journal("journal_lock_poisoned".into()))?;
+        match intents.get(&request.event_id) {
+            Some(existing)
+                if existing.provider_agent_id != candidate.provider_agent_id
+                    || existing.epoch_id != candidate.epoch_id
+                    || existing.input_digest != candidate.input_digest =>
+            {
+                Err(LettaAdapterError::Journal(
+                    "event_id_content_conflict".into(),
+                ))
+            }
+            Some(existing) => Ok(existing.request_id),
+            None => {
+                append_record(&self.intents_path, &candidate)?;
+                intents.insert(candidate.event_id.clone(), candidate);
+                Ok(request.request_id)
+            }
+        }
     }
 
     fn append_sync(&self, receipt: &LettaTurnReceipt) -> Result<(), LettaAdapterError> {
@@ -68,23 +104,61 @@ impl FileTurnJournal {
                 ))
             };
         }
-        let bytes = serde_json::to_vec(receipt)
-            .map_err(|_| LettaAdapterError::Journal("receipt_serialize_failed".into()))?;
-        let mut file = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&self.path)
-            .map_err(|_| LettaAdapterError::Journal("journal_append_open_failed".into()))?;
-        file.write_all(&bytes)
-            .and_then(|_| file.write_all(b"\n"))
-            .and_then(|_| file.sync_data())
-            .map_err(|_| LettaAdapterError::Journal("journal_durable_append_failed".into()))?;
+        append_record(&self.path, receipt)?;
         state.insert(receipt.event_id.clone(), receipt.clone());
         Ok(())
     }
 }
 
+fn append_record<T: Serialize>(path: &Path, value: &T) -> Result<(), LettaAdapterError> {
+    let bytes = serde_json::to_vec(value)
+        .map_err(|_| LettaAdapterError::Journal("record_serialize_failed".into()))?;
+    let mut file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+        .map_err(|_| LettaAdapterError::Journal("journal_append_open_failed".into()))?;
+    file.write_all(&bytes)
+        .and_then(|_| file.write_all(b"\n"))
+        .and_then(|_| file.sync_data())
+        .map_err(|_| LettaAdapterError::Journal("journal_durable_append_failed".into()))
+}
+
+fn read_records<T: DeserializeOwned>(
+    path: &Path,
+    key: impl Fn(&T) -> String,
+) -> Result<BTreeMap<String, T>, LettaAdapterError> {
+    let mut records = BTreeMap::new();
+    if !path.exists() {
+        return Ok(records);
+    }
+    let file =
+        File::open(path).map_err(|_| LettaAdapterError::Journal("journal_open_failed".into()))?;
+    for line in BufReader::new(file).lines() {
+        let line = line.map_err(|_| LettaAdapterError::Journal("journal_read_failed".into()))?;
+        if line.trim().is_empty() {
+            continue;
+        }
+        let record: T = serde_json::from_str(&line)
+            .map_err(|_| LettaAdapterError::Journal("journal_corrupt".into()))?;
+        let record_key = key(&record);
+        if records.insert(record_key, record).is_some() {
+            return Err(LettaAdapterError::Journal(
+                "duplicate_journal_record".into(),
+            ));
+        }
+    }
+    Ok(records)
+}
+
 impl LettaTurnJournal for FileTurnJournal {
+    fn reserve<'a>(
+        &'a self,
+        request: &'a LettaTurnRequest,
+    ) -> AdapterFuture<'a, Result<uuid::Uuid, LettaAdapterError>> {
+        Box::pin(async move { self.reserve_sync(request) })
+    }
+
     fn find<'a>(
         &'a self,
         event_id: &'a str,
@@ -109,6 +183,18 @@ impl LettaTurnJournal for FileTurnJournal {
 mod tests {
     use super::*;
     use uuid::Uuid;
+
+    fn request(event_id: &str, request_id: Uuid) -> LettaTurnRequest {
+        LettaTurnRequest {
+            request_id,
+            event_id: event_id.into(),
+            provider_agent_id: "letta-agent".into(),
+            epoch_id: Uuid::nil(),
+            input: "bounded input".into(),
+            input_digest: "sha256:input".into(),
+            continuation: None,
+        }
+    }
 
     fn receipt(event_id: &str, digest: &str) -> LettaTurnReceipt {
         LettaTurnReceipt {
@@ -137,6 +223,32 @@ mod tests {
         assert_eq!(replayed.find("event-1").await.unwrap(), Some(receipt));
         let content = std::fs::read_to_string(&path).unwrap();
         assert_eq!(content.lines().count(), 1);
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[tokio::test]
+    async fn uncertain_retry_reuses_durable_remote_idempotency_key() {
+        let root = std::env::temp_dir().join(format!("focusa-letta-journal-{}", Uuid::now_v7()));
+        let path = root.join("turns.jsonl");
+        let first_id = Uuid::now_v7();
+        let journal = FileTurnJournal::open(&path).unwrap();
+        assert_eq!(
+            journal
+                .reserve(&request("event-1", first_id))
+                .await
+                .unwrap(),
+            first_id
+        );
+        drop(journal);
+
+        let replayed = FileTurnJournal::open(&path).unwrap();
+        assert_eq!(
+            replayed
+                .reserve(&request("event-1", Uuid::now_v7()))
+                .await
+                .unwrap(),
+            first_id
+        );
         let _ = std::fs::remove_dir_all(root);
     }
 
