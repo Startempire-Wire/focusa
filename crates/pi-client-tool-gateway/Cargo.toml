@@ -1,0 +1,21 @@
+[package]
+name = "pi-client-tool-gateway"
+description = "Pi-governed client-tool admission gateway for stateful runtimes"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license-file.workspace = true
+
+[dependencies]
+agent-stateful-cognitive-runtime = { workspace = true }
+letta-adapter = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+uuid = { workspace = true }
+tokio = { workspace = true }
+
+[lints]
+workspace = true

@@ -11,6 +11,7 @@ members = [
     "crates/focusa-terminal-ui",
     "crates/agent-stateful-cognitive-runtime",
     "crates/letta-adapter",
+    "crates/pi-client-tool-gateway",
     "crates/focusa-bench",
     "crates/focusa-session-runner",
 ]
@@ -92,6 +93,7 @@ focusa-license = { path = "crates/focusa-license" }
 focusa-terminal-ui = { path = "crates/focusa-terminal-ui" }
 agent-stateful-cognitive-runtime = { path = "crates/agent-stateful-cognitive-runtime" }
 letta-adapter = { path = "crates/letta-adapter" }
+pi-client-tool-gateway = { path = "crates/pi-client-tool-gateway" }
 
 # Terminal UI (shared between CLI installer and TUI)
 ratatui = "0.30"
