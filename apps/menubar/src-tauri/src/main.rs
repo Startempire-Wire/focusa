@@ -51,7 +51,9 @@ impl BridgeAttachmentKey {
         Self {
             root_scope: scope.project_root,
             workstream: scope.continuity_id,
-            session_id: scope.session_id.unwrap_or_else(|| "local-tauri".to_string()),
+            session_id: scope
+                .session_id
+                .unwrap_or_else(|| "local-tauri".to_string()),
             scope_status: scope.scope_status.unwrap_or_else(|| "unknown".to_string()),
             attachment_id: nonce.to_string(),
         }
@@ -411,9 +413,9 @@ fn focusa_clear_pairing_token(device_id: String) -> Result<(), String> {
 }
 
 use tauri::{
-    Manager, WindowEvent,
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    Manager, WindowEvent,
 };
 
 /// Result of a Bonjour / mDNS browse for `_focusa._tcp.local` services.
@@ -447,36 +449,34 @@ async fn focusa_discover_via_bonjour(
         // tokio::time::timeout produces a Result<_, Elapsed>. recv_async
         // itself returns Result<ServiceEvent, flume::RecvError>. So we
         // need double-Result matching: timeout OK + recv OK.
-        if let Ok(Ok(event)) =
+        if let Ok(Ok(mdns_sd::ServiceEvent::ServiceResolved(info))) =
             tokio::time::timeout(std::time::Duration::from_millis(250), receiver.recv_async()).await
         {
-            if let mdns_sd::ServiceEvent::ServiceResolved(info) = event {
-                let host = info.get_hostname().to_string();
-                let port = info.get_port();
-                let txt: std::collections::HashMap<String, String> = info
-                    .get_properties()
-                    .iter()
-                    .filter_map(|p| {
-                        // p.val() returns Option<&[u8]>; convert to String.
-                        let val = p
-                            .val()
-                            .and_then(|b| std::str::from_utf8(b).ok())
-                            .unwrap_or("")
-                            .to_string();
-                        if val.is_empty() {
-                            None
-                        } else {
-                            Some((p.key().to_string(), val))
-                        }
-                    })
-                    .collect();
-                let url = txt
-                    .get("url")
-                    .cloned()
-                    .unwrap_or_else(|| format!("http://{}:{}", host.trim_end_matches('.'), port));
-                let _ = daemon.shutdown();
-                return Ok(Some(BonjourDiscovery { url, host, port }));
-            }
+            let host = info.get_hostname().to_string();
+            let port = info.get_port();
+            let txt: std::collections::HashMap<String, String> = info
+                .get_properties()
+                .iter()
+                .filter_map(|p| {
+                    // p.val() returns Option<&[u8]>; convert to String.
+                    let val = p
+                        .val()
+                        .and_then(|b| std::str::from_utf8(b).ok())
+                        .unwrap_or("")
+                        .to_string();
+                    if val.is_empty() {
+                        None
+                    } else {
+                        Some((p.key().to_string(), val))
+                    }
+                })
+                .collect();
+            let url = txt
+                .get("url")
+                .cloned()
+                .unwrap_or_else(|| format!("http://{}:{}", host.trim_end_matches('.'), port));
+            let _ = daemon.shutdown();
+            return Ok(Some(BonjourDiscovery { url, host, port }));
         }
     }
     let _ = daemon.shutdown();
