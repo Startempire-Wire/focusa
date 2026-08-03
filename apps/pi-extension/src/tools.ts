@@ -8955,10 +8955,23 @@ export function registerTools(pi: ExtensionAPI) {
     const writerId = opts.writer ? await preferredWriterId() : undefined;
     const writerLease = writerId ? await currentWorkLoopLease() : null;
     const requestSessionId = String(request.session_id || "").trim();
+    const identity: any = getLastProjectIdentity() || {};
+    const requestProjectRoot = normalizeProjectRoot(
+      identity.canonical_parent_root || identity.project_root || getSessionCwd()
+    );
+    const requestContinuityId = String(getContinuityId() || "").trim();
+    const requestScopeHeaders: Record<string, string> =
+      isProjectRootAuthoritySafe(requestProjectRoot) && requestContinuityId
+        ? {
+            "X-Scope-Project-Root": requestProjectRoot,
+            "X-Scope-Continuity-Id": requestContinuityId,
+          }
+        : {};
     const req: RequestInit = {
       method,
       headers: {
         ...(writerId ? writerLeaseHeaders(writerId, writerLease) : {}),
+        ...requestScopeHeaders,
         ...(requestSessionId ? { "X-Scope-Session-Id": requestSessionId } : {}),
       },
       body: method === "POST" ? JSON.stringify(request) : undefined,
