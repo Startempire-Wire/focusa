@@ -106,6 +106,15 @@ export class MissionCanvasShell implements Component, Focusable {
       const prompt = value.trim();
       if (!prompt) return;
       this.input.setValue("");
+      if (prompt === "/focusa-surfaces" || prompt === "/canvas surfaces") {
+        this.closeShell();
+        queueMicrotask(() => {
+          void this.manageSurfaces().catch((error) =>
+            this.ctx.ui.notify(`Mission Canvas Work Surfaces failed: ${String(error)}`, "error")
+          );
+        });
+        return;
+      }
       if (prompt === "/mission-canvas off" || prompt === "/canvas off") {
         // Defer until the Input submit stack unwinds, then use the same
         // controller as the slash command and agent tool. This closes the
