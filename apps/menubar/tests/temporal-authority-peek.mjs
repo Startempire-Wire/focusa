@@ -43,7 +43,7 @@ await writeFile(generatedPath, generatedCode);
 
 try {
   const { default: TemporalAuthorityPeek } = await import(
-    `${pathToFileURL(generatedPath.pathname).href}?v=${Date.now()}`
+    `${generatedPath.href}?v=${Date.now()}`
   );
   const proven = render(TemporalAuthorityPeek, {
     props: {
