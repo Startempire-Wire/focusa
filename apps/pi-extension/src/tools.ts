@@ -78,6 +78,7 @@ import {
 } from "./scoped-state.js";
 import { buildNorthStarSnapshot, renderNorthStarCard } from "./north-star.js";
 import { projectBindingAllowsDurableWrites, reconcileProjectBindingDecision } from "./project-binding.js";
+import { resolveCanonicalMarkerProjectRoot } from "./project-identity-working-context.js";
 import { publishScopedStateChange } from "./scoped-surface-refresh.js";
 import { modelVisibleDiscoveryPayload as renderDiscoveryPayload } from "./tool-discovery-visible.js";
 
@@ -1848,6 +1849,10 @@ function focusaToolWorkpointScope(packet: any): { projectRoot: string; continuit
 async function resolveFocusaToolProjectRoot(explicitProjectRoot?: unknown): Promise<string> {
   const explicit = normalizeProjectRoot(explicitProjectRoot);
   const sessionCwd = normalizeProjectRoot(getSessionCwd() || process.cwd());
+  const markerCanonical = resolveCanonicalMarkerProjectRoot(sessionCwd);
+  if (!explicit && markerCanonical && isProjectRootAuthoritySafe(markerCanonical)) {
+    return markerCanonical;
+  }
   const cachedIdentity: any = getLastProjectIdentity() || {};
   const cachedCanonical = normalizeProjectRoot(
     cachedIdentity.canonical_parent_root || cachedIdentity.project_root

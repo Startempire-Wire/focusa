@@ -120,4 +120,9 @@ assert.match(
   /cachedVerified &&\s*cachedCanonical/,
   "unverified ambient identity cache must not bypass canonical marker resolution"
 );
+assert.match(
+  toolsSource,
+  /!explicit && markerCanonical && isProjectRootAuthoritySafe\(markerCanonical\)/,
+  "scope-free Pi tools must promote a safe local canonical marker before ambient cwd"
+);
 console.log("project identity working-context retention passed");
