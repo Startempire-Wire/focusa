@@ -1855,7 +1855,9 @@ async function resolveFocusaToolProjectRoot(explicitProjectRoot?: unknown): Prom
   const cachedWorking = normalizeProjectRoot(
     cachedIdentity.active_worktree_root || cachedIdentity.working_context?.active_worktree_root
   );
+  const cachedVerified = cachedIdentity.status === "verified" || cachedIdentity.verified === true;
   if (
+    cachedVerified &&
     cachedCanonical &&
     (!explicit || explicit === cachedCanonical || explicit === cachedWorking) &&
     (!sessionCwd || sessionCwd === cachedCanonical || sessionCwd === cachedWorking)

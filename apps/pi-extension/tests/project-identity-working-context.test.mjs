@@ -111,4 +111,13 @@ assert.match(
   /normalizeProjectRoot\(persistedBody\.project_root\) === authorityProjectRoot/,
   "stale ambient persistence must not conflict with marker-derived authority"
 );
+const toolsSource = readFileSync(
+  fileURLToPath(new URL("../src/tools.ts", import.meta.url)),
+  "utf8"
+);
+assert.match(
+  toolsSource,
+  /cachedVerified &&\s*cachedCanonical/,
+  "unverified ambient identity cache must not bypass canonical marker resolution"
+);
 console.log("project identity working-context retention passed");
