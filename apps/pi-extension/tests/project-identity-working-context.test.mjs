@@ -143,8 +143,8 @@ assert.match(
 );
 assert.match(
   toolsSource,
-  /const authorityProjectRoot = normalizeProjectRoot\(p\.project_root \|\| markerProjectRoot\)/,
-  "project identity reads must bind a scope-free request to its local canonical marker"
+  /markerProjectRoot && requestedProjectRoot === ambientCwd\s*\? markerProjectRoot/,
+  "model-supplied ambient worktree paths must resolve through their canonical marker"
 );
 assert.match(
   toolsSource,

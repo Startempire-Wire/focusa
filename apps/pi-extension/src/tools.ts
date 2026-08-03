@@ -5040,7 +5040,12 @@ export function registerTools(pi: ExtensionAPI) {
       const ambientCwd = normalizeProjectRoot(p.cwd || process.cwd());
       const markerProjectRoot = resolveCanonicalMarkerProjectRoot(ambientCwd);
       const requestCwd = p.cwd || (markerProjectRoot ? ambientCwd : getSessionCwd() || process.cwd());
-      const authorityProjectRoot = normalizeProjectRoot(p.project_root || markerProjectRoot);
+      const requestedProjectRoot = normalizeProjectRoot(p.project_root);
+      const authorityProjectRoot = normalizeProjectRoot(
+        markerProjectRoot && requestedProjectRoot === ambientCwd
+          ? markerProjectRoot
+          : requestedProjectRoot || markerProjectRoot
+      );
       query.set("cwd", requestCwd);
       if (authorityProjectRoot) query.set("project_root", authorityProjectRoot);
       if (getSessionFrameKey()) query.set("pi_session_id", getSessionFrameKey());
@@ -5290,7 +5295,13 @@ export function registerTools(pi: ExtensionAPI) {
       const ambientCwd = normalizeProjectRoot(p.cwd || process.cwd());
       const markerProjectRoot = resolveCanonicalMarkerProjectRoot(ambientCwd);
       query.set("cwd", p.cwd || (markerProjectRoot ? ambientCwd : getSessionCwd() || process.cwd()));
-      if (p.project_root || markerProjectRoot) query.set("project_root", p.project_root || markerProjectRoot);
+      const requestedProjectRoot = normalizeProjectRoot(p.project_root);
+      const cardProjectRoot = normalizeProjectRoot(
+        markerProjectRoot && requestedProjectRoot === ambientCwd
+          ? markerProjectRoot
+          : requestedProjectRoot || markerProjectRoot
+      );
+      if (cardProjectRoot) query.set("project_root", cardProjectRoot);
       if (p.current_ask) query.set("current_ask", p.current_ask);
       if (p.remote_host) query.set("remote_host", p.remote_host);
       if (p.remote_user) query.set("remote_user", p.remote_user);
