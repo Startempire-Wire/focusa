@@ -3216,6 +3216,17 @@ export async function buildFocusaSessionIdentity(
     const query = new URLSearchParams();
     query.set("cwd", cwdForIdentity);
     query.set("project_root", projectRoot);
+    if (sessionId) query.set("pi_session_id", sessionId);
+    const remoteContext: any = persistedBody.remote_context || {};
+    if (remoteContext.remote_host) query.set("remote_host", String(remoteContext.remote_host));
+    if (remoteContext.remote_user) query.set("remote_user", String(remoteContext.remote_user));
+    if (remoteContext.remote_port) query.set("remote_port", String(remoteContext.remote_port));
+    if (remoteContext.remote_repo_remote)
+      query.set("remote_repo_remote", String(remoteContext.remote_repo_remote));
+    if (remoteContext.remote_workspace_kind)
+      query.set("remote_workspace_kind", String(remoteContext.remote_workspace_kind));
+    if (remoteContext.remote_deploy_root)
+      query.set("remote_deploy_root", String(remoteContext.remote_deploy_root));
     if (normalizeProjectRoot(persistedBody.project_root) === projectRoot) {
       if (persistedBody.project_root)
         query.set("persisted_project_root", normalizeProjectRoot(persistedBody.project_root));

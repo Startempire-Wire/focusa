@@ -38,6 +38,7 @@ use uuid::Uuid;
 #[derive(Debug, Deserialize, Default)]
 pub struct ProjectIdentityQuery {
     pub cwd: Option<String>,
+    pub pi_session_id: Option<String>,
     pub project_root: Option<String>,
     pub current_ask: Option<String>,
     pub remote_host: Option<String>,
@@ -55,6 +56,7 @@ pub struct ProjectIdentityQuery {
 #[derive(Debug, Deserialize, Default)]
 pub struct ProjectVerifyRequest {
     pub cwd: Option<String>,
+    pub pi_session_id: Option<String>,
     pub project_root: Option<String>,
     pub project_id: Option<String>,
     pub canonical_name: Option<String>,
@@ -2862,6 +2864,17 @@ async fn identity(Query(query): Query<ProjectIdentityQuery>) -> Json<Value> {
         remote_hint,
         None,
     );
+    if let Some(pi_session_id) = clean(query.pi_session_id.as_deref())
+        && let Some(object) = payload.as_object_mut()
+    {
+        object.insert("pi_session_id".to_string(), json!(pi_session_id));
+        if let Some(identity) = object
+            .get_mut("project_identity")
+            .and_then(Value::as_object_mut)
+        {
+            identity.insert("pi_session_id".to_string(), json!(pi_session_id));
+        }
+    }
     if let Some(decision) = binding
         && let Some(object) = payload.as_object_mut()
     {
@@ -2904,6 +2917,11 @@ async fn verify(
         ),
         Some(&body),
     );
+    if let Some(pi_session_id) = clean(body.pi_session_id.as_deref())
+        && let Some(object) = payload.as_object_mut()
+    {
+        object.insert("pi_session_id".to_string(), json!(pi_session_id));
+    }
     if body
         .remote_host
         .as_deref()
