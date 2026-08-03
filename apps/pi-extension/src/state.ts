@@ -14,6 +14,7 @@ import {
   type AttachmentKey,
 } from "./scoped-state.js";
 import { projectBindingAllowsDurableWrites, type ProjectBindingDecisionV1 } from "./project-binding.js";
+import { resolveProjectIdentityLookupCwd } from "./project-identity-working-context.js";
 import {
   COMPACTION_PERSISTENCE_ANCHOR_REF_SCHEMA,
   COMPACTION_PERSISTENCE_ANCHOR_SCHEMA,
@@ -3204,21 +3205,26 @@ export async function buildFocusaSessionIdentity(
   );
   const safe = isProjectRootAuthoritySafe(projectRoot);
   const ambientCwd = normalizeProjectRoot(getAttachmentRuntime().sessionCwd || process.cwd());
-  const ambientInsideProject = ambientCwd === projectRoot || ambientCwd.startsWith(`${projectRoot}/`);
-  const cwdForIdentity = safe && !ambientInsideProject ? projectRoot : ambientCwd;
+  const persisted = getLastProjectIdentity() || {};
+  const persistedBody: any = (persisted as any).project_identity || persisted;
+  const cwdForIdentity = safe
+    ? resolveProjectIdentityLookupCwd({ projectRoot, ambientCwd, persistedIdentity: persisted })
+    : ambientCwd;
   const sessionId = String(overrides.sessionId || getAttachmentRuntime().sessionFrameKey || "").trim();
   let projectIdentity: any = null;
   if (safe) {
     const query = new URLSearchParams();
     query.set("cwd", cwdForIdentity);
     query.set("project_root", projectRoot);
-    const persisted = getLastProjectIdentity() || {};
-    if (normalizeProjectRoot(persisted.project_root) === projectRoot) {
-      if (persisted.project_root)
-        query.set("persisted_project_root", normalizeProjectRoot(persisted.project_root));
-      if (persisted.fingerprint) query.set("persisted_project_fingerprint", String(persisted.fingerprint));
-      if (persisted.project_id) query.set("persisted_project_id", String(persisted.project_id));
-      if (persisted.canonical_name) query.set("persisted_canonical_name", String(persisted.canonical_name));
+    if (normalizeProjectRoot(persistedBody.project_root) === projectRoot) {
+      if (persistedBody.project_root)
+        query.set("persisted_project_root", normalizeProjectRoot(persistedBody.project_root));
+      if (persistedBody.fingerprint)
+        query.set("persisted_project_fingerprint", String(persistedBody.fingerprint));
+      if (persistedBody.project_id)
+        query.set("persisted_project_id", String(persistedBody.project_id));
+      if (persistedBody.canonical_name)
+        query.set("persisted_canonical_name", String(persistedBody.canonical_name));
     }
     const response = await focusaFetch(`/project/identity?${query.toString()}`).catch(() => null);
     projectIdentity = response?.project_identity || null;
