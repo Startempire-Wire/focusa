@@ -188,12 +188,12 @@ A task is not done unless all applicable items exist:
 
 ## 4. Open baseline issue decomposition
 
-All nine open GitHub baseline issues remain open. Their canonical implementation work is decomposed into 73 ordered child tasks under the locked-release root; the separately discovered all-surface release repair adds seven more. Each child has a concrete description, acceptance criterion, parent, and blocking edge to its predecessor.
+All nine open GitHub baseline issues remain open. Their canonical implementation work is decomposed into 74 ordered child tasks under the locked-release root; the separately discovered all-surface release repair adds seven more. Each child has a concrete description, acceptance criterion, parent, and blocking edge to its predecessor.
 
 | GitHub issue | Canonical Bead epic | Children | Primary dependency |
 |---|---|---:|---|
 | #119 licensing/onboarding | `focusa-vbcqu.10` | 12 | foundational authority lane |
-| #45 scoped refresh | `focusa-vbcqu.11` | 8 | isolated Mission Canvas PR only at child `11.6` |
+| #45 scoped refresh | `focusa-vbcqu.11` | 9 | isolated Mission Canvas PR only at child `11.6`; post-compaction Pi widget at `11.9` |
 | #89 daemon multiplexing | `focusa-vbcqu.12` | 8 | independent runtime lane |
 | #101 managed convergence | `focusa-vbcqu.13` | 9 | #89 and #119 |
 | #106 release governance | `focusa-vbcqu.14` | 5 | all technical baseline epics |
@@ -243,6 +243,7 @@ flowchart LR
 ### 4.2 Ready work versus blocked work
 
 - Ready in parallel: `10.1`, `11.1`, `12.1`, `15.1`, `16.1`, `17.1`, and release artifact contract/Windows preflight work `19.1`–`19.2`.
+- `11.9` explicitly owns post-compaction North Star completeness: exact scope authority, coherent state, bounded operation counts/pagination, readable narrow-width rendering, and zero private-context leakage; final #45 acceptance `11.8` depends on it.
 - #101 implementation begins only after multiplexing and licensing authority foundations are accepted.
 - #106 reconciliation begins only after every technical epic reaches accepted closure.
 - #52 is the final baseline consolidation gate and cannot begin terminal acceptance while any upstream epic remains open.
