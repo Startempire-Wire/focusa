@@ -84,6 +84,48 @@ pub fn embedded_production_trust_roots(
     parse_production_trust_roots(raw)
 }
 
+/// Resolve durable state into the sole runtime entitlement projection.
+/// Every read failure is fail-closed; callers never infer a tier locally.
+pub fn resolve_authority_state(
+    path: &Path,
+    roots: Result<BTreeMap<String, VerifyingKey>, AuthorityStoreError>,
+    context: &LeaseVerificationContext,
+) -> EntitlementSnapshot {
+    let roots = match roots {
+        Ok(roots) => roots,
+        Err(error) => {
+            return EntitlementSnapshot::recovery_only(
+                &context.expected_product,
+                &context.expected_node_id,
+                store_error_code(&error),
+            );
+        }
+    };
+    let state = match PersistedAuthorityState::read(path) {
+        Ok(state) => state,
+        Err(AuthorityStoreError::Missing) => {
+            return EntitlementSnapshot::unactivated(
+                &context.expected_product,
+                &context.expected_node_id,
+            );
+        }
+        Err(error) => {
+            return EntitlementSnapshot::recovery_only(
+                &context.expected_product,
+                &context.expected_node_id,
+                store_error_code(&error),
+            );
+        }
+    };
+    state.verify(&roots, context).unwrap_or_else(|error| {
+        EntitlementSnapshot::recovery_only(
+            &context.expected_product,
+            &context.expected_node_id,
+            store_error_code(&error),
+        )
+    })
+}
+
 pub fn parse_production_trust_roots(
     raw: &str,
 ) -> Result<BTreeMap<String, VerifyingKey>, AuthorityStoreError> {
@@ -116,4 +158,17 @@ pub fn parse_production_trust_roots(
             Ok((key_id, key))
         })
         .collect()
+}
+
+fn store_error_code(error: &AuthorityStoreError) -> &'static str {
+    match error {
+        AuthorityStoreError::Missing => "authority_state_missing",
+        AuthorityStoreError::Read(_) => "authority_state_unreadable",
+        AuthorityStoreError::InvalidJson => "authority_state_invalid_json",
+        AuthorityStoreError::UnsupportedSchema(_) => "authority_state_unsupported_schema",
+        AuthorityStoreError::MissingTrustRoots => "authority_trust_roots_missing",
+        AuthorityStoreError::ForbiddenTrustRoot(_) => "authority_trust_root_forbidden",
+        AuthorityStoreError::InvalidTrustRoot(_) => "authority_trust_root_invalid",
+        AuthorityStoreError::Verification(_) => "authority_lease_verification_failed",
+    }
 }

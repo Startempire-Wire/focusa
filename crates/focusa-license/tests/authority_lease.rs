@@ -9,7 +9,8 @@ use focusa_license::authority::{
     SignedEnvelope, ENVELOPE_SCHEMA,
 };
 use focusa_license::authority_store::{
-    parse_production_trust_roots, AuthorityStoreError,
+    parse_production_trust_roots, resolve_authority_state, AuthorityStoreError,
+    PersistedAuthorityState, AUTHORITY_STATE_SCHEMA,
 };
 use serde::Deserialize;
 
@@ -227,6 +228,54 @@ fn production_trust_root_parser_rejects_test_and_local_roots() {
     })
     .to_string();
     assert_eq!(parse_production_trust_roots(&production).unwrap().len(), 1);
+}
+
+#[test]
+fn durable_entitlement_service_is_fail_closed() {
+    let vector = vector();
+    let roots = root_keys(&vector);
+    let directory = std::env::temp_dir().join(format!(
+        "focusa-authority-store-{}-{}",
+        std::process::id(),
+        Utc::now().timestamp_nanos_opt().unwrap_or_default()
+    ));
+    std::fs::create_dir_all(&directory).unwrap();
+    let state_path = directory.join("authority-lease.json");
+    let state = PersistedAuthorityState {
+        schema: AUTHORITY_STATE_SCHEMA.to_string(),
+        key_set: vector.key_set_envelope,
+        lease: vector.lease_envelope,
+        key_set_sequence: 7,
+        last_validated_at: at("2026-08-03T00:00:00Z"),
+        refresh_after: Some(at("2026-08-15T00:00:00Z")),
+    };
+    std::fs::write(&state_path, serde_json::to_vec(&state).unwrap()).unwrap();
+    let active = resolve_authority_state(
+        &state_path,
+        Ok(roots.clone()),
+        &context("2026-08-03T00:00:00Z"),
+    );
+    assert_eq!(active.state, EntitlementState::Active);
+
+    let missing = resolve_authority_state(
+        &directory.join("missing.json"),
+        Ok(roots.clone()),
+        &context("2026-08-03T00:00:00Z"),
+    );
+    assert_eq!(missing.state, EntitlementState::Unactivated);
+
+    std::fs::write(&state_path, b"not-json").unwrap();
+    let malformed = resolve_authority_state(
+        &state_path,
+        Ok(roots),
+        &context("2026-08-03T00:00:00Z"),
+    );
+    assert_eq!(malformed.state, EntitlementState::RecoveryOnly);
+    assert_eq!(
+        malformed.recovery_reason.as_deref(),
+        Some("authority_state_invalid_json")
+    );
+    std::fs::remove_dir_all(directory).unwrap();
 }
 
 #[test]
