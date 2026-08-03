@@ -8,6 +8,9 @@ use focusa_license::authority::{
     AuthorityLeaseVerifier, AuthorityVerificationError, EntitlementState, LeaseVerificationContext,
     SignedEnvelope, ENVELOPE_SCHEMA,
 };
+use focusa_license::authority_store::{
+    parse_production_trust_roots, AuthorityStoreError,
+};
 use serde::Deserialize;
 
 const FIXTURE: &str = include_str!("fixtures/spec152-authority-golden-vector.json");
@@ -207,6 +210,23 @@ fn revoked_rotation_key_and_stale_key_set_are_rejected() {
         .unwrap_err(),
         AuthorityVerificationError::StaleSequence { minimum: 8, actual: 7 }
     );
+}
+
+#[test]
+fn production_trust_root_parser_rejects_test_and_local_roots() {
+    let vector = vector();
+    for key_id in ["test-root", "fixture-authority", "local-dev-root", "example-root"] {
+        let raw = serde_json::json!({ key_id: vector.root_public_key_b64 }).to_string();
+        assert!(matches!(
+            parse_production_trust_roots(&raw),
+            Err(AuthorityStoreError::ForbiddenTrustRoot(_))
+        ));
+    }
+    let production = serde_json::json!({
+        "authority-root-2026-01": vector.root_public_key_b64
+    })
+    .to_string();
+    assert_eq!(parse_production_trust_roots(&production).unwrap().len(), 1);
 }
 
 #[test]

@@ -12,6 +12,7 @@
 //! in production-only paths (e.g., hosted_mode, commercial_signal).
 
 pub mod authority;
+pub mod authority_store;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
