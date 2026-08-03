@@ -96,6 +96,7 @@ for (let width = 1; width < 40; width++) {
 const priorCi = process.env.CI;
 const priorHighContrast = process.env.FOCUSA_HIGH_CONTRAST;
 const priorNoColor = process.env.NO_COLOR;
+const priorAscii = process.env.FOCUSA_ASCII_UI;
 process.env.CI = "false";
 delete process.env.FOCUSA_HIGH_CONTRAST;
 delete process.env.NO_COLOR;
@@ -115,12 +116,16 @@ const renderVariant = (visualVariant) => {
 const defaultPalette = renderVariant("default");
 assert.notEqual(renderVariant("high-contrast"), defaultPalette);
 assert.notEqual(renderVariant("monochrome"), defaultPalette);
+process.env.FOCUSA_ASCII_UI = "1";
+assert.doesNotMatch(renderVariant("default"), /[┌┐└┘─│◆◇●✓○→╲▁▂▄▅▆█]/);
 if (priorCi === undefined) delete process.env.CI;
 else process.env.CI = priorCi;
 if (priorHighContrast === undefined) delete process.env.FOCUSA_HIGH_CONTRAST;
 else process.env.FOCUSA_HIGH_CONTRAST = priorHighContrast;
 if (priorNoColor === undefined) delete process.env.NO_COLOR;
 else process.env.NO_COLOR = priorNoColor;
+if (priorAscii === undefined) delete process.env.FOCUSA_ASCII_UI;
+else process.env.FOCUSA_ASCII_UI = priorAscii;
 view.dispose();
 timings.sort((a, b) => a - b);
 const p95 = timings[Math.floor(timings.length * 0.95)];

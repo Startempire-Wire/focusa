@@ -76,6 +76,7 @@ assert.match(view, /workSurfaceDetails\[selectedSurface\]/);
 assert.match(view, /meaningful/);
 assert.match(view, /layoutMemory/);
 assert.match(view, /applyVisualPalette/);
+assert.match(view, /applyAsciiFallback/);
 assert.match(view, /HIGH_CONTRAST_COLORS/);
 assert.match(view, /MONOCHROME_COLORS/);
 assert.match(view, /Steering Queue/);

@@ -231,6 +231,34 @@ function applyVisualPalette(
   );
 }
 
+function applyAsciiFallback(lines: string[], ascii: boolean): string[] {
+  if (!ascii) return lines;
+  const replacements: Record<string, string> = {
+    "┌": "+",
+    "┐": "+",
+    "└": "+",
+    "┘": "+",
+    "─": "-",
+    "│": "|",
+    "◆": ">",
+    "◇": "-",
+    "●": "*",
+    "✓": "v",
+    "○": "o",
+    "→": ">",
+    "╲": "\\",
+    "▁": ".",
+    "▂": ":",
+    "▄": "=",
+    "▅": "+",
+    "▆": "#",
+    "█": "#",
+  };
+  return lines.map((line) =>
+    line.replace(/[┌┐└┘─│◆◇●✓○→╲▁▂▄▅▆█]/g, (character) => replacements[character] ?? character)
+  );
+}
+
 function paint(text: string, color: RGB = COLORS.text, background?: RGB, bold = false): string {
   return `${background ? bg(background) : ""}${fg(color)}${bold ? "\x1b[1m" : ""}${text}\x1b[0m`;
 }
@@ -435,10 +463,10 @@ export class MissionCanvasView implements Component {
           ...this.renderSurfaceStrip(safeWidth),
           ...this.renderWorkspace(safeWidth),
         ];
-    const renderedRows = applyVisualPalette(
-      rows,
-      this.model.visualVariant,
-      accessibilityPreferences().highContrast
+    const preferences = accessibilityPreferences();
+    const renderedRows = applyAsciiFallback(
+      applyVisualPalette(rows, this.model.visualVariant, preferences.highContrast),
+      preferences.ascii
     );
     this.renderCache = { width: safeWidth, signature, lines: renderedRows };
     return renderedRows;
