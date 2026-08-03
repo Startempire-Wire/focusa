@@ -536,7 +536,7 @@ export function registerCommands(pi: ExtensionAPI) {
             model,
             theme,
             () => tui.requestRender(),
-            () => Math.max(6, Math.floor(tui.terminal.rows * 0.9) - 2),
+            () => Math.max(6, Math.floor(tui.terminal.rows * 0.82) - 2),
             () => done(undefined),
             loadModel,
             pi,
@@ -563,9 +563,10 @@ export function registerCommands(pi: ExtensionAPI) {
           {
             overlay: true,
             overlayOptions: {
-              width: "92%",
-              maxHeight: "90%",
-              anchor: "center",
+              width: "80%",
+              maxHeight: "82%",
+              anchor: "right-center",
+              offsetX: -1,
               margin: 1,
             },
           }

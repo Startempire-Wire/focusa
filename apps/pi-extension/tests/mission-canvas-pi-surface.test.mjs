@@ -91,7 +91,9 @@ assert.doesNotMatch(view, /CURRENT WORKSPACE COCKPIT/);
 // The current command surface owns the same-session Pi custom component and mode.
 assert.match(commands, /new MissionCanvasShell/);
 assert.match(commands, /overlay: true/);
-assert.match(commands, /maxHeight: "90%"/);
+assert.match(commands, /width: "80%"/);
+assert.match(commands, /maxHeight: "82%"/);
+assert.match(commands, /anchor: "right-center"/);
 assert.doesNotMatch(commands, /action = ""/);
 assert.doesNotMatch(commands, /Run \/mission-canvas on to open it/);
 assert.match(commands, /if \(mode !== "canvas-guided"\) closeActiveMissionCanvasShell\(\)/);
