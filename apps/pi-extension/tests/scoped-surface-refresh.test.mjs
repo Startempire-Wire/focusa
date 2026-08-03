@@ -22,7 +22,7 @@ test("successful mutations publish exact-scope refresh receipts", () => {
   assert.match(tools, /responseContinuity === requestedContinuity/);
 });
 
-test("Mission Canvas subscribes independently and polls only when stale", () => {
+test("Mission Canvas subscribes, polls only when stale, and suppresses redundant redraws", () => {
   assert.match(widget, /subscribeScopedStateChanges/);
   assert.match(widget, /scopedReceiptMatchesCurrentScope/);
   assert.match(widget, /setInterval/);
@@ -38,6 +38,9 @@ test("Mission Canvas subscribes independently and polls only when stale", () => 
   assert.match(widget, /semanticSupported/);
   assert.match(widget, /semanticSchemaOnly/);
   assert.match(widget, /semanticSurfaceTruth/);
+  assert.match(widget, /lastWidgetSignature/);
+  assert.match(widget, /signature === lastWidgetSignature/);
+  assert.match(widget, /truncateToWidth/);
   assert.match(semantic, /operation\.availability \|\| "unknown"/);
   assert.doesNotMatch(widget + semantic, /unsupported on this Pi surface/);
 });
