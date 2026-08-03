@@ -36,15 +36,23 @@ struct BridgeAttachmentKey {
     root_scope: String,
     workstream: String,
     session_id: String,
+    scope_status: String,
     attachment_id: String,
 }
 
 impl BridgeAttachmentKey {
     fn from_nonce(nonce: &str) -> Self {
+        let scope = BridgeScope {
+            project_root: "host:menubar-bridge".to_string(),
+            continuity_id: "phone-pairing-callback".to_string(),
+            session_id: Some("local-tauri".to_string()),
+            scope_status: Some("host-scoped".to_string()),
+        };
         Self {
-            root_scope: "host:menubar-bridge".to_string(),
-            workstream: "phone-pairing-callback".to_string(),
-            session_id: "local-tauri".to_string(),
+            root_scope: scope.project_root,
+            workstream: scope.continuity_id,
+            session_id: scope.session_id.unwrap_or_else(|| "local-tauri".to_string()),
+            scope_status: scope.scope_status.unwrap_or_else(|| "unknown".to_string()),
             attachment_id: nonce.to_string(),
         }
     }
@@ -443,7 +451,6 @@ async fn focusa_discover_via_bonjour(
             tokio::time::timeout(std::time::Duration::from_millis(250), receiver.recv_async()).await
         {
             if let mdns_sd::ServiceEvent::ServiceResolved(info) = event {
-                let name = info.get_fullname().to_string();
                 let host = info.get_hostname().to_string();
                 let port = info.get_port();
                 let txt: std::collections::HashMap<String, String> = info
