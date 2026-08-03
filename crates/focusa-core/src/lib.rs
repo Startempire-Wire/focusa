@@ -63,6 +63,7 @@ pub mod clt;
 pub mod connector_auth;
 pub mod connectors;
 pub mod constitution;
+pub mod convergence_platform;
 pub mod convergence_transaction;
 pub mod daemon_auth;
 pub mod daemon_dispatch;
