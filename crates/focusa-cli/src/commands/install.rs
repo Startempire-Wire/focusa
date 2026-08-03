@@ -1242,12 +1242,21 @@ fn uiai_engine_install_command() -> String {
 fn command_semver(name: &str) -> Option<(u64, u64, u64)> {
     let command = find_command(name)?;
     #[cfg(windows)]
-    let output = std::process::Command::new("cmd.exe")
-        .args(["/D", "/C"])
-        .arg(command)
-        .arg("--version")
-        .output()
-        .ok()?;
+    let output = {
+        let extension = std::path::Path::new(&command)
+            .extension()
+            .and_then(|value| value.to_str())
+            .unwrap_or("")
+            .to_ascii_lowercase();
+        let mut process = if matches!(extension.as_str(), "cmd" | "bat") {
+            let mut process = std::process::Command::new("cmd.exe");
+            process.args(["/D", "/C"]).arg(&command);
+            process
+        } else {
+            std::process::Command::new(&command)
+        };
+        process.arg("--version").output().ok()?
+    };
     #[cfg(not(windows))]
     let output = std::process::Command::new(command)
         .arg("--version")
@@ -4774,6 +4783,8 @@ mod tests {
             uuid::Uuid::now_v7()
         ));
         std::fs::create_dir_all(&fixture).unwrap();
+        let rustc = find_command("rustc").expect("Windows Rust toolchain must expose rustc.exe");
+        std::fs::copy(rustc, fixture.join("pi.exe")).unwrap();
         std::fs::write(fixture.join("pi.cmd"), "@echo off\r\necho pi 0.81.1\r\n").unwrap();
         let previous_path = std::env::var_os("PATH");
         let previous_uiai = std::env::var_os("UIAI_ENGINE_URL");
@@ -4814,8 +4825,8 @@ mod tests {
         unsafe { std::env::set_var("UIAI_ENGINE_URL", format!("http://{address}")) };
 
         let result = std::panic::catch_unwind(|| {
-            assert!(find_command("pi").is_some_and(|path| path.ends_with("pi.cmd")));
-            assert_eq!(command_semver("pi"), Some((0, 81, 1)));
+            assert!(find_command("pi").is_some_and(|path| path.ends_with("pi.exe")));
+            assert!(command_semver("pi").is_some_and(|version| version >= (0, 81, 1)));
             assert!(dependency_present("pi"));
             assert!(dependency_present("uiai-engine"));
         });
