@@ -35,6 +35,10 @@ const HASH_PREFIX_LEN: usize = 16; // Spec §5.1: store prefix only, never raw k
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum LicenseMode {
+    Unactivated,
+    RecoveryOnly,
+    Entitled,
+    OfflineGrace,
     Evaluation,
     Operator,
     FoundersForge,
@@ -46,6 +50,10 @@ impl LicenseMode {
     /// Human-readable label for status output.
     pub fn label(self) -> &'static str {
         match self {
+            LicenseMode::Unactivated => "Unactivated",
+            LicenseMode::RecoveryOnly => "RecoveryOnly",
+            LicenseMode::Entitled => "Entitled",
+            LicenseMode::OfflineGrace => "OfflineGrace",
             LicenseMode::Evaluation => "Evaluation",
             LicenseMode::Operator => "Operator",
             LicenseMode::FoundersForge => "FoundersForge",
@@ -127,7 +135,7 @@ impl LocalLicense {
                 "founders-forge" | "founders_forge" => LicenseMode::FoundersForge,
                 "team" => LicenseMode::Team,
                 "enterprise" => LicenseMode::Enterprise,
-                _ => LicenseMode::Operator,
+                _ => LicenseMode::RecoveryOnly,
             }
         }
     }
@@ -203,17 +211,52 @@ pub fn license_file_path() -> PathBuf {
     home.join(CONFIG_DIR).join(FOCUSA_DIR).join(LICENSE_FILE)
 }
 
-/// Load the local license state. Returns an Evaluation status if no file exists.
+/// Load the one canonical signed authority entitlement projection.
 pub fn load_license_status() -> anyhow::Result<LicenseStatus> {
-    let path = license_file_path();
-    if !path.exists() {
-        return Ok(status_from_local(&LocalLicense::evaluation()));
-    }
-    let raw = std::fs::read_to_string(&path)
-        .map_err(|e| anyhow::anyhow!("read license file {}: {e}", path.display()))?;
-    let local: LocalLicense = serde_json::from_str(&raw)
-        .map_err(|e| anyhow::anyhow!("parse license file {}: {e}", path.display()))?;
-    Ok(status_from_local(&local))
+    let guard = focusa_license::resolve_license_guard();
+    let entitlement = guard.entitlement.as_ref();
+    let mode = match entitlement.map(|snapshot| snapshot.state) {
+        Some(focusa_license::authority::EntitlementState::Active) => LicenseMode::Entitled,
+        Some(focusa_license::authority::EntitlementState::OfflineGrace) => LicenseMode::OfflineGrace,
+        Some(focusa_license::authority::EntitlementState::Unactivated) => LicenseMode::Unactivated,
+        Some(focusa_license::authority::EntitlementState::RecoveryOnly) | None => {
+            LicenseMode::RecoveryOnly
+        }
+    };
+    let features = entitlement
+        .map(|snapshot| {
+            snapshot
+                .features
+                .iter()
+                .filter(|(_, enabled)| **enabled)
+                .map(|(feature, _)| feature.clone())
+                .collect()
+        })
+        .unwrap_or_default();
+    Ok(LicenseStatus {
+        mode,
+        product: entitlement
+            .map(|snapshot| snapshot.product.clone())
+            .unwrap_or_else(|| "focusa".to_string()),
+        tier: guard.tier.label().to_string(),
+        status: guard.tier.label().to_string(),
+        commercial_use: matches!(
+            guard.check(focusa_license::Capability::CommercialUse),
+            focusa_license::CapabilityCheck::Permitted
+        ),
+        customer_email: String::new(),
+        features,
+        expires_at: entitlement
+            .and_then(|snapshot| snapshot.expires_at)
+            .map(|value| value.to_rfc3339()),
+        offline_valid_until: entitlement
+            .and_then(|snapshot| snapshot.offline_grace_until)
+            .map(|value| value.to_rfc3339()),
+        key_prefix: entitlement
+            .and_then(|snapshot| snapshot.lease_digest.as_deref())
+            .map(|digest| digest.chars().take(HASH_PREFIX_LEN).collect())
+            .unwrap_or_default(),
+    })
 }
 
 fn status_from_local(local: &LocalLicense) -> LicenseStatus {
@@ -405,6 +448,10 @@ pub fn check_feature(license_file: &Path, feature: &str) -> Result<String, Licen
     if status.commercial_use && status.features.iter().any(|f| f == feature) {
         // Provide a coarse reason label
         let reason = match status.mode {
+            LicenseMode::Unactivated => "unactivated",
+            LicenseMode::RecoveryOnly => "recovery_only",
+            LicenseMode::Entitled => "signed_authority_lease",
+            LicenseMode::OfflineGrace => "signed_authority_offline_grace",
             LicenseMode::Evaluation => "evaluation",
             LicenseMode::Operator => "operator_license",
             LicenseMode::FoundersForge => "founders_forge_license",
@@ -413,7 +460,10 @@ pub fn check_feature(license_file: &Path, feature: &str) -> Result<String, Licen
         };
         return Ok(reason.to_string());
     }
-    if status.mode == LicenseMode::Evaluation {
+    if matches!(
+        status.mode,
+        LicenseMode::Unactivated | LicenseMode::RecoveryOnly | LicenseMode::Evaluation
+    ) {
         return Err(LicenseError::EvaluationRestricted(feature.to_string()));
     }
     Err(LicenseError::FeatureRequiresLicense(feature.to_string()))
@@ -619,14 +669,14 @@ mod tests {
     }
 
     #[test]
-    fn unknown_tier_falls_through_to_operator() {
+    fn unknown_tier_fails_closed_to_recovery_only() {
         let mut local = LocalLicense::evaluation();
         local.tier = "future-tier-shape".to_string();
         local.commercial_use = true;
         local.features = vec!["packaged_installer".to_string()];
         local.eval = false;
-        // Unknown tier strings fall through to Operator per Spec 118 §1 fallback.
-        assert_eq!(local.mode(), LicenseMode::Operator);
+        // Unknown legacy tier strings are migration-only and fail closed.
+        assert_eq!(local.mode(), LicenseMode::RecoveryOnly);
     }
 
     #[test]
