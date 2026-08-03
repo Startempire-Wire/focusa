@@ -1754,24 +1754,73 @@ fn discover_identity(
             .entry("environment".to_string())
             .or_insert(json!("remote"));
     }
-    let remote_context = remote_hint.context();
-    let fingerprint = stable_fingerprint(&[
+    let base_fingerprint_parts = vec![
         project_id.clone(),
         canonical_name.clone(),
         canonical_root.clone(),
         repo_remote.clone().unwrap_or_default(),
         beads_prefix.clone().unwrap_or_default(),
-    ]);
+    ];
+    let legacy_path_fingerprint = stable_fingerprint(&base_fingerprint_parts);
+    let mut fingerprint_parts = base_fingerprint_parts;
+    if remote_hint.is_present() {
+        fingerprint_parts.extend([
+            "remote_ssh".to_string(),
+            remote_hint.remote_host.clone().unwrap_or_default(),
+            remote_hint.remote_user.clone().unwrap_or_default(),
+            remote_hint.remote_port.unwrap_or(22).to_string(),
+            canonical_root.clone(),
+            repo_remote.clone().unwrap_or_default(),
+        ]);
+    }
+    let fingerprint = stable_fingerprint(&fingerprint_parts);
+    let mut remote_context = remote_hint.context();
+    if let Some(context) = remote_context.as_object_mut() {
+        context.insert(
+            "schema".to_string(),
+            json!("focusa.remote_project_locator.v1"),
+        );
+        context.insert(
+            "remote_project_root".to_string(),
+            json!(canonical_root.clone()),
+        );
+        context.insert(
+            "locator_fingerprint".to_string(),
+            json!(fingerprint.clone()),
+        );
+        context.insert("verification_status".to_string(), json!("unverified"));
+        context.insert("verified_at".to_string(), Value::Null);
+        context.insert(
+            "source".to_string(),
+            json!(if remote_hint.persisted_project_fingerprint.is_some() {
+                "persisted_session"
+            } else {
+                "remote_inspection"
+            }),
+        );
+        context.insert("evidence_refs".to_string(), json!([]));
+    }
 
     if let Some(raw_fingerprint) = remote_hint.persisted_project_fingerprint.as_ref() {
         if let Some(persisted_fingerprint) = clean(Some(raw_fingerprint.as_str())) {
             if persisted_fingerprint != fingerprint {
-                mismatches.push(json!({
-                    "source": "persisted_session_identity_fingerprint",
-                    "expected": fingerprint.clone(),
-                    "actual": persisted_fingerprint,
-                    "severity": "high",
-                }));
+                if remote_hint.is_present() && persisted_fingerprint == legacy_path_fingerprint {
+                    mismatches.push(json!({
+                        "source": "persisted_session_identity_fingerprint",
+                        "expected": fingerprint.clone(),
+                        "actual": persisted_fingerprint,
+                        "severity": "warning",
+                        "advisory": true,
+                        "migration": "legacy_path_fingerprint_to_remote_locator_v1"
+                    }));
+                } else {
+                    mismatches.push(json!({
+                        "source": "persisted_session_identity_fingerprint",
+                        "expected": fingerprint.clone(),
+                        "actual": persisted_fingerprint,
+                        "severity": "high",
+                    }));
+                }
             }
         }
     }
@@ -5378,6 +5427,46 @@ mod tests {
                 .pointer("/project_identity/authority_boundary")
                 .and_then(Value::as_str),
             Some("remote_host_plus_project_root_plus_fingerprint")
+        );
+        assert_eq!(
+            payload
+                .pointer("/project_identity/remote_context/schema")
+                .and_then(Value::as_str),
+            Some("focusa.remote_project_locator.v1")
+        );
+        assert_eq!(
+            payload
+                .pointer("/project_identity/remote_context/verification_status")
+                .and_then(Value::as_str),
+            Some("unverified")
+        );
+        let first_fingerprint = payload
+            .pointer("/project_identity/fingerprint")
+            .and_then(Value::as_str)
+            .unwrap()
+            .to_string();
+        let second_host = project_identity_payload_for_scope_with_remote(
+            root.to_str(),
+            None,
+            None,
+            RemoteProjectHint {
+                remote_host: Some("other.example.test".to_string()),
+                remote_user: Some("planmarr".to_string()),
+                remote_port: Some(2200),
+                remote_repo_remote: Some(
+                    "https://github.com/example/plan-the-marriage.git".to_string(),
+                ),
+                ..RemoteProjectHint::default()
+            },
+            None,
+        );
+        assert_ne!(
+            first_fingerprint,
+            second_host
+                .pointer("/project_identity/fingerprint")
+                .and_then(Value::as_str)
+                .unwrap(),
+            "identical remote paths on different hosts must not collide"
         );
 
         let _ = fs::remove_dir_all(root);
