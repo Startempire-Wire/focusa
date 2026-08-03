@@ -5161,6 +5161,19 @@ export function registerTools(pi: ExtensionAPI) {
         ) {
           confirmPiProjectRoot(verifiedRoot, "focusa_project_identity_verified");
           ensureContinuityId(verifiedRoot);
+          const priorTrajectory = await focusaFetchDetailed(
+            `/trajectory/view?project_root=${encodeURIComponent(verifiedRoot)}&mode=summary&allow_prior_project_trajectory=true`,
+            { method: "GET" }
+          ).catch(() => null);
+          const priorContinuity = String(
+            priorTrajectory?.body?.trajectory?.fallback_source_continuity_id ||
+              priorTrajectory?.body?.project_identity?.continuity_id ||
+              priorTrajectory?.body?.continuity_id ||
+              ""
+          ).trim();
+          if (priorContinuity) {
+            adoptVerifiedContinuityForCurrentSession(verifiedRoot, priorContinuity);
+          }
           persistState();
         }
       }

@@ -140,4 +140,9 @@ assert.match(
   /query\.set\("pi_session_id", getSessionFrameKey\(\)\)/,
   "project identity reads must carry the native Pi session UUID"
 );
+assert.match(
+  toolsSource,
+  /fallback_source_continuity_id[\s\S]*adoptVerifiedContinuityForCurrentSession\(verifiedRoot, priorContinuity\)/,
+  "verified project identity must recover the prior exact project continuity before later surface reads"
+);
 console.log("project identity working-context retention passed");
