@@ -4,6 +4,7 @@
   "canonical_name": "Focusa",
   "created_at": "2026-07-07T15:42:29Z",
   "project_id": "focusa",
+  "project_root": "/home/wirebot/focusa",
   "schema": "focusa.project.v1",
   "workspace_kind": "rust-monorepo"
 }
