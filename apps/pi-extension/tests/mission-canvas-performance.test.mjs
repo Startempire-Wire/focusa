@@ -93,6 +93,34 @@ for (let width = 1; width < 40; width++) {
     `Mission Canvas emitted a line wider than ${width} columns`
   );
 }
+const priorCi = process.env.CI;
+const priorHighContrast = process.env.FOCUSA_HIGH_CONTRAST;
+const priorNoColor = process.env.NO_COLOR;
+process.env.CI = "false";
+delete process.env.FOCUSA_HIGH_CONTRAST;
+delete process.env.NO_COLOR;
+const renderVariant = (visualVariant) => {
+  const variantView = new MissionCanvasView(
+    { ...model, visualVariant },
+    theme,
+    () => {},
+    () => {},
+    async () => model,
+    () => {}
+  );
+  const output = variantView.render(120).join("\n");
+  variantView.dispose();
+  return output;
+};
+const defaultPalette = renderVariant("default");
+assert.notEqual(renderVariant("high-contrast"), defaultPalette);
+assert.notEqual(renderVariant("monochrome"), defaultPalette);
+if (priorCi === undefined) delete process.env.CI;
+else process.env.CI = priorCi;
+if (priorHighContrast === undefined) delete process.env.FOCUSA_HIGH_CONTRAST;
+else process.env.FOCUSA_HIGH_CONTRAST = priorHighContrast;
+if (priorNoColor === undefined) delete process.env.NO_COLOR;
+else process.env.NO_COLOR = priorNoColor;
 view.dispose();
 timings.sort((a, b) => a - b);
 const p95 = timings[Math.floor(timings.length * 0.95)];

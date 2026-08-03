@@ -105,6 +105,38 @@ const COLORS = {
   cyan: [52, 207, 226] as RGB,
 };
 
+type CanvasPalette = Record<keyof typeof COLORS, RGB>;
+
+const HIGH_CONTRAST_COLORS: CanvasPalette = {
+  canvas: [0, 0, 0],
+  panel: [0, 0, 0],
+  panelRaised: [18, 18, 18],
+  border: [255, 255, 255],
+  text: [255, 255, 255],
+  muted: [208, 208, 208],
+  purple: [210, 170, 255],
+  green: [80, 255, 145],
+  blue: [95, 190, 255],
+  amber: [255, 220, 80],
+  red: [255, 110, 120],
+  cyan: [80, 245, 255],
+};
+
+const MONOCHROME_COLORS: CanvasPalette = {
+  canvas: [8, 8, 8],
+  panel: [18, 18, 18],
+  panelRaised: [28, 28, 28],
+  border: [92, 92, 92],
+  text: [238, 238, 238],
+  muted: [160, 160, 160],
+  purple: [220, 220, 220],
+  green: [205, 205, 205],
+  blue: [190, 190, 190],
+  amber: [225, 225, 225],
+  red: [240, 240, 240],
+  cyan: [200, 200, 200],
+};
+
 const MAX_ROWS = 8;
 const EMPTY_TRUTH = /^(?:unavailable|unknown|none|no (?:active|canonical|durable|evidence|history|research|session|spec|trajectory|work)|.*not (?:available|loaded|reported|found|defined))\b/i;
 const PLACEHOLDER_TRUTH = /(?:adapter-unavailable|\bunbound\b|\bunknown\b|\bno-workpoint\b|:\s*none\b|0\/0\s*$)/i;
@@ -172,6 +204,31 @@ function fg(rgb: RGB): string {
 
 function bg(rgb: RGB): string {
   return `\x1b[48;2;${rgb[0]};${rgb[1]};${rgb[2]}m`;
+}
+
+function applyVisualPalette(
+  lines: string[],
+  visualVariant: string,
+  environmentHighContrast: boolean
+): string[] {
+  const palette = environmentHighContrast
+    ? HIGH_CONTRAST_COLORS
+    : visualVariant === "monochrome"
+      ? MONOCHROME_COLORS
+      : visualVariant === "high-contrast"
+        ? HIGH_CONTRAST_COLORS
+        : COLORS;
+  if (palette === COLORS) return lines;
+  const replacements = new Map<string, string>();
+  for (const key of Object.keys(COLORS) as Array<keyof typeof COLORS>) {
+    replacements.set(fg(COLORS[key]), fg(palette[key]));
+    replacements.set(bg(COLORS[key]), bg(palette[key]));
+  }
+  return lines.map((line) =>
+    line.replace(/\x1b\[(?:38|48);2;\d+;\d+;\d+m/g, (sequence) =>
+      replacements.get(sequence) ?? sequence
+    )
+  );
 }
 
 function paint(text: string, color: RGB = COLORS.text, background?: RGB, bold = false): string {
@@ -364,7 +421,7 @@ export class MissionCanvasView implements Component {
 
   render(width: number): string[] {
     const safeWidth = Math.max(1, width);
-    const signature = `${this.activity}|${this.model.workspaceProfile}|${this.selectedSurface}|${this.refreshing}|${this.conversation.join("|")}`;
+    const signature = `${this.activity}|${this.model.workspaceProfile}|${this.model.visualVariant}|${this.selectedSurface}|${this.refreshing}|${this.conversation.join("|")}`;
     if (this.renderCache?.width === safeWidth && this.renderCache.signature === signature) return this.renderCache.lines;
 
     const rows = safeWidth < 20
@@ -378,8 +435,13 @@ export class MissionCanvasView implements Component {
           ...this.renderSurfaceStrip(safeWidth),
           ...this.renderWorkspace(safeWidth),
         ];
-    this.renderCache = { width: safeWidth, signature, lines: rows };
-    return rows;
+    const renderedRows = applyVisualPalette(
+      rows,
+      this.model.visualVariant,
+      accessibilityPreferences().highContrast
+    );
+    this.renderCache = { width: safeWidth, signature, lines: renderedRows };
+    return renderedRows;
   }
 
   private renderTopBar(width: number): string[] {
