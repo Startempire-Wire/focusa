@@ -3546,9 +3546,9 @@ export function adoptVerifiedContinuityForCurrentSession(
   const identity: any = identityEnvelope.project_identity || identityEnvelope;
   const decision: any = currentProjectBindingDecision() || {};
   const verifiedRoot = normalizeProjectRoot(
-    identity.canonical_parent_root ||
+    resolveCanonicalMarkerProjectRoot(process.cwd()) ||
+      identity.canonical_parent_root ||
       identity.project_root ||
-      resolveCanonicalMarkerProjectRoot(process.cwd()) ||
       decision.selected_project_root
   );
   if (!root || !continuity || !isProjectRootAuthoritySafe(root) || verifiedRoot !== root) return false;
