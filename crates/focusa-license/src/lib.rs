@@ -7,6 +7,7 @@
 //! missing, edited, expired, revoked, or unverifiable state cannot grant capability.
 
 pub mod authority;
+pub mod authority_client;
 pub mod authority_store;
 
 use chrono::{DateTime, Utc};
