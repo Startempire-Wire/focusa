@@ -3011,41 +3011,61 @@ fn synchronize_agent_context_skills(
         bail!("agent context skill synchronization is limited to Focusa-owned names");
     }
 
-    let target_roots = [home.join(".pi/skills"), home.join(".pi/agent/skills")];
+    // Pi discovers ~/.pi/agent/skills natively. Keep exactly one canonical
+    // destination and reconcile only Focusa-owned names from the legacy root;
+    // unrelated user skills remain untouched.
+    let canonical_root = home.join(".pi/agent/skills");
+    let legacy_root = home.join(".pi/skills");
     let transaction = uuid::Uuid::now_v7();
     let mut activated = Vec::<(std::path::PathBuf, Option<std::path::PathBuf>)>::new();
+    let mut reconciled_legacy = Vec::<(std::path::PathBuf, std::path::PathBuf)>::new();
     let result = (|| -> Result<Vec<std::path::PathBuf>> {
-        for target_root in target_roots {
-            std::fs::create_dir_all(&target_root)?;
+        std::fs::create_dir_all(&canonical_root)?;
+        for skill in &skills {
+            let name = skill.file_name();
+            let destination = canonical_root.join(&name);
+            let stage = canonical_root.join(format!(
+                ".focusa-skill-stage-{transaction}-{}",
+                name.to_string_lossy()
+            ));
+            let backup = canonical_root.join(format!(
+                ".focusa-skill-backup-{transaction}-{}",
+                name.to_string_lossy()
+            ));
+            remove_path_if_present(&stage)?;
+            copy_skill_tree(&skill.path(), &stage)?;
+            let prior = if destination.exists() || destination.is_symlink() {
+                std::fs::rename(&destination, &backup)?;
+                Some(backup)
+            } else {
+                None
+            };
+            if let Err(error) = std::fs::rename(&stage, &destination) {
+                if let Some(backup) = prior.as_ref() {
+                    let _ = std::fs::rename(backup, &destination);
+                }
+                let _ = remove_path_if_present(&stage);
+                return Err(error).context("activate synchronized Focusa skill");
+            }
+            activated.push((destination, prior));
+        }
+
+        if legacy_root.is_dir() {
             for skill in &skills {
                 let name = skill.file_name();
-                let destination = target_root.join(&name);
-                let stage = target_root.join(format!(
-                    ".focusa-skill-stage-{transaction}-{}",
-                    name.to_string_lossy()
-                ));
-                let backup = target_root.join(format!(
-                    ".focusa-skill-backup-{transaction}-{}",
-                    name.to_string_lossy()
-                ));
-                remove_path_if_present(&stage)?;
-                copy_skill_tree(&skill.path(), &stage)?;
-                let prior = if destination.exists() || destination.is_symlink() {
-                    std::fs::rename(&destination, &backup)?;
-                    Some(backup)
-                } else {
-                    None
-                };
-                if let Err(error) = std::fs::rename(&stage, &destination) {
-                    if let Some(backup) = prior.as_ref() {
-                        let _ = std::fs::rename(backup, &destination);
-                    }
-                    let _ = remove_path_if_present(&stage);
-                    return Err(error).context("activate synchronized Focusa skill");
+                let legacy = legacy_root.join(&name);
+                if !legacy.exists() && !legacy.is_symlink() {
+                    continue;
                 }
-                activated.push((destination, prior));
+                let backup = legacy_root.join(format!(
+                    ".focusa-skill-legacy-backup-{transaction}-{}",
+                    name.to_string_lossy()
+                ));
+                std::fs::rename(&legacy, &backup)?;
+                reconciled_legacy.push((legacy, backup));
             }
         }
+
         Ok(activated
             .iter()
             .map(|(destination, _)| destination.clone())
@@ -3055,6 +3075,9 @@ fn synchronize_agent_context_skills(
     let destinations = match result {
         Ok(destinations) => destinations,
         Err(error) => {
+            for (legacy, backup) in reconciled_legacy.into_iter().rev() {
+                let _ = std::fs::rename(backup, legacy);
+            }
             for (destination, backup) in activated.into_iter().rev() {
                 let _ = remove_path_if_present(&destination);
                 if let Some(backup) = backup {
@@ -3068,6 +3091,9 @@ fn synchronize_agent_context_skills(
         if let Some(backup) = backup {
             remove_path_if_present(backup)?;
         }
+    }
+    for (_, backup) in &reconciled_legacy {
+        remove_path_if_present(backup)?;
     }
     Ok(destinations)
 }
@@ -4394,6 +4420,12 @@ mod tests {
         std::fs::write(install_root.join("agent-context/old-marker"), "old").unwrap();
         std::fs::create_dir_all(home.join(".pi/skills/focusa")).unwrap();
         std::fs::write(home.join(".pi/skills/focusa/SKILL.md"), "stale").unwrap();
+        std::fs::create_dir_all(home.join(".pi/skills/operator-custom")).unwrap();
+        std::fs::write(
+            home.join(".pi/skills/operator-custom/SKILL.md"),
+            "---\nname: operator-custom\n---\n",
+        )
+        .unwrap();
         let asset = InstalledAsset {
             name: "focusa-agent-context-vtest.tar.gz".to_string(),
             version: "vtest".to_string(),
@@ -4406,13 +4438,36 @@ mod tests {
         assert!(installed.join("skills/focusa/SKILL.md").is_file());
         assert!(!installed.join("old-marker").exists());
         let synchronized = synchronize_agent_context_skills(&installed, &home).unwrap();
-        assert_eq!(synchronized.len(), 2);
-        for target in [home.join(".pi/skills"), home.join(".pi/agent/skills")] {
-            assert_eq!(
-                std::fs::read_to_string(target.join("focusa/SKILL.md")).unwrap(),
-                "---\nname: focusa\n---\n"
-            );
-        }
+        assert_eq!(synchronized, vec![home.join(".pi/agent/skills/focusa")]);
+        assert_eq!(
+            std::fs::read_to_string(home.join(".pi/agent/skills/focusa/SKILL.md")).unwrap(),
+            "---\nname: focusa\n---\n"
+        );
+        assert!(!home.join(".pi/skills/focusa").exists());
+        assert_eq!(
+            std::fs::read_to_string(home.join(".pi/skills/operator-custom/SKILL.md")).unwrap(),
+            "---\nname: operator-custom\n---\n"
+        );
+
+        // Model Pi's combined built-in, settings/project, and extension-provided
+        // discovery paths. Only the canonical user root may contain Focusa's
+        // installed skill; unrelated skills on every other path survive.
+        let project_skills = fixture.join("project/.pi/skills");
+        let extension_skills = fixture.join("extension/skills");
+        std::fs::create_dir_all(project_skills.join("operator-project")).unwrap();
+        std::fs::create_dir_all(extension_skills.join("operator-extension")).unwrap();
+        let discovery_roots = [
+            home.join(".pi/agent/skills"),
+            home.join(".pi/skills"),
+            project_skills,
+            extension_skills,
+        ];
+        let focusa_discoveries = discovery_roots
+            .iter()
+            .filter(|root| root.join("focusa/SKILL.md").is_file())
+            .count();
+        assert_eq!(focusa_discoveries, 1);
+
         install_skill_doctor(&installed, &install_root).unwrap();
         assert!(install_root.join("bin/focusa-skill-doctor").is_file());
         let _ = std::fs::remove_dir_all(fixture);
