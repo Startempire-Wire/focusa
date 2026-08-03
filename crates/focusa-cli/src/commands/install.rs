@@ -1633,16 +1633,21 @@ fn find_command(name: &str) -> Option<String> {
         // Avoid the `which` crate's recursive PATHEXT probing on Windows.
         // `where.exe` is the native command resolver and does not execute the
         // candidate, which keeps preflight safe and stack-bounded.
-        let output = std::process::Command::new("where.exe")
-            .arg(name)
-            .output()
-            .ok()?;
-        if !output.status.success() {
-            return None;
+        for candidate in [name.to_string(), format!("{name}.exe"), format!("{name}.cmd")] {
+            let Ok(output) = std::process::Command::new("where.exe")
+                .arg(candidate)
+                .output()
+            else {
+                continue;
+            };
+            if output.status.success()
+                && let Ok(value) = String::from_utf8(output.stdout)
+                && let Some(path) = value.lines().next().map(str::trim).filter(|path| !path.is_empty())
+            {
+                return Some(path.to_string());
+            }
         }
-        return String::from_utf8(output.stdout)
-            .ok()
-            .and_then(|value| value.lines().next().map(str::trim).map(str::to_string));
+        return None;
     }
     #[cfg(not(windows))]
     {
