@@ -19,6 +19,11 @@ assert.ok(
 assert.doesNotMatch(index, /sessionId\s*[:=][^\n]*getSessionFile\(/);
 assert.doesNotMatch(session, /sessionId\s*[:=][^\n]*getSessionFile\(/);
 assert.match(state, /query\.set\("pi_session_id", sessionId\)/);
+assert.match(
+  index + readFileSync(fileURLToPath(new URL("../src/tools.ts", import.meta.url)), "utf8"),
+  /"x-scope-session-id": getSessionFrameKey\(\) \|\| attachmentKey\.session_id/,
+  "all detailed tool calls must prefer the current native Pi UUID over bootstrap attachment ids"
+);
 for (const field of [
   "remote_host",
   "remote_user",

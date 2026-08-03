@@ -3173,7 +3173,7 @@ export function registerTools(pi: ExtensionAPI) {
     const scopeHeaders = {
       "x-scope-project-root": attachmentKey.workstream.root_scope.root_path,
       "x-scope-continuity-id": attachmentKey.workstream.continuity_id,
-      "x-scope-session-id": attachmentKey.session_id,
+      "x-scope-session-id": getSessionFrameKey() || attachmentKey.session_id,
       "x-scope-id": attachmentKey.workstream.root_scope.scope_id,
       "x-scope-kind": attachmentKey.workstream.root_scope.scope_kind,
       "x-scope-attachment-id": attachmentKey.attachment_id,
