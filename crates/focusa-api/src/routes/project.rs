@@ -3742,12 +3742,12 @@ fn scoped_trajectory_record<'a>(
     records: &'a [focusa_core::types::TrajectoryProjectionRecord],
     active_trajectory_id: Option<&str>,
     project_root: Option<&str>,
+    continuity_id: Option<&str>,
 ) -> Option<&'a focusa_core::types::TrajectoryProjectionRecord> {
-    let matches_scope =
-        |record: &&focusa_core::types::TrajectoryProjectionRecord| match project_root {
-            Some(root) => record.project_root.as_deref() == Some(root),
-            None => true,
-        };
+    let matches_scope = |record: &&focusa_core::types::TrajectoryProjectionRecord| {
+        project_root.is_none_or(|root| record.project_root.as_deref() == Some(root))
+            && continuity_id.is_none_or(|id| record.continuity_id.as_deref() == Some(id))
+    };
     if let Some(active_trajectory_id) = active_trajectory_id
         && let Some(record) = records
             .iter()
@@ -3763,10 +3763,11 @@ fn scoped_workpoint_record<'a>(
     records: &'a [focusa_core::types::WorkpointRecord],
     active_workpoint_id: Option<&focusa_core::types::WorkpointId>,
     project_root: Option<&str>,
+    continuity_id: Option<&str>,
 ) -> Option<&'a focusa_core::types::WorkpointRecord> {
-    let matches_scope = |record: &&focusa_core::types::WorkpointRecord| match project_root {
-        Some(root) => record.project_root.as_deref() == Some(root),
-        None => true,
+    let matches_scope = |record: &&focusa_core::types::WorkpointRecord| {
+        project_root.is_none_or(|root| record.project_root.as_deref() == Some(root))
+            && continuity_id.is_none_or(|id| record.continuity_id.as_deref() == Some(id))
     };
     if let Some(active_workpoint_id) = active_workpoint_id
         && let Some(record) = records
@@ -3805,6 +3806,7 @@ async fn card(
         &focusa.trajectory.records,
         focusa.trajectory.active_trajectory_id.as_deref(),
         project_root,
+        request_scope.continuity_id.as_deref(),
     );
     let trajectory = trajectory_record.map(|record| focusa_core::types::TrajectoryLadderContext {
         trajectory_id: Some(record.trajectory_id.clone()).filter(|value| !value.is_empty()),
@@ -3829,6 +3831,7 @@ async fn card(
         &focusa.workpoint.records,
         focusa.workpoint.active_workpoint_id.as_ref(),
         project_root,
+        request_scope.continuity_id.as_deref(),
     )
     .map(|record| {
         json!({
@@ -3932,6 +3935,14 @@ async fn card(
         "next_steps": frame.focus_state.next_steps.iter().take(3).cloned().collect::<Vec<_>>(),
         "recent_results": frame.focus_state.recent_results.iter().take(3).cloned().collect::<Vec<_>>(),
     })).collect::<Vec<_>>();
+    let requested_continuity_id = request_scope.continuity_id.as_deref();
+    let trajectory_scope_exact = trajectory_record.is_some_and(|record| {
+        record.project_root.as_deref() == project_root
+            && record.continuity_id.as_deref() == requested_continuity_id
+    });
+    let trajectory_updated_at = trajectory_record
+        .and_then(|record| record.updated_at.as_ref())
+        .map(chrono::DateTime::to_rfc3339);
     drop(focusa);
 
     let recent_algorithm_outcomes = recent_jsonl_values(project_card_outcomes_path(), 20);
@@ -4080,10 +4091,51 @@ async fn card(
         &efficiency_summary,
         &recent_algorithm_outcomes,
     );
+    let selected_workpoint_id = active_workpoint
+        .as_ref()
+        .and_then(|record| record.get("workpoint_id"))
+        .and_then(Value::as_str);
+    let trajectory_workpoint_id = trajectory
+        .as_ref()
+        .and_then(|record| record.active_workpoint_id.as_ref())
+        .map(ToString::to_string);
+    let workpoint_scope_exact = active_workpoint.as_ref().is_some_and(|record| {
+        record.get("project_root").and_then(Value::as_str) == project_root
+            && record.get("continuity_id").and_then(Value::as_str) == requested_continuity_id
+    });
+    let workpoint_revision_aligned =
+        match (selected_workpoint_id, trajectory_workpoint_id.as_deref()) {
+            (Some(selected), Some(linked)) => selected == linked,
+            (None, None) => true,
+            _ => false,
+        };
+    let crosswire_status =
+        if trajectory_scope_exact && workpoint_scope_exact && workpoint_revision_aligned {
+            "ok"
+        } else {
+            "mismatch"
+        };
     let crosswire_health = json!({
         "schema": "focusa.project_crosswire_health.v1",
+        "status": crosswire_status,
+        "requested_scope": {"project_root": project_root, "continuity_id": requested_continuity_id},
         "ontology": {"wired": effective_ontology_objects > 0, "runtime_objects": runtime_ontology_objects, "effective_objects": effective_ontology_objects, "bridge_status": ontology.get("bridge_status").cloned().unwrap_or(Value::Null)},
-        "trajectory": {"wired": trajectory.is_some(), "has_hlt": trajectory.as_ref().and_then(|t| t.hlt.as_ref()).is_some(), "has_stg": trajectory.as_ref().and_then(|t| t.stg.as_ref()).is_some()},
+        "trajectory": {
+            "wired": trajectory.is_some(),
+            "has_hlt": trajectory.as_ref().and_then(|t| t.hlt.as_ref()).is_some(),
+            "has_stg": trajectory.as_ref().and_then(|t| t.stg.as_ref()).is_some(),
+            "scope_exact": trajectory_scope_exact,
+            "trajectory_id": trajectory.as_ref().and_then(|t| t.trajectory_id.as_deref()),
+            "continuity_id": trajectory.as_ref().and_then(|t| t.continuity_id.as_deref()),
+            "updated_at": trajectory_updated_at,
+            "linked_workpoint_id": trajectory_workpoint_id
+        },
+        "workpoint": {
+            "wired": active_workpoint.is_some(),
+            "scope_exact": workpoint_scope_exact,
+            "workpoint_id": selected_workpoint_id,
+            "trajectory_revision_aligned": workpoint_revision_aligned
+        },
         "prediction": {"wired": true, "total": prediction.get("total").cloned().unwrap_or(Value::Null), "evaluated": prediction.get("evaluated").cloned().unwrap_or(Value::Null)},
         "metacognition": {"wired": true, "mode": "retrieval_prompt_plus_outcome_capture"},
         "outcomes": {"wired": outcome_count > 0, "count": outcome_count, "average_score": average_outcome_score},
@@ -5165,15 +5217,17 @@ mod tests {
     }
 
     #[test]
-    fn scoped_trajectory_record_prefers_project_root_match() {
+    fn scoped_trajectory_record_prefers_exact_continuity_over_stale_active_id() {
         let mut record_a = focusa_core::types::TrajectoryProjectionRecord::default();
         record_a.trajectory_id = "project-a-traject-id".to_string();
-        record_a.project_root = Some("/tmp/focusa-project-a".to_string());
+        record_a.project_root = Some("/tmp/focusa-project-b".to_string());
+        record_a.continuity_id = Some("continuity-a".to_string());
         record_a.long_term_goal = "project A".to_string();
 
         let mut record_b = focusa_core::types::TrajectoryProjectionRecord::default();
         record_b.trajectory_id = "project-b-traject-id".to_string();
         record_b.project_root = Some("/tmp/focusa-project-b".to_string());
+        record_b.continuity_id = Some("continuity-b".to_string());
         record_b.long_term_goal = "project B".to_string();
 
         let records = vec![record_a, record_b];
@@ -5181,6 +5235,7 @@ mod tests {
             &records,
             Some("project-a-traject-id"),
             Some("/tmp/focusa-project-b"),
+            Some("continuity-b"),
         );
         assert_eq!(
             chosen.expect("record should exist").trajectory_id,
@@ -5189,19 +5244,26 @@ mod tests {
     }
 
     #[test]
-    fn scoped_workpoint_record_prefers_project_root_match() {
+    fn scoped_workpoint_record_prefers_exact_continuity() {
         let mut a = focusa_core::types::WorkpointRecord::default();
-        a.project_root = Some("/tmp/focusa-project-a".to_string());
+        a.project_root = Some("/tmp/focusa-project-b".to_string());
+        a.continuity_id = Some("continuity-a".to_string());
         a.workpoint_id = focusa_core::types::WorkpointId::now_v7();
         a.work_item_id = Some("wp-a".to_string());
 
         let mut b = focusa_core::types::WorkpointRecord::default();
         b.workpoint_id = focusa_core::types::WorkpointId::now_v7();
         b.project_root = Some("/tmp/focusa-project-b".to_string());
+        b.continuity_id = Some("continuity-b".to_string());
         b.work_item_id = Some("wp-b".to_string());
 
         let records = vec![a, b];
-        let chosen = scoped_workpoint_record(&records, None, Some("/tmp/focusa-project-b"));
+        let chosen = scoped_workpoint_record(
+            &records,
+            None,
+            Some("/tmp/focusa-project-b"),
+            Some("continuity-b"),
+        );
         assert_eq!(
             chosen.expect("record should exist").work_item_id.as_deref(),
             Some("wp-b")
