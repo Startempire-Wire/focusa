@@ -724,7 +724,8 @@ jobs:
         with:
           tool: cross
 
-      - name: Build release binaries
+      - name: Build release binaries (Unix)
+        if: ${{ !contains(matrix.target, 'windows-msvc') }}
         shell: bash
         run: |
           if [ "${{ matrix.musl || false }}" = "true" ]; then
@@ -740,6 +741,11 @@ jobs:
           else
             cargo build --release --target ${{ matrix.target }}
           fi
+
+      - name: Build release binaries (Windows MSVC)
+        if: ${{ contains(matrix.target, 'windows-msvc') }}
+        shell: pwsh
+        run: cargo build --release --target ${{ matrix.target }}
 
       - name: Package binaries
         shell: bash

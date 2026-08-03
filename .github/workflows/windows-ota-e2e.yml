@@ -35,18 +35,17 @@ jobs:
         with:
           bun-version: 1.3.6
       - name: Build canonical Rust release binaries
-        shell: bash
+        shell: pwsh
         run: |
-          set -euo pipefail
           cargo build --release --target "${{ matrix.target }}"
-          for bin in focusa focusa-daemon focusa-tui; do
-            test -s "target/${{ matrix.target }}/release/${bin}.exe"
-          done
+          @("focusa", "focusa-daemon", "focusa-tui") | ForEach-Object {
+            $path = "target/${{ matrix.target }}/release/$_.exe"
+            if (-not (Test-Path $path -PathType Leaf)) { throw "missing $path" }
+          }
       - name: Compile Windows desktop application
         working-directory: apps/menubar
-        shell: bash
+        shell: pwsh
         run: |
-          set -euo pipefail
           bun install
           bunx tauri build --no-bundle --target "${{ matrix.target }}"
 
