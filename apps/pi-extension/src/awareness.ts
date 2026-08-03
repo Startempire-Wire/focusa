@@ -88,6 +88,7 @@ export function buildFocusaUtilityCard(mode: "system" | "visible" = "system"): s
     `HLT status: ${hltStatus}`,
     `Interaction: ${interactionMode}`,
     "Card: Focusa Utility Card",
+    "Golden route: Orient project/Trajectory/Workpoint; Execute active object + checkpoint; Prove with evidence; Learn via prediction/metacog; Recover with tool_doctor.",
     "Attention: Attentive and awaiting operator direction",
     "Priority: Operator steering always wins",
     `Orient/recover: ${AWARENESS_ROUTE_HINTS}`,
