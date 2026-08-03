@@ -1281,8 +1281,8 @@ fn dependency_present(name: &str) -> bool {
         "npm" => command_semver("npm").is_some(),
         "pi" => command_semver("pi").is_some_and(|version| version >= (0, 81, 1)),
         "uiai-engine" => uiai_engine_healthy(),
+        "python3" if cfg!(windows) => have_cmd("python3") || have_cmd("python"),
         "sha256sum" => have_cmd("sha256sum") || have_cmd("shasum"),
-        _ if cfg!(windows) => false,
         _ => have_cmd(name),
     }
 }
