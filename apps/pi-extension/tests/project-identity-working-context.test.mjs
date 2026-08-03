@@ -106,4 +106,9 @@ assert.doesNotMatch(
   /query\.set\("project_root", projectRoot\)/,
   "ambient Pi cwd must not masquerade as operator-confirmed project_root authority"
 );
+assert.match(
+  identityBuilderSource,
+  /normalizeProjectRoot\(persistedBody\.project_root\) === authorityProjectRoot/,
+  "stale ambient persistence must not conflict with marker-derived authority"
+);
 console.log("project identity working-context retention passed");

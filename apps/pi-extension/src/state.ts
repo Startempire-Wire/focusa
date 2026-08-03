@@ -3221,6 +3221,7 @@ export async function buildFocusaSessionIdentity(
     // `projectRoot` is normally the ambient Pi cwd, not operator-confirmed
     // authority. Only a local project marker may promote a canonical root.
     const markerProjectRoot = resolveCanonicalMarkerProjectRoot(cwdForIdentity);
+    const authorityProjectRoot = markerProjectRoot || projectRoot;
     if (markerProjectRoot) query.set("project_root", markerProjectRoot);
     if (sessionId) query.set("pi_session_id", sessionId);
     const remoteContext: any = persistedBody.remote_context || {};
@@ -3233,7 +3234,7 @@ export async function buildFocusaSessionIdentity(
       query.set("remote_workspace_kind", String(remoteContext.remote_workspace_kind));
     if (remoteContext.remote_deploy_root)
       query.set("remote_deploy_root", String(remoteContext.remote_deploy_root));
-    if (normalizeProjectRoot(persistedBody.project_root) === projectRoot) {
+    if (normalizeProjectRoot(persistedBody.project_root) === authorityProjectRoot) {
       if (persistedBody.project_root)
         query.set("persisted_project_root", normalizeProjectRoot(persistedBody.project_root));
       if (persistedBody.fingerprint)
