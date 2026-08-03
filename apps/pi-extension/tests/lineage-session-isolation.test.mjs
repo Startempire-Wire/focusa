@@ -26,6 +26,7 @@ test("Pi lineage tools default to the active native session and never global lin
   assert.match(spec80Caller, /"x-scope-session-id": requestSessionId/);
   assert.match(spec80Caller, /"x-scope-project-root": requestProjectRoot/);
   assert.match(spec80Caller, /"x-scope-continuity-id": requestContinuityId/);
+  assert.match(spec80Caller, /resolveCanonicalMarkerProjectRoot\(process\.cwd\(\)\)/);
 
   const treeHead = block(tools, 'name: "focusa_tree_head"', 'name: "focusa_tree_path"');
   assert.match(treeHead, /getAttachmentRuntime\(\)\.sessionFrameKey/);

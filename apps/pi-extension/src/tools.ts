@@ -8966,7 +8966,10 @@ export function registerTools(pi: ExtensionAPI) {
     const requestSessionId = String(request.session_id || "").trim();
     const identity: any = getLastProjectIdentity() || {};
     const requestProjectRoot = normalizeProjectRoot(
-      identity.canonical_parent_root || identity.project_root || getSessionCwd()
+      resolveCanonicalMarkerProjectRoot(process.cwd()) ||
+        identity.canonical_parent_root ||
+        identity.project_root ||
+        getSessionCwd()
     );
     const requestContinuityId = String(getContinuityId() || "").trim();
     const requestScopeHeaders: Record<string, string> =
