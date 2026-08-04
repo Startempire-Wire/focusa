@@ -8,6 +8,7 @@
     "4804b78c3987d2f31ad04dc58e8fb5070e216cc7",
     "4b9c3f403cf6b706773755fd121aac28891ccc3a",
     "5f3b2d2f14ae9e0489322dd72c667a4613ecb8c0",
+    "616c98a701ece85714237fde8d560004bfcc1e8c",
     "843df64690efa6c3fdf6dc0482d363a9445b87c7",
     "a16f0da30a8650d993ff691b19acd05225820c56",
     "a2fbfbb870499f35a961cd27c224024f242c3ca1",
@@ -16,12 +17,12 @@
     "c99a155c38ee46532e9b04d14f6a0bb467aacaf8",
     "ee569eb1e65eb8baada1000429a7400d46addb41"
   ],
-  "ancestry_digest": "sha256:896190838c9df6e2ffc3b96a6d6b64ae8c69408a969c06a625e3a715786ab24b",
+  "ancestry_digest": "sha256:3690f286d4e9b094a4a7cd864c2ba5838102e452eb79811bd2dec87b85a26db6",
   "audit_errors": [],
   "candidate": {
-    "audit_head": "2d6603365325a63992bbe6a25fb276c87787ab23",
+    "audit_head": "616c98a701ece85714237fde8d560004bfcc1e8c",
     "changed_after_source_commit": [],
-    "source_commit": "2d6603365325a63992bbe6a25fb276c87787ab23",
+    "source_commit": "616c98a701ece85714237fde8d560004bfcc1e8c",
     "source_is_ancestor_of_audit_head": true,
     "unexpected_changes_after_source_commit": []
   },
@@ -89,7 +90,7 @@
     "inventory_digest": "sha256:9dad314492bc798205d7a64b89fc46e4bc8239b3394f1c4898b474720f1cb686",
     "mapping_count": 289,
     "pending_technical_acceptance_count": 87,
-    "reconciliation_digest": "sha256:505ed7d1e18d36a7e685e132a983b239ebbf2e11247634938b5f50692e60fb6d",
+    "reconciliation_digest": "sha256:9b0b883bf6d5b959e079d082021b99f635e673f78f8fe0883236ec1b1ea1c3e2",
     "workset_id": "workset:focusa-next-locked-release:r7"
   },
   "missing_accepted_implementation_commits": [],

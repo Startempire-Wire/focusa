@@ -492,6 +492,18 @@
         "git:2d6603365325a63992bbe6a25fb276c87787ab23"
       ],
       "proof_scope": "immutable tag, candidate ancestry, source version, manifest, PR, and issue-ledger reconciliation"
+    },
+    {
+      "bead_id": "focusa-vbcqu.14.5",
+      "evidence_refs": [
+        "release-proof/audit/next-locked-release-governance-receipt.json",
+        "release-proof/audit/next-locked-release-governance-receipt.json.sig",
+        "tests/167_focusa_locked_release_governance_receipt_test.py"
+      ],
+      "implementation_commit_refs": [
+        "git:616c98a701ece85714237fde8d560004bfcc1e8c"
+      ],
+      "proof_scope": "detached Ed25519 governance integrity seal and canonical mutation-detecting closure replay"
     }
   ]
 }
