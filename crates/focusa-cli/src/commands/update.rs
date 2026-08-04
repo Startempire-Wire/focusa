@@ -1772,6 +1772,9 @@ fn restart_daemon_service(daemon_path: &Path) -> anyhow::Result<()> {
 }
 
 fn rollback_promoted_parts(promoted: &[PromotedPart]) -> anyhow::Result<Vec<String>> {
+    if promoted.iter().any(|(part, _, _, _)| part == "daemon") {
+        stop_daemon_before_promotion().context("stop promoted daemon before rollback")?;
+    }
     let mut restored = Vec::new();
     for (part, target, backup, _) in promoted.iter().rev() {
         if !backup.exists() {
@@ -3237,10 +3240,9 @@ fn configured_pi_extension_package_json() -> PathBuf {
     {
         return package;
     }
-    configured_package_json(
-        "FOCUSA_PI_EXTENSION_PACKAGE_JSON",
-        "apps/pi-extension/package.json",
-    )
+    agent_dir
+        .unwrap_or_else(|| PathBuf::from(".pi/agent"))
+        .join("extensions/focusa-runtime/package.json")
 }
 
 fn inspect_package_part(

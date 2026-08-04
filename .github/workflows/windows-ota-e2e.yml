@@ -138,6 +138,7 @@ jobs:
           $env:HOME = $testHome
           $env:USERPROFILE = $testHome
           $env:LOCALAPPDATA = Join-Path $testHome 'AppData\Local'
+          $env:PI_CODING_AGENT_DIR = Join-Path $testHome '.pi\agent'
           $env:FOCUSA_HOME = $data
           $env:FOCUSA_BIND = '127.0.0.1:18791'
           $env:FOCUSA_DAEMON_HEALTH_URL = 'http://127.0.0.1:18791/v1/health'
