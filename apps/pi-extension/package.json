@@ -23,6 +23,7 @@
     "test:spec104": "node tests/spec104-pi-runtime-isolation.test.mjs",
     "test:spec130-rollover": "node tests/spec130-rollover-command-lifecycle.test.mjs",
     "test:compaction-lifecycle": "node tests/compaction-native-lifecycle.test.mjs",
+    "test:compaction-long-run": "node tests/compaction-installed-long-run.test.mjs",
     "test:scope-isolation": "node tests/cross-project-context-isolation.test.mjs",
     "test:surface-refresh": "node tests/scoped-surface-refresh.test.mjs && node tests/scoped-surface-refresh-runtime.test.mjs",
     "test:north-star-gate": "node tests/north-star-gate.test.mjs",
