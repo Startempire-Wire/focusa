@@ -188,32 +188,28 @@ A task is not done unless all applicable items exist:
 
 ## 4. Open baseline issue decomposition
 
-All nine open GitHub baseline issues remain open. Their canonical implementation work is decomposed into 74 ordered child tasks under the locked-release root; the separately discovered all-surface release repair adds seven more. Each child has a concrete description, acceptance criterion, parent, and blocking edge to its predecessor.
+Six reconstructed GitHub baseline lanes remain provisionally connected to the locked release pending admission-by-obligation review; the separately discovered all-surface release repair adds seven more tasks. GH#45 Mission Canvas, GH#107 Letta, and GH#114 UIAI challenge solving are future/optional work explicitly excluded from release gating. Exclusion preserves their repository code and issue history while removing locked-release labels, parentage, blocking edges, and publication joins.
 
 | GitHub issue | Canonical Bead epic | Children | Primary dependency |
 |---|---|---:|---|
-| #119 licensing/onboarding | `focusa-vbcqu.10` | 12 | foundational authority lane |
-| #45 scoped refresh | `focusa-vbcqu.11` | 9 | isolated Mission Canvas PR only at child `11.6`; post-compaction Pi widget at `11.9` |
+| #119 licensing/onboarding | `focusa-vbcqu.20` | 12 (`focusa-vbcqu.10.1`–`.10.12`, reparented after collision repair) | admission-by-obligation review; retain only release safety |
 | #89 daemon multiplexing | `focusa-vbcqu.12` | 8 | independent runtime lane |
-| #101 managed convergence | `focusa-vbcqu.13` | 9 | #89 and #119 |
-| #106 release governance | `focusa-vbcqu.14` | 5 | all technical baseline epics |
-| #107 Letta adapter | `focusa-vbcqu.15` | 8 | independent adapter lane |
+| #101 managed convergence | `focusa-vbcqu.13` | 9 | admission review after #89 and retained #119 obligations |
+| #106 release governance | `focusa-vbcqu.14` | 5 | admitted technical baseline epics |
 | #112 adaptive compaction | `focusa-vbcqu.16` | 9 | independent controller lane |
-| #114 UIAI challenge capability | `focusa-vbcqu.17` | 7 | external UIAI capability contract |
-| #52 final consolidation | `focusa-vbcqu.18` | 7 | #45, #89, #101, #106, #107, #112, #114, #119 |
+| #52 final consolidation | `focusa-vbcqu.18` | 7 | #89, #101, #106, #112, and retained #119 obligations |
 | all-surface release repair | `focusa-vbcqu.19` | 7 | candidate assembly waits for #52 |
+
+`focusa-vbcqu.10` is the immutable r7 composable-widget task. The later GH#119 parent collision was repaired by moving the licensing epic to `focusa-vbcqu.20`; the historical licensing child IDs remain unchanged but have explicit parent `.20`.
 
 ### 4.1 Cross-epic order
 
 ```mermaid
 flowchart LR
-  L119[#119 licensing]
+  L119[#119 retained release-safety obligations]
   M89[#89 multiplexing]
-  C101[#101 convergence]
-  R45[#45 refresh]
-  A107[#107 Letta]
+  C101[#101 admitted convergence obligations]
   P112[#112 compaction]
-  U114[#114 UIAI challenge]
   G106[#106 governance]
   O52[#52 consolidation]
   REL[all-surface stable release]
@@ -224,26 +220,20 @@ flowchart LR
   L119 --> G106
   M89 --> G106
   C101 --> G106
-  R45 --> G106
-  A107 --> G106
   P112 --> G106
-  U114 --> G106
   G106 --> O52
   L119 --> O52
   M89 --> O52
   C101 --> O52
-  R45 --> O52
-  A107 --> O52
   P112 --> O52
-  U114 --> O52
   O52 --> REL
   REL --> FINAL
 ```
 
 ### 4.2 Ready work versus blocked work
 
-- Ready in parallel: `10.1`, `11.1`, `12.1`, `15.1`, `16.1`, `17.1`, and release artifact contract/Windows preflight work `19.1`–`19.2`.
-- `11.9` explicitly owns post-compaction North Star completeness: exact scope authority, coherent state, bounded operation counts/pagination, readable narrow-width rendering, and zero private-context leakage; final #45 acceptance `11.8` depends on it.
+- Ready-state projections must be recomputed after the GH#45/GH#114 exclusions and GH#119/GH#101 admission review; release artifact contract/Windows preflight work `19.1`–`19.2` remains independently eligible.
+- GH#45 `focusa-vbcqu.11.*` and GH#114 `focusa-vbcqu.17.*` are deferred outside the locked-release root and cannot block technical acceptance or publication.
 - #101 implementation begins only after multiplexing and licensing authority foundations are accepted.
 - #106 reconciliation begins only after every technical epic reaches accepted closure.
 - #52 is the final baseline consolidation gate and cannot begin terminal acceptance while any upstream epic remains open.
