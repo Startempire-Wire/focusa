@@ -18,6 +18,7 @@ pub mod context_cognition;
 pub mod continue_work;
 pub mod contribute;
 pub mod daemon;
+pub mod daemon_routing;
 pub mod debug;
 pub mod deck;
 pub mod device_pairing;

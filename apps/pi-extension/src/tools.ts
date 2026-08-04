@@ -2236,6 +2236,47 @@ export function registerTools(pi: ExtensionAPI) {
   registerAgentRuntimeTools(pi);
 
   pi.registerTool({
+    name: "focusa_daemon_routing_status",
+    label: "Daemon Routing Status",
+    description:
+      "Resolve one explicit project/worktree/continuity/native-session scope against a supplied daemon registry. Never infers a global or foreign daemon.",
+    parameters: Type.Object({
+      registry: Type.Unknown({ description: "Canonical daemon registry projection from the controller." }),
+      project_root: Type.String(),
+      continuity_id: Type.String(),
+      working_subpath_id: Type.String(),
+      native_session_id: Type.String(),
+    }),
+    async execute(_id, params) {
+      const input = params as any;
+      const authority = await focusaFetch("/v1/daemon-routing/resolve", {
+        method: "POST",
+        body: JSON.stringify({
+          schema: "focusa.daemon_routing_resolve.v1",
+          registry: input.registry,
+          route: {
+            project_root: input.project_root,
+            continuity_id: input.continuity_id,
+            working_subpath_id: input.working_subpath_id,
+          },
+          native_session_id: input.native_session_id,
+        }),
+      });
+      const safe = authority || {
+        schema: "focusa.daemon_routing_authority.v1",
+        status: "unresolved",
+        selected_daemon_id: null,
+        recovery_required: true,
+        failure_class: "daemon_unavailable",
+      };
+      return {
+        content: [{ type: "text", text: JSON.stringify(safe, null, 2) }],
+        details: safe,
+      } as any;
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_north_star_gate",
     label: "North Star Gate",
     description:

@@ -105,6 +105,79 @@ mod route_map_serde {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DaemonRoutingAuthority {
+    pub schema: String,
+    pub route: ProjectRouteKey,
+    pub native_session_id: String,
+    pub status: String,
+    pub selected_daemon_id: Option<String>,
+    pub selected_endpoint: Option<String>,
+    pub health: Option<DaemonHealth>,
+    pub capabilities: BTreeSet<String>,
+    pub recovery_required: bool,
+    pub failure_class: Option<String>,
+}
+
+pub fn project_routing_authority(
+    registry: &DaemonRegistryProjection,
+    route: &ProjectRouteKey,
+    native_session_id: &str,
+) -> DaemonRoutingAuthority {
+    let resolved = if native_session_id.trim().is_empty() {
+        Err(DaemonRegistryError::MissingIdentity("native_session_id"))
+    } else {
+        registry.resolve(route)
+    };
+    match resolved {
+        Ok(registration)
+            if registration
+                .allowed_native_sessions
+                .contains(native_session_id) =>
+        {
+            DaemonRoutingAuthority {
+                schema: "focusa.daemon_routing_authority.v1".into(),
+                route: route.clone(),
+                native_session_id: native_session_id.into(),
+                status: "resolved".into(),
+                selected_daemon_id: Some(registration.daemon_id.clone()),
+                selected_endpoint: Some(registration.endpoint.clone()),
+                health: Some(registration.health),
+                capabilities: registration.capabilities.clone(),
+                recovery_required: false,
+                failure_class: None,
+            }
+        }
+        Ok(_) => unresolved_authority(route, native_session_id, "session_not_admitted"),
+        Err(DaemonRegistryError::AmbiguousRoute) => {
+            unresolved_authority(route, native_session_id, "ambiguous_route")
+        }
+        Err(DaemonRegistryError::NoRoute) => {
+            unresolved_authority(route, native_session_id, "no_exact_route")
+        }
+        Err(_) => unresolved_authority(route, native_session_id, "invalid_scope"),
+    }
+}
+
+fn unresolved_authority(
+    route: &ProjectRouteKey,
+    native_session_id: &str,
+    failure_class: &str,
+) -> DaemonRoutingAuthority {
+    DaemonRoutingAuthority {
+        schema: "focusa.daemon_routing_authority.v1".into(),
+        route: route.clone(),
+        native_session_id: native_session_id.into(),
+        status: "unresolved".into(),
+        selected_daemon_id: None,
+        selected_endpoint: None,
+        health: None,
+        capabilities: BTreeSet::new(),
+        recovery_required: true,
+        failure_class: Some(failure_class.into()),
+    }
+}
+
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum DaemonRegistryError {
     #[error("daemon identity is missing: {0}")]
@@ -306,6 +379,35 @@ mod tests {
             continuity_id: "continuity-1".into(),
             working_subpath_id: "working-subpath:main".into(),
         }
+    }
+
+    #[test]
+    fn canonical_surface_projection_never_infers_foreign_daemon_or_session() {
+        let projection = reduce_daemon_registry([
+            DaemonRegistryEvent::Enrolled {
+                registration: registration("daemon-a", 1),
+            },
+            DaemonRegistryEvent::ScopeAssigned {
+                daemon_id: "daemon-a".into(),
+                generation: 1,
+                route: route(),
+            },
+        ]);
+        let resolved = project_routing_authority(&projection, &route(), "session-1");
+        assert_eq!(resolved.status, "resolved");
+        assert_eq!(resolved.selected_daemon_id.as_deref(), Some("daemon-a"));
+        let foreign = project_routing_authority(&projection, &route(), "session-foreign");
+        assert_eq!(foreign.status, "unresolved");
+        assert_eq!(foreign.selected_daemon_id, None);
+        assert_eq!(
+            foreign.failure_class.as_deref(),
+            Some("session_not_admitted")
+        );
+        let mut foreign_route = route();
+        foreign_route.project_root = "/srv/foreign".into();
+        let missing = project_routing_authority(&projection, &foreign_route, "session-1");
+        assert_eq!(missing.selected_daemon_id, None);
+        assert_eq!(missing.failure_class.as_deref(), Some("no_exact_route"));
     }
 
     #[test]
