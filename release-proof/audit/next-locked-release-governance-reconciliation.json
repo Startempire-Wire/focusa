@@ -1,11 +1,11 @@
 {
   "admitted_mapping_count": 289,
-  "evidence_links_digest": "sha256:ad8d5b4503e4cffc6888ee0f20e2879cb7fb8b168a9c5bfaecf524e39a6809d7",
+  "evidence_links_digest": "sha256:85b5cec7e86bbb68b2b8ad52d24d847ee3c3cd4666ae9c7e652b4de29556c47f",
   "evidence_state_counts": {
     "ambiguous_duplicate_closure": 12,
-    "closed_without_proof": 62,
+    "closed_without_proof": 52,
     "duplicate_target_without_proof": 38,
-    "evidence_linked": 58,
+    "evidence_linked": 68,
     "exact_duplicate_receipt": 41,
     "pending_technical_acceptance": 78
   },
@@ -67,23 +67,13 @@
       "focusa-vbcqu.6.2.1",
       "focusa-vbcqu.6.2.1.1",
       "focusa-vbcqu.7",
-      "focusa-vbcqu.7.1",
-      "focusa-vbcqu.7.2",
-      "focusa-vbcqu.7.3",
-      "focusa-vbcqu.7.4",
       "focusa-vbcqu.8.1.2",
       "focusa-vbcqu.9.1",
       "focusa-vbcqu.9.2.1",
       "focusa-vbcqu.9.2.2",
       "focusa-vbcqu.10",
       "focusa-vfsrg",
-      "focusa-w26jj.9.3.5",
-      "focusa-w26jj.9.4.6",
-      "focusa-w26jj.9.6.1",
-      "focusa-w26jj.9.6.2",
       "focusa-w26jj.9.6.3",
-      "focusa-w26jj.9.6.4",
-      "focusa-w26jj.9.6.5",
       "focusa-w26jj.9.7.1",
       "focusa-w26jj.9.7.2",
       "focusa-w26jj.9.7.4"
@@ -5749,7 +5739,7 @@
         "closed_at": "2026-07-31T14:25:58.865557405Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -5764,7 +5754,9 @@
       "provider_record_digest": "sha256:67bec1f013eeacf669e1914a913b6d1af1f0f7f6c912326354af6b419a3103e5",
       "provider_state": "closed",
       "provider_updated_at": "2026-07-31T14:25:58.865723594Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/141-legacy-gate-closure.json"
+      ],
       "task_plan_ref": "execution-phase:6",
       "title": "W6 scope-lock Bead inventory and ownership map"
     },
@@ -5777,7 +5769,7 @@
         "closed_at": "2026-07-31T14:25:59.838349236Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -5792,7 +5784,9 @@
       "provider_record_digest": "sha256:6592c3a55b126b772f9b2db175d6b5715bc0b197c807d87aded86c5c7a9b3578",
       "provider_state": "closed",
       "provider_updated_at": "2026-07-31T14:25:59.838515988Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/141-legacy-gate-closure.json"
+      ],
       "task_plan_ref": "execution-phase:6",
       "title": "W6 archived worktree and ref semantic-diff audit"
     },
@@ -5805,7 +5799,7 @@
         "closed_at": "2026-07-31T14:26:01.034821634Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -5820,7 +5814,9 @@
       "provider_record_digest": "sha256:a106d12dac1016630ba42ce615ebe8476b79a76876e09fe757441e94444518fa",
       "provider_state": "closed",
       "provider_updated_at": "2026-07-31T14:26:01.035065021Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/141-legacy-gate-closure.json"
+      ],
       "task_plan_ref": "execution-phase:6",
       "title": "W6 unique legacy change integration or evidence supersession"
     },
@@ -5833,7 +5829,7 @@
         "closed_at": "2026-07-31T14:26:01.981913609Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -5848,7 +5844,9 @@
       "provider_record_digest": "sha256:34ea7be1ed8c5a7892c39895b85b0de9e7465e3354c57699e9c7886eb086d613",
       "provider_state": "closed",
       "provider_updated_at": "2026-07-31T14:26:01.982075175Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/141-legacy-gate-closure.json"
+      ],
       "task_plan_ref": "execution-phase:6",
       "title": "W6 original open-Bead settlement"
     },
@@ -8015,7 +8013,7 @@
         "closed_at": "2026-07-31T15:16:38.776543131Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -8031,7 +8029,9 @@
       "provider_record_digest": "sha256:7c0e600a52eb4d5d06b3c0bc394e4d35013ae54a6b3e4c80975dfe0a770ed512",
       "provider_state": "closed",
       "provider_updated_at": "2026-07-31T15:16:38.776699862Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-w26jj-platform-family-settlement.txt"
+      ],
       "task_plan_ref": "execution-phase:6",
       "title": "Onboarding installer family gate"
     },
@@ -8044,7 +8044,7 @@
         "closed_at": "2026-07-31T15:07:15.771152129Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -8060,7 +8060,9 @@
       "provider_record_digest": "sha256:0e6c4c7af7be1b00328fdd0b68bfd52c7503159c6516ad59d1499f5ea3c85c33",
       "provider_state": "closed",
       "provider_updated_at": "2026-07-31T15:07:15.771325182Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-w26jj-platform-family-settlement.txt"
+      ],
       "task_plan_ref": "execution-phase:6",
       "title": "Environment and dependency family gate"
     },
@@ -8073,7 +8075,7 @@
         "closed_at": "2026-07-31T15:16:39.712377386Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -8089,7 +8091,9 @@
       "provider_record_digest": "sha256:ca642f91b9230144197d2dcd5a94ecb0fe8152b62730fa0065308bff53eb9ad3",
       "provider_state": "closed",
       "provider_updated_at": "2026-07-31T15:16:39.712529201Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-w26jj-platform-family-settlement.txt"
+      ],
       "task_plan_ref": "execution-phase:6",
       "title": "Linux clean-install through OTA and rollback E2E"
     },
@@ -8102,7 +8106,7 @@
         "closed_at": "2026-07-31T15:16:40.704141177Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -8118,7 +8122,9 @@
       "provider_record_digest": "sha256:76de34d77cb1a42e1a008560d2bb2803bdd48f863c0c6711622c6d05e5831bf9",
       "provider_state": "closed",
       "provider_updated_at": "2026-07-31T15:16:40.704294536Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-w26jj-platform-family-settlement.txt"
+      ],
       "task_plan_ref": "execution-phase:6",
       "title": "macOS clean-install through OTA and rollback E2E"
     },
@@ -8160,7 +8166,7 @@
         "closed_at": "2026-07-31T15:16:42.593123468Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -8176,7 +8182,9 @@
       "provider_record_digest": "sha256:8deed925539204f73fe1cdf067ad05e6c5140c169ff5cf1a17bdca5011d88f6a",
       "provider_state": "closed",
       "provider_updated_at": "2026-07-31T15:16:42.593240672Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-w26jj-platform-family-settlement.txt"
+      ],
       "task_plan_ref": "execution-phase:6",
       "title": "Offline proxy airgap and interrupted customer-path E2E"
     },
@@ -8189,7 +8197,7 @@
         "closed_at": "2026-07-31T15:16:43.608607487Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -8205,7 +8213,9 @@
       "provider_record_digest": "sha256:18de825602bc8eafdad816a90b8daaa554f2f1e575177d5b9f2ef28c3c82d2d5",
       "provider_state": "closed",
       "provider_updated_at": "2026-07-31T15:16:43.608749989Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-w26jj-platform-family-settlement.txt"
+      ],
       "task_plan_ref": "execution-phase:6",
       "title": "Cross-platform integrated E2E gate"
     },
@@ -8339,10 +8349,10 @@
     "in_progress": 49,
     "open": 28
   },
-  "reconciliation_digest": "sha256:76204c1067864b348cda5afe27c2a63675932caa9d295080a1205341981442eb",
+  "reconciliation_digest": "sha256:e45baa11c56e976f8f8f74a18e1844e781734fde7f265d9ba9637e6ad103a20f",
   "repair_overlay_mapping_count": 14,
   "schema": "focusa.locked_release_governance_reconciliation.v1",
   "status": "blocked",
-  "unresolved_gap_count": 190,
+  "unresolved_gap_count": 180,
   "workset_id": "workset:focusa-next-locked-release:r7"
 }

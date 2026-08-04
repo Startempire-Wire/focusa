@@ -35,6 +35,76 @@
         "docs/evidence/release/focusa-vbcqu.5.7-macos-compaction-recovery.txt"
       ],
       "proof_scope": "native macOS compaction overflow and WebSocket recovery E2E"
+    },
+    {
+      "bead_id": "focusa-vbcqu.7.1",
+      "evidence_refs": [
+        "docs/evidence/release/141-legacy-gate-closure.json"
+      ],
+      "proof_scope": "locked-scope inventory and ownership settlement"
+    },
+    {
+      "bead_id": "focusa-vbcqu.7.2",
+      "evidence_refs": [
+        "docs/evidence/release/141-legacy-gate-closure.json"
+      ],
+      "proof_scope": "archived worktree and ref semantic-diff settlement"
+    },
+    {
+      "bead_id": "focusa-vbcqu.7.3",
+      "evidence_refs": [
+        "docs/evidence/release/141-legacy-gate-closure.json"
+      ],
+      "proof_scope": "legacy change integration and evidence supersession"
+    },
+    {
+      "bead_id": "focusa-vbcqu.7.4",
+      "evidence_refs": [
+        "docs/evidence/release/141-legacy-gate-closure.json"
+      ],
+      "proof_scope": "original open-Bead settlement"
+    },
+    {
+      "bead_id": "focusa-w26jj.9.3.5",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-w26jj-platform-family-settlement.txt"
+      ],
+      "proof_scope": "onboarding installer family gate"
+    },
+    {
+      "bead_id": "focusa-w26jj.9.4.6",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-w26jj-platform-family-settlement.txt"
+      ],
+      "proof_scope": "environment and dependency family gate"
+    },
+    {
+      "bead_id": "focusa-w26jj.9.6.1",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-w26jj-platform-family-settlement.txt"
+      ],
+      "proof_scope": "Linux customer-path acceptance"
+    },
+    {
+      "bead_id": "focusa-w26jj.9.6.2",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-w26jj-platform-family-settlement.txt"
+      ],
+      "proof_scope": "macOS customer-path acceptance"
+    },
+    {
+      "bead_id": "focusa-w26jj.9.6.4",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-w26jj-platform-family-settlement.txt"
+      ],
+      "proof_scope": "offline proxy airgap and interrupted-path acceptance"
+    },
+    {
+      "bead_id": "focusa-w26jj.9.6.5",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-w26jj-platform-family-settlement.txt"
+      ],
+      "proof_scope": "cross-platform integrated acceptance"
     }
   ]
 }
