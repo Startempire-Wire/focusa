@@ -3,9 +3,9 @@
   "evidence_links_digest": "sha256:6dfbb7b5f632593aba8c3c77f7eb67b9ecd8339b0c637476d9ec0116a222381f",
   "evidence_state_counts": {
     "aggregate_child_evidence": 3,
-    "evidence_linked": 112,
+    "evidence_linked": 113,
     "exact_duplicate_receipt": 85,
-    "pending_technical_acceptance": 89
+    "pending_technical_acceptance": 88
   },
   "gaps": {
     "ambiguous_duplicate_closure_ids": [],
@@ -87,7 +87,6 @@
       "focusa-vbcqu.9.9.6",
       "focusa-vbcqu.10",
       "focusa-vbcqu.14",
-      "focusa-vbcqu.14.3",
       "focusa-vbcqu.14.4",
       "focusa-vbcqu.14.5",
       "focusa-vbcqu.19",
@@ -7855,11 +7854,17 @@
       "active_blocker_refs": [],
       "authority": "authorized_release_repair_overlay",
       "bead_id": "focusa-vbcqu.14.3",
-      "closure_receipt": null,
-      "evidence_state": "pending_technical_acceptance",
+      "closure_receipt": {
+        "close_reason": "Completed: deterministic technical closure reducer, replay-safe allow/block/reopen receipts, fixed-point active-blocker enforcement, and final release gate at git:843df646; evidence bound at git:00d4d277; reducer allow receipt sha256:3a26aeef55fbc3b707f942a925bd26e9f11ca8b9d3a82c22deffce78039231fc.",
+        "closed_at": "2026-08-04T20:26:09.707528663Z",
+        "exact_duplicate_of": null
+      },
+      "evidence_state": "evidence_linked",
       "frozen_projection": null,
       "github_issue_refs": [],
       "implementation_commit_refs": [
+        "git:00d4d277",
+        "git:843df646",
         "git:843df64690efa6c3fdf6dc0482d363a9445b87c7"
       ],
       "ordered_task_key": [
@@ -7870,9 +7875,9 @@
       ],
       "parent_bead_id": "focusa-vbcqu.14",
       "projection_drift": false,
-      "provider_record_digest": "sha256:db360d987ee979612984665a261856666af494dbbb39368b197f2a773dc67a36",
-      "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-04T20:25:13.471685490Z",
+      "provider_record_digest": "sha256:576db8742d6c222b290d9b16ab90148bec5a1858289e2bd87f417f0c3ff4e084",
+      "provider_state": "closed",
+      "provider_updated_at": "2026-08-04T20:26:09.707693387Z",
       "runtime_or_acceptance_evidence_refs": [
         "release-proof/audit/next-locked-release-technical-closure-gate.json",
         "tests/165_focusa_locked_release_technical_closure_reducer_test.py"
@@ -7881,9 +7886,7 @@
       "title": "106.3 Enforce technical closure reducer and gate"
     },
     {
-      "active_blocker_refs": [
-        "focusa-vbcqu.14.3"
-      ],
+      "active_blocker_refs": [],
       "authority": "authorized_release_repair_overlay",
       "bead_id": "focusa-vbcqu.14.4",
       "closure_receipt": null,
@@ -8496,19 +8499,19 @@
   ],
   "provider_snapshot": {
     "record_count": 2317,
-    "sha256": "sha256:9b0c3239d7aeb40754539ca580a63f4858389ea3977ee56f461d230a16eb29bd",
+    "sha256": "sha256:b6de6438c0b5bf380772912b03c27edb56eca7ddc1d2e00fae4e70966740180c",
     "source": "canonical:.beads/issues.jsonl"
   },
   "provider_state_counts": {
     "blocked": 1,
-    "closed": 200,
-    "in_progress": 49,
+    "closed": 201,
+    "in_progress": 48,
     "open": 39
   },
-  "reconciliation_digest": "sha256:55da5a19563a26660f761b08e21d05714f10cf114dfe2fd7808de3a136ee92b9",
+  "reconciliation_digest": "sha256:a429ff3daecf7443a976c27fde31bdd770068d52fda14025c73d71d1c749099d",
   "repair_overlay_mapping_count": 14,
   "schema": "focusa.locked_release_governance_reconciliation.v1",
   "status": "blocked",
-  "unresolved_gap_count": 89,
+  "unresolved_gap_count": 88,
   "workset_id": "workset:focusa-next-locked-release:r7"
 }
