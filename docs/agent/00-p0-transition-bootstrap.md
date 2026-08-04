@@ -1,14 +1,20 @@
 # P0 Agent Bootstrap — Spec 158 and Mission Canvas Desktop Transition
 
-**Status:** mandatory before all broad Focusa work  
+**Status:** mandatory before broad Focusa work  
 **Effective:** 2026-08-04  
 **Coordination:** GitHub issue #125  
 **Normative sources:**
 
 1. `docs/158-workstream-rooted-cognitive-runtime-foundation-migration-spec.md`
-2. `docs/transitions/FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md`
-3. `docs/transitions/FOCUSA-TRANSITION-001-task-graph.yaml`
-4. `docs/135-series-current-manifest.md`, as amended by the transition above
+2. `docs/spec158/01-identity-ownership-and-reducer.md`
+3. `docs/spec158/02-persistence-migration-and-quarantine.md`
+4. `docs/spec158/03-client-runtime-and-desktop-contracts.md`
+5. `docs/spec158/04-implementation-task-graph-and-closure.md`
+6. `docs/transitions/FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md`
+7. `docs/transitions/FOCUSA-TRANSITION-001-preview-build-and-release-milestones.md`
+8. `docs/transitions/FOCUSA-TRANSITION-001-task-graph.yaml`
+9. `docs/transitions/FOCUSA-TRANSITION-001-desktop-milestones.yaml`
+10. `docs/135-series-current-manifest.md`, as amended by the transition above
 
 ---
 
@@ -23,7 +29,7 @@ Before continuing Mission Canvas, Pi-extension, reducer, daemon, Workpoint, Traj
 5. classify the work against the transition task graph;
 6. do not continue the obsolete full-rich-GUI-inside-Pi workroute.
 
-The current architectural pivot is:
+The pivot is:
 
 ```text
 OLD
@@ -31,11 +37,30 @@ OLD
 
 NEW
   Workstream-rooted Focusa reducer and daemon
-  + Focusa Desktop as primary rich Mission Canvas environment
+  + Focusa Desktop as the primary rich Focusa application
   + Pi as authentic embedded/standalone Work Surface
   + bounded terminal compatibility projection
   + GUI/CLI/agent parity through one semantic command graph
+  + continuous browser preview proven through UIAI Engine
+  + full Tauri shell gates at 5/25/50/75/100 percent
 ```
+
+---
+
+## MacBook worktree and upstream rule
+
+The current Mission Canvas agent refactors and tests from the existing MacBook worktree.
+
+Before explicit operator approval:
+
+- local commits on a dedicated transition/refactor branch are required;
+- no direct push or commit to `origin/main`;
+- no push to existing shared Mission Canvas branches;
+- no tag or GitHub Release creation;
+- no MacBook release build or artifact upload;
+- no force push.
+
+Only an approved review branch/commit may leave the laptop. At the 75% Desktop gate, the canonical release cycle is initiated from the approved KnownHost release host, reached through the private approved Tailscale or direct SSH path. Private host details never enter the public repository.
 
 ---
 
@@ -108,6 +133,19 @@ Change:
 
 ---
 
+## Desktop development and proof rule
+
+- Focusa Desktop is the primary app, not a side dashboard.
+- Use one pinned local Rust toolchain; do not install multiple toolchains or repeatedly bootstrap Rust.
+- Use the SvelteKit/Vite browser application for continuous preview between native gates.
+- Use UIAI Engine for browser screenshots, responsive checks, console/network diagnostics, interactions and Evidence.
+- Do not add Playwright or another browser authority.
+- Build and open the complete Tauri shell at 5%, 25%, 50%, 75% and 100% milestones.
+- Do not produce local release artifacts with `cargo build --release`.
+- At 75%, after explicit approval, initiate `scripts/create-dev-release-tag.sh --base 0.9 --push` from the approved KnownHost release host and verify the full canonical workflow chain.
+
+---
+
 ## Focusa Desktop invariant
 
 Focusa Desktop is a projection and command client over Workstream-partitioned daemon authority.
@@ -147,6 +185,7 @@ G. migration ledger: preserve/extract/keep-Pi/compatibility/retire/investigate
 H. Spec 158 identity conflicts
 I. proposed first extraction or cleanup task
 J. task-graph nodes to claim
+K. proposed 5% Desktop milestone scope
 ```
 
-No broad rebase, merge, deletion, rename, lockfile regeneration, or formatting sweep is allowed before this report and checkpoint exist.
+No broad rebase, merge, deletion, rename, lockfile regeneration, formatting sweep, upstream push or release action is allowed before this report and checkpoint exist.
