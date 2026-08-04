@@ -21,10 +21,22 @@ MEMBERS = [
 INVENTORY = json.loads(
     (AUDIT / "next-locked-release-governance-inventory.json").read_text()
 )
+EVIDENCE_LINKS = json.loads(
+    (AUDIT / "next-locked-release-governance-evidence-links.json").read_text()
+)
 
 assert LEDGER["schema"] == "focusa.locked_release_governance_reconciliation.v1"
 assert LEDGER["workset_id"] == "workset:focusa-next-locked-release:r7"
 assert LEDGER["inventory_digest"] == INVENTORY["inventory_digest"]
+assert LEDGER["evidence_links_digest"].startswith("sha256:")
+assert EVIDENCE_LINKS["schema"] == "focusa.locked_release_governance_evidence_links.v1"
+assert len({row["bead_id"] for row in EVIDENCE_LINKS["links"]}) == len(
+    EVIDENCE_LINKS["links"]
+)
+for link in EVIDENCE_LINKS["links"]:
+    assert link["evidence_refs"]
+    for ref in link["evidence_refs"]:
+        assert (ROOT / ref).is_file(), ref
 assert LEDGER["provider_snapshot"]["sha256"].startswith("sha256:")
 assert len(LEDGER["provider_snapshot"]["sha256"]) == 71
 

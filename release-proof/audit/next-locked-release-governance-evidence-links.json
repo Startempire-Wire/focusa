@@ -1,0 +1,40 @@
+{
+  "schema": "focusa.locked_release_governance_evidence_links.v1",
+  "links": [
+    {
+      "bead_id": "focusa-a6yq6.10.5",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-a6yq6-spec133-final-settlement.txt"
+      ],
+      "proof_scope": "cross-platform and real-Pi lifecycle settlement"
+    },
+    {
+      "bead_id": "focusa-a6yq6.10.9",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-a6yq6-spec133-final-settlement.txt"
+      ],
+      "proof_scope": "daemon-native Silent Sessions final settlement"
+    },
+    {
+      "bead_id": "focusa-gkwt",
+      "evidence_refs": [
+        "docs/evidence/scope-isolation/focusa-gkwt-cross-project-context-isolation.txt"
+      ],
+      "proof_scope": "exact project and continuity isolation runtime proof"
+    },
+    {
+      "bead_id": "focusa-ux2qx.17",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-ux2qx.17-live-bootstrapper-parity.txt"
+      ],
+      "proof_scope": "live bootstrapper parity and public clean-install proof"
+    },
+    {
+      "bead_id": "focusa-vbcqu.5.7",
+      "evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.5.7-macos-compaction-recovery.txt"
+      ],
+      "proof_scope": "native macOS compaction overflow and WebSocket recovery E2E"
+    }
+  ]
+}

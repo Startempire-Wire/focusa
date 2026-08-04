@@ -1,10 +1,11 @@
 {
   "admitted_mapping_count": 289,
+  "evidence_links_digest": "sha256:ad8d5b4503e4cffc6888ee0f20e2879cb7fb8b168a9c5bfaecf524e39a6809d7",
   "evidence_state_counts": {
     "ambiguous_duplicate_closure": 12,
-    "closed_without_proof": 67,
+    "closed_without_proof": 62,
     "duplicate_target_without_proof": 38,
-    "evidence_linked": 53,
+    "evidence_linked": 58,
     "exact_duplicate_receipt": 41,
     "pending_technical_acceptance": 78
   },
@@ -25,10 +26,7 @@
     ],
     "closed_without_proof_ids": [
       "focusa-84px",
-      "focusa-a6yq6.10.5",
       "focusa-a6yq6.10.7",
-      "focusa-a6yq6.10.9",
-      "focusa-gkwt",
       "focusa-n68k",
       "focusa-n68k.1",
       "focusa-n68k.2",
@@ -53,7 +51,6 @@
       "focusa-n68k.30",
       "focusa-nodn",
       "focusa-pskm",
-      "focusa-ux2qx.17",
       "focusa-vbcqu.1",
       "focusa-vbcqu.1.1",
       "focusa-vbcqu.1.2",
@@ -66,7 +63,6 @@
       "focusa-vbcqu.5",
       "focusa-vbcqu.5.5",
       "focusa-vbcqu.5.6",
-      "focusa-vbcqu.5.7",
       "focusa-vbcqu.6",
       "focusa-vbcqu.6.2.1",
       "focusa-vbcqu.6.2.1.1",
@@ -995,7 +991,7 @@
         "closed_at": "2026-07-31T15:06:02.812576303Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -1010,7 +1006,9 @@
       "provider_record_digest": "sha256:de6152b0cc05a4093f9576cad38f7b1359577d73ba880055e24348ae6b61b2b6",
       "provider_state": "closed",
       "provider_updated_at": "2026-07-31T15:06:02.812731959Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-a6yq6-spec133-final-settlement.txt"
+      ],
       "task_plan_ref": "execution-phase:6",
       "title": "133-9.5: Execute cross-platform and real Pi lifecycle proof"
     },
@@ -1081,7 +1079,7 @@
         "closed_at": "2026-07-31T15:06:04.703220754Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -1096,7 +1094,9 @@
       "provider_record_digest": "sha256:80cad3c8d7ae7fc291eacb9541f724fc10e5ec2a275555d230503e711abc39a3",
       "provider_state": "closed",
       "provider_updated_at": "2026-07-31T15:06:04.703378104Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-a6yq6-spec133-final-settlement.txt"
+      ],
       "task_plan_ref": "execution-phase:6",
       "title": "133 final gate: daemon-native Silent Sessions fully proven"
     },
@@ -1109,7 +1109,7 @@
         "closed_at": "2026-08-02T04:53:50.669497491Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [
         109
@@ -1124,7 +1124,9 @@
       "provider_record_digest": "sha256:ef9d805ca474b2e0f7f38901a16103060fdcb9458850cee865f0853b5ad6bd22",
       "provider_state": "closed",
       "provider_updated_at": "2026-08-02T04:53:50.669650445Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/scope-isolation/focusa-gkwt-cross-project-context-isolation.txt"
+      ],
       "task_plan_ref": "execution-phase:2",
       "title": "GitHub #109 \u2014 P0 REGRESSION: foreign TRAJECTORY_CONTEXT contaminates scoped Pi tool output"
     },
@@ -4338,7 +4340,7 @@
         "closed_at": "2026-07-31T15:16:37.784771616Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -4352,7 +4354,9 @@
       "provider_record_digest": "sha256:96d519a4708ff67747448758d7f0b6fb19b6ee8d6177cf9a95b6d52dc20f2d61",
       "provider_state": "closed",
       "provider_updated_at": "2026-07-31T15:16:37.784917972Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-ux2qx.17-live-bootstrapper-parity.txt"
+      ],
       "task_plan_ref": "execution-phase:6",
       "title": "Release gate: sync and prove live bootstrapper parity after Specs 132 and 133"
     },
@@ -5382,7 +5386,7 @@
         "closed_at": "2026-07-31T14:22:18.373077901Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -5397,7 +5401,9 @@
       "provider_record_digest": "sha256:7f7b57a876ccadb19af64d65c56e803b0b4baae3b5c2db8d0db95fe025c64e5c",
       "provider_state": "closed",
       "provider_updated_at": "2026-07-31T14:22:18.373227533Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.5.7-macos-compaction-recovery.txt"
+      ],
       "task_plan_ref": "execution-phase:4",
       "title": "P0 Mac Pi compaction: recover context overflow without WebSocket retry stall"
     },
@@ -8333,10 +8339,10 @@
     "in_progress": 49,
     "open": 28
   },
-  "reconciliation_digest": "sha256:f4603d03a2d7d2c614009ccc206b8554e66f352d79140527bb3e4a7f726e919f",
+  "reconciliation_digest": "sha256:76204c1067864b348cda5afe27c2a63675932caa9d295080a1205341981442eb",
   "repair_overlay_mapping_count": 14,
   "schema": "focusa.locked_release_governance_reconciliation.v1",
   "status": "blocked",
-  "unresolved_gap_count": 195,
+  "unresolved_gap_count": 190,
   "workset_id": "workset:focusa-next-locked-release:r7"
 }

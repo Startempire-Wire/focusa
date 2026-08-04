@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 AUDIT = ROOT / "release-proof" / "audit"
 MEMBERS = AUDIT / "next-locked-release-workset-members.jsonl"
 INVENTORY = AUDIT / "next-locked-release-governance-inventory.json"
+EVIDENCE_LINKS = AUDIT / "next-locked-release-governance-evidence-links.json"
 OUTPUT = AUDIT / "next-locked-release-governance-reconciliation.json"
 
 COMMIT_RE = re.compile(
@@ -91,6 +92,22 @@ def provider_parent(provider: dict) -> str | None:
 
 def build(provider_path: Path) -> dict:
     inventory = json.loads(INVENTORY.read_text())
+    evidence_links_document = json.loads(EVIDENCE_LINKS.read_text())
+    if (
+        evidence_links_document.get("schema")
+        != "focusa.locked_release_governance_evidence_links.v1"
+    ):
+        raise SystemExit("unexpected governance evidence-link schema")
+    evidence_links = {
+        row["bead_id"]: row["evidence_refs"]
+        for row in evidence_links_document.get("links", [])
+    }
+    if len(evidence_links) != len(evidence_links_document.get("links", [])):
+        raise SystemExit("duplicate Bead authority in governance evidence links")
+    for refs in evidence_links.values():
+        for ref in refs:
+            if not (ROOT / ref).is_file():
+                raise SystemExit(f"governance evidence ref is missing: {ref}")
     immutable = load_jsonl(MEMBERS)
     provider_rows = load_jsonl(provider_path)
     provider_by_id: dict[str, dict] = {}
@@ -121,12 +138,19 @@ def build(provider_path: Path) -> dict:
     }
 
     immutable_by_id = {row["member_id"]: row for row in immutable}
+    unknown_evidence_link_ids = set(evidence_links) - admitted_ids
+    if unknown_evidence_link_ids:
+        raise SystemExit(
+            "governance evidence links reference unadmitted Beads: "
+            f"{sorted(unknown_evidence_link_ids)}"
+        )
     direct_proof: dict[str, bool] = {}
     for issue_id in admitted_ids:
         provider = provider_by_id.get(issue_id, {})
         commits, stable_refs, _ = evidence_from(
             immutable_by_id.get(issue_id, {}), provider
         )
+        stable_refs.extend(evidence_links.get(issue_id, []))
         direct_proof[issue_id] = bool(commits or stable_refs)
 
     def infer_duplicate_target(issue_id: str, provider: dict) -> str | None:
@@ -180,6 +204,7 @@ def build(provider_path: Path) -> dict:
             continue
 
         commits, stable_refs, github_issues = evidence_from(member, provider)
+        stable_refs = sorted(set(stable_refs + evidence_links.get(issue_id, [])))
         close_reason = provider.get("close_reason") or None
         exact_duplicate_of = infer_duplicate_target(issue_id, provider)
         duplicate_claim = bool(re.search(r"(?i)\bduplicate\b", close_reason or ""))
@@ -292,6 +317,7 @@ def build(provider_path: Path) -> dict:
         "status": "reconciled" if unresolved == 0 else "blocked",
         "workset_id": inventory["workset_id"],
         "inventory_digest": inventory["inventory_digest"],
+        "evidence_links_digest": digest_bytes(EVIDENCE_LINKS),
         "provider_snapshot": {
             "source": "canonical:.beads/issues.jsonl",
             "sha256": digest_bytes(provider_path),
