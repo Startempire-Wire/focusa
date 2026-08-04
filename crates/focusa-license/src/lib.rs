@@ -264,6 +264,11 @@ pub fn resolve_license_guard_from(
         .ok()
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
+        .or_else(|| {
+            authority_credentials::load_or_create_node_identity(config_dir, "focusa")
+                .ok()
+                .map(|identity| identity.node_id)
+        })
         .unwrap_or_else(|| "unbound".to_string());
     let context = authority::LeaseVerificationContext {
         expected_product: "focusa".to_string(),

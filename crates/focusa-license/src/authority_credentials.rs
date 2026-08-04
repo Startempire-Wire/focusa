@@ -1,11 +1,45 @@
 use crate::authority_client::SensitiveCredential;
-use std::{collections::BTreeMap, sync::Mutex};
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use std::{
+    collections::BTreeMap,
+    fs,
+    path::{Path, PathBuf},
+    sync::Mutex,
+};
 use thiserror::Error;
+use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CredentialHandle {
     pub service: String,
     pub account: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NodeIdentity {
+    pub schema: String,
+    pub node_id: String,
+    pub product: String,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProtectedStoreBackend {
+    MacOsKeychain,
+    LinuxSecretService,
+    WindowsCredentialManager,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CredentialRotationReceipt {
+    pub schema: String,
+    pub service: String,
+    pub account: String,
+    pub backend: ProtectedStoreBackend,
+    pub rotated_at: DateTime<Utc>,
+    pub secret_persisted_in_receipt: bool,
 }
 
 impl CredentialHandle {
@@ -35,6 +69,76 @@ pub enum CredentialStoreError {
     WriteFailed,
     #[error("protected credential delete failed")]
     DeleteFailed,
+    #[error("node identity persistence failed")]
+    NodeIdentityPersistenceFailed,
+    #[error("node identity is invalid")]
+    NodeIdentityInvalid,
+}
+
+pub fn protected_store_backend_for_os(
+    os: &str,
+) -> Result<ProtectedStoreBackend, CredentialStoreError> {
+    match os {
+        "macos" => Ok(ProtectedStoreBackend::MacOsKeychain),
+        "linux" => Ok(ProtectedStoreBackend::LinuxSecretService),
+        "windows" => Ok(ProtectedStoreBackend::WindowsCredentialManager),
+        _ => Err(CredentialStoreError::StoreUnavailable),
+    }
+}
+
+pub fn native_protected_store_backend() -> ProtectedStoreBackend {
+    protected_store_backend_for_os(std::env::consts::OS)
+        .unwrap_or(ProtectedStoreBackend::LinuxSecretService)
+}
+
+pub fn load_or_create_node_identity(
+    config_dir: &Path,
+    product: &str,
+) -> Result<NodeIdentity, CredentialStoreError> {
+    if product.trim().is_empty() {
+        return Err(CredentialStoreError::MissingIdentity("product"));
+    }
+    let path = config_dir.join("node-identity.json");
+    if path.exists() {
+        let bytes =
+            fs::read(&path).map_err(|_| CredentialStoreError::NodeIdentityPersistenceFailed)?;
+        let identity: NodeIdentity = serde_json::from_slice(&bytes)
+            .map_err(|_| CredentialStoreError::NodeIdentityInvalid)?;
+        if identity.schema != "focusa.node_identity.v1"
+            || identity.product != product
+            || Uuid::parse_str(&identity.node_id).is_err()
+        {
+            return Err(CredentialStoreError::NodeIdentityInvalid);
+        }
+        return Ok(identity);
+    }
+    fs::create_dir_all(config_dir)
+        .map_err(|_| CredentialStoreError::NodeIdentityPersistenceFailed)?;
+    let identity = NodeIdentity {
+        schema: "focusa.node_identity.v1".into(),
+        node_id: Uuid::now_v7().to_string(),
+        product: product.into(),
+        created_at: Utc::now(),
+    };
+    atomic_private_write(
+        &path,
+        &serde_json::to_vec_pretty(&identity)
+            .map_err(|_| CredentialStoreError::NodeIdentityPersistenceFailed)?,
+    )?;
+    Ok(identity)
+}
+
+fn atomic_private_write(path: &Path, bytes: &[u8]) -> Result<(), CredentialStoreError> {
+    let temporary = PathBuf::from(format!("{}.tmp-{}", path.display(), Uuid::now_v7()));
+    fs::write(&temporary, bytes)
+        .map_err(|_| CredentialStoreError::NodeIdentityPersistenceFailed)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&temporary, fs::Permissions::from_mode(0o600))
+            .map_err(|_| CredentialStoreError::NodeIdentityPersistenceFailed)?;
+    }
+    fs::rename(temporary, path).map_err(|_| CredentialStoreError::NodeIdentityPersistenceFailed)
 }
 
 pub trait ProtectedCredentialStore: Send + Sync {
@@ -88,6 +192,27 @@ impl ProtectedCredentialStore for KeyringCredentialStore {
     }
 }
 
+pub fn rotate_refresh_credential(
+    store: &dyn ProtectedCredentialStore,
+    handle: &CredentialHandle,
+    credential: &SensitiveCredential,
+    now: DateTime<Utc>,
+) -> Result<CredentialRotationReceipt, CredentialStoreError> {
+    store.put(handle, credential)?;
+    let loaded = store.get(handle)?;
+    if loaded.expose_for_protected_store() != credential.expose_for_protected_store() {
+        return Err(CredentialStoreError::WriteFailed);
+    }
+    Ok(CredentialRotationReceipt {
+        schema: "focusa.credential_rotation_receipt.v1".into(),
+        service: handle.service.clone(),
+        account: handle.account.clone(),
+        backend: native_protected_store_backend(),
+        rotated_at: now,
+        secret_persisted_in_receipt: false,
+    })
+}
+
 #[derive(Debug, Default)]
 pub struct InMemoryCredentialStore {
     values: Mutex<BTreeMap<(String, String), String>>,
@@ -135,6 +260,26 @@ mod tests {
     use super::*;
 
     #[test]
+    fn native_platforms_map_to_os_protected_backends() {
+        assert_eq!(
+            protected_store_backend_for_os("macos").unwrap(),
+            ProtectedStoreBackend::MacOsKeychain
+        );
+        assert_eq!(
+            protected_store_backend_for_os("linux").unwrap(),
+            ProtectedStoreBackend::LinuxSecretService
+        );
+        assert_eq!(
+            protected_store_backend_for_os("windows").unwrap(),
+            ProtectedStoreBackend::WindowsCredentialManager
+        );
+        assert_eq!(
+            protected_store_backend_for_os("other"),
+            Err(CredentialStoreError::StoreUnavailable)
+        );
+    }
+
+    #[test]
     fn credential_handle_contains_identity_but_never_secret() {
         let handle = CredentialHandle::for_node("focusa", "node-1").unwrap();
         assert_eq!(handle.service, "focusa.focusa.license-authority");
@@ -143,11 +288,41 @@ mod tests {
     }
 
     #[test]
+    fn node_identity_is_durable_private_and_fail_closed() {
+        let directory = std::env::temp_dir().join(format!("focusa-node-{}", Uuid::now_v7()));
+        let first = load_or_create_node_identity(&directory, "focusa").unwrap();
+        let second = load_or_create_node_identity(&directory, "focusa").unwrap();
+        assert_eq!(first, second);
+        assert!(Uuid::parse_str(&first.node_id).is_ok());
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(
+                fs::metadata(directory.join("node-identity.json"))
+                    .unwrap()
+                    .permissions()
+                    .mode()
+                    & 0o777,
+                0o600
+            );
+        }
+        fs::write(directory.join("node-identity.json"), b"not-json").unwrap();
+        assert_eq!(
+            load_or_create_node_identity(&directory, "focusa"),
+            Err(CredentialStoreError::NodeIdentityInvalid)
+        );
+        fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
     fn protected_store_round_trip_redacts_and_deletes() {
         let store = InMemoryCredentialStore::default();
         let handle = CredentialHandle::for_node("focusa", "node-1").unwrap();
         let credential = SensitiveCredential::new("refresh-secret".into()).unwrap();
-        store.put(&handle, &credential).unwrap();
+        let receipt = rotate_refresh_credential(&store, &handle, &credential, Utc::now()).unwrap();
+        let receipt_json = serde_json::to_string(&receipt).unwrap();
+        assert!(!receipt_json.contains("refresh-secret"));
+        assert!(!receipt.secret_persisted_in_receipt);
         let loaded = store.get(&handle).unwrap();
         assert_eq!(loaded.expose_for_protected_store(), "refresh-secret");
         assert_eq!(format!("{loaded:?}"), "SensitiveCredential([REDACTED])");
