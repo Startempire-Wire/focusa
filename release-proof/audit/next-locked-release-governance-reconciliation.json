@@ -7902,9 +7902,9 @@
       ],
       "parent_bead_id": "focusa-vbcqu.14",
       "projection_drift": false,
-      "provider_record_digest": "sha256:cb28d602704200b99ddd6296af3718a7203ebb9d48209f15c513f49da3a41feb",
-      "provider_state": "open",
-      "provider_updated_at": "2026-08-03T11:01:15.014171814Z",
+      "provider_record_digest": "sha256:fc4c0918e5c7f0c3bd944ddc74ca09888a45177b0f3c6eb0f00925d23e03d066",
+      "provider_state": "in_progress",
+      "provider_updated_at": "2026-08-04T20:44:05.398675428Z",
       "runtime_or_acceptance_evidence_refs": [],
       "task_plan_ref": null,
       "title": "106.4 Reconcile release tags and candidate ancestry"
@@ -8499,16 +8499,16 @@
   ],
   "provider_snapshot": {
     "record_count": 2317,
-    "sha256": "sha256:b6de6438c0b5bf380772912b03c27edb56eca7ddc1d2e00fae4e70966740180c",
+    "sha256": "sha256:d61f858cca1f71224c5d820f11993dbc26f6c13cd44e27b10118ee01111ffb29",
     "source": "canonical:.beads/issues.jsonl"
   },
   "provider_state_counts": {
     "blocked": 1,
     "closed": 201,
-    "in_progress": 48,
-    "open": 39
+    "in_progress": 49,
+    "open": 38
   },
-  "reconciliation_digest": "sha256:a429ff3daecf7443a976c27fde31bdd770068d52fda14025c73d71d1c749099d",
+  "reconciliation_digest": "sha256:a2d394dc3b793260350d3cabb2c81feaa30321b6010495afc91c77962f0a51da",
   "repair_overlay_mapping_count": 14,
   "schema": "focusa.locked_release_governance_reconciliation.v1",
   "status": "blocked",

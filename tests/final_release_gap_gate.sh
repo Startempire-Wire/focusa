@@ -63,6 +63,7 @@ pass 'all-Pi-tool, Agent Card, skill/runbook, and onboarding documentation gates
 # technical evidence; administrative closure replays fail closed.
 python3 scripts/reduce-locked-release-technical-closure.py --check
 python3 tests/165_focusa_locked_release_technical_closure_reducer_test.py
+python3 tests/166_focusa_locked_release_candidate_ancestry_test.py
 bash tests/authority_scope_static_test.sh
 bash tests/spec96_project_identity_quorum_static_test.sh
 python3 tests/spec104_mismatch_semantic_static_test.py

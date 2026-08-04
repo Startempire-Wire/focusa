@@ -1,0 +1,229 @@
+{
+  "accepted_implementation_commits": [
+    "17a5bfba2b9b4cc46b90c0d64443e5ca93a7d84f",
+    "1def1bd1c5930e4814dee127f844e481678faa6e",
+    "36615bbed7b6af8d368c6502b83cbc5baf821e01",
+    "46bef4a6c28afc9e850b724042887c162a2c5986",
+    "4804b78c3987d2f31ad04dc58e8fb5070e216cc7",
+    "4b9c3f403cf6b706773755fd121aac28891ccc3a",
+    "5f3b2d2f14ae9e0489322dd72c667a4613ecb8c0",
+    "843df64690efa6c3fdf6dc0482d363a9445b87c7",
+    "a16f0da30a8650d993ff691b19acd05225820c56",
+    "a2fbfbb870499f35a961cd27c224024f242c3ca1",
+    "b15dd2403da428a13e71558e04c60690f27da410",
+    "ba47c980325e1468fbef2d5a75bc6c0203e7275b",
+    "c99a155c38ee46532e9b04d14f6a0bb467aacaf8",
+    "ee569eb1e65eb8baada1000429a7400d46addb41"
+  ],
+  "ancestry_digest": "sha256:177ee7a018a1ce1e6e8d083cc6219242b6daabdc823522a505c4e9c2da2c5ce4",
+  "audit_errors": [],
+  "candidate": {
+    "audit_head": "3b41de3aa9fc16e4ac8c96a7a97dbd3da3be66e9",
+    "changed_after_source_commit": [],
+    "source_commit": "3b41de3aa9fc16e4ac8c96a7a97dbd3da3be66e9",
+    "source_is_ancestor_of_audit_head": true,
+    "unexpected_changes_after_source_commit": []
+  },
+  "excluded_post_release_worksets": [
+    "focusa-vbcqu.11",
+    "focusa-vbcqu.12",
+    "focusa-vbcqu.13",
+    "focusa-vbcqu.15",
+    "focusa-vbcqu.16",
+    "focusa-vbcqu.17",
+    "focusa-vbcqu.18",
+    "focusa-vbcqu.20"
+  ],
+  "excluded_workset_collisions": [],
+  "immutable_release": {
+    "commit": "ac40a3a769b679e684f6592d075cabd24ab64fd5",
+    "disposition": "immutable_incomplete_never_rewrite",
+    "manifest_assets": {
+      "SHA256SUMS.txt": {
+        "digest": "sha256:b14f56794119b02f71eb7decc1f09667e39854754d9ade8f51771a3da3f201a6",
+        "name": "SHA256SUMS.txt",
+        "size": 2785
+      },
+      "release-manifest.json": {
+        "digest": "sha256:4b97cecf7930f86e4e7eacd54fd0d5cabfdd31f6dd4311efc01df52585645da4",
+        "name": "release-manifest.json",
+        "size": 19157
+      },
+      "release-manifest.json.sig": {
+        "digest": "sha256:112b74629ed7c03032684cb0820a784305ab86877e1975783e39e3208e22ce67",
+        "name": "release-manifest.json.sig",
+        "size": 64
+      },
+      "release-provenance.json": {
+        "digest": "sha256:cdadccb0a9db6b729acea79129faac54f00c62e958ea886b61400be218833e22",
+        "name": "release-provenance.json",
+        "size": 5294
+      },
+      "release-provenance.json.sig": {
+        "digest": "sha256:08fdbf317dd4c92a1357d294e6b9d4be765f8325ff0bbcdd87fec7c40814deed",
+        "name": "release-provenance.json.sig",
+        "size": 64
+      }
+    },
+    "missing_required_assets": [
+      "focusa-v0.9.143-x86_64-pc-windows-msvc.exe",
+      "focusa-daemon-v0.9.143-x86_64-pc-windows-msvc.exe",
+      "focusa-tui-v0.9.143-x86_64-pc-windows-msvc.exe",
+      "focusa-v0.9.143-aarch64-pc-windows-msvc.exe",
+      "focusa-daemon-v0.9.143-aarch64-pc-windows-msvc.exe",
+      "focusa-tui-v0.9.143-aarch64-pc-windows-msvc.exe",
+      "focusa-generated-clients-v0.9.143.tar.gz",
+      "focusa-installer-v0.9.143.ps1",
+      "pattern:Focusa_*x64*setup.exe",
+      "pattern:Focusa_*arm64*setup.exe",
+      "pattern:Focusa_*x64*.msi",
+      "pattern:Focusa_*arm64*.msi"
+    ],
+    "published_asset_count": 66,
+    "published_asset_snapshot": "release-proof/audit/next-locked-release-v09143-published-assets.json",
+    "published_asset_snapshot_digest": "sha256:238bded7784cadab402fd530bb21d7708c953b41b8f4529c793147a09e1ac113",
+    "tag": "v0.9.143"
+  },
+  "issue_ledger": {
+    "inventory_digest": "sha256:9dad314492bc798205d7a64b89fc46e4bc8239b3394f1c4898b474720f1cb686",
+    "mapping_count": 289,
+    "pending_technical_acceptance_count": 88,
+    "reconciliation_digest": "sha256:a2d394dc3b793260350d3cabb2c81feaa30321b6010495afc91c77962f0a51da",
+    "workset_id": "workset:focusa-next-locked-release:r7"
+  },
+  "missing_accepted_implementation_commits": [],
+  "mutation_policy": {
+    "create_tag": false,
+    "publish_release": false,
+    "rewrite_v0.9.143": false
+  },
+  "next_stable_tag": "v0.9.144",
+  "next_version_selection": {
+    "base": "0.9",
+    "channel_maxima": {
+      "dev": 137,
+      "preview": null,
+      "rc": null,
+      "stable": 143
+    },
+    "considered_tags": 145,
+    "highest_patch": 143,
+    "ignored_malformed_tags": [
+      "phase-1.1-focusa-legal",
+      "spec-integration-v1",
+      "spec-integraton-v1-start"
+    ],
+    "mode": "automatic",
+    "monotonic": true,
+    "schema": "focusa.release_version_selection.v1",
+    "selected_channel": "dev",
+    "selected_patch": 144,
+    "selected_tag": "v0.9.144-dev",
+    "selected_version": "0.9.144-dev",
+    "status": "completed"
+  },
+  "pull_request_ancestry": [
+    {
+      "commit": "872f35b955931b450b7dbad44e33d5610dec0bed",
+      "pr": 115,
+      "subject": "fix: decouple evidence linking from Work Loop lease (#115)"
+    }
+  ],
+  "release_blockers": [
+    "immutable_v0.9.143_missing_required_assets",
+    "source_version_must_advance_to_v0.9.144",
+    "technical_acceptance_pending"
+  ],
+  "release_ready": false,
+  "schema": "focusa.locked_release_candidate_ancestry.v1",
+  "source_version_agreement": true,
+  "source_versions": {
+    "menubar": "0.9.143",
+    "pi_extension": "0.9.143",
+    "workspace": "0.9.143"
+  },
+  "status": "verified",
+  "tag_chain": {
+    "dev": [
+      {
+        "commit": "99c3c25819ac47a92ba422b32095b6c26aaf350b",
+        "follows_previous": true,
+        "object_id": "99c3c25819ac47a92ba422b32095b6c26aaf350b",
+        "object_type": "commit",
+        "tag": "v0.9.135-dev"
+      },
+      {
+        "commit": "312cfed079a9ad62708ab8a96b6d7b24ae9b6111",
+        "follows_previous": true,
+        "object_id": "312cfed079a9ad62708ab8a96b6d7b24ae9b6111",
+        "object_type": "commit",
+        "tag": "v0.9.136-dev"
+      },
+      {
+        "commit": "657af735efb4668bf0df54cffb8605be7a7177ed",
+        "follows_previous": true,
+        "object_id": "657af735efb4668bf0df54cffb8605be7a7177ed",
+        "object_type": "commit",
+        "tag": "v0.9.137-dev"
+      }
+    ],
+    "stable": [
+      {
+        "commit": "0a8ee331d6e1108ae8871b351ab60ab22f7752d8",
+        "follows_previous": true,
+        "object_id": "0a8ee331d6e1108ae8871b351ab60ab22f7752d8",
+        "object_type": "commit",
+        "tag": "v0.9.136"
+      },
+      {
+        "commit": "8de463969d594ff357df8e57f2646e57e7410c65",
+        "follows_previous": true,
+        "object_id": "8de463969d594ff357df8e57f2646e57e7410c65",
+        "object_type": "commit",
+        "tag": "v0.9.137"
+      },
+      {
+        "commit": "ff853e930a70852f2f9f6e7aeb5d963ff7bae00b",
+        "follows_previous": true,
+        "object_id": "ff853e930a70852f2f9f6e7aeb5d963ff7bae00b",
+        "object_type": "commit",
+        "tag": "v0.9.138"
+      },
+      {
+        "commit": "4e05cedabc1a2ec5f42a5eb7b0d163f1d2a60d51",
+        "follows_previous": true,
+        "object_id": "4e05cedabc1a2ec5f42a5eb7b0d163f1d2a60d51",
+        "object_type": "commit",
+        "tag": "v0.9.139"
+      },
+      {
+        "commit": "bcce2295876eba8d93a4677fb085bb37e66ef05e",
+        "follows_previous": true,
+        "object_id": "bcce2295876eba8d93a4677fb085bb37e66ef05e",
+        "object_type": "commit",
+        "tag": "v0.9.140"
+      },
+      {
+        "commit": "24ac577c62e9a8bd96772b9a4daaf1318873c7cc",
+        "follows_previous": true,
+        "object_id": "24ac577c62e9a8bd96772b9a4daaf1318873c7cc",
+        "object_type": "commit",
+        "tag": "v0.9.141"
+      },
+      {
+        "commit": "e46d8b88b7ad8951e0781aa2b71ae28d3d09f1ca",
+        "follows_previous": true,
+        "object_id": "e46d8b88b7ad8951e0781aa2b71ae28d3d09f1ca",
+        "object_type": "commit",
+        "tag": "v0.9.142"
+      },
+      {
+        "commit": "ac40a3a769b679e684f6592d075cabd24ab64fd5",
+        "follows_previous": true,
+        "object_id": "ac40a3a769b679e684f6592d075cabd24ab64fd5",
+        "object_type": "commit",
+        "tag": "v0.9.143"
+      }
+    ]
+  }
+}
