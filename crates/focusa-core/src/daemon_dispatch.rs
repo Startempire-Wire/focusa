@@ -13,6 +13,18 @@ pub struct WriterLease {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RouteLeaseGeneration {
+    pub route: ProjectRouteKey,
+    pub generation: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct WriterLeaseRegistry {
+    pub active: Vec<WriterLease>,
+    pub generations: Vec<RouteLeaseGeneration>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MutationEnvelope {
     pub mutation_id: String,
     pub route: ProjectRouteKey,
@@ -55,6 +67,8 @@ pub enum DispatchError {
     LeaseExpired,
     #[error("writer lease generation is stale")]
     LeaseGenerationMismatch,
+    #[error("an unexpired writer lease already owns the exact route")]
+    WriterLeaseBusy,
     #[error("mutation id was replayed with different content")]
     IdempotencyConflict,
     #[error("mutation outcome cannot transition from its current state")]
@@ -63,6 +77,80 @@ pub enum DispatchError {
     MissingEffectReceipt,
     #[error("mutation is unknown")]
     UnknownMutation,
+}
+
+impl WriterLeaseRegistry {
+    pub fn acquire(
+        &mut self,
+        registry: &DaemonRegistryProjection,
+        route: ProjectRouteKey,
+        daemon_id: &str,
+        lease_id: &str,
+        observed_at_unix_ms: i64,
+        expires_at_unix_ms: i64,
+    ) -> Result<&WriterLease, DispatchError> {
+        if lease_id.trim().is_empty() {
+            return Err(DispatchError::MissingIdentity("lease_id"));
+        }
+        let daemon = registry.resolve(&route)?;
+        if daemon.daemon_id != daemon_id {
+            return Err(DispatchError::LeaseScopeMismatch);
+        }
+        if expires_at_unix_ms <= observed_at_unix_ms {
+            return Err(DispatchError::LeaseExpired);
+        }
+        if self
+            .active
+            .iter()
+            .any(|lease| lease.route == route && lease.expires_at_unix_ms > observed_at_unix_ms)
+        {
+            return Err(DispatchError::WriterLeaseBusy);
+        }
+        self.active.retain(|lease| lease.route != route);
+        let generation = if let Some(current) = self
+            .generations
+            .iter_mut()
+            .find(|current| current.route == route)
+        {
+            current.generation += 1;
+            current.generation
+        } else {
+            self.generations.push(RouteLeaseGeneration {
+                route: route.clone(),
+                generation: 1,
+            });
+            1
+        };
+        self.active.push(WriterLease {
+            lease_id: lease_id.into(),
+            route,
+            daemon_id: daemon_id.into(),
+            generation,
+            expires_at_unix_ms,
+        });
+        Ok(self.active.last().expect("writer lease was inserted"))
+    }
+
+    pub fn require_active(
+        &self,
+        route: &ProjectRouteKey,
+        lease_id: &str,
+        generation: u64,
+        observed_at_unix_ms: i64,
+    ) -> Result<&WriterLease, DispatchError> {
+        let lease = self
+            .active
+            .iter()
+            .find(|lease| lease.route == *route && lease.lease_id == lease_id)
+            .ok_or(DispatchError::LeaseScopeMismatch)?;
+        if lease.generation != generation {
+            return Err(DispatchError::LeaseGenerationMismatch);
+        }
+        if lease.expires_at_unix_ms <= observed_at_unix_ms {
+            return Err(DispatchError::LeaseExpired);
+        }
+        Ok(lease)
+    }
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -74,7 +162,7 @@ impl MutationDispatchLedger {
     pub fn prepare(
         &mut self,
         registry: &DaemonRegistryProjection,
-        lease: &WriterLease,
+        leases: &WriterLeaseRegistry,
         mutation: &MutationEnvelope,
         observed_at_unix_ms: i64,
     ) -> Result<&DispatchReceipt, DispatchError> {
@@ -99,17 +187,17 @@ impl MutationDispatchLedger {
             }
             std::collections::btree_map::Entry::Vacant(vacant) => {
                 let daemon = registry.resolve(&mutation.route)?;
+                let lease = leases.require_active(
+                    &mutation.route,
+                    &mutation.writer_lease_id,
+                    mutation.writer_lease_generation,
+                    observed_at_unix_ms,
+                )?;
                 if lease.route != mutation.route
                     || lease.daemon_id != daemon.daemon_id
                     || lease.lease_id != mutation.writer_lease_id
                 {
                     return Err(DispatchError::LeaseScopeMismatch);
-                }
-                if lease.generation != mutation.writer_lease_generation {
-                    return Err(DispatchError::LeaseGenerationMismatch);
-                }
-                if lease.expires_at_unix_ms <= observed_at_unix_ms {
-                    return Err(DispatchError::LeaseExpired);
                 }
                 Ok(vacant.insert(DispatchReceipt {
                     mutation_id: mutation.mutation_id.clone(),
@@ -217,14 +305,12 @@ mod tests {
         ])
     }
 
-    fn lease() -> WriterLease {
-        WriterLease {
-            lease_id: "lease-1".into(),
-            route: route(),
-            daemon_id: "daemon-1".into(),
-            generation: 7,
-            expires_at_unix_ms: 10_000,
-        }
+    fn leases() -> WriterLeaseRegistry {
+        let mut leases = WriterLeaseRegistry::default();
+        leases
+            .acquire(&registry(), route(), "daemon-1", "lease-1", 0, 10_000)
+            .unwrap();
+        leases
     }
 
     fn mutation(digest: &str) -> MutationEnvelope {
@@ -232,7 +318,7 @@ mod tests {
             mutation_id: "mutation-1".into(),
             route: route(),
             writer_lease_id: "lease-1".into(),
-            writer_lease_generation: 7,
+            writer_lease_generation: 1,
             payload_digest: digest.into(),
             operation: "workpoint.checkpoint".into(),
         }
@@ -257,7 +343,7 @@ mod tests {
 
         let mut ledger = MutationDispatchLedger::default();
         let receipt = ledger
-            .prepare(&registry(), &lease(), &mutation("sha256:a"), 1)
+            .prepare(&registry(), &leases(), &mutation("sha256:a"), 1)
             .unwrap();
         assert_eq!(receipt.route, route());
         assert_eq!(receipt.daemon_id, "daemon-1");
@@ -267,19 +353,56 @@ mod tests {
     }
 
     #[test]
-    fn duplicate_delivery_has_one_effect_identity() {
+    fn writer_lease_is_exclusive_replayable_and_generation_fenced() {
+        let mut authority = WriterLeaseRegistry::default();
+        authority
+            .acquire(&registry(), route(), "daemon-1", "lease-1", 0, 10)
+            .unwrap();
+        assert_eq!(
+            authority.acquire(&registry(), route(), "daemon-1", "lease-2", 1, 20),
+            Err(DispatchError::WriterLeaseBusy)
+        );
+        authority
+            .acquire(&registry(), route(), "daemon-1", "lease-2", 10, 20)
+            .unwrap();
+        assert_eq!(authority.active[0].generation, 2);
+        assert_eq!(
+            authority.require_active(&route(), "lease-2", 1, 11),
+            Err(DispatchError::LeaseGenerationMismatch)
+        );
+        let persisted = serde_json::to_vec(&authority).unwrap();
+        let restarted: WriterLeaseRegistry = serde_json::from_slice(&persisted).unwrap();
+        assert_eq!(restarted, authority);
+    }
+
+    #[test]
+    fn duplicate_and_reordered_delivery_have_one_effect_identity() {
         let mut ledger = MutationDispatchLedger::default();
+        assert_eq!(
+            ledger.settle_acknowledged("mutation-1", "effect:receipt-1"),
+            Err(DispatchError::UnknownMutation)
+        );
         let first = ledger
-            .prepare(&registry(), &lease(), &mutation("sha256:a"), 1)
+            .prepare(&registry(), &leases(), &mutation("sha256:a"), 1)
             .unwrap();
         assert_eq!(first.status, DispatchStatus::Prepared);
         let duplicate = ledger
-            .prepare(&registry(), &lease(), &mutation("sha256:a"), 2)
+            .prepare(&registry(), &leases(), &mutation("sha256:a"), 2)
             .unwrap();
         assert_eq!(duplicate.mutation_id, "mutation-1");
         assert_eq!(
-            ledger.prepare(&registry(), &lease(), &mutation("sha256:b"), 3),
+            ledger.prepare(&registry(), &leases(), &mutation("sha256:b"), 3),
             Err(DispatchError::IdempotencyConflict)
+        );
+        ledger
+            .settle_acknowledged("mutation-1", "effect:receipt-1")
+            .unwrap();
+        let duplicate_receipt = ledger
+            .settle_acknowledged("mutation-1", "effect:receipt-1")
+            .unwrap();
+        assert_eq!(
+            duplicate_receipt.effect_receipt_ref.as_deref(),
+            Some("effect:receipt-1")
         );
     }
 
@@ -287,7 +410,7 @@ mod tests {
     fn uncertain_outcome_reconciles_only_with_effect_receipt() {
         let mut ledger = MutationDispatchLedger::default();
         ledger
-            .prepare(&registry(), &lease(), &mutation("sha256:a"), 1)
+            .prepare(&registry(), &leases(), &mutation("sha256:a"), 1)
             .unwrap();
         ledger
             .settle_uncertain("mutation-1", "network_timeout")
