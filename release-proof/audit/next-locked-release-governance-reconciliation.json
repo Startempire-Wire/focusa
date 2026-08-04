@@ -3,9 +3,9 @@
   "evidence_links_digest": "sha256:cd34e7e823db9c1f1928273f326f99520d4c87b327ba9e1bfb5a0afab204a12f",
   "evidence_state_counts": {
     "aggregate_child_evidence": 8,
-    "evidence_linked": 116,
+    "evidence_linked": 117,
     "exact_duplicate_receipt": 85,
-    "pending_technical_acceptance": 80
+    "pending_technical_acceptance": 79
   },
   "gaps": {
     "ambiguous_duplicate_closure_ids": [],
@@ -82,7 +82,6 @@
       "focusa-vbcqu.9.9.6",
       "focusa-vbcqu.10",
       "focusa-vbcqu.14",
-      "focusa-vbcqu.14.2",
       "focusa-vbcqu.14.3",
       "focusa-vbcqu.14.4",
       "focusa-vbcqu.14.5",
@@ -7851,11 +7850,17 @@
       "active_blocker_refs": [],
       "authority": "authorized_release_repair_overlay",
       "bead_id": "focusa-vbcqu.14.2",
-      "closure_receipt": null,
-      "evidence_state": "pending_technical_acceptance",
+      "closure_receipt": {
+        "close_reason": "Completed reconciliation at git:9ddcd3ba: 289 admitted mappings; zero orphan Beads, duplicate provider authority, ambiguous duplicate closures, duplicate targets without proof, closed-without-proof records, or untracked locked-release labels. 80 technical acceptance items remain explicitly pending and release-blocking in the ledger.",
+        "closed_at": "2026-08-04T20:12:02.654353524Z",
+        "exact_duplicate_of": null
+      },
+      "evidence_state": "evidence_linked",
       "frozen_projection": null,
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:9ddcd3ba"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7864,17 +7869,15 @@
       ],
       "parent_bead_id": "focusa-vbcqu.14",
       "projection_drift": false,
-      "provider_record_digest": "sha256:bb64c321b5fa9c7e42ed4d6f885421e4d7ff592d8106b7a94c631a07923d552a",
-      "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-04T19:55:12.591204728Z",
+      "provider_record_digest": "sha256:fd7508bba89f576a84c440eedf2510fb5a8a100d63fa22d92a0b7d60cc3320fd",
+      "provider_state": "closed",
+      "provider_updated_at": "2026-08-04T20:12:02.654467716Z",
       "runtime_or_acceptance_evidence_refs": [],
       "task_plan_ref": null,
       "title": "106.2 Reconcile issue-to-Bead-to-evidence mappings"
     },
     {
-      "active_blocker_refs": [
-        "focusa-vbcqu.14.2"
-      ],
+      "active_blocker_refs": [],
       "authority": "authorized_release_repair_overlay",
       "bead_id": "focusa-vbcqu.14.3",
       "closure_receipt": null,
@@ -8527,19 +8530,19 @@
   ],
   "provider_snapshot": {
     "record_count": 2317,
-    "sha256": "sha256:4c05e60a241f8622f3ae12ab1a11bd48e102172c152ea020d5f7cf20e017427f",
+    "sha256": "sha256:c811d846ac063864df9d5378842062eecb9265a6b414c3bbf4095fed9276fc99",
     "source": "canonical:.beads/issues.jsonl"
   },
   "provider_state_counts": {
     "blocked": 1,
-    "closed": 209,
-    "in_progress": 49,
+    "closed": 210,
+    "in_progress": 48,
     "open": 30
   },
-  "reconciliation_digest": "sha256:0ea5c2830535af48f02f0dde7badd3f48b791ba4fc3c1b4140930cfa271938db",
+  "reconciliation_digest": "sha256:a03c2b80c06c05b8ec1c7a9e7d969897dfe002a27939a805d558d601a22e9bc4",
   "repair_overlay_mapping_count": 14,
   "schema": "focusa.locked_release_governance_reconciliation.v1",
   "status": "blocked",
-  "unresolved_gap_count": 80,
+  "unresolved_gap_count": 79,
   "workset_id": "workset:focusa-next-locked-release:r7"
 }
