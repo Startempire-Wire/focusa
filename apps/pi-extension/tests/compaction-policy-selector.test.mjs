@@ -28,7 +28,11 @@ assert.equal(selectCompactionPolicy(telemetry(75, 10, 4), capabilities("supporte
 assert.equal(selectCompactionPolicy(telemetry(78), capabilities("supported")).route, "checkpoint");
 assert.equal(selectCompactionPolicy(telemetry(86), capabilities("supported")).route, "summarize");
 assert.equal(selectCompactionPolicy(telemetry(96), capabilities("supported")).route, "native_compact");
-assert.equal(selectCompactionPolicy(telemetry(96), capabilities("unknown")).route, "rollover");
+const nativeOutage = selectCompactionPolicy(telemetry(96), capabilities("unknown"));
+assert.equal(nativeOutage.route, "rollover");
+assert.equal(nativeOutage.executionOwner, "operator");
+assert.equal(nativeOutage.reason, "native_compaction_unavailable");
+assert.equal(selectCompactionPolicy(telemetry(null), capabilities("supported")).route, "no_op");
 
 const first = selectCompactionPolicy(telemetry(96), capabilities("supported"));
 const second = selectCompactionPolicy(telemetry(96), capabilities("supported"));
