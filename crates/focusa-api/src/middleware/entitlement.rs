@@ -53,11 +53,24 @@ pub async fn entitlement_gate_layer(
 }
 
 pub(crate) fn entitlement_allows_mutation(guard: &focusa_license::LicenseGuard) -> bool {
+    let now = chrono::Utc::now();
     guard.entitlement.as_ref().is_some_and(|snapshot| {
-        matches!(
-            snapshot.state,
-            EntitlementState::Active | EntitlementState::OfflineGrace
-        )
+        let bound = snapshot
+            .lease_id
+            .as_deref()
+            .is_some_and(|value| !value.is_empty())
+            && snapshot
+                .lease_digest
+                .as_deref()
+                .is_some_and(|value| value.starts_with("sha256:"));
+        bound
+            && match snapshot.state {
+                EntitlementState::Active => snapshot.expires_at.is_some_and(|expiry| expiry > now),
+                EntitlementState::OfflineGrace => snapshot
+                    .offline_grace_until
+                    .is_some_and(|grace_until| grace_until > now),
+                EntitlementState::Unactivated | EntitlementState::RecoveryOnly => false,
+            }
     })
 }
 
@@ -68,7 +81,9 @@ pub(crate) fn route_requires_entitlement(method: &Method, path: &str) -> bool {
     let recovery_path = path == "/health"
         || path == "/v1/health"
         || path == "/v1/version"
-        || path.starts_with("/v1/license/");
+        || path.starts_with("/v1/license/")
+        || path.starts_with("/v1/connect/")
+        || path.starts_with("/v1/device/pair/");
     !recovery_path
 }
 
@@ -89,21 +104,59 @@ mod tests {
         ] {
             assert!(route_requires_entitlement(&Method::POST, path), "{path}");
         }
-        assert!(!route_requires_entitlement(&Method::GET, "/v1/workpoint/current"));
-        assert!(!route_requires_entitlement(&Method::POST, "/v1/license/refresh"));
+        assert!(!route_requires_entitlement(
+            &Method::GET,
+            "/v1/workpoint/current"
+        ));
+        assert!(!route_requires_entitlement(
+            &Method::POST,
+            "/v1/license/refresh"
+        ));
+        assert!(!route_requires_entitlement(
+            &Method::POST,
+            "/v1/connect/room/create"
+        ));
+        assert!(!route_requires_entitlement(
+            &Method::POST,
+            "/v1/device/pair/start"
+        ));
         assert!(!route_requires_entitlement(&Method::GET, "/v1/health"));
     }
 
     #[test]
     fn only_signed_active_or_grace_snapshot_allows_mutation() {
         assert!(!entitlement_allows_mutation(&LicenseGuard::eval(7)));
+        let bind = |snapshot: &mut EntitlementSnapshot| {
+            snapshot.lease_id = Some("lease-1".into());
+            snapshot.lease_digest = Some("sha256:lease".into());
+        };
         let mut active = EntitlementSnapshot::unactivated("focusa", "node");
         active.state = EntitlementState::Active;
-        assert!(entitlement_allows_mutation(&LicenseGuard::from_entitlement(active)));
+        active.expires_at = Some(chrono::Utc::now() + chrono::Duration::minutes(5));
+        bind(&mut active);
+        assert!(entitlement_allows_mutation(
+            &LicenseGuard::from_entitlement(active.clone())
+        ));
+        active.expires_at = Some(chrono::Utc::now() - chrono::Duration::seconds(1));
+        assert!(!entitlement_allows_mutation(
+            &LicenseGuard::from_entitlement(active)
+        ));
+
         let mut grace = EntitlementSnapshot::unactivated("focusa", "node");
         grace.state = EntitlementState::OfflineGrace;
-        assert!(entitlement_allows_mutation(&LicenseGuard::from_entitlement(grace)));
+        grace.offline_grace_until = Some(chrono::Utc::now() + chrono::Duration::minutes(5));
+        bind(&mut grace);
+        assert!(entitlement_allows_mutation(
+            &LicenseGuard::from_entitlement(grace.clone())
+        ));
+        grace.offline_grace_until = Some(chrono::Utc::now() - chrono::Duration::seconds(1));
+        assert!(!entitlement_allows_mutation(
+            &LicenseGuard::from_entitlement(grace)
+        ));
+
         let recovery = EntitlementSnapshot::recovery_only("focusa", "node", "invalid");
-        assert!(!entitlement_allows_mutation(&LicenseGuard::from_entitlement(recovery)));
+        assert!(!entitlement_allows_mutation(
+            &LicenseGuard::from_entitlement(recovery)
+        ));
     }
 }
