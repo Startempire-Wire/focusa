@@ -261,6 +261,18 @@ impl MutationDispatchLedger {
     pub fn receipt(&self, mutation_id: &str) -> Option<&DispatchReceipt> {
         self.receipts.get(mutation_id)
     }
+
+    pub fn recovery_queue(&self) -> Vec<&DispatchReceipt> {
+        self.receipts
+            .values()
+            .filter(|receipt| {
+                matches!(
+                    receipt.status,
+                    DispatchStatus::Prepared | DispatchStatus::Uncertain
+                )
+            })
+            .collect()
+    }
 }
 
 #[cfg(test)]
@@ -403,6 +415,108 @@ mod tests {
         assert_eq!(
             duplicate_receipt.effect_receipt_ref.as_deref(),
             Some("effect:receipt-1")
+        );
+    }
+
+    #[test]
+    fn expired_writer_fails_over_to_the_new_exact_route_owner() {
+        let failover_registry = reduce_daemon_registry([
+            DaemonRegistryEvent::Enrolled {
+                registration: DaemonRegistration {
+                    daemon_id: "daemon-old".into(),
+                    controller_id: "controller-1".into(),
+                    endpoint: "https://old.example.test".into(),
+                    auth_fingerprint: "sha256:old".into(),
+                    version: "0.9.143".into(),
+                    capabilities: BTreeSet::from(["workpoint".into()]),
+                    health: DaemonHealth::Offline,
+                    generation: 1,
+                },
+            },
+            DaemonRegistryEvent::ScopeAssigned {
+                daemon_id: "daemon-old".into(),
+                generation: 1,
+                route: route(),
+            },
+            DaemonRegistryEvent::Enrolled {
+                registration: DaemonRegistration {
+                    daemon_id: "daemon-new".into(),
+                    controller_id: "controller-1".into(),
+                    endpoint: "https://new.example.test".into(),
+                    auth_fingerprint: "sha256:new".into(),
+                    version: "0.9.143".into(),
+                    capabilities: BTreeSet::from(["workpoint".into()]),
+                    health: DaemonHealth::Healthy,
+                    generation: 1,
+                },
+            },
+            DaemonRegistryEvent::ScopeAssigned {
+                daemon_id: "daemon-new".into(),
+                generation: 1,
+                route: route(),
+            },
+        ]);
+        let mut authority = WriterLeaseRegistry {
+            active: vec![WriterLease {
+                lease_id: "lease-old".into(),
+                route: route(),
+                daemon_id: "daemon-old".into(),
+                generation: 1,
+                expires_at_unix_ms: 10,
+            }],
+            generations: vec![RouteLeaseGeneration {
+                route: route(),
+                generation: 1,
+            }],
+        };
+        let failover = authority
+            .acquire(
+                &failover_registry,
+                route(),
+                "daemon-new",
+                "lease-new",
+                10,
+                20,
+            )
+            .unwrap();
+        assert_eq!(failover.daemon_id, "daemon-new");
+        assert_eq!(failover.generation, 2);
+    }
+
+    #[test]
+    fn restart_preserves_acknowledged_and_blocks_uncertain_until_reconciled() {
+        let mut before_restart = MutationDispatchLedger::default();
+        before_restart
+            .prepare(&registry(), &leases(), &mutation("sha256:a"), 1)
+            .unwrap();
+        before_restart
+            .settle_uncertain("mutation-1", "daemon_disconnected")
+            .unwrap();
+        let bytes = serde_json::to_vec(&before_restart).unwrap();
+        let mut recovered: MutationDispatchLedger = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(recovered.recovery_queue().len(), 1);
+        assert_eq!(
+            recovered
+                .prepare(&registry(), &leases(), &mutation("sha256:a"), 2)
+                .unwrap()
+                .status,
+            DispatchStatus::Uncertain
+        );
+        assert_eq!(
+            recovered.settle_acknowledged("mutation-1", ""),
+            Err(DispatchError::MissingEffectReceipt)
+        );
+        recovered
+            .settle_acknowledged("mutation-1", "effect:durable-1")
+            .unwrap();
+        assert!(recovered.recovery_queue().is_empty());
+        let after_second_restart: MutationDispatchLedger =
+            serde_json::from_slice(&serde_json::to_vec(&recovered).unwrap()).unwrap();
+        let receipt = after_second_restart.receipt("mutation-1").unwrap();
+        assert_eq!(receipt.status, DispatchStatus::Acknowledged);
+        assert_eq!(
+            receipt.effect_receipt_ref.as_deref(),
+            Some("effect:durable-1")
         );
     }
 
