@@ -20,6 +20,9 @@ button:focus-visible { outline: 2px solid #8cb5ff; outline-offset: 2px; }
     linear-gradient(145deg, #0b101a 0%, #080c14 60%, #0c111c 100%);
 }
 
+.desktop-shell.tui-mode { grid-template-columns: minmax(0, 1fr); }
+.desktop-shell.tui-mode main { grid-column: 1; }
+
 .titlebar {
   grid-column: 1 / -1;
   display: flex;
@@ -170,6 +173,9 @@ footer {
 
 @media (max-width: 820px) {
   .desktop-shell { grid-template: 58px auto minmax(0, 1fr) 34px / 1fr; }
+  .desktop-shell.tui-mode { grid-template: 58px minmax(0, 1fr) 34px / 1fr; }
+  .desktop-shell.tui-mode main { grid-row: 2; }
+  .desktop-shell.tui-mode footer { grid-row: 3; }
   .titlebar { grid-column: 1; padding: 0 14px; }
   .mode-chip { display: none; }
   .sidebar { grid-row: 2; flex-direction: row; padding: 9px; border-right: 0; border-bottom: 1px solid rgba(162, 183, 221, 0.12); overflow-x: auto; }

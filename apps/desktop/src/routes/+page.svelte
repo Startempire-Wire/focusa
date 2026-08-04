@@ -28,7 +28,7 @@
   <title>Focusa Desktop</title>
 </svelte:head>
 
-<div class="desktop-shell">
+<div class="desktop-shell" class:tui-mode={uiMode === 'tui'}>
   <header class="titlebar">
     <div class="brand-lockup" aria-label="Focusa Desktop">
       <span class="brand-mark" aria-hidden="true">F</span>
@@ -39,7 +39,7 @@
     </div>
     <div class="titlebar-status">
       <div class="ui-mode-switch" aria-label="Application interface mode">
-        <span class:active={uiMode === 'tui'}>TUI</span>
+        <span class:active={uiMode === 'tui'}>Agent TUI (Pi)</span>
         <button
           type="button"
           role="switch"
@@ -56,6 +56,7 @@
     </div>
   </header>
 
+  {#if uiMode === 'canvas'}
   <aside class="sidebar" aria-label="Focusa workspaces">
     <div class="scope-card">
       <span class="eyebrow">Context Control</span>
@@ -80,11 +81,12 @@
       {/each}
     </nav>
   </aside>
+  {/if}
 
   <main>
     {#if uiMode === 'tui'}
       <section class="tui-surface" aria-label="Focusa terminal compatibility projection">
-        <div class="tui-bar">FOCUSA TUI · NATIVE COMPATIBILITY PROJECTION</div>
+        <div class="tui-bar">AGENT TUI (PI) · NATIVE WORK SURFACE</div>
         <pre><span class="tui-accent">ACTIVE WORKSTREAM</span>  unbound
 <span class="tui-dim">SCOPE</span>              no ScopeRef selected
 <span class="tui-dim">ATTACHMENT</span>         no Pi runtime attached
@@ -99,7 +101,7 @@
 └───────────────────────────────┴───────────────────────────────┘
 
 <span class="tui-good">Focusa Desktop is connected read-only.</span>
-<span class="tui-dim">Switch to Mission Canvas for the full graphical workspace.</span></pre>
+<span class="tui-dim">Use the app-wide switch to replace this entire inner surface with Mission Canvas.</span></pre>
       </section>
     {:else}
     <section class="workspace-heading">
