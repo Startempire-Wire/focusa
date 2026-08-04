@@ -6,6 +6,7 @@ use agent_stateful_cognitive_runtime::{
     ClientToolRequest, ClientToolResult, RuntimeBinding, RuntimeContractError, RuntimeMode,
 };
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeSet, HashMap},
     future::Future,
@@ -34,6 +35,83 @@ pub struct LettaCapabilityContract {
     pub cognitive_loop_owner: String,
     pub client_tool_owner: String,
     pub forbidden_direct_capabilities: BTreeSet<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LettaScopeBinding {
+    pub schema: String,
+    pub project_root: String,
+    pub continuity_id: String,
+    pub workpoint_id: String,
+    pub provider_agent_id: String,
+    pub provider_thread_id: String,
+    pub epoch_id: Uuid,
+    pub replay_key_prefix: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LettaResumeDecision {
+    pub schema: String,
+    pub status: String,
+    pub binding: Option<LettaScopeBinding>,
+    pub failure_class: Option<String>,
+    pub quarantined_candidate_digest: Option<String>,
+}
+
+impl LettaScopeBinding {
+    pub fn validate_against_runtime(
+        &self,
+        runtime: &RuntimeBinding,
+    ) -> Result<(), LettaAdapterError> {
+        runtime.validate()?;
+        if self.schema != "focusa.letta_scope_binding.v1"
+            || self.project_root.trim().is_empty()
+            || self.continuity_id.trim().is_empty()
+            || self.workpoint_id.trim().is_empty()
+            || self.provider_agent_id.trim().is_empty()
+            || self.provider_thread_id.trim().is_empty()
+            || self.replay_key_prefix.trim().is_empty()
+        {
+            return Err(LettaAdapterError::IncompleteIdentity("letta_scope_binding"));
+        }
+        if runtime.mode != RuntimeMode::LettaManaged
+            || self.project_root != runtime.epoch.project_root
+            || self.continuity_id != runtime.epoch.continuity_id
+            || self.provider_agent_id != runtime.provider_agent_id.as_deref().unwrap_or("")
+            || self.epoch_id != runtime.epoch.epoch_id
+        {
+            return Err(LettaAdapterError::ScopeMismatch);
+        }
+        Ok(())
+    }
+}
+
+pub fn evaluate_letta_resume(
+    expected: &LettaScopeBinding,
+    candidate: LettaScopeBinding,
+    runtime: &RuntimeBinding,
+) -> LettaResumeDecision {
+    let exact = candidate.validate_against_runtime(runtime).is_ok() && expected == &candidate;
+    if exact {
+        LettaResumeDecision {
+            schema: "focusa.letta_resume_decision.v1".into(),
+            status: "resumed".into(),
+            binding: Some(candidate),
+            failure_class: None,
+            quarantined_candidate_digest: None,
+        }
+    } else {
+        let digest = serde_json::to_vec(&candidate)
+            .map(|bytes| format!("sha256:{}", hex::encode(Sha256::digest(bytes))))
+            .unwrap_or_else(|_| "sha256:unavailable".into());
+        LettaResumeDecision {
+            schema: "focusa.letta_resume_decision.v1".into(),
+            status: "quarantined".into(),
+            binding: None,
+            failure_class: Some("foreign_scope_or_thread".into()),
+            quarantined_candidate_digest: Some(digest),
+        }
+    }
 }
 
 pub fn canonical_letta_capability_contract() -> LettaCapabilityContract {
@@ -163,6 +241,8 @@ pub enum LettaAdapterError {
     WrongRuntimeMode,
     #[error("provider agent does not match runtime binding")]
     AgentMismatch,
+    #[error("Letta scope or thread does not match runtime binding")]
+    ScopeMismatch,
     #[error("turn identity is incomplete: {0}")]
     IncompleteIdentity(&'static str),
     #[error("Letta transport failed: {0}")]
@@ -454,6 +534,43 @@ mod tests {
         let json = serde_json::to_value(contract).unwrap();
         assert!(json.get("sdk_execute_arbitrary").is_none());
         assert!(json.get("direct_uiai").is_none());
+    }
+
+    #[test]
+    fn exact_scope_resume_quarantines_foreign_project_and_thread_state() {
+        let runtime = binding();
+        let expected = LettaScopeBinding {
+            schema: "focusa.letta_scope_binding.v1".into(),
+            project_root: runtime.epoch.project_root.clone(),
+            continuity_id: runtime.epoch.continuity_id.clone(),
+            workpoint_id: "workpoint-1".into(),
+            provider_agent_id: runtime.provider_agent_id.clone().unwrap(),
+            provider_thread_id: "thread-1".into(),
+            epoch_id: runtime.epoch.epoch_id,
+            replay_key_prefix: "continuity/workpoint-1".into(),
+        };
+        let resumed = evaluate_letta_resume(&expected, expected.clone(), &runtime);
+        assert_eq!(resumed.status, "resumed");
+        assert_eq!(resumed.binding, Some(expected.clone()));
+
+        for mutate in ["project", "thread", "workpoint", "continuity"] {
+            let mut foreign = expected.clone();
+            match mutate {
+                "project" => foreign.project_root = "/foreign".into(),
+                "thread" => foreign.provider_thread_id = "thread-foreign".into(),
+                "workpoint" => foreign.workpoint_id = "workpoint-foreign".into(),
+                "continuity" => foreign.continuity_id = "continuity-foreign".into(),
+                _ => unreachable!(),
+            }
+            let decision = evaluate_letta_resume(&expected, foreign, &runtime);
+            assert_eq!(decision.status, "quarantined");
+            assert_eq!(decision.binding, None);
+            assert_eq!(
+                decision.failure_class.as_deref(),
+                Some("foreign_scope_or_thread")
+            );
+            assert!(decision.quarantined_candidate_digest.is_some());
+        }
     }
 
     #[tokio::test]
