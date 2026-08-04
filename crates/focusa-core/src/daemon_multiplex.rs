@@ -72,8 +72,36 @@ pub enum DaemonRegistryEvent {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct DaemonRegistryProjection {
     pub registrations: BTreeMap<String, DaemonRegistration>,
+    #[serde(with = "route_map_serde")]
     pub routes: BTreeMap<ProjectRouteKey, BTreeSet<String>>,
+    pub quarantined_daemons: BTreeMap<String, String>,
     pub rejected_events: u64,
+}
+
+mod route_map_serde {
+    use super::ProjectRouteKey;
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+    use std::collections::{BTreeMap, BTreeSet};
+
+    pub fn serialize<S>(
+        value: &BTreeMap<ProjectRouteKey, BTreeSet<String>>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        value.iter().collect::<Vec<_>>().serialize(serializer)
+    }
+
+    pub fn deserialize<'de, D>(
+        deserializer: D,
+    ) -> Result<BTreeMap<ProjectRouteKey, BTreeSet<String>>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let entries = Vec::<(ProjectRouteKey, BTreeSet<String>)>::deserialize(deserializer)?;
+        Ok(entries.into_iter().collect())
+    }
 }
 
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -127,11 +155,31 @@ pub fn reduce_daemon_registry(
 ) -> DaemonRegistryProjection {
     let mut projection = DaemonRegistryProjection::default();
     for event in events {
-        if apply_event(&mut projection, event).is_err() {
-            projection.rejected_events += 1;
+        let daemon_id = event_daemon_id(&event).to_string();
+        match apply_event(&mut projection, event) {
+            Ok(()) => {
+                projection.quarantined_daemons.remove(&daemon_id);
+            }
+            Err(error) => {
+                projection.rejected_events += 1;
+                if !daemon_id.is_empty() {
+                    projection
+                        .quarantined_daemons
+                        .insert(daemon_id, error.to_string());
+                }
+            }
         }
     }
     projection
+}
+
+fn event_daemon_id(event: &DaemonRegistryEvent) -> &str {
+    match event {
+        DaemonRegistryEvent::Enrolled { registration } => &registration.daemon_id,
+        DaemonRegistryEvent::HealthObserved { daemon_id, .. }
+        | DaemonRegistryEvent::ScopeAssigned { daemon_id, .. }
+        | DaemonRegistryEvent::Revoked { daemon_id, .. } => daemon_id,
+    }
 }
 
 fn apply_event(
@@ -221,6 +269,7 @@ impl DaemonRegistryProjection {
         let owners = self.routes.get(route).ok_or(DaemonRegistryError::NoRoute)?;
         let healthy = owners
             .iter()
+            .filter(|daemon_id| !self.quarantined_daemons.contains_key(*daemon_id))
             .filter_map(|daemon_id| self.registrations.get(daemon_id))
             .filter(|registration| registration.health == DaemonHealth::Healthy)
             .collect::<Vec<_>>();
@@ -291,15 +340,8 @@ mod tests {
                 generation: 1,
                 route: route(),
             },
-            DaemonRegistryEvent::HealthObserved {
-                daemon_id: "daemon-a".into(),
-                generation: 1,
-                health: DaemonHealth::Offline,
-                version: "stale".into(),
-                capabilities: BTreeSet::new(),
-            },
         ]);
-        assert_eq!(projection.rejected_events, 1);
+        assert_eq!(projection.rejected_events, 0);
         assert_eq!(
             projection.resolve(&route()),
             Err(DaemonRegistryError::AmbiguousRoute)
@@ -320,5 +362,41 @@ mod tests {
             },
         ]);
         assert_eq!(revoked.resolve(&route()), Err(DaemonRegistryError::NoRoute));
+    }
+
+    #[test]
+    fn replay_survives_restart_and_quarantines_stale_duplicate_and_untrusted_daemons() {
+        let mut unsafe_registration = registration("daemon-unsafe", 1);
+        unsafe_registration.endpoint = "http://remote.example.test".into();
+        let events = vec![
+            DaemonRegistryEvent::Enrolled {
+                registration: registration("daemon-a", 1),
+            },
+            DaemonRegistryEvent::ScopeAssigned {
+                daemon_id: "daemon-a".into(),
+                generation: 1,
+                route: route(),
+            },
+            DaemonRegistryEvent::Enrolled {
+                registration: registration("daemon-a", 1),
+            },
+            DaemonRegistryEvent::Enrolled {
+                registration: unsafe_registration,
+            },
+        ];
+        let serialized = serde_json::to_vec(&events).unwrap();
+        let replayed_events: Vec<DaemonRegistryEvent> =
+            serde_json::from_slice(&serialized).unwrap();
+        let first = reduce_daemon_registry(events);
+        let after_restart = reduce_daemon_registry(replayed_events);
+        assert_eq!(first, after_restart);
+        assert_eq!(first.rejected_events, 2);
+        assert!(first.quarantined_daemons.contains_key("daemon-a"));
+        assert!(first.quarantined_daemons.contains_key("daemon-unsafe"));
+        assert_eq!(first.resolve(&route()), Err(DaemonRegistryError::NoRoute));
+        assert_eq!(
+            serde_json::to_vec(&first).unwrap(),
+            serde_json::to_vec(&after_restart).unwrap()
+        );
     }
 }
