@@ -60,6 +60,7 @@ pub mod bonjour;
 pub mod cache;
 pub mod claim_gate;
 pub mod clt;
+pub mod compaction_policy;
 pub mod connector_auth;
 pub mod connectors;
 pub mod constitution;
