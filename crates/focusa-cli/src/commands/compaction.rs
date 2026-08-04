@@ -6,6 +6,24 @@ use serde_json::{Value, json};
 
 #[derive(Subcommand, Debug)]
 pub enum CompactionCmd {
+    /// Show the scoped adaptive compaction policy, evidence, rollback, and override.
+    Policy,
+    /// Set an explicit scoped, durable, reversible operator route override.
+    Override {
+        #[arg(long)]
+        route: String,
+        #[arg(long)]
+        reason: String,
+        #[arg(long, default_value = "operator")]
+        actor_ref: String,
+    },
+    /// Clear the scoped operator route override.
+    ClearOverride {
+        #[arg(long)]
+        reason: String,
+        #[arg(long, default_value = "operator")]
+        actor_ref: String,
+    },
     /// Inspect kept/omitted context, authority, evidence, and exact next tool.
     Inspect {
         #[arg(long)]
@@ -113,6 +131,25 @@ fn print_human(label: &str, response: &Value) {
         .and_then(Value::as_array)
         .map_or(0, Vec::len);
     println!("omitted_count={omitted}");
+    let policy = response.get("policy").unwrap_or(response);
+    for (name, pointer) in [
+        ("pressure_percent", "/pressure_percent"),
+        ("selected_route", "/selected_route"),
+        ("policy_reason", "/reason"),
+        ("rollback_route", "/rollback_route"),
+        ("override_route", "/operator_override/route"),
+        ("override_receipt", "/operator_override/receipt_id"),
+    ] {
+        if let Some(value) = policy.pointer(pointer).filter(|value| !value.is_null()) {
+            println!(
+                "{name}={}",
+                value
+                    .as_str()
+                    .map(str::to_string)
+                    .unwrap_or_else(|| value.to_string())
+            );
+        }
+    }
     if let Some(changed) = response.get("changed_fields").and_then(Value::as_array) {
         let fields = changed.iter().filter_map(Value::as_str).collect::<Vec<_>>();
         println!("changed_fields={}", fields.join(","));
@@ -122,6 +159,27 @@ fn print_human(label: &str, response: &Value) {
 pub async fn run(command: CompactionCmd, json_mode: bool) -> anyhow::Result<()> {
     let api = ApiClient::new();
     let (label, response) = match command {
+        CompactionCmd::Policy => ("policy", api.get("/v1/compaction/policy").await?),
+        CompactionCmd::Override {
+            route,
+            reason,
+            actor_ref,
+        } => (
+            "policy-override",
+            api.post(
+                "/v1/compaction/policy/override",
+                &json!({"action":"set","route":route,"reason":reason,"actor_ref":actor_ref}),
+            )
+            .await?,
+        ),
+        CompactionCmd::ClearOverride { reason, actor_ref } => (
+            "policy-clear-override",
+            api.post(
+                "/v1/compaction/policy/override",
+                &json!({"action":"clear","reason":reason,"actor_ref":actor_ref}),
+            )
+            .await?,
+        ),
         CompactionCmd::Inspect { packet_id } => {
             let path = format!("/v1/compaction/inspect/{}", urlencoding::encode(&packet_id));
             ("inspect", api.get(&path).await?)

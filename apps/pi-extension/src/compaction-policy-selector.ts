@@ -17,7 +17,8 @@ export interface CompactionPolicySelection {
     | "summary_boundary"
     | "native_pressure"
     | "native_compaction_unavailable"
-    | "policy_quarantined";
+    | "policy_quarantined"
+    | "operator_override";
   percent: number | null;
   deterministicKey: string;
 }

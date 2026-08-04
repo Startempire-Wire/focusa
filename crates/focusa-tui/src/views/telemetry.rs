@@ -55,6 +55,38 @@ pub fn render(app: &App, frame: &mut ratatui::Frame, area: Rect) {
         lines.push(Line::from("  No telemetry data").style(theme::label()));
     }
 
+    lines.push(Line::default());
+    lines.push(Line::from("  Compaction Policy:").style(theme::label()));
+    if let Some(Some(policy)) = app.extra_data.get("compaction_policy") {
+        let field = |pointer: &str| {
+            policy
+                .pointer(pointer)
+                .filter(|value| !value.is_null())
+                .map(|value| {
+                    value
+                        .as_str()
+                        .map(str::to_string)
+                        .unwrap_or_else(|| value.to_string())
+                })
+                .unwrap_or_else(|| "none".into())
+        };
+        for (label, pointer) in [
+            ("Pressure", "/pressure_percent"),
+            ("Route", "/selected_route"),
+            ("Reason", "/reason"),
+            ("Rollback", "/rollback_route"),
+            ("Override", "/operator_override/route"),
+            ("Receipt", "/operator_override/receipt_id"),
+        ] {
+            lines.push(Line::from(vec![
+                Span::styled(format!("    {label}: "), theme::label()),
+                Span::styled(field(pointer), theme::value()),
+            ]));
+        }
+    } else {
+        lines.push(Line::from("    Unavailable").style(theme::label()));
+    }
+
     let para = Paragraph::new(lines)
         .block(block)
         .scroll((app.scroll_offset, 0));

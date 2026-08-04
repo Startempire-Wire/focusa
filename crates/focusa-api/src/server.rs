@@ -558,6 +558,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::env::router())
         .merge(routes::commands::router())
         .merge(routes::compaction::router())
+        .merge(routes::compaction_policy::router())
         .merge(routes::convergence::router())
         .merge(routes::capabilities::router())
         .merge(routes::capabilities_extra::router())

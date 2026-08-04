@@ -25,6 +25,7 @@ import {
   type CompactionContinuationSnapshot,
   type CompactionOutcomeBaseline,
 } from "./compaction-outcome-evaluator.js";
+import { focusaFetch, focusaPost } from "./state.js";
 import {
   emptyCompactionAuthorityProjection,
   reduceCompactionAuthorityEvents,
@@ -155,6 +156,14 @@ type CompactionLeaseOwner = {
   moduleLoadId: string;
 };
 
+type CompactionOperatorOverride = {
+  receipt_id: string;
+  route: CompactionPolicySelection["route"];
+  reason: string;
+  actor_ref: string;
+  created_at: string;
+};
+
 type ProcessCompactionLease = {
   schema: "focusa.compaction.coordinator.v1";
   generation: number;
@@ -165,6 +174,7 @@ type ProcessCompactionLease = {
   attemptOwnerId?: string;
   retryOwnerId?: string;
   projection: CompactionAuthorityProjection;
+  operatorOverride?: CompactionOperatorOverride;
   request?: (
     ctx: ExtensionContext,
     request: CoordinatedCompactionRequest
@@ -185,6 +195,40 @@ const REGISTERED_HANDLERS = [
 const EVENT_TYPE = "focusa_auto_compaction_event";
 const INSTRUCTIONS =
   "Preserve the current user ask, project_root + continuity_id authority, Workpoint and Trajectory authority, verified evidence handles, blockers, exact next action, and do-not-drift boundaries. Keep stable instructions verbatim where practical; summarize only older conversation detail.";
+
+function selectionOwner(
+  route: CompactionPolicySelection["route"]
+): CompactionPolicySelection["executionOwner"] {
+  if (route === "no_op") return "none";
+  if (route === "rollover") return "operator";
+  if (route === "native_compact" || route === "summarize") return "pi";
+  return "focusa";
+}
+
+function applyOperatorOverride(
+  selection: CompactionPolicySelection,
+  override: CompactionOperatorOverride | undefined
+): CompactionPolicySelection {
+  if (!override) return selection;
+  return {
+    ...selection,
+    route: override.route,
+    executionOwner: selectionOwner(override.route),
+    reason: "operator_override",
+    deterministicKey: `override:${override.receipt_id}:${override.route}`,
+  };
+}
+
+function policyOverride(value: any): CompactionOperatorOverride | undefined {
+  const candidate = value?.policy?.operator_override ?? value?.operator_override;
+  return candidate &&
+    typeof candidate.receipt_id === "string" &&
+    ["no_op", "curate_context", "checkpoint", "summarize", "native_compact", "rollover"].includes(
+      candidate.route
+    )
+    ? candidate
+    : undefined;
+}
 
 function processCompactionLease(): ProcessCompactionLease {
   const scope = globalThis as typeof globalThis & {
@@ -542,6 +586,45 @@ export function registerAutoCompaction(
     }
   };
 
+  pi.registerCommand("focusa-compaction-policy", {
+    description: "Show or override the scoped adaptive compaction policy",
+    handler: async (args, ctx) => {
+      const [action = "status", route, ...reasonParts] = String(args || "")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+      let response: any;
+      if (action === "set") {
+        response = await focusaFetch("/compaction/policy/override", {
+          method: "POST",
+          body: JSON.stringify({
+            action: "set",
+            route,
+            reason: reasonParts.join(" ") || "explicit Pi operator override",
+            actor_ref: "pi-operator",
+          }),
+        });
+      } else if (action === "clear") {
+        response = await focusaFetch("/compaction/policy/override", {
+          method: "POST",
+          body: JSON.stringify({
+            action: "clear",
+            reason: [route, ...reasonParts].filter(Boolean).join(" ") || "Pi operator cleared override",
+            actor_ref: "pi-operator",
+          }),
+        });
+      } else {
+        response = await focusaFetch("/compaction/policy");
+      }
+      processLease.operatorOverride = policyOverride(response);
+      const policy = response?.policy ?? response;
+      const text = response
+        ? `Compaction policy: ${policy?.pressure_percent ?? "?"}% · route=${policy?.selected_route ?? "none"} · reason=${policy?.reason ?? "none"} · rollback=${policy?.rollback_route ?? "none"} · override=${policy?.operator_override?.route ?? "none"}${response?.receipt?.receipt_id ? ` · receipt=${response.receipt.receipt_id}` : ""}`
+        : "Compaction policy unavailable; no local authority changed.";
+      if (ctx.hasUI) ctx.ui.notify(text, response ? "info" : "warning");
+    },
+  });
+
   const notifyOnce = (
     ctx: ExtensionContext,
     key: string,
@@ -877,11 +960,21 @@ export function registerAutoCompaction(
     const capabilities = providerCompactionCapabilities(ctx);
     const pressureTelemetry = contextPressureTelemetry(ctx, capabilities);
     const candidatePolicy = selectCompactionPolicy(pressureTelemetry, capabilities);
-    const policySelection = applyCompactionPolicyQuarantine(
-      candidatePolicy,
-      processLease.projection.quarantinedPolicyKeys,
-      processLease.projection.rollbackRoute
+    const policySelection = applyOperatorOverride(
+      applyCompactionPolicyQuarantine(
+        candidatePolicy,
+        processLease.projection.quarantinedPolicyKeys,
+        processLease.projection.rollbackRoute
+      ),
+      processLease.operatorOverride
     );
+    focusaPost("/compaction/policy/report", {
+      pressure_percent: pressureTelemetry.percent,
+      selected_route: policySelection.route,
+      reason: policySelection.reason,
+      evidence_refs: capabilities.evidenceRefs,
+      rollback_route: processLease.projection.rollbackRoute,
+    });
     persist("pressure_observed", {
       pressure_telemetry: pressureTelemetry,
       provider_capabilities: capabilities,
@@ -1128,6 +1221,8 @@ export function registerAutoCompaction(
       )
       .map((entry) => entry.data);
     processLease.projection = reduceCompactionAuthorityEvents(persistedEvents);
+    const policyStatus = await focusaFetch("/compaction/policy").catch(() => null);
+    processLease.operatorOverride = policyOverride(policyStatus);
     inFlight = false;
     lastAttemptAt = undefined;
     stopCompactionHeartbeat(ctx);

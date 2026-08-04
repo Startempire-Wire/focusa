@@ -400,8 +400,17 @@ impl App {
             );
             let value = self.client.fetch_json(&endpoint).await.ok();
             self.extra_data.insert("prediction_authority".into(), value);
+            let compaction_endpoint = format!(
+                "/v1/compaction/policy?project_root={}&continuity_id={}",
+                encode_query_component(&root_path),
+                encode_query_component(&continuity_id),
+            );
+            let compaction_policy = self.client.fetch_json(&compaction_endpoint).await.ok();
+            self.extra_data
+                .insert("compaction_policy".into(), compaction_policy);
         } else {
             self.extra_data.insert("prediction_authority".into(), None);
+            self.extra_data.insert("compaction_policy".into(), None);
         }
     }
 

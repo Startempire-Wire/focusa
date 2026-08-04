@@ -20,6 +20,7 @@ pub mod capabilities_extra;
 pub mod clt;
 pub mod commands;
 pub mod compaction;
+pub mod compaction_policy;
 pub mod constitution;
 pub mod context_claims;
 pub mod context_cognition;
