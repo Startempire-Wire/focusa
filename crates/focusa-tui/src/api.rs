@@ -106,32 +106,6 @@ impl DaemonRoutingAuthority {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct LettaSurfaceStatus {
-    pub schema: String,
-    pub availability: String,
-    pub identity: Option<Value>,
-    pub active_operation: Option<String>,
-    pub evidence_refs: Vec<String>,
-    pub recovery: Value,
-    pub controls: Vec<Value>,
-    pub capability_contract: Value,
-}
-
-impl LettaSurfaceStatus {
-    pub fn display(&self) -> String {
-        format!(
-            "letta={} operation={} recovery={}",
-            self.availability,
-            self.active_operation.as_deref().unwrap_or("none"),
-            self.recovery
-                .get("required")
-                .and_then(Value::as_bool)
-                .unwrap_or(true)
-        )
-    }
-}
-
 pub struct ApiClient {
     base_url: String,
     client: Client,
@@ -154,18 +128,6 @@ impl ApiClient {
         let url = format!("{}{}", self.base_url, path);
         let resp = self.client.get(&url).send().await?.json().await?;
         Ok(resp)
-    }
-
-    pub async fn fetch_letta_status(&self) -> Result<LettaSurfaceStatus> {
-        let url = format!("{}/v1/letta/status", self.base_url);
-        Ok(self
-            .client
-            .get(url)
-            .send()
-            .await?
-            .error_for_status()?
-            .json()
-            .await?)
     }
 
     pub async fn resolve_daemon_routing(

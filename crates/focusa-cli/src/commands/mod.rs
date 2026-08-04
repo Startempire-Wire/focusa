@@ -35,7 +35,6 @@ pub mod hlt;
 pub mod init;
 pub mod install;
 pub mod intro;
-pub mod letta;
 pub mod license;
 pub mod lifecycle_guidance;
 pub mod lineage;
