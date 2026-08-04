@@ -337,6 +337,42 @@ mod tests {
     }
 
     #[test]
+    fn synthetic_authority_denials_and_products_are_exact() {
+        for reason in ["wrong_product", "revoked", "refund", "node_limit"] {
+            let request = request();
+            let mut session =
+                DeviceAuthorizationSession::new(&request, challenge(&request), 1_000, 3).unwrap();
+            assert!(matches!(
+                session.observe_poll(
+                    DeviceCodePollResponse::Denied {
+                        reason_code: reason.into()
+                    },
+                    3_000
+                ),
+                Err(AuthorityClientError::Denied(actual)) if actual == reason
+            ));
+        }
+        for lease_kind in ["evaluation", "paid", "bundle"] {
+            let request = request();
+            let mut session =
+                DeviceAuthorizationSession::new(&request, challenge(&request), 1_000, 3).unwrap();
+            session
+                .observe_poll(
+                    DeviceCodePollResponse::Authorized {
+                        signed_lease: format!("signed-{lease_kind}"),
+                        refresh_credential: format!("refresh-{lease_kind}"),
+                    },
+                    3_000,
+                )
+                .unwrap();
+            assert_eq!(
+                session.material().unwrap().signed_lease,
+                format!("signed-{lease_kind}")
+            );
+        }
+    }
+
+    #[test]
     fn wrong_request_origin_expiry_and_denial_fail_closed() {
         let request = request();
         let mut wrong = challenge(&request);
