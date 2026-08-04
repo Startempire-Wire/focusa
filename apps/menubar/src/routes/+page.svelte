@@ -1,5 +1,6 @@
 <script lang="ts">
   import { fetchJson, focusaPost, hasEverConnected } from '$lib/api';
+  import { subscribeFocusaDeepLinks, tabForFocusaDeepLink } from '$lib/deepLink';
   import { getProjectContext } from '$lib/projectContext.svelte';
   import { predictionScopedPath, projectScopedPath, workLoopScopedPaths } from '$lib/workLoopScope.js';
   import { focusStore } from '$lib/stores/focus.svelte';
@@ -172,6 +173,17 @@
   }
 
   onMount(() => {
+    let disposed = false;
+    let stopDeepLinks: (() => void) | undefined;
+    void subscribeFocusaDeepLinks((intent) => {
+      activeTab = tabForFocusaDeepLink(intent);
+    }).then((unlisten) => {
+      if (disposed) unlisten();
+      else stopDeepLinks = unlisten;
+    }).catch(() => {
+      // Browser-only preview has no Tauri command surface; tray behavior remains intact.
+    });
+
     everConnected = hasEverConnected();
     const onSaved = () => {
       everConnected = true;
@@ -186,6 +198,8 @@
       pollTimer = setInterval(poll, 2000);
     }
     return () => {
+      disposed = true;
+      stopDeepLinks?.();
       window.removeEventListener('focusa-connection-saved', onSaved);
       if (pollTimer) clearInterval(pollTimer);
     };

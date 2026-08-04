@@ -13,6 +13,8 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod deep_link;
+
 const KEYCHAIN_SERVICE: &str = "Focusa Menubar Device Token";
 const BRIDGE_CALLBACK_MAX_BODY: usize = 64 * 1024;
 
@@ -402,11 +404,16 @@ fn focusa_clear_pairing_token(device_id: String) -> Result<(), String> {
     }
 }
 
+use deep_link::{
+    parse_focusa_deep_link, DeepLinkRuntimeState, Delivery, FocusaDeepLinkIntent,
+    FocusaDeepLinkRejection, DEEP_LINK_EVENT, DEEP_LINK_REJECTED_EVENT,
+};
 use tauri::{
-    Manager, WindowEvent,
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    AppHandle, Emitter, Manager, State, WindowEvent,
 };
+use tauri_plugin_deep_link::DeepLinkExt;
 
 /// Result of a Bonjour / mDNS browse for `_focusa._tcp.local` services.
 /// `url` is the daemon's public URL (read from the service TXT record);
@@ -476,12 +483,51 @@ async fn focusa_discover_via_bonjour(
     Ok(None)
 }
 
+#[tauri::command]
+fn focusa_take_deep_link_intents(
+    state: State<'_, DeepLinkRuntimeState>,
+) -> Vec<FocusaDeepLinkIntent> {
+    state.take_pending_and_mark_ready()
+}
+
+fn dispatch_focusa_deep_links(app: &AppHandle, urls: Vec<url::Url>) {
+    for url in urls {
+        let intent = match parse_focusa_deep_link(&url) {
+            Ok(intent) => intent,
+            Err(error) => {
+                tracing::warn!(
+                    reason_code = error.reason_code(),
+                    "rejected Focusa deep link"
+                );
+                let _ = app.emit(
+                    DEEP_LINK_REJECTED_EVENT,
+                    FocusaDeepLinkRejection {
+                        schema: "focusa.deep_link_rejection.v1",
+                        reason_code: error.reason_code(),
+                    },
+                );
+                continue;
+            }
+        };
+
+        if let Delivery::Warm(intent) = app.state::<DeepLinkRuntimeState>().accept(intent) {
+            let _ = app.emit(DEEP_LINK_EVENT, intent);
+        }
+        if let Some(window) = app.get_webview_window("main") {
+            let _ = window.show();
+            let _ = window.set_focus();
+        }
+    }
+}
+
 fn main() {
     tauri::Builder::default()
         .manage(Arc::new(BridgeRuntimeState::default()))
+        .manage(DeepLinkRuntimeState::default())
         .plugin(tauri_plugin_positioner::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_deep_link::init())
         .invoke_handler(tauri::generate_handler![
             focusa_save_pairing_token,
             focusa_load_pairing_token,
@@ -489,8 +535,22 @@ fn main() {
             focusa_start_bridge_callback,
             focusa_take_bridge_completion,
             focusa_discover_via_bonjour,
+            focusa_take_deep_link_intents,
         ])
         .setup(|app| {
+            // Register warm activation before reading cold-start URLs. The process-memory
+            // queue preserves cold intents until the Svelte frontend marks itself ready.
+            let deep_link_app = app.handle().clone();
+            app.deep_link().on_open_url(move |event| {
+                dispatch_focusa_deep_links(&deep_link_app, event.urls());
+            });
+            let startup_urls = app
+                .deep_link()
+                .get_current()
+                .ok()
+                .flatten()
+                .unwrap_or_default();
+
             // macOS: hide dock icon — menubar-only app
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
@@ -548,6 +608,7 @@ fn main() {
                 })
                 .build(app)?;
 
+            dispatch_focusa_deep_links(app.handle(), startup_urls);
             Ok(())
         })
         .run(tauri::generate_context!())

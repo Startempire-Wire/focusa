@@ -44,6 +44,11 @@
     }
   },
   "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["focusa"]
+      }
+    },
     "updater": {
       "endpoints": [
         "https://github.com/Startempire-Wire/focusa/releases/latest/download/latest.json"

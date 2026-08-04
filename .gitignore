@@ -11,6 +11,7 @@ build/
 
 # Tauri
 apps/menubar/src-tauri/target/
+apps/menubar/src-tauri/gen/
 
 # Runtime data (never committed)
 /data/
