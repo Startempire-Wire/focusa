@@ -80,7 +80,7 @@ flowchart TD
   R[Spec140]
   O[Spec144]
   I[Spec150]
-  B[Admitted baseline lanes #52 #89 #101 #106 #112 and retained #119 obligations]
+  B[Release governance lane #106]
   A[Integrated acceptance 8.1]
   D[Dogfood 8.2]
   Q[Truthful candidate decision 8.3]
@@ -243,87 +243,33 @@ Starts after `9.4`.
 → join 9.9
 ```
 
-## 8. Phase 2 — Baseline GitHub issue lanes
+## 8. Phase 2 — Admission-qualified GitHub issue lanes
 
-These issues existed before `v0.9.143`. Their later children refine release obligations; they are not optional feature expansion.
+GitHub issue presence, age, severity, parentage, labels, or implementation does not admit work into the immutable release. Only GH#106 remains as a reconstructed issue lane because it directly governs correction of the mangled prior release. Other broad epics stay in the repository and retain evidence but do not join release acceptance or publication.
 
-### 8.1 GH119 — licensing and unified onboarding
+### 8.1 Explicitly excluded future lane — GH119 licensing and unified onboarding
 
-Use join identity `focusa-vbcqu.20`; admitted widget identity `focusa-vbcqu.10` remains distinct.
-
-```text
-10.1 inventory license decisions/production fixtures
-→ 10.2 signed lease/key-set schema and golden vectors
-→ 10.3 one entitlement service
-→ 10.4 recovery-only daemon route groups
-→ 10.5 authority device-code/lease client
-→ 10.6 OS-protected node/refresh credentials
-→ 10.7 authority-backed installer activation
-→ 10.8 every feature/limit surface
-→ 10.9 scoped UIAI child tokens
-→ 10.10 paid/evaluation migration and rollback
-→ 10.11 licensing/install documentation reconciliation
-→ 10.12 installed cross-surface licensing acceptance
-→ GH119
-```
-
-External private-authority work may leave `10.2` or `10.5` waiting; it cannot be marked complete from a synthetic-only production claim.
+GH#119 uses preserved future identity `focusa-vbcqu.20`; immutable r7 widget identity `focusa-vbcqu.10` remains distinct. The GH#119 epic and children are outside `workset:focusa-next-locked-release:r7` and cannot block GH#106, REL19, candidate assembly, or publication. Existing code/evidence remains preserved. Independently explicit signed-lease, fail-closed entitlement, no-plaintext-tier, and no-self-issued-evaluation requirements remain release safety invariants without admitting the broader private authority rollout.
 
 ### 8.2 Explicitly excluded future lane — GH45 Mission Canvas refresh
 
 GH#45 and `focusa-vbcqu.11.*` remain valid future Mission Canvas work but are not admitted to `workset:focusa-next-locked-release:r7`. Their Beads are deferred outside the locked-release root; they do not join GH#106, GH#52, `8.1`, candidate assembly, or publication. Repository implementation and issue history remain intact for the separately owned Mission Canvas transition.
 
-### 8.3 GH89 — controller/daemon multiplexing
+### 8.3 Explicitly excluded reconstructed lane — GH89 controller/daemon multiplexing
 
-```text
-12.1 identity contract
-→ 12.2 daemon registry/capability discovery
-→ 12.3 exact-scope multiplexing
-→ 12.4 writer leases/idempotent mutation dispatch
-→ 12.5 disconnect/failover/replay recovery
-→ 12.6 remote authentication/scope isolation
-→ 12.7 CLI/Pi/TUI routing parity
-→ 12.8 concurrent remote-project stress acceptance
-→ GH89
-```
+GH#89 implementation and completed evidence remain preserved, but the post-lock reconstructed epic is detached from release gating. The exact-scope contamination requirement remains admitted through `focusa-gkwt` and original immutable identities; GH#89 itself does not join GH#106, REL19, or publication.
 
-### 8.4 GH101 — managed installation convergence
+### 8.4 Explicitly excluded future lane — GH101 managed installation convergence
 
-Starts after GH89 routing/auth foundation and GH119 entitlement foundation.
-
-```text
-13.1 enrollment/desired-state authority
-→ 13.2 installation inventory/health projection
-→ 13.3 signed convergence planner
-→ {13.4 macOS adapter, 13.5 Linux adapter, 13.6 Windows adapter}
-→ 13.7 scheduler/retry/offline recovery
-→ 13.8 fleet status/operator controls
-→ 13.9 multi-host convergence acceptance
-→ GH101
-```
-
-Platform adapters are parallel after the planner; artificial serial platform ordering is removed.
+GH#101 fleet enrollment, multi-host scheduling, adapters, and convergence controls remain valid future product work but are outside `workset:focusa-next-locked-release:r7`. Existing code/evidence remains preserved. Original locked Windows asset, host-local install/OTA/rollback, version parity, and installed-release proof continue through their admitted identities rather than this broad fleet epic.
 
 ### 8.5 Explicitly excluded optional lane — GH107 Letta
 
 GH#107 is optional/non-core. It is not admitted to the locked release, does not join GH106/GH52/8.1, and cannot block publication. Its Beads are deferred outside the locked-release root.
 
-### 8.6 GH112 — adaptive compaction
+### 8.6 Explicitly excluded reconstructed lane — GH112 adaptive compaction
 
-```text
-16.1 provider capability inventory
-→ 16.2 deterministic pressure telemetry
-→ 16.3 policy candidates/selector
-→ 16.4 durable authority events/projections
-→ 16.5 transactional checkpoint/compaction
-→ 16.6 measured outcome evaluation/rollback
-→ 16.7 provider adapters/safe fallback
-→ 16.8 surface policy status/controls
-→ 16.9 two installed long-session/adversarial runs
-→ GH112
-```
-
-Pi-native compaction remains the executor where applicable; Focusa must not race fire-and-forget `compact()` calls.
+GH#112 implementation and completed evidence remain preserved, but the broad post-lock policy epic is detached from release gating. Explicitly admitted compaction lifecycle regressions continue under `focusa-627th.4.3` and `focusa-vbcqu.5.7`. Pi remains the native executor; Focusa must not race fire-and-forget `compact()` calls.
 
 ### 8.7 Explicitly excluded future lane — GH114 UIAI challenge capability
 
@@ -342,20 +288,9 @@ Starts only after all technical spec and issue lanes have stable evidence.
 → GH106
 ```
 
-### 8.9 GH52 — final consolidation
+### 8.9 Explicitly excluded future lane — GH52 onboarding consolidation
 
-Awaits GH89, admitted GH101 obligations, GH106, GH112, retained GH119 release-safety obligations, and all admitted core spec joins.
-
-```text
-18.1 inventory every onboarding entry/seam
-→ 18.2 remove/supersede dead roads
-→ 18.3 spec-to-runtime operation closure
-→ 18.4 first-run ordering/recovery
-→ 18.5 all-surface onboarding parity
-→ 18.6 two clean installed onboarding cycles
-→ 18.7 final consolidation receipt
-→ GH52
-```
+GH#52 broad onboarding, dead-road removal, and Mission Canvas parity remain future product work outside `workset:focusa-next-locked-release:r7`. Its Beads are deferred and it does not block REL19 candidate assembly. Narrow release reconciliation is owned by GH#106.
 
 ## 9. Phase 3 — Integrated acceptance and release
 
@@ -365,7 +300,7 @@ Awaits GH89, admitted GH101 obligations, GH106, GH112, retained GH119 release-sa
 
 - `focusa-gkwt`;
 - joins `2`, `9.3`, `9.5`, `9.6`, `8.4`, and `9.9`;
-- GH52, GH89, admitted GH101 obligations, GH106, GH112, and retained GH119 release-safety obligations;
+- GH#106 release-governance reconciliation;
 - exact candidate ancestry and no unresolved identity collision.
 
 Then:
@@ -378,12 +313,12 @@ Then:
 
 ### 9.2 All-surface artifact lane
 
-`19.1` is settled but revalidated. `19.2` may proceed before GH52; candidate assembly may not.
+`19.1` is settled but revalidated. `19.2` may proceed before GH#106 reconciliation; candidate assembly may not.
 
 ```text
 19.1 artifact contract [settled/revalidate]
 → 19.2 Windows native preflight and OTA fixtures
-{19.2, GH52, 8.3} → 19.3 regression-safe candidate assembly
+{19.2, GH106, 8.3} → 19.3 regression-safe candidate assembly
 → 19.4 build/sign/verify every artifact
 → 19.5 installed all-system acceptance twice
 → 19.6 monotonic stable publication
@@ -416,13 +351,9 @@ No mutation of `v0.9.143` is permitted.
 | Spec140 | Yes | `9.6` |
 | Spec144 | Foundations yes; cross-family waits | `8.4` |
 | Spec150 | Yes | `9.9` |
-| GH89/GH112 | Yes | Their issue joins |
-| GH45/GH114 | No; future/external work retained outside this release | No release join |
-| GH119 | Authority contract lane yes | GH119 |
-| GH101 | After GH89/GH119 foundations | GH101 |
-| GH106 | After technical evidence | GH106 |
-| GH52 | After every upstream issue/spec join | GH52 |
-| REL19.1–19.2 | Yes | Candidate waits on GH52 and 8.3 |
+| GH#45/#52/#89/#101/#107/#112/#114/#119 | No; repository/evidence retained outside this release | No release join |
+| GH106 | After immutable/admitted evidence | GH106 |
+| REL19.1–19.2 | Yes | Candidate waits on GH106 and 8.3 |
 
 ## 11. Mandatory frame return contract
 
