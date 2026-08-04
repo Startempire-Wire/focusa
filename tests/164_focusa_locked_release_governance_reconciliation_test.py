@@ -24,6 +24,9 @@ INVENTORY = json.loads(
 EVIDENCE_LINKS = json.loads(
     (AUDIT / "next-locked-release-governance-evidence-links.json").read_text()
 )
+MACOS_OTA_PROOF = json.loads(
+    (AUDIT / "next-locked-release-macos-ota-run-proof.json").read_text()
+)
 
 assert LEDGER["schema"] == "focusa.locked_release_governance_reconciliation.v1"
 assert LEDGER["workset_id"] == "workset:focusa-next-locked-release:r7"
@@ -37,6 +40,18 @@ for link in EVIDENCE_LINKS["links"]:
     assert link["evidence_refs"]
     for ref in link["evidence_refs"]:
         assert (ROOT / ref).is_file(), ref
+assert MACOS_OTA_PROOF["schema"] == "focusa.locked_release_macos_ota_run_proof.v1"
+assert MACOS_OTA_PROOF["github_run"]["database_id"] == 30355152821
+assert MACOS_OTA_PROOF["github_run"]["conclusion"] == "success"
+assert MACOS_OTA_PROOF["native_job"]["conclusion"] == "success"
+assert all(
+    step["conclusion"] == "success"
+    for step in MACOS_OTA_PROOF["native_job"]["verified_steps"]
+)
+assert set(MACOS_OTA_PROOF["bead_bindings"]) == {
+    "focusa-vbcqu.5.5",
+    "focusa-vbcqu.5.6",
+}
 assert LEDGER["provider_snapshot"]["sha256"].startswith("sha256:")
 assert len(LEDGER["provider_snapshot"]["sha256"]) == 71
 
