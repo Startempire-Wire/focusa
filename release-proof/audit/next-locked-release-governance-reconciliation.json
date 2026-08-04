@@ -3,9 +3,9 @@
   "evidence_links_digest": "sha256:8f123e42963ecd0eeb1c4e2c283ad7235b524eae24950186da2e073f3c862070",
   "evidence_state_counts": {
     "aggregate_child_evidence": 3,
-    "evidence_linked": 113,
+    "evidence_linked": 114,
     "exact_duplicate_receipt": 85,
-    "pending_technical_acceptance": 88
+    "pending_technical_acceptance": 87
   },
   "gaps": {
     "ambiguous_duplicate_closure_ids": [],
@@ -87,7 +87,6 @@
       "focusa-vbcqu.9.9.6",
       "focusa-vbcqu.10",
       "focusa-vbcqu.14",
-      "focusa-vbcqu.14.4",
       "focusa-vbcqu.14.5",
       "focusa-vbcqu.19",
       "focusa-vbcqu.19.2",
@@ -7889,12 +7888,18 @@
       "active_blocker_refs": [],
       "authority": "authorized_release_repair_overlay",
       "bead_id": "focusa-vbcqu.14.4",
-      "closure_receipt": null,
-      "evidence_state": "pending_technical_acceptance",
+      "closure_receipt": {
+        "close_reason": "Completed: immutable v0.9.143/tag ancestry, exact published asset snapshot, source-version agreement, accepted commit and PR ancestry, excluded workset identities, and monotonic v0.9.144 successor reconciled at git:2d660336; evidence bound at git:7dccf57d; reducer allow receipt sha256:8918d9f5bf46d8b64a2fc1e3fcf8135dc81a25cf09f07e008c3f164912384775. Release remains blocked; no tag or publication mutation occurred.",
+        "closed_at": "2026-08-04T20:45:01.241807096Z",
+        "exact_duplicate_of": null
+      },
+      "evidence_state": "evidence_linked",
       "frozen_projection": null,
       "github_issue_refs": [],
       "implementation_commit_refs": [
-        "git:2d6603365325a63992bbe6a25fb276c87787ab23"
+        "git:2d660336",
+        "git:2d6603365325a63992bbe6a25fb276c87787ab23",
+        "git:7dccf57d"
       ],
       "ordered_task_key": [
         "focusa",
@@ -7904,9 +7909,9 @@
       ],
       "parent_bead_id": "focusa-vbcqu.14",
       "projection_drift": false,
-      "provider_record_digest": "sha256:fc4c0918e5c7f0c3bd944ddc74ca09888a45177b0f3c6eb0f00925d23e03d066",
-      "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-04T20:44:05.398675428Z",
+      "provider_record_digest": "sha256:751319d24e5e2aecb3b4c0a73d9f8d7cdd8c6f7df8ebdde87e7dacfa68541c38",
+      "provider_state": "closed",
+      "provider_updated_at": "2026-08-04T20:45:01.241976567Z",
       "runtime_or_acceptance_evidence_refs": [
         "release-proof/audit/next-locked-release-candidate-ancestry.json",
         "release-proof/audit/next-locked-release-v09143-published-assets.json",
@@ -7916,9 +7921,7 @@
       "title": "106.4 Reconcile release tags and candidate ancestry"
     },
     {
-      "active_blocker_refs": [
-        "focusa-vbcqu.14.4"
-      ],
+      "active_blocker_refs": [],
       "authority": "authorized_release_repair_overlay",
       "bead_id": "focusa-vbcqu.14.5",
       "closure_receipt": null,
@@ -8505,19 +8508,19 @@
   ],
   "provider_snapshot": {
     "record_count": 2317,
-    "sha256": "sha256:d61f858cca1f71224c5d820f11993dbc26f6c13cd44e27b10118ee01111ffb29",
+    "sha256": "sha256:f75693f95f4874935be358f0908a2527eeec0fda6e6304cec23f9fafae3f78e4",
     "source": "canonical:.beads/issues.jsonl"
   },
   "provider_state_counts": {
     "blocked": 1,
-    "closed": 201,
-    "in_progress": 49,
+    "closed": 202,
+    "in_progress": 48,
     "open": 38
   },
-  "reconciliation_digest": "sha256:af835e3a4e3abcc1b20409e6a587e2abbd68a291c2e99fbefde6c7d49008515a",
+  "reconciliation_digest": "sha256:0b0001f976b82420a3b21cae41b5676e07d598890ae6c5ec6c6664175c39fab8",
   "repair_overlay_mapping_count": 14,
   "schema": "focusa.locked_release_governance_reconciliation.v1",
   "status": "blocked",
-  "unresolved_gap_count": 88,
+  "unresolved_gap_count": 87,
   "workset_id": "workset:focusa-next-locked-release:r7"
 }
