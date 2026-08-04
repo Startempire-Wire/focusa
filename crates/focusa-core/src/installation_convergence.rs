@@ -1,3 +1,5 @@
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
+use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use thiserror::Error;
@@ -35,6 +37,20 @@ pub struct InstallationEnrollment {
     pub authority_signature_ref: String,
     pub generation: u64,
     pub revoked: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SignedInstallationEnrollment {
+    pub schema: String,
+    pub enrollment: InstallationEnrollment,
+    pub signer_key_id: String,
+    pub signature_base64: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct InstallationEnrollmentProjection {
+    pub enrollments: BTreeMap<String, InstallationEnrollment>,
+    pub rejected_records: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -121,10 +137,77 @@ pub enum ConvergenceError {
     InvalidVersion(String),
     #[error("automatic downgrade is forbidden")]
     DowngradeForbidden,
+    #[error("enrollment signature is invalid")]
+    InvalidEnrollmentSignature,
+    #[error("enrollment signer is untrusted")]
+    UntrustedEnrollmentSigner,
+    #[error("enrollment owner differs from expected operator")]
+    EnrollmentOwnerMismatch,
+    #[error("enrollment record generation is stale")]
+    StaleEnrollmentRecord,
+    #[error("enrollment record schema is unsupported")]
+    UnsupportedEnrollmentSchema,
+}
+
+impl SignedInstallationEnrollment {
+    pub fn canonical_payload(&self) -> Result<Vec<u8>, ConvergenceError> {
+        if self.schema != "focusa.signed_installation_enrollment.v1" {
+            return Err(ConvergenceError::UnsupportedEnrollmentSchema);
+        }
+        serde_json::to_vec(&self.enrollment)
+            .map_err(|_| ConvergenceError::InvalidEnrollmentSignature)
+    }
+}
+
+pub fn verify_signed_enrollment(
+    record: &SignedInstallationEnrollment,
+    expected_operator_id: &str,
+    trusted_keys: &BTreeMap<String, [u8; 32]>,
+) -> Result<(), ConvergenceError> {
+    record.enrollment.validate_identity()?;
+    if record.enrollment.operator_id != expected_operator_id {
+        return Err(ConvergenceError::EnrollmentOwnerMismatch);
+    }
+    let key = trusted_keys
+        .get(&record.signer_key_id)
+        .ok_or(ConvergenceError::UntrustedEnrollmentSigner)?;
+    let verifying_key =
+        VerifyingKey::from_bytes(key).map_err(|_| ConvergenceError::UntrustedEnrollmentSigner)?;
+    let signature_bytes = BASE64
+        .decode(&record.signature_base64)
+        .map_err(|_| ConvergenceError::InvalidEnrollmentSignature)?;
+    let signature = Signature::from_slice(&signature_bytes)
+        .map_err(|_| ConvergenceError::InvalidEnrollmentSignature)?;
+    verifying_key
+        .verify(&record.canonical_payload()?, &signature)
+        .map_err(|_| ConvergenceError::InvalidEnrollmentSignature)
+}
+
+pub fn replay_signed_enrollments(
+    records: impl IntoIterator<Item = SignedInstallationEnrollment>,
+    expected_operator_id: &str,
+    trusted_keys: &BTreeMap<String, [u8; 32]>,
+) -> InstallationEnrollmentProjection {
+    let mut projection = InstallationEnrollmentProjection::default();
+    for record in records {
+        if verify_signed_enrollment(&record, expected_operator_id, trusted_keys).is_err()
+            || projection
+                .enrollments
+                .get(&record.enrollment.installation_id)
+                .is_some_and(|current| current.generation >= record.enrollment.generation)
+        {
+            projection.rejected_records += 1;
+            continue;
+        }
+        projection
+            .enrollments
+            .insert(record.enrollment.installation_id.clone(), record.enrollment);
+    }
+    projection
 }
 
 impl InstallationEnrollment {
-    pub fn validate(&self) -> Result<(), ConvergenceError> {
+    fn validate_identity(&self) -> Result<(), ConvergenceError> {
         for (value, field) in [
             (&self.installation_id, "installation_id"),
             (&self.operator_id, "operator_id"),
@@ -136,6 +219,11 @@ impl InstallationEnrollment {
                 return Err(ConvergenceError::MissingIdentity(field));
             }
         }
+        Ok(())
+    }
+
+    pub fn validate(&self) -> Result<(), ConvergenceError> {
+        self.validate_identity()?;
         if self.revoked {
             return Err(ConvergenceError::EnrollmentRevoked);
         }
@@ -250,6 +338,7 @@ fn parse_version(value: &str) -> Result<(u64, u64, u64), ConvergenceError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ed25519_dalek::{Signer, SigningKey};
 
     fn enrollment() -> InstallationEnrollment {
         InstallationEnrollment {
@@ -283,6 +372,55 @@ mod tests {
             artifact_manifest_digest: "sha256:manifest".into(),
             operator_approval_ref: "approval:1".into(),
         }
+    }
+
+    fn signed(
+        enrollment: InstallationEnrollment,
+        key: &SigningKey,
+    ) -> SignedInstallationEnrollment {
+        let mut record = SignedInstallationEnrollment {
+            schema: "focusa.signed_installation_enrollment.v1".into(),
+            enrollment,
+            signer_key_id: "operator-key-1".into(),
+            signature_base64: String::new(),
+        };
+        record.signature_base64 =
+            BASE64.encode(key.sign(&record.canonical_payload().unwrap()).to_bytes());
+        record
+    }
+
+    #[test]
+    fn signed_enrollment_is_owner_scoped_revocable_and_replayable() {
+        let key = SigningKey::from_bytes(&[7; 32]);
+        let trusted = BTreeMap::from([("operator-key-1".into(), key.verifying_key().to_bytes())]);
+        let admitted = signed(enrollment(), &key);
+        verify_signed_enrollment(&admitted, "operator-1", &trusted).unwrap();
+
+        let mut revoked_enrollment = enrollment();
+        revoked_enrollment.generation = 4;
+        revoked_enrollment.revoked = true;
+        let revoked = signed(revoked_enrollment, &key);
+        let projection = replay_signed_enrollments(
+            [admitted.clone(), revoked.clone(), admitted.clone()],
+            "operator-1",
+            &trusted,
+        );
+        assert!(projection.enrollments["install-1"].revoked);
+        assert_eq!(projection.rejected_records, 1);
+        let restarted: InstallationEnrollmentProjection =
+            serde_json::from_slice(&serde_json::to_vec(&projection).unwrap()).unwrap();
+        assert_eq!(restarted, projection);
+
+        let mut tampered = admitted.clone();
+        tampered.enrollment.channel = "foreign".into();
+        assert_eq!(
+            verify_signed_enrollment(&tampered, "operator-1", &trusted),
+            Err(ConvergenceError::InvalidEnrollmentSignature)
+        );
+        assert_eq!(
+            verify_signed_enrollment(&admitted, "operator-foreign", &trusted),
+            Err(ConvergenceError::EnrollmentOwnerMismatch)
+        );
     }
 
     #[test]
