@@ -469,6 +469,17 @@
         "docs/evidence/v0.9.135/54-temporal-authority-proof.txt"
       ],
       "proof_scope": "Spec137 commitment, deadline, urgency, forecast, and release-gate authority slice"
+    },
+    {
+      "bead_id": "focusa-vbcqu.14.3",
+      "evidence_refs": [
+        "release-proof/audit/next-locked-release-technical-closure-gate.json",
+        "tests/165_focusa_locked_release_technical_closure_reducer_test.py"
+      ],
+      "implementation_commit_refs": [
+        "git:843df64690efa6c3fdf6dc0482d363a9445b87c7"
+      ],
+      "proof_scope": "deterministic fail-closed technical closure reducer and release gate"
     }
   ]
 }

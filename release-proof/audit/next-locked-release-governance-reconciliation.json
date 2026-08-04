@@ -1,6 +1,6 @@
 {
   "admitted_mapping_count": 289,
-  "evidence_links_digest": "sha256:cd34e7e823db9c1f1928273f326f99520d4c87b327ba9e1bfb5a0afab204a12f",
+  "evidence_links_digest": "sha256:6dfbb7b5f632593aba8c3c77f7eb67b9ecd8339b0c637476d9ec0116a222381f",
   "evidence_state_counts": {
     "aggregate_child_evidence": 3,
     "evidence_linked": 112,
@@ -7859,7 +7859,9 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": null,
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:843df64690efa6c3fdf6dc0482d363a9445b87c7"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7871,7 +7873,10 @@
       "provider_record_digest": "sha256:db360d987ee979612984665a261856666af494dbbb39368b197f2a773dc67a36",
       "provider_state": "in_progress",
       "provider_updated_at": "2026-08-04T20:25:13.471685490Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "release-proof/audit/next-locked-release-technical-closure-gate.json",
+        "tests/165_focusa_locked_release_technical_closure_reducer_test.py"
+      ],
       "task_plan_ref": null,
       "title": "106.3 Enforce technical closure reducer and gate"
     },
@@ -8500,7 +8505,7 @@
     "in_progress": 49,
     "open": 39
   },
-  "reconciliation_digest": "sha256:0cbb4fecbbe6339288a09d69d1d557b23ce0374ef57e0e19460ca275ac3bbc2d",
+  "reconciliation_digest": "sha256:55da5a19563a26660f761b08e21d05714f10cf114dfe2fd7808de3a136ee92b9",
   "repair_overlay_mapping_count": 14,
   "schema": "focusa.locked_release_governance_reconciliation.v1",
   "status": "blocked",
