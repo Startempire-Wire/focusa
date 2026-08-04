@@ -6,6 +6,10 @@ Authority read from: `origin/transition/spec158-desktop-pivot` at `47a9134143d04
 
 Coordination issues read: #125 and #128
 
+## Absolute browser-authority policy
+
+UIAI Engine is the exclusive browser execution and evaluation authority across the entire Focusa project, including application code, dependencies, tests, fixtures, scripts, browser previews, CI, milestone proof, native validation, release validation, and recovery tooling. No phase or milestone may introduce a separate browser runtime, test harness, fallback, optional adapter, or parallel authority.
+
 ## A. Worktree path, branch, and HEAD
 
 - Worktree: `/Volumes/Macintosh HD/Users/vsmith/focusa-mission-canvas`
@@ -179,7 +183,7 @@ The checkpoint is local only and has not been pushed, tagged, rebased, or merged
 | `apps/menubar/src/lib/components/MissionCanvasView.svelte` and `RuntimeView` | Menubar Mission Canvas/status content | current main/branch common | Spec96/Spec135 static tests | selected project/session/current runtime presentation | reduce to bounded status/handoff; no full primary Mission Canvas or remembered-selection authority | menubar | `retire_after_parity` | Desktop owns complete canvas; menubar opens/hands off exact Workstream safely | Desktop parity plus approved menubar compatibility matrix | current component delegates substantial content to `RuntimeView` |
 | `apps/pi-extension/tests/mission-canvas*`, `work-rail*`, scoped refresh/project binding tests | Pi behavior and identity characterization | mixed current-main and branch-only | latest results in section E | mostly project root + continuity + Session/Attachment fixtures | add stable Workstream, workspace-binding, attachment and adversarial collision fixtures | test ownership follows shared/Pi boundaries | `preserve_as_is` | existing behavior recorded before extraction; new identity tests fail old fallback paths | replacement tests green in shared, Pi, browser, and native runs | preserve failing static firewall as migration evidence until disposition approved |
 | `tests/spec135_mission_canvas*` | Repository contracts, generated parity, host/firewall, e2e | largely branch-only | 7 pass, 1 static fail, 1 daemon-blocked | Spec 135 terminology and old scope contracts | overlay Spec 158 ownership and milestone truth; do not mechanically rewrite generated artifacts | repository acceptance | `replace_generated` | regenerated contracts derive from approved Workstream-aware source and deterministic checks pass | source contracts approved, generator rerun bounded, migration matrix accepted | no lockfile regeneration required |
-| `apps/pi-extension/tests/mission-canvas-uiai-server.mjs` and browser isolation fields | Browser proof harness/isolation projection | branch-only | layout/reference/performance coverage; no fresh UIAI session in audit phase | browser class + Work Surface/session; no Workstream | browser session capability must bind exact Workstream/Attachment; UIAI remains execution authority | Desktop preview harness + UIAI integration | `port_desktop` | same authored app runs browser/Tauri and browser evidence is Workstream-scoped | 5% UIAI/browser proof and later native parity | do not add Playwright |
+| `apps/pi-extension/tests/mission-canvas-uiai-server.mjs` and browser isolation fields | Browser proof harness/isolation projection | branch-only | layout/reference/performance coverage; no fresh UIAI session in audit phase | browser class + Work Surface/session; no Workstream | browser session capability must bind exact Workstream/Attachment; UIAI Engine is the exclusive browser execution/evaluation authority | Desktop preview harness + UIAI integration | `port_desktop` | same authored app runs browser/Tauri and browser evidence is Workstream-scoped | 5% UIAI/browser proof and later native parity | all browser execution, tests, CI, proof, fallback, and adapters must use UIAI Engine exclusively |
 | worktree/working-subpath fields across model, API, binding, and session paths | Distinguish runtime checkout topology | mixed | project-binding and session tests | path/subpath/worktree strings; host distinction incomplete | introduce WorkspaceBindingId under exact Scope/Workstream/Attachment relationships | shared runtime | `investigate` | identical paths on different hosts and sibling worktrees never share execution authority implicitly | T022 plus remote/worktree adversarial proof | other worktrees are evidence, not merge inputs |
 
 ## I. Spec 158 identity conflicts
@@ -265,7 +269,7 @@ Create the real `apps/desktop/` application as the primary Focusa Desktop identi
 - Pi PTY embedding;
 - updater/release packaging;
 - lockfile regeneration unless a bounded dependency addition proves it necessary;
-- Playwright or any browser authority other than UIAI Engine;
+- any browser execution or evaluation authority other than UIAI Engine, including dependencies, tests, scripts, CI, fixtures, proof, fallback, and optional adapters;
 - release tags, pushes, GitHub Releases, or shipping artifacts.
 
 ### Required browser proof
