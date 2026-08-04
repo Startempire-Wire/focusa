@@ -5,7 +5,7 @@
 **Created:** 2026-08-04  
 **Priority:** P0 / post-locked-release foundational program; not a blocker for the current locked release
 **Tracking issue:** [#125](https://github.com/Startempire-Wire/focusa/issues/125)  
-**Reserved number:** 158; repository search found Spec 152 as the highest checked-in top-level master spec, and 153–157 are intentionally left available for server-only specifications not yet synchronized to the repository.  
+**Reserved number:** 158; repository search found Spec 152 as the highest checked-in top-level master spec. Existing higher-numbered non-spec documents, including document 153, do not claim those specification numbers. Spec 158 preserves the operator-directed five-number buffer for server-only specifications not yet synchronized to the repository.
 **Implementation admission:** Approval of this document does not authorize decomposition or implementation. Spec 158 is not admitted to `workset:focusa-next-locked-release:r7`, does not block the current mangled-release repair, and requires a separately authorized post-release Trajectory, Beads plan, ownership ledger, migration plan, cutover plan, and proof plan before production implementation begins.
 
 ---
