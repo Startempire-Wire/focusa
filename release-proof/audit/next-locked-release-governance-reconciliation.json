@@ -3,9 +3,9 @@
   "evidence_links_digest": "sha256:64d87166b94a25c2e5ee92626ddb2cc132ba3f7301de250fbd6f01abcfda2c39",
   "evidence_state_counts": {
     "aggregate_child_evidence": 3,
-    "evidence_linked": 114,
+    "evidence_linked": 115,
     "exact_duplicate_receipt": 85,
-    "pending_technical_acceptance": 87
+    "pending_technical_acceptance": 86
   },
   "gaps": {
     "ambiguous_duplicate_closure_ids": [],
@@ -87,7 +87,6 @@
       "focusa-vbcqu.9.9.6",
       "focusa-vbcqu.10",
       "focusa-vbcqu.14",
-      "focusa-vbcqu.14.5",
       "focusa-vbcqu.19",
       "focusa-vbcqu.19.2",
       "focusa-vbcqu.19.3",
@@ -7924,12 +7923,18 @@
       "active_blocker_refs": [],
       "authority": "authorized_release_repair_overlay",
       "bead_id": "focusa-vbcqu.14.5",
-      "closure_receipt": null,
-      "evidence_state": "pending_technical_acceptance",
+      "closure_receipt": {
+        "close_reason": "Completed: detached Ed25519 governance integrity seal links 289 admitted Beads to issue, artifact, test, implementation, ancestry, and release-proof authority; independent canonical replay and tamper tests pass. Implementation git:616c98a7; evidence git:8135a930; reducer allow receipt sha256:78387fa5c63e4073904eb2289454c4b6ee4f88ed42ac63f09f94925e08aac484. Seal is not release-publication, OTA, entitlement, or production-signing authority.",
+        "closed_at": "2026-08-04T21:04:16.447610370Z",
+        "exact_duplicate_of": null
+      },
+      "evidence_state": "evidence_linked",
       "frozen_projection": null,
       "github_issue_refs": [],
       "implementation_commit_refs": [
-        "git:616c98a701ece85714237fde8d560004bfcc1e8c"
+        "git:616c98a7",
+        "git:616c98a701ece85714237fde8d560004bfcc1e8c",
+        "git:8135a930"
       ],
       "ordered_task_key": [
         "focusa",
@@ -7939,9 +7944,9 @@
       ],
       "parent_bead_id": "focusa-vbcqu.14",
       "projection_drift": false,
-      "provider_record_digest": "sha256:19283fd81b15c8fad0e808949014025eac75d928ac17f2a6854844cfe2daaae3",
-      "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-04T21:00:35.988210604Z",
+      "provider_record_digest": "sha256:a09fcbd2200ac9929cf65f2a75d1434eb3419d82394898402befc138ca782769",
+      "provider_state": "closed",
+      "provider_updated_at": "2026-08-04T21:04:16.447770414Z",
       "runtime_or_acceptance_evidence_refs": [
         "release-proof/audit/next-locked-release-governance-receipt.json",
         "release-proof/audit/next-locked-release-governance-receipt.json.sig",
@@ -8514,19 +8519,19 @@
   ],
   "provider_snapshot": {
     "record_count": 2317,
-    "sha256": "sha256:2de308abdd2b62ccf923af4883e664b86720a977a94bc1302abc3549d5945177",
+    "sha256": "sha256:9c4cf18b552a3f03cccb2ab3625e4e304f706a1163bba13bcf7537b719350bb5",
     "source": "canonical:.beads/issues.jsonl"
   },
   "provider_state_counts": {
     "blocked": 1,
-    "closed": 202,
-    "in_progress": 49,
+    "closed": 203,
+    "in_progress": 48,
     "open": 37
   },
-  "reconciliation_digest": "sha256:9b0b883bf6d5b959e079d082021b99f635e673f78f8fe0883236ec1b1ea1c3e2",
+  "reconciliation_digest": "sha256:0ee2ef5b50569ec8504717b50abe7d890b7457738b4ee6cf3a39a592b6ea84d0",
   "repair_overlay_mapping_count": 14,
   "schema": "focusa.locked_release_governance_reconciliation.v1",
   "status": "blocked",
-  "unresolved_gap_count": 87,
+  "unresolved_gap_count": 86,
   "workset_id": "workset:focusa-next-locked-release:r7"
 }

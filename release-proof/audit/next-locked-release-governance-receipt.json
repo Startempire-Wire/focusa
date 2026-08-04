@@ -4,9 +4,9 @@
       "immutable_inventory_digest": "sha256:9dad314492bc798205d7a64b89fc46e4bc8239b3394f1c4898b474720f1cb686",
       "immutable_mapping_count": 275,
       "mapping_count": 289,
-      "reconciliation_digest": "sha256:9b0b883bf6d5b959e079d082021b99f635e673f78f8fe0883236ec1b1ea1c3e2",
+      "reconciliation_digest": "sha256:0ee2ef5b50569ec8504717b50abe7d890b7457738b4ee6cf3a39a592b6ea84d0",
       "repair_overlay_mapping_count": 14,
-      "technical_gate_digest": "sha256:c9442f62d5fa9c12daaeef55add0034a19a36ca1bd5ec17eeae912c18a021976"
+      "technical_gate_digest": "sha256:7ff836923b53cf71bd795deb0b035e03f5d758f17a8063b9f0f67196869d8ab4"
     },
     "closure_set": {
       "admitted_bead_ids": [
@@ -458,6 +458,7 @@
         "focusa-vbcqu.14.2",
         "focusa-vbcqu.14.3",
         "focusa-vbcqu.14.4",
+        "focusa-vbcqu.14.5",
         "focusa-vbcqu.19.1",
         "focusa-vbcqu.2.1",
         "focusa-vbcqu.2.1.1",
@@ -799,7 +800,7 @@
         "focusa-w26jj.9.7.4"
       ]
     },
-    "closure_set_digest": "sha256:7016a0b6465265c9c7f36c1e2fad444600093835cd92ea493c3135ded191851d",
+    "closure_set_digest": "sha256:e298bf21fd6c7c1d090d77d11e0317212dd2ec70d69a4ecb3b132e3491264579",
     "governance_source_commit": "616c98a701ece85714237fde8d560004bfcc1e8c",
     "input_artifacts": [
       {
@@ -807,7 +808,7 @@
         "path": "release-proof/audit/next-locked-release-governance-inventory.json"
       },
       {
-        "digest": "sha256:fdcc9f5b35c91669f68f312cf8758ee987616628d416e4bdde6eab5b2426de75",
+        "digest": "sha256:a449a6125983dbb9da9d2595ff541e9540d28d63f82aa644b40245274d23861a",
         "path": "release-proof/audit/next-locked-release-governance-reconciliation.json"
       },
       {
@@ -815,11 +816,11 @@
         "path": "release-proof/audit/next-locked-release-governance-evidence-links.json"
       },
       {
-        "digest": "sha256:9d09b6f923f84bff9e0eccfe8399fd616457887d0c3f393c4c47ceff8469b586",
+        "digest": "sha256:44e7b9c660e37fe2de1622f89defe82864aa12c8938ebad07631ac617837bff1",
         "path": "release-proof/audit/next-locked-release-technical-closure-gate.json"
       },
       {
-        "digest": "sha256:9eb2e1bef1e7ea13fac90d9452eee4656aeae312cd32499012c379a230305ab7",
+        "digest": "sha256:8702b4fc978c45a6e1f641c8b39f17e8a185199f5ae92ed83b1f9572ab3eae04",
         "path": "release-proof/audit/next-locked-release-candidate-ancestry.json"
       },
       {
@@ -827,7 +828,7 @@
         "path": "release-proof/audit/next-locked-release-v09143-published-assets.json"
       }
     ],
-    "input_artifacts_digest": "sha256:6ca7dfad879d4f9bd7b6ce01e53867ee593986838ecfa3a346427dd56e9181ca",
+    "input_artifacts_digest": "sha256:eb4d973491b86a1e366909c158e7929809560e6c524e0d5c6ca30ad0f5ea3115",
     "linkage": {
       "artifact_refs": [
         "release-proof/audit/next-locked-release-candidate-ancestry.json",
@@ -963,9 +964,9 @@
       "provider_status_is_not_technical_proof": true,
       "rewrite_v0.9.143": false
     },
-    "payload_digest": "sha256:b1677f4191991babc87b2d7134c87195e7b2ba3963d348d41d351c3c909fc27e",
+    "payload_digest": "sha256:631ab5bcd9d1c8d8f33a56f247002392221034b5c358dcbe18d252fdda90cbb9",
     "release_proof": {
-      "ancestry_digest": "sha256:3690f286d4e9b094a4a7cd864c2ba5838102e452eb79811bd2dec87b85a26db6",
+      "ancestry_digest": "sha256:7f3b3b10334e6f978e3837679b4252d0edc7663f0cf08e6d55d3d70e8ca38b4a",
       "candidate_source_commit": "616c98a701ece85714237fde8d560004bfcc1e8c",
       "immutable_tag": "v0.9.143",
       "immutable_tag_commit": "ac40a3a769b679e684f6592d075cabd24ab64fd5",
@@ -1001,8 +1002,8 @@
     "authority_boundary": "integrity and replay seal only; not release publication, entitlement, OTA, or production signing authority",
     "key_authority": "one_time_governance_integrity_seal",
     "private_key_persisted": false,
-    "public_key_base64": "cUcWTB2Yvarnq+Raf7nzbXfvi3mvIyKNcPtdPSjKQcY=",
-    "public_key_fingerprint": "17889076b5700ecf1f4271e5c77e333f3443345aa8cd88f2e83382133e15c6b1",
+    "public_key_base64": "UYCBj7mddxLZAUJjU7YDAzRjvKP87a4faWj7CVRmtCA=",
+    "public_key_fingerprint": "a66c35b77799390d680c4e26e95ce3c758dd709312c776a7918684f680e0ac25",
     "signed_encoding": "canonical-json-sorted-keys-compact-utf8"
   }
 }
