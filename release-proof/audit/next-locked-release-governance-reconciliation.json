@@ -3,17 +3,13 @@
   "evidence_links_digest": "sha256:cd34e7e823db9c1f1928273f326f99520d4c87b327ba9e1bfb5a0afab204a12f",
   "evidence_state_counts": {
     "aggregate_child_evidence": 8,
-    "closed_without_proof": 2,
     "evidence_linked": 116,
     "exact_duplicate_receipt": 85,
-    "pending_technical_acceptance": 78
+    "pending_technical_acceptance": 80
   },
   "gaps": {
     "ambiguous_duplicate_closure_ids": [],
-    "closed_without_proof_ids": [
-      "focusa-vbcqu.10",
-      "focusa-w26jj.9.6.3"
-    ],
+    "closed_without_proof_ids": [],
     "duplicate_provider_ids": [],
     "duplicate_target_without_proof_ids": [],
     "orphan_bead_ids": [],
@@ -84,6 +80,7 @@
       "focusa-vbcqu.9.9.4",
       "focusa-vbcqu.9.9.5",
       "focusa-vbcqu.9.9.6",
+      "focusa-vbcqu.10",
       "focusa-vbcqu.14",
       "focusa-vbcqu.14.2",
       "focusa-vbcqu.14.3",
@@ -95,7 +92,8 @@
       "focusa-vbcqu.19.4",
       "focusa-vbcqu.19.5",
       "focusa-vbcqu.19.6",
-      "focusa-vbcqu.19.7"
+      "focusa-vbcqu.19.7",
+      "focusa-w26jj.9.6.3"
     ],
     "projection_drift_ids": [
       "focusa-vbcqu.2",
@@ -158,7 +156,9 @@
       "focusa-vbcqu.9.9.3",
       "focusa-vbcqu.9.9.4",
       "focusa-vbcqu.9.9.5",
-      "focusa-vbcqu.9.9.6"
+      "focusa-vbcqu.9.9.6",
+      "focusa-vbcqu.10",
+      "focusa-w26jj.9.6.3"
     ],
     "untracked_locked_release_ids": []
   },
@@ -5869,7 +5869,9 @@
       "title": "Generate intelligent evidence-backed release pages from exact release scope"
     },
     {
-      "active_blocker_refs": [],
+      "active_blocker_refs": [
+        "focusa-w26jj.9.6.3"
+      ],
       "aggregate_evidence_member_refs": [
         "bead:focusa-vbcqu.7.1",
         "bead:focusa-vbcqu.7.2",
@@ -7769,12 +7771,8 @@
       "active_blocker_refs": [],
       "authority": "immutable_workset_r7",
       "bead_id": "focusa-vbcqu.10",
-      "closure_receipt": {
-        "close_reason": "Identity restored from immutable r7 admission and pre-collision snapshot. Apparent dot children 10.1-10.12 were reparented to focusa-vbcqu.20; force resolves only dot-notation collision, not acceptance policy.",
-        "closed_at": "2026-08-04T00:19:21.593920764Z",
-        "exact_duplicate_of": null
-      },
-      "evidence_state": "closed_without_proof",
+      "closure_receipt": null,
+      "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -7784,10 +7782,10 @@
         10
       ],
       "parent_bead_id": "focusa-vbcqu",
-      "projection_drift": false,
-      "provider_record_digest": "sha256:974700f7a4857fcde93198703093fed68f0aa34542e50f20b48f48ca4f0be35c",
-      "provider_state": "closed",
-      "provider_updated_at": "2026-08-04T00:19:21.594104053Z",
+      "projection_drift": true,
+      "provider_record_digest": "sha256:9383d90212ab3bb4b74a284e4452e12cae22645768febbb78449fe08883f55da",
+      "provider_state": "open",
+      "provider_updated_at": "2026-08-04T20:11:25.458194695Z",
       "runtime_or_acceptance_evidence_refs": [],
       "task_plan_ref": "execution-phase:8",
       "title": "Composable Focusa bar widgets and per-widget visibility settings"
@@ -8317,12 +8315,8 @@
       "active_blocker_refs": [],
       "authority": "immutable_workset_r7",
       "bead_id": "focusa-w26jj.9.6.3",
-      "closure_receipt": {
-        "close_reason": "Completed: platform customer-path acceptance is evidence-backed and current gates pass.",
-        "closed_at": "2026-07-31T15:16:41.702268415Z",
-        "exact_duplicate_of": null
-      },
-      "evidence_state": "closed_without_proof",
+      "closure_receipt": null,
+      "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -8334,10 +8328,10 @@
         3
       ],
       "parent_bead_id": "focusa-w26jj.9.6",
-      "projection_drift": false,
-      "provider_record_digest": "sha256:1ee5e3cf2e228fd2c8116171218d52ae57e5ff42d6a2560c902cf35284d19b82",
-      "provider_state": "closed",
-      "provider_updated_at": "2026-07-31T15:16:41.702395336Z",
+      "projection_drift": true,
+      "provider_record_digest": "sha256:023b6e419861d44e8e742c5cae1fbaa91866d6b20f13531d744b494162465872",
+      "provider_state": "open",
+      "provider_updated_at": "2026-08-04T20:11:26.417101463Z",
       "runtime_or_acceptance_evidence_refs": [],
       "task_plan_ref": "execution-phase:6",
       "title": "Windows clean-install through OTA and rollback E2E"
@@ -8374,7 +8368,9 @@
       "title": "Offline proxy airgap and interrupted customer-path E2E"
     },
     {
-      "active_blocker_refs": [],
+      "active_blocker_refs": [
+        "focusa-w26jj.9.6.3"
+      ],
       "authority": "immutable_workset_r7",
       "bead_id": "focusa-w26jj.9.6.5",
       "closure_receipt": {
@@ -8531,16 +8527,16 @@
   ],
   "provider_snapshot": {
     "record_count": 2317,
-    "sha256": "sha256:0c50185a5a9be938ca4fae36e947c48fc5ec45697b01112a1042b4836d9929be",
+    "sha256": "sha256:4c05e60a241f8622f3ae12ab1a11bd48e102172c152ea020d5f7cf20e017427f",
     "source": "canonical:.beads/issues.jsonl"
   },
   "provider_state_counts": {
     "blocked": 1,
-    "closed": 211,
+    "closed": 209,
     "in_progress": 49,
-    "open": 28
+    "open": 30
   },
-  "reconciliation_digest": "sha256:b675ff2e8b11168f507c50ab5564e2bb3a9b90e98396254f3c40b72284cdd813",
+  "reconciliation_digest": "sha256:0ea5c2830535af48f02f0dde7badd3f48b791ba4fc3c1b4140930cfa271938db",
   "repair_overlay_mapping_count": 14,
   "schema": "focusa.locked_release_governance_reconciliation.v1",
   "status": "blocked",

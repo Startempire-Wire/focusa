@@ -89,7 +89,9 @@ assert LEDGER["gaps"]["duplicate_provider_ids"] == []
 assert LEDGER["gaps"]["untracked_locked_release_ids"] == []
 assert LEDGER["status"] == "blocked"
 assert LEDGER["gaps"]["pending_technical_acceptance_ids"]
-assert LEDGER["gaps"]["closed_without_proof_ids"]
+assert LEDGER["gaps"]["closed_without_proof_ids"] == []
+assert LEDGER["gaps"]["ambiguous_duplicate_closure_ids"] == []
+assert LEDGER["gaps"]["duplicate_target_without_proof_ids"] == []
 
 allowed_evidence_states = {
     "orphan",
