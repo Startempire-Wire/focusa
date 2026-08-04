@@ -2638,6 +2638,15 @@ async fn resolve_latest_github(
     anyhow::bail!("no complete release found for channel={channel} target={triple}")
 }
 
+fn release_binary_asset_name(prefix: &str, tag: &str, triple: &str) -> String {
+    let suffix = if triple.ends_with("-pc-windows-msvc") {
+        ".exe"
+    } else {
+        ""
+    };
+    format!("{prefix}-{tag}-{triple}{suffix}")
+}
+
 fn build_latest_from_release(
     repo: String,
     triple: String,
@@ -2650,7 +2659,7 @@ fn build_latest_from_release(
         ("daemon", "focusa-daemon"),
         ("tui", "focusa-tui"),
     ] {
-        let name = format!("{prefix}-{tag}-{triple}");
+        let name = release_binary_asset_name(prefix, &tag, &triple);
         let gh_asset = release.assets.iter().find(|asset| asset.name == name)?;
         assets.push(ReleaseAssetRef {
             part,
@@ -2922,7 +2931,8 @@ fn target_triple() -> String {
         ("linux", "aarch64") => "aarch64-unknown-linux-musl".into(),
         ("macos", "x86_64") => "x86_64-apple-darwin".into(),
         ("macos", "aarch64") => "aarch64-apple-darwin".into(),
-        ("windows", "x86_64") => "x86_64-pc-windows-msvc.exe".into(),
+        ("windows", "x86_64") => "x86_64-pc-windows-msvc".into(),
+        ("windows", "aarch64") => "aarch64-pc-windows-msvc".into(),
         _ => format!("{}-{}", std::env::consts::ARCH, std::env::consts::OS),
     }
 }
@@ -3642,7 +3652,7 @@ mod tests {
     use super::{
         DaemonRestoreAction, PromotedPart, daemon_restore_action, inspect_package_part,
         normalize_version, path_is_git_managed, pi_extension_package_from_agent_dir,
-        pi_extension_package_from_settings, rollback_promoted_parts,
+        pi_extension_package_from_settings, release_binary_asset_name, rollback_promoted_parts,
     };
     #[cfg(target_os = "macos")]
     use super::{restart_daemon_service, stop_daemon_service};
@@ -3652,6 +3662,22 @@ mod tests {
         assert_eq!(normalize_version("focusa 0.9.74-dev"), "0.9.74-dev");
         assert_eq!(normalize_version("v0.9.80-dev"), "0.9.80-dev");
         assert_eq!(normalize_version("0.9.80-dev"), "0.9.80-dev");
+    }
+
+    #[test]
+    fn release_binary_asset_names_cover_native_windows_targets_once() {
+        assert_eq!(
+            release_binary_asset_name("focusa", "v0.9.117-dev", "x86_64-pc-windows-msvc"),
+            "focusa-v0.9.117-dev-x86_64-pc-windows-msvc.exe"
+        );
+        assert_eq!(
+            release_binary_asset_name("focusa-daemon", "v0.9.117-dev", "aarch64-pc-windows-msvc"),
+            "focusa-daemon-v0.9.117-dev-aarch64-pc-windows-msvc.exe"
+        );
+        assert_eq!(
+            release_binary_asset_name("focusa-tui", "v0.9.117-dev", "aarch64-apple-darwin"),
+            "focusa-tui-v0.9.117-dev-aarch64-apple-darwin"
+        );
     }
 
     #[test]
