@@ -1,0 +1,30 @@
+{
+  "schema": "focusa.uiai_challenge_capability_contract.v1",
+  "authority_owner": "uiai-engine",
+  "focusa_role": "governance_discovery_evidence_and_recovery_only",
+  "observed_at": "2026-08-04T07:27:44Z",
+  "discovery_source": "/api/tools/search?q=captcha%20turnstile%20challenge%20solver%20diagnose",
+  "capability_status": "unsupported",
+  "supported_challenge_types": [],
+  "supported_operations": [],
+  "mutation_authority": false,
+  "required_if_added": {
+    "strict_request_schema": true,
+    "strict_response_schema": true,
+    "bounded_timeout": true,
+    "session_origin_isolation": true,
+    "permission_and_operator_policy": true,
+    "diagnostics_and_evidence_receipt": true,
+    "secret_and_token_redaction": true
+  },
+  "forbidden_in_focusa": [
+    "invent_solver_capability",
+    "direct_cookie_or_clearance_token_access",
+    "bypass_site_or_challenge_policy",
+    "claim_success_without_uiai_receipt"
+  ],
+  "recovery": {
+    "failure_class": "uiai_capability_unavailable",
+    "next_action": "wait_for_external_uiai_engine_capability_contract"
+  }
+}
