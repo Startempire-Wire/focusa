@@ -71,6 +71,8 @@ pub enum SurfaceHealth {
     Degraded,
     Missing,
     Unknown,
+    Offline,
+    Drifted,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -86,6 +88,39 @@ pub struct CurrentInstallationState {
     pub generation: u64,
     pub channel: String,
     pub surfaces: BTreeMap<ManagedSurface, InstalledSurfaceState>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ServiceHealth {
+    Online,
+    Offline,
+    Unknown,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InstallationSurfaceObservation {
+    pub installation_id: String,
+    pub surface: ManagedSurface,
+    pub generation: u64,
+    pub observed_at_unix_ms: i64,
+    pub version: Option<String>,
+    pub artifact_digest: Option<String>,
+    pub capabilities: BTreeSet<String>,
+    pub service_health: ServiceHealth,
+    pub last_proof_ref: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectedSurfaceInventory {
+    pub observation: InstallationSurfaceObservation,
+    pub health: SurfaceHealth,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct InstallationInventoryProjection {
+    pub surfaces: Vec<ProjectedSurfaceInventory>,
+    pub rejected_observations: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -203,6 +238,70 @@ pub fn replay_signed_enrollments(
             .enrollments
             .insert(record.enrollment.installation_id.clone(), record.enrollment);
     }
+    projection
+}
+
+pub fn project_installation_inventory(
+    observations: impl IntoIterator<Item = InstallationSurfaceObservation>,
+    desired: Option<&DesiredInstallationState>,
+) -> InstallationInventoryProjection {
+    let mut projection = InstallationInventoryProjection::default();
+    for observation in observations {
+        if observation.installation_id.trim().is_empty() || observation.generation == 0 {
+            projection.rejected_observations += 1;
+            continue;
+        }
+        let existing = projection.surfaces.iter().position(|current| {
+            current.observation.installation_id == observation.installation_id
+                && current.observation.surface == observation.surface
+        });
+        if existing.is_some_and(|index| {
+            projection.surfaces[index].observation.generation >= observation.generation
+        }) {
+            projection.rejected_observations += 1;
+            continue;
+        }
+        let expected = desired.filter(|state| state.installation_id == observation.installation_id);
+        let health = if observation.service_health == ServiceHealth::Offline {
+            SurfaceHealth::Offline
+        } else if observation.service_health == ServiceHealth::Unknown
+            || observation.version.as_deref().is_none_or(str::is_empty)
+            || observation
+                .artifact_digest
+                .as_deref()
+                .is_none_or(str::is_empty)
+            || observation
+                .last_proof_ref
+                .as_deref()
+                .is_none_or(str::is_empty)
+        {
+            SurfaceHealth::Unknown
+        } else if expected.is_some_and(|state| {
+            observation.version.as_deref() != Some(state.version.as_str())
+                || observation.artifact_digest.as_deref()
+                    != Some(state.artifact_manifest_digest.as_str())
+                || !state.surfaces.contains(&observation.surface)
+        }) {
+            SurfaceHealth::Drifted
+        } else {
+            SurfaceHealth::Healthy
+        };
+        let projected = ProjectedSurfaceInventory {
+            observation,
+            health,
+        };
+        if let Some(index) = existing {
+            projection.surfaces[index] = projected;
+        } else {
+            projection.surfaces.push(projected);
+        }
+    }
+    projection.surfaces.sort_by(|left, right| {
+        (&left.observation.installation_id, left.observation.surface).cmp(&(
+            &right.observation.installation_id,
+            right.observation.surface,
+        ))
+    });
     projection
 }
 
@@ -421,6 +520,88 @@ mod tests {
             verify_signed_enrollment(&admitted, "operator-foreign", &trusted),
             Err(ConvergenceError::EnrollmentOwnerMismatch)
         );
+    }
+
+    #[test]
+    fn inventory_projection_never_fabricates_health_or_convergence() {
+        let observation =
+            |surface,
+             generation,
+             service_health,
+             version: Option<&str>,
+             digest: Option<&str>,
+             proof: Option<&str>| InstallationSurfaceObservation {
+                installation_id: "install-1".into(),
+                surface,
+                generation,
+                observed_at_unix_ms: generation as i64,
+                version: version.map(str::to_string),
+                artifact_digest: digest.map(str::to_string),
+                capabilities: BTreeSet::from(["health".into()]),
+                service_health,
+                last_proof_ref: proof.map(str::to_string),
+            };
+        let projection = project_installation_inventory(
+            [
+                observation(
+                    ManagedSurface::Cli,
+                    2,
+                    ServiceHealth::Online,
+                    Some("v0.9.144"),
+                    Some("sha256:manifest"),
+                    Some("proof:cli"),
+                ),
+                observation(
+                    ManagedSurface::Daemon,
+                    2,
+                    ServiceHealth::Offline,
+                    Some("v0.9.144"),
+                    Some("sha256:manifest"),
+                    Some("proof:daemon"),
+                ),
+                observation(
+                    ManagedSurface::Desktop,
+                    2,
+                    ServiceHealth::Unknown,
+                    None,
+                    None,
+                    None,
+                ),
+                observation(
+                    ManagedSurface::AgentContext,
+                    2,
+                    ServiceHealth::Online,
+                    Some("v0.9.143"),
+                    Some("sha256:old"),
+                    Some("proof:context"),
+                ),
+                observation(
+                    ManagedSurface::Cli,
+                    1,
+                    ServiceHealth::Online,
+                    Some("v0.9.144"),
+                    Some("sha256:manifest"),
+                    Some("proof:stale"),
+                ),
+            ],
+            Some(&desired()),
+        );
+        let health = projection
+            .surfaces
+            .iter()
+            .map(|surface| (surface.observation.surface, surface.health))
+            .collect::<BTreeMap<_, _>>();
+        assert_eq!(health[&ManagedSurface::Cli], SurfaceHealth::Healthy);
+        assert_eq!(health[&ManagedSurface::Daemon], SurfaceHealth::Offline);
+        assert_eq!(health[&ManagedSurface::Desktop], SurfaceHealth::Unknown);
+        assert_eq!(
+            health[&ManagedSurface::AgentContext],
+            SurfaceHealth::Drifted
+        );
+        assert_eq!(projection.rejected_observations, 1);
+        let restarted: InstallationInventoryProjection =
+            serde_json::from_slice(&serde_json::to_vec(&projection).unwrap()).unwrap();
+        assert_eq!(restarted, projection);
     }
 
     #[test]
