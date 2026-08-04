@@ -1,6 +1,7 @@
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
-use ed25519_dalek::{Signature, Verifier, VerifyingKey};
+use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use thiserror::Error;
 
@@ -154,6 +155,15 @@ pub struct ConvergencePlan {
     pub operator_approval_ref: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SignedConvergencePlan {
+    pub schema: String,
+    pub plan_id: String,
+    pub plan: ConvergencePlan,
+    pub signer_key_id: String,
+    pub signature_base64: String,
+}
+
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum ConvergenceError {
     #[error("installation identity is missing: {0}")]
@@ -182,6 +192,12 @@ pub enum ConvergenceError {
     StaleEnrollmentRecord,
     #[error("enrollment record schema is unsupported")]
     UnsupportedEnrollmentSchema,
+    #[error("convergence plan signature is invalid")]
+    InvalidPlanSignature,
+    #[error("convergence plan signer is untrusted")]
+    UntrustedPlanSigner,
+    #[error("convergence plan schema is unsupported")]
+    UnsupportedPlanSchema,
 }
 
 impl SignedInstallationEnrollment {
@@ -420,6 +436,56 @@ pub fn plan_convergence(
     })
 }
 
+pub fn sign_convergence_plan(
+    plan: ConvergencePlan,
+    signer_key_id: &str,
+    signing_key: &SigningKey,
+) -> Result<SignedConvergencePlan, ConvergenceError> {
+    if signer_key_id.trim().is_empty() {
+        return Err(ConvergenceError::UntrustedPlanSigner);
+    }
+    let payload = serde_json::to_vec(&plan).map_err(|_| ConvergenceError::InvalidPlanSignature)?;
+    let plan_id = format!("sha256:{}", hex::encode(Sha256::digest(&payload)));
+    let signature_base64 = BASE64.encode(signing_key.sign(&payload).to_bytes());
+    Ok(SignedConvergencePlan {
+        schema: "focusa.signed_convergence_plan.v1".into(),
+        plan_id,
+        plan,
+        signer_key_id: signer_key_id.into(),
+        signature_base64,
+    })
+}
+
+pub fn verify_signed_convergence_plan(
+    signed: &SignedConvergencePlan,
+    trusted_keys: &BTreeMap<String, [u8; 32]>,
+) -> Result<(), ConvergenceError> {
+    if signed.schema != "focusa.signed_convergence_plan.v1"
+        || signed.plan.schema != "focusa.installation_convergence_plan.v1"
+    {
+        return Err(ConvergenceError::UnsupportedPlanSchema);
+    }
+    let payload =
+        serde_json::to_vec(&signed.plan).map_err(|_| ConvergenceError::InvalidPlanSignature)?;
+    let expected_id = format!("sha256:{}", hex::encode(Sha256::digest(&payload)));
+    if signed.plan_id != expected_id {
+        return Err(ConvergenceError::InvalidPlanSignature);
+    }
+    let key = trusted_keys
+        .get(&signed.signer_key_id)
+        .ok_or(ConvergenceError::UntrustedPlanSigner)?;
+    let verifying_key =
+        VerifyingKey::from_bytes(key).map_err(|_| ConvergenceError::UntrustedPlanSigner)?;
+    let signature_bytes = BASE64
+        .decode(&signed.signature_base64)
+        .map_err(|_| ConvergenceError::InvalidPlanSignature)?;
+    let signature = Signature::from_slice(&signature_bytes)
+        .map_err(|_| ConvergenceError::InvalidPlanSignature)?;
+    verifying_key
+        .verify(&payload, &signature)
+        .map_err(|_| ConvergenceError::InvalidPlanSignature)
+}
+
 fn parse_version(value: &str) -> Result<(u64, u64, u64), ConvergenceError> {
     let normalized = value.trim().trim_start_matches('v');
     let core = normalized.split(['-', '+']).next().unwrap_or("");
@@ -437,7 +503,6 @@ fn parse_version(value: &str) -> Result<(u64, u64, u64), ConvergenceError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ed25519_dalek::{Signer, SigningKey};
 
     fn enrollment() -> InstallationEnrollment {
         InstallationEnrollment {
@@ -633,6 +698,20 @@ mod tests {
         assert_eq!(plan.actions[0].action, ConvergenceActionKind::Update);
         assert_eq!(plan.actions[1].action, ConvergenceActionKind::Repair);
         assert_eq!(plan.actions[2].action, ConvergenceActionKind::Install);
+        assert_eq!(
+            plan,
+            plan_convergence(&enrollment(), &desired(), &current).unwrap()
+        );
+        let key = SigningKey::from_bytes(&[9; 32]);
+        let trusted = BTreeMap::from([("planner-key-1".into(), key.verifying_key().to_bytes())]);
+        let signed = sign_convergence_plan(plan.clone(), "planner-key-1", &key).unwrap();
+        verify_signed_convergence_plan(&signed, &trusted).unwrap();
+        let mut tampered = signed;
+        tampered.plan.actions[0].to_version = "v9.9.9".into();
+        assert_eq!(
+            verify_signed_convergence_plan(&tampered, &trusted),
+            Err(ConvergenceError::InvalidPlanSignature)
+        );
     }
 
     #[test]
