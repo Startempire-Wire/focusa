@@ -2,7 +2,7 @@ use crate::{
     AdapterFuture, LettaAdapterError, LettaTurnIntent, LettaTurnJournal, LettaTurnReceipt,
     LettaTurnRequest,
 };
-use serde::{Serialize, de::DeserializeOwned};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use std::{
     collections::BTreeMap,
     fs::{File, OpenOptions},
@@ -10,6 +10,16 @@ use std::{
     path::{Path, PathBuf},
     sync::Mutex,
 };
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LettaRecoveryGuidance {
+    pub schema: String,
+    pub event_id: String,
+    pub request_id: uuid::Uuid,
+    pub status: String,
+    pub next_action: String,
+    pub automatic_retry_budget: u32,
+}
 
 #[derive(Debug)]
 pub struct FileTurnJournal {
@@ -90,7 +100,51 @@ impl FileTurnJournal {
         }
     }
 
+    pub fn recovery_guidance(
+        &self,
+        event_id: &str,
+    ) -> Result<Option<LettaRecoveryGuidance>, LettaAdapterError> {
+        let intents = self
+            .intents
+            .lock()
+            .map_err(|_| LettaAdapterError::Journal("journal_lock_poisoned".into()))?;
+        let Some(intent) = intents.get(event_id) else {
+            return Ok(None);
+        };
+        let settled = self
+            .state
+            .lock()
+            .map_err(|_| LettaAdapterError::Journal("journal_lock_poisoned".into()))?
+            .contains_key(event_id);
+        Ok(Some(LettaRecoveryGuidance {
+            schema: "focusa.letta_recovery_guidance.v1".into(),
+            event_id: event_id.into(),
+            request_id: intent.request_id,
+            status: if settled { "settled" } else { "uncertain" }.into(),
+            next_action: if settled {
+                "replay_durable_receipt"
+            } else {
+                "retry_same_event_and_request_id"
+            }
+            .into(),
+            automatic_retry_budget: 0,
+        }))
+    }
+
     fn append_sync(&self, receipt: &LettaTurnReceipt) -> Result<(), LettaAdapterError> {
+        let intents = self
+            .intents
+            .lock()
+            .map_err(|_| LettaAdapterError::Journal("journal_lock_poisoned".into()))?;
+        if let Some(intent) = intents.get(&receipt.event_id)
+            && (intent.request_id != receipt.request_id
+                || intent.provider_agent_id != receipt.provider_agent_id
+                || intent.epoch_id != receipt.epoch_id)
+        {
+            return Err(LettaAdapterError::Journal(
+                "receipt_intent_identity_conflict".into(),
+            ));
+        }
         let mut state = self
             .state
             .lock()
@@ -249,6 +303,17 @@ mod tests {
                 .unwrap(),
             first_id
         );
+        let uncertain = replayed.recovery_guidance("event-1").unwrap().unwrap();
+        assert_eq!(uncertain.status, "uncertain");
+        assert_eq!(uncertain.next_action, "retry_same_event_and_request_id");
+        assert_eq!(uncertain.automatic_retry_budget, 0);
+        let mut settled_receipt = receipt("event-1", "sha256:settled");
+        settled_receipt.request_id = first_id;
+        settled_receipt.epoch_id = Uuid::nil();
+        replayed.append(&settled_receipt).await.unwrap();
+        let settled = replayed.recovery_guidance("event-1").unwrap().unwrap();
+        assert_eq!(settled.status, "settled");
+        assert_eq!(settled.next_action, "replay_durable_receipt");
         let _ = std::fs::remove_dir_all(root);
     }
 
