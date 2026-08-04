@@ -52,7 +52,7 @@ const expectedProfiles = {
     maxCompactionsPerHour: 8,
     externalizeThresholdBytes: 8_192,
     externalizeThresholdTokens: 800,
-    microCompactEveryNTurns: 5,
+    microCompactEveryNTurns: 0,
   },
   neat_freak: {
     bloatgaurdProfile: "neat_freak",
@@ -63,7 +63,7 @@ const expectedProfiles = {
     maxCompactionsPerHour: 8,
     externalizeThresholdBytes: 8_192,
     externalizeThresholdTokens: 800,
-    microCompactEveryNTurns: 5,
+    microCompactEveryNTurns: 0,
   },
   beast_mode: {
     bloatgaurdProfile: "beast_mode",
@@ -74,7 +74,7 @@ const expectedProfiles = {
     maxCompactionsPerHour: 5,
     externalizeThresholdBytes: 16_384,
     externalizeThresholdTokens: 1_600,
-    microCompactEveryNTurns: 8,
+    microCompactEveryNTurns: 0,
   },
   speedy: {
     bloatgaurdProfile: "speedy",
@@ -85,7 +85,7 @@ const expectedProfiles = {
     maxCompactionsPerHour: 12,
     externalizeThresholdBytes: 4_096,
     externalizeThresholdTokens: 400,
-    microCompactEveryNTurns: 3,
+    microCompactEveryNTurns: 0,
   },
   tightwad: {
     bloatgaurdProfile: "tightwad",
@@ -96,7 +96,7 @@ const expectedProfiles = {
     maxCompactionsPerHour: 12,
     externalizeThresholdBytes: 2_048,
     externalizeThresholdTokens: 200,
-    microCompactEveryNTurns: 2,
+    microCompactEveryNTurns: 0,
   },
 };
 

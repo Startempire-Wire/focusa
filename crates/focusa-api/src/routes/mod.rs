@@ -21,6 +21,7 @@ pub mod clt;
 pub mod commands;
 pub mod compaction;
 pub mod compaction_policy;
+pub mod compaction_policy_resolution;
 pub mod constitution;
 pub mod context_claims;
 pub mod context_cognition;

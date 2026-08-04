@@ -8,6 +8,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import fs from "node:fs";
 import path from "node:path";
+import { prewarmCompactionPolicy } from "./compaction-policy-adapter.js";
 import type { PiGoverningPriorKind } from "./state.js";
 import {
   getAttachmentRuntime,
@@ -2765,8 +2766,9 @@ export function registerTurns(pi: ExtensionAPI) {
   });
 
   // ── model_select (§37.8) ──────────────────────────────────────────────────
-  pi.on("model_select", async (event, _ctx) => {
+  pi.on("model_select", async (event, ctx) => {
     if (!getAttachmentRuntime().focusaAvailable) return;
+    await prewarmCompactionPolicy(ctx, getAttachmentRuntime().cfg).catch(() => undefined);
     const model = (event as any).model;
     getAttachmentRuntime().activeContextWindow =
       model?.contextWindow || getAttachmentRuntime().activeContextWindow;
@@ -2814,7 +2816,7 @@ export function registerTurns(pi: ExtensionAPI) {
     // because model/provider discontinuities are not prefix regressions.
     getAttachmentRuntime().lastRecentTurnsSliceTurn = -1;
     cacheSafetyMonitor.resetForDiscontinuity(cacheSessionKey());
-    updateNorthStarCard(_ctx, "model_switch");
+    updateNorthStarCard(ctx, "model_switch");
   });
 
   // Provider overflow boundary: Pi auto-compacts, but Focusa checkpoints first when HTTP status exposes overflow-like failure.

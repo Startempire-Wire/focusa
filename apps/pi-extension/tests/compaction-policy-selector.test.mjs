@@ -23,10 +23,12 @@ const telemetry = (percent, messages = 10, tools = 0) => ({
 const capabilities = (nativeCompaction) => ({ nativeCompaction });
 
 assert.equal(selectCompactionPolicy(telemetry(null), capabilities("unknown")).route, "no_op");
-assert.equal(selectCompactionPolicy(telemetry(69.99), capabilities("supported")).route, "no_op");
-assert.equal(selectCompactionPolicy(telemetry(75, 10, 4), capabilities("supported")).route, "curate_context");
-assert.equal(selectCompactionPolicy(telemetry(78), capabilities("supported")).route, "checkpoint");
-assert.equal(selectCompactionPolicy(telemetry(86), capabilities("supported")).route, "summarize");
+assert.equal(selectCompactionPolicy(telemetry(65.99), capabilities("supported")).route, "no_op");
+assert.equal(selectCompactionPolicy(telemetry(69.99), capabilities("supported")).route, "checkpoint");
+assert.equal(selectCompactionPolicy(telemetry(75, 10, 4), capabilities("supported")).route, "native_compact");
+assert.equal(selectCompactionPolicy(telemetry(78), capabilities("supported")).route, "native_compact");
+assert.equal(selectCompactionPolicy(telemetry(86), capabilities("supported")).route, "native_compact");
+assert.equal(selectCompactionPolicy(telemetry(75), capabilities("unknown")).route, "checkpoint");
 assert.equal(selectCompactionPolicy(telemetry(96), capabilities("supported")).route, "native_compact");
 const nativeOutage = selectCompactionPolicy(telemetry(96), capabilities("unknown"));
 assert.equal(nativeOutage.route, "rollover");

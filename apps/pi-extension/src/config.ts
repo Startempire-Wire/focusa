@@ -142,19 +142,19 @@ const BLOATGAURD_PROFILE_PRESETS: Record<FocusaBloatgaurdProfileName, Partial<Fo
     ...PRESETS.conservative,
     externalizeThresholdBytes: 16_384,
     externalizeThresholdTokens: 1_600,
-    microCompactEveryNTurns: 8,
+    microCompactEveryNTurns: 0,
   },
   speedy: {
     ...PRESETS.aggressive,
     externalizeThresholdBytes: 4_096,
     externalizeThresholdTokens: 400,
-    microCompactEveryNTurns: 3,
+    microCompactEveryNTurns: 0,
   },
   tightwad: {
     ...PRESETS.aggressive,
     externalizeThresholdBytes: 2_048,
     externalizeThresholdTokens: 200,
-    microCompactEveryNTurns: 2,
+    microCompactEveryNTurns: 0,
   },
 };
 
@@ -229,7 +229,7 @@ const DEFAULTS: FocusaConfig = {
   wikiUrl: "http://127.0.0.1:7325",
   focusaToken: "",
   registerProxyProvider: false,
-  microCompactEveryNTurns: 5,
+  microCompactEveryNTurns: 0,
   bloatgaurdProfile: "daily_driver",
 };
 

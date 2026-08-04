@@ -17,9 +17,9 @@ import {
 import { contextPressureTelemetry } from "./context-pressure-telemetry.js";
 import {
   applyCompactionPolicyQuarantine,
-  selectCompactionPolicy,
   type CompactionPolicySelection,
 } from "./compaction-policy-selector.js";
+import { prewarmCompactionPolicy, selectFrozenCompactionPolicy } from "./compaction-policy-adapter.js";
 import {
   evaluateCompactionOutcome,
   type CompactionContinuationSnapshot,
@@ -49,6 +49,7 @@ export const PROACTIVE_COMPACTION_RESERVE_FRACTION = 0.1;
 export const PROACTIVE_COMPACTION_TRIGGER_FRACTION = 0.7;
 export const PROACTIVE_COMPACTION_ABSOLUTE_TOKEN_CAP = 256_000;
 export const PROACTIVE_COMPACTION_COOLDOWN_MS = 60_000;
+export const PROACTIVE_COMPACTION_SUCCESS_COOLDOWN_MS = 180_000;
 
 export interface ProactiveCompactionPolicy {
   enabled: boolean;
@@ -175,6 +176,7 @@ type ProcessCompactionLease = {
   retryOwnerId?: string;
   projection: CompactionAuthorityProjection;
   operatorOverride?: CompactionOperatorOverride;
+  lastSuccessfulCompactionAt?: number;
   request?: (
     ctx: ExtensionContext,
     request: CoordinatedCompactionRequest
@@ -959,7 +961,7 @@ export function registerAutoCompaction(
     const usage = ctx.getContextUsage();
     const capabilities = providerCompactionCapabilities(ctx);
     const pressureTelemetry = contextPressureTelemetry(ctx, capabilities);
-    const candidatePolicy = selectCompactionPolicy(pressureTelemetry, capabilities);
+    const candidatePolicy = selectFrozenCompactionPolicy(ctx, pressureTelemetry, capabilities);
     const policySelection = applyOperatorOverride(
       applyCompactionPolicyQuarantine(
         candidatePolicy,
@@ -968,6 +970,16 @@ export function registerAutoCompaction(
       ),
       processLease.operatorOverride
     );
+    const successCooldownRemaining = processLease.lastSuccessfulCompactionAt
+      ? PROACTIVE_COMPACTION_SUCCESS_COOLDOWN_MS - (Date.now() - processLease.lastSuccessfulCompactionAt)
+      : 0;
+    if (successCooldownRemaining > 0 && policySelection.route !== "no_op" && !processLease.operatorOverride) {
+      persist("successful_compaction_hysteresis", {
+        remaining_ms: successCooldownRemaining,
+        selected_policy: policySelection,
+      });
+      return "suppressed";
+    }
     focusaPost("/compaction/policy/report", {
       pressure_percent: pressureTelemetry.percent,
       selected_route: policySelection.route,
@@ -1119,9 +1131,9 @@ export function registerAutoCompaction(
       },
     };
     persist("outcome_baseline_recorded", { outcome_baseline: activeEpoch.outcomeBaseline }, activeEpoch);
-    // Explicit operator compaction outranks automatic ROI optimization, but its
-    // outcome is still measured for authority/evidence regression.
-    if (activeEpoch.triggerClass === "manual") return;
+    // Manual and provider-overflow recovery outrank optional ROI optimization,
+    // but their outcomes are still measured for authority/evidence regression.
+    if (["manual", "provider_overflow"].includes(activeEpoch.triggerClass)) return;
     const exactEligibility = evaluateExactPreparation(
       event.preparation.messagesToSummarize,
       event.preparation.turnPrefixMessages,
@@ -1193,6 +1205,7 @@ export function registerAutoCompaction(
         contextTokens: ctx.getContextUsage()?.tokens ?? null,
       });
     }
+    processLease.lastSuccessfulCompactionAt = Date.now();
     if (retryTimer) clearTimeout(retryTimer);
     retryTimer = undefined;
     stopCompactionHeartbeat();
@@ -1221,6 +1234,7 @@ export function registerAutoCompaction(
       )
       .map((entry) => entry.data);
     processLease.projection = reduceCompactionAuthorityEvents(persistedEvents);
+    await prewarmCompactionPolicy(ctx).catch(() => undefined);
     const policyStatus = await focusaFetch("/compaction/policy").catch(() => null);
     processLease.operatorOverride = policyOverride(policyStatus);
     inFlight = false;

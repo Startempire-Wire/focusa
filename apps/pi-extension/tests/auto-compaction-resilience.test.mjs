@@ -136,6 +136,15 @@ test("attempt, primary failure, retry, rejection, and ROI outcomes are durably l
   assert.match(source, /net_positive:/);
 });
 
+test("Rust lease adapter owns policy resolution with exact local fallback", () => {
+  assert.match(source, /selectFrozenCompactionPolicy\(ctx, pressureTelemetry, capabilities\)/);
+  assert.match(source, /await prewarmCompactionPolicy\(ctx\)/);
+  assert.match(source, /PROACTIVE_COMPACTION_SUCCESS_COOLDOWN_MS = 180_000/);
+  assert.match(source, /successful_compaction_hysteresis/);
+  assert.match(source, /lastSuccessfulCompactionAt = Date\.now\(\)/);
+  assert.match(source, /\["manual", "provider_overflow"\]\.includes\(activeEpoch\.triggerClass\)/);
+});
+
 test("compaction outcomes automatically evaluate and quarantine degraded policies", () => {
   const beforeCompact = handlerBody("session_before_compact");
   const compacted = handlerBody("session_compact");

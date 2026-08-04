@@ -6,7 +6,7 @@ export type CompactionPolicyRoute =
 
 export interface CompactionPolicySelection {
   schema: "focusa.compaction_policy_selection.v1";
-  policyVersion: "1";
+  policyVersion: string;
   route: CompactionPolicyRoute;
   executionOwner: "none" | "focusa" | "pi" | "operator";
   reason:
@@ -18,7 +18,8 @@ export interface CompactionPolicySelection {
     | "native_pressure"
     | "native_compaction_unavailable"
     | "policy_quarantined"
-    | "operator_override";
+    | "operator_override"
+    | "rust_policy_lease";
   percent: number | null;
   deterministicKey: string;
 }
@@ -33,31 +34,25 @@ export function selectCompactionPolicy(
   capabilities: ProviderCompactionCapabilities
 ): CompactionPolicySelection {
   const percent = telemetry.percent;
-  const toolRatio =
-    telemetry.messageEntryCount > 0 ? telemetry.toolResultCount / telemetry.messageEntryCount : 0;
   let route: CompactionPolicyRoute = "no_op";
   let executionOwner: CompactionPolicySelection["executionOwner"] = "none";
   let reason: CompactionPolicySelection["reason"] = "usage_unknown";
   if (percent === null) {
     // Unknown usage never authorizes destructive context reduction.
-  } else if (percent < 70) {
+  } else if (percent < 66) {
     reason = "below_threshold";
-  } else if (toolRatio >= 0.35 && percent < 85) {
-    route = "curate_context";
-    executionOwner = "focusa";
-    reason = "tool_history_dominant";
-  } else if (percent < 82) {
+  } else if (percent < 70) {
     route = "checkpoint";
     executionOwner = "focusa";
     reason = "checkpoint_boundary";
-  } else if (percent < 92) {
-    route = "summarize";
-    executionOwner = "pi";
-    reason = "summary_boundary";
   } else if (capabilities.nativeCompaction === "supported") {
     route = "native_compact";
     executionOwner = "pi";
     reason = "native_pressure";
+  } else if (percent < 85) {
+    route = "checkpoint";
+    executionOwner = "focusa";
+    reason = "native_compaction_unavailable";
   } else {
     route = "rollover";
     executionOwner = "operator";
@@ -74,7 +69,7 @@ export function selectCompactionPolicy(
       "v1",
       percent === null ? null : percent.toFixed(3),
       telemetry.branchEntryCount,
-      telemetry.toolResultCount,
+      "legacy_current_v1",
       capabilities.nativeCompaction,
     ]),
   };

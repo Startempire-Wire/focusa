@@ -4,6 +4,7 @@
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { requestCoordinatedCompaction } from "./auto-compaction.js";
+import { projectionPressure, renderCompactionResumeProjection } from "./compaction-resume-projection.js";
 import {
   buildProjectWorkstreamKey,
   scopedQueryParams,
@@ -228,43 +229,11 @@ function semanticCurrentAsk(): string {
   return text;
 }
 
-function renderCompactionMissionPacket(packet: any): string {
-  const trajectory = packet?.trajectory || {};
-  const workpoint = packet?.workpoint || {};
-  const scope = packet?.scope || {};
-  const next = packet?.next || {};
-  const temporal = packet?.temporal || {};
-  const warnings = compactLines(trajectory?.warnings).slice(0, 6);
-  return [
-    "## CompactionMissionPacket",
-    `STATUS: ${compactText(packet?.status, "blocked", 32)}`,
-    `SCOPE_STATUS: ${compactText(scope?.scope_status, "missing", 32)}`,
-    `HLT_STATUS: ${compactText(trajectory?.hlt_status, "missing_required", 48)}`,
-    `ACTION_AUTHORITY_FROM_TRAJECTORY: ${trajectory?.action_authority_from_trajectory === true}`,
-    `WORKPOINT_STATUS: ${compactText(workpoint?.status, "missing", 32)}`,
-    `WORKPOINT_ACTION_AUTHORITY: ${workpoint?.action_authority === true}`,
-    `TEMPORAL_STATUS: ${compactText(temporal?.status, "unavailable", 32)}`,
-    `DEADLINE_STATUS: ${compactText(temporal?.deadline_status, "none", 32)}`,
-    `TEMPORAL_REFS: ${
-      [
-        temporal?.calendar_context_ref,
-        temporal?.priority_frame_ref,
-        temporal?.execution_guard_ref,
-        ...(Array.isArray(temporal?.evidence_refs) ? temporal.evidence_refs : []),
-      ]
-        .filter(Boolean)
-        .slice(0, 8)
-        .join(",") || "none"
-    }`,
-    `HLT: ${compactText(trajectory?.hlt, "missing", 300)}`,
-    `MISSION: ${compactText(workpoint?.mission, "missing", 300)}`,
-    `NEXT_SLICE: ${compactText(workpoint?.next_slice, "missing", 300)}`,
-    `EXACT_NEXT_TOOL: ${compactText(next?.exact_next_tool, "focusa_workpoint_resume", 80)}`,
-    `WARNINGS: ${warnings.length ? warnings.join(" | ") : "none"}`,
-    `PACKET_ID: ${compactText(packet?.packet_id, "missing", 80)}`,
-    "AUTHORITY: advisory packet only; Trajectory, Workpoint, Focus State, and evidence remain canonical.",
-    "DO_NOT_USE: transcript tail, raw tool history, or generic trajectory as authority.",
-  ].join("\n");
+function renderResumeProjection(packet: any): string {
+  return renderCompactionResumeProjection(
+    packet,
+    projectionPressure(packet, getAttachmentRuntime().currentTier)
+  );
 }
 
 async function buildCompactionMissionPacket(resumeSource: string): Promise<any | null> {
@@ -1080,7 +1049,7 @@ async function runPostCompactionVerification(event: any, ctx: any): Promise<void
     const liveScope = currentCompactionScope();
     const resumeText =
       projection && liveScope && canInjectCompactionMission(projection, liveScope)
-        ? renderCompactionMissionPacket(projection)
+        ? renderResumeProjection(projection)
         : safeCompactionRecoveryContext();
     queueCompactionResumeContext(ctx, resumeText);
   } catch (error) {
@@ -1260,18 +1229,15 @@ export async function checkCompactionTier(ctx: any): Promise<void> {
   }
 }
 
-// ── Periodic micro-compact (§21) — called from turn_end ─────────────────────
+// Legacy fixed-cadence settings remain readable for migration diagnostics, but
+// automatic micro-compaction is pressure-driven by the sole coordinator.
+let legacyMicroCompactDiagnosticEmitted = false;
 export async function checkMicroCompact(): Promise<void> {
-  const n = getAttachmentRuntime().cfg?.microCompactEveryNTurns || 5;
-  if (getTurnCount() > 0 && getTurnCount() % n === 0 && getAttachmentRuntime().focusaAvailable) {
-    // §21: Request micro-compact via Focusa API (not extension-owned summarization)
-    focusaFetch("/commands/submit", {
-      method: "POST",
-      body: JSON.stringify({
-        command: "micro-compact",
-        args: { turn_count: getTurnCount(), surface: "pi" },
-        idempotency_key: `micro-${getTurnCount()}-${Date.now()}`,
-      }),
-    }).catch(() => {});
+  const legacyCadence = getAttachmentRuntime().cfg?.microCompactEveryNTurns ?? 0;
+  if (legacyCadence > 0 && !legacyMicroCompactDiagnosticEmitted) {
+    legacyMicroCompactDiagnosticEmitted = true;
+    console.warn(
+      `[focusa] microCompactEveryNTurns=${legacyCadence} is retained for compatibility but automatic fixed-cadence compaction is disabled; use pressure policy or the manual micro-compact command.`
+    );
   }
 }

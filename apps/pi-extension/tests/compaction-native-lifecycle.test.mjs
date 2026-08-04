@@ -7,6 +7,10 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../../..");
 const extensionSource = fs.readFileSync(path.join(root, "apps/pi-extension/src/compaction.ts"), "utf8");
+const resumeProjectionSource = fs.readFileSync(
+  path.join(root, "apps/pi-extension/src/compaction-resume-projection.ts"),
+  "utf8"
+);
 const stateSource = fs.readFileSync(path.join(root, "apps/pi-extension/src/state.ts"), "utf8");
 const turnsSource = fs.readFileSync(path.join(root, "apps/pi-extension/src/turns.ts"), "utf8");
 const apiSource = fs.readFileSync(path.join(root, "crates/focusa-api/src/routes/compaction.rs"), "utf8");
@@ -26,9 +30,9 @@ function blockFrom(source, marker, nextMarker) {
 
 test("compaction packets preserve bounded temporal authority without full projection blobs", () => {
   const render = blockFrom(
-    extensionSource,
-    "function renderCompactionMissionPacket",
-    "async function buildCompactionMissionPacket"
+    resumeProjectionSource,
+    "export function renderCompactionResumeProjection",
+    "export function compactionProjectionBudgetTokens"
   );
   assert.match(render, /TEMPORAL_STATUS:/);
   assert.match(render, /DEADLINE_STATUS:/);
