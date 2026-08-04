@@ -1,6 +1,6 @@
 {
   "admitted_mapping_count": 289,
-  "evidence_links_digest": "sha256:6dfbb7b5f632593aba8c3c77f7eb67b9ecd8339b0c637476d9ec0116a222381f",
+  "evidence_links_digest": "sha256:8f123e42963ecd0eeb1c4e2c283ad7235b524eae24950186da2e073f3c862070",
   "evidence_state_counts": {
     "aggregate_child_evidence": 3,
     "evidence_linked": 113,
@@ -7893,7 +7893,9 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": null,
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:2d6603365325a63992bbe6a25fb276c87787ab23"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7905,7 +7907,11 @@
       "provider_record_digest": "sha256:fc4c0918e5c7f0c3bd944ddc74ca09888a45177b0f3c6eb0f00925d23e03d066",
       "provider_state": "in_progress",
       "provider_updated_at": "2026-08-04T20:44:05.398675428Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "release-proof/audit/next-locked-release-candidate-ancestry.json",
+        "release-proof/audit/next-locked-release-v09143-published-assets.json",
+        "tests/166_focusa_locked_release_candidate_ancestry_test.py"
+      ],
       "task_plan_ref": null,
       "title": "106.4 Reconcile release tags and candidate ancestry"
     },
@@ -8508,7 +8514,7 @@
     "in_progress": 49,
     "open": 38
   },
-  "reconciliation_digest": "sha256:a2d394dc3b793260350d3cabb2c81feaa30321b6010495afc91c77962f0a51da",
+  "reconciliation_digest": "sha256:af835e3a4e3abcc1b20409e6a587e2abbd68a291c2e99fbefde6c7d49008515a",
   "repair_overlay_mapping_count": 14,
   "schema": "focusa.locked_release_governance_reconciliation.v1",
   "status": "blocked",
