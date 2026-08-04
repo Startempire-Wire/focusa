@@ -34,6 +34,7 @@ pub enum DispatchStatus {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DispatchReceipt {
     pub mutation_id: String,
+    pub route: ProjectRouteKey,
     pub daemon_id: String,
     pub writer_lease_id: String,
     pub payload_digest: String,
@@ -112,6 +113,7 @@ impl MutationDispatchLedger {
                 }
                 Ok(vacant.insert(DispatchReceipt {
                     mutation_id: mutation.mutation_id.clone(),
+                    route: mutation.route.clone(),
                     daemon_id: daemon.daemon_id.clone(),
                     writer_lease_id: lease.lease_id.clone(),
                     payload_digest: mutation.payload_digest.clone(),
@@ -190,13 +192,17 @@ mod tests {
     }
 
     fn registry() -> DaemonRegistryProjection {
+        registry_for("daemon-1", route())
+    }
+
+    fn registry_for(daemon_id: &str, route: ProjectRouteKey) -> DaemonRegistryProjection {
         reduce_daemon_registry([
             DaemonRegistryEvent::Enrolled {
                 registration: DaemonRegistration {
-                    daemon_id: "daemon-1".into(),
+                    daemon_id: daemon_id.into(),
                     controller_id: "controller-1".into(),
-                    endpoint: "https://daemon.example.test".into(),
-                    auth_fingerprint: "sha256:auth".into(),
+                    endpoint: format!("https://{daemon_id}.example.test"),
+                    auth_fingerprint: format!("sha256:{daemon_id}"),
                     version: "0.9.143".into(),
                     capabilities: BTreeSet::from(["workpoint".into()]),
                     health: DaemonHealth::Healthy,
@@ -204,9 +210,9 @@ mod tests {
                 },
             },
             DaemonRegistryEvent::ScopeAssigned {
-                daemon_id: "daemon-1".into(),
+                daemon_id: daemon_id.into(),
                 generation: 1,
-                route: route(),
+                route,
             },
         ])
     }
@@ -230,6 +236,34 @@ mod tests {
             payload_digest: digest.into(),
             operation: "workpoint.checkpoint".into(),
         }
+    }
+
+    #[test]
+    fn concurrent_project_reads_and_receipts_never_cross_route() {
+        let route_a = route();
+        let route_b = ProjectRouteKey {
+            project_root: "/srv/other".into(),
+            continuity_id: "continuity-other".into(),
+            working_subpath_id: "working-subpath:feature".into(),
+        };
+        let registry_a = registry_for("daemon-a", route_a.clone());
+        let registry_b = registry_for("daemon-b", route_b.clone());
+        let handles = [
+            std::thread::spawn(move || registry_a.resolve(&route_a).unwrap().daemon_id.clone()),
+            std::thread::spawn(move || registry_b.resolve(&route_b).unwrap().daemon_id.clone()),
+        ];
+        let [first, second] = handles.map(|handle| handle.join().unwrap());
+        assert_eq!((first.as_str(), second.as_str()), ("daemon-a", "daemon-b"));
+
+        let mut ledger = MutationDispatchLedger::default();
+        let receipt = ledger
+            .prepare(&registry(), &lease(), &mutation("sha256:a"), 1)
+            .unwrap();
+        assert_eq!(receipt.route, route());
+        assert_eq!(receipt.daemon_id, "daemon-1");
+        let persisted = serde_json::to_vec(&ledger).unwrap();
+        let restarted: MutationDispatchLedger = serde_json::from_slice(&persisted).unwrap();
+        assert_eq!(restarted.receipt("mutation-1").unwrap().route, route());
     }
 
     #[test]
