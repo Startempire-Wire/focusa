@@ -50,9 +50,17 @@ jobs:
           bunx tauri build --no-bundle --target "${{ matrix.target }}"
 
   windows-dependency-preflight:
-    name: Windows native dependency preflight
-    runs-on: windows-latest
-    timeout-minutes: 20
+    name: Windows native dependency preflight (${{ matrix.architecture }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: x64
+            runner: windows-latest
+          - architecture: arm64
+            runner: windows-11-arm
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@nightly
@@ -60,17 +68,32 @@ jobs:
           toolchain: nightly-2026-01-08
       - uses: Swatinem/rust-cache@v2
         with:
-          shared-key: windows-dependency-preflight
-      - name: Prove PATH, PATHEXT, semver, and UIAI health detection
+          shared-key: windows-dependency-preflight-${{ matrix.architecture }}
+      - name: Prove PATH, PATHEXT, semver, and UIAI health detection natively
         shell: pwsh
         run: |
+          $runtimeArch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
+          if ($runtimeArch -ne '${{ matrix.architecture }}') {
+            throw "native runner architecture mismatch: expected=${{ matrix.architecture }} actual=$runtimeArch"
+          }
           cargo test -p focusa-cli windows_dependency_preflight_native_resolves_path_semver_and_health -- --nocapture
           if ($LASTEXITCODE -ne 0) { throw 'Windows native dependency preflight failed' }
 
   windows-ota:
+    name: Windows native OTA (${{ matrix.architecture }})
     needs: [windows-dependency-preflight]
-    runs-on: windows-latest
-    timeout-minutes: 45
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: x64
+            runner: windows-latest
+            install_target: windows-x64
+          - architecture: arm64
+            runner: windows-11-arm
+            install_target: windows-arm64
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@nightly
@@ -78,11 +101,28 @@ jobs:
           toolchain: nightly-2026-01-08
       - uses: Swatinem/rust-cache@v2
         with:
-          shared-key: windows-ota-e2e
-      - name: Clean install v0.9.116, apply v0.9.117, rollback, reapply
+          shared-key: windows-ota-e2e-${{ matrix.architecture }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Install the real pinned Pi dependency
+        shell: pwsh
+        run: |
+          npm install --global '@earendil-works/pi-coding-agent@0.81.1'
+          if ($LASTEXITCODE -ne 0) { throw 'pinned Pi dependency install failed' }
+          $pi = Get-Command pi -ErrorAction Stop
+          $version = & $pi.Source --version
+          if ($LASTEXITCODE -ne 0 -or $version -notmatch '\d+\.\d+') {
+            throw "installed Pi dependency is not executable/versioned: $($pi.Source) $version"
+          }
+      - name: Clean install v0.9.116 fixture, apply v0.9.117, rollback, reapply
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
+          $runtimeArch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
+          if ($runtimeArch -ne '${{ matrix.architecture }}') {
+            throw "native runner architecture mismatch: expected=${{ matrix.architecture }} actual=$runtimeArch"
+          }
           # Build before isolating HOME so rustup retains its provisioned toolchain.
           cargo build -p focusa-cli --bin focusa
           if ($LASTEXITCODE -ne 0) { throw 'candidate Windows build failed' }
@@ -92,6 +132,9 @@ jobs:
           $testHome = Join-Path $root 'home'
           $data = Join-Path $root 'data'
           New-Item -ItemType Directory -Force -Path $testHome, $data | Out-Null
+          $sentinel = Join-Path $data 'user-state-sentinel.txt'
+          'preserve-across-install-update-rollback-reapply' | Set-Content -Path $sentinel -Encoding utf8
+          $sentinelHash = (Get-FileHash $sentinel -Algorithm SHA256).Hash
           $env:HOME = $testHome
           $env:USERPROFILE = $testHome
           $env:LOCALAPPDATA = Join-Path $testHome 'AppData\Local'
@@ -155,33 +198,36 @@ jobs:
             return (Get-Content $stdout -Raw | ConvertFrom-Json)
           }
 
-          # Parse and route the public PowerShell bootstrap without mutating the runner.
+          # Parse and route the historical preview bootstrap without mutation.
+          # v0.9.116-dev/v0.9.117-dev are non-authoritative migration fixtures;
+          # --eval here never projects production entitlement authority.
           & ./scripts/install-focusa.ps1 `
             -DryRun -Eval -Channel preview `
+            -Target '${{ matrix.install_target }}' `
             -ReleaseTag v0.9.116-dev `
             -ReleaseBaseUrl 'https://github.com/Startempire-Wire/focusa/releases/download/v0.9.116-dev'
 
-          # Dependency shims isolate OTA mechanics from external Pi/UIAI package
-          # availability while still exercising native Windows PATH detection.
-          $shimDir = Join-Path $root 'dependency-shims'
-          New-Item -ItemType Directory -Force -Path $shimDir | Out-Null
-          Copy-Item $candidate (Join-Path $shimDir 'pi.exe')
-          Copy-Item $candidate (Join-Path $shimDir 'uiai-engine.exe')
-          $env:PATH = "$shimDir;$env:PATH"
-          $piResolved = (Get-Command pi.exe -ErrorAction Stop).Source
+          # The real pinned Pi package must resolve and execute. UIAI availability
+          # is its actual HTTP health contract, exercised by the bounded local
+          # non-production endpoint rather than a renamed executable shim.
+          $piResolved = (Get-Command pi -ErrorAction Stop).Source
           $piVersion = & $piResolved --version
           if ($LASTEXITCODE -ne 0 -or $piVersion -notmatch '\d+\.\d+') {
-            throw "Pi PATH fixture is not executable/versioned: $piResolved $piVersion"
+            throw "Pi dependency is not executable/versioned: $piResolved $piVersion"
           }
           if ((Invoke-WebRequest "$env:UIAI_ENGINE_URL/health" -UseBasicParsing).StatusCode -ne 200) {
-            throw 'UIAI dependency fixture is not healthy'
+            throw 'UIAI dependency health contract is not responsive'
+          }
+          $preflight = Invoke-FocusaJson -FilePath $candidate -Arguments @('--json', 'install', '--preflight', '--target=${{ matrix.install_target }}', '--channel=preview', '--eval', '--no-service') -Name 'preflight'
+          if ($preflight.missing_dependencies.Count -ne 0) {
+            throw "native dependency preflight reported missing dependencies: $($preflight.missing_dependencies -join ',')"
           }
 
-          # Use the exact candidate to exercise the transactional installer and
-          # updater against prior signed releases.
+          # Use the exact candidate to exercise transactional installation and
+          # update against prior signed, non-authoritative preview fixtures.
           $env:FOCUSA_RELEASE_TAG = 'v0.9.116-dev'
           $env:FOCUSA_RELEASE_BASE_URL = 'https://github.com/Startempire-Wire/focusa/releases/download/v0.9.116-dev'
-          & $candidate install --target=windows-x64 --channel=preview --eval --no-service --install-dependencies --assume-yes
+          & $candidate install --target='${{ matrix.install_target }}' --channel=preview --eval --no-service
           if ($LASTEXITCODE -ne 0) { throw 'candidate clean install failed' }
 
           $bin = Join-Path $env:HOME '.focusa\bin'
@@ -236,6 +282,7 @@ jobs:
           if ((& $cli --version) -notmatch '0.9.116-dev') { throw 'rollback CLI mismatch' }
           if ((& $daemon --version) -notmatch '0.9.116-dev') { throw 'rollback daemon mismatch' }
           if ((& $tui --version) -notmatch '0.9.116-dev') { throw 'rollback TUI mismatch' }
+          if ((Get-FileHash $sentinel -Algorithm SHA256).Hash -ne $sentinelHash) { throw 'rollback mutated preserved user data' }
           $health = Invoke-RestMethod 'http://127.0.0.1:18791/v1/health'
           if ($health.version -ne '0.9.116-dev') { throw 'rollback health mismatch' }
 
@@ -243,7 +290,41 @@ jobs:
           $reapply | ConvertTo-Json -Depth 8
           if (-not $reapply.apply_executed) { throw 'reapply not executed' }
           if ((& $cli --version) -notmatch '0.9.117-dev') { throw 'reapply CLI mismatch' }
+          if ((& $daemon --version) -notmatch '0.9.117-dev') { throw 'reapply daemon mismatch' }
+          if ((& $tui --version) -notmatch '0.9.117-dev') { throw 'reapply TUI mismatch' }
           $health = Invoke-RestMethod 'http://127.0.0.1:18791/v1/health'
           if ($health.version -ne '0.9.117-dev') { throw 'reapply health mismatch' }
+          if ((Get-FileHash $sentinel -Algorithm SHA256).Hash -ne $sentinelHash) { throw 'reapply mutated preserved user data' }
+
+          $proof = [ordered]@{
+            schema = 'focusa.windows_native_ota_proof.v1'
+            architecture = '${{ matrix.architecture }}'
+            install_target = '${{ matrix.install_target }}'
+            runtime_architecture = $runtimeArch
+            source_commit = $env:GITHUB_SHA
+            workflow_run_id = $env:GITHUB_RUN_ID
+            historical_fixture_authority = 'non_authoritative_migration_fixture'
+            production_entitlement_claimed = $false
+            dependency_preflight = 'passed_without_dependency_install_or_executable_shim'
+            release_trust = 'signed_v0.9.116-dev_to_v0.9.117-dev'
+            phases = [ordered]@{
+              clean_install = 'v0.9.116-dev'
+              apply = 'v0.9.117-dev'
+              rollback = 'v0.9.116-dev'
+              reapply = 'v0.9.117-dev'
+            }
+            daemon_health = 'v0.9.117-dev'
+            user_data_preserved = $true
+            result = 'pass'
+          }
+          $proofPath = Join-Path $env:RUNNER_TEMP "windows-native-ota-${{ matrix.architecture }}.json"
+          $proof | ConvertTo-Json -Depth 8 | Set-Content -Path $proofPath -Encoding utf8
+          Stop-Process -Id $daemonProcess.Id -Force -ErrorAction SilentlyContinue
           Stop-Process -Id $uiaiFixtureProcess.Id -Force -ErrorAction SilentlyContinue
-          'WINDOWS_OTA_E2E=PASS'
+          "WINDOWS_OTA_E2E=PASS architecture=${{ matrix.architecture }} target=${{ matrix.install_target }}"
+      - name: Upload native Windows OTA proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-native-ota-${{ matrix.architecture }}
+          path: ${{ runner.temp }}/windows-native-ota-${{ matrix.architecture }}.json
+          if-no-files-found: error

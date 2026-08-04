@@ -43,6 +43,7 @@ TAG_CHAINS = {
     ),
 }
 ALLOWED_RECEIPT_PATHS = {
+    ".github/workflows/windows-ota-e2e.yml",
     "release-proof/audit/next-locked-release-candidate-ancestry.json",
     "release-proof/audit/next-locked-release-github106-closure-proof.json",
     "release-proof/audit/next-locked-release-governance-evidence-links.json",
@@ -55,6 +56,7 @@ ALLOWED_RECEIPT_PATHS = {
     "scripts/generate-locked-release-governance-receipt.py",
     "tests/166_focusa_locked_release_candidate_ancestry_test.py",
     "tests/167_focusa_locked_release_governance_receipt_test.py",
+    "tests/168_focusa_windows_native_ota_workflow_test.py",
     "tests/final_release_gap_gate.sh",
 }
 

@@ -8047,9 +8047,9 @@
       ],
       "parent_bead_id": "focusa-vbcqu.19",
       "projection_drift": false,
-      "provider_record_digest": "sha256:f06c174257922453a0c0c3b26029d7cea3dc8a5afaf240517ff3431195e297bd",
-      "provider_state": "blocked",
-      "provider_updated_at": "2026-08-04T07:27:25.851100344Z",
+      "provider_record_digest": "sha256:e7a694d6f113e1b667a8c6a118f93ee3f037ca7518c2470d420f7e93851ac969",
+      "provider_state": "in_progress",
+      "provider_updated_at": "2026-08-04T21:59:49.982128281Z",
       "runtime_or_acceptance_evidence_refs": [],
       "task_plan_ref": null,
       "title": "REL.2 Repair Windows native preflight and OTA fixtures"
@@ -8540,16 +8540,15 @@
   ],
   "provider_snapshot": {
     "record_count": 2317,
-    "sha256": "sha256:350d5083de81a27d326912c9553acd74d779349a9088d6df1855735c8646ee46",
+    "sha256": "sha256:781bb1a746fa56fa278e2d69fab013decb21aa86587724a88ae9a162498151be",
     "source": "canonical:.beads/issues.jsonl"
   },
   "provider_state_counts": {
-    "blocked": 1,
     "closed": 204,
-    "in_progress": 48,
+    "in_progress": 49,
     "open": 36
   },
-  "reconciliation_digest": "sha256:25c5b8f2439674e0f1d1b46f73c64604f99a85ebaca6e11138c19bce662ef054",
+  "reconciliation_digest": "sha256:1547fce86b8bf556628f07b7746be4875046b146d0ce44eb3feed8b8e1f92675",
   "repair_overlay_mapping_count": 14,
   "schema": "focusa.locked_release_governance_reconciliation.v1",
   "status": "blocked",

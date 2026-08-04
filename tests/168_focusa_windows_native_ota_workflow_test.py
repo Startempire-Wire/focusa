@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+"""Static contract for REL.2 native Windows x64/ARM64 lifecycle proof."""
+
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+workflow = (ROOT / ".github/workflows/windows-ota-e2e.yml").read_text()
+
+required = (
+    "runner: windows-latest",
+    "runner: windows-11-arm",
+    "install_target: windows-x64",
+    "install_target: windows-arm64",
+    "Windows native dependency preflight (${{ matrix.architecture }})",
+    "Windows native OTA (${{ matrix.architecture }})",
+    "RuntimeInformation]::OSArchitecture",
+    "@earendil-works/pi-coding-agent@0.81.1",
+    "native dependency preflight reported missing dependencies",
+    "historical_fixture_authority = 'non_authoritative_migration_fixture'",
+    "production_entitlement_claimed = $false",
+    "dependency_preflight = 'passed_without_dependency_install_or_executable_shim'",
+    "clean_install = 'v0.9.116-dev'",
+    "apply = 'v0.9.117-dev'",
+    "rollback = 'v0.9.116-dev'",
+    "reapply = 'v0.9.117-dev'",
+    "user_data_preserved = $true",
+    "windows-native-ota-${{ matrix.architecture }}.json",
+    "actions/upload-artifact@v4",
+    "WINDOWS_OTA_E2E=PASS architecture=${{ matrix.architecture }}",
+)
+for marker in required:
+    assert marker in workflow, f"Windows native OTA workflow missing: {marker}"
+
+for prohibited in (
+    "Copy-Item $candidate (Join-Path $shimDir 'pi.exe')",
+    "Copy-Item $candidate (Join-Path $shimDir 'uiai-engine.exe')",
+    "--install-dependencies --assume-yes",
+):
+    assert prohibited not in workflow, (
+        f"false dependency availability retained: {prohibited}"
+    )
+
+assert workflow.count("runner: windows-11-arm") >= 2
+assert workflow.count("native runner architecture mismatch") >= 2
+assert "Windows release build (${{ matrix.target }})" in workflow
+assert "target: aarch64-pc-windows-msvc" in workflow
+print("REL.2 native Windows x64/ARM64 OTA workflow contract: PASS")
