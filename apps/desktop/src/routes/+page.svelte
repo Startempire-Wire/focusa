@@ -38,16 +38,20 @@
       </div>
     </div>
     <div class="titlebar-status">
-      <div class="ui-mode-switch" aria-label="Application interface mode">
-        <span class:active={uiMode === 'tui'}>Agent TUI (Pi)</span>
+      <div class="ui-mode-switch" role="group" aria-label="Switch between Agent TUI and Mission Canvas">
+        <i class:canvas={uiMode === 'canvas'} aria-hidden="true"></i>
         <button
           type="button"
-          role="switch"
-          aria-checked={uiMode === 'canvas'}
-          aria-label="Switch between TUI and Mission Canvas"
-          onclick={() => (uiMode = uiMode === 'canvas' ? 'tui' : 'canvas')}
-        ><i class:canvas={uiMode === 'canvas'}></i></button>
-        <span class:active={uiMode === 'canvas'}>Mission Canvas</span>
+          class:active={uiMode === 'tui'}
+          aria-pressed={uiMode === 'tui'}
+          onclick={() => (uiMode = 'tui')}
+        >Agent TUI</button>
+        <button
+          type="button"
+          class:active={uiMode === 'canvas'}
+          aria-pressed={uiMode === 'canvas'}
+          onclick={() => (uiMode = 'canvas')}
+        >Mission Canvas</button>
       </div>
       <span class="mode-chip">{shellMode}</span>
       <span class:unavailable={daemon.kind === 'unavailable'} class:connected={daemon.kind === 'read-only'} class="daemon-chip">
