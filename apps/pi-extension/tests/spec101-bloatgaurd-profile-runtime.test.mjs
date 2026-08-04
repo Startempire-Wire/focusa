@@ -217,6 +217,10 @@ try {
       FOCUSA_PI_EXTERNALIZE_BYTES: "4001",
       FOCUSA_PI_EXTERNALIZE_TOKENS: "412",
       FOCUSA_PI_MICRO_COMPACT_TURNS: "4",
+      FOCUSA_PI_COMPACTION_POLICY_MODE: "adaptive",
+      FOCUSA_PI_COMPACTION_CANARY_ENROLLMENT: "operator-dev-fleet",
+      FOCUSA_PI_COMPACTION_ADAPTIVE_MIN_SAMPLES: "30",
+      FOCUSA_PI_COMPACTION_ADAPTIVE_CONFIDENCE: "0.97",
     },
     run: () => loadConfig(numericProfileCwd),
   });
@@ -226,6 +230,10 @@ try {
   assert.equal(numericEnvResult.config.externalizeThresholdBytes, 4001);
   assert.equal(numericEnvResult.config.externalizeThresholdTokens, 412);
   assert.equal(numericEnvResult.config.microCompactEveryNTurns, 4);
+  assert.equal(numericEnvResult.config.compactionPolicyMode, "adaptive");
+  assert.equal(numericEnvResult.config.compactionCanaryEnrollment, "operator-dev-fleet");
+  assert.equal(numericEnvResult.config.compactionAdaptiveMinSamples, 30);
+  assert.equal(numericEnvResult.config.compactionAdaptiveConfidence, 0.97);
 
   console.log("spec101 bloatgaurd profile runtime config test passed");
 } finally {

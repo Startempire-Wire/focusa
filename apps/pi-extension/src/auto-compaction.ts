@@ -19,7 +19,11 @@ import {
   applyCompactionPolicyQuarantine,
   type CompactionPolicySelection,
 } from "./compaction-policy-selector.js";
-import { prewarmCompactionPolicy, selectFrozenCompactionPolicy } from "./compaction-policy-adapter.js";
+import {
+  observeFrozenCompactionOutcome,
+  prewarmCompactionPolicy,
+  selectFrozenCompactionPolicy,
+} from "./compaction-policy-adapter.js";
 import {
   evaluateCompactionOutcome,
   type CompactionContinuationSnapshot,
@@ -457,7 +461,8 @@ const MODULE_LOAD_ID = randomUUID();
 
 export function registerAutoCompaction(
   pi: ExtensionAPI,
-  getPolicy: () => ProactiveCompactionPolicy = () => DEFAULT_PROACTIVE_COMPACTION_POLICY
+  getPolicy: () => ProactiveCompactionPolicy = () => DEFAULT_PROACTIVE_COMPACTION_POLICY,
+  getConfig: () => FocusaConfig | undefined = () => undefined
 ): boolean {
   const processLease = processCompactionLease();
   if (processLease.owner) {
@@ -569,10 +574,23 @@ export function registerAutoCompaction(
     }
   };
 
-  const recordOutcome = (epoch: ActiveEpoch, outcome: CompactionContinuationSnapshot): void => {
+  const recordOutcome = (
+    ctx: ExtensionContext,
+    epoch: ActiveEpoch,
+    outcome: CompactionContinuationSnapshot
+  ): void => {
     if (!epoch.outcomeBaseline) return;
     const evaluation = evaluateCompactionOutcome(epoch.outcomeBaseline, outcome);
     persist("outcome_evaluated", { outcome_evaluation: evaluation }, epoch);
+    observeFrozenCompactionOutcome(ctx, {
+      epochId: epoch.epochId,
+      triggerClass: epoch.triggerClass,
+      tokensBefore: epoch.outcomeBaseline.snapshot.contextTokens,
+      tokensAfter: outcome.contextTokens,
+      projectionTokens: 900,
+      hardFindings: evaluation.reasons,
+      rollbackTriggered: evaluation.rollbackRequired,
+    });
     if (evaluation.rollbackRequired) {
       persist(
         "policy_rollback_required",
@@ -801,7 +819,7 @@ export function registerAutoCompaction(
         const failureClass = compactionFailureClass(message, exactRejection);
         const retryableFailure = isRetryableCompactionError(message);
         if (failedEpoch.outcomeBaseline) {
-          recordOutcome(failedEpoch, {
+          recordOutcome(ctx, failedEpoch, {
             ...failedEpoch.outcomeBaseline.snapshot,
             providerOutcome: "failed",
             qualityScore: null,
@@ -1196,7 +1214,7 @@ export function registerAutoCompaction(
     if (processLease.inFlightEpochId) return;
     if (!ownsRegistrationLease()) return;
     if (activeEpoch?.outcomeBaseline) {
-      recordOutcome(activeEpoch, {
+      recordOutcome(ctx, activeEpoch, {
         ...activeEpoch.outcomeBaseline.snapshot,
         projectRoot: ctx.cwd,
         sessionId: ctx.sessionManager.getSessionId(),
@@ -1234,7 +1252,7 @@ export function registerAutoCompaction(
       )
       .map((entry) => entry.data);
     processLease.projection = reduceCompactionAuthorityEvents(persistedEvents);
-    await prewarmCompactionPolicy(ctx).catch(() => undefined);
+    await prewarmCompactionPolicy(ctx, getConfig()).catch(() => undefined);
     const policyStatus = await focusaFetch("/compaction/policy").catch(() => null);
     processLease.operatorOverride = policyOverride(policyStatus);
     inFlight = false;

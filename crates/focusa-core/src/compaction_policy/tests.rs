@@ -456,6 +456,83 @@ fn adaptive_lifecycle_is_conservative_explicit_and_one_boundary_reversible() {
     assert!(rollback.avoid_additional_model_turn);
 }
 
+fn differential_cycle(id: usize, billed_tokens: u64, latency_ms: u64) -> DifferentialCycle {
+    DifferentialCycle {
+        cycle_id: format!("cycle-{id}"),
+        operator_turn_ids_in: vec![format!("operator-{id}")],
+        operator_turn_ids_out: vec![format!("operator-{id}")],
+        model_turn_ids: vec![format!("model-{id}")],
+        expected_project_hash: "sha256:project".into(),
+        actual_project_hash: "sha256:project".into(),
+        opaque_state_digest_before: Some("sha256:opaque".into()),
+        opaque_state_digest_after: Some("sha256:opaque".into()),
+        recovery_handles_before: vec!["ecs:recovery".into()],
+        recovery_handles_after: vec!["ecs:recovery".into()],
+        workpoint_revision_delta: 1,
+        trajectory_current: true,
+        active_blocker_truthful: true,
+        correct_next_action: true,
+        task_success: true,
+        tokens_before: 160_000,
+        tokens_after: 70_000,
+        billed_tokens,
+        latency_ms,
+        cache_behavior: "explicit".into(),
+        prepare_rpc_count: 1,
+        verify_rpc_count: 1,
+        observation_batch_count: 1,
+        extra_summarizer_calls: 0,
+    }
+}
+
+fn differential_run(label: &str, billed_tokens: u64, latency_ms: u64) -> DifferentialRun {
+    DifferentialRun {
+        label: label.into(),
+        cycles: (1..=3)
+            .map(|id| differential_cycle(id, billed_tokens, latency_ms))
+            .collect(),
+        restart_recovered: true,
+        transport_fallback_recovered: true,
+        rollback_drill_passed: true,
+    }
+}
+
+#[test]
+fn three_cycle_differential_acceptance_is_measured_and_fail_closed() {
+    let input = DifferentialAcceptanceInput {
+        schema: "focusa.compaction_differential_acceptance_input.v1".into(),
+        runtime_segment: "segment-pi-fallback".into(),
+        provider_strategy: "pi_structured_fallback".into(),
+        baseline_without_focusa: differential_run("provider_baseline", 100_000, 1_000),
+        legacy_focusa: differential_run("legacy_focusa", 90_000, 900),
+        adaptive_focusa: differential_run("adaptive_focusa", 70_000, 700),
+        noninferiority_epsilon: 0.02,
+    };
+    let accepted = evaluate_differential_acceptance(&input);
+    assert_eq!(accepted.status, "accepted");
+    assert!(accepted.findings.is_empty());
+    assert_eq!(accepted.cycles_per_run, 3);
+    assert!(accepted.adaptive_context_release_ratio > 0.5);
+    assert_eq!(accepted.adaptive_billed_tokens, 210_000);
+    let mut broken = input.clone();
+    broken.adaptive_focusa.cycles[0].model_turn_ids = vec!["duplicate".into(), "duplicate".into()];
+    broken.adaptive_focusa.rollback_drill_passed = false;
+    let blocked = evaluate_differential_acceptance(&broken);
+    assert_eq!(blocked.status, "blocked");
+    assert!(
+        blocked
+            .findings
+            .iter()
+            .any(|finding| finding.contains("duplicate_model_turn"))
+    );
+    assert!(
+        blocked
+            .findings
+            .iter()
+            .any(|finding| finding.contains("rollback_drill_failed"))
+    );
+}
+
 fn observation(
     segment: &str,
     workstream: &str,

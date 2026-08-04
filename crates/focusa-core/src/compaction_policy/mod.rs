@@ -2,6 +2,7 @@
 
 mod candidate;
 mod capabilities;
+mod differential;
 mod identity;
 mod lifecycle;
 mod pressure;
@@ -14,6 +15,10 @@ mod tests;
 
 pub use candidate::{ContextPolicyBundle, compile_policy_lattice, legacy_current_v1};
 pub use capabilities::{CapabilityEvidence, CapabilityState, legal_action_mask};
+pub use differential::{
+    DifferentialAcceptanceInput, DifferentialAcceptanceReceipt, DifferentialCycle, DifferentialRun,
+    evaluate_differential_acceptance,
+};
 pub use identity::{
     CompactionRuntimeFacts, CompactionRuntimeFingerprint, resolve_runtime_fingerprint,
 };

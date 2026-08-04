@@ -138,7 +138,7 @@ test("attempt, primary failure, retry, rejection, and ROI outcomes are durably l
 
 test("Rust lease adapter owns policy resolution with exact local fallback", () => {
   assert.match(source, /selectFrozenCompactionPolicy\(ctx, pressureTelemetry, capabilities\)/);
-  assert.match(source, /await prewarmCompactionPolicy\(ctx\)/);
+  assert.match(source, /await prewarmCompactionPolicy\(ctx, getConfig\(\)\)/);
   assert.match(source, /PROACTIVE_COMPACTION_SUCCESS_COOLDOWN_MS = 180_000/);
   assert.match(source, /successful_compaction_hysteresis/);
   assert.match(source, /lastSuccessfulCompactionAt = Date\.now\(\)/);
@@ -150,7 +150,7 @@ test("compaction outcomes automatically evaluate and quarantine degraded policie
   const compacted = handlerBody("session_compact");
   assert.match(beforeCompact, /outcomeBaseline/);
   assert.match(beforeCompact, /outcome_baseline_recorded/);
-  assert.match(compacted, /recordOutcome\(activeEpoch/);
+  assert.match(compacted, /recordOutcome\(ctx, activeEpoch/);
   assert.match(source, /outcome_evaluated/);
   assert.match(source, /policy_rollback_required/);
   assert.match(source, /quarantinedPolicyKeys/);

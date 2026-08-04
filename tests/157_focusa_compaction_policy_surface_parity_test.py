@@ -30,11 +30,22 @@ assert '"/v1/compaction/policy/override"' in cli
 assert '"/compaction/policy"' in pi
 assert '"/compaction/policy/override"' in pi
 assert '"/v1/compaction/policy?project_root=' in tui_app
-assert '"/v1/compaction/policy/resolve"' in api_resolution
+for route in [
+    "/v1/compaction/policy/resolve",
+    "/v1/compaction/policy/observe",
+    "/v1/compaction/policy/status",
+    "/v1/compaction/policy/candidates",
+    "/v1/compaction/policy/evidence",
+    "/v1/compaction/policy/canary/enroll",
+    "/v1/compaction/policy/canary/pause",
+    "/v1/compaction/policy/rollback",
+]:
+    assert f'"{route}"' in api_resolution, f"missing controller route {route}"
 assert 'resolve_runtime_fingerprint' in api_resolution
 assert 'legal_action_mask' in api_resolution
 assert 'resolve_policy' in api_resolution
 assert '"/compaction/policy/resolve"' in pi_adapter
+assert '"/compaction/policy/observe"' in pi_adapter
 assert 'selectFrozenCompactionPolicy' in pi
 assert 'focusa.compaction_policy_override_receipt.v1' in api
 assert '"reversible":true' in api

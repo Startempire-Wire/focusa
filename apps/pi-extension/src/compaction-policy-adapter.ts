@@ -4,7 +4,7 @@ import type { FocusaConfig } from "./config.js";
 import type { ContextPressureTelemetry } from "./context-pressure-telemetry.js";
 import type { ProviderCompactionCapabilities } from "./provider-compaction-capabilities.js";
 import { selectCompactionPolicy, type CompactionPolicySelection } from "./compaction-policy-selector.js";
-import { focusaFetch } from "./state.js";
+import { focusaFetch, focusaPost } from "./state.js";
 
 interface RustPolicyLease {
   lease_id: string;
@@ -24,6 +24,8 @@ interface RustPolicyBundle {
 
 interface CachedResolution {
   runtimeKey: string;
+  runtimeSegment: string;
+  workstreamHash: string;
   lease: RustPolicyLease;
   policy: RustPolicyBundle;
 }
@@ -49,7 +51,14 @@ function bounded(value: unknown, max: number): string | null {
 
 export async function prewarmCompactionPolicy(
   ctx: ExtensionContext,
-  config?: Pick<FocusaConfig, "bloatgaurdProfile">
+  config?: Pick<
+    FocusaConfig,
+    | "bloatgaurdProfile"
+    | "compactionPolicyMode"
+    | "compactionCanaryEnrollment"
+    | "compactionAdaptiveMinSamples"
+    | "compactionAdaptiveConfidence"
+  >
 ): Promise<void> {
   const key = runtimeKey(ctx);
   const model = (ctx as any)?.model ?? {};
@@ -57,8 +66,12 @@ export async function prewarmCompactionPolicy(
     method: "POST",
     body: JSON.stringify({
       schema: "focusa.compaction_policy_resolve_request.v1",
-      mode: "shadow",
+      mode: config?.compactionPolicyMode ?? "shadow",
       objective_profile: config?.bloatgaurdProfile ?? "daily_driver",
+      sample_size: 0,
+      confidence: config?.compactionAdaptiveConfidence ?? 0.95,
+      minimum_samples: config?.compactionAdaptiveMinSamples ?? 20,
+      required_confidence: config?.compactionAdaptiveConfidence ?? 0.95,
       runtime_facts: {
         provider_raw: bounded(model.provider ?? model.providerId, 160),
         api: bounded(model.api, 120),
@@ -88,8 +101,10 @@ export async function prewarmCompactionPolicy(
   });
   const lease = response?.lease as RustPolicyLease | undefined;
   const policy = response?.resolution?.selected as RustPolicyBundle | undefined;
-  if (!lease?.lease_id || !policy?.policy_id) return;
-  cache.set(key, { runtimeKey: key, lease, policy });
+  const runtimeSegment = String(response?.runtime_fingerprint?.segment_key ?? "");
+  const workstreamHash = String(response?.workstream_hash ?? "");
+  if (!lease?.lease_id || !policy?.policy_id || !runtimeSegment || !workstreamHash) return;
+  cache.set(key, { runtimeKey: key, runtimeSegment, workstreamHash, lease, policy });
   while (cache.size > MAX_CACHE_ENTRIES) cache.delete(cache.keys().next().value!);
 }
 
@@ -136,6 +151,52 @@ function selection(
     percent,
     deterministicKey: `${cached.lease.lease_id}:${route}`,
   };
+}
+
+export function observeFrozenCompactionOutcome(
+  ctx: ExtensionContext,
+  input: {
+    epochId: string;
+    triggerClass: string;
+    tokensBefore: number | null;
+    tokensAfter: number | null;
+    projectionTokens: number;
+    hardFindings: string[];
+    rollbackTriggered: boolean;
+  }
+): void {
+  const cached = cache.get(runtimeKey(ctx));
+  if (!cached) return;
+  focusaPost("/compaction/policy/observe", {
+    schema: "focusa.compaction_policy_observe_request.v1",
+    observation: {
+      schema: "focusa.compaction_policy_observation.v1",
+      runtime_segment: cached.runtimeSegment,
+      workstream_hash: cached.workstreamHash,
+      epoch_id: input.epochId,
+      policy_id: cached.policy.policy_id,
+      trigger_class: input.triggerClass,
+      tokens_before: Math.max(0, input.tokensBefore ?? 0),
+      tokens_after: input.tokensAfter === null ? null : Math.max(0, input.tokensAfter),
+      context_release_ratio:
+        input.tokensBefore && input.tokensAfter !== null
+          ? Math.max(0, Math.min(1, (input.tokensBefore - input.tokensAfter) / input.tokensBefore))
+          : null,
+      projection_tokens: Math.max(0, input.projectionTokens),
+      prepare_latency_ms: null,
+      compaction_latency_ms: null,
+      verify_latency_ms: null,
+      first_productive_action_ms: null,
+      workpoint_revision_delta: 0,
+      repeat_error_delta: 0,
+      rehydrate_calls: 0,
+      rehydrated_bytes: 0,
+      hard_findings: input.hardFindings.slice(0, 32),
+      rollback_triggered: input.rollbackTriggered,
+    },
+    promotion: null,
+    drift: null,
+  });
 }
 
 export function clearCompactionPolicyCache(): void {
