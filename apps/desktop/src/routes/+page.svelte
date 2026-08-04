@@ -4,6 +4,7 @@
   import { readDaemonHealth, type DaemonReadStatus } from '$lib/shell/daemon-health';
 
   let activeWorkspaceId = $state('mission-deck');
+  let uiMode = $state<'tui' | 'canvas'>('canvas');
   let shellMode = $state<'browser preview' | 'native desktop'>('browser preview');
   let daemon = $state<DaemonReadStatus>({
     kind: 'checking',
@@ -37,6 +38,17 @@
       </div>
     </div>
     <div class="titlebar-status">
+      <div class="ui-mode-switch" aria-label="Application interface mode">
+        <span class:active={uiMode === 'tui'}>TUI</span>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={uiMode === 'canvas'}
+          aria-label="Switch between TUI and Mission Canvas"
+          onclick={() => (uiMode = uiMode === 'canvas' ? 'tui' : 'canvas')}
+        ><i class:canvas={uiMode === 'canvas'}></i></button>
+        <span class:active={uiMode === 'canvas'}>Mission Canvas</span>
+      </div>
       <span class="mode-chip">{shellMode}</span>
       <span class:unavailable={daemon.kind === 'unavailable'} class:connected={daemon.kind === 'read-only'} class="daemon-chip">
         <span class="status-dot" aria-hidden="true"></span>{daemon.label}
@@ -70,6 +82,26 @@
   </aside>
 
   <main>
+    {#if uiMode === 'tui'}
+      <section class="tui-surface" aria-label="Focusa terminal compatibility projection">
+        <div class="tui-bar">FOCUSA TUI · NATIVE COMPATIBILITY PROJECTION</div>
+        <pre><span class="tui-accent">ACTIVE WORKSTREAM</span>  unbound
+<span class="tui-dim">SCOPE</span>              no ScopeRef selected
+<span class="tui-dim">ATTACHMENT</span>         no Pi runtime attached
+
+┌─ CURRENT MISSION ─────────────────────────────────────────────┐
+│ Await exact Workstream and Attachment authority.             │
+└───────────────────────────────────────────────────────────────┘
+
+┌─ WORK RAIL ───────────────────┬─ EVIDENCE ────────────────────┐
+│ No active Workpoint           │ No scoped Evidence            │
+│ Writer: unavailable           │ Proof posture: unavailable    │
+└───────────────────────────────┴───────────────────────────────┘
+
+<span class="tui-good">Focusa Desktop is connected read-only.</span>
+<span class="tui-dim">Switch to Mission Canvas for the full graphical workspace.</span></pre>
+      </section>
+    {:else}
     <section class="workspace-heading">
       <div>
         <span class="eyebrow">Primary application · 5% native shell</span>
@@ -136,6 +168,7 @@
           Workstream contracts and parity evidence are complete.
         </p>
       </section>
+    {/if}
     {/if}
   </main>
 

@@ -10,6 +10,7 @@ assert.match(page, /Focusa Desktop/);
 assert.match(page, /No Workstream attached/);
 assert.match(page, /No canonical state duplicated/);
 assert.match(page, /UIAI Engine browser proof/);
+assert.match(page, /Switch between TUI and Mission Canvas/);
 assert.match(manifest, /mission-deck/);
 assert.match(manifest, /pi-work-surface/);
 assert.match(manifest, /agent-runtime/);

@@ -49,6 +49,12 @@ button:focus-visible { outline: 2px solid #8cb5ff; outline-offset: 2px; }
   font-weight: 760;
 }
 
+.ui-mode-switch { display: flex; align-items: center; gap: 7px; color: #657188; font-size: 10px; font-weight: 700; }
+.ui-mode-switch span.active { color: #dce7fb; }
+.ui-mode-switch button { position: relative; width: 34px; height: 18px; padding: 0; border: 1px solid rgba(151, 125, 255, 0.45); border-radius: 999px; background: #171d2a; cursor: pointer; -webkit-app-region: no-drag; }
+.ui-mode-switch i { position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #8d68f4; box-shadow: 0 0 8px rgba(141, 104, 244, 0.55); transition: transform 140ms ease; }
+.ui-mode-switch i.canvas { transform: translateX(16px); }
+
 .mode-chip, .daemon-chip, .availability {
   border: 1px solid rgba(159, 180, 219, 0.16);
   border-radius: 999px;
@@ -142,6 +148,12 @@ h2 { margin: 8px 0 10px; color: #eef3fc; font-size: 20px; letter-spacing: -0.02e
 .secondary-button:disabled { opacity: 0.55; cursor: default; }
 .empty-state { max-width: 1120px; min-height: 360px; margin: 0 auto; padding: clamp(30px, 6vw, 72px); display: flex; flex-direction: column; align-items: flex-start; justify-content: center; }
 .planned-state { border-style: dashed; }
+.tui-surface { max-width: 1120px; min-height: calc(100vh - 190px); margin: 0 auto; overflow: hidden; border: 1px solid #31433d; border-radius: 10px; background: #07100d; box-shadow: inset 0 0 60px rgba(55, 204, 128, 0.035); }
+.tui-bar { padding: 9px 13px; border-bottom: 1px solid #263b34; color: #8ba399; background: #0b1713; font: 10px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.08em; }
+.tui-surface pre { margin: 0; padding: clamp(18px, 4vw, 42px); color: #b6c9c1; font: 13px/1.8 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+.tui-accent { color: #bb8cff; }
+.tui-good { color: #60dc9a; }
+.tui-dim { color: #677c73; }
 
 footer {
   grid-column: 1 / -1;
