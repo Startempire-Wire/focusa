@@ -45,11 +45,15 @@ TAG_CHAINS = {
 ALLOWED_RECEIPT_PATHS = {
     "release-proof/audit/next-locked-release-candidate-ancestry.json",
     "release-proof/audit/next-locked-release-governance-evidence-links.json",
+    "release-proof/audit/next-locked-release-governance-receipt.json",
+    "release-proof/audit/next-locked-release-governance-receipt.json.sig",
     "release-proof/audit/next-locked-release-governance-reconciliation.json",
     "release-proof/audit/next-locked-release-technical-closure-gate.json",
     "release-proof/audit/next-locked-release-v09143-published-assets.json",
     "scripts/generate-locked-release-candidate-ancestry.py",
+    "scripts/generate-locked-release-governance-receipt.py",
     "tests/166_focusa_locked_release_candidate_ancestry_test.py",
+    "tests/167_focusa_locked_release_governance_receipt_test.py",
     "tests/final_release_gap_gate.sh",
 }
 

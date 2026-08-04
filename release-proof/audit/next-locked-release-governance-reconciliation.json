@@ -7937,9 +7937,9 @@
       ],
       "parent_bead_id": "focusa-vbcqu.14",
       "projection_drift": false,
-      "provider_record_digest": "sha256:b891f3efff58e19cb34fa139cf2e26ad5bc02ab695c0df8ab3ff6d454131a9b9",
-      "provider_state": "open",
-      "provider_updated_at": "2026-08-03T11:01:16.872846847Z",
+      "provider_record_digest": "sha256:19283fd81b15c8fad0e808949014025eac75d928ac17f2a6854844cfe2daaae3",
+      "provider_state": "in_progress",
+      "provider_updated_at": "2026-08-04T21:00:35.988210604Z",
       "runtime_or_acceptance_evidence_refs": [],
       "task_plan_ref": null,
       "title": "106.5 Generate immutable governance receipt"
@@ -8508,16 +8508,16 @@
   ],
   "provider_snapshot": {
     "record_count": 2317,
-    "sha256": "sha256:f75693f95f4874935be358f0908a2527eeec0fda6e6304cec23f9fafae3f78e4",
+    "sha256": "sha256:2de308abdd2b62ccf923af4883e664b86720a977a94bc1302abc3549d5945177",
     "source": "canonical:.beads/issues.jsonl"
   },
   "provider_state_counts": {
     "blocked": 1,
     "closed": 202,
-    "in_progress": 48,
-    "open": 38
+    "in_progress": 49,
+    "open": 37
   },
-  "reconciliation_digest": "sha256:0b0001f976b82420a3b21cae41b5676e07d598890ae6c5ec6c6664175c39fab8",
+  "reconciliation_digest": "sha256:505ed7d1e18d36a7e685e132a983b239ebbf2e11247634938b5f50692e60fb6d",
   "repair_overlay_mapping_count": 14,
   "schema": "focusa.locked_release_governance_reconciliation.v1",
   "status": "blocked",
