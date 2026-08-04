@@ -1,0 +1,974 @@
+{
+  "acceptance_basis": {
+    "focusa-58wee": [
+      "direct_evidence"
+    ],
+    "focusa-627th.4.3": [
+      "direct_evidence"
+    ],
+    "focusa-8305": [
+      "direct_evidence"
+    ],
+    "focusa-84px": [
+      "all_admitted_descendants:20"
+    ],
+    "focusa-84px.1": [
+      "direct_evidence"
+    ],
+    "focusa-84px.10": [
+      "exact_duplicate:focusa-84px.1"
+    ],
+    "focusa-84px.11": [
+      "direct_evidence"
+    ],
+    "focusa-84px.12": [
+      "direct_evidence"
+    ],
+    "focusa-84px.13": [
+      "direct_evidence"
+    ],
+    "focusa-84px.14": [
+      "direct_evidence"
+    ],
+    "focusa-84px.15": [
+      "direct_evidence"
+    ],
+    "focusa-84px.16": [
+      "direct_evidence"
+    ],
+    "focusa-84px.17": [
+      "direct_evidence"
+    ],
+    "focusa-84px.18": [
+      "direct_evidence"
+    ],
+    "focusa-84px.19": [
+      "exact_duplicate:focusa-84px.1"
+    ],
+    "focusa-84px.2": [
+      "exact_duplicate:focusa-84px.11"
+    ],
+    "focusa-84px.20": [
+      "exact_duplicate:focusa-84px.11"
+    ],
+    "focusa-84px.21": [
+      "exact_duplicate:focusa-84px.12"
+    ],
+    "focusa-84px.22": [
+      "exact_duplicate:focusa-84px.13"
+    ],
+    "focusa-84px.23": [
+      "exact_duplicate:focusa-84px.14"
+    ],
+    "focusa-84px.24": [
+      "exact_duplicate:focusa-84px.15"
+    ],
+    "focusa-84px.25": [
+      "exact_duplicate:focusa-84px.16"
+    ],
+    "focusa-84px.26": [
+      "exact_duplicate:focusa-84px.17"
+    ],
+    "focusa-84px.27": [
+      "exact_duplicate:focusa-84px.18"
+    ],
+    "focusa-a6yq6.10.4": [
+      "direct_evidence"
+    ],
+    "focusa-a6yq6.10.5": [
+      "direct_evidence"
+    ],
+    "focusa-a6yq6.10.7": [
+      "direct_evidence"
+    ],
+    "focusa-a6yq6.10.8": [
+      "direct_evidence"
+    ],
+    "focusa-a6yq6.10.9": [
+      "direct_evidence"
+    ],
+    "focusa-gkwt": [
+      "direct_evidence"
+    ],
+    "focusa-n68k": [
+      "all_admitted_descendants:59"
+    ],
+    "focusa-n68k.1": [
+      "direct_evidence"
+    ],
+    "focusa-n68k.10": [
+      "direct_evidence"
+    ],
+    "focusa-n68k.11": [
+      "direct_evidence"
+    ],
+    "focusa-n68k.12": [
+      "direct_evidence"
+    ],
+    "focusa-n68k.13": [
+      "direct_evidence"
+    ],
+    "focusa-n68k.14": [
+      "direct_evidence"
+    ],
+    "focusa-n68k.15": [
+      "direct_evidence"
+    ],
+    "focusa-n68k.16": [
+      "direct_evidence"
+    ],
+    "focusa-n68k.17": [
+      "direct_evidence"
+    ],
+    "focusa-n68k.18": [
+      "direct_evidence"
+    ],
+    "focusa-n68k.19": [
+      "direct_evidence"
+    ],
+    "focusa-n68k.2": [
+      "direct_evidence"
+    ],
+    "focusa-n68k.20": [
+      "direct_evidence"
+    ],
+    "focusa-n68k.21": [
+      "direct_evidence"
+    ],
+    "focusa-n68k.22": [
+      "exact_duplicate:focusa-n68k.1"
+    ],
+    "focusa-n68k.23": [
+      "exact_duplicate:focusa-n68k.2"
+    ],
+    "focusa-n68k.24": [
+      "direct_evidence"
+    ],
+    "focusa-n68k.25": [
+      "direct_evidence"
+    ],
+    "focusa-n68k.26": [
+      "direct_evidence"
+    ],
+    "focusa-n68k.27": [
+      "direct_evidence"
+    ],
+    "focusa-n68k.28": [
+      "direct_evidence"
+    ],
+    "focusa-n68k.29": [
+      "direct_evidence"
+    ],
+    "focusa-n68k.30": [
+      "direct_evidence"
+    ],
+    "focusa-n68k.31": [
+      "exact_duplicate:focusa-n68k.10"
+    ],
+    "focusa-n68k.32": [
+      "exact_duplicate:focusa-n68k.11"
+    ],
+    "focusa-n68k.33": [
+      "exact_duplicate:focusa-n68k.12"
+    ],
+    "focusa-n68k.34": [
+      "exact_duplicate:focusa-n68k.13"
+    ],
+    "focusa-n68k.35": [
+      "exact_duplicate:focusa-n68k.14"
+    ],
+    "focusa-n68k.36": [
+      "exact_duplicate:focusa-n68k.15"
+    ],
+    "focusa-n68k.37": [
+      "exact_duplicate:focusa-n68k.16"
+    ],
+    "focusa-n68k.38": [
+      "exact_duplicate:focusa-n68k.17"
+    ],
+    "focusa-n68k.39": [
+      "exact_duplicate:focusa-n68k.18"
+    ],
+    "focusa-n68k.40": [
+      "exact_duplicate:focusa-n68k.19"
+    ],
+    "focusa-n68k.41": [
+      "exact_duplicate:focusa-n68k.20"
+    ],
+    "focusa-n68k.42": [
+      "exact_duplicate:focusa-n68k.21"
+    ],
+    "focusa-n68k.43": [
+      "exact_duplicate:focusa-n68k.1"
+    ],
+    "focusa-n68k.44": [
+      "exact_duplicate:focusa-n68k.2"
+    ],
+    "focusa-n68k.45": [
+      "exact_duplicate:focusa-n68k.24"
+    ],
+    "focusa-n68k.46": [
+      "exact_duplicate:focusa-n68k.25"
+    ],
+    "focusa-n68k.47": [
+      "exact_duplicate:focusa-n68k.26"
+    ],
+    "focusa-n68k.48": [
+      "exact_duplicate:focusa-n68k.27"
+    ],
+    "focusa-n68k.49": [
+      "exact_duplicate:focusa-n68k.28"
+    ],
+    "focusa-n68k.5": [
+      "exact_duplicate:focusa-n68k.26"
+    ],
+    "focusa-n68k.50": [
+      "exact_duplicate:focusa-n68k.29"
+    ],
+    "focusa-n68k.51": [
+      "exact_duplicate:focusa-n68k.30"
+    ],
+    "focusa-n68k.52": [
+      "exact_duplicate:focusa-n68k.10"
+    ],
+    "focusa-n68k.53": [
+      "exact_duplicate:focusa-n68k.11"
+    ],
+    "focusa-n68k.54": [
+      "exact_duplicate:focusa-n68k.12"
+    ],
+    "focusa-n68k.55": [
+      "exact_duplicate:focusa-n68k.13"
+    ],
+    "focusa-n68k.56": [
+      "exact_duplicate:focusa-n68k.14"
+    ],
+    "focusa-n68k.57": [
+      "exact_duplicate:focusa-n68k.15"
+    ],
+    "focusa-n68k.58": [
+      "exact_duplicate:focusa-n68k.16"
+    ],
+    "focusa-n68k.59": [
+      "exact_duplicate:focusa-n68k.17"
+    ],
+    "focusa-n68k.60": [
+      "exact_duplicate:focusa-n68k.18"
+    ],
+    "focusa-n68k.61": [
+      "exact_duplicate:focusa-n68k.19"
+    ],
+    "focusa-n68k.62": [
+      "exact_duplicate:focusa-n68k.20"
+    ],
+    "focusa-n68k.63": [
+      "exact_duplicate:focusa-n68k.21"
+    ],
+    "focusa-n68k.7": [
+      "exact_duplicate:focusa-n68k.28"
+    ],
+    "focusa-n68k.9": [
+      "exact_duplicate:focusa-n68k.30"
+    ],
+    "focusa-nodn": [
+      "all_admitted_descendants:54"
+    ],
+    "focusa-nodn.1": [
+      "direct_evidence"
+    ],
+    "focusa-nodn.10": [
+      "direct_evidence"
+    ],
+    "focusa-nodn.11": [
+      "direct_evidence"
+    ],
+    "focusa-nodn.12": [
+      "direct_evidence"
+    ],
+    "focusa-nodn.13": [
+      "direct_evidence"
+    ],
+    "focusa-nodn.14": [
+      "direct_evidence"
+    ],
+    "focusa-nodn.15": [
+      "direct_evidence"
+    ],
+    "focusa-nodn.16": [
+      "direct_evidence"
+    ],
+    "focusa-nodn.17": [
+      "direct_evidence"
+    ],
+    "focusa-nodn.18": [
+      "direct_evidence"
+    ],
+    "focusa-nodn.19": [
+      "exact_duplicate:focusa-nodn.1"
+    ],
+    "focusa-nodn.2": [
+      "direct_evidence"
+    ],
+    "focusa-nodn.20": [
+      "exact_duplicate:focusa-nodn.2"
+    ],
+    "focusa-nodn.21": [
+      "exact_duplicate:focusa-nodn.3"
+    ],
+    "focusa-nodn.22": [
+      "exact_duplicate:focusa-nodn.4"
+    ],
+    "focusa-nodn.23": [
+      "exact_duplicate:focusa-nodn.5"
+    ],
+    "focusa-nodn.24": [
+      "exact_duplicate:focusa-nodn.6"
+    ],
+    "focusa-nodn.25": [
+      "exact_duplicate:focusa-nodn.7"
+    ],
+    "focusa-nodn.26": [
+      "exact_duplicate:focusa-nodn.8"
+    ],
+    "focusa-nodn.27": [
+      "exact_duplicate:focusa-nodn.9"
+    ],
+    "focusa-nodn.28": [
+      "exact_duplicate:focusa-nodn.10"
+    ],
+    "focusa-nodn.29": [
+      "exact_duplicate:focusa-nodn.11"
+    ],
+    "focusa-nodn.3": [
+      "direct_evidence"
+    ],
+    "focusa-nodn.30": [
+      "exact_duplicate:focusa-nodn.12"
+    ],
+    "focusa-nodn.31": [
+      "exact_duplicate:focusa-nodn.13"
+    ],
+    "focusa-nodn.32": [
+      "exact_duplicate:focusa-nodn.14"
+    ],
+    "focusa-nodn.33": [
+      "exact_duplicate:focusa-nodn.15"
+    ],
+    "focusa-nodn.34": [
+      "exact_duplicate:focusa-nodn.16"
+    ],
+    "focusa-nodn.35": [
+      "exact_duplicate:focusa-nodn.17"
+    ],
+    "focusa-nodn.36": [
+      "exact_duplicate:focusa-nodn.18"
+    ],
+    "focusa-nodn.37": [
+      "exact_duplicate:focusa-nodn.1"
+    ],
+    "focusa-nodn.38": [
+      "exact_duplicate:focusa-nodn.2"
+    ],
+    "focusa-nodn.39": [
+      "exact_duplicate:focusa-nodn.3"
+    ],
+    "focusa-nodn.4": [
+      "direct_evidence"
+    ],
+    "focusa-nodn.40": [
+      "exact_duplicate:focusa-nodn.4"
+    ],
+    "focusa-nodn.41": [
+      "exact_duplicate:focusa-nodn.5"
+    ],
+    "focusa-nodn.42": [
+      "exact_duplicate:focusa-nodn.6"
+    ],
+    "focusa-nodn.43": [
+      "exact_duplicate:focusa-nodn.7"
+    ],
+    "focusa-nodn.44": [
+      "exact_duplicate:focusa-nodn.8"
+    ],
+    "focusa-nodn.45": [
+      "exact_duplicate:focusa-nodn.9"
+    ],
+    "focusa-nodn.46": [
+      "exact_duplicate:focusa-nodn.10"
+    ],
+    "focusa-nodn.47": [
+      "exact_duplicate:focusa-nodn.11"
+    ],
+    "focusa-nodn.48": [
+      "exact_duplicate:focusa-nodn.12"
+    ],
+    "focusa-nodn.49": [
+      "exact_duplicate:focusa-nodn.13"
+    ],
+    "focusa-nodn.5": [
+      "direct_evidence"
+    ],
+    "focusa-nodn.50": [
+      "exact_duplicate:focusa-nodn.14"
+    ],
+    "focusa-nodn.51": [
+      "exact_duplicate:focusa-nodn.15"
+    ],
+    "focusa-nodn.52": [
+      "exact_duplicate:focusa-nodn.16"
+    ],
+    "focusa-nodn.53": [
+      "exact_duplicate:focusa-nodn.17"
+    ],
+    "focusa-nodn.54": [
+      "exact_duplicate:focusa-nodn.18"
+    ],
+    "focusa-nodn.6": [
+      "direct_evidence"
+    ],
+    "focusa-nodn.7": [
+      "direct_evidence"
+    ],
+    "focusa-nodn.8": [
+      "direct_evidence"
+    ],
+    "focusa-nodn.9": [
+      "direct_evidence"
+    ],
+    "focusa-o4gkd": [
+      "direct_evidence"
+    ],
+    "focusa-pskm": [
+      "direct_evidence"
+    ],
+    "focusa-ux2qx.17": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.1": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.1.1": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.1.2": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.1.3": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.10": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.14": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.14.1": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.14.2": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.14.3": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.14.4": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.14.5": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.19": [
+      "all_admitted_descendants:7"
+    ],
+    "focusa-vbcqu.19.1": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.19.2": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.19.3": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.19.4": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.19.5": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.19.6": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.19.7": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.2": [
+      "all_admitted_descendants:11"
+    ],
+    "focusa-vbcqu.2.1": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.2.1.1": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.2.1.2": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.2.1.3": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.2.1.4": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.2.2": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.2.2.1": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.2.2.2": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.2.2.3": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.2.2.4": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.2.3": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.3": [
+      "all_admitted_descendants:4"
+    ],
+    "focusa-vbcqu.3.1": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.3.2": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.3.3": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.3.4": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.4": [
+      "all_admitted_descendants:4"
+    ],
+    "focusa-vbcqu.4.1": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.4.2": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.4.3": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.4.4": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.5": [
+      "all_admitted_descendants:7"
+    ],
+    "focusa-vbcqu.5.1": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.5.2": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.5.3": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.5.4": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.5.5": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.5.6": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.5.7": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.6": [
+      "all_admitted_descendants:9"
+    ],
+    "focusa-vbcqu.6.1": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.6.1.1": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.6.1.2": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.6.1.3": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.6.1.4": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.6.2": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.6.2.1": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.6.2.1.1": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.6.3": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.7": [
+      "all_admitted_descendants:5"
+    ],
+    "focusa-vbcqu.7.1": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.7.2": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.7.3": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.7.4": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.7.5": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.8": [
+      "all_admitted_descendants:14"
+    ],
+    "focusa-vbcqu.8.1": [
+      "all_admitted_descendants:2"
+    ],
+    "focusa-vbcqu.8.1.1": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.8.1.2": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.8.2": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.8.3": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.8.4": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.8.4.1": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.8.4.2": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.8.4.3": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.8.4.4": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.8.4.5": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.8.4.6": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.8.4.7": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.8.4.8": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9": [
+      "all_admitted_descendants:47"
+    ],
+    "focusa-vbcqu.9.1": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.9.2": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.9.2.1": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.9.2.2": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.9.2.3": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.2.4": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.2.5": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.3": [
+      "all_admitted_descendants:6"
+    ],
+    "focusa-vbcqu.9.3.1": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.3.2": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.3.3": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.3.4": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.3.5": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.3.6": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.4": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.9.4.1": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.4.2": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.4.3": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.4.4": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.4.5": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.4.6": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.5": [
+      "all_admitted_descendants:9"
+    ],
+    "focusa-vbcqu.9.5.1": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.5.2": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.5.3": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.5.4": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.5.5": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.5.6": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.5.7": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.5.8": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.5.9": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.6": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.9.6.1": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.6.2": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.6.3": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.6.4": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.6.5": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.6.6": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.6.7": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.7": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.9": [
+      "direct_evidence"
+    ],
+    "focusa-vbcqu.9.9.1": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.9.2": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.9.3": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.9.4": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.9.5": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vbcqu.9.9.6": [
+      "technical_evidence_missing"
+    ],
+    "focusa-vfsrg": [
+      "direct_evidence"
+    ],
+    "focusa-w26jj.9.3.5": [
+      "direct_evidence"
+    ],
+    "focusa-w26jj.9.4.6": [
+      "direct_evidence"
+    ],
+    "focusa-w26jj.9.6.1": [
+      "direct_evidence"
+    ],
+    "focusa-w26jj.9.6.2": [
+      "direct_evidence"
+    ],
+    "focusa-w26jj.9.6.3": [
+      "technical_evidence_missing"
+    ],
+    "focusa-w26jj.9.6.4": [
+      "direct_evidence"
+    ],
+    "focusa-w26jj.9.6.5": [
+      "direct_evidence"
+    ],
+    "focusa-w26jj.9.7.1": [
+      "direct_evidence"
+    ],
+    "focusa-w26jj.9.7.2": [
+      "direct_evidence"
+    ],
+    "focusa-w26jj.9.7.3": [
+      "technical_evidence_missing"
+    ],
+    "focusa-w26jj.9.7.4": [
+      "direct_evidence"
+    ]
+  },
+  "gate_digest": "sha256:6dcf12059b179fb92fc2a6c97b4d9dca6408e2b8596bb27c1e54b4e6005d22d9",
+  "invalid_closed_count": 0,
+  "invalid_closed_ids": [],
+  "mapping_count": 289,
+  "policy": {
+    "active_blockers_fail_closed": true,
+    "allowed_acceptance_bases": [
+      "direct_evidence",
+      "exact_duplicate_of_technically_accepted_target",
+      "all_admitted_descendants_technically_accepted"
+    ],
+    "provider_status_is_not_proof": true,
+    "reopen_is_idempotent": true,
+    "unknown_beads_fail_closed": true
+  },
+  "reconciliation_digest": "sha256:0cbb4fecbbe6339288a09d69d1d557b23ce0374ef57e0e19460ca275ac3bbc2d",
+  "schema": "focusa.locked_release_technical_closure_gate.v1",
+  "status": "verified",
+  "technically_accepted_count": 209,
+  "technically_pending_count": 80,
+  "technically_pending_ids": [
+    "focusa-vbcqu.10",
+    "focusa-vbcqu.14.3",
+    "focusa-vbcqu.14.4",
+    "focusa-vbcqu.14.5",
+    "focusa-vbcqu.19",
+    "focusa-vbcqu.19.2",
+    "focusa-vbcqu.19.3",
+    "focusa-vbcqu.19.4",
+    "focusa-vbcqu.19.5",
+    "focusa-vbcqu.19.6",
+    "focusa-vbcqu.19.7",
+    "focusa-vbcqu.2",
+    "focusa-vbcqu.2.2.1",
+    "focusa-vbcqu.2.2.2",
+    "focusa-vbcqu.2.2.3",
+    "focusa-vbcqu.2.2.4",
+    "focusa-vbcqu.3",
+    "focusa-vbcqu.4",
+    "focusa-vbcqu.5",
+    "focusa-vbcqu.6",
+    "focusa-vbcqu.7",
+    "focusa-vbcqu.8",
+    "focusa-vbcqu.8.1",
+    "focusa-vbcqu.8.2",
+    "focusa-vbcqu.8.3",
+    "focusa-vbcqu.8.4.1",
+    "focusa-vbcqu.8.4.2",
+    "focusa-vbcqu.8.4.3",
+    "focusa-vbcqu.8.4.4",
+    "focusa-vbcqu.8.4.5",
+    "focusa-vbcqu.8.4.6",
+    "focusa-vbcqu.8.4.7",
+    "focusa-vbcqu.8.4.8",
+    "focusa-vbcqu.9",
+    "focusa-vbcqu.9.2.3",
+    "focusa-vbcqu.9.2.4",
+    "focusa-vbcqu.9.2.5",
+    "focusa-vbcqu.9.3",
+    "focusa-vbcqu.9.3.1",
+    "focusa-vbcqu.9.3.2",
+    "focusa-vbcqu.9.3.3",
+    "focusa-vbcqu.9.3.4",
+    "focusa-vbcqu.9.3.5",
+    "focusa-vbcqu.9.3.6",
+    "focusa-vbcqu.9.4.1",
+    "focusa-vbcqu.9.4.2",
+    "focusa-vbcqu.9.4.3",
+    "focusa-vbcqu.9.4.4",
+    "focusa-vbcqu.9.4.5",
+    "focusa-vbcqu.9.4.6",
+    "focusa-vbcqu.9.5",
+    "focusa-vbcqu.9.5.1",
+    "focusa-vbcqu.9.5.2",
+    "focusa-vbcqu.9.5.3",
+    "focusa-vbcqu.9.5.4",
+    "focusa-vbcqu.9.5.5",
+    "focusa-vbcqu.9.5.6",
+    "focusa-vbcqu.9.5.7",
+    "focusa-vbcqu.9.5.8",
+    "focusa-vbcqu.9.5.9",
+    "focusa-vbcqu.9.6.1",
+    "focusa-vbcqu.9.6.2",
+    "focusa-vbcqu.9.6.3",
+    "focusa-vbcqu.9.6.4",
+    "focusa-vbcqu.9.6.5",
+    "focusa-vbcqu.9.6.6",
+    "focusa-vbcqu.9.6.7",
+    "focusa-vbcqu.9.7",
+    "focusa-vbcqu.9.9.1",
+    "focusa-vbcqu.9.9.2",
+    "focusa-vbcqu.9.9.3",
+    "focusa-vbcqu.9.9.4",
+    "focusa-vbcqu.9.9.5",
+    "focusa-vbcqu.9.9.6",
+    "focusa-w26jj.9.6.3",
+    "focusa-w26jj.9.6.5",
+    "focusa-w26jj.9.7.1",
+    "focusa-w26jj.9.7.2",
+    "focusa-w26jj.9.7.3",
+    "focusa-w26jj.9.7.4"
+  ],
+  "workset_id": "workset:focusa-next-locked-release:r7"
+}

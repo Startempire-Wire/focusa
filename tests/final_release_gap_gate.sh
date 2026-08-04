@@ -59,7 +59,10 @@ python3 tests/spec141_agent_first_tool_audit_test.py
 bash tests/spec129_agent_docs_surface_static_test.sh
 pass 'all-Pi-tool, Agent Card, skill/runbook, and onboarding documentation gates'
 
-# Worktree/authority aggregate proof.
+# Worktree/authority aggregate proof. Provider status never substitutes for
+# technical evidence; administrative closure replays fail closed.
+python3 scripts/reduce-locked-release-technical-closure.py --check
+python3 tests/165_focusa_locked_release_technical_closure_reducer_test.py
 bash tests/authority_scope_static_test.sh
 bash tests/spec96_project_identity_quorum_static_test.sh
 python3 tests/spec104_mismatch_semantic_static_test.py
