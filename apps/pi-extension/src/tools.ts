@@ -2236,6 +2236,29 @@ export function registerTools(pi: ExtensionAPI) {
   registerAgentRuntimeTools(pi);
 
   pi.registerTool({
+    name: "focusa_letta_status",
+    label: "Letta Status",
+    description:
+      "Read bounded Letta adapter availability, identity, active operation, evidence, recovery, and explicit control authority.",
+    parameters: Type.Object({}),
+    async execute() {
+      const status = (await focusaFetch("/v1/letta/status")) || {
+        schema: "focusa.letta_surface_status.v1",
+        availability: "daemon_unavailable",
+        identity: null,
+        active_operation: null,
+        evidence_refs: [],
+        recovery: { required: true, next_action: "restore_daemon" },
+        controls: [],
+      };
+      return {
+        content: [{ type: "text", text: JSON.stringify(status, null, 2) }],
+        details: status,
+      } as any;
+    },
+  });
+
+  pi.registerTool({
     name: "focusa_daemon_routing_status",
     label: "Daemon Routing Status",
     description:

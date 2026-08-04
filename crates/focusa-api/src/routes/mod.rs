@@ -34,6 +34,7 @@ pub mod device_pairing;
 pub mod dxux;
 pub mod ecs;
 pub mod env;
+pub mod letta;
 pub mod license;
 pub mod pairing_store;
 pub mod role_profiles;

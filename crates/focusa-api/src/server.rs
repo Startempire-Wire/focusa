@@ -581,6 +581,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .merge(routes::session::router())
         .merge(routes::silent_sessions::router())
         .merge(routes::proxy::router())
+        .merge(routes::letta::router())
         .merge(routes::license::router())
         .merge(routes::clt::router())
         .merge(routes::uxp::router())
