@@ -1,6 +1,6 @@
 {
   "admitted_mapping_count": 289,
-  "evidence_links_digest": "sha256:64d87166b94a25c2e5ee92626ddb2cc132ba3f7301de250fbd6f01abcfda2c39",
+  "evidence_links_digest": "sha256:0c2be609f37042431350818fca1515fd75fadeccfda1da4fafbb909411b43e10",
   "evidence_state_counts": {
     "aggregate_child_evidence": 3,
     "evidence_linked": 115,
@@ -7771,7 +7771,13 @@
       "github_issue_refs": [
         106
       ],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:2d6603365325a63992bbe6a25fb276c87787ab23",
+        "git:616c98a701ece85714237fde8d560004bfcc1e8c",
+        "git:843df64690efa6c3fdf6dc0482d363a9445b87c7",
+        "git:c7521ebd22653298a5a11868516cf90835975f32",
+        "git:d418039d3657eff0c690d1b2497a1f253d8ecf09"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7783,7 +7789,18 @@
       "provider_state": "open",
       "provider_updated_at": "2026-08-04T19:23:11.856786579Z",
       "runtime_or_acceptance_evidence_refs": [
-        "https://github.com/Startempire-Wire/focusa/issues/106"
+        "https://github.com/Startempire-Wire/focusa/issues/106",
+        "release-proof/audit/next-locked-release-candidate-ancestry.json",
+        "release-proof/audit/next-locked-release-governance-inventory.json",
+        "release-proof/audit/next-locked-release-governance-receipt.json",
+        "release-proof/audit/next-locked-release-governance-receipt.json.sig",
+        "release-proof/audit/next-locked-release-governance-reconciliation.json",
+        "release-proof/audit/next-locked-release-technical-closure-gate.json",
+        "tests/163_focusa_locked_release_governance_inventory_test.py",
+        "tests/164_focusa_locked_release_governance_reconciliation_test.py",
+        "tests/165_focusa_locked_release_technical_closure_reducer_test.py",
+        "tests/166_focusa_locked_release_candidate_ancestry_test.py",
+        "tests/167_focusa_locked_release_governance_receipt_test.py"
       ],
       "task_plan_ref": null,
       "title": "GH#106 \u2014 Reconcile locked issue/Bead closure and release governance"
@@ -8528,7 +8545,7 @@
     "in_progress": 48,
     "open": 37
   },
-  "reconciliation_digest": "sha256:0ee2ef5b50569ec8504717b50abe7d890b7457738b4ee6cf3a39a592b6ea84d0",
+  "reconciliation_digest": "sha256:ba991eebd4ce1cdfdf4af4d78f99f1640659978686076eb5d4015ba09bfc1606",
   "repair_overlay_mapping_count": 14,
   "schema": "focusa.locked_release_governance_reconciliation.v1",
   "status": "blocked",

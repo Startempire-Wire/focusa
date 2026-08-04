@@ -14,10 +14,12 @@
     "a2fbfbb870499f35a961cd27c224024f242c3ca1",
     "b15dd2403da428a13e71558e04c60690f27da410",
     "ba47c980325e1468fbef2d5a75bc6c0203e7275b",
+    "c7521ebd22653298a5a11868516cf90835975f32",
     "c99a155c38ee46532e9b04d14f6a0bb467aacaf8",
+    "d418039d3657eff0c690d1b2497a1f253d8ecf09",
     "ee569eb1e65eb8baada1000429a7400d46addb41"
   ],
-  "ancestry_digest": "sha256:7f3b3b10334e6f978e3837679b4252d0edc7663f0cf08e6d55d3d70e8ca38b4a",
+  "ancestry_digest": "sha256:fd9203f3202bcbb70334e4e32fac5759ffc9ac13060eae4b6ede4a81ea771dd1",
   "audit_errors": [],
   "candidate": {
     "audit_head": "616c98a701ece85714237fde8d560004bfcc1e8c",
@@ -90,7 +92,7 @@
     "inventory_digest": "sha256:9dad314492bc798205d7a64b89fc46e4bc8239b3394f1c4898b474720f1cb686",
     "mapping_count": 289,
     "pending_technical_acceptance_count": 86,
-    "reconciliation_digest": "sha256:0ee2ef5b50569ec8504717b50abe7d890b7457738b4ee6cf3a39a592b6ea84d0",
+    "reconciliation_digest": "sha256:ba991eebd4ce1cdfdf4af4d78f99f1640659978686076eb5d4015ba09bfc1606",
     "workset_id": "workset:focusa-next-locked-release:r7"
   },
   "missing_accepted_implementation_commits": [],

@@ -471,6 +471,30 @@
       "proof_scope": "Spec137 commitment, deadline, urgency, forecast, and release-gate authority slice"
     },
     {
+      "bead_id": "focusa-vbcqu.14",
+      "evidence_refs": [
+        "release-proof/audit/next-locked-release-governance-inventory.json",
+        "release-proof/audit/next-locked-release-governance-reconciliation.json",
+        "release-proof/audit/next-locked-release-technical-closure-gate.json",
+        "release-proof/audit/next-locked-release-candidate-ancestry.json",
+        "release-proof/audit/next-locked-release-governance-receipt.json",
+        "release-proof/audit/next-locked-release-governance-receipt.json.sig",
+        "tests/163_focusa_locked_release_governance_inventory_test.py",
+        "tests/164_focusa_locked_release_governance_reconciliation_test.py",
+        "tests/165_focusa_locked_release_technical_closure_reducer_test.py",
+        "tests/166_focusa_locked_release_candidate_ancestry_test.py",
+        "tests/167_focusa_locked_release_governance_receipt_test.py"
+      ],
+      "implementation_commit_refs": [
+        "git:c7521ebd22653298a5a11868516cf90835975f32",
+        "git:d418039d3657eff0c690d1b2497a1f253d8ecf09",
+        "git:843df64690efa6c3fdf6dc0482d363a9445b87c7",
+        "git:2d6603365325a63992bbe6a25fb276c87787ab23",
+        "git:616c98a701ece85714237fde8d560004bfcc1e8c"
+      ],
+      "proof_scope": "complete GH#106 immutable inventory, reconciliation, reducer, ancestry, and signed replay-safe governance chain"
+    },
+    {
       "bead_id": "focusa-vbcqu.14.3",
       "evidence_refs": [
         "release-proof/audit/next-locked-release-technical-closure-gate.json",
