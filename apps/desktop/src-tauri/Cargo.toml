@@ -1,0 +1,12 @@
+[package]
+name = "focusa-desktop"
+version = "0.9.143"
+edition = "2021"
+description = "Focusa Desktop primary application shell"
+license-file = "../../../LICENSE.md"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }

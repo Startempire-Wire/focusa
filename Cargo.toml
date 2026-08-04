@@ -14,6 +14,7 @@ members = [
 ]
 exclude = [
     "apps/menubar/src-tauri",
+    "apps/desktop/src-tauri",
 ]
 
 [workspace.package]

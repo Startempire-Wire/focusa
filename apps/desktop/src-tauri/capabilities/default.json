@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Focusa Desktop 5% presentation-only shell permissions.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

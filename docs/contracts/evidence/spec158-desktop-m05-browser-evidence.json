@@ -1,0 +1,67 @@
+{
+  "schema": "focusa.desktop.milestone_evidence.v1",
+  "transition_id": "FOCUSA-TRANSITION-001",
+  "milestone": 5,
+  "status": "browser_proven_native_pending",
+  "application": {
+    "name": "Focusa Desktop",
+    "path": "apps/desktop",
+    "version": "0.9.143",
+    "browser_url": "http://127.0.0.1:1430/",
+    "tauri_identifier": "com.focusa.desktop"
+  },
+  "browser_authority": "UIAI Engine",
+  "uiai": {
+    "session_id": "bmcgg7jH",
+    "wide_read_ref": "uiai-browser:session=bmcgg7jH:read:2",
+    "interaction_read_ref": "uiai-browser:session=bmcgg7jH:read:3",
+    "diagnostics_ref": "uiai-diagnostics:session=bmcgg7jH:seq=75",
+    "diagnostics": {
+      "console_errors": 0,
+      "console_warnings": 0,
+      "exceptions": 0,
+      "failed_requests": 0,
+      "http_4xx": 0,
+      "http_5xx": 0
+    },
+    "screenshots": [
+      "docs/contracts/evidence/spec158-desktop-m05-browser-wide.png",
+      "docs/contracts/evidence/spec158-desktop-m05-browser-responsive.png"
+    ],
+    "verified_behaviors": [
+      "shared SvelteKit application renders at 1440x900 and 760x900",
+      "workspace navigation changes visible content",
+      "planned workspaces remain truthfully unavailable",
+      "daemon infrastructure health is read-only",
+      "no Workstream is implicitly attached",
+      "no canonical mutation is enabled"
+    ]
+  },
+  "gates": {
+    "shell_contract": "pass",
+    "svelte_check": "pass_zero_warnings",
+    "vite_build": "pass",
+    "browser_preview": "pass",
+    "uiai_engine": "pass",
+    "native_tauri_open": "pending_resource_bounded_gate",
+    "native_screenshot": "pending_resource_bounded_gate"
+  },
+  "environment": {
+    "node": "22.23.1",
+    "npm": "10.9.8",
+    "rustc": "1.91.1",
+    "cargo": "1.91.1",
+    "tauri_cli": "2.11.4",
+    "tauri_runtime": "2.11.5",
+    "macos": "14.7.6"
+  },
+  "resource_policy": {
+    "rust_jobs": 2,
+    "target_dir": "target/focusa-desktop-dev",
+    "workspace_rust_version_contract": "1.91",
+    "toolchain_manager": "none_homebrew_toolchain",
+    "additional_toolchain_install": false,
+    "release_build": false
+  },
+  "milestone_claimed": false
+}
