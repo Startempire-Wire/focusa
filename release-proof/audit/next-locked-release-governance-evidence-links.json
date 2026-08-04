@@ -227,6 +227,153 @@
         "docs/evidence/release/focusa-d189-final-candidate-acceptance.txt"
       ],
       "proof_scope": "strict local no-pass decision with publication explicitly remaining"
+    },
+    {
+      "bead_id": "focusa-n68k.1",
+      "implementation_commit_refs": [
+        "git:4804b78c3987d2f31ad04dc58e8fb5070e216cc7"
+      ],
+      "proof_scope": "API-09 scope-keyed ontology read-index implementation"
+    },
+    {
+      "bead_id": "focusa-n68k.2",
+      "implementation_commit_refs": [
+        "git:17a5bfba2b9b4cc46b90c0d64443e5ca93a7d84f"
+      ],
+      "proof_scope": "PI-06 report singleton removal implementation"
+    },
+    {
+      "bead_id": "focusa-n68k.10",
+      "implementation_commit_refs": [
+        "git:a2fbfbb870499f35a961cd27c224024f242c3ca1"
+      ],
+      "proof_scope": "PI-C04 awareness scope-store migration"
+    },
+    {
+      "bead_id": "focusa-n68k.11",
+      "implementation_commit_refs": [
+        "git:a2fbfbb870499f35a961cd27c224024f242c3ca1"
+      ],
+      "proof_scope": "PI-C05 compaction scope-store migration"
+    },
+    {
+      "bead_id": "focusa-n68k.12",
+      "implementation_commit_refs": [
+        "git:a2fbfbb870499f35a961cd27c224024f242c3ca1"
+      ],
+      "proof_scope": "TOOL-03 project identity scope-store migration"
+    },
+    {
+      "bead_id": "focusa-n68k.13",
+      "implementation_commit_refs": [
+        "git:a2fbfbb870499f35a961cd27c224024f242c3ca1"
+      ],
+      "proof_scope": "TOOL-06 session identity scope-store migration"
+    },
+    {
+      "bead_id": "focusa-n68k.14",
+      "implementation_commit_refs": [
+        "git:a2fbfbb870499f35a961cd27c224024f242c3ca1"
+      ],
+      "proof_scope": "TOOL-08 agent prompt scope-store migration"
+    },
+    {
+      "bead_id": "focusa-n68k.15",
+      "implementation_commit_refs": [
+        "git:a2fbfbb870499f35a961cd27c224024f242c3ca1"
+      ],
+      "proof_scope": "TOOL-09 utility card scope-store migration"
+    },
+    {
+      "bead_id": "focusa-n68k.21",
+      "implementation_commit_refs": [
+        "git:5f3b2d2f14ae9e0489322dd72c667a4613ecb8c0"
+      ],
+      "proof_scope": "MW-03 JSON guard typed-scope validation"
+    },
+    {
+      "bead_id": "focusa-n68k.24",
+      "implementation_commit_refs": [
+        "git:a16f0da30a8650d993ff691b19acd05225820c56"
+      ],
+      "proof_scope": "PI-07 turn-state singleton removal implementation"
+    },
+    {
+      "bead_id": "focusa-n68k.16",
+      "evidence_refs": [
+        "release-proof/audit/next-locked-release-github59-settlement-proof.json"
+      ],
+      "proof_scope": "TRAJ-01 exact root-scoped HLT history"
+    },
+    {
+      "bead_id": "focusa-n68k.17",
+      "evidence_refs": [
+        "release-proof/audit/next-locked-release-github59-settlement-proof.json"
+      ],
+      "proof_scope": "TRAJ-02 generic HLT rejection and degraded-state warning"
+    },
+    {
+      "bead_id": "focusa-n68k.18",
+      "evidence_refs": [
+        "release-proof/audit/next-locked-release-github59-settlement-proof.json"
+      ],
+      "proof_scope": "TRAJ-03 scoped HLT history and evidence verification"
+    },
+    {
+      "bead_id": "focusa-n68k.19",
+      "implementation_commit_refs": [
+        "git:b15dd2403da428a13e71558e04c60690f27da410"
+      ],
+      "proof_scope": "MW-01 authenticated API route-scope enforcement"
+    },
+    {
+      "bead_id": "focusa-n68k.20",
+      "implementation_commit_refs": [
+        "git:46bef4a6c28afc9e850b724042887c162a2c5986"
+      ],
+      "proof_scope": "MW-02 machine-readable global error envelope"
+    },
+    {
+      "bead_id": "focusa-n68k.25",
+      "implementation_commit_refs": [
+        "git:4b9c3f403cf6b706773755fd121aac28891ccc3a"
+      ],
+      "proof_scope": "PI-11 tool-context state scoped-store implementation"
+    },
+    {
+      "bead_id": "focusa-n68k.26",
+      "implementation_commit_refs": [
+        "git:ee569eb1e65eb8baada1000429a7400d46addb41"
+      ],
+      "proof_scope": "PI-14 safe-frame recovery scope hardening"
+    },
+    {
+      "bead_id": "focusa-n68k.27",
+      "implementation_commit_refs": [
+        "git:ba47c980325e1468fbef2d5a75bc6c0203e7275b"
+      ],
+      "proof_scope": "PI-15 persisted continuity adapter validation"
+    },
+    {
+      "bead_id": "focusa-n68k.28",
+      "implementation_commit_refs": [
+        "git:1def1bd1c5930e4814dee127f844e481678faa6e"
+      ],
+      "proof_scope": "PI-C01 session-scoped state reset and bootstrap"
+    },
+    {
+      "bead_id": "focusa-n68k.29",
+      "implementation_commit_refs": [
+        "git:ba47c980325e1468fbef2d5a75bc6c0203e7275b"
+      ],
+      "proof_scope": "PI-C02 exact-scope persisted continuity adoption"
+    },
+    {
+      "bead_id": "focusa-n68k.30",
+      "implementation_commit_refs": [
+        "git:ba47c980325e1468fbef2d5a75bc6c0203e7275b"
+      ],
+      "proof_scope": "PI-C03 scoped restore pipeline without continuity-only authority"
     }
   ]
 }

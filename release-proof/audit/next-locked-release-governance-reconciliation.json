@@ -1,12 +1,11 @@
 {
   "admitted_mapping_count": 289,
-  "evidence_links_digest": "sha256:31846c902cb73b039ebdc8b839c4f8ba727609b841a7517e8f18ff8aaf8ffbb9",
+  "evidence_links_digest": "sha256:a8cda68bf6899c7e7a85a67e12051b537686d575f0de1433b972c0b8a83f3086",
   "evidence_state_counts": {
     "ambiguous_duplicate_closure": 12,
-    "closed_without_proof": 35,
-    "duplicate_target_without_proof": 38,
-    "evidence_linked": 85,
-    "exact_duplicate_receipt": 41,
+    "closed_without_proof": 14,
+    "evidence_linked": 106,
+    "exact_duplicate_receipt": 79,
     "pending_technical_acceptance": 78
   },
   "gaps": {
@@ -27,27 +26,6 @@
     "closed_without_proof_ids": [
       "focusa-84px",
       "focusa-n68k",
-      "focusa-n68k.1",
-      "focusa-n68k.2",
-      "focusa-n68k.10",
-      "focusa-n68k.11",
-      "focusa-n68k.12",
-      "focusa-n68k.13",
-      "focusa-n68k.14",
-      "focusa-n68k.15",
-      "focusa-n68k.16",
-      "focusa-n68k.17",
-      "focusa-n68k.18",
-      "focusa-n68k.19",
-      "focusa-n68k.20",
-      "focusa-n68k.21",
-      "focusa-n68k.24",
-      "focusa-n68k.25",
-      "focusa-n68k.26",
-      "focusa-n68k.27",
-      "focusa-n68k.28",
-      "focusa-n68k.29",
-      "focusa-n68k.30",
       "focusa-nodn",
       "focusa-pskm",
       "focusa-vbcqu.3",
@@ -62,46 +40,7 @@
       "focusa-w26jj.9.6.3"
     ],
     "duplicate_provider_ids": [],
-    "duplicate_target_without_proof_ids": [
-      "focusa-n68k.5",
-      "focusa-n68k.7",
-      "focusa-n68k.9",
-      "focusa-n68k.22",
-      "focusa-n68k.23",
-      "focusa-n68k.31",
-      "focusa-n68k.32",
-      "focusa-n68k.33",
-      "focusa-n68k.34",
-      "focusa-n68k.35",
-      "focusa-n68k.36",
-      "focusa-n68k.37",
-      "focusa-n68k.38",
-      "focusa-n68k.39",
-      "focusa-n68k.40",
-      "focusa-n68k.41",
-      "focusa-n68k.42",
-      "focusa-n68k.43",
-      "focusa-n68k.44",
-      "focusa-n68k.45",
-      "focusa-n68k.46",
-      "focusa-n68k.47",
-      "focusa-n68k.48",
-      "focusa-n68k.49",
-      "focusa-n68k.50",
-      "focusa-n68k.51",
-      "focusa-n68k.52",
-      "focusa-n68k.53",
-      "focusa-n68k.54",
-      "focusa-n68k.55",
-      "focusa-n68k.56",
-      "focusa-n68k.57",
-      "focusa-n68k.58",
-      "focusa-n68k.59",
-      "focusa-n68k.60",
-      "focusa-n68k.61",
-      "focusa-n68k.62",
-      "focusa-n68k.63"
-    ],
+    "duplicate_target_without_proof_ids": [],
     "orphan_bead_ids": [],
     "pending_technical_acceptance_ids": [
       "focusa-vbcqu",
@@ -1141,10 +1080,12 @@
         "closed_at": "2026-07-01T03:50:47.466691724Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:4804b78c3987d2f31ad04dc58e8fb5070e216cc7"
+      ],
       "ordered_task_key": [
         "focusa",
         "n68k",
@@ -1168,10 +1109,12 @@
         "closed_at": "2026-07-01T03:56:04.106803199Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:17a5bfba2b9b4cc46b90c0d64443e5ca93a7d84f"
+      ],
       "ordered_task_key": [
         "focusa",
         "n68k",
@@ -1195,7 +1138,7 @@
         "closed_at": "2026-07-01T04:31:57.098192926Z",
         "exact_duplicate_of": "focusa-n68k.26"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -1222,7 +1165,7 @@
         "closed_at": "2026-07-01T04:32:11.947546908Z",
         "exact_duplicate_of": "focusa-n68k.28"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -1249,7 +1192,7 @@
         "closed_at": "2026-07-01T04:32:12.267167978Z",
         "exact_duplicate_of": "focusa-n68k.30"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -1276,10 +1219,12 @@
         "closed_at": "2026-07-01T04:19:45.186122170Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:a2fbfbb870499f35a961cd27c224024f242c3ca1"
+      ],
       "ordered_task_key": [
         "focusa",
         "n68k",
@@ -1303,10 +1248,12 @@
         "closed_at": "2026-07-01T04:20:24.833244993Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:a2fbfbb870499f35a961cd27c224024f242c3ca1"
+      ],
       "ordered_task_key": [
         "focusa",
         "n68k",
@@ -1330,10 +1277,12 @@
         "closed_at": "2026-07-01T04:27:01.004078462Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:a2fbfbb870499f35a961cd27c224024f242c3ca1"
+      ],
       "ordered_task_key": [
         "focusa",
         "n68k",
@@ -1357,10 +1306,12 @@
         "closed_at": "2026-07-01T04:27:01.397085775Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:a2fbfbb870499f35a961cd27c224024f242c3ca1"
+      ],
       "ordered_task_key": [
         "focusa",
         "n68k",
@@ -1384,10 +1335,12 @@
         "closed_at": "2026-07-01T04:27:01.750020777Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:a2fbfbb870499f35a961cd27c224024f242c3ca1"
+      ],
       "ordered_task_key": [
         "focusa",
         "n68k",
@@ -1411,10 +1364,12 @@
         "closed_at": "2026-07-01T04:27:02.232671605Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:a2fbfbb870499f35a961cd27c224024f242c3ca1"
+      ],
       "ordered_task_key": [
         "focusa",
         "n68k",
@@ -1438,7 +1393,7 @@
         "closed_at": "2026-07-01T04:27:49.137993854Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -1452,7 +1407,9 @@
       "provider_record_digest": "sha256:9eed6407d35047ac4c58209e29bbe032269340c18d0444df8a098c244b10c83d",
       "provider_state": "closed",
       "provider_updated_at": "2026-07-29T18:59:09.177464946Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "release-proof/audit/next-locked-release-github59-settlement-proof.json"
+      ],
       "task_plan_ref": "execution-phase:6",
       "title": "P1: TRAJ-01 \u2014 HLT scoping hardening"
     },
@@ -1465,7 +1422,7 @@
         "closed_at": "2026-07-01T04:27:49.469916466Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -1479,7 +1436,9 @@
       "provider_record_digest": "sha256:b48997526b9d0bf84ec60b680fb8e187f33eb4aafb216e7b2fce2daa04f12e62",
       "provider_state": "closed",
       "provider_updated_at": "2026-07-29T18:59:09.203026178Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "release-proof/audit/next-locked-release-github59-settlement-proof.json"
+      ],
       "task_plan_ref": "execution-phase:6",
       "title": "P1: TRAJ-02 \u2014 HLT bootstrap placeholder isolation"
     },
@@ -1492,7 +1451,7 @@
         "closed_at": "2026-07-01T04:27:49.730572927Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -1506,7 +1465,9 @@
       "provider_record_digest": "sha256:db39f38505a94655976e4888ae9783667dfadd1fb1768f69ec65b7ac92a409f7",
       "provider_state": "closed",
       "provider_updated_at": "2026-07-29T18:59:09.228818979Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "release-proof/audit/next-locked-release-github59-settlement-proof.json"
+      ],
       "task_plan_ref": "execution-phase:6",
       "title": "P1: TRAJ-03 \u2014 Trajectory evidence ref scoping"
     },
@@ -1519,10 +1480,12 @@
         "closed_at": "2026-07-01T04:30:20.306961298Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:b15dd2403da428a13e71558e04c60690f27da410"
+      ],
       "ordered_task_key": [
         "focusa",
         "n68k",
@@ -1546,10 +1509,12 @@
         "closed_at": "2026-07-01T04:30:23.742010336Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:46bef4a6c28afc9e850b724042887c162a2c5986"
+      ],
       "ordered_task_key": [
         "focusa",
         "n68k",
@@ -1573,10 +1538,12 @@
         "closed_at": "2026-07-01T04:30:23.999257149Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:5f3b2d2f14ae9e0489322dd72c667a4613ecb8c0"
+      ],
       "ordered_task_key": [
         "focusa",
         "n68k",
@@ -1600,7 +1567,7 @@
         "closed_at": "2026-07-01T03:56:26.658559220Z",
         "exact_duplicate_of": "focusa-n68k.1"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -1627,7 +1594,7 @@
         "closed_at": "2026-07-01T03:56:14.961243438Z",
         "exact_duplicate_of": "focusa-n68k.2"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -1654,10 +1621,12 @@
         "closed_at": "2026-07-01T04:06:23.489606894Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:a16f0da30a8650d993ff691b19acd05225820c56"
+      ],
       "ordered_task_key": [
         "focusa",
         "n68k",
@@ -1681,10 +1650,12 @@
         "closed_at": "2026-07-01T04:07:50.512147065Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:4b9c3f403cf6b706773755fd121aac28891ccc3a"
+      ],
       "ordered_task_key": [
         "focusa",
         "n68k",
@@ -1708,10 +1679,12 @@
         "closed_at": "2026-07-01T04:31:38.212541228Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:ee569eb1e65eb8baada1000429a7400d46addb41"
+      ],
       "ordered_task_key": [
         "focusa",
         "n68k",
@@ -1735,10 +1708,12 @@
         "closed_at": "2026-07-01T04:31:38.480073215Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:ba47c980325e1468fbef2d5a75bc6c0203e7275b"
+      ],
       "ordered_task_key": [
         "focusa",
         "n68k",
@@ -1762,10 +1737,12 @@
         "closed_at": "2026-07-01T04:31:38.760848309Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:1def1bd1c5930e4814dee127f844e481678faa6e"
+      ],
       "ordered_task_key": [
         "focusa",
         "n68k",
@@ -1789,10 +1766,12 @@
         "closed_at": "2026-07-01T04:31:39.009772053Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:ba47c980325e1468fbef2d5a75bc6c0203e7275b"
+      ],
       "ordered_task_key": [
         "focusa",
         "n68k",
@@ -1816,10 +1795,12 @@
         "closed_at": "2026-07-01T04:31:39.299323712Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:ba47c980325e1468fbef2d5a75bc6c0203e7275b"
+      ],
       "ordered_task_key": [
         "focusa",
         "n68k",
@@ -1843,7 +1824,7 @@
         "closed_at": "2026-07-01T04:31:51.659297083Z",
         "exact_duplicate_of": "focusa-n68k.10"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -1870,7 +1851,7 @@
         "closed_at": "2026-07-01T04:31:51.919150342Z",
         "exact_duplicate_of": "focusa-n68k.11"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -1897,7 +1878,7 @@
         "closed_at": "2026-07-01T04:31:52.202585167Z",
         "exact_duplicate_of": "focusa-n68k.12"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -1924,7 +1905,7 @@
         "closed_at": "2026-07-01T04:31:52.540647366Z",
         "exact_duplicate_of": "focusa-n68k.13"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -1951,7 +1932,7 @@
         "closed_at": "2026-07-01T04:31:52.821436102Z",
         "exact_duplicate_of": "focusa-n68k.14"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -1978,7 +1959,7 @@
         "closed_at": "2026-07-01T04:31:53.078626460Z",
         "exact_duplicate_of": "focusa-n68k.15"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2005,7 +1986,7 @@
         "closed_at": "2026-07-01T04:31:53.346910274Z",
         "exact_duplicate_of": "focusa-n68k.16"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2032,7 +2013,7 @@
         "closed_at": "2026-07-01T04:31:53.601256103Z",
         "exact_duplicate_of": "focusa-n68k.17"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2059,7 +2040,7 @@
         "closed_at": "2026-07-01T04:31:53.924005361Z",
         "exact_duplicate_of": "focusa-n68k.18"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2086,7 +2067,7 @@
         "closed_at": "2026-07-01T04:31:54.242182628Z",
         "exact_duplicate_of": "focusa-n68k.19"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2113,7 +2094,7 @@
         "closed_at": "2026-07-01T04:31:54.536474010Z",
         "exact_duplicate_of": "focusa-n68k.20"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2140,7 +2121,7 @@
         "closed_at": "2026-07-01T04:31:54.884509293Z",
         "exact_duplicate_of": "focusa-n68k.21"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2167,7 +2148,7 @@
         "closed_at": "2026-07-01T04:31:55.191981849Z",
         "exact_duplicate_of": "focusa-n68k.1"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2194,7 +2175,7 @@
         "closed_at": "2026-07-01T04:31:55.465177577Z",
         "exact_duplicate_of": "focusa-n68k.2"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2221,7 +2202,7 @@
         "closed_at": "2026-07-01T04:31:55.756768456Z",
         "exact_duplicate_of": "focusa-n68k.24"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2248,7 +2229,7 @@
         "closed_at": "2026-07-01T04:31:56.032830071Z",
         "exact_duplicate_of": "focusa-n68k.25"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2275,7 +2256,7 @@
         "closed_at": "2026-07-01T04:31:56.315142906Z",
         "exact_duplicate_of": "focusa-n68k.26"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2302,7 +2283,7 @@
         "closed_at": "2026-07-01T04:31:56.567581630Z",
         "exact_duplicate_of": "focusa-n68k.27"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2329,7 +2310,7 @@
         "closed_at": "2026-07-01T04:31:56.854281782Z",
         "exact_duplicate_of": "focusa-n68k.28"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2356,7 +2337,7 @@
         "closed_at": "2026-07-01T04:32:08.208018423Z",
         "exact_duplicate_of": "focusa-n68k.29"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2383,7 +2364,7 @@
         "closed_at": "2026-07-01T04:32:08.471413450Z",
         "exact_duplicate_of": "focusa-n68k.30"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2410,7 +2391,7 @@
         "closed_at": "2026-07-01T04:32:08.764626647Z",
         "exact_duplicate_of": "focusa-n68k.10"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2437,7 +2418,7 @@
         "closed_at": "2026-07-01T04:32:09.038346477Z",
         "exact_duplicate_of": "focusa-n68k.11"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2464,7 +2445,7 @@
         "closed_at": "2026-07-01T04:32:09.348728403Z",
         "exact_duplicate_of": "focusa-n68k.12"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2491,7 +2472,7 @@
         "closed_at": "2026-07-01T04:32:09.597440001Z",
         "exact_duplicate_of": "focusa-n68k.13"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2518,7 +2499,7 @@
         "closed_at": "2026-07-01T04:32:09.835147299Z",
         "exact_duplicate_of": "focusa-n68k.14"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2545,7 +2526,7 @@
         "closed_at": "2026-07-01T04:32:10.076718417Z",
         "exact_duplicate_of": "focusa-n68k.15"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2572,7 +2553,7 @@
         "closed_at": "2026-07-01T04:32:10.370067656Z",
         "exact_duplicate_of": "focusa-n68k.16"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2599,7 +2580,7 @@
         "closed_at": "2026-07-01T04:32:10.655236959Z",
         "exact_duplicate_of": "focusa-n68k.17"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2626,7 +2607,7 @@
         "closed_at": "2026-07-01T04:32:10.912657504Z",
         "exact_duplicate_of": "focusa-n68k.18"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2653,7 +2634,7 @@
         "closed_at": "2026-07-01T04:32:11.157729310Z",
         "exact_duplicate_of": "focusa-n68k.19"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2680,7 +2661,7 @@
         "closed_at": "2026-07-01T04:32:11.419150084Z",
         "exact_duplicate_of": "focusa-n68k.20"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2707,7 +2688,7 @@
         "closed_at": "2026-07-01T04:32:11.692361712Z",
         "exact_duplicate_of": "focusa-n68k.21"
       },
-      "evidence_state": "duplicate_target_without_proof",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -8369,10 +8350,10 @@
     "in_progress": 49,
     "open": 28
   },
-  "reconciliation_digest": "sha256:e6199155d3f82d30d3748303c7bfea0db711ef53a2acc3756794c8ff06e72a6f",
+  "reconciliation_digest": "sha256:453f921557addd3bdc62b306563652fb5ebc969cad8ea4a8c3b6df1e736abfca",
   "repair_overlay_mapping_count": 14,
   "schema": "focusa.locked_release_governance_reconciliation.v1",
   "status": "blocked",
-  "unresolved_gap_count": 163,
+  "unresolved_gap_count": 104,
   "workset_id": "workset:focusa-next-locked-release:r7"
 }

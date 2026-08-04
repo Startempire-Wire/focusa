@@ -99,15 +99,19 @@ def build(provider_path: Path) -> dict:
     ):
         raise SystemExit("unexpected governance evidence-link schema")
     evidence_links = {
-        row["bead_id"]: row["evidence_refs"]
-        for row in evidence_links_document.get("links", [])
+        row["bead_id"]: row for row in evidence_links_document.get("links", [])
     }
     if len(evidence_links) != len(evidence_links_document.get("links", [])):
         raise SystemExit("duplicate Bead authority in governance evidence links")
-    for refs in evidence_links.values():
-        for ref in refs:
+    for link in evidence_links.values():
+        for ref in link.get("evidence_refs", []):
             if not (ROOT / ref).is_file():
                 raise SystemExit(f"governance evidence ref is missing: {ref}")
+        for ref in link.get("implementation_commit_refs", []):
+            if not re.fullmatch(r"git:[0-9a-f]{40}", ref):
+                raise SystemExit(f"invalid governance implementation commit ref: {ref}")
+        if not link.get("evidence_refs") and not link.get("implementation_commit_refs"):
+            raise SystemExit(f"empty governance evidence link: {link['bead_id']}")
     immutable = load_jsonl(MEMBERS)
     provider_rows = load_jsonl(provider_path)
     provider_by_id: dict[str, dict] = {}
@@ -150,7 +154,12 @@ def build(provider_path: Path) -> dict:
         commits, stable_refs, _ = evidence_from(
             immutable_by_id.get(issue_id, {}), provider
         )
-        stable_refs.extend(evidence_links.get(issue_id, []))
+        link = evidence_links.get(issue_id, {})
+        stable_refs.extend(link.get("evidence_refs", []))
+        commits.extend(
+            ref.removeprefix("git:")
+            for ref in link.get("implementation_commit_refs", [])
+        )
         direct_proof[issue_id] = bool(commits or stable_refs)
 
     def infer_duplicate_target(issue_id: str, provider: dict) -> str | None:
@@ -204,7 +213,17 @@ def build(provider_path: Path) -> dict:
             continue
 
         commits, stable_refs, github_issues = evidence_from(member, provider)
-        stable_refs = sorted(set(stable_refs + evidence_links.get(issue_id, [])))
+        link = evidence_links.get(issue_id, {})
+        stable_refs = sorted(set(stable_refs + link.get("evidence_refs", [])))
+        commits = sorted(
+            set(
+                commits
+                + [
+                    ref.removeprefix("git:")
+                    for ref in link.get("implementation_commit_refs", [])
+                ]
+            )
+        )
         close_reason = provider.get("close_reason") or None
         exact_duplicate_of = infer_duplicate_target(issue_id, provider)
         duplicate_claim = bool(re.search(r"(?i)\bduplicate\b", close_reason or ""))

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,9 +38,16 @@ assert len({row["bead_id"] for row in EVIDENCE_LINKS["links"]}) == len(
     EVIDENCE_LINKS["links"]
 )
 for link in EVIDENCE_LINKS["links"]:
-    assert link["evidence_refs"]
-    for ref in link["evidence_refs"]:
+    assert link.get("evidence_refs") or link.get("implementation_commit_refs")
+    for ref in link.get("evidence_refs", []):
         assert (ROOT / ref).is_file(), ref
+    for ref in link.get("implementation_commit_refs", []):
+        assert ref.startswith("git:") and len(ref) == 44
+        subprocess.run(
+            ["git", "cat-file", "-e", f"{ref.removeprefix('git:')}^{{commit}}"],
+            cwd=ROOT,
+            check=True,
+        )
 assert MACOS_OTA_PROOF["schema"] == "focusa.locked_release_macos_ota_run_proof.v1"
 assert MACOS_OTA_PROOF["github_run"]["database_id"] == 30355152821
 assert MACOS_OTA_PROOF["github_run"]["conclusion"] == "success"
