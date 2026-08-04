@@ -183,65 +183,24 @@ impl LicenseGuard {
         }
     }
 
-    /// Check a capability against the current tier.
+    /// Check a capability only against the immutable signed entitlement snapshot.
     pub fn check(&self, capability: Capability) -> CapabilityCheck {
-        if let Some(entitlement) = &self.entitlement {
-            if entitlement.feature_enabled(capability.label()) {
-                return CapabilityCheck::Permitted;
-            }
+        let Some(entitlement) = &self.entitlement else {
             return CapabilityCheck::Denied {
+                reason: "signed authority entitlement required; legacy tier is migration-only"
+                    .into(),
+            };
+        };
+        if entitlement.feature_enabled(capability.label()) {
+            CapabilityCheck::Permitted
+        } else {
+            CapabilityCheck::Denied {
                 reason: format!(
                     "authority entitlement state={} does not grant {}",
                     self.tier.label(),
                     capability.label()
                 ),
-            };
-        }
-        return CapabilityCheck::Denied {
-            reason: "signed authority entitlement required; legacy tier is migration-only".into(),
-        };
-        #[allow(unreachable_code)]
-        match (self.tier, capability) {
-            // Local-eval: always permitted.
-            (_, Capability::LocalEval) => CapabilityCheck::Permitted,
-            // Eval tier: commercial/hosted/embedding denied; commercial_use yields a warning
-            // because eval can be used for evaluation on a real project but not for revenue.
-            (Tier::Eval, Capability::CommercialUse) => {
-                if self.is_expired() {
-                    CapabilityCheck::Denied {
-                        reason: format!(
-                            "license expired at {} (eval grace window); renew or purchase commercial license",
-                            self.expires_at
-                                .map(|d| d.to_rfc3339())
-                                .unwrap_or_else(|| "?".into())
-                        ),
-                    }
-                } else {
-                    CapabilityCheck::PermittedWithWarning {
-                        warning:
-                            "eval tier permits evaluation on a real project but not commercial use; purchase license for revenue".into(),
-                    }
-                }
             }
-            (Tier::Eval, Capability::HostedMode) | (Tier::Eval, Capability::ProductEmbedding) => {
-                CapabilityCheck::Denied {
-                    reason: format!(
-                        "eval tier does not permit {}; purchase commercial license",
-                        capability.label()
-                    ),
-                }
-            }
-            (Tier::Eval, Capability::TelemetrySend) => CapabilityCheck::Denied {
-                reason: "eval/license/open tiers: Focusa is no-telemetry by default".into(),
-            },
-            // Legacy constructors remain migration/test inputs, never production resolution.
-            (Tier::Licensed, _) | (Tier::Open, _) => CapabilityCheck::Permitted,
-            (Tier::Unactivated, _)
-            | (Tier::RecoveryOnly, _)
-            | (Tier::Entitled, _)
-            | (Tier::OfflineGrace, _) => CapabilityCheck::Denied {
-                reason: "signed authority entitlement required".into(),
-            },
         }
     }
 
