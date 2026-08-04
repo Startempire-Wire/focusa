@@ -41,6 +41,7 @@ pub struct DaemonRegistration {
     pub auth_fingerprint: String,
     pub version: String,
     pub capabilities: BTreeSet<String>,
+    pub allowed_native_sessions: BTreeSet<String>,
     pub health: DaemonHealth,
     pub generation: u64,
 }
@@ -293,6 +294,7 @@ mod tests {
             auth_fingerprint: format!("sha256:{id}"),
             version: "0.9.143".into(),
             capabilities: BTreeSet::from(["workpoint".into()]),
+            allowed_native_sessions: BTreeSet::from(["session-1".into()]),
             health: DaemonHealth::Healthy,
             generation,
         }

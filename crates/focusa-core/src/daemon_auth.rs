@@ -9,6 +9,7 @@ pub struct DaemonRequestIdentity {
     pub daemon_id: String,
     pub controller_id: String,
     pub presented_auth_fingerprint: String,
+    pub presented_endpoint: String,
     pub native_session_id: String,
     pub route: ProjectRouteKey,
 }
@@ -22,6 +23,7 @@ pub struct DaemonAuthorizationReceipt {
     pub project_root: String,
     pub continuity_id: String,
     pub working_subpath_id: String,
+    pub native_session_id: String,
     pub auth_fingerprint: String,
 }
 
@@ -37,11 +39,15 @@ pub enum DaemonAuthorizationError {
     ControllerMismatch,
     #[error("presented authentication fingerprint does not match enrollment")]
     AuthenticationMismatch,
+    #[error("request endpoint does not match daemon enrollment")]
+    EndpointMismatch,
+    #[error("native session is not admitted by daemon enrollment")]
+    SessionMismatch,
     #[error("request id has already been authorized")]
     ReplayDetected,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DaemonReplayGuard {
     authorized_request_ids: BTreeSet<String>,
 }
@@ -60,6 +66,7 @@ impl DaemonReplayGuard {
                 &request.presented_auth_fingerprint,
                 "presented_auth_fingerprint",
             ),
+            (&request.presented_endpoint, "presented_endpoint"),
             (&request.native_session_id, "native_session_id"),
         ] {
             if value.trim().is_empty() {
@@ -79,6 +86,15 @@ impl DaemonReplayGuard {
         if registration.auth_fingerprint != request.presented_auth_fingerprint {
             return Err(DaemonAuthorizationError::AuthenticationMismatch);
         }
+        if registration.endpoint != request.presented_endpoint {
+            return Err(DaemonAuthorizationError::EndpointMismatch);
+        }
+        if !registration
+            .allowed_native_sessions
+            .contains(&request.native_session_id)
+        {
+            return Err(DaemonAuthorizationError::SessionMismatch);
+        }
         self.authorized_request_ids
             .insert(request.request_id.clone());
         Ok(DaemonAuthorizationReceipt {
@@ -89,6 +105,7 @@ impl DaemonReplayGuard {
             project_root: request.route.project_root.clone(),
             continuity_id: request.route.continuity_id.clone(),
             working_subpath_id: request.route.working_subpath_id.clone(),
+            native_session_id: request.native_session_id.clone(),
             auth_fingerprint: request.presented_auth_fingerprint.clone(),
         })
     }
@@ -119,6 +136,7 @@ mod tests {
                     auth_fingerprint: "sha256:peer-cert".into(),
                     version: "0.9.143".into(),
                     capabilities: BTreeSet::from(["workpoint".into()]),
+                    allowed_native_sessions: BTreeSet::from(["session-1".into()]),
                     health: DaemonHealth::Healthy,
                     generation: 1,
                 },
@@ -137,6 +155,7 @@ mod tests {
             daemon_id: "daemon-1".into(),
             controller_id: "controller-1".into(),
             presented_auth_fingerprint: "sha256:peer-cert".into(),
+            presented_endpoint: "https://daemon.example.test".into(),
             native_session_id: "session-1".into(),
             route: route(),
         }
@@ -168,6 +187,18 @@ mod tests {
             Err(DaemonAuthorizationError::AuthenticationMismatch)
         );
         foreign = request();
+        foreign.presented_endpoint = "https://foreign.example.test".into();
+        assert_eq!(
+            DaemonReplayGuard::default().authorize(&registry(), &foreign),
+            Err(DaemonAuthorizationError::EndpointMismatch)
+        );
+        foreign = request();
+        foreign.native_session_id = "session-foreign".into();
+        assert_eq!(
+            DaemonReplayGuard::default().authorize(&registry(), &foreign),
+            Err(DaemonAuthorizationError::SessionMismatch)
+        );
+        foreign = request();
         foreign.route.continuity_id = "other".into();
         assert!(matches!(
             DaemonReplayGuard::default().authorize(&registry(), &foreign),
@@ -175,5 +206,28 @@ mod tests {
                 DaemonRegistryError::NoRoute
             ))
         ));
+        for error in [
+            DaemonAuthorizationError::AuthenticationMismatch,
+            DaemonAuthorizationError::EndpointMismatch,
+            DaemonAuthorizationError::SessionMismatch,
+        ] {
+            let rendered = error.to_string();
+            assert!(!rendered.contains("peer-cert"));
+            assert!(!rendered.contains("session-1"));
+            assert!(!rendered.contains("daemon.example"));
+        }
+    }
+
+    #[test]
+    fn replay_guard_survives_restart_without_persisting_raw_bearer_material() {
+        let mut guard = DaemonReplayGuard::default();
+        guard.authorize(&registry(), &request()).unwrap();
+        let bytes = serde_json::to_vec(&guard).unwrap();
+        assert!(!String::from_utf8_lossy(&bytes).contains("peer-cert"));
+        let mut restarted: DaemonReplayGuard = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(
+            restarted.authorize(&registry(), &request()),
+            Err(DaemonAuthorizationError::ReplayDetected)
+        );
     }
 }
