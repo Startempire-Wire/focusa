@@ -15,6 +15,7 @@ pub enum CapabilityState {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CapabilityEvidence {
     pub capability: String,
+    pub runtime_segment: String,
     pub state: CapabilityState,
     pub source: String,
     pub adapter_revision: String,
@@ -32,6 +33,7 @@ fn proven(
 ) -> bool {
     evidence.get(capability).is_some_and(|item| {
         item.state == CapabilityState::Proven
+            && item.runtime_segment == fingerprint.segment_key
             && item.adapter_revision == fingerprint.adapter_revision
             && item.expires_after.is_none_or(|expiry| expiry > now)
             && item

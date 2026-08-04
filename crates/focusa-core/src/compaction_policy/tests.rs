@@ -27,9 +27,14 @@ fn facts(provider: &str, endpoint: &str, continuity: &str) -> CompactionRuntimeF
     }
 }
 
-fn evidence(name: &str, expires_after: Option<chrono::DateTime<Utc>>) -> CapabilityEvidence {
+fn evidence(
+    fingerprint: &CompactionRuntimeFingerprint,
+    name: &str,
+    expires_after: Option<chrono::DateTime<Utc>>,
+) -> CapabilityEvidence {
     CapabilityEvidence {
         capability: name.into(),
+        runtime_segment: fingerprint.segment_key.clone(),
         state: CapabilityState::Proven,
         source: "adapter_conformance".into(),
         adapter_revision: "adapter-1".into(),
@@ -78,7 +83,7 @@ fn capability_mask_is_evidence_gated_and_expiry_safe() {
     ];
     let valid: Vec<_> = names
         .iter()
-        .map(|name| evidence(name, Some(now + Duration::hours(1))))
+        .map(|name| evidence(&fingerprint, name, Some(now + Duration::hours(1))))
         .collect();
     assert!(
         legal_action_mask(&fingerprint, &valid, now)
@@ -86,11 +91,179 @@ fn capability_mask_is_evidence_gated_and_expiry_safe() {
     );
     let expired: Vec<_> = names
         .iter()
-        .map(|name| evidence(name, Some(now - Duration::seconds(1))))
+        .map(|name| evidence(&fingerprint, name, Some(now - Duration::seconds(1))))
         .collect();
     assert!(
         !legal_action_mask(&fingerprint, &expired, now)
             .contains(&ContextManagementAction::ProviderNativeCompaction)
+    );
+}
+
+#[test]
+fn provider_contracts_require_exact_proof_and_round_trip_opaque_state() {
+    let fingerprint = resolve_runtime_fingerprint(facts("openai", "first-party", "continuity-a"));
+    let now = Utc::now();
+    assert_eq!(
+        provider_strategy(&fingerprint, &[], now),
+        ProviderStrategy::PiStructuredFallback
+    );
+    let names = [
+        "first_party_openai_identity",
+        "openai_opaque_compaction_request",
+        "openai_opaque_compaction_item_round_trip",
+        "reasoning_state_round_trip",
+        "continuation_survives_process_resume",
+        "continuation_survives_transport_fallback",
+        "previous_response_continuation",
+    ];
+    let evidence: Vec<_> = names
+        .iter()
+        .map(|name| evidence(&fingerprint, name, None))
+        .collect();
+    let without_transport: Vec<_> = evidence
+        .iter()
+        .filter(|item| item.capability != "continuation_survives_transport_fallback")
+        .cloned()
+        .collect();
+    assert_eq!(
+        provider_strategy(&fingerprint, &without_transport, now),
+        ProviderStrategy::PiStructuredFallback
+    );
+    assert_eq!(
+        provider_strategy(&fingerprint, &evidence, now),
+        ProviderStrategy::OpenAiOpaqueCompaction
+    );
+    let gateway =
+        resolve_runtime_fingerprint(facts("openai", "compatible-gateway", "continuity-a"));
+    assert_eq!(
+        provider_strategy(&gateway, &evidence, now),
+        ProviderStrategy::PiStructuredFallback
+    );
+    for provider in ["local", "unknown", "openrouter"] {
+        let fallback =
+            resolve_runtime_fingerprint(facts(provider, "compatible-gateway", "continuity-a"));
+        assert_eq!(
+            provider_strategy(&fallback, &[], now),
+            ProviderStrategy::PiStructuredFallback
+        );
+    }
+    let state = ProviderContinuationState::OpenAi(OpenAiCompactionState {
+        opaque_compaction_item: vec![0, 255, 17, 33],
+        encrypted_reasoning_items: vec![vec![9, 8, 7], vec![0, 1, 2]],
+        previous_response_id: Some("response-1".into()),
+        full_output_replay: vec![vec![6, 5, 4]],
+    });
+    let persisted = serde_json::to_vec(&state).unwrap();
+    let replayed: ProviderContinuationState = serde_json::from_slice(&persisted).unwrap();
+    assert_eq!(replayed, state);
+}
+
+#[test]
+fn anthropic_and_gemini_contracts_preserve_cost_and_signature_truth() {
+    let now = Utc::now();
+    let fingerprint =
+        resolve_runtime_fingerprint(facts("anthropic", "first-party", "continuity-a"));
+    let anthropic_names = [
+        "anthropic_compaction_request",
+        "anthropic_compaction_block_round_trip",
+        "anthropic_stop_reason_compaction",
+        "anthropic_usage_iterations",
+        "reasoning_state_round_trip",
+        "continuation_survives_process_resume",
+        "continuation_survives_transport_fallback",
+    ];
+    let anthropic_evidence: Vec<_> = anthropic_names
+        .iter()
+        .map(|name| evidence(&fingerprint, name, None))
+        .collect();
+    assert_eq!(
+        provider_strategy(&fingerprint, &anthropic_evidence, now),
+        ProviderStrategy::AnthropicServerCompaction
+    );
+    let usage = aggregate_anthropic_usage(&[
+        ProviderUsage {
+            input_tokens: 10,
+            output_tokens: 3,
+            cache_read_tokens: 5,
+            cache_write_tokens: 2,
+        },
+        ProviderUsage {
+            input_tokens: 20,
+            output_tokens: 4,
+            cache_read_tokens: 8,
+            cache_write_tokens: 1,
+        },
+    ]);
+    assert_eq!(usage.input_tokens, 30);
+    assert_eq!(usage.cache_read_tokens, 13);
+    let anthropic_state = ProviderContinuationState::Anthropic(AnthropicCompactionState {
+        beta_revision: "compact-2026-01-12".into(),
+        compaction_block: vec![0, 128, 255, 3],
+        stop_reason: "compaction".into(),
+        usage_iterations: vec![usage],
+    });
+    assert_eq!(
+        serde_json::from_slice::<ProviderContinuationState>(
+            &serde_json::to_vec(&anthropic_state).unwrap()
+        )
+        .unwrap(),
+        anthropic_state
+    );
+    let tools = vec![
+        ToolResultState {
+            tool_call_id: "evidence".into(),
+            tokens: 10_000,
+            action_critical: false,
+            evidence_critical: true,
+            active_blocker: false,
+        },
+        ToolResultState {
+            tool_call_id: "noise".into(),
+            tokens: 30_000,
+            action_critical: false,
+            evidence_critical: false,
+            active_blocker: false,
+        },
+    ];
+    let (profitable, protected) = tool_edit_break_even(
+        &tools,
+        CacheCostObservation {
+            clearable_tokens: 30_000,
+            cache_rewrite_tokens: 5_000,
+            edit_overhead_tokens: 1_000,
+        },
+    );
+    assert!(profitable);
+    assert_eq!(protected, vec!["evidence"]);
+    let gemini_fingerprint =
+        resolve_runtime_fingerprint(facts("google", "first-party", "continuity-a"));
+    let gemini_evidence: Vec<_> = [
+        "previous_interaction_continuation",
+        "gemini_request_scoped_config_replay",
+        "thought_signature_round_trip",
+    ]
+    .iter()
+    .map(|name| evidence(&gemini_fingerprint, name, None))
+    .collect();
+    assert_eq!(
+        provider_strategy(&gemini_fingerprint, &gemini_evidence, now),
+        ProviderStrategy::GeminiStatefulInteraction
+    );
+    let gemini = ProviderContinuationState::Gemini(GeminiContinuationState {
+        previous_interaction_id: Some("interaction-1".into()),
+        thought_signatures: vec![vec![0, 7, 255]],
+        parallel_call_signatures: std::collections::BTreeMap::from([
+            ("call-a".into(), vec![1, 2]),
+            ("call-b".into(), vec![3, 4]),
+        ]),
+        request_scoped_tools_digest: "sha256:tools".into(),
+        system_instruction_digest: "sha256:system".into(),
+        generation_config_digest: "sha256:generation".into(),
+    });
+    assert_eq!(
+        serde_json::from_slice::<ProviderContinuationState>(&serde_json::to_vec(&gemini).unwrap())
+            .unwrap(),
+        gemini
     );
 }
 

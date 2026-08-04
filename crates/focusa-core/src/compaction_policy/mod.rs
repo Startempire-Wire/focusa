@@ -4,6 +4,7 @@ mod candidate;
 mod capabilities;
 mod identity;
 mod pressure;
+mod provider_strategies;
 mod registry;
 mod selector;
 mod semantic_pressure;
@@ -16,6 +17,11 @@ pub use identity::{
     CompactionRuntimeFacts, CompactionRuntimeFingerprint, resolve_runtime_fingerprint,
 };
 pub use pressure::{PressurePrediction, PressurePredictionInput, PressureStatistics};
+pub use provider_strategies::{
+    AnthropicCompactionState, CacheCostObservation, GeminiContinuationState, OpenAiCompactionState,
+    ProviderContinuationState, ProviderStrategy, ProviderUsage, ToolResultState,
+    aggregate_anthropic_usage, provider_strategy, tool_edit_break_even,
+};
 pub use registry::{CompactionPolicyObservation, CompactionPolicyRegistry, SegmentProjection};
 pub use selector::{
     CompactionPolicyLease, PolicyMode, PolicyResolution, PolicySelectionContext, resolve_policy,
