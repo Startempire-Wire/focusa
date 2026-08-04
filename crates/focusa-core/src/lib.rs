@@ -68,6 +68,7 @@ pub mod convergence_platform;
 pub mod convergence_transaction;
 pub mod daemon_auth;
 pub mod daemon_dispatch;
+pub mod daemon_identity;
 pub mod daemon_multiplex;
 pub mod dxux;
 pub mod epistemic_conformance;
