@@ -7681,9 +7681,9 @@
       ],
       "parent_bead_id": "focusa-vbcqu.14",
       "projection_drift": false,
-      "provider_record_digest": "sha256:6f599a957ac0fe20bec8dfde9fd11b87f2521a56a7c8bf3af12188e1e023d457",
+      "provider_record_digest": "sha256:3feed47f65ebf713bf84177ee5f64e8c954b61ea51545ec77f56d8f20e33972f",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-04T19:50:12.061761754Z",
+      "provider_updated_at": "2026-08-04T19:51:00.376430259Z",
       "runtime_or_acceptance_evidence_refs": [],
       "task_plan_ref": null,
       "title": "106.2 Reconcile issue-to-Bead-to-evidence mappings"
@@ -8324,7 +8324,7 @@
   ],
   "provider_snapshot": {
     "record_count": 2317,
-    "sha256": "sha256:dd14bcebd568fb4f0a1caf6336fab32ffef6ac000d0e1c3f119a00bf82cce715",
+    "sha256": "sha256:ba31ed752f1cf83e54147b934d6a9b592ef22b7e3f2f9f180554089b14de6eab",
     "source": "canonical:.beads/issues.jsonl"
   },
   "provider_state_counts": {
@@ -8333,7 +8333,7 @@
     "in_progress": 49,
     "open": 28
   },
-  "reconciliation_digest": "sha256:965461c14fb0a8a365c634fa48050ad4391e2bc1ea25f0521ee49e694d910b2b",
+  "reconciliation_digest": "sha256:f4603d03a2d7d2c614009ccc206b8554e66f352d79140527bb3e4a7f726e919f",
   "repair_overlay_mapping_count": 14,
   "schema": "focusa.locked_release_governance_reconciliation.v1",
   "status": "blocked",
