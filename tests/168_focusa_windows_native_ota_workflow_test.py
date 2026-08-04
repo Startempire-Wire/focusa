@@ -5,6 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 workflow = (ROOT / ".github/workflows/windows-ota-e2e.yml").read_text()
+installer = (ROOT / "crates/focusa-cli/src/commands/install.rs").read_text()
 
 required = (
     "runner: windows-latest",
@@ -40,6 +41,14 @@ for prohibited in (
         f"false dependency availability retained: {prohibited}"
     )
 
+windows_candidates = installer[
+    installer.index("fn find_command") : installer.index("fn is_root")
+]
+assert windows_candidates.index('format!("{name}.exe")') < windows_candidates.rindex(
+    "name.to_string()"
+)
+assert "extensionless POSIX shims" in windows_candidates
+assert "extensionless shim must not win" in installer
 assert workflow.count("runner: windows-11-arm") >= 2
 assert workflow.count("native runner architecture mismatch") >= 2
 assert "Windows release build (${{ matrix.target }})" in workflow

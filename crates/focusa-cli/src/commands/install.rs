@@ -1649,11 +1649,13 @@ fn find_command(name: &str) -> Option<String> {
             vec![name.to_string()]
         } else {
             vec![
-                name.to_string(),
+                // Native executables and Windows command shims must win over
+                // extensionless POSIX shims that npm also places on PATH.
                 format!("{name}.exe"),
                 format!("{name}.cmd"),
                 format!("{name}.bat"),
                 format!("{name}.com"),
+                name.to_string(),
             ]
         };
         for directory in std::env::split_paths(&path) {
@@ -4805,11 +4807,21 @@ mod tests {
             "failed to compile native pi.exe fixture"
         );
         std::fs::write(fixture.join("pi.cmd"), "@echo off\r\necho pi 0.81.1\r\n").unwrap();
+        std::fs::write(
+            fixture.join("pi"),
+            "#!/bin/sh\necho extensionless shim must not win\n",
+        )
+        .unwrap();
         let script_fixture = fixture.join("Program Files fixture");
         std::fs::create_dir_all(&script_fixture).unwrap();
         std::fs::write(
             script_fixture.join("npm.cmd"),
             "@echo off\r\necho 10.9.2\r\n",
+        )
+        .unwrap();
+        std::fs::write(
+            script_fixture.join("npm"),
+            "#!/bin/sh\necho extensionless shim must not win\n",
         )
         .unwrap();
         let previous_path = std::env::var_os("PATH");

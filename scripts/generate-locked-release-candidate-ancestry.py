@@ -44,6 +44,7 @@ TAG_CHAINS = {
 }
 ALLOWED_RECEIPT_PATHS = {
     ".github/workflows/windows-ota-e2e.yml",
+    "crates/focusa-cli/src/commands/install.rs",
     "release-proof/audit/next-locked-release-candidate-ancestry.json",
     "release-proof/audit/next-locked-release-github106-closure-proof.json",
     "release-proof/audit/next-locked-release-governance-evidence-links.json",
