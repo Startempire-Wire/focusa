@@ -1,0 +1,196 @@
+{
+  "admission_rules": [
+    "bare_bead_id_is_not_admission",
+    "github_issue_presence_is_not_admission",
+    "labels_parentage_and_code_presence_are_not_admission",
+    "future_valid_work_may_remain_in_repository_without_release_gating",
+    "only_immutable_r7_exact_purpose_explicit_operator_addition_or_scope_preserving_release_repair_is_admitted"
+  ],
+  "authority_file_digests": {
+    "callgraph_reconstruction": {
+      "path": "docs/156-focusa-mangled-release-delta-callgraph-reconstruction.md",
+      "sha256": "sha256:9980e7f0b5f27c507dc64566ae116a6ef7d132776dd2acce4190ef0ea406ca58"
+    },
+    "completion_contract": {
+      "path": "release-proof/audit/next-locked-release-workset-completion-contract.json",
+      "sha256": "sha256:96ae3e39b163ba9dc5a8462682a96ca7ace94e127cf321a2331d4c5bba73ec86"
+    },
+    "definition": {
+      "path": "release-proof/audit/next-locked-release-workset-definition.json",
+      "sha256": "sha256:1d568b53284b37ec6cb858424f1e7390733e752822c4e923bca4ff2c12351277"
+    },
+    "edges": {
+      "path": "release-proof/audit/next-locked-release-workset-edges.jsonl",
+      "sha256": "sha256:d0f5149602257bd2bd961bbd3f79e6feedd62f0527e6da905979204dee3405c4"
+    },
+    "events": {
+      "path": "release-proof/audit/next-locked-release-workset-events.jsonl",
+      "sha256": "sha256:63aef57dd6553bc3b561c2dfc17ae46773aff7db774e637fa819bde703f6967c"
+    },
+    "members": {
+      "path": "release-proof/audit/next-locked-release-workset-members.jsonl",
+      "sha256": "sha256:74c117e9ded891e538f64cc1e27213b01278ee145eb6b0e1cf4e7af63ceb3f94"
+    },
+    "repair_graph": {
+      "path": "docs/153-focusa-locked-release-repair-task-graph.md",
+      "sha256": "sha256:a4109193cb2df337682728bc9a3f994a93470aee6a7be2dd868e89f0eb581ad4"
+    },
+    "scope": {
+      "path": "release-proof/audit/next-locked-release-scope.json",
+      "sha256": "sha256:2da6d632c0ee3e65d75d3ec50787f9ead16d6359b1b22b17cda979c67128c8b1"
+    }
+  },
+  "authorized_release_repair_overlay": [
+    {
+      "authority": "operator_message:remaining_tranche_only_mangled_previous_release",
+      "bead_id": "focusa-vbcqu.14",
+      "github_issue": 106,
+      "purpose": "release_governance_reconciliation"
+    },
+    {
+      "authority": "operator_message:remaining_tranche_only_mangled_previous_release",
+      "bead_id": "focusa-vbcqu.19",
+      "github_issue": null,
+      "purpose": "all_surface_artifact_install_ota_and_publication_repair"
+    }
+  ],
+  "excluded_reconstructed_epics": [
+    {
+      "bead_id": "focusa-vbcqu.11",
+      "code_and_history": "retained",
+      "disposition": "future_or_repository_work_excluded_from_locked_release",
+      "github_issue": 45,
+      "publication_blocking": false,
+      "reason": "mission_canvas_transition",
+      "release_parent": null
+    },
+    {
+      "bead_id": "focusa-vbcqu.12",
+      "code_and_history": "retained",
+      "disposition": "future_or_repository_work_excluded_from_locked_release",
+      "github_issue": 89,
+      "publication_blocking": false,
+      "reason": "reconstructed_broad_multiplexing_epic",
+      "release_parent": null
+    },
+    {
+      "bead_id": "focusa-vbcqu.13",
+      "code_and_history": "retained",
+      "disposition": "future_or_repository_work_excluded_from_locked_release",
+      "github_issue": 101,
+      "publication_blocking": false,
+      "reason": "future_fleet_convergence",
+      "release_parent": null
+    },
+    {
+      "bead_id": "focusa-vbcqu.15",
+      "code_and_history": "retained",
+      "disposition": "future_or_repository_work_excluded_from_locked_release",
+      "github_issue": 107,
+      "publication_blocking": false,
+      "reason": "optional_letta_integration",
+      "release_parent": null
+    },
+    {
+      "bead_id": "focusa-vbcqu.16",
+      "code_and_history": "retained",
+      "disposition": "future_or_repository_work_excluded_from_locked_release",
+      "github_issue": 112,
+      "publication_blocking": false,
+      "reason": "reconstructed_broad_adaptive_compaction_epic",
+      "release_parent": null
+    },
+    {
+      "bead_id": "focusa-vbcqu.17",
+      "code_and_history": "retained",
+      "disposition": "future_or_repository_work_excluded_from_locked_release",
+      "github_issue": 114,
+      "publication_blocking": false,
+      "reason": "unsupported_external_uiai_solver_capability",
+      "release_parent": null
+    },
+    {
+      "bead_id": "focusa-vbcqu.18",
+      "code_and_history": "retained",
+      "disposition": "future_or_repository_work_excluded_from_locked_release",
+      "github_issue": 52,
+      "publication_blocking": false,
+      "reason": "future_onboarding_and_dead_road_consolidation",
+      "release_parent": null
+    },
+    {
+      "bead_id": "focusa-vbcqu.20",
+      "code_and_history": "retained",
+      "disposition": "future_or_repository_work_excluded_from_locked_release",
+      "github_issue": 119,
+      "publication_blocking": false,
+      "reason": "future_private_authority_and_unified_onboarding",
+      "release_parent": null
+    }
+  ],
+  "further_additions_allowed": false,
+  "graph_digest": "sha256:d1d095bf0e9f8b8d6f5e41fef14711369bdffd523b6cdc01005a932807214b70",
+  "immutable_edge_count": 706,
+  "immutable_event_count": 7,
+  "immutable_member_count": 275,
+  "inventory_digest": "sha256:9dad314492bc798205d7a64b89fc46e4bc8239b3394f1c4898b474720f1cb686",
+  "membership_digest": "sha256:03e384bbf5728df135f36838451098413701f4ee09430fc31797fe2d5e1379f0",
+  "operator_authorized_post_lock_additions": [
+    {
+      "authorization_source": "operator_message:bug_1",
+      "issue_id": "focusa-vbcqu.5.7",
+      "summary": "Mac Pi context overflow compaction stalls through repeated WebSocket summarization failures"
+    },
+    {
+      "authorization_source": "operator_message:bug_2",
+      "issue_id": "focusa-vbcqu.3.4",
+      "summary": "Pi startup blocks on degraded project verification instead of safely inferring scope"
+    },
+    {
+      "authorization_source": "operator_message:everything_should_be_scoped",
+      "issue_id": "focusa-gkwt",
+      "summary": "Foreign TRAJECTORY_CONTEXT contaminates exact-scoped Pi tool output"
+    },
+    {
+      "authorization_source": "operator_message:compaction_first_touch_p0",
+      "issue_id": "focusa-627th.4.3",
+      "summary": "Pi compaction lifecycle must preserve native queue, cancellation, retry, and reconnect authority"
+    },
+    {
+      "authorization_source": "operator_message:final_bug_and_no_more",
+      "issue_id": "focusa-o4gkd",
+      "summary": "Mandatory north-star binding, continuous stale-state validation, and recoverable writer/checkpoint acquisition"
+    },
+    {
+      "authorization_source": "operator_message:ensure_it_ships_no_omissions_no_deferrals",
+      "issue_id": "focusa-vbcqu.9.9",
+      "summary": "Ship complete Spec150 guided install, first project, maintenance, recovery, and cross-platform lifecycle"
+    },
+    {
+      "authorization_source": "operator_message:specs_must_permeate_reality_grounding_no_omissions",
+      "issue_id": "focusa-vbcqu.8.4",
+      "summary": "Ship full Spec144 semantic integrity and reality-grounded verification system"
+    }
+  ],
+  "retained_release_invariants": [
+    "v0.9.143_is_immutable",
+    "new_release_version_must_be_monotonic_and_truthful",
+    "signed_leases_are_the_only_production_entitlement_authority",
+    "plaintext_tiers_and_self_issued_evaluation_never_grant_capability",
+    "ambiguous_or_foreign_scope_fails_closed_without_foreign_payload",
+    "pi_owns_native_compaction_execution",
+    "windows_x64_and_arm64_assets_require_real_installed_ota_proof",
+    "publication_requires_exact_sha_artifact_and_installed_acceptance"
+  ],
+  "schema": "focusa.locked_release_governance_inventory.v1",
+  "scope_additions_closed": true,
+  "status": "frozen",
+  "terminal_release_path": [
+    "workset:focusa-next-locked-release:r7",
+    "bead:focusa-vbcqu.14",
+    "bead:focusa-vbcqu.19",
+    "new_monotonic_stable_release"
+  ],
+  "workset_id": "workset:focusa-next-locked-release:r7",
+  "workset_revision": 7
+}
