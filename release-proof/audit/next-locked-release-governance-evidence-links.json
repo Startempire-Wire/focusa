@@ -374,6 +374,101 @@
         "git:ba47c980325e1468fbef2d5a75bc6c0203e7275b"
       ],
       "proof_scope": "PI-C03 scoped restore pipeline without continuity-only authority"
+    },
+    {
+      "bead_id": "focusa-pskm",
+      "evidence_refs": [
+        "tests/spec114_observatory_ui_static_test.py",
+        "tests/spec114_public_benchmark_flywheel_static_test.sh"
+      ],
+      "implementation_commit_refs": [
+        "git:36615bbed7b6af8d368c6502b83cbc5baf821e01"
+      ],
+      "proof_scope": "Spec114 public observatory implementation and regression guards"
+    },
+    {
+      "bead_id": "focusa-vfsrg",
+      "evidence_refs": [
+        "apps/pi-extension/tests/pi-sdk-security.test.mjs"
+      ],
+      "implementation_commit_refs": [
+        "git:36615bbed7b6af8d368c6502b83cbc5baf821e01"
+      ],
+      "proof_scope": "Pi SDK dependency migration and security regression guard"
+    },
+    {
+      "bead_id": "focusa-84px.12",
+      "evidence_refs": [
+        "tests/spec104_bench_run_scope_static_test.py"
+      ],
+      "implementation_commit_refs": [
+        "git:c99a155c38ee46532e9b04d14f6a0bb467aacaf8"
+      ],
+      "proof_scope": "BEN-02 benchmark scope anti-bleed guard"
+    },
+    {
+      "bead_id": "focusa-84px.13",
+      "evidence_refs": [
+        "tests/spec104_proof_lineage_static_test.py"
+      ],
+      "implementation_commit_refs": [
+        "git:c99a155c38ee46532e9b04d14f6a0bb467aacaf8"
+      ],
+      "proof_scope": "BEN-03 public benchmark proof lineage"
+    },
+    {
+      "bead_id": "focusa-84px.14",
+      "evidence_refs": [
+        "tests/spec104_hard_singleton_audit_static_test.py"
+      ],
+      "implementation_commit_refs": [
+        "git:c99a155c38ee46532e9b04d14f6a0bb467aacaf8"
+      ],
+      "proof_scope": "DOC-01 hard singleton audit guard"
+    },
+    {
+      "bead_id": "focusa-84px.15",
+      "evidence_refs": [
+        "tests/spec104_session_identity_envelope_static_test.py"
+      ],
+      "implementation_commit_refs": [
+        "git:c99a155c38ee46532e9b04d14f6a0bb467aacaf8"
+      ],
+      "proof_scope": "DOC-02 session identity envelope guard"
+    },
+    {
+      "bead_id": "focusa-84px.16",
+      "evidence_refs": [
+        "tests/spec104_mismatch_semantic_static_test.py"
+      ],
+      "implementation_commit_refs": [
+        "git:c99a155c38ee46532e9b04d14f6a0bb467aacaf8"
+      ],
+      "proof_scope": "DOC-03 mismatch semantic regression guard"
+    },
+    {
+      "bead_id": "focusa-84px.17",
+      "evidence_refs": [
+        "tests/spec104_tool_contract_static_audit.py"
+      ],
+      "implementation_commit_refs": [
+        "git:c99a155c38ee46532e9b04d14f6a0bb467aacaf8"
+      ],
+      "proof_scope": "DOC-04 tool contract schema audit"
+    },
+    {
+      "bead_id": "focusa-vbcqu.9.2.1",
+      "evidence_refs": [
+        "docs/evidence/v0.9.135/54-temporal-authority-proof.txt"
+      ],
+      "proof_scope": "Spec137 temporal substrate, trusted clock, persistence, and scoped surface foundation"
+    },
+    {
+      "bead_id": "focusa-vbcqu.9.2.2",
+      "evidence_refs": [
+        "docs/evidence/v0.9.135/54-temporal-authority-proof.txt"
+      ],
+      "proof_scope": "Spec137 commitment, deadline, urgency, forecast, and release-gate authority slice"
     }
   ]
 }

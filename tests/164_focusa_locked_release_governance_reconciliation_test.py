@@ -95,6 +95,7 @@ allowed_evidence_states = {
     "orphan",
     "pending_technical_acceptance",
     "ambiguous_duplicate_closure",
+    "aggregate_child_evidence",
     "duplicate_target_without_proof",
     "exact_duplicate_receipt",
     "evidence_linked",
@@ -114,6 +115,19 @@ for row in mappings:
         assert (
             row["implementation_commit_refs"]
             or row["runtime_or_acceptance_evidence_refs"]
+        )
+    if row["evidence_state"] == "aggregate_child_evidence":
+        refs = row["aggregate_evidence_member_refs"]
+        assert refs and all(ref.startswith(f"bead:{row['bead_id']}.") for ref in refs)
+        by_id = {candidate["bead_id"]: candidate for candidate in mappings}
+        assert all(
+            by_id[ref.removeprefix("bead:")]["evidence_state"]
+            in {
+                "evidence_linked",
+                "exact_duplicate_receipt",
+                "aggregate_child_evidence",
+            }
+            for ref in refs
         )
 
 print("GH#106.2 locked-release governance reconciliation: PASS (truthfully blocked)")

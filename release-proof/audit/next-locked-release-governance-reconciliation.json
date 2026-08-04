@@ -1,42 +1,17 @@
 {
   "admitted_mapping_count": 289,
-  "evidence_links_digest": "sha256:a8cda68bf6899c7e7a85a67e12051b537686d575f0de1433b972c0b8a83f3086",
+  "evidence_links_digest": "sha256:cd34e7e823db9c1f1928273f326f99520d4c87b327ba9e1bfb5a0afab204a12f",
   "evidence_state_counts": {
-    "ambiguous_duplicate_closure": 12,
-    "closed_without_proof": 14,
-    "evidence_linked": 106,
-    "exact_duplicate_receipt": 79,
+    "aggregate_child_evidence": 8,
+    "closed_without_proof": 2,
+    "evidence_linked": 116,
+    "exact_duplicate_receipt": 85,
     "pending_technical_acceptance": 78
   },
   "gaps": {
-    "ambiguous_duplicate_closure_ids": [
-      "focusa-84px.12",
-      "focusa-84px.13",
-      "focusa-84px.14",
-      "focusa-84px.15",
-      "focusa-84px.16",
-      "focusa-84px.17",
-      "focusa-84px.21",
-      "focusa-84px.22",
-      "focusa-84px.23",
-      "focusa-84px.24",
-      "focusa-84px.25",
-      "focusa-84px.26"
-    ],
+    "ambiguous_duplicate_closure_ids": [],
     "closed_without_proof_ids": [
-      "focusa-84px",
-      "focusa-n68k",
-      "focusa-nodn",
-      "focusa-pskm",
-      "focusa-vbcqu.3",
-      "focusa-vbcqu.4",
-      "focusa-vbcqu.5",
-      "focusa-vbcqu.6",
-      "focusa-vbcqu.7",
-      "focusa-vbcqu.9.2.1",
-      "focusa-vbcqu.9.2.2",
       "focusa-vbcqu.10",
-      "focusa-vfsrg",
       "focusa-w26jj.9.6.3"
     ],
     "duplicate_provider_ids": [],
@@ -222,6 +197,28 @@
     },
     {
       "active_blocker_refs": [],
+      "aggregate_evidence_member_refs": [
+        "bead:focusa-84px.1",
+        "bead:focusa-84px.2",
+        "bead:focusa-84px.10",
+        "bead:focusa-84px.11",
+        "bead:focusa-84px.12",
+        "bead:focusa-84px.13",
+        "bead:focusa-84px.14",
+        "bead:focusa-84px.15",
+        "bead:focusa-84px.16",
+        "bead:focusa-84px.17",
+        "bead:focusa-84px.18",
+        "bead:focusa-84px.19",
+        "bead:focusa-84px.20",
+        "bead:focusa-84px.21",
+        "bead:focusa-84px.22",
+        "bead:focusa-84px.23",
+        "bead:focusa-84px.24",
+        "bead:focusa-84px.25",
+        "bead:focusa-84px.26",
+        "bead:focusa-84px.27"
+      ],
       "authority": "immutable_workset_r7",
       "bead_id": "focusa-84px",
       "closure_receipt": {
@@ -229,7 +226,7 @@
         "closed_at": "2026-07-29T04:44:13.012482588Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "aggregate_child_evidence",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -369,10 +366,12 @@
         "closed_at": "2026-07-01T06:29:11.375179339Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "ambiguous_duplicate_closure",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:c99a155c38ee46532e9b04d14f6a0bb467aacaf8"
+      ],
       "ordered_task_key": [
         "focusa",
         "84px",
@@ -383,7 +382,9 @@
       "provider_record_digest": "sha256:02bc851db6053de2e777fec6cbfda87f0cecea076c91523b1abab25076443d2c",
       "provider_state": "closed",
       "provider_updated_at": "2026-07-29T18:59:08.460076496Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "tests/spec104_bench_run_scope_static_test.py"
+      ],
       "task_plan_ref": "execution-phase:6",
       "title": "P3: BEN-02 \u2014 Benchmark integrity anti-bleed"
     },
@@ -396,10 +397,12 @@
         "closed_at": "2026-07-01T06:29:11.593641016Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "ambiguous_duplicate_closure",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:c99a155c38ee46532e9b04d14f6a0bb467aacaf8"
+      ],
       "ordered_task_key": [
         "focusa",
         "84px",
@@ -410,7 +413,9 @@
       "provider_record_digest": "sha256:c9e493d78f2438e0b03ceb62c3a9b3ca468a67dd0b3119b3bba6d35baa789c43",
       "provider_state": "closed",
       "provider_updated_at": "2026-07-29T18:59:08.486506667Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "tests/spec104_proof_lineage_static_test.py"
+      ],
       "task_plan_ref": "execution-phase:6",
       "title": "P3: BEN-03 \u2014 Public proof lineage"
     },
@@ -423,10 +428,12 @@
         "closed_at": "2026-07-01T06:29:11.818674692Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "ambiguous_duplicate_closure",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:c99a155c38ee46532e9b04d14f6a0bb467aacaf8"
+      ],
       "ordered_task_key": [
         "focusa",
         "84px",
@@ -437,7 +444,9 @@
       "provider_record_digest": "sha256:0d7d9057bea4e33767f115f6f3f7a170b79dca0d0141494d2165bd755c8eaf23",
       "provider_state": "closed",
       "provider_updated_at": "2026-07-29T18:59:08.513306703Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "tests/spec104_hard_singleton_audit_static_test.py"
+      ],
       "task_plan_ref": "execution-phase:6",
       "title": "P3: DOC-01 \u2014 Singleton audit test"
     },
@@ -450,10 +459,12 @@
         "closed_at": "2026-07-01T06:29:12.035676664Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "ambiguous_duplicate_closure",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:c99a155c38ee46532e9b04d14f6a0bb467aacaf8"
+      ],
       "ordered_task_key": [
         "focusa",
         "84px",
@@ -464,7 +475,9 @@
       "provider_record_digest": "sha256:d0884aca76ccb4e318134d04ea5a467837cd5e02b22552d8af0ecef1e5b20519",
       "provider_state": "closed",
       "provider_updated_at": "2026-07-29T18:59:08.539209107Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "tests/spec104_session_identity_envelope_static_test.py"
+      ],
       "task_plan_ref": "execution-phase:6",
       "title": "P3: DOC-02 \u2014 Session identity envelope test"
     },
@@ -477,10 +490,12 @@
         "closed_at": "2026-07-01T06:29:12.239975607Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "ambiguous_duplicate_closure",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:c99a155c38ee46532e9b04d14f6a0bb467aacaf8"
+      ],
       "ordered_task_key": [
         "focusa",
         "84px",
@@ -491,7 +506,9 @@
       "provider_record_digest": "sha256:0b57ba7e7fc70b76f83d14910d0dbe76460a983c762809aa11c605bd9ab53e3d",
       "provider_state": "closed",
       "provider_updated_at": "2026-07-29T18:59:08.564692438Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "tests/spec104_mismatch_semantic_static_test.py"
+      ],
       "task_plan_ref": "execution-phase:6",
       "title": "P3: DOC-03 \u2014 Mismatch semantic test extension"
     },
@@ -504,10 +521,12 @@
         "closed_at": "2026-07-01T06:29:12.440880734Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "ambiguous_duplicate_closure",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:c99a155c38ee46532e9b04d14f6a0bb467aacaf8"
+      ],
       "ordered_task_key": [
         "focusa",
         "84px",
@@ -518,7 +537,9 @@
       "provider_record_digest": "sha256:99f6b8b2ebf349892fe26e5cb2d6b06b9a7dbe7d74ffe887a34a15cd2d9b5f27",
       "provider_state": "closed",
       "provider_updated_at": "2026-07-29T18:59:08.590356370Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "tests/spec104_tool_contract_static_audit.py"
+      ],
       "task_plan_ref": "execution-phase:6",
       "title": "P3: DOC-04 \u2014 Tool contract schema audit"
     },
@@ -613,9 +634,9 @@
       "closure_receipt": {
         "close_reason": "Duplicate of 84px.1-18 (closed as dup)",
         "closed_at": "2026-07-01T06:29:13.085570488Z",
-        "exact_duplicate_of": null
+        "exact_duplicate_of": "focusa-84px.12"
       },
-      "evidence_state": "ambiguous_duplicate_closure",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -640,9 +661,9 @@
       "closure_receipt": {
         "close_reason": "Duplicate of 84px.1-18 (closed as dup)",
         "closed_at": "2026-07-01T06:29:13.277238256Z",
-        "exact_duplicate_of": null
+        "exact_duplicate_of": "focusa-84px.13"
       },
-      "evidence_state": "ambiguous_duplicate_closure",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -667,9 +688,9 @@
       "closure_receipt": {
         "close_reason": "Duplicate of 84px.1-18 (closed as dup)",
         "closed_at": "2026-07-01T06:29:13.468951154Z",
-        "exact_duplicate_of": null
+        "exact_duplicate_of": "focusa-84px.14"
       },
-      "evidence_state": "ambiguous_duplicate_closure",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -694,9 +715,9 @@
       "closure_receipt": {
         "close_reason": "Duplicate of 84px.1-18 (closed as dup)",
         "closed_at": "2026-07-01T06:29:13.707375196Z",
-        "exact_duplicate_of": null
+        "exact_duplicate_of": "focusa-84px.15"
       },
-      "evidence_state": "ambiguous_duplicate_closure",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -721,9 +742,9 @@
       "closure_receipt": {
         "close_reason": "Duplicate of 84px.1-18 (closed as dup)",
         "closed_at": "2026-07-01T06:29:13.874059657Z",
-        "exact_duplicate_of": null
+        "exact_duplicate_of": "focusa-84px.16"
       },
-      "evidence_state": "ambiguous_duplicate_closure",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -748,9 +769,9 @@
       "closure_receipt": {
         "close_reason": "Duplicate of 84px.1-18 (closed as dup)",
         "closed_at": "2026-07-01T06:29:14.064991355Z",
-        "exact_duplicate_of": null
+        "exact_duplicate_of": "focusa-84px.17"
       },
-      "evidence_state": "ambiguous_duplicate_closure",
+      "evidence_state": "exact_duplicate_receipt",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -1047,6 +1068,67 @@
     },
     {
       "active_blocker_refs": [],
+      "aggregate_evidence_member_refs": [
+        "bead:focusa-n68k.1",
+        "bead:focusa-n68k.2",
+        "bead:focusa-n68k.5",
+        "bead:focusa-n68k.7",
+        "bead:focusa-n68k.9",
+        "bead:focusa-n68k.10",
+        "bead:focusa-n68k.11",
+        "bead:focusa-n68k.12",
+        "bead:focusa-n68k.13",
+        "bead:focusa-n68k.14",
+        "bead:focusa-n68k.15",
+        "bead:focusa-n68k.16",
+        "bead:focusa-n68k.17",
+        "bead:focusa-n68k.18",
+        "bead:focusa-n68k.19",
+        "bead:focusa-n68k.20",
+        "bead:focusa-n68k.21",
+        "bead:focusa-n68k.22",
+        "bead:focusa-n68k.23",
+        "bead:focusa-n68k.24",
+        "bead:focusa-n68k.25",
+        "bead:focusa-n68k.26",
+        "bead:focusa-n68k.27",
+        "bead:focusa-n68k.28",
+        "bead:focusa-n68k.29",
+        "bead:focusa-n68k.30",
+        "bead:focusa-n68k.31",
+        "bead:focusa-n68k.32",
+        "bead:focusa-n68k.33",
+        "bead:focusa-n68k.34",
+        "bead:focusa-n68k.35",
+        "bead:focusa-n68k.36",
+        "bead:focusa-n68k.37",
+        "bead:focusa-n68k.38",
+        "bead:focusa-n68k.39",
+        "bead:focusa-n68k.40",
+        "bead:focusa-n68k.41",
+        "bead:focusa-n68k.42",
+        "bead:focusa-n68k.43",
+        "bead:focusa-n68k.44",
+        "bead:focusa-n68k.45",
+        "bead:focusa-n68k.46",
+        "bead:focusa-n68k.47",
+        "bead:focusa-n68k.48",
+        "bead:focusa-n68k.49",
+        "bead:focusa-n68k.50",
+        "bead:focusa-n68k.51",
+        "bead:focusa-n68k.52",
+        "bead:focusa-n68k.53",
+        "bead:focusa-n68k.54",
+        "bead:focusa-n68k.55",
+        "bead:focusa-n68k.56",
+        "bead:focusa-n68k.57",
+        "bead:focusa-n68k.58",
+        "bead:focusa-n68k.59",
+        "bead:focusa-n68k.60",
+        "bead:focusa-n68k.61",
+        "bead:focusa-n68k.62",
+        "bead:focusa-n68k.63"
+      ],
       "authority": "immutable_workset_r7",
       "bead_id": "focusa-n68k",
       "closure_receipt": {
@@ -1054,7 +1136,7 @@
         "closed_at": "2026-07-29T04:44:11.503539671Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "aggregate_child_evidence",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -2708,6 +2790,62 @@
     },
     {
       "active_blocker_refs": [],
+      "aggregate_evidence_member_refs": [
+        "bead:focusa-nodn.1",
+        "bead:focusa-nodn.2",
+        "bead:focusa-nodn.3",
+        "bead:focusa-nodn.4",
+        "bead:focusa-nodn.5",
+        "bead:focusa-nodn.6",
+        "bead:focusa-nodn.7",
+        "bead:focusa-nodn.8",
+        "bead:focusa-nodn.9",
+        "bead:focusa-nodn.10",
+        "bead:focusa-nodn.11",
+        "bead:focusa-nodn.12",
+        "bead:focusa-nodn.13",
+        "bead:focusa-nodn.14",
+        "bead:focusa-nodn.15",
+        "bead:focusa-nodn.16",
+        "bead:focusa-nodn.17",
+        "bead:focusa-nodn.18",
+        "bead:focusa-nodn.19",
+        "bead:focusa-nodn.20",
+        "bead:focusa-nodn.21",
+        "bead:focusa-nodn.22",
+        "bead:focusa-nodn.23",
+        "bead:focusa-nodn.24",
+        "bead:focusa-nodn.25",
+        "bead:focusa-nodn.26",
+        "bead:focusa-nodn.27",
+        "bead:focusa-nodn.28",
+        "bead:focusa-nodn.29",
+        "bead:focusa-nodn.30",
+        "bead:focusa-nodn.31",
+        "bead:focusa-nodn.32",
+        "bead:focusa-nodn.33",
+        "bead:focusa-nodn.34",
+        "bead:focusa-nodn.35",
+        "bead:focusa-nodn.36",
+        "bead:focusa-nodn.37",
+        "bead:focusa-nodn.38",
+        "bead:focusa-nodn.39",
+        "bead:focusa-nodn.40",
+        "bead:focusa-nodn.41",
+        "bead:focusa-nodn.42",
+        "bead:focusa-nodn.43",
+        "bead:focusa-nodn.44",
+        "bead:focusa-nodn.45",
+        "bead:focusa-nodn.46",
+        "bead:focusa-nodn.47",
+        "bead:focusa-nodn.48",
+        "bead:focusa-nodn.49",
+        "bead:focusa-nodn.50",
+        "bead:focusa-nodn.51",
+        "bead:focusa-nodn.52",
+        "bead:focusa-nodn.53",
+        "bead:focusa-nodn.54"
+      ],
       "authority": "immutable_workset_r7",
       "bead_id": "focusa-nodn",
       "closure_receipt": {
@@ -2715,7 +2853,7 @@
         "closed_at": "2026-07-29T04:44:12.328453080Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "aggregate_child_evidence",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -4271,10 +4409,12 @@
         "closed_at": "2026-07-29T04:51:44.416705772Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:36615bbed7b6af8d368c6502b83cbc5baf821e01"
+      ],
       "ordered_task_key": [
         "focusa",
         "pskm"
@@ -4284,7 +4424,10 @@
       "provider_record_digest": "sha256:9d6a24862e9ef04fe3b2a5765e28041c127ec4fd87f8a412f843486deed71acd",
       "provider_state": "closed",
       "provider_updated_at": "2026-07-29T18:59:11.701788192Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "tests/spec114_observatory_ui_static_test.py",
+        "tests/spec114_public_benchmark_flywheel_static_test.sh"
+      ],
       "task_plan_ref": "execution-phase:6",
       "title": "GATE Wave 5: Complete Spec 114 bench.focusa.dev observatory UI"
     },
@@ -4813,6 +4956,12 @@
       "active_blocker_refs": [
         "focusa-vbcqu.2"
       ],
+      "aggregate_evidence_member_refs": [
+        "bead:focusa-vbcqu.3.1",
+        "bead:focusa-vbcqu.3.2",
+        "bead:focusa-vbcqu.3.3",
+        "bead:focusa-vbcqu.3.4"
+      ],
       "authority": "immutable_workset_r7",
       "bead_id": "focusa-vbcqu.3",
       "closure_receipt": {
@@ -4820,7 +4969,7 @@
         "closed_at": "2026-07-31T07:04:39.978543553Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "aggregate_child_evidence",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -4971,6 +5120,12 @@
     },
     {
       "active_blocker_refs": [],
+      "aggregate_evidence_member_refs": [
+        "bead:focusa-vbcqu.4.1",
+        "bead:focusa-vbcqu.4.2",
+        "bead:focusa-vbcqu.4.3",
+        "bead:focusa-vbcqu.4.4"
+      ],
       "authority": "immutable_workset_r7",
       "bead_id": "focusa-vbcqu.4",
       "closure_receipt": {
@@ -4978,7 +5133,7 @@
         "closed_at": "2026-07-31T14:22:18.936021645Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "aggregate_child_evidence",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -5132,6 +5287,15 @@
     },
     {
       "active_blocker_refs": [],
+      "aggregate_evidence_member_refs": [
+        "bead:focusa-vbcqu.5.1",
+        "bead:focusa-vbcqu.5.2",
+        "bead:focusa-vbcqu.5.3",
+        "bead:focusa-vbcqu.5.4",
+        "bead:focusa-vbcqu.5.5",
+        "bead:focusa-vbcqu.5.6",
+        "bead:focusa-vbcqu.5.7"
+      ],
       "authority": "immutable_workset_r7",
       "bead_id": "focusa-vbcqu.5",
       "closure_receipt": {
@@ -5139,7 +5303,7 @@
         "closed_at": "2026-07-31T14:22:19.474002591Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "aggregate_child_evidence",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -5385,6 +5549,17 @@
     },
     {
       "active_blocker_refs": [],
+      "aggregate_evidence_member_refs": [
+        "bead:focusa-vbcqu.6.1",
+        "bead:focusa-vbcqu.6.1.1",
+        "bead:focusa-vbcqu.6.1.2",
+        "bead:focusa-vbcqu.6.1.3",
+        "bead:focusa-vbcqu.6.1.4",
+        "bead:focusa-vbcqu.6.2",
+        "bead:focusa-vbcqu.6.2.1",
+        "bead:focusa-vbcqu.6.2.1.1",
+        "bead:focusa-vbcqu.6.3"
+      ],
       "authority": "immutable_workset_r7",
       "bead_id": "focusa-vbcqu.6",
       "closure_receipt": {
@@ -5392,7 +5567,7 @@
         "closed_at": "2026-07-31T14:22:20.023930329Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "aggregate_child_evidence",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -5695,6 +5870,13 @@
     },
     {
       "active_blocker_refs": [],
+      "aggregate_evidence_member_refs": [
+        "bead:focusa-vbcqu.7.1",
+        "bead:focusa-vbcqu.7.2",
+        "bead:focusa-vbcqu.7.3",
+        "bead:focusa-vbcqu.7.4",
+        "bead:focusa-vbcqu.7.5"
+      ],
       "authority": "immutable_workset_r7",
       "bead_id": "focusa-vbcqu.7",
       "closure_receipt": {
@@ -5702,7 +5884,7 @@
         "closed_at": "2026-07-31T16:04:05.266931461Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "aggregate_child_evidence",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -6378,7 +6560,7 @@
         "closed_at": "2026-08-02T05:36:12.161482163Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -6394,7 +6576,9 @@
       "provider_record_digest": "sha256:9025a2097b965d5e4c596d638ef97f0c0d52c7d60ad9cb11aaeec9ec63d5c92e",
       "provider_state": "closed",
       "provider_updated_at": "2026-08-02T05:36:12.161619580Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/v0.9.135/54-temporal-authority-proof.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "title": "Spec137 foundation: source ledger, temporal substrate, civil time, trust"
     },
@@ -6407,7 +6591,7 @@
         "closed_at": "2026-08-02T05:38:46.598654986Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [],
@@ -6423,7 +6607,9 @@
       "provider_record_digest": "sha256:f5fc3e93d6f71332559cd36034e8c5d1766a1122b414640720a34c9715fb25f3",
       "provider_state": "closed",
       "provider_updated_at": "2026-08-02T05:38:46.598772088Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/v0.9.135/54-temporal-authority-proof.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "title": "Spec137 authority: deadlines, estimates, progress, anti-waste, urgency"
     },
@@ -7982,10 +8168,12 @@
         "closed_at": "2026-07-29T04:43:04.202340068Z",
         "exact_duplicate_of": null
       },
-      "evidence_state": "closed_without_proof",
+      "evidence_state": "evidence_linked",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:36615bbed7b6af8d368c6502b83cbc5baf821e01"
+      ],
       "ordered_task_key": [
         "focusa",
         "vfsrg"
@@ -7995,7 +8183,9 @@
       "provider_record_digest": "sha256:55988156ac89dff55f48175f1eed1a1dae6d620f52e86dced72c9a2126f3f717",
       "provider_state": "closed",
       "provider_updated_at": "2026-07-29T18:59:11.738488890Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "runtime_or_acceptance_evidence_refs": [
+        "apps/pi-extension/tests/pi-sdk-security.test.mjs"
+      ],
       "task_plan_ref": "execution-phase:6",
       "title": "Replace vulnerable legacy Pi SDK after event/API compatibility migration"
     },
@@ -8350,10 +8540,10 @@
     "in_progress": 49,
     "open": 28
   },
-  "reconciliation_digest": "sha256:453f921557addd3bdc62b306563652fb5ebc969cad8ea4a8c3b6df1e736abfca",
+  "reconciliation_digest": "sha256:b675ff2e8b11168f507c50ab5564e2bb3a9b90e98396254f3c40b72284cdd813",
   "repair_overlay_mapping_count": 14,
   "schema": "focusa.locked_release_governance_reconciliation.v1",
   "status": "blocked",
-  "unresolved_gap_count": 104,
+  "unresolved_gap_count": 80,
   "workset_id": "workset:focusa-next-locked-release:r7"
 }

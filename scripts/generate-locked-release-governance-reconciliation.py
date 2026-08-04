@@ -185,8 +185,11 @@ def build(provider_path: Path) -> dict:
                 candidate_code
                 and candidate_code.group(1).upper() == code
                 and candidate.get("status") == "closed"
-                and not re.search(
-                    r"(?i)\bduplicate\b", candidate.get("close_reason") or ""
+                and (
+                    not re.search(
+                        r"(?i)\bduplicate\b", candidate.get("close_reason") or ""
+                    )
+                    or direct_proof.get(candidate_id, False)
                 )
             ):
                 candidates.append(candidate_id)
@@ -239,6 +242,8 @@ def build(provider_path: Path) -> dict:
         status = provider.get("status", "unknown")
         if status != "closed":
             evidence_state = "pending_technical_acceptance"
+        elif duplicate_claim and not exact_duplicate_valid and has_proof:
+            evidence_state = "evidence_linked"
         elif duplicate_claim and not exact_duplicate_valid:
             evidence_state = "ambiguous_duplicate_closure"
         elif exact_duplicate_valid and duplicate_target_proven:
@@ -293,6 +298,33 @@ def build(provider_path: Path) -> dict:
                 "evidence_state": evidence_state,
             }
         )
+
+    # A closed parent may inherit proof only when every admitted descendant is
+    # independently evidenced. Process deepest parents first so aggregation is
+    # deterministic and cannot hide a pending or ambiguous child.
+    resolved_states = {
+        "evidence_linked",
+        "exact_duplicate_receipt",
+        "aggregate_child_evidence",
+    }
+    for row in sorted(
+        mappings, key=lambda value: value["bead_id"].count("."), reverse=True
+    ):
+        if row["evidence_state"] != "closed_without_proof":
+            continue
+        prefix = row["bead_id"] + "."
+        descendants = [
+            candidate
+            for candidate in mappings
+            if candidate["bead_id"].startswith(prefix)
+        ]
+        if descendants and all(
+            candidate["evidence_state"] in resolved_states for candidate in descendants
+        ):
+            row["evidence_state"] = "aggregate_child_evidence"
+            row["aggregate_evidence_member_refs"] = [
+                f"bead:{candidate['bead_id']}" for candidate in descendants
+            ]
 
     state_counts = Counter(row["provider_state"] for row in mappings)
     evidence_counts = Counter(row["evidence_state"] for row in mappings)
