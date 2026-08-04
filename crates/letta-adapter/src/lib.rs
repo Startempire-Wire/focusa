@@ -1,4 +1,3 @@
-pub mod arbitration;
 pub mod checkpoint;
 pub mod http;
 pub mod journal;
