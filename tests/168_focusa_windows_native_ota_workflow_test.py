@@ -54,6 +54,9 @@ assert '("windows", "x86_64") => "x86_64-pc-windows-msvc"' in updater
 assert '("windows", "aarch64") => "aarch64-pc-windows-msvc"' in updater
 assert 'triple.ends_with("-pc-windows-msvc")' in updater
 assert "release_binary_asset_names_cover_native_windows_targets_once" in updater
+assert "exact_release_version_normalizes_to_tag_endpoint_identity" in updater
+assert "releases/tags/{tag}" in updater
+assert workflow.count("'--latest-version', 'v0.9.117-dev'") == 3
 assert workflow.count("runner: windows-11-arm") >= 2
 assert workflow.count("native runner architecture mismatch") >= 2
 assert "Windows release build (${{ matrix.target }})" in workflow

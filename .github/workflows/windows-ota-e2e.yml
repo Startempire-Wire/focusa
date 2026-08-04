@@ -256,7 +256,7 @@ jobs:
 
           $plan = $null
           for ($attempt = 1; $attempt -le 3; $attempt++) {
-            $plan = Invoke-FocusaJson -FilePath $scratch -Arguments @('--json', 'update', 'plan', '--daemon-health-url', 'http://127.0.0.1:18791/v1/health') -Name "plan-$attempt"
+            $plan = Invoke-FocusaJson -FilePath $scratch -Arguments @('--json', 'update', 'plan', '--latest-version', 'v0.9.117-dev', '--daemon-health-url', 'http://127.0.0.1:18791/v1/health') -Name "plan-$attempt"
             $plan | ConvertTo-Json -Depth 8
             if ($plan.apply_blocked_until.Count -eq 0 -and $plan.latest.trust.deploy_proof_verified) { break }
             if ($attempt -lt 3) { Start-Sleep -Seconds 5 }
@@ -264,7 +264,7 @@ jobs:
           if ($plan.apply_blocked_until.Count -ne 0 -or -not $plan.latest.trust.deploy_proof_verified) {
             throw "trusted plan blocked after 3 attempts: $($plan.apply_blocked_until -join ',')"
           }
-          $apply = Invoke-FocusaJson -FilePath $scratch -Arguments @('--json', 'update', 'apply', '--daemon-health-url', 'http://127.0.0.1:18791/v1/health', '--dry-run=false', '--yes', '--allow-apply') -Name 'apply'
+          $apply = Invoke-FocusaJson -FilePath $scratch -Arguments @('--json', 'update', 'apply', '--latest-version', 'v0.9.117-dev', '--daemon-health-url', 'http://127.0.0.1:18791/v1/health', '--dry-run=false', '--yes', '--allow-apply') -Name 'apply'
           $apply | ConvertTo-Json -Depth 8
           if (-not $apply.apply_executed) { throw "OTA apply not executed: $($apply.blocked_reason -join ',')" }
           $cliVersion = & $cli --version
@@ -286,7 +286,7 @@ jobs:
           $health = Invoke-RestMethod 'http://127.0.0.1:18791/v1/health'
           if ($health.version -ne '0.9.116-dev') { throw 'rollback health mismatch' }
 
-          $reapply = Invoke-FocusaJson -FilePath $scratch -Arguments @('--json', 'update', 'apply', '--daemon-health-url', 'http://127.0.0.1:18791/v1/health', '--dry-run=false', '--yes', '--allow-apply') -Name 'reapply'
+          $reapply = Invoke-FocusaJson -FilePath $scratch -Arguments @('--json', 'update', 'apply', '--latest-version', 'v0.9.117-dev', '--daemon-health-url', 'http://127.0.0.1:18791/v1/health', '--dry-run=false', '--yes', '--allow-apply') -Name 'reapply'
           $reapply | ConvertTo-Json -Depth 8
           if (-not $reapply.apply_executed) { throw 'reapply not executed' }
           if ((& $cli --version) -notmatch '0.9.117-dev') { throw 'reapply CLI mismatch' }

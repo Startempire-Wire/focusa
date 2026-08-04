@@ -2604,24 +2604,41 @@ async fn resolve_latest_github(
 ) -> anyhow::Result<LatestVersion> {
     let repo = github_repo();
     let triple = target_triple();
-    let url = format!("https://api.github.com/repos/{repo}/releases?per_page=20");
     let client = reqwest::Client::new();
-    let mut request = client
-        .get(&url)
-        .header("User-Agent", "focusa-update-resolver");
-    if let Some(token) = std::env::var("GITHUB_TOKEN")
+    let token = std::env::var("GITHUB_TOKEN")
         .ok()
         .or_else(|| std::env::var("GH_TOKEN").ok())
-        .filter(|value| !value.trim().is_empty())
-    {
-        request = request.bearer_auth(token);
-    }
-    let releases = request
-        .send()
-        .await?
-        .error_for_status()?
-        .json::<Vec<GithubRelease>>()
-        .await?;
+        .filter(|value| !value.trim().is_empty());
+    let request = |url: String| {
+        let request = client
+            .get(url)
+            .header("User-Agent", "focusa-update-resolver");
+        if let Some(token) = token.as_deref() {
+            request.bearer_auth(token)
+        } else {
+            request
+        }
+    };
+    let releases = if let Some(pinned) = pinned_version {
+        let tag = release_tag_for_version(pinned);
+        let url = format!("https://api.github.com/repos/{repo}/releases/tags/{tag}");
+        vec![
+            request(url)
+                .send()
+                .await?
+                .error_for_status()?
+                .json::<GithubRelease>()
+                .await?,
+        ]
+    } else {
+        let url = format!("https://api.github.com/repos/{repo}/releases?per_page=20");
+        request(url)
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<Vec<GithubRelease>>()
+            .await?
+    };
     for release in releases {
         let normalized_tag = normalize_version(&release.tag_name);
         if release.draft
@@ -2636,6 +2653,11 @@ async fn resolve_latest_github(
         }
     }
     anyhow::bail!("no complete release found for channel={channel} target={triple}")
+}
+
+fn release_tag_for_version(version: &str) -> String {
+    let normalized = normalize_version(version);
+    format!("v{normalized}")
 }
 
 fn release_binary_asset_name(prefix: &str, tag: &str, triple: &str) -> String {
@@ -3652,7 +3674,8 @@ mod tests {
     use super::{
         DaemonRestoreAction, PromotedPart, daemon_restore_action, inspect_package_part,
         normalize_version, path_is_git_managed, pi_extension_package_from_agent_dir,
-        pi_extension_package_from_settings, release_binary_asset_name, rollback_promoted_parts,
+        pi_extension_package_from_settings, release_binary_asset_name, release_tag_for_version,
+        rollback_promoted_parts,
     };
     #[cfg(target_os = "macos")]
     use super::{restart_daemon_service, stop_daemon_service};
@@ -3662,6 +3685,12 @@ mod tests {
         assert_eq!(normalize_version("focusa 0.9.74-dev"), "0.9.74-dev");
         assert_eq!(normalize_version("v0.9.80-dev"), "0.9.80-dev");
         assert_eq!(normalize_version("0.9.80-dev"), "0.9.80-dev");
+    }
+
+    #[test]
+    fn exact_release_version_normalizes_to_tag_endpoint_identity() {
+        assert_eq!(release_tag_for_version("0.9.117-dev"), "v0.9.117-dev");
+        assert_eq!(release_tag_for_version("v0.9.117-dev"), "v0.9.117-dev");
     }
 
     #[test]
