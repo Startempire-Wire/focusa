@@ -69,9 +69,16 @@ def classify_refs(evidence_links: dict[str, Any]) -> dict[str, list[str]]:
     refs = sorted(
         {ref for row in evidence_links["links"] for ref in row.get("evidence_refs", [])}
     )
+    local_ref_digests = [
+        {"path": ref, "digest": file_digest(ROOT / ref)}
+        for ref in refs
+        if (ROOT / ref).is_file()
+        and (ROOT / ref) not in {DEFAULT_RECEIPT, DEFAULT_SIGNATURE}
+    ]
     return {
         "artifact_refs": [ref for ref in refs if ref.startswith("release-proof/")],
         "test_refs": [ref for ref in refs if ref.startswith("tests/")],
+        "referenced_file_digests": local_ref_digests,
         "documentation_and_evidence_refs": [
             ref
             for ref in refs

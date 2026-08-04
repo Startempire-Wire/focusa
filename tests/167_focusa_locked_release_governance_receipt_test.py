@@ -16,10 +16,12 @@ SCRIPT = ROOT / "scripts" / "generate-locked-release-governance-receipt.py"
 RECEIPT = AUDIT / "next-locked-release-governance-receipt.json"
 SIGNATURE = AUDIT / "next-locked-release-governance-receipt.json.sig"
 GATE = AUDIT / "next-locked-release-technical-closure-gate.json"
+GITHUB106_PROOF = AUDIT / "next-locked-release-github106-closure-proof.json"
 
 subprocess.run(["python3", str(SCRIPT), "--verify"], cwd=ROOT, check=True)
 receipt = json.loads(RECEIPT.read_text())
 gate = json.loads(GATE.read_text())
+github106 = json.loads(GITHUB106_PROOF.read_text())
 payload = receipt["payload"]
 seal = receipt["seal"]
 closure = payload["closure_set"]
@@ -48,6 +50,16 @@ assert "focusa-vbcqu.14" in linkage["github_issue_to_admitted_beads"]["106"]
 assert linkage["artifact_refs"]
 assert linkage["test_refs"]
 assert linkage["implementation_commit_refs"]
+assert any(
+    row["path"]
+    == "release-proof/audit/next-locked-release-github106-closure-proof.json"
+    and row["digest"].startswith("sha256:")
+    for row in linkage["referenced_file_digests"]
+)
+assert github106["issue"]["number"] == 106
+assert github106["issue"]["state"] == "CLOSED"
+assert github106["issue"]["state_reason"] == "COMPLETED"
+assert github106["mutation_policy"]["rewrite_v0.9.143"] is False
 assert payload["release_proof"]["immutable_tag"] == "v0.9.143"
 assert payload["release_proof"]["release_ready"] is False
 assert payload["mutation_policy"]["rewrite_v0.9.143"] is False

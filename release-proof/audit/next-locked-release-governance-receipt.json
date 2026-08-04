@@ -4,9 +4,9 @@
       "immutable_inventory_digest": "sha256:9dad314492bc798205d7a64b89fc46e4bc8239b3394f1c4898b474720f1cb686",
       "immutable_mapping_count": 275,
       "mapping_count": 289,
-      "reconciliation_digest": "sha256:5d878807839ab6ba9abcaac4ac8f37070ff2bc6033437a3f664a4d252350c4fa",
+      "reconciliation_digest": "sha256:25c5b8f2439674e0f1d1b46f73c64604f99a85ebaca6e11138c19bce662ef054",
       "repair_overlay_mapping_count": 14,
-      "technical_gate_digest": "sha256:96723ce703ff631718608e03924ef80a14d199699b4336d09aeb0403de7176ff"
+      "technical_gate_digest": "sha256:55d2909f5523ea3881f0e6b78d2f439f288b0654870d2930597c3d3b6ccae6b8"
     },
     "closure_set": {
       "admitted_bead_ids": [
@@ -809,19 +809,19 @@
         "path": "release-proof/audit/next-locked-release-governance-inventory.json"
       },
       {
-        "digest": "sha256:6bcfa898876e8638ee907c30094e011196b804ffc7fc81f20bb59cdd0842dc62",
+        "digest": "sha256:e3a9452dcc1385ad81b91008dd54236d54fc5c29b7d9ef7db57d257d4c59b60d",
         "path": "release-proof/audit/next-locked-release-governance-reconciliation.json"
       },
       {
-        "digest": "sha256:0c2be609f37042431350818fca1515fd75fadeccfda1da4fafbb909411b43e10",
+        "digest": "sha256:07b43caa73fd2559ea810679714eddd3c4c0883808acc5209e884fbe5377f795",
         "path": "release-proof/audit/next-locked-release-governance-evidence-links.json"
       },
       {
-        "digest": "sha256:93901d0f01f6c18010cdbcd7b2eb0aea7a737e0b1bd22a171a31bc1ed3813e07",
+        "digest": "sha256:59d7d0bd8c59cf3491d9afe358906a2e139c41e329686767b3a8089ffb77402d",
         "path": "release-proof/audit/next-locked-release-technical-closure-gate.json"
       },
       {
-        "digest": "sha256:d246ec4ac89c2809a5aa369f053aa5ccf18dcc202d5df9f94de29573f558d6f0",
+        "digest": "sha256:992738a27f77a0e209af15a44b764aa7e88f4a6d7877005b35046b7ab8229a9f",
         "path": "release-proof/audit/next-locked-release-candidate-ancestry.json"
       },
       {
@@ -829,10 +829,11 @@
         "path": "release-proof/audit/next-locked-release-v09143-published-assets.json"
       }
     ],
-    "input_artifacts_digest": "sha256:ce0f385a203d6685763b6c9463422bee4230868e6d86bd06692e2c7ff0b59713",
+    "input_artifacts_digest": "sha256:b90ae9471f7f4c4fc91dc932ba32f31de904e825569dad25cd39c557f7ce98bc",
     "linkage": {
       "artifact_refs": [
         "release-proof/audit/next-locked-release-candidate-ancestry.json",
+        "release-proof/audit/next-locked-release-github106-closure-proof.json",
         "release-proof/audit/next-locked-release-github59-settlement-proof.json",
         "release-proof/audit/next-locked-release-governance-inventory.json",
         "release-proof/audit/next-locked-release-governance-receipt.json",
@@ -946,6 +947,156 @@
         "git:d418039d3657eff0c690d1b2497a1f253d8ecf09",
         "git:ee569eb1e65eb8baada1000429a7400d46addb41"
       ],
+      "referenced_file_digests": [
+        {
+          "digest": "sha256:5ec20fcd0ca15b29da9eb32ad6364a051428072bb81688f16d67ed0cf44c5396",
+          "path": "apps/pi-extension/tests/pi-sdk-security.test.mjs"
+        },
+        {
+          "digest": "sha256:4ee8849627a36d77dbce531377e79db3ffaf29b5a00044e742e202a4b06898ad",
+          "path": "docs/133-silent-sessions-final-release-proof.md"
+        },
+        {
+          "digest": "sha256:779ffc485b6d82f7615d60d60af3fdd2d8aed57c258ade8667d4130a36e62e64",
+          "path": "docs/142-focusa-release-requirement-trace-matrix.md"
+        },
+        {
+          "digest": "sha256:0a5f2a897c3e9c9af28e744768eb7fca23c91fefef3198bbf9f999a8768f2f4a",
+          "path": "docs/143-focusa-master-release-cycle-trajectory-genesis-flow-implementation-spec.md"
+        },
+        {
+          "digest": "sha256:4332f262ed486aceba1d0a3a99ce35d3a969602ef96982111778d19d1fd72889",
+          "path": "docs/evidence/release/141-legacy-gate-closure.json"
+        },
+        {
+          "digest": "sha256:4f1f6b4c29f812a28fc9368a18451f830ed9798a308560255e05ec086e219773",
+          "path": "docs/evidence/release/focusa-a6yq6-spec133-final-settlement.txt"
+        },
+        {
+          "digest": "sha256:aed4fdcc1377c2edc32e94d778f52a4c17edacb6566678884757451c537867d5",
+          "path": "docs/evidence/release/focusa-d189-final-candidate-acceptance.txt"
+        },
+        {
+          "digest": "sha256:2be79dd1b81b44430c053463e50d3e949dfe08feae36499a67525a283ed328e0",
+          "path": "docs/evidence/release/focusa-ux2qx.17-live-bootstrapper-parity.txt"
+        },
+        {
+          "digest": "sha256:33bc27567ad390ad72ef301015f325d3fb4b60f9558955009e7cbf90764a9eb0",
+          "path": "docs/evidence/release/focusa-vbcqu.5.7-macos-compaction-recovery.txt"
+        },
+        {
+          "digest": "sha256:aa4eac2c695a68587816f8eefdb8ef59bb38203f793559cff5f1d802de72ab2f",
+          "path": "docs/evidence/release/focusa-vbcqu.6.2-incident-settlement.txt"
+        },
+        {
+          "digest": "sha256:1b1d8f70262bb5905d8f95f17ae28ca72f85735883fd3366008d3026d412ad3c",
+          "path": "docs/evidence/release/focusa-vbcqu.8.1-exact-sha-integrated-acceptance.txt"
+        },
+        {
+          "digest": "sha256:c280f58415459f49e95ca69019793d866a1ef48c58e0e4e49d2ebcee80653dea",
+          "path": "docs/evidence/release/focusa-w26jj-platform-family-settlement.txt"
+        },
+        {
+          "digest": "sha256:74d5d1fc07ce115c2ba72c99c39b048f50a21ead62493f2e9b9e63ba43089e2f",
+          "path": "docs/evidence/scope-isolation/focusa-gkwt-cross-project-context-isolation.txt"
+        },
+        {
+          "digest": "sha256:aa82c990754579277446dfb66c3d0181d78e71324c30a63a5ec7b9a92910654c",
+          "path": "docs/evidence/spec133-phase0-traceability.md"
+        },
+        {
+          "digest": "sha256:b09a206742d825e2805f9cca00a1d5c3aacc2d3b4333de42e6a67acb1035f53a",
+          "path": "docs/evidence/v0.9.135/54-temporal-authority-proof.txt"
+        },
+        {
+          "digest": "sha256:992738a27f77a0e209af15a44b764aa7e88f4a6d7877005b35046b7ab8229a9f",
+          "path": "release-proof/audit/next-locked-release-candidate-ancestry.json"
+        },
+        {
+          "digest": "sha256:606add690cfa49dc0dd24b5efebfef3e03a7f246a2540f21dbafa8152465dcc6",
+          "path": "release-proof/audit/next-locked-release-github106-closure-proof.json"
+        },
+        {
+          "digest": "sha256:28bc962ea59af9ce012318def2ebbd721bf873f0ab1a67c374c8e8e0f1f11596",
+          "path": "release-proof/audit/next-locked-release-github59-settlement-proof.json"
+        },
+        {
+          "digest": "sha256:869bd097886333b9dcc4f4c5f218942cc43eed102c6c56f8ca9f4ed52132009e",
+          "path": "release-proof/audit/next-locked-release-governance-inventory.json"
+        },
+        {
+          "digest": "sha256:e3a9452dcc1385ad81b91008dd54236d54fc5c29b7d9ef7db57d257d4c59b60d",
+          "path": "release-proof/audit/next-locked-release-governance-reconciliation.json"
+        },
+        {
+          "digest": "sha256:eef6f977c66feacc4daf4ddaf6d97741087f2ac13a80fa06671fcbe52acf3c34",
+          "path": "release-proof/audit/next-locked-release-macos-ota-run-proof.json"
+        },
+        {
+          "digest": "sha256:2da6d632c0ee3e65d75d3ec50787f9ead16d6359b1b22b17cda979c67128c8b1",
+          "path": "release-proof/audit/next-locked-release-scope.json"
+        },
+        {
+          "digest": "sha256:59d7d0bd8c59cf3491d9afe358906a2e139c41e329686767b3a8089ffb77402d",
+          "path": "release-proof/audit/next-locked-release-technical-closure-gate.json"
+        },
+        {
+          "digest": "sha256:238bded7784cadab402fd530bb21d7708c953b41b8f4529c793147a09e1ac113",
+          "path": "release-proof/audit/next-locked-release-v09143-published-assets.json"
+        },
+        {
+          "digest": "sha256:ee9b0c5620a0fb2eb4fa41c42f0e5318b528ea14bfd4d8ca317c834c5bf46fa3",
+          "path": "tests/163_focusa_locked_release_governance_inventory_test.py"
+        },
+        {
+          "digest": "sha256:784cdc883d7b7c1f4e3ed3c8c218ec371fd980a51fce414826b5e1f12f975509",
+          "path": "tests/164_focusa_locked_release_governance_reconciliation_test.py"
+        },
+        {
+          "digest": "sha256:85f77a3f98883c20b8765d041f905932a588b543f556793505d560caf66f4f21",
+          "path": "tests/165_focusa_locked_release_technical_closure_reducer_test.py"
+        },
+        {
+          "digest": "sha256:cd543ddd5bdf46daaff87506b06944db06fa8c4fff06d409ec2209432518343c",
+          "path": "tests/166_focusa_locked_release_candidate_ancestry_test.py"
+        },
+        {
+          "digest": "sha256:334f2821b9d4324d71e8fbec295478959aa0b34986e65ed0224119fab10061b0",
+          "path": "tests/167_focusa_locked_release_governance_receipt_test.py"
+        },
+        {
+          "digest": "sha256:7bee5871e5e3b1fdc27e0034ab46adc58e58598b75f5e95d6dfe112134692ec1",
+          "path": "tests/spec104_bench_run_scope_static_test.py"
+        },
+        {
+          "digest": "sha256:7d54ba4a055b7496373c97bf45bd00b8a64137156358ce26e4679dc63eb8a78a",
+          "path": "tests/spec104_hard_singleton_audit_static_test.py"
+        },
+        {
+          "digest": "sha256:e223d38aca01598d95dfe26f3ba181aeca48c712a17003210fdf0cb628743850",
+          "path": "tests/spec104_mismatch_semantic_static_test.py"
+        },
+        {
+          "digest": "sha256:cd184ce10536c0ecfa48b8ff0a56cac9a876c2f38ed820316539a6266230ed71",
+          "path": "tests/spec104_proof_lineage_static_test.py"
+        },
+        {
+          "digest": "sha256:231b46dbf87e4d1cf9b9da166d12590b5a5ec8e15ae84c93dbf795d496550078",
+          "path": "tests/spec104_session_identity_envelope_static_test.py"
+        },
+        {
+          "digest": "sha256:01c5edc7a8d2b48bda09f318075fb507a6d9bd5daf7a56b17610e83caf84cf4a",
+          "path": "tests/spec104_tool_contract_static_audit.py"
+        },
+        {
+          "digest": "sha256:6eb589ee85e5efa0f101d5db2d3c24bdb5735c012d5d5af441500d4564f4568d",
+          "path": "tests/spec114_observatory_ui_static_test.py"
+        },
+        {
+          "digest": "sha256:ae6605bbf3aa1ea64d93e233a33707422a5acccc4ecd8ddafad5edaffb5544cf",
+          "path": "tests/spec114_public_benchmark_flywheel_static_test.sh"
+        }
+      ],
       "test_refs": [
         "tests/163_focusa_locked_release_governance_inventory_test.py",
         "tests/164_focusa_locked_release_governance_reconciliation_test.py",
@@ -962,7 +1113,7 @@
         "tests/spec114_public_benchmark_flywheel_static_test.sh"
       ]
     },
-    "linkage_digest": "sha256:d59cad72ce5273621669f0d5f8f0241bb70eb55d577ea93f3d21f1c745437e37",
+    "linkage_digest": "sha256:ee3fc313172a869e9132ec782a849a52ac6f1a8ecde2857e11aa32f0554d6b7d",
     "mutation_policy": {
       "canonical_replay_required": true,
       "detached_signature_required": true,
@@ -970,9 +1121,9 @@
       "provider_status_is_not_technical_proof": true,
       "rewrite_v0.9.143": false
     },
-    "payload_digest": "sha256:41a8b1d9208247b07f866fb945cd56023b8acdde4cae1d4569c61fe006148b30",
+    "payload_digest": "sha256:6450d40c0a2c423c2a4802afea79170a1115f615d8165cdada6801466fdeb14c",
     "release_proof": {
-      "ancestry_digest": "sha256:955b0d164becbd855cd8246dc98a992057b6b87acde2a8e4e0d59ac421206346",
+      "ancestry_digest": "sha256:971f579ca1a88f11e495c1e8bfbddbc29b4d6db09260069f6d36928e2ae4f5d7",
       "candidate_source_commit": "616c98a701ece85714237fde8d560004bfcc1e8c",
       "immutable_tag": "v0.9.143",
       "immutable_tag_commit": "ac40a3a769b679e684f6592d075cabd24ab64fd5",
@@ -1008,8 +1159,8 @@
     "authority_boundary": "integrity and replay seal only; not release publication, entitlement, OTA, or production signing authority",
     "key_authority": "one_time_governance_integrity_seal",
     "private_key_persisted": false,
-    "public_key_base64": "b1GYRm+PurX/nEMO5qe4DlnS3CLQbKC4TGQbQdY8dfg=",
-    "public_key_fingerprint": "f9e3b073f691b4a6ff3aa11fd5abde0fedf96427d470133d53f79cd597bfcd3b",
+    "public_key_base64": "qEAto+S37McIk4G6x4/z30jECzjtblcq5v4Kq8dBBZA=",
+    "public_key_fingerprint": "f637db34cd16e7d526499030693b61c240d2b6da247dda57075e2cf69214a11e",
     "signed_encoding": "canonical-json-sorted-keys-compact-utf8"
   }
 }

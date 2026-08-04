@@ -1,6 +1,6 @@
 {
   "admitted_mapping_count": 289,
-  "evidence_links_digest": "sha256:0c2be609f37042431350818fca1515fd75fadeccfda1da4fafbb909411b43e10",
+  "evidence_links_digest": "sha256:07b43caa73fd2559ea810679714eddd3c4c0883808acc5209e884fbe5377f795",
   "evidence_state_counts": {
     "aggregate_child_evidence": 3,
     "evidence_linked": 116,
@@ -7795,6 +7795,7 @@
       "runtime_or_acceptance_evidence_refs": [
         "https://github.com/Startempire-Wire/focusa/issues/106",
         "release-proof/audit/next-locked-release-candidate-ancestry.json",
+        "release-proof/audit/next-locked-release-github106-closure-proof.json",
         "release-proof/audit/next-locked-release-governance-inventory.json",
         "release-proof/audit/next-locked-release-governance-receipt.json",
         "release-proof/audit/next-locked-release-governance-receipt.json.sig",
@@ -8548,7 +8549,7 @@
     "in_progress": 48,
     "open": 36
   },
-  "reconciliation_digest": "sha256:5d878807839ab6ba9abcaac4ac8f37070ff2bc6033437a3f664a4d252350c4fa",
+  "reconciliation_digest": "sha256:25c5b8f2439674e0f1d1b46f73c64604f99a85ebaca6e11138c19bce662ef054",
   "repair_overlay_mapping_count": 14,
   "schema": "focusa.locked_release_governance_reconciliation.v1",
   "status": "blocked",

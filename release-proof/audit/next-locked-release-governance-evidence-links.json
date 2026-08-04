@@ -473,6 +473,7 @@
     {
       "bead_id": "focusa-vbcqu.14",
       "evidence_refs": [
+        "release-proof/audit/next-locked-release-github106-closure-proof.json",
         "release-proof/audit/next-locked-release-governance-inventory.json",
         "release-proof/audit/next-locked-release-governance-reconciliation.json",
         "release-proof/audit/next-locked-release-technical-closure-gate.json",

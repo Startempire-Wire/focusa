@@ -44,6 +44,7 @@ TAG_CHAINS = {
 }
 ALLOWED_RECEIPT_PATHS = {
     "release-proof/audit/next-locked-release-candidate-ancestry.json",
+    "release-proof/audit/next-locked-release-github106-closure-proof.json",
     "release-proof/audit/next-locked-release-governance-evidence-links.json",
     "release-proof/audit/next-locked-release-governance-receipt.json",
     "release-proof/audit/next-locked-release-governance-receipt.json.sig",
