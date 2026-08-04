@@ -3,9 +3,9 @@
   "evidence_links_digest": "sha256:0c2be609f37042431350818fca1515fd75fadeccfda1da4fafbb909411b43e10",
   "evidence_state_counts": {
     "aggregate_child_evidence": 3,
-    "evidence_linked": 115,
+    "evidence_linked": 116,
     "exact_duplicate_receipt": 85,
-    "pending_technical_acceptance": 86
+    "pending_technical_acceptance": 85
   },
   "gaps": {
     "ambiguous_duplicate_closure_ids": [],
@@ -86,7 +86,6 @@
       "focusa-vbcqu.9.9.5",
       "focusa-vbcqu.9.9.6",
       "focusa-vbcqu.10",
-      "focusa-vbcqu.14",
       "focusa-vbcqu.19",
       "focusa-vbcqu.19.2",
       "focusa-vbcqu.19.3",
@@ -7765,8 +7764,12 @@
       "active_blocker_refs": [],
       "authority": "authorized_release_repair_overlay",
       "bead_id": "focusa-vbcqu.14",
-      "closure_receipt": null,
-      "evidence_state": "pending_technical_acceptance",
+      "closure_receipt": {
+        "close_reason": "Completed GH#106 governance chain: immutable inventory, issue/Bead/evidence reconciliation, fail-closed technical reducer, candidate/tag ancestry, and signed replay-safe receipt all pass. Proof binding git:7084a650; reducer allow receipt sha256:a88242b907d6240252ac0ae3df1a472e9df96a40743e1d445451a61eddc48cda. This closes governance only; release remains blocked on admitted REL19 and installed acceptance.",
+        "closed_at": "2026-08-04T21:06:23.267192679Z",
+        "exact_duplicate_of": null
+      },
+      "evidence_state": "evidence_linked",
       "frozen_projection": null,
       "github_issue_refs": [
         106
@@ -7774,6 +7777,7 @@
       "implementation_commit_refs": [
         "git:2d6603365325a63992bbe6a25fb276c87787ab23",
         "git:616c98a701ece85714237fde8d560004bfcc1e8c",
+        "git:7084a650",
         "git:843df64690efa6c3fdf6dc0482d363a9445b87c7",
         "git:c7521ebd22653298a5a11868516cf90835975f32",
         "git:d418039d3657eff0c690d1b2497a1f253d8ecf09"
@@ -7785,9 +7789,9 @@
       ],
       "parent_bead_id": "focusa-vbcqu",
       "projection_drift": false,
-      "provider_record_digest": "sha256:d4d2abdf19d7d9f39a2b6e86958091c2e5605051e3dc44941de3efbf48f27848",
-      "provider_state": "open",
-      "provider_updated_at": "2026-08-04T19:23:11.856786579Z",
+      "provider_record_digest": "sha256:7fc4b4bc5a80725cb7d3ac675dbf646b9b58d07d4bba09fe686a5dcd772277df",
+      "provider_state": "closed",
+      "provider_updated_at": "2026-08-04T21:06:23.267369992Z",
       "runtime_or_acceptance_evidence_refs": [
         "https://github.com/Startempire-Wire/focusa/issues/106",
         "release-proof/audit/next-locked-release-candidate-ancestry.json",
@@ -8051,7 +8055,6 @@
     },
     {
       "active_blocker_refs": [
-        "focusa-vbcqu.14",
         "focusa-vbcqu.19.2"
       ],
       "authority": "authorized_release_repair_overlay",
@@ -8536,19 +8539,19 @@
   ],
   "provider_snapshot": {
     "record_count": 2317,
-    "sha256": "sha256:9c4cf18b552a3f03cccb2ab3625e4e304f706a1163bba13bcf7537b719350bb5",
+    "sha256": "sha256:350d5083de81a27d326912c9553acd74d779349a9088d6df1855735c8646ee46",
     "source": "canonical:.beads/issues.jsonl"
   },
   "provider_state_counts": {
     "blocked": 1,
-    "closed": 203,
+    "closed": 204,
     "in_progress": 48,
-    "open": 37
+    "open": 36
   },
-  "reconciliation_digest": "sha256:ba991eebd4ce1cdfdf4af4d78f99f1640659978686076eb5d4015ba09bfc1606",
+  "reconciliation_digest": "sha256:5d878807839ab6ba9abcaac4ac8f37070ff2bc6033437a3f664a4d252350c4fa",
   "repair_overlay_mapping_count": 14,
   "schema": "focusa.locked_release_governance_reconciliation.v1",
   "status": "blocked",
-  "unresolved_gap_count": 86,
+  "unresolved_gap_count": 85,
   "workset_id": "workset:focusa-next-locked-release:r7"
 }
