@@ -6,68 +6,12 @@ use agent_stateful_cognitive_runtime::{
     ClientToolRequest, ClientToolResult, RuntimeBinding, RuntimeContractError, RuntimeMode,
 };
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::{BTreeSet, HashMap},
-    future::Future,
-    pin::Pin,
-    sync::Arc,
-};
+use std::{collections::HashMap, future::Future, pin::Pin, sync::Arc};
 use thiserror::Error;
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
 pub type AdapterFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum LettaOperation {
-    SendTurn,
-    ContinueClientToolThroughPi,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct LettaCapabilityContract {
-    pub schema: String,
-    pub supported_operations: BTreeSet<LettaOperation>,
-    pub authentication: String,
-    pub identity_fields: Vec<String>,
-    pub cognitive_loop_owner: String,
-    pub client_tool_owner: String,
-    pub forbidden_direct_capabilities: BTreeSet<String>,
-}
-
-pub fn canonical_letta_capability_contract() -> LettaCapabilityContract {
-    LettaCapabilityContract {
-        schema: "focusa.letta_capability_contract.v1".into(),
-        supported_operations: BTreeSet::from([
-            LettaOperation::SendTurn,
-            LettaOperation::ContinueClientToolThroughPi,
-        ]),
-        authentication: "bearer_from_credential_provider".into(),
-        identity_fields: [
-            "project_root",
-            "continuity_id",
-            "agent_instance_id",
-            "provider_agent_id",
-            "epoch_id",
-            "event_id",
-            "request_id",
-        ]
-        .into_iter()
-        .map(str::to_string)
-        .collect(),
-        cognitive_loop_owner: "mode_exact_pi_or_letta".into(),
-        client_tool_owner: "pi_gateway_only".into(),
-        forbidden_direct_capabilities: BTreeSet::from([
-            "browser_cookie".into(),
-            "raw_session_secret".into(),
-            "unrestricted_browser".into(),
-            "unrestricted_filesystem".into(),
-            "unrestricted_terminal".into(),
-            "wallet_key".into(),
-        ]),
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LettaTurnRequest {
@@ -425,35 +369,6 @@ mod tests {
             input_digest: "sha256:input".into(),
             continuation: None,
         }
-    }
-
-    #[test]
-    fn capability_contract_is_strict_and_matches_implemented_boundaries() {
-        let contract = canonical_letta_capability_contract();
-        assert_eq!(contract.schema, "focusa.letta_capability_contract.v1");
-        assert_eq!(
-            contract.supported_operations,
-            BTreeSet::from([
-                LettaOperation::SendTurn,
-                LettaOperation::ContinueClientToolThroughPi
-            ])
-        );
-        assert_eq!(contract.authentication, "bearer_from_credential_provider");
-        assert_eq!(contract.client_tool_owner, "pi_gateway_only");
-        assert!(
-            contract
-                .identity_fields
-                .contains(&"provider_agent_id".into())
-        );
-        assert!(contract.identity_fields.contains(&"epoch_id".into()));
-        assert!(
-            contract
-                .forbidden_direct_capabilities
-                .contains("unrestricted_browser")
-        );
-        let json = serde_json::to_value(contract).unwrap();
-        assert!(json.get("sdk_execute_arbitrary").is_none());
-        assert!(json.get("direct_uiai").is_none());
     }
 
     #[tokio::test]
