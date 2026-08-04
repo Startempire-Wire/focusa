@@ -1,7 +1,6 @@
 pub mod checkpoint;
 pub mod http;
 pub mod journal;
-pub mod operations;
 
 use agent_stateful_cognitive_runtime::{
     ClientToolRequest, ClientToolResult, RuntimeBinding, RuntimeContractError, RuntimeMode,
@@ -23,11 +22,7 @@ pub type AdapterFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum LettaOperation {
-    CreateBinding,
-    ReadProjection,
     SendTurn,
-    ResumeScope,
-    Checkpoint,
     ContinueClientToolThroughPi,
 }
 
@@ -123,11 +118,7 @@ pub fn canonical_letta_capability_contract() -> LettaCapabilityContract {
     LettaCapabilityContract {
         schema: "focusa.letta_capability_contract.v1".into(),
         supported_operations: BTreeSet::from([
-            LettaOperation::CreateBinding,
-            LettaOperation::ReadProjection,
             LettaOperation::SendTurn,
-            LettaOperation::ResumeScope,
-            LettaOperation::Checkpoint,
             LettaOperation::ContinueClientToolThroughPi,
         ]),
         authentication: "bearer_from_credential_provider".into(),
@@ -523,11 +514,7 @@ mod tests {
         assert_eq!(
             contract.supported_operations,
             BTreeSet::from([
-                LettaOperation::CreateBinding,
-                LettaOperation::ReadProjection,
                 LettaOperation::SendTurn,
-                LettaOperation::ResumeScope,
-                LettaOperation::Checkpoint,
                 LettaOperation::ContinueClientToolThroughPi
             ])
         );
