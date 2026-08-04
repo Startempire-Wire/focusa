@@ -356,10 +356,104 @@ fn selector_is_baseline_safe_and_lease_is_deterministic() {
     assert_ne!(adaptive.selected.policy_id, "legacy_current_v1");
     let low_confidence = resolve_policy(&selection(PolicyMode::Adaptive, 0.5), &lattice);
     assert_eq!(low_confidence.selected.policy_id, "legacy_current_v1");
+    lattice
+        .iter_mut()
+        .find(|policy| policy.policy_id != "legacy_current_v1")
+        .unwrap()
+        .validation = ValidationState::Canary;
+    let not_enrolled = resolve_policy(&selection(PolicyMode::Canary, 0.99), &lattice);
+    assert_eq!(not_enrolled.selected.policy_id, "legacy_current_v1");
+    let mut enrolled_context = selection(PolicyMode::Canary, 0.99);
+    enrolled_context.dev_fleet_enrolled = true;
+    let enrolled = resolve_policy(&enrolled_context, &lattice);
+    assert_ne!(enrolled.selected.policy_id, "legacy_current_v1");
     let first = CompactionPolicyLease::freeze(&adaptive, "runtime", "caps", "features");
     let second = CompactionPolicyLease::freeze(&adaptive, "runtime", "caps", "features");
     assert_eq!(first, second);
     assert_eq!(first.fallback_policy_id, "legacy_current_v1");
+}
+
+#[test]
+fn adaptive_lifecycle_is_conservative_explicit_and_one_boundary_reversible() {
+    let promotable = PromotionInput {
+        policy_id: "candidate".into(),
+        runtime_segment: "segment-a".into(),
+        sample_size: 40,
+        minimum_samples: 20,
+        confidence: 0.97,
+        required_confidence: 0.95,
+        task_success_delta_lcb: -0.01,
+        noninferiority_epsilon: 0.02,
+        authority_fidelity_regressions: 0,
+        operator_input_regressions: 0,
+        recovery_regressions: 0,
+        provider_round_trip_failures: 0,
+        productive_efficiency_delta: 0.12,
+    };
+    assert_eq!(
+        evaluate_promotion(&promotable).target_state,
+        ValidationState::Validated
+    );
+    let mut blocked = promotable.clone();
+    blocked.operator_input_regressions = 1;
+    let verdict = evaluate_promotion(&blocked);
+    assert!(!verdict.eligible);
+    assert!(
+        verdict
+            .reasons
+            .contains(&"operator_input_regression".into())
+    );
+    let legal = std::collections::BTreeSet::new();
+    let mut policies = compile_policy_lattice(200_000, &legal, "daily_driver", None);
+    let candidate_id = policies
+        .iter()
+        .find(|policy| policy.validation == ValidationState::Shadow)
+        .unwrap()
+        .policy_id
+        .clone();
+    let mut runtime_promotable = promotable.clone();
+    runtime_promotable.policy_id = candidate_id.clone();
+    let promotable_verdict = evaluate_promotion(&runtime_promotable);
+    let mut registry = CompactionPolicyRegistry::new();
+    registry.replace_policies("segment-a", "work-a", std::mem::take(&mut policies));
+    assert!(registry.apply_promotion("segment-a", "work-a", &candidate_id, &promotable_verdict));
+
+    let now = Utc::now();
+    assert!(enroll_dev_canary("segment-a", "candidate", "", 5, now).is_err());
+    let enrollment = enroll_dev_canary("segment-a", "candidate", "operator", 5, now).unwrap();
+    assert!(enrollment.reversible);
+    assert_eq!(enrollment.session_budget, 5);
+
+    let drift = evaluate_drift(&DriftInput {
+        prior_runtime_segment: "segment-a".into(),
+        current_runtime_segment: "segment-b".into(),
+        response_model_changed: true,
+        adapter_revision_changed: false,
+        capability_revision_changed: false,
+        transport_fallback: true,
+        context_window_changed: false,
+        protocol_error_count: 0,
+        latency_ratio: Some(2.5),
+        context_release_delta: Some(-0.3),
+    });
+    assert!(drift.drifted && drift.quarantine_segment);
+    assert_eq!(drift.fallback_policy_id, "legacy_current_v1");
+    assert!(registry.apply_drift("segment-a", "work-a", &drift) > 0);
+    assert!(
+        registry
+            .project("segment-a", "work-a")
+            .unwrap()
+            .policies
+            .iter()
+            .filter(|policy| policy.policy_id != "legacy_current_v1")
+            .all(|policy| policy.validation == ValidationState::Quarantined)
+    );
+
+    let rollback =
+        rollback_to_legacy(200_000, "segment-a", "candidate", "scope mismatch", now).unwrap();
+    assert_eq!(rollback.fallback.policy_id, "legacy_current_v1");
+    assert!(rollback.prepared_packet_preserved);
+    assert!(rollback.avoid_additional_model_turn);
 }
 
 fn observation(

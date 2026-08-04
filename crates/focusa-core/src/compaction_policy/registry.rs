@@ -1,4 +1,4 @@
-use super::{ContextPolicyBundle, ValidationState};
+use super::{ContextPolicyBundle, DriftVerdict, PromotionVerdict, ValidationState};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, VecDeque};
 
@@ -65,6 +65,65 @@ impl CompactionPolicyRegistry {
     pub fn project(&self, segment_key: &str, workstream_hash: &str) -> Option<&SegmentProjection> {
         self.segments
             .get(&Self::composite_key(segment_key, workstream_hash))
+    }
+
+    pub fn apply_promotion(
+        &mut self,
+        segment_key: &str,
+        workstream_hash: &str,
+        policy_id: &str,
+        verdict: &PromotionVerdict,
+    ) -> bool {
+        if !verdict.eligible
+            || verdict.target_state != ValidationState::Validated
+            || verdict.policy_id != policy_id
+            || verdict.runtime_segment != segment_key
+        {
+            return false;
+        }
+        let projection = self.segment_mut(segment_key, workstream_hash);
+        let Some(policy) = projection.policies.iter_mut().find(|policy| {
+            policy.policy_id == policy_id && policy.validation == ValidationState::Shadow
+        }) else {
+            return false;
+        };
+        policy.validation = ValidationState::Validated;
+        true
+    }
+
+    pub fn apply_drift(
+        &mut self,
+        segment_key: &str,
+        workstream_hash: &str,
+        verdict: &DriftVerdict,
+    ) -> usize {
+        if !verdict.drifted
+            || !verdict.quarantine_segment
+            || verdict.affected_runtime_segment != segment_key
+        {
+            return 0;
+        }
+        let projection = self.segment_mut(segment_key, workstream_hash);
+        let mut quarantined = 0;
+        for policy in &mut projection.policies {
+            if !matches!(
+                policy.validation,
+                ValidationState::LegacyBaseline | ValidationState::Revoked
+            ) {
+                policy.validation = ValidationState::Quarantined;
+                if !projection
+                    .quarantined_policy_ids
+                    .contains(&policy.policy_id)
+                {
+                    projection
+                        .quarantined_policy_ids
+                        .push(policy.policy_id.clone());
+                }
+                quarantined += 1;
+            }
+        }
+        projection.quarantined_policy_ids.sort();
+        quarantined
     }
 
     pub fn replace_policies(

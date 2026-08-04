@@ -3,6 +3,7 @@
 mod candidate;
 mod capabilities;
 mod identity;
+mod lifecycle;
 mod pressure;
 mod provider_strategies;
 mod registry;
@@ -15,6 +16,10 @@ pub use candidate::{ContextPolicyBundle, compile_policy_lattice, legacy_current_
 pub use capabilities::{CapabilityEvidence, CapabilityState, legal_action_mask};
 pub use identity::{
     CompactionRuntimeFacts, CompactionRuntimeFingerprint, resolve_runtime_fingerprint,
+};
+pub use lifecycle::{
+    CanaryEnrollmentReceipt, DriftInput, DriftVerdict, PromotionInput, PromotionVerdict,
+    RollbackReceipt, enroll_dev_canary, evaluate_drift, evaluate_promotion, rollback_to_legacy,
 };
 pub use pressure::{PressurePrediction, PressurePredictionInput, PressureStatistics};
 pub use provider_strategies::{
