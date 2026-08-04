@@ -10,7 +10,7 @@ const source = readFileSync(
 const compiled = ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
 }).outputText;
-const { selectCompactionPolicy } = await import(
+const { applyCompactionPolicyQuarantine, selectCompactionPolicy } = await import(
   `data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`
 );
 
@@ -35,5 +35,16 @@ const second = selectCompactionPolicy(telemetry(96), capabilities("supported"));
 assert.deepEqual(first, second);
 assert.equal(first.executionOwner, "pi");
 assert.match(first.deterministicKey, /^v1:/);
+
+const rolledBack = applyCompactionPolicyQuarantine(first, [first.deterministicKey], "checkpoint");
+assert.equal(rolledBack.route, "checkpoint");
+assert.equal(rolledBack.executionOwner, "focusa");
+assert.equal(rolledBack.reason, "policy_quarantined");
+assert.match(rolledBack.deterministicKey, /^rollback:/);
+assert.deepEqual(
+  applyCompactionPolicyQuarantine(first, [first.deterministicKey], "invented_route"),
+  rolledBack
+);
+assert.deepEqual(applyCompactionPolicyQuarantine(first, [], "checkpoint"), first);
 
 console.log("deterministic compaction policy selector passed");

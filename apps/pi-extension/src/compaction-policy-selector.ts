@@ -16,7 +16,8 @@ export interface CompactionPolicySelection {
     | "checkpoint_boundary"
     | "summary_boundary"
     | "native_pressure"
-    | "native_compaction_unavailable";
+    | "native_compaction_unavailable"
+    | "policy_quarantined";
   percent: number | null;
   deterministicKey: string;
 }
@@ -76,4 +77,42 @@ export function selectCompactionPolicy(
       capabilities.nativeCompaction,
     ]),
   };
+}
+
+/** Replace a quarantined policy with its deterministic safe rollback route. */
+export function applyCompactionPolicyQuarantine(
+  selection: CompactionPolicySelection,
+  quarantinedPolicyKeys: readonly string[],
+  rollbackRoute: string | null
+): CompactionPolicySelection {
+  if (!quarantinedPolicyKeys.includes(selection.deterministicKey)) return selection;
+  const route = isCompactionPolicyRoute(rollbackRoute)
+    ? rollbackRoute
+    : rollbackRouteForSelection(selection.route);
+  return {
+    ...selection,
+    route,
+    executionOwner:
+      route === "no_op"
+        ? "none"
+        : route === "rollover"
+          ? "operator"
+          : route === "native_compact" || route === "summarize"
+            ? "pi"
+            : "focusa",
+    reason: "policy_quarantined",
+    deterministicKey: stableKey(["rollback", selection.deterministicKey, route]),
+  };
+}
+
+function isCompactionPolicyRoute(value: string | null): value is CompactionPolicyRoute {
+  return ["no_op", "curate_context", "checkpoint", "summarize", "native_compact", "rollover"].includes(
+    value ?? ""
+  );
+}
+
+function rollbackRouteForSelection(route: CompactionPolicyRoute): CompactionPolicyRoute {
+  if (route === "native_compact" || route === "summarize") return "checkpoint";
+  if (route === "curate_context" || route === "rollover") return "no_op";
+  return route;
 }

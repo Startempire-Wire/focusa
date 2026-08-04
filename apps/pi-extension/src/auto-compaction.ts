@@ -15,7 +15,16 @@ import {
   type ProviderCompactionCapabilities,
 } from "./provider-compaction-capabilities.js";
 import { contextPressureTelemetry } from "./context-pressure-telemetry.js";
-import { selectCompactionPolicy } from "./compaction-policy-selector.js";
+import {
+  applyCompactionPolicyQuarantine,
+  selectCompactionPolicy,
+  type CompactionPolicySelection,
+} from "./compaction-policy-selector.js";
+import {
+  evaluateCompactionOutcome,
+  type CompactionContinuationSnapshot,
+  type CompactionOutcomeBaseline,
+} from "./compaction-outcome-evaluator.js";
 import {
   emptyCompactionAuthorityProjection,
   reduceCompactionAuthorityEvents,
@@ -131,6 +140,8 @@ type ActiveEpoch = {
   primaryError?: string;
   exactEligibility?: ProactiveCompactionEligibility;
   providerCapabilities: ProviderCompactionCapabilities;
+  policySelection?: CompactionPolicySelection;
+  outcomeBaseline?: CompactionOutcomeBaseline;
 };
 
 type CompactionLeaseOwner = {
@@ -512,6 +523,25 @@ export function registerAutoCompaction(
     }
   };
 
+  const recordOutcome = (epoch: ActiveEpoch, outcome: CompactionContinuationSnapshot): void => {
+    if (!epoch.outcomeBaseline) return;
+    const evaluation = evaluateCompactionOutcome(epoch.outcomeBaseline, outcome);
+    persist("outcome_evaluated", { outcome_evaluation: evaluation }, epoch);
+    if (evaluation.rollbackRequired) {
+      persist(
+        "policy_rollback_required",
+        {
+          outcome_evaluation: evaluation,
+          quarantined_policy_key: evaluation.policyKey,
+          rollback_route: evaluation.rollbackRoute,
+        },
+        epoch
+      );
+    } else if (evaluation.disposition === "promote") {
+      persist("policy_promoted", { outcome_evaluation: evaluation }, epoch);
+    }
+  };
+
   const notifyOnce = (
     ctx: ExtensionContext,
     key: string,
@@ -685,6 +715,14 @@ export function registerAutoCompaction(
           failedEpoch.exactEligibility?.eligible === false ? failedEpoch.exactEligibility : undefined;
         const failureClass = compactionFailureClass(message, exactRejection);
         const retryableFailure = isRetryableCompactionError(message);
+        if (failedEpoch.outcomeBaseline) {
+          recordOutcome(failedEpoch, {
+            ...failedEpoch.outcomeBaseline.snapshot,
+            providerOutcome: "failed",
+            qualityScore: null,
+            contextTokens: ctx.getContextUsage()?.tokens ?? null,
+          });
+        }
         stopCompactionHeartbeat(ctx);
         persist(
           exactRejection ? "eligibility_rejected" : "attempt_failed",
@@ -838,7 +876,12 @@ export function registerAutoCompaction(
     const usage = ctx.getContextUsage();
     const capabilities = providerCompactionCapabilities(ctx);
     const pressureTelemetry = contextPressureTelemetry(ctx, capabilities);
-    const policySelection = selectCompactionPolicy(pressureTelemetry, capabilities);
+    const candidatePolicy = selectCompactionPolicy(pressureTelemetry, capabilities);
+    const policySelection = applyCompactionPolicyQuarantine(
+      candidatePolicy,
+      processLease.projection.quarantinedPolicyKeys,
+      processLease.projection.rollbackRoute
+    );
     persist("pressure_observed", {
       pressure_telemetry: pressureTelemetry,
       provider_capabilities: capabilities,
@@ -912,6 +955,7 @@ export function registerAutoCompaction(
     const delegatedEpoch = createEpoch(ctx, request.triggerClass, usage.contextWindow);
     delegatedEpoch.startedAt = lastAttemptAt;
     delegatedEpoch.state = "observing";
+    delegatedEpoch.policySelection = policySelection;
     persist(
       "native_compaction_delegated",
       {
@@ -954,10 +998,37 @@ export function registerAutoCompaction(
       observedEpoch.state = "preparing";
       setActiveEpoch(observedEpoch);
       persist("native_invocation_observed", { native_reason: nativeReason }, observedEpoch);
-      // Explicit operator compaction outranks automatic ROI optimization.
-      if (triggerClass === "manual") return;
     }
     if (!activeEpoch) return;
+    const selectedPolicy = activeEpoch.policySelection ?? {
+      schema: "focusa.compaction_policy_selection.v1" as const,
+      policyVersion: "1" as const,
+      route: "native_compact" as const,
+      executionOwner: "pi" as const,
+      reason: "native_pressure" as const,
+      percent: null,
+      deterministicKey: `native:${activeEpoch.triggerClass}:${activeEpoch.contextKey}`,
+    };
+    activeEpoch.outcomeBaseline = {
+      schema: "focusa.compaction_outcome_baseline.v1",
+      policyVersion: selectedPolicy.policyVersion,
+      policyKey: selectedPolicy.deterministicKey,
+      route: selectedPolicy.route,
+      snapshot: {
+        projectRoot: ctx.cwd,
+        sessionId: ctx.sessionManager.getSessionId(),
+        continuityRef: null,
+        workpointRef: null,
+        evidenceRefs: [],
+        providerOutcome: "unknown",
+        qualityScore: null,
+        contextTokens: event.preparation.tokensBefore,
+      },
+    };
+    persist("outcome_baseline_recorded", { outcome_baseline: activeEpoch.outcomeBaseline }, activeEpoch);
+    // Explicit operator compaction outranks automatic ROI optimization, but its
+    // outcome is still measured for authority/evidence regression.
+    if (activeEpoch.triggerClass === "manual") return;
     const exactEligibility = evaluateExactPreparation(
       event.preparation.messagesToSummarize,
       event.preparation.turnPrefixMessages,
@@ -1014,11 +1085,21 @@ export function registerAutoCompaction(
     return { action: "continue" as const };
   });
 
-  pi.on("session_compact", async () => {
+  pi.on("session_compact", async (_event, ctx) => {
     // The public ctx.compact callback owns an active process epoch. Native/manual
     // completion may reset observation state only when no Focusa call is active.
     if (processLease.inFlightEpochId) return;
     if (!ownsRegistrationLease()) return;
+    if (activeEpoch?.outcomeBaseline) {
+      recordOutcome(activeEpoch, {
+        ...activeEpoch.outcomeBaseline.snapshot,
+        projectRoot: ctx.cwd,
+        sessionId: ctx.sessionManager.getSessionId(),
+        providerOutcome: "succeeded",
+        qualityScore: null,
+        contextTokens: ctx.getContextUsage()?.tokens ?? null,
+      });
+    }
     if (retryTimer) clearTimeout(retryTimer);
     retryTimer = undefined;
     stopCompactionHeartbeat();

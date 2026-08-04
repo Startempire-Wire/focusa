@@ -136,6 +136,18 @@ test("attempt, primary failure, retry, rejection, and ROI outcomes are durably l
   assert.match(source, /net_positive:/);
 });
 
+test("compaction outcomes automatically evaluate and quarantine degraded policies", () => {
+  const beforeCompact = handlerBody("session_before_compact");
+  const compacted = handlerBody("session_compact");
+  assert.match(beforeCompact, /outcomeBaseline/);
+  assert.match(beforeCompact, /outcome_baseline_recorded/);
+  assert.match(compacted, /recordOutcome\(activeEpoch/);
+  assert.match(source, /outcome_evaluated/);
+  assert.match(source, /policy_rollback_required/);
+  assert.match(source, /quarantinedPolicyKeys/);
+  assert.match(source, /applyCompactionPolicyQuarantine/);
+});
+
 test("compaction exposes elapsed heartbeat and bounded no-retry resume outcomes", () => {
   assert.match(source, /startCompactionHeartbeat\(ctx, invokedEpoch, usageBefore\.percent \?\? undefined\)/);
   assert.match(source, /setInterval\(render, 5_000\)/);
