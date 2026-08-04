@@ -1,12 +1,22 @@
 # Spec 158 — Workstream-Rooted Cognitive Runtime, Canonical State Partitioning, and Foundation Migration
 
-**Status:** Proposed normative foundation repair — operator approval required  
+**Status:** Approved normative direction for future foundation repair — not admitted to the current locked release
 **Owner / spec author:** Verious Smith  
 **Created:** 2026-08-04  
-**Priority:** P0 / architectural release blocker  
+**Priority:** P0 / post-locked-release foundational program; not a blocker for the current locked release
 **Tracking issue:** [#125](https://github.com/Startempire-Wire/focusa/issues/125)  
 **Reserved number:** 158; repository search found Spec 152 as the highest checked-in top-level master spec, and 153–157 are intentionally left available for server-only specifications not yet synchronized to the repository.  
-**Implementation admission:** No production implementation tranche may claim Spec 158 compliance until this document is operator-approved, decomposed into tracked work, and accompanied by the required ownership, migration, cutover, and proof ledgers.
+**Implementation admission:** Approval of this document does not authorize decomposition or implementation. Spec 158 is not admitted to `workset:focusa-next-locked-release:r7`, does not block the current mangled-release repair, and requires a separately authorized post-release Trajectory, Beads plan, ownership ledger, migration plan, cutover plan, and proof plan before production implementation begins.
+
+---
+
+## Locked-release boundary
+
+- This specification may merge as future architectural authority without admitting its implementation to the current locked release.
+- Spec 158 is not a member of `workset:focusa-next-locked-release:r7`; no Spec 158 epic, child task, migration tranche, Mission Canvas requirement, or UIAI requirement may join that release graph without a new explicit operator authorization naming the exact obligation.
+- Existing locked-release work for #89, #103, #109, #112, and #118 remains bounded containment and regression repair. Passing those gates does not claim Spec 158 compliance or complete foundational isolation.
+- Mission Canvas/Desktop and UIAI/Cockpit requirements in this document govern their future migration. They are not current locked-release publication gates.
+- GitHub linkage, P0 priority, architectural importance, issue parentage, labels, code presence, or document approval do not constitute implementation admission.
 
 ---
 
@@ -1568,7 +1578,7 @@ Source scans and isolated component tests are necessary but insufficient.
 
 ## 20. Implementation decomposition
 
-The parent implementation epic shall be derived from Spec 158 after approval.
+The parent implementation epic shall be derived from Spec 158 only after separate operator authorization admits implementation into a post-release Trajectory and Beads plan.
 
 Minimum tranches:
 
@@ -1641,7 +1651,9 @@ Final closure requires:
 
 ---
 
-## 22. Required immediate actions after approval
+## 22. Required actions after separate implementation admission
+
+Document approval alone does not authorize any action in this section. These actions begin only after separate operator authorization of the post-release implementation program.
 
 1. Pin the exact current `main` SHA and produce the current-head ownership inventory.
 2. Add CI guards forbidding new daemon-global cognitive fields and unscoped canonical routes.
