@@ -55,6 +55,18 @@ try {
   assert.match(customElements, /<fixture-focusa-inspector[^>]*data-contribution-id="contribution:focusa-inspector"/);
 
   const fixture = JSON.parse(await readFile(new URL('./fixtures/mission-canvas/populated-projection.json', import.meta.url), 'utf8'));
+  const { DEFAULT_CONTRIBUTION_REGISTRY } = await server.ssrLoadModule('/src/lib/mission-canvas/default-contribution-registry.ts');
+  for (const contribution of fixture.eligible_contributions) {
+    assert.ok(DEFAULT_CONTRIBUTION_REGISTRY.resolve(contribution), `default registry missing ${contribution.renderer_binding_id}`);
+  }
+  const queueFixture = JSON.parse(await readFile(new URL('./fixtures/mission-canvas/one-queue-projection.json', import.meta.url), 'utf8'));
+  for (const contribution of queueFixture.eligible_contributions) {
+    assert.ok(DEFAULT_CONTRIBUTION_REGISTRY.resolve(contribution), `default registry missing ${contribution.renderer_binding_id}`);
+  }
+  const { default: MissionCanvasRenderer } = await server.ssrLoadModule('/src/lib/mission-canvas/MissionCanvasRenderer.svelte');
+  const { body: productionProjection } = render(MissionCanvasRenderer, { props: { projection: fixture, registry: DEFAULT_CONTRIBUTION_REGISTRY } });
+  assert.match(productionProjection, /data-work-surface-ref="surface:pi"/);
+  assert.doesNotMatch(productionProjection, /Renderer unavailable/);
   const requestedUrls = [];
   const { MissionCanvasHttpTransport, MissionCanvasTransportError } = await server.ssrLoadModule('/src/lib/mission-canvas/http-transport.ts');
   const transport = new MissionCanvasHttpTransport('http://127.0.0.1:8787/', async (url) => {

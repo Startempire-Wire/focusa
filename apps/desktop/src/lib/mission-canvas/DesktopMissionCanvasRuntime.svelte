@@ -84,11 +84,20 @@
     const contribution = state.projection.eligible_contributions.find((item) => item.contribution_id === binding.target_contribution_id);
     if (!contribution) return;
     requestOperation(current, contribution.accessibility.label, async () => {
+      if (mutationInFlight) return;
       const latest = operationBinding(current.operation_id, current.target_contribution_id);
       const latestState = controller.state;
       if (!latest || latest.authority_ref !== current.authority_ref) return;
       if (latestState.kind !== 'ready' && latestState.kind !== 'refreshing' && latestState.kind !== 'stale') return;
-      await executeContributionOperation(latest, latestState.projection);
+      mutationInFlight = true;
+      try {
+        await executeContributionOperation(latest, latestState.projection);
+        if (scope) await controller.load(scope);
+      } catch (error) {
+        controller.markStale(error instanceof Error ? error.message : 'contribution_operation_failed');
+      } finally {
+        mutationInFlight = false;
+      }
     });
   }
 

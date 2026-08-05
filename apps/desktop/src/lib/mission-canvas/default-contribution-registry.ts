@@ -1,5 +1,6 @@
 import CanonicalReferenceContribution from './contributions/CanonicalReferenceContribution.svelte';
 import PromptEditorContribution from './contributions/PromptEditorContribution.svelte';
+import WorkSurfaceContribution from './contributions/WorkSurfaceContribution.svelte';
 import { ContributionRendererRegistry, type TrustedContributionRenderer } from './contribution-renderers';
 
 export const DEFAULT_CONTRIBUTION_RENDERERS = [
@@ -7,32 +8,32 @@ export const DEFAULT_CONTRIBUTION_RENDERERS = [
     rendererBindingId: 'renderer:pi-session@v1',
     semanticBindingIds: ['semantic:pi-session'],
     contributionKinds: ['focused_work_surface'],
-    component: CanonicalReferenceContribution
+    component: WorkSurfaceContribution
   },
   {
     rendererBindingId: 'renderer:document@v1',
     contributionKinds: ['focused_work_surface'],
-    component: CanonicalReferenceContribution
+    component: WorkSurfaceContribution
   },
   {
     rendererBindingId: 'renderer:research@v1',
     contributionKinds: ['focused_work_surface'],
-    component: CanonicalReferenceContribution
+    component: WorkSurfaceContribution
   },
   {
     rendererBindingId: 'renderer:evidence@v1',
     contributionKinds: ['focused_work_surface'],
-    component: CanonicalReferenceContribution
+    component: WorkSurfaceContribution
   },
   {
     rendererBindingId: 'renderer:artifact:json@v1',
     contributionKinds: ['focused_work_surface', 'generated_surface'],
-    component: CanonicalReferenceContribution
+    component: WorkSurfaceContribution
   },
   {
     rendererBindingId: 'renderer:artifact:markdown@v1',
     contributionKinds: ['focused_work_surface', 'generated_surface'],
-    component: CanonicalReferenceContribution
+    component: WorkSurfaceContribution
   },
   {
     rendererBindingId: 'renderer:focusa-inspector@v1',
