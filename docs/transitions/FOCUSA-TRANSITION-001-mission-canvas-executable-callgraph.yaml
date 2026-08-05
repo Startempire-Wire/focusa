@@ -1325,7 +1325,7 @@ integration_tasks:
   - id: LIVE-001
     parent: MC-180
     title: Implement Workstream-scoped event client
-    status: blocked
+    status: implemented_partial
     depends_on: [OPS-025, UI-002]
     read: [docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md]
     targets: [apps/desktop/src/lib/mission-canvas/event-client.ts]
@@ -1338,7 +1338,7 @@ integration_tasks:
   - id: LIVE-002
     parent: MC-180
     title: Coalesce projection invalidations
-    status: blocked
+    status: complete
     depends_on: [LIVE-001, UI-003]
     read: [docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md]
     targets: [apps/desktop/src/lib/mission-canvas/invalidation-controller.ts]
@@ -1351,7 +1351,7 @@ integration_tasks:
   - id: LIVE-003
     parent: MC-180
     title: Preserve presentation state during projection refresh
-    status: blocked
+    status: complete
     depends_on: [LIVE-002, UI-012]
     read: [docs/contracts/spec135-adaptive-composition.v1.yaml]
     targets: [apps/desktop/src/lib/mission-canvas/presentation-state.ts]
@@ -1377,7 +1377,7 @@ integration_tasks:
   - id: LIVE-005
     parent: MC-220
     title: Handle active capability loss and return
-    status: blocked
+    status: complete
     depends_on: [LIVE-002, UI-012]
     read: [docs/contracts/spec135-adaptive-composition.v1.yaml]
     targets: [Desktop capability-loss controller]
@@ -1390,7 +1390,7 @@ integration_tasks:
   - id: CUT-001
     parent: MC-230
     title: Wire production MissionCanvasShell to projection controller
-    status: blocked
+    status: implemented_partial
     depends_on: [UI-003, UI-021, LIVE-003]
     read: [apps/desktop/src/lib/shell/MissionCanvasShell.svelte]
     targets: [apps/desktop/src/lib/shell/MissionCanvasShell.svelte]
@@ -1403,7 +1403,7 @@ integration_tasks:
   - id: CUT-002
     parent: MC-230
     title: Remove local static activity and surface arrays
-    status: blocked
+    status: complete
     depends_on: [CUT-001, UI-013, UI-014]
     read: [apps/desktop/src/lib/shell/MissionCanvasShell.svelte]
     targets: [apps/desktop/src/lib/shell/MissionCanvasShell.svelte]
@@ -1416,7 +1416,7 @@ integration_tasks:
   - id: CUT-003
     parent: MC-230
     title: Remove fixed status, transcript, queue, and prompt placeholders
-    status: blocked
+    status: complete
     depends_on: [CUT-002, UI-015, UI-018, UI-020]
     read: [apps/desktop/src/lib/shell/MissionCanvasShell.svelte]
     targets: [apps/desktop/src/lib/shell/MissionCanvasShell.svelte]

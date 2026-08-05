@@ -88,6 +88,21 @@ try {
   assert.equal(controller.state.kind, 'stale');
   assert.equal(controller.state.reason, 'projection_revision_regressed');
 
+  let refreshResolver;
+  let refreshResponse = structuredClone(fixture);
+  const preservingController = new MissionCanvasProjectionController(async () => {
+    if (!refreshResolver) return structuredClone(refreshResponse);
+    return new Promise((resolve) => { refreshResolver = resolve; });
+  });
+  await preservingController.load(fixture.scope);
+  refreshResolver = () => {};
+  const refreshing = preservingController.load(fixture.scope);
+  assert.equal(preservingController.state.kind, 'refreshing');
+  assert.equal(preservingController.state.projection.projection_digest, fixture.projection_digest);
+  refreshResolver(structuredClone({ ...fixture, projection_revision: fixture.projection_revision + 1 }));
+  await refreshing;
+  assert.equal(preservingController.state.kind, 'ready');
+
   const draftFixture = {
     attachment_id: fixture.scope.attachment_id,
     content: 'canonical draft',
@@ -116,7 +131,43 @@ try {
   assert.equal(draftController.state.reason, 'foreign_draft_binding');
   assert.equal(draftController.state.localContent, 'preserve this local edit');
 
-  console.log('Mission Canvas runtime: PASS (layouts, registry controls, renderer gate, projection and draft authority)');
+  const eventFixture = {
+    event_cursor: 'cursor:1',
+    event_id: 'event:1',
+    event_kind: 'capability_changed',
+    evidence_refs: [],
+    layout_revision: fixture.layout_revision + 1,
+    occurred_at: '2026-08-04T00:00:01Z',
+    payload_ref: 'fixture:event:1',
+    projection_revision: fixture.projection_revision + 1,
+    receipt_refs: [],
+    scope: structuredClone(fixture.scope)
+  };
+  let eventResponse = [eventFixture];
+  let persistedCursor;
+  const { MissionCanvasEventClient } = await server.ssrLoadModule('/src/lib/mission-canvas/event-client.ts');
+  const eventClient = new MissionCanvasEventClient(
+    { eventsStream: async () => structuredClone(eventResponse) },
+    fixture.scope,
+    { load: () => persistedCursor, persist: (_scope, cursor) => { persistedCursor = cursor; } }
+  );
+  const acceptedEvents = await eventClient.poll();
+  assert.equal(acceptedEvents.accepted.length, 1);
+  assert.equal(persistedCursor, 'cursor:1');
+  eventResponse = [{ ...eventFixture, event_id: 'event:foreign', event_cursor: 'cursor:2', scope: { ...fixture.scope, session_id: 'foreign' } }];
+  const rejectedEvents = await eventClient.poll();
+  assert.equal(rejectedEvents.rejected[0].reason, 'foreign_event_scope');
+  assert.equal(persistedCursor, 'cursor:1');
+
+  let reloads = 0;
+  const { MissionCanvasInvalidationController } = await server.ssrLoadModule('/src/lib/mission-canvas/invalidation-controller.ts');
+  const invalidations = new MissionCanvasInvalidationController(() => { reloads += 1; }, 1000);
+  assert.equal(invalidations.enqueue(acceptedEvents, { projectionRevision: fixture.projection_revision, layoutRevision: fixture.layout_revision }), true);
+  invalidations.enqueue(acceptedEvents, { projectionRevision: fixture.projection_revision, layoutRevision: fixture.layout_revision });
+  await invalidations.flush();
+  assert.equal(reloads, 1);
+
+  console.log('Mission Canvas runtime: PASS (layout, renderer, transport, projection, draft and event authority)');
 } finally {
   await server.close();
 }

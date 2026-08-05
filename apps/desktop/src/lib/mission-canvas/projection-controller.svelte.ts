@@ -4,6 +4,7 @@ import type { ExactScope, ResolvedWorkspaceProjection } from './types';
 export type ProjectionState =
   | { kind: 'unbound' }
   | { kind: 'loading'; scope: ExactScope }
+  | { kind: 'refreshing'; scope: ExactScope; projection: ResolvedWorkspaceProjection }
   | { kind: 'ready'; scope: ExactScope; projection: ResolvedWorkspaceProjection }
   | { kind: 'stale'; scope: ExactScope; projection: ResolvedWorkspaceProjection; reason: string }
   | { kind: 'blocked'; scope?: ExactScope; reason: string }
@@ -29,7 +30,9 @@ export class MissionCanvasProjectionController {
   async load(scope: ExactScope): Promise<void> {
     const generation = ++this.#requestGeneration;
     const prior = this.currentProjection();
-    this.state = { kind: 'loading', scope };
+    this.state = prior && sameScope(prior.scope, scope)
+      ? { kind: 'refreshing', scope, projection: prior }
+      : { kind: 'loading', scope };
 
     try {
       const value = await this.loader(scope);
@@ -37,7 +40,10 @@ export class MissionCanvasProjectionController {
 
       const validation = validateMissionCanvasContract('ResolvedWorkspaceProjection', value);
       if (!validation.valid) {
-        this.state = { kind: 'error', scope, reason: validation.errors.join(',') };
+        const reason = validation.errors.join(',');
+        this.state = prior
+          ? { kind: 'stale', scope, projection: prior, reason }
+          : { kind: 'error', scope, reason };
         return;
       }
 
@@ -54,11 +60,10 @@ export class MissionCanvasProjectionController {
       this.state = { kind: 'ready', scope, projection };
     } catch (error) {
       if (generation !== this.#requestGeneration) return;
-      this.state = {
-        kind: 'error',
-        scope,
-        reason: error instanceof Error ? error.message : 'projection_load_failed'
-      };
+      const reason = error instanceof Error ? error.message : 'projection_load_failed';
+      this.state = prior
+        ? { kind: 'stale', scope, projection: prior, reason }
+        : { kind: 'error', scope, reason };
     }
   }
 
@@ -73,6 +78,8 @@ export class MissionCanvasProjectionController {
   }
 
   private currentProjection(): ResolvedWorkspaceProjection | undefined {
-    return this.state.kind === 'ready' || this.state.kind === 'stale' ? this.state.projection : undefined;
+    return this.state.kind === 'ready' || this.state.kind === 'refreshing' || this.state.kind === 'stale'
+      ? this.state.projection
+      : undefined;
   }
 }

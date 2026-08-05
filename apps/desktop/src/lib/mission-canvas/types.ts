@@ -7,6 +7,7 @@ export type {
   LayoutNode,
   OperationBinding,
   ProfileLayoutMemory,
+  ProjectionLifecycleEvent,
   ResolvedContribution,
   ResolvedWorkspaceProjection,
   SingleLayoutNode,
