@@ -748,6 +748,28 @@ export async function focusaFetch(path: string, opts: RequestInit = {}): Promise
         signal: ac.signal,
       });
       if (r.ok) return await r.json();
+      if (r.status === 403) {
+        const blocked = await r.json().catch(() => null);
+        const code = String(blocked?.error?.code || "");
+        if (code.startsWith("ENTITLEMENT_")) {
+          return {
+            ok: false,
+            status: "blocked",
+            failure_class: "entitlement_blocked",
+            error: {
+              code,
+              state: blocked?.error?.state || "recovery_only",
+              required_feature: blocked?.error?.required_feature || null,
+              limit_bucket: blocked?.error?.limit_bucket || null,
+              recovery: blocked?.error?.recovery || {
+                status_path: "/v1/license/status",
+                allowed: ["health", "version", "license_recovery", "safe_read"],
+              },
+            },
+          };
+        }
+        return null;
+      }
       if (![429, 502, 503, 504].includes(r.status) || attempt === attempts - 1) return null;
     } catch {
       if (attempt === attempts - 1) return null;
