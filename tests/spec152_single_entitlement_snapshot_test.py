@@ -27,13 +27,17 @@ assert "read_license_toml" not in resolver
 status = core[core.index("pub fn load_license_status") : core.index("fn status_from_local")]
 assert "focusa_license::resolve_license_guard()" in status
 assert "load_local_license" not in status
-assert "entitlement" in status
+assert "focusa_license::entitlement_projection(entitlement)" in status
+assert "authority: Some(authority)" in status
 
 assert "state.license_guard.clone()" in api
-assert '"authority": g.entitlement' in api
+assert "focusa_license::entitlement_projection(g.entitlement.as_ref())" in api
+assert '"authority": authority' in api
+assert '"error": "ENTITLEMENT_SNAPSHOT_MISSING"' in api
 assert "license_guard:" in server
 assert "focusa_license::resolve_license_guard()" in main
 assert "license_guard," in main
-assert "core_status()" in cli
+assert "focusa_license::entitlement_projection(guard.entitlement.as_ref())?" in cli
+assert '"authority": authority' in cli
 
 print("Spec152 single entitlement snapshot: PASS (daemon/core/API/CLI delegate to focusa-license)")

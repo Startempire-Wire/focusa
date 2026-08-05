@@ -145,6 +145,9 @@ impl LocalLicense {
 /// `focusa license status` output shape.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LicenseStatus {
+    /// Canonical signed-authority projection. `None` is migration-only and must
+    /// never be interpreted as an entitlement grant.
+    pub authority: Option<focusa_license::EntitlementProjection>,
     /// License mode.
     pub mode: LicenseMode,
     /// Product (focusa, uiai-engine, bundle, founders-forge).
@@ -215,9 +218,13 @@ pub fn license_file_path() -> PathBuf {
 pub fn load_license_status() -> anyhow::Result<LicenseStatus> {
     let guard = focusa_license::resolve_license_guard();
     let entitlement = guard.entitlement.as_ref();
+    let authority = focusa_license::entitlement_projection(entitlement)
+        .map_err(|error| anyhow::anyhow!(error.to_string()))?;
     let mode = match entitlement.map(|snapshot| snapshot.state) {
         Some(focusa_license::authority::EntitlementState::Active) => LicenseMode::Entitled,
-        Some(focusa_license::authority::EntitlementState::OfflineGrace) => LicenseMode::OfflineGrace,
+        Some(focusa_license::authority::EntitlementState::OfflineGrace) => {
+            LicenseMode::OfflineGrace
+        }
         Some(focusa_license::authority::EntitlementState::Unactivated) => LicenseMode::Unactivated,
         Some(focusa_license::authority::EntitlementState::RecoveryOnly) | None => {
             LicenseMode::RecoveryOnly
@@ -234,6 +241,7 @@ pub fn load_license_status() -> anyhow::Result<LicenseStatus> {
         })
         .unwrap_or_default();
     Ok(LicenseStatus {
+        authority: Some(authority),
         mode,
         product: entitlement
             .map(|snapshot| snapshot.product.clone())
@@ -261,6 +269,7 @@ pub fn load_license_status() -> anyhow::Result<LicenseStatus> {
 
 fn status_from_local(local: &LocalLicense) -> LicenseStatus {
     LicenseStatus {
+        authority: None,
         mode: local.mode(),
         product: local.product.clone(),
         tier: local.tier.clone(),

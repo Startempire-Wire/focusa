@@ -2,7 +2,7 @@
 //!
 //! Returns current tier, capability posture, key fingerprint, and expiry.
 
-use axum::{Json, Router, extract::State, routing::get};
+use axum::{Json, Router, extract::State, http::StatusCode, routing::get};
 use focusa_license::{Capability, CapabilityCheck, authority::EntitlementState};
 use serde::Serialize;
 use std::sync::Arc;
@@ -20,8 +20,19 @@ struct CapabilityPosture {
 
 async fn license_status(
     State(state): State<Arc<crate::server::AppState>>,
-) -> Json<serde_json::Value> {
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let g = state.license_guard.clone();
+    let authority =
+        focusa_license::entitlement_projection(g.entitlement.as_ref()).map_err(|error| {
+            (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(serde_json::json!({
+                    "error": "ENTITLEMENT_SNAPSHOT_MISSING",
+                    "message": error.to_string(),
+                    "recovery_policy": "recovery, export, repair, and uninstall remain available",
+                })),
+            )
+        })?;
     let caps = [
         Capability::CommercialUse,
         Capability::HostedMode,
@@ -67,7 +78,7 @@ async fn license_status(
         None => "migrate legacy license through authority activation",
     };
 
-    Json(serde_json::json!({
+    Ok(Json(serde_json::json!({
         "status": status,
         "tier": g.tier.label(),
         "issued_at": g.issued_at.to_rfc3339(),
@@ -75,7 +86,7 @@ async fn license_status(
         "bsl_change_date": g.bsl_change_date.to_rfc3339(),
         "masked_identity": mask_identity(&g.customer_email),
         "expired": g.is_expired(),
-        "authority": g.entitlement,
+        "authority": authority,
         "capabilities": posture,
         "summary": format!(
             "tier={} capabilities={}",
@@ -83,7 +94,7 @@ async fn license_status(
             posture.iter().filter(|p| p.outcome == "denied").count()
         ),
         "next_action": next_action,
-    }))
+    })))
 }
 
 fn mask_identity(value: &str) -> Option<String> {

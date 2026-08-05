@@ -17,7 +17,50 @@ pub mod uiai_child_token;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
+use std::{
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+};
+
+/// Canonical, client-safe projection of one immutable signed entitlement snapshot.
+/// Core, REST, and CLI surfaces must serialize this type instead of rebuilding fields.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EntitlementProjection {
+    pub schema: String,
+    pub state: String,
+    pub product: String,
+    pub node_id: String,
+    pub lease_id: Option<String>,
+    pub lease_sequence: Option<u64>,
+    pub lease_digest: Option<String>,
+    pub expires_at: Option<String>,
+    pub offline_grace_until: Option<String>,
+    pub features: BTreeMap<String, bool>,
+    pub limits: BTreeMap<String, u64>,
+    pub recovery_reason: Option<String>,
+}
+
+/// Project a signed authority snapshot without consulting legacy files, environment
+/// promotion, feature inference, or caller-specific defaults.
+pub fn entitlement_projection(
+    snapshot: Option<&authority::EntitlementSnapshot>,
+) -> Result<EntitlementProjection, LicenseError> {
+    let snapshot = snapshot.ok_or(LicenseError::EntitlementSnapshotMissing)?;
+    Ok(EntitlementProjection {
+        schema: "focusa.entitlement_projection.v1".to_string(),
+        state: format!("{:?}", snapshot.state).to_ascii_lowercase(),
+        product: snapshot.product.clone(),
+        node_id: snapshot.node_id.clone(),
+        lease_id: snapshot.lease_id.clone(),
+        lease_sequence: snapshot.sequence,
+        lease_digest: snapshot.lease_digest.clone(),
+        expires_at: snapshot.expires_at.map(|value| value.to_rfc3339()),
+        offline_grace_until: snapshot.offline_grace_until.map(|value| value.to_rfc3339()),
+        features: snapshot.features.clone(),
+        limits: snapshot.limits.clone(),
+        recovery_reason: snapshot.recovery_reason.clone(),
+    })
+}
 
 /// License tiers supported by Focusa.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -231,6 +274,8 @@ pub enum LicenseError {
         tier: String,
         reason: String,
     },
+    #[error("ENTITLEMENT_SNAPSHOT_MISSING: signed authority entitlement snapshot required")]
+    EntitlementSnapshotMissing,
 }
 
 /// BSL change date placeholder (4 years from typical release cadence).
@@ -385,6 +430,34 @@ pub fn persist_eval_license(home: &Path) -> std::io::Result<LicenseGuard> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn canonical_entitlement_projection_preserves_authority_fields() {
+        let mut snapshot = authority::EntitlementSnapshot::unactivated("focusa", "node-001");
+        snapshot.state = authority::EntitlementState::Active;
+        snapshot.lease_id = Some("lease-001".to_string());
+        snapshot.sequence = Some(42);
+        snapshot.lease_digest = Some("sha256:lease".to_string());
+        snapshot.features.insert("agent_runtime".to_string(), true);
+        snapshot.limits.insert("active_sessions".to_string(), 4);
+        snapshot.recovery_reason = None;
+
+        let projection = entitlement_projection(Some(&snapshot)).expect("projection");
+        assert_eq!(projection.state, "active");
+        assert_eq!(projection.lease_id.as_deref(), Some("lease-001"));
+        assert_eq!(projection.lease_sequence, Some(42));
+        assert_eq!(projection.lease_digest.as_deref(), Some("sha256:lease"));
+        assert_eq!(projection.features.get("agent_runtime"), Some(&true));
+        assert_eq!(projection.limits.get("active_sessions"), Some(&4));
+    }
+
+    #[test]
+    fn canonical_entitlement_projection_fails_closed_without_snapshot() {
+        assert!(matches!(
+            entitlement_projection(None),
+            Err(LicenseError::EntitlementSnapshotMissing)
+        ));
+    }
 
     #[test]
     fn self_issued_eval_cannot_grant_local_eval() {

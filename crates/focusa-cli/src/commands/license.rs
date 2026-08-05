@@ -590,22 +590,10 @@ async fn run_activate(json_output: bool, args: ActivateArgs) -> anyhow::Result<(
 
 async fn run_status(json_output: bool) -> anyhow::Result<()> {
     let guard = focusa_license::resolve_license_guard();
-    let snapshot = guard.entitlement.as_ref();
-    let state = snapshot
-        .map(|value| format!("{:?}", value.state).to_ascii_lowercase())
-        .unwrap_or_else(|| "unactivated".into());
+    let authority = focusa_license::entitlement_projection(guard.entitlement.as_ref())?;
     let payload = json!({
         "schema": "focusa.authority_license_status.v1",
-        "state": state,
-        "product": snapshot.map(|value| value.product.as_str()).unwrap_or("focusa"),
-        "node_id": snapshot.map(|value| value.node_id.as_str()),
-        "lease_id": snapshot.and_then(|value| value.lease_id.as_deref()),
-        "lease_sequence": snapshot.and_then(|value| value.sequence),
-        "expires_at": snapshot.and_then(|value| value.expires_at),
-        "offline_grace_until": snapshot.and_then(|value| value.offline_grace_until),
-        "features": snapshot.map(|value| &value.features),
-        "limits": snapshot.map(|value| &value.limits),
-        "recovery_reason": snapshot.and_then(|value| value.recovery_reason.as_deref()),
+        "authority": authority,
         "recovery_policy": "recovery, export, repair, and uninstall remain available when execution is locked",
         "marketing_preference": "managed_separately"
     });
@@ -615,13 +603,15 @@ async fn run_status(json_output: bool) -> anyhow::Result<()> {
         println!("Focusa Signed Authority Status\n");
         println!(
             "State:          {}",
-            payload["state"].as_str().unwrap_or("unactivated")
+            payload["authority"]["state"]
+                .as_str()
+                .unwrap_or("unactivated")
         );
         println!(
             "Product:        {}",
-            payload["product"].as_str().unwrap_or("focusa")
+            payload["authority"]["product"].as_str().unwrap_or("focusa")
         );
-        if let Some(sequence) = payload["lease_sequence"].as_u64() {
+        if let Some(sequence) = payload["authority"]["lease_sequence"].as_u64() {
             println!("Lease sequence: {sequence}");
         }
         println!(
