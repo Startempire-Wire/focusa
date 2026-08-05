@@ -38,6 +38,8 @@ for required in (
     "verify-canonical-release-assets.py --dist dist --tag v0.9.144",
     "FOCUSA_RELEASE_ED25519_PRIVATE_KEY",
     "TAURI_SIGNING_PRIVATE_KEY",
+    "npm ci --ignore-scripts",
+    "npx --no-install tauri build",
     "release-trust-metadata.py",
     "--candidate",
     'publication_status == "candidate_only"',
