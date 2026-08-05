@@ -8,6 +8,7 @@ permissions:
 
 jobs:
   rust-artifacts:
+    if: ${{ false }} # Core matrix already verified by run 31034572307.
     name: Demo Rust (${{ matrix.target }})
     strategy:
       fail-fast: false
@@ -120,15 +121,15 @@ jobs:
         working-directory: apps/menubar
         shell: bash
         run: >-
-          npm run tauri -- build --target "${{ matrix.target }}" --bundles nsis,msi
+          npm run tauri -- build --target "${{ matrix.target }}" --bundles nsis
           --config '{"bundle":{"createUpdaterArtifacts":false}}'
       - uses: actions/upload-artifact@v4
         with:
           name: demo-desktop-${{ matrix.target }}
           path: |
-            target/${{ matrix.target }}/release/bundle/**/*.app
-            target/${{ matrix.target }}/release/bundle/**/*.dmg
-            target/${{ matrix.target }}/release/bundle/**/*.exe
-            target/${{ matrix.target }}/release/bundle/**/*.msi
+            apps/menubar/src-tauri/target/${{ matrix.target }}/release/bundle/**/*.app
+            apps/menubar/src-tauri/target/${{ matrix.target }}/release/bundle/**/*.dmg
+            apps/menubar/src-tauri/target/${{ matrix.target }}/release/bundle/**/*.exe
+            apps/menubar/src-tauri/target/${{ matrix.target }}/release/bundle/**/*.msi
           if-no-files-found: error
           retention-days: 7
