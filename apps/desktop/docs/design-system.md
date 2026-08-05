@@ -135,13 +135,13 @@ Implemented in the first design-system slice:
 - operator-facing system/full/reduced motion control;
 - bounded display/body typography applied to the Mission Deck;
 - removal of global transition/animation suppression;
-- sidebar local-preference boundary.
+- sidebar local-preference boundary;
+- elimination of component-level hexadecimal palette literals from the Desktop shell and Mission Canvas styles.
 
 Incremental migration still required:
 
-- move remaining legacy `styles.css` literals onto semantic tokens;
 - migrate Mission Canvas cards and headers to shared primitives;
-- complete the remaining Mission Canvas palette and spacing-token migration;
+- complete the remaining Mission Canvas spacing and radius-token migration;
 - run UIAI normal, compact, reduced-motion, and keyboard acceptance;
 - run native Thinking Orb acceptance in the next bounded native build;
 - consider BorderBeam only when a verified active Workpoint surface exists.

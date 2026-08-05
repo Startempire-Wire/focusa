@@ -13,6 +13,8 @@ const piAttachment = readFileSync(new URL('../src/lib/shell/pi-attachment-contra
 const agentTui = readFileSync(new URL('../src/lib/shell/AgentTuiSurface.svelte', import.meta.url), 'utf8');
 const commandManifest = readFileSync(new URL('../src/lib/shell/command-manifest.ts', import.meta.url), 'utf8');
 const contextControl = readFileSync(new URL('../src/lib/shell/ContextControlPanel.svelte', import.meta.url), 'utf8');
+const desktopStyles = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
+const missionCanvas = readFileSync(new URL('../src/lib/shell/MissionCanvasShell.svelte', import.meta.url), 'utf8');
 const tauri = readFileSync(new URL('../src-tauri/tauri.conf.json', import.meta.url), 'utf8');
 
 assert.match(page, /Focusa Desktop/);
@@ -37,6 +39,8 @@ assert.doesNotMatch(commandManifest, /(attach-runtime|create-workstream|approve-
 assert.match(contextControl, /ScopeRef.*WorkstreamId.*ContinuityId.*AttachmentKey/s);
 assert.match(contextControl, /disabled/);
 assert.match(contextControl, /cannot infer authority/);
+assert.doesNotMatch(desktopStyles, /#[0-9a-fA-F]{3,8}/);
+assert.doesNotMatch(missionCanvas.split('<style>')[1] ?? '', /#[0-9a-fA-F]{3,8}/);
 assert.match(designSystem, /calm cognitive cockpit/);
 assert.match(designSystem, /Visual acceptance is exclusively performed through UIAI Engine/);
 assert.match(manifest, /mission-deck/);

@@ -58,6 +58,13 @@ nodes:
     depends_on: [D010-03]
     evidence: [apps/desktop/docs/design-system.md, docs/contracts/evidence/spec158-desktop-design-system-normal.png, docs/contracts/evidence/spec158-desktop-design-system-reduced.png, uiai-diagnostics:session=O0DzkXjF:seq=94]
     notes: Tokens, typed icons, reusable surfaces and states, semantic orb, stable content motion, operator preference, and reduced-motion contract are implemented.
+  - id: D010-05
+    parent: T071
+    title: Eliminate component-level palette literals from active Desktop surfaces
+    status: complete
+    depends_on: [D010-04]
+    evidence: [docs/contracts/evidence/spec158-desktop-token-migration.png, uiai-diagnostics:session=NWyZ4VaJ:seq=0]
+    notes: Desktop shell and Mission Canvas active styles now consume semantic design tokens; tests reject hexadecimal palette regressions.
   - id: D020-01
     parent: T071
     title: Materialize supplied Mission Canvas visual references and provenance
