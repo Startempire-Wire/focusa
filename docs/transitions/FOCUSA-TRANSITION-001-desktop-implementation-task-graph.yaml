@@ -102,8 +102,10 @@ nodes:
   - id: D023-01
     parent: T080
     title: Build integrated Agent TUI frontend work surface without a sidebar
-    status: ready
+    status: complete
     depends_on: [D010-02]
+    evidence: [apps/desktop/docs/agent-tui-integration.md, docs/contracts/evidence/spec158-desktop-agent-tui-integrated.png, uiai-diagnostics:session=b0R1Oebd:seq=0]
+    notes: Integrated transcript, authority strip, Work Rail, Evidence, Context, steering, and lifecycle surfaces remain truthfully disabled until exact native Attachment.
   - id: D023-02
     parent: T080
     title: Define native Pi PTY lifecycle resize input output and shutdown contract

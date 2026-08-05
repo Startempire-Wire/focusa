@@ -3,6 +3,7 @@
   import { FOCUSA_DESKTOP_WORKSPACES, workspaceById } from '$lib/shell/workspace-manifest';
   import { readDaemonHealth, type DaemonReadStatus } from '$lib/shell/daemon-health';
   import MissionCanvasShell from '$lib/shell/MissionCanvasShell.svelte';
+  import AgentTuiSurface from '$lib/shell/AgentTuiSurface.svelte';
   import { readSidebarPreferences, saveSidebarPreferences, type DesktopSidebarMode } from '$lib/shell/sidebar-preferences';
   import Icon, { type IconName } from '$lib/ui/Icon.svelte';
   import IconButton from '$lib/ui/IconButton.svelte';
@@ -180,24 +181,7 @@
     {#key `${uiMode}:${activeWorkspaceId}`}
     <div class="view-scene" in:scene={{ duration: 220, y: 5 }} out:scene={{ duration: 110, y: 2 }}>
     {#if uiMode === 'tui'}
-      <section class="tui-surface" aria-label="Focusa terminal compatibility projection">
-        <div class="tui-bar">AGENT TUI (PI) · NATIVE WORK SURFACE</div>
-        <pre><span class="tui-accent">ACTIVE WORKSTREAM</span>  unbound
-<span class="tui-dim">SCOPE</span>              no ScopeRef selected
-<span class="tui-dim">ATTACHMENT</span>         no Pi runtime attached
-
-┌─ CURRENT MISSION ─────────────────────────────────────────────┐
-│ Await exact Workstream and Attachment authority.             │
-└───────────────────────────────────────────────────────────────┘
-
-┌─ WORK RAIL ───────────────────┬─ EVIDENCE ────────────────────┐
-│ No active Workpoint           │ No scoped Evidence            │
-│ Writer: unavailable           │ Proof posture: unavailable    │
-└───────────────────────────────┴───────────────────────────────┘
-
-<span class="tui-good">Focusa Desktop is connected read-only.</span>
-<span class="tui-dim">Use the app-wide switch to replace this entire inner surface with Mission Canvas.</span></pre>
-      </section>
+      <AgentTuiSurface />
     {:else}
     <section class="workspace-heading">
       <div>
