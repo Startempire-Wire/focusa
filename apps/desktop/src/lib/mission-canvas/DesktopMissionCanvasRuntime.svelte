@@ -19,6 +19,9 @@
     registry: ContributionRendererRegistry;
   } = $props();
 
+  const PROFILE_SELECT_OPERATION = 'focusa.mission_canvas.profile.select';
+  const ACTIVITY_SELECT_OPERATION = 'focusa.mission_canvas.activity.select';
+  const LAYOUT_MUTATE_OPERATION = 'focusa.mission_canvas.layout.mutate';
   const controller = new MissionCanvasProjectionController((exactScope) => client.projectionGet({ scope: exactScope }));
   let activities = $state<ActivityMode[]>([]);
   let profiles = $state<WorkspaceProfile[]>([]);
@@ -49,8 +52,20 @@
     return () => { controlsGeneration += 1; };
   });
 
+  function operationEnabled(operationId: string, targetContributionId?: string): boolean {
+    const state = controller.state;
+    if (state.kind !== 'ready' && state.kind !== 'refreshing' && state.kind !== 'stale') return false;
+    return state.projection.operation_bindings.some((binding) =>
+      binding.operation_id === operationId
+      && binding.enabled
+      && !binding.disabled_reason_ref
+      && binding.authority_ref.length > 0
+      && (!targetContributionId || binding.target_contribution_id === targetContributionId)
+    );
+  }
+
   async function selectActivity(activity: ActivityMode): Promise<void> {
-    if (!scope) return;
+    if (!scope || !operationEnabled(ACTIVITY_SELECT_OPERATION)) return;
     try {
       const projection = await client.activitySelect({ scope, activity_mode_id: activity.activity_mode_id });
       controller.accept(scope, projection);
@@ -60,7 +75,7 @@
   }
 
   async function selectProfile(profile: WorkspaceProfile): Promise<void> {
-    if (!scope) return;
+    if (!scope || !operationEnabled(PROFILE_SELECT_OPERATION)) return;
     try {
       const projection = await client.profileSelect({ scope, profile_id: profile.profile_id });
       controller.accept(scope, projection);
@@ -70,7 +85,7 @@
   }
 
   async function selectTab(contributionId: string): Promise<void> {
-    if (!scope) return;
+    if (!scope || !operationEnabled(LAYOUT_MUTATE_OPERATION, contributionId)) return;
     const state = controller.state;
     if (state.kind !== 'ready' && state.kind !== 'stale') return;
     const commandId = crypto.randomUUID();
@@ -114,20 +129,20 @@
 </script>
 
 <div class="desktop-canvas-runtime" data-runtime-state={controller.state.kind}>
-  {#if activities.length > 1 || profiles.length > 1}
+  {#if (activities.length > 1 && operationEnabled(ACTIVITY_SELECT_OPERATION)) || (profiles.length > 1 && operationEnabled(PROFILE_SELECT_OPERATION))}
     <header class="workspace-controls">
-      <WorkspaceProfileSelector {profiles} activeProfileId={controller.state.kind === 'ready' || controller.state.kind === 'refreshing' || controller.state.kind === 'stale' ? controller.state.projection.workspace_profile_id : ''} onSelect={(profile) => void selectProfile(profile)}/>
-      <ActivityNavigation {activities} activeActivityModeId={controller.state.kind === 'ready' || controller.state.kind === 'refreshing' || controller.state.kind === 'stale' ? controller.state.projection.activity_mode_id : ''} onSelect={(activity) => void selectActivity(activity)}/>
+      <WorkspaceProfileSelector profiles={operationEnabled(PROFILE_SELECT_OPERATION) ? profiles : []} activeProfileId={controller.state.kind === 'ready' || controller.state.kind === 'refreshing' || controller.state.kind === 'stale' ? controller.state.projection.workspace_profile_id : ''} onSelect={(profile) => void selectProfile(profile)}/>
+      <ActivityNavigation activities={operationEnabled(ACTIVITY_SELECT_OPERATION) ? activities : []} activeActivityModeId={controller.state.kind === 'ready' || controller.state.kind === 'refreshing' || controller.state.kind === 'stale' ? controller.state.projection.activity_mode_id : ''} onSelect={(activity) => void selectActivity(activity)}/>
     </header>
   {/if}
   {#if controller.state.kind === 'ready'}
-    <MissionCanvasRenderer projection={controller.state.projection} {registry} onSelectTab={(id) => void selectTab(id)}/>
+    <MissionCanvasRenderer projection={controller.state.projection} {registry} onSelectTab={operationEnabled(LAYOUT_MUTATE_OPERATION) ? (id) => void selectTab(id) : undefined}/>
   {:else if controller.state.kind === 'refreshing'}
     <div class="state-banner" role="status">Refreshing canonical workspace…</div>
-    <MissionCanvasRenderer projection={controller.state.projection} {registry} onSelectTab={(id) => void selectTab(id)}/>
+    <MissionCanvasRenderer projection={controller.state.projection} {registry} onSelectTab={operationEnabled(LAYOUT_MUTATE_OPERATION) ? (id) => void selectTab(id) : undefined}/>
   {:else if controller.state.kind === 'stale'}
     <div class="state-banner" role="status">{controller.state.reason}</div>
-    <MissionCanvasRenderer projection={controller.state.projection} {registry} onSelectTab={(id) => void selectTab(id)}/>
+    <MissionCanvasRenderer projection={controller.state.projection} {registry} onSelectTab={operationEnabled(LAYOUT_MUTATE_OPERATION) ? (id) => void selectTab(id) : undefined}/>
   {:else if controller.state.kind === 'loading'}
     <div class="state-message" role="status">Loading canonical workspace…</div>
   {:else if controller.state.kind === 'blocked' || controller.state.kind === 'error'}
