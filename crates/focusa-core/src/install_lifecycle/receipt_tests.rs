@@ -68,13 +68,15 @@ fn adapter() -> AdapterEntitlementPosture {
     AdapterEntitlementPosture {
         schema_version: "focusa.adapter_entitlement_posture.v1".into(),
         product: "uiai-engine".into(),
-        lease_id: "lease:evaluation:001".into(),
-        lease_sequence: 11,
+        lease_id: "lease:uiai:001".into(),
+        lease_sequence: 3,
         product_granted: true,
         required_features_granted: true,
+        parent_lease_digest: digest('a'),
+        child_token_id: "child-token:001".into(),
         child_token_audience: Some("uiai-engine:node:evaluation:001".into()),
         child_token_expires_at: Some(time("2026-08-05T12:15:00Z")),
-        entitlement_digest: digest('c'),
+        entitlement_digest: digest('f'),
     }
 }
 
@@ -171,9 +173,9 @@ fn blocked_or_interrupted_receipt_cannot_claim_product_ready() {
 }
 
 #[test]
-fn adapter_posture_must_match_authority_lease_sequence_and_digest() {
+fn adapter_posture_must_match_parent_authority_digest() {
     let mut mismatch = adapter();
-    mismatch.lease_sequence += 1;
+    mismatch.parent_lease_digest = digest('0');
     assert_eq!(
         LifecycleReceiptV1::from_acceptance(
             "receipt:mismatch",

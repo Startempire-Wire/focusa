@@ -178,12 +178,10 @@ impl LifecycleReceiptV1 {
             posture
                 .validate()
                 .map_err(|_| LifecycleReceiptError::AdapterMismatch)?;
-            if posture.lease_id != self.lease_id.as_deref().unwrap_or_default()
-                || Some(posture.lease_sequence) != self.lease_sequence
-                || self
-                    .feature_grants_digest
-                    .as_deref()
-                    .is_some_and(|digest| posture.entitlement_digest != digest)
+            if self
+                .lease_payload_digest
+                .as_deref()
+                .is_none_or(|digest| posture.parent_lease_digest != digest)
             {
                 return Err(LifecycleReceiptError::AdapterMismatch);
             }

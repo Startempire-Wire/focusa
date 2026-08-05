@@ -162,6 +162,22 @@ fn lifecycle_entitlement_schema_v1() -> String {
     "focusa.lifecycle_entitlement_binding.v1".into()
 }
 
+fn entitlement_snapshot_ready(
+    snapshot: &focusa_license::authority::EntitlementSnapshot,
+    now: DateTime<Utc>,
+) -> bool {
+    match snapshot.state {
+        focusa_license::authority::EntitlementState::Active => {
+            snapshot.expires_at.is_some_and(|expiry| expiry > now)
+        }
+        focusa_license::authority::EntitlementState::OfflineGrace => snapshot
+            .offline_grace_until
+            .is_some_and(|expiry| expiry > now),
+        focusa_license::authority::EntitlementState::Unactivated
+        | focusa_license::authority::EntitlementState::RecoveryOnly => false,
+    }
+}
+
 fn adapter_entitlement_schema_v1() -> String {
     "focusa.adapter_entitlement_posture.v1".into()
 }
@@ -317,6 +333,10 @@ pub struct AdapterEntitlementPosture {
     pub lease_sequence: u64,
     pub product_granted: bool,
     pub required_features_granted: bool,
+    #[serde(default)]
+    pub parent_lease_digest: String,
+    #[serde(default)]
+    pub child_token_id: String,
     pub child_token_audience: Option<String>,
     pub child_token_expires_at: Option<DateTime<Utc>>,
     pub entitlement_digest: String,
@@ -328,12 +348,17 @@ impl AdapterEntitlementPosture {
             || self.product.trim().is_empty()
             || self.lease_id.trim().is_empty()
             || self.lease_sequence == 0
+            || !self.parent_lease_digest.starts_with("sha256:")
+            || self.parent_lease_digest.len() != 71
+            || self.child_token_id.trim().is_empty()
             || !self.entitlement_digest.starts_with("sha256:")
             || self.entitlement_digest.len() != 71
             || self
                 .child_token_audience
                 .as_ref()
                 .is_some_and(|audience| audience.trim().is_empty())
+            || (self.is_entitled()
+                && (self.child_token_audience.is_none() || self.child_token_expires_at.is_none()))
         {
             return Err(InstallLifecycleValidationError::AdapterEntitlementPostureIncomplete);
         }
@@ -342,5 +367,53 @@ impl AdapterEntitlementPosture {
 
     pub fn is_entitled(&self) -> bool {
         self.product_granted && self.required_features_granted
+    }
+
+    pub fn from_independent_uiai_authority(
+        focusa_parent: &focusa_license::authority::EntitlementSnapshot,
+        uiai_grant: &focusa_license::authority::EntitlementSnapshot,
+        request: &focusa_license::uiai_child_token::UiaiChildTokenRequest,
+        receipt: &focusa_license::uiai_child_token::UiaiChildTokenReceipt,
+        now: DateTime<Utc>,
+    ) -> Result<Self, InstallLifecycleValidationError> {
+        let focusa_ready = entitlement_snapshot_ready(focusa_parent, now)
+            && focusa_parent.product == "focusa"
+            && focusa_parent.node_id == request.node_id
+            && focusa_parent.lease_id.as_deref() == Some(request.parent_lease_id.as_str())
+            && focusa_parent.sequence == Some(request.parent_lease_sequence)
+            && focusa_parent.lease_digest.as_deref() == Some(request.parent_lease_digest.as_str());
+        let uiai_ready = entitlement_snapshot_ready(uiai_grant, now)
+            && uiai_grant.product == "uiai-engine"
+            && uiai_grant.node_id == request.node_id
+            && uiai_grant.lease_id.as_deref() == Some(request.uiai_grant_lease_id.as_str())
+            && uiai_grant.sequence == Some(request.uiai_grant_sequence)
+            && request
+                .requested_features
+                .iter()
+                .all(|feature| uiai_grant.features.get(feature).copied().unwrap_or(false));
+        let child_ready = receipt.request_id == request.request_id
+            && receipt.parent_lease_sequence == request.parent_lease_sequence
+            && receipt.uiai_grant_sequence == request.uiai_grant_sequence
+            && receipt.feature_count == request.requested_features.len()
+            && receipt.limit_count == request.requested_limits.len()
+            && receipt.expires_at > now;
+        if !focusa_ready || !uiai_ready || !child_ready {
+            return Err(InstallLifecycleValidationError::AdapterEntitlementPostureIncomplete);
+        }
+        let posture = Self {
+            schema_version: adapter_entitlement_schema_v1(),
+            product: "uiai-engine".into(),
+            lease_id: request.uiai_grant_lease_id.clone(),
+            lease_sequence: request.uiai_grant_sequence,
+            product_granted: true,
+            required_features_granted: true,
+            parent_lease_digest: request.parent_lease_digest.clone(),
+            child_token_id: receipt.token_id.clone(),
+            child_token_audience: Some(receipt.audience.clone()),
+            child_token_expires_at: Some(receipt.expires_at),
+            entitlement_digest: uiai_grant.lease_digest.clone().unwrap_or_default(),
+        };
+        posture.validate()?;
+        Ok(posture)
     }
 }
