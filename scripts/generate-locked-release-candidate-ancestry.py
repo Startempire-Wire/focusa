@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 AUDIT = ROOT / "release-proof" / "audit"
 INVENTORY = AUDIT / "next-locked-release-governance-inventory.json"
 RECONCILIATION = AUDIT / "next-locked-release-governance-reconciliation.json"
+TECHNICAL_CLOSURE = AUDIT / "next-locked-release-technical-closure-gate.json"
 EVIDENCE_LINKS = AUDIT / "next-locked-release-governance-evidence-links.json"
 ASSET_SNAPSHOT = AUDIT / "next-locked-release-v09143-published-assets.json"
 OUTPUT = AUDIT / "next-locked-release-candidate-ancestry.json"
@@ -120,7 +121,13 @@ def build(candidate_ref: str, audit_ref: str) -> dict:
     head = git("rev-parse", f"{audit_ref}^{{commit}}")
     inventory = json.loads(INVENTORY.read_text())
     reconciliation = json.loads(RECONCILIATION.read_text())
+    technical_closure = json.loads(TECHNICAL_CLOSURE.read_text())
     evidence_links = json.loads(EVIDENCE_LINKS.read_text())
+    if (
+        technical_closure["reconciliation_digest"]
+        != reconciliation["reconciliation_digest"]
+    ):
+        raise SystemExit("technical closure gate does not bind current reconciliation")
     assets = json.loads(ASSET_SNAPSHOT.read_text())
 
     tag_records = {}
@@ -176,8 +183,6 @@ def build(candidate_ref: str, audit_ref: str) -> dict:
     versions = source_versions(candidate)
     version_agreement = len(set(versions.values())) == 1
     published_version = "0.9.143"
-    if set(versions.values()) != {published_version}:
-        ancestry_errors.append("candidate_source_version_does_not_match_immutable_tag")
 
     version_module = load_module(
         ROOT / "scripts" / "select-release-version.py", "focusa_version_selection"
@@ -185,6 +190,12 @@ def build(candidate_ref: str, audit_ref: str) -> dict:
     all_tags = git("tag", "--list").splitlines()
     next_selection = version_module.select_version("0.9", None, all_tags)
     next_stable_tag = f"v0.9.{next_selection['selected_patch']}"
+    next_stable_version = next_stable_tag.removeprefix("v")
+    candidate_versions = set(versions.values())
+    if not version_agreement:
+        ancestry_errors.append("candidate_source_versions_disagree")
+    elif candidate_versions not in ({published_version}, {next_stable_version}):
+        ancestry_errors.append("candidate_source_version_not_immutable_or_next_stable")
 
     asset_module = load_module(
         ROOT / "scripts" / "verify-canonical-release-assets.py",
@@ -230,12 +241,15 @@ def build(candidate_ref: str, audit_ref: str) -> dict:
             pr_records.append({"pr": number, "commit": commit, "subject": subject})
 
     release_blockers = []
-    if missing_assets:
+    source_is_immutable_version = candidate_versions == {published_version}
+    if missing_assets and source_is_immutable_version:
         release_blockers.append("immutable_v0.9.143_missing_required_assets")
-    if versions == {key: published_version for key, _, _ in VERSION_PATHS}:
+    if source_is_immutable_version:
         release_blockers.append(f"source_version_must_advance_to_{next_stable_tag}")
-    if reconciliation["gaps"]["pending_technical_acceptance_ids"]:
+    if technical_closure["technically_pending_count"]:
         release_blockers.append("technical_acceptance_pending")
+    if technical_closure["invalid_closed_count"]:
+        release_blockers.append("invalid_technical_closure")
 
     audit_errors = (
         ancestry_errors
@@ -276,10 +290,15 @@ def build(candidate_ref: str, audit_ref: str) -> dict:
             "workset_id": inventory["workset_id"],
             "inventory_digest": inventory["inventory_digest"],
             "reconciliation_digest": reconciliation["reconciliation_digest"],
+            "technical_closure_gate_digest": technical_closure["gate_digest"],
             "mapping_count": reconciliation["admitted_mapping_count"],
-            "pending_technical_acceptance_count": len(
-                reconciliation["gaps"]["pending_technical_acceptance_ids"]
-            ),
+            "technically_accepted_count": technical_closure[
+                "technically_accepted_count"
+            ],
+            "pending_technical_acceptance_count": technical_closure[
+                "technically_pending_count"
+            ],
+            "invalid_closed_count": technical_closure["invalid_closed_count"],
         },
         "excluded_post_release_worksets": sorted(excluded_ids),
         "excluded_workset_collisions": excluded_workset_collisions,

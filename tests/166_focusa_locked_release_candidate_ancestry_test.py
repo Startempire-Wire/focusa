@@ -56,15 +56,13 @@ assert "focusa-generated-clients-v0.9.143.tar.gz" in missing
 assert "focusa-installer-v0.9.143.ps1" in missing
 assert all("windows" not in row["name"].lower() for row in assets["assets"])
 
-assert set(ancestry["source_versions"].values()) == {"0.9.143"}
+assert set(ancestry["source_versions"].values()) == {"0.9.144"}
 assert ancestry["source_version_agreement"] is True
 assert ancestry["next_version_selection"]["selected_tag"] == "v0.9.144-dev"
 assert ancestry["next_stable_tag"] == "v0.9.144"
-assert {
-    "immutable_v0.9.143_missing_required_assets",
-    "source_version_must_advance_to_v0.9.144",
-    "technical_acceptance_pending",
-}.issubset(ancestry["release_blockers"])
+assert ancestry["release_blockers"] == ["technical_acceptance_pending"]
+assert "immutable_v0.9.143_missing_required_assets" not in ancestry["release_blockers"]
+assert "source_version_must_advance_to_v0.9.144" not in ancestry["release_blockers"]
 
 for channel in ("stable", "dev"):
     assert ancestry["tag_chain"][channel]
@@ -83,6 +81,10 @@ assert any(row["pr"] == 115 for row in ancestry["pull_request_ancestry"])
 assert len(ancestry["excluded_post_release_worksets"]) == 8
 assert ancestry["excluded_workset_collisions"] == []
 assert ancestry["issue_ledger"]["mapping_count"] == 289
+assert ancestry["issue_ledger"]["technically_accepted_count"] == 213
+assert ancestry["issue_ledger"]["pending_technical_acceptance_count"] == 76
+assert ancestry["issue_ledger"]["invalid_closed_count"] == 0
+assert ancestry["issue_ledger"]["technical_closure_gate_digest"].startswith("sha256:")
 
 policy = ancestry["mutation_policy"]
 assert policy == {
