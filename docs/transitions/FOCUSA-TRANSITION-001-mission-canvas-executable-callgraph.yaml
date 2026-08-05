@@ -653,7 +653,7 @@ atomic_tasks:
   - id: UI-014
     parent: MC-080
     title: Render activity navigation from registry
-    status: blocked
+    status: implemented_partial
     depends_on: [UI-004, OPS-006]
     read: [tests/fixtures/spec135-profile-activity-matrix.json]
     targets: [apps/desktop/src/lib/mission-canvas/ActivityNavigation.svelte]
@@ -718,7 +718,7 @@ atomic_tasks:
   - id: UI-019
     parent: MC-130
     title: Implement draft controller
-    status: blocked
+    status: implemented_partial
     depends_on: [UI-003, OPS-018, OPS-019]
     read: [docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md]
     targets: [apps/desktop/src/lib/mission-canvas/draft-controller.ts]
@@ -731,7 +731,7 @@ atomic_tasks:
   - id: UI-020
     parent: MC-130
     title: Render canonical Prompt Editor contribution
-    status: blocked
+    status: implemented_partial
     depends_on: [UI-019, OPS-020]
     read: [docs/contracts/spec135-adaptive-composition.v1.yaml]
     targets: [apps/desktop/src/lib/mission-canvas/contributions/PromptEditorContribution.svelte]
@@ -913,7 +913,7 @@ atomic_tasks:
   - id: PROFILE-001
     parent: MC-140
     title: Render eligible profile selector
-    status: blocked
+    status: implemented_partial
     depends_on: [OPS-003, UI-004]
     read: [docs/135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md]
     targets: [apps/desktop/src/lib/mission-canvas/WorkspaceProfileSelector.svelte]

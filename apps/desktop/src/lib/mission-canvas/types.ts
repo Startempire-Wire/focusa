@@ -1,4 +1,6 @@
 export type {
+  ActivityMode,
+  CanvasDraftState,
   ExactScope,
   GridLayoutNode,
   InspectorLayoutNode,
@@ -8,5 +10,6 @@ export type {
   SingleLayoutNode,
   SplitLayoutNode,
   StackLayoutNode,
-  TabLayoutNode
+  TabLayoutNode,
+  WorkspaceProfile
 } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated';
