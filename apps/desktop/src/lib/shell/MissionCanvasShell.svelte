@@ -1,10 +1,22 @@
 <script lang="ts">
+  import type { MissionCanvasClient } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated';
+  import DesktopMissionCanvasRuntime from '$lib/mission-canvas/DesktopMissionCanvasRuntime.svelte';
   import MissionCanvasRenderer from '$lib/mission-canvas/MissionCanvasRenderer.svelte';
   import type { ContributionRendererRegistry } from '$lib/mission-canvas/contribution-renderers';
-  import type { ResolvedWorkspaceProjection } from '$lib/mission-canvas/types';
+  import type { ExactScope, ResolvedWorkspaceProjection } from '$lib/mission-canvas/types';
   import Icon, { type IconName } from '$lib/ui/Icon.svelte';
 
-  let { projection, rendererRegistry }: { projection?: ResolvedWorkspaceProjection; rendererRegistry?: ContributionRendererRegistry } = $props();
+  let {
+    projection,
+    scope,
+    client,
+    rendererRegistry
+  }: {
+    projection?: ResolvedWorkspaceProjection;
+    scope?: ExactScope;
+    client?: MissionCanvasClient;
+    rendererRegistry?: ContributionRendererRegistry;
+  } = $props();
   const surfaceTabs = ['Overview', 'Pi', 'UIAI Browser', 'Silent Session', 'Docs', 'Research', 'Evidence', 'Providers', 'Custom'];
   const activityModes = ['Overview', 'Context', 'Role', 'Interview', 'Spec', 'Tasks / Work', 'Sessions', 'Documents', 'Research', 'Evidence', 'History', 'Controls'];
   const activityIcons: Record<string, IconName> = { Overview: 'deck', Context: 'context', Role: 'scope', Interview: 'sessions', Spec: 'documents', 'Tasks / Work': 'target', Sessions: 'sessions', Documents: 'documents', Research: 'research', Evidence: 'evidence', History: 'route', Controls: 'settings' };
@@ -12,7 +24,11 @@
   let activeMode = $state('Overview');
 </script>
 
-{#if projection && rendererRegistry}
+{#if scope && client && rendererRegistry}
+  <section class="canvas-live" aria-label="Focusa Mission Canvas workspace">
+    <DesktopMissionCanvasRuntime {scope} {client} registry={rendererRegistry}/>
+  </section>
+{:else if projection && rendererRegistry}
   <section class="canvas-live" aria-label="Focusa Mission Canvas workspace">
     <MissionCanvasRenderer {projection} registry={rendererRegistry}/>
   </section>
