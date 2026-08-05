@@ -16,4 +16,4 @@
   </article>
 {/snippet}
 
-<MissionCanvasFrame {projection} {renderContribution}/>
+<MissionCanvasFrame {projection} {renderContribution} onSelectTab={() => {}}/>

@@ -5,10 +5,12 @@
 
   let {
     projection,
-    renderContribution
+    renderContribution,
+    onSelectTab
   }: {
     projection: ResolvedWorkspaceProjection;
     renderContribution: Snippet<[ResolvedContribution]>;
+    onSelectTab?: (contributionId: string) => void;
   } = $props();
 
   const contributions = $derived(
@@ -24,7 +26,7 @@
   data-projection-revision={projection.projection_revision}
   data-layout-revision={projection.layout_revision}
 >
-  <ProjectionLayoutRenderer node={projection.layout_tree} {contributions} {renderContribution}/>
+  <ProjectionLayoutRenderer node={projection.layout_tree} {contributions} {renderContribution} {onSelectTab}/>
 </section>
 
 <style>

@@ -69,6 +69,28 @@
     }
   }
 
+  async function selectTab(contributionId: string): Promise<void> {
+    if (!scope) return;
+    const state = controller.state;
+    if (state.kind !== 'ready' && state.kind !== 'stale') return;
+    const commandId = crypto.randomUUID();
+    try {
+      await client.layoutMutate({
+        action: 'set_active_tab',
+        attachment_id: scope.attachment_id,
+        command_id: commandId,
+        expected_layout_revision: state.projection.layout_revision,
+        expected_projection_revision: state.projection.projection_revision,
+        idempotency_key: commandId,
+        scope,
+        target_contribution_id: contributionId
+      });
+      await controller.load(scope);
+    } catch (error) {
+      controller.markStale(error instanceof Error ? error.message : 'tab_selection_failed');
+    }
+  }
+
   $effect(() => {
     if (!scope) return;
     const boundScope = scope;
@@ -99,13 +121,13 @@
     </header>
   {/if}
   {#if controller.state.kind === 'ready'}
-    <MissionCanvasRenderer projection={controller.state.projection} {registry}/>
+    <MissionCanvasRenderer projection={controller.state.projection} {registry} onSelectTab={(id) => void selectTab(id)}/>
   {:else if controller.state.kind === 'refreshing'}
     <div class="state-banner" role="status">Refreshing canonical workspace…</div>
-    <MissionCanvasRenderer projection={controller.state.projection} {registry}/>
+    <MissionCanvasRenderer projection={controller.state.projection} {registry} onSelectTab={(id) => void selectTab(id)}/>
   {:else if controller.state.kind === 'stale'}
     <div class="state-banner" role="status">{controller.state.reason}</div>
-    <MissionCanvasRenderer projection={controller.state.projection} {registry}/>
+    <MissionCanvasRenderer projection={controller.state.projection} {registry} onSelectTab={(id) => void selectTab(id)}/>
   {:else if controller.state.kind === 'loading'}
     <div class="state-message" role="status">Loading canonical workspace…</div>
   {:else if controller.state.kind === 'blocked' || controller.state.kind === 'error'}

@@ -6,22 +6,20 @@
   let {
     node,
     contributions,
-    renderContribution
+    renderContribution,
+    onSelectTab
   }: {
     node: LayoutNode;
     contributions: ReadonlyMap<string, ResolvedContribution>;
     renderContribution: Snippet<[ResolvedContribution]>;
+    onSelectTab?: (contributionId: string) => void;
   } = $props();
-
-  let activeTabByNode = $state<Record<string, string>>({});
 
   function contribution(id: string): ResolvedContribution | undefined {
     return contributions.get(id);
   }
 
-  function activeTab(nodeId: string, ids: string[], canonicalActive: string): string | undefined {
-    const selected = activeTabByNode[nodeId];
-    if (selected && ids.includes(selected)) return selected;
+  function activeTab(ids: string[], canonicalActive: string): string | undefined {
     if (ids.includes(canonicalActive)) return canonicalActive;
     return ids[0];
   }
@@ -43,41 +41,43 @@
   >
     {#each node.children as child, index (`${child.node_id}:${index}`)}
       <div class="split-child" class:first={index === 0}>
-        <ProjectionLayoutRenderer node={child} {contributions} {renderContribution}/>
+        <ProjectionLayoutRenderer node={child} {contributions} {renderContribution} {onSelectTab}/>
       </div>
     {/each}
   </div>
 {:else if node.kind === 'stack'}
   <div class="layout-stack" data-layout-node={node.node_id} data-gap-token={node.gap_token ?? 'default'}>
     {#each node.children as child (`${child.node_id}`)}
-      <ProjectionLayoutRenderer node={child} {contributions} {renderContribution}/>
+      <ProjectionLayoutRenderer node={child} {contributions} {renderContribution} {onSelectTab}/>
     {/each}
   </div>
 {:else if node.kind === 'grid'}
   <div class="layout-grid" data-layout-node={node.node_id} style={`--layout-columns:${Math.max(1, node.columns)}`}>
     {#each node.children as child (`${child.node_id}`)}
-      <ProjectionLayoutRenderer node={child} {contributions} {renderContribution}/>
+      <ProjectionLayoutRenderer node={child} {contributions} {renderContribution} {onSelectTab}/>
     {/each}
   </div>
 {:else if node.kind === 'tabs'}
   {@const availableIds = node.contribution_ids.filter((id) => contributions.has(id))}
-  {@const selectedId = activeTab(node.node_id, availableIds, node.active_contribution_id)}
+  {@const selectedId = activeTab(availableIds, node.active_contribution_id)}
   {#if selectedId}
     {@const selected = contribution(selectedId)}
-    <div class="layout-tabs" data-layout-node={node.node_id}>
-      <div class="tab-list" role="tablist" aria-label="Canvas contribution tabs">
-        {#each availableIds as id}
-          {@const item = contribution(id)}
-          {#if item}
-            <button
-              type="button"
-              role="tab"
-              aria-selected={id === selectedId}
-              onclick={() => (activeTabByNode[node.node_id] = id)}
-            >{item.accessibility.label}</button>
-          {/if}
-        {/each}
-      </div>
+    <div class="layout-tabs" class:interactive={Boolean(onSelectTab)} data-layout-node={node.node_id}>
+      {#if onSelectTab}
+        <div class="tab-list" role="tablist" aria-label="Canvas contribution tabs">
+          {#each availableIds as id}
+            {@const item = contribution(id)}
+            {#if item}
+              <button
+                type="button"
+                role="tab"
+                aria-selected={id === selectedId}
+                onclick={() => onSelectTab(id)}
+              >{item.accessibility.label}</button>
+            {/if}
+          {/each}
+        </div>
+      {/if}
       {#if selected}
         <div role="tabpanel" data-contribution-id={selected.contribution_id}>
           {@render renderContribution(selected)}
@@ -93,7 +93,7 @@
     data-layout-node={node.node_id}
     style={`--inspector-span:${Math.max(1, node.span ?? 4)}`}
   >
-    <main><ProjectionLayoutRenderer node={node.primary} {contributions} {renderContribution}/></main>
+    <main><ProjectionLayoutRenderer node={node.primary} {contributions} {renderContribution} {onSelectTab}/></main>
     {#if inspectorItems.length > 0}
       <aside aria-label="Canvas inspector">
         {#each inspectorItems as item (item.contribution_id)}
@@ -111,7 +111,8 @@
   .split-child{min-width:0;min-height:0}
   .layout-stack{min-width:0;min-height:0;display:grid;gap:var(--layout-cluster-gap)}
   .layout-grid{min-width:0;min-height:0;display:grid;grid-template-columns:repeat(var(--layout-columns),minmax(0,1fr));gap:var(--layout-cluster-gap)}
-  .layout-tabs{min-width:0;min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr);gap:var(--space-2)}
+  .layout-tabs{min-width:0;min-height:0;display:grid;grid-template-rows:minmax(0,1fr)}
+  .layout-tabs.interactive{grid-template-rows:auto minmax(0,1fr);gap:var(--space-2)}
   .tab-list{display:flex;align-items:center;gap:var(--space-1);overflow-x:auto}
   .tab-list button{min-height:28px;padding:0 var(--space-2);border:1px solid var(--color-border);border-radius:var(--radius-control);color:var(--color-text-tertiary);background:transparent;font:var(--type-caption);white-space:nowrap;cursor:pointer}
   .tab-list button[aria-selected='true']{color:var(--color-text);border-color:var(--color-border-strong);background:var(--color-raised)}

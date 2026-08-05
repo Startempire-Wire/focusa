@@ -5,10 +5,12 @@
 
   let {
     projection,
-    registry
+    registry,
+    onSelectTab
   }: {
     projection: ResolvedWorkspaceProjection;
     registry: ContributionRendererRegistry;
+    onSelectTab?: (contributionId: string) => void;
   } = $props();
 
   const unavailable = $derived(
@@ -35,7 +37,7 @@
     </ul>
   </section>
 {:else}
-  <MissionCanvasFrame {projection} {renderContribution}/>
+  <MissionCanvasFrame {projection} {renderContribution} {onSelectTab}/>
 {/if}
 
 <style>
