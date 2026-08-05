@@ -1,0 +1,123 @@
+schema: focusa.feature_registry.v1
+product: focusa
+features:
+  - key: focusa.agent.parallelism
+    product: focusa
+    operation_class: execute
+    recovery_posture: entitlement_required
+    limit_bucket: parallel_agents
+    limit_unit: concurrent_agent
+    discoverability: visible
+    owner: focusa-runtime
+  - key: focusa.agent.silent_sessions
+    product: focusa
+    operation_class: execute
+    recovery_posture: entitlement_required
+    limit_bucket: silent_session_runs
+    limit_unit: session_run
+    discoverability: visible
+    owner: focusa-runtime
+  - key: focusa.core.evidence
+    product: focusa
+    operation_class: write
+    recovery_posture: entitlement_required
+    limit_bucket: evidence_records
+    limit_unit: evidence_record
+    discoverability: visible
+    owner: focusa-core
+  - key: focusa.core.mission
+    product: focusa
+    operation_class: write
+    recovery_posture: entitlement_required
+    limit_bucket: missions
+    limit_unit: mission
+    discoverability: visible
+    owner: focusa-core
+  - key: focusa.core.workpoint
+    product: focusa
+    operation_class: write
+    recovery_posture: entitlement_required
+    limit_bucket: workpoints
+    limit_unit: workpoint
+    discoverability: visible
+    owner: focusa-core
+  - key: focusa.export.packaged
+    product: focusa
+    operation_class: export
+    recovery_posture: entitlement_required
+    limit_bucket: export_jobs
+    limit_unit: export_job
+    discoverability: visible
+    owner: focusa-core
+  - key: focusa.install.channel.nightly
+    product: focusa
+    operation_class: install
+    recovery_posture: entitlement_required
+    limit_bucket: null
+    limit_unit: null
+    discoverability: advanced
+    owner: focusa-release
+  - key: focusa.install.channel.preview
+    product: focusa
+    operation_class: install
+    recovery_posture: entitlement_required
+    limit_bucket: null
+    limit_unit: null
+    discoverability: advanced
+    owner: focusa-release
+  - key: focusa.install.channel.stable
+    product: focusa
+    operation_class: install
+    recovery_posture: entitlement_required
+    limit_bucket: null
+    limit_unit: null
+    discoverability: visible
+    owner: focusa-release
+  - key: focusa.release.proof
+    product: focusa
+    operation_class: execute
+    recovery_posture: entitlement_required
+    limit_bucket: release_proof_runs
+    limit_unit: proof_run
+    discoverability: advanced
+    owner: focusa-release
+  - key: focusa.remote.stream
+    product: focusa
+    operation_class: execute
+    recovery_posture: entitlement_required
+    limit_bucket: remote_stream_minutes
+    limit_unit: minute
+    discoverability: visible
+    owner: focusa-runtime
+  - key: focusa.repair.execute
+    product: focusa
+    operation_class: recovery
+    recovery_posture: always_available
+    limit_bucket: null
+    limit_unit: null
+    discoverability: advanced
+    owner: focusa-core
+  - key: focusa.team.multi_operator
+    product: focusa
+    operation_class: admin
+    recovery_posture: entitlement_required
+    limit_bucket: team_operators
+    limit_unit: operator
+    discoverability: visible
+    owner: focusa-runtime
+  - key: focusa.update.apply
+    product: focusa
+    operation_class: update
+    recovery_posture: entitlement_required
+    limit_bucket: update_runs
+    limit_unit: update
+    discoverability: visible
+    owner: focusa-release
+  - key: focusa.update.unattended
+    product: focusa
+    operation_class: update
+    recovery_posture: entitlement_required
+    limit_bucket: unattended_update_runs
+    limit_unit: update
+    discoverability: advanced
+    owner: focusa-release

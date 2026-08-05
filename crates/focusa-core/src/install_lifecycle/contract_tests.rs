@@ -41,9 +41,9 @@ fn first_mission_entitlement() -> FirstMissionEntitlementReservation {
             },
             granted_products: ["focusa".into()].into_iter().collect(),
             granted_features: [
-                "focusa.mission.create".into(),
-                "focusa.workpoint.create".into(),
-                "focusa.evidence.capture".into(),
+                "focusa.core.mission".into(),
+                "focusa.core.workpoint".into(),
+                "focusa.core.evidence".into(),
             ]
             .into_iter()
             .collect(),

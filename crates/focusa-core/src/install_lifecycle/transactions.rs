@@ -121,9 +121,9 @@ pub struct FirstMissionEntitlementReservation {
 impl FirstMissionEntitlementReservation {
     pub fn validate_at(&self, now: DateTime<Utc>) -> Result<(), InstallLifecycleValidationError> {
         let required_features = BTreeSet::from([
-            "focusa.mission.create".to_string(),
-            "focusa.workpoint.create".to_string(),
-            "focusa.evidence.capture".to_string(),
+            "focusa.core.mission".to_string(),
+            "focusa.core.workpoint".to_string(),
+            "focusa.core.evidence".to_string(),
         ]);
         if self.schema_version != "focusa.first_mission_entitlement_reservation.v1"
             || !self.entitlement.grants("focusa", &required_features, now)

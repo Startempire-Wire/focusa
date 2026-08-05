@@ -11,6 +11,7 @@ pub mod authority_client;
 pub mod authority_credentials;
 pub mod authority_http;
 pub mod authority_store;
+pub mod feature_decision;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
