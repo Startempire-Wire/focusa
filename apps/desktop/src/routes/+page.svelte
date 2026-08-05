@@ -7,6 +7,7 @@
   import { createBrowserPreviewClient, executeBrowserPreviewOperation } from '$lib/mission-canvas/browser-preview-runtime';
   import AgentTuiSurface from '$lib/shell/AgentTuiSurface.svelte';
   import ContextControlPanel from '$lib/shell/ContextControlPanel.svelte';
+  import BrowserPreviewWorkspace from '$lib/shell/BrowserPreviewWorkspace.svelte';
   import { readSidebarPreferences, saveSidebarPreferences, type DesktopSidebarMode } from '$lib/shell/sidebar-preferences';
   import Icon, { type IconName } from '$lib/ui/Icon.svelte';
   import IconButton from '$lib/ui/IconButton.svelte';
@@ -211,6 +212,8 @@
         client={previewClient}
         executeContributionOperation={previewProjection ? executeBrowserPreviewOperation : undefined}
       />
+    {:else if import.meta.env.DEV && shellMode === 'browser preview'}
+      <BrowserPreviewWorkspace workspace={activeWorkspace}/>
     {:else}
       <section class="workspace-heading">
         <div>
