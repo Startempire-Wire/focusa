@@ -1364,7 +1364,7 @@ integration_tasks:
   - id: LIVE-004
     parent: MC-220
     title: Restore projection after Desktop restart
-    status: blocked
+    status: implemented_partial
     depends_on: [LIVE-001, LIVE-003, PROFILE-002, PTY-010]
     read: [docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md]
     targets: [Desktop restoration controller]

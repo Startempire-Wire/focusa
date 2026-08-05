@@ -2,11 +2,12 @@
   import type { MissionCanvasClient } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated';
   import ActivityNavigation from './ActivityNavigation.svelte';
   import type { ContributionRendererRegistry } from './contribution-renderers';
-  import { MissionCanvasEventClient, SessionEventCursorStore } from './event-client';
+  import { LocalEventCursorStore, MissionCanvasEventClient } from './event-client';
   import { MissionCanvasInvalidationController } from './invalidation-controller';
   import MissionCanvasRenderer from './MissionCanvasRenderer.svelte';
+  import OperationConfirmationDialog from './OperationConfirmationDialog.svelte';
   import { MissionCanvasProjectionController } from './projection-controller.svelte';
-  import type { ActivityMode, ExactScope, WorkspaceProfile } from './types';
+  import type { ActivityMode, ExactScope, OperationBinding, WorkspaceProfile } from './types';
   import WorkspaceProfileSelector from './WorkspaceProfileSelector.svelte';
 
   let {
@@ -26,6 +27,7 @@
   let activities = $state<ActivityMode[]>([]);
   let profiles = $state<WorkspaceProfile[]>([]);
   let mutationInFlight = $state(false);
+  let pendingConfirmation = $state.raw<{ binding: OperationBinding; subjectLabel: string; run: () => Promise<void> }>();
   let controlsGeneration = 0;
 
   $effect(() => {
@@ -53,21 +55,48 @@
     return () => { controlsGeneration += 1; };
   });
 
-  function operationEnabled(operationId: string, targetContributionId?: string): boolean {
+  function operationBinding(operationId: string, targetContributionId?: string): OperationBinding | undefined {
     const state = controller.state;
-    if (state.kind !== 'ready' && state.kind !== 'refreshing' && state.kind !== 'stale') return false;
-    return state.projection.operation_bindings.some((binding) =>
+    if (state.kind !== 'ready' && state.kind !== 'refreshing' && state.kind !== 'stale') return undefined;
+    return state.projection.operation_bindings.find((binding) =>
       binding.operation_id === operationId
       && binding.enabled
       && !binding.disabled_reason_ref
-      && (!binding.confirmation || binding.confirmation === 'none')
       && binding.authority_ref.length > 0
       && (!targetContributionId || binding.target_contribution_id === targetContributionId)
     );
   }
 
-  async function selectActivity(activity: ActivityMode): Promise<void> {
-    if (!scope || mutationInFlight || !operationEnabled(ACTIVITY_SELECT_OPERATION)) return;
+  function operationEnabled(operationId: string, targetContributionId?: string): boolean {
+    const binding = operationBinding(operationId, targetContributionId);
+    return Boolean(binding && binding.confirmation !== 'preview');
+  }
+
+  function requestOperation(binding: OperationBinding, subjectLabel: string, run: () => Promise<void>): void {
+    if (!binding.confirmation || binding.confirmation === 'none') {
+      void run();
+      return;
+    }
+    pendingConfirmation = { binding, subjectLabel, run };
+  }
+
+  function confirmOperation(): void {
+    const pending = pendingConfirmation;
+    pendingConfirmation = undefined;
+    if (!pending || pending.binding.confirmation !== 'explicit') return;
+    const current = operationBinding(pending.binding.operation_id, pending.binding.target_contribution_id);
+    if (!current || current.authority_ref !== pending.binding.authority_ref || current.confirmation !== 'explicit') return;
+    void pending.run();
+  }
+
+  function selectActivity(activity: ActivityMode): void {
+    const binding = operationBinding(ACTIVITY_SELECT_OPERATION);
+    if (!binding) return;
+    requestOperation(binding, activity.display_name, () => performActivitySelection(activity));
+  }
+
+  async function performActivitySelection(activity: ActivityMode): Promise<void> {
+    if (!scope || mutationInFlight) return;
     const state = controller.state;
     if (state.kind !== 'ready' && state.kind !== 'stale') return;
     const idempotencyKey = crypto.randomUUID();
@@ -87,8 +116,14 @@
     }
   }
 
-  async function selectProfile(profile: WorkspaceProfile): Promise<void> {
-    if (!scope || mutationInFlight || !operationEnabled(PROFILE_SELECT_OPERATION)) return;
+  function selectProfile(profile: WorkspaceProfile): void {
+    const binding = operationBinding(PROFILE_SELECT_OPERATION);
+    if (!binding) return;
+    requestOperation(binding, profile.display_name, () => performProfileSelection(profile));
+  }
+
+  async function performProfileSelection(profile: WorkspaceProfile): Promise<void> {
+    if (!scope || mutationInFlight) return;
     const state = controller.state;
     if (state.kind !== 'ready' && state.kind !== 'stale') return;
     const idempotencyKey = crypto.randomUUID();
@@ -108,14 +143,24 @@
     }
   }
 
-  async function selectTab(contributionId: string): Promise<void> {
-    if (!scope || mutationInFlight || !operationEnabled(LAYOUT_MUTATE_OPERATION, contributionId)) return;
+  function selectTab(contributionId: string): void {
+    const binding = operationBinding(LAYOUT_MUTATE_OPERATION, contributionId);
+    if (!binding) return;
+    const state = controller.state;
+    const subjectLabel = state.kind === 'ready' || state.kind === 'refreshing' || state.kind === 'stale'
+      ? state.projection.eligible_contributions.find((item) => item.contribution_id === contributionId)?.accessibility.label ?? contributionId
+      : contributionId;
+    requestOperation(binding, subjectLabel, () => performTabSelection(contributionId));
+  }
+
+  async function performTabSelection(contributionId: string): Promise<void> {
+    if (!scope || mutationInFlight) return;
     const state = controller.state;
     if (state.kind !== 'ready' && state.kind !== 'stale') return;
     const commandId = crypto.randomUUID();
     mutationInFlight = true;
     try {
-      await client.layoutMutate({
+      const result = await client.layoutMutate({
         action: 'set_active_tab',
         attachment_id: scope.attachment_id,
         command_id: commandId,
@@ -125,6 +170,14 @@
         scope,
         target_contribution_id: contributionId
       });
+      if (!result.accepted) {
+        controller.markStale(result.error_ref ?? 'layout_mutation_rejected');
+        return;
+      }
+      if (result.projection_revision < state.projection.projection_revision || result.layout_revision < state.projection.layout_revision) {
+        controller.markStale('layout_mutation_revision_regressed');
+        return;
+      }
       await controller.load(scope);
     } catch (error) {
       controller.markStale(error instanceof Error ? error.message : 'tab_selection_failed');
@@ -136,7 +189,7 @@
   $effect(() => {
     if (!scope) return;
     const boundScope = scope;
-    const events = new MissionCanvasEventClient(client, boundScope, new SessionEventCursorStore());
+    const events = new MissionCanvasEventClient(client, boundScope, new LocalEventCursorStore());
     const invalidations = new MissionCanvasInvalidationController(() => controller.load(boundScope));
     const unsubscribe = events.subscribe((batch) => {
       const state = controller.state;
@@ -180,6 +233,14 @@
     <div class="state-message" role="status">Loading canonical workspace…</div>
   {:else if controller.state.kind === 'blocked' || controller.state.kind === 'error'}
     <div class="state-message error" role="alert">{controller.state.reason}</div>
+  {/if}
+  {#if pendingConfirmation}
+    <OperationConfirmationDialog
+      binding={pendingConfirmation.binding}
+      subjectLabel={pendingConfirmation.subjectLabel}
+      onConfirm={confirmOperation}
+      onCancel={() => (pendingConfirmation = undefined)}
+    />
   {/if}
 </div>
 

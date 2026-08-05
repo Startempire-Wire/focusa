@@ -84,21 +84,30 @@ export class MissionCanvasEventClient {
   private rejectionReason(event: ProjectionLifecycleEvent): string | undefined {
     if (!sameScope(event.scope, this.scope)) return 'foreign_event_scope';
     if (this.#seenEventIds.has(event.event_id)) return 'duplicate_event';
+    if (event.event_cursor === this.#cursor) return 'duplicate_cursor';
     if (event.projection_revision < this.#lastProjectionRevision) return 'projection_revision_regressed';
     if (event.layout_revision < this.#lastLayoutRevision) return 'layout_revision_regressed';
     return undefined;
   }
 }
 
-export class SessionEventCursorStore implements EventCursorStore {
+export class LocalEventCursorStore implements EventCursorStore {
   readonly #prefix = 'focusa:mission-canvas:event-cursor:';
 
   load(scope: ExactScope): string | undefined {
-    return globalThis.sessionStorage?.getItem(this.key(scope)) ?? undefined;
+    try {
+      return globalThis.localStorage?.getItem(this.key(scope)) ?? undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   persist(scope: ExactScope, cursor: string): void {
-    globalThis.sessionStorage?.setItem(this.key(scope), cursor);
+    try {
+      globalThis.localStorage?.setItem(this.key(scope), cursor);
+    } catch {
+      // Replay remains correct from the server-selected cursor when persistence is unavailable.
+    }
   }
 
   private key(scope: ExactScope): string {
