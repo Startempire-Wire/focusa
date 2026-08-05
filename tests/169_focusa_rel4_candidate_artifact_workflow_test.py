@@ -10,6 +10,7 @@ workflow_path = ROOT / ".github/workflows/locked-release-candidate-artifacts.yml
 caller_path = ROOT / ".github/workflows/windows-ota-e2e.yml"
 workflow = workflow_path.read_text()
 caller = caller_path.read_text()
+version_verifier = (ROOT / "scripts/verify-version-surfaces.py").read_text()
 parsed = yaml.safe_load(workflow)
 
 assert parsed[True] == {"workflow_call": None}
@@ -58,4 +59,6 @@ for prohibited in (
 assert "contents: write" not in workflow
 assert "contents: read" in workflow
 assert "id-token: write" in workflow
+assert '.read_text(encoding="utf-8")' in version_verifier
+assert ".read_text()" not in version_verifier
 print("REL.4 non-publishing all-system candidate artifact contract: PASS")

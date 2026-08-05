@@ -41,18 +41,18 @@ def parse_version(raw: str) -> str:
 
 
 def read_toml_version(path: str) -> str:
-    for line in (ROOT / path).read_text().splitlines():
+    for line in (ROOT / path).read_text(encoding="utf-8").splitlines():
         if line.startswith("version = "):
             return line.split('"')[1]
     raise SystemExit(f"version key not found: {path}")
 
 
 def read_json_version(path: str) -> str:
-    return json.loads((ROOT / path).read_text())["version"]
+    return json.loads((ROOT / path).read_text(encoding="utf-8"))["version"]
 
 
 def read_settings_version(path: str) -> str:
-    text = (ROOT / path).read_text()
+    text = (ROOT / path).read_text(encoding="utf-8")
     match = re.search(r"v\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?", text)
     if not match:
         raise SystemExit(f"display version not found: {path}")
@@ -60,7 +60,7 @@ def read_settings_version(path: str) -> str:
 
 
 def read_extension_build_version(path: str, package_name: str) -> str:
-    text = (ROOT / path).read_text()
+    text = (ROOT / path).read_text(encoding="utf-8")
     match = re.search(
         rf'const EXTENSION_BUILD = "{re.escape(package_name)}@'
         r'(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)"',
@@ -74,7 +74,7 @@ def read_extension_build_version(path: str, package_name: str) -> str:
 def read_lock_versions(path: str, package_names: set[str]) -> dict[str, str]:
     current_name: str | None = None
     versions: dict[str, str] = {}
-    for line in (ROOT / path).read_text().splitlines():
+    for line in (ROOT / path).read_text(encoding="utf-8").splitlines():
         name_match = PACKAGE_RE.match(line)
         if name_match:
             current_name = name_match.group(1)
