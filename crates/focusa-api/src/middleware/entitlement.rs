@@ -7,7 +7,9 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
+use focusa_core::runtime::persistence_sqlite::EntitlementLimitReservationOutcome;
 use focusa_license::authority::EntitlementState;
+use sha2::{Digest, Sha256};
 
 use crate::{middleware::entitlement_routes::requirement_for_path, server::AppState};
 
@@ -19,10 +21,24 @@ pub async fn entitlement_gate_layer(
     if !route_requires_entitlement(request.method(), request.uri().path()) {
         return next.run(request).await;
     }
-    let Some(denial) = route_entitlement_denial(&state.license_guard, request.uri().path()) else {
-        return next.run(request).await;
-    };
+    if let Some(denial) = route_entitlement_denial(&state.license_guard, request.uri().path()) {
+        return denial_response(&state, denial);
+    }
 
+    let reservation = match reserve_route_limit(&state, &request) {
+        Ok(reservation) => reservation,
+        Err(denial) => return denial_response(&state, denial),
+    };
+    let response = next.run(request).await;
+    if let Some(reservation_id) = reservation {
+        let _ = state
+            .persistence
+            .settle_entitlement_limit(&reservation_id, response.status().is_success());
+    }
+    response
+}
+
+fn denial_response(state: &AppState, denial: RouteEntitlementDenial) -> Response {
     let authority_state = state
         .license_guard
         .entitlement
@@ -53,6 +69,73 @@ pub async fn entitlement_gate_layer(
         })),
     )
         .into_response()
+}
+
+fn reserve_route_limit(
+    state: &AppState,
+    request: &Request,
+) -> Result<Option<String>, RouteEntitlementDenial> {
+    let Some(requirement) = requirement_for_path(request.uri().path()) else {
+        return Ok(None);
+    };
+    let Some(bucket) = requirement.limit_bucket else {
+        return Ok(None);
+    };
+    let idempotency_key = request
+        .headers()
+        .get("Idempotency-Key")
+        .and_then(|value| value.to_str().ok())
+        .filter(|value| !value.trim().is_empty())
+        .ok_or(RouteEntitlementDenial {
+            code: "ENTITLEMENT_IDEMPOTENCY_REQUIRED",
+            message: "A stable Idempotency-Key is required before reserving signed limit units.",
+            required_feature: Some(requirement.feature),
+            limit_bucket: Some(bucket),
+        })?;
+    let snapshot = state
+        .license_guard
+        .entitlement
+        .as_ref()
+        .ok_or(RouteEntitlementDenial {
+            code: "ENTITLEMENT_REQUIRED",
+            message: "A valid signed Focusa authority lease is required for this operation.",
+            required_feature: Some(requirement.feature),
+            limit_bucket: Some(bucket),
+        })?;
+    let lease_id = snapshot.lease_id.as_deref().unwrap_or_default();
+    let lease_sequence = snapshot.sequence.unwrap_or_default();
+    let available = snapshot.limits.get(bucket).copied().unwrap_or(0);
+    let reservation_id = format!(
+        "sha256:{:x}",
+        Sha256::digest(format!(
+            "{lease_id}\0{lease_sequence}\0{bucket}\0{idempotency_key}"
+        ))
+    );
+    match state.persistence.reserve_entitlement_limit(
+        &reservation_id,
+        lease_id,
+        lease_sequence,
+        bucket,
+        1,
+        available,
+    ) {
+        Ok(
+            EntitlementLimitReservationOutcome::Reserved
+            | EntitlementLimitReservationOutcome::IdempotentReplay,
+        ) => Ok(Some(reservation_id)),
+        Ok(EntitlementLimitReservationOutcome::Exhausted) => Err(RouteEntitlementDenial {
+            code: "ENTITLEMENT_LIMIT_EXHAUSTED",
+            message: "The signed authority limit for this operation is exhausted.",
+            required_feature: Some(requirement.feature),
+            limit_bucket: Some(bucket),
+        }),
+        Err(_) => Err(RouteEntitlementDenial {
+            code: "ENTITLEMENT_RESERVATION_FAILED",
+            message: "The durable entitlement limit reservation could not be recorded.",
+            required_feature: Some(requirement.feature),
+            limit_bucket: Some(bucket),
+        }),
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

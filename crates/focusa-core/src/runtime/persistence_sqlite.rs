@@ -58,6 +58,13 @@ pub struct DurableEventRecord {
 ///
 /// NOTE: Focusa daemon is single-writer, but API reads may happen concurrently.
 /// We keep a single Connection behind a Mutex for now (simple + correct).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EntitlementLimitReservationOutcome {
+    Reserved,
+    IdempotentReplay,
+    Exhausted,
+}
+
 #[derive(Clone)]
 pub struct SqlitePersistence {
     pub data_dir: PathBuf,
@@ -65,6 +72,97 @@ pub struct SqlitePersistence {
 }
 
 impl SqlitePersistence {
+    pub fn reserve_entitlement_limit(
+        &self,
+        reservation_id: &str,
+        lease_id: &str,
+        lease_sequence: u64,
+        limit_bucket: &str,
+        units: u64,
+        available: u64,
+    ) -> anyhow::Result<EntitlementLimitReservationOutcome> {
+        anyhow::ensure!(
+            !reservation_id.trim().is_empty(),
+            "reservation_id is required"
+        );
+        anyhow::ensure!(!lease_id.trim().is_empty(), "lease_id is required");
+        anyhow::ensure!(!limit_bucket.trim().is_empty(), "limit_bucket is required");
+        anyhow::ensure!(units > 0, "reservation units must be positive");
+        let mut connection = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let transaction = connection.transaction()?;
+        let existing: Option<(String, String, u64, String, u64)> = transaction
+            .query_row(
+                "SELECT lease_id, status, lease_sequence, limit_bucket, units FROM entitlement_limit_reservations WHERE reservation_id = ?1",
+                params![reservation_id],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
+            )
+            .optional()?;
+        let existing_released = if let Some((
+            existing_lease,
+            status,
+            existing_sequence,
+            existing_bucket,
+            existing_units,
+        )) = existing
+        {
+            anyhow::ensure!(
+                existing_lease == lease_id
+                    && existing_sequence == lease_sequence
+                    && existing_bucket == limit_bucket
+                    && existing_units == units,
+                "entitlement reservation idempotency conflict"
+            );
+            if status != "released" {
+                transaction.commit()?;
+                return Ok(EntitlementLimitReservationOutcome::IdempotentReplay);
+            }
+            true
+        } else {
+            false
+        };
+        let consumed: u64 = transaction.query_row(
+            "SELECT COALESCE(SUM(units), 0) FROM entitlement_limit_reservations WHERE lease_id = ?1 AND lease_sequence = ?2 AND limit_bucket = ?3 AND status IN ('reserved', 'committed')",
+            params![lease_id, lease_sequence, limit_bucket],
+            |row| row.get(0),
+        )?;
+        if consumed.saturating_add(units) > available {
+            transaction.commit()?;
+            return Ok(EntitlementLimitReservationOutcome::Exhausted);
+        }
+        if existing_released {
+            transaction.execute(
+                "UPDATE entitlement_limit_reservations SET status = 'reserved', settled_at = NULL, created_at = ?2 WHERE reservation_id = ?1",
+                params![reservation_id, Utc::now().to_rfc3339()],
+            )?;
+        } else {
+            transaction.execute(
+                "INSERT INTO entitlement_limit_reservations (reservation_id, lease_id, lease_sequence, limit_bucket, units, status, created_at) VALUES (?1, ?2, ?3, ?4, ?5, 'reserved', ?6)",
+                params![reservation_id, lease_id, lease_sequence, limit_bucket, units, Utc::now().to_rfc3339()],
+            )?;
+        }
+        transaction.commit()?;
+        Ok(EntitlementLimitReservationOutcome::Reserved)
+    }
+
+    pub fn settle_entitlement_limit(
+        &self,
+        reservation_id: &str,
+        commit: bool,
+    ) -> anyhow::Result<()> {
+        let connection = self
+            .conn
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        connection.execute(
+            "UPDATE entitlement_limit_reservations SET status = ?2, settled_at = ?3 WHERE reservation_id = ?1 AND status = 'reserved'",
+            params![reservation_id, if commit { "committed" } else { "released" }, Utc::now().to_rfc3339()],
+        )?;
+        Ok(())
+    }
+
     pub fn save_runtime_constitution(
         &self,
         constitution: &crate::agent_runtime_constitution::ProjectAgentRuntimeConstitution,
@@ -501,6 +599,19 @@ impl SqlitePersistence {
               registry_json TEXT NOT NULL,
               updated_at TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS entitlement_limit_reservations (
+              reservation_id TEXT PRIMARY KEY,
+              lease_id TEXT NOT NULL,
+              lease_sequence INTEGER NOT NULL,
+              limit_bucket TEXT NOT NULL,
+              units INTEGER NOT NULL CHECK(units > 0),
+              status TEXT NOT NULL CHECK(status IN ('reserved', 'committed', 'released')),
+              created_at TEXT NOT NULL,
+              settled_at TEXT
+            );
+            CREATE INDEX IF NOT EXISTS idx_entitlement_limit_reservations_lease
+              ON entitlement_limit_reservations(lease_id, lease_sequence, limit_bucket, status);
 
             CREATE TABLE IF NOT EXISTS snapshots (
               name TEXT PRIMARY KEY,
