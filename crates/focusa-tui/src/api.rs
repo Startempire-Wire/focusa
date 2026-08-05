@@ -153,11 +153,30 @@ impl ApiClient {
                 "native_session_id": native_session_id
             }))
             .send()
-            .await?
-            .error_for_status()?
-            .json()
             .await?;
-        Ok(response)
+        if response.status() == reqwest::StatusCode::FORBIDDEN {
+            let body: Value = response.json().await.unwrap_or(Value::Null);
+            let error = body.get("error").unwrap_or(&body);
+            let code = error
+                .get("code")
+                .and_then(Value::as_str)
+                .unwrap_or("ENTITLEMENT_REQUIRED");
+            if code.starts_with("ENTITLEMENT_") {
+                let feature = error
+                    .get("required_feature")
+                    .and_then(Value::as_str)
+                    .unwrap_or("none");
+                let bucket = error
+                    .get("limit_bucket")
+                    .and_then(Value::as_str)
+                    .unwrap_or("none");
+                anyhow::bail!(
+                    "{code}: mutation blocked before execution; required_feature={feature} limit_bucket={bucket}; recovery, export, repair, and uninstall remain available"
+                );
+            }
+            anyhow::bail!("HTTP 403: mutation denied");
+        }
+        Ok(response.error_for_status()?.json().await?)
     }
 
     /// Spec104 TUI-01: Fetch with typed ScopeContext. The scope query
