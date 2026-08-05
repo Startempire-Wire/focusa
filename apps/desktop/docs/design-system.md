@@ -109,6 +109,18 @@ Required evidence for a migrated surface:
 5. zero console errors, exceptions, and failed requests;
 6. native WebView evidence for canvas effects such as Thinking Orb or BorderBeam.
 
+## Current verification
+
+UIAI Engine session `O0DzkXjF` verified the normal, compact, and explicit reduced-motion surfaces at 1440×900. Diagnostics `uiai-diagnostics:session=O0DzkXjF:seq=94` reported zero console errors, warnings, exceptions, failed requests, HTTP 4xx responses, and HTTP 5xx responses.
+
+Evidence:
+
+- `docs/contracts/evidence/spec158-desktop-design-system-normal.png`
+- `docs/contracts/evidence/spec158-desktop-design-system-compact.png`
+- `docs/contracts/evidence/spec158-desktop-design-system-reduced.png`
+
+Native Thinking Orb and reduced-motion WebView acceptance remains pending until the next bounded native build.
+
 ## Adoption status
 
 Implemented in the first design-system slice:
@@ -117,9 +129,11 @@ Implemented in the first design-system slice:
 - typed Icon, IconButton, Surface, SectionHeader, Stack, StatusBadge, StatePanel, and ThinkingOrb primitives;
 - stable-shell keyed content transition;
 - system/full/reduced motion contract;
-- typed sidebar icons replacing provisional Unicode controls;
+- typed sidebar, authority-chain, activity-mode, and state icons replacing provisional Unicode controls;
 - truthful blocked workspace StatePanel;
 - semantic daemon Thinking Orb;
+- operator-facing system/full/reduced motion control;
+- bounded display/body typography applied to the Mission Deck;
 - removal of global transition/animation suppression;
 - sidebar local-preference boundary.
 
@@ -127,8 +141,7 @@ Incremental migration still required:
 
 - move remaining legacy `styles.css` literals onto semantic tokens;
 - migrate Mission Canvas cards and headers to shared primitives;
-- replace remaining arrows and decorative glyphs in Mission Canvas identity content;
-- add an operator-facing motion preference control;
+- complete the remaining Mission Canvas palette and spacing-token migration;
 - run UIAI normal, compact, reduced-motion, and keyboard acceptance;
 - run native Thinking Orb acceptance in the next bounded native build;
 - consider BorderBeam only when a verified active Workpoint surface exists.

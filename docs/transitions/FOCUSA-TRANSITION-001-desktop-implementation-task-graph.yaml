@@ -47,16 +47,17 @@ nodes:
   - id: D010-03
     parent: T071
     title: Match UIAI Engine sidebar interaction dynamics in Focusa Desktop
-    status: implementation_complete_visual_proof_pending
+    status: complete
     depends_on: [D010-02]
+    evidence: [docs/contracts/evidence/spec158-desktop-design-system-normal.png, docs/contracts/evidence/spec158-desktop-design-system-compact.png]
     notes: Expanded and compact modes, persistence, grouped disclosure, keyboard toggle, resize handle, responsive icon rail, and no Agent TUI sidebar.
   - id: D010-04
     parent: T071
     title: Adopt documented calm cognitive cockpit design system
-    status: implementation_complete_visual_proof_pending
+    status: browser_accepted_native_orb_proof_pending
     depends_on: [D010-03]
-    evidence: [apps/desktop/docs/design-system.md]
-    notes: Tokens, typed icons, reusable surfaces and states, semantic orb, stable content motion, and reduced-motion contract are implemented.
+    evidence: [apps/desktop/docs/design-system.md, docs/contracts/evidence/spec158-desktop-design-system-normal.png, docs/contracts/evidence/spec158-desktop-design-system-reduced.png, uiai-diagnostics:session=O0DzkXjF:seq=94]
+    notes: Tokens, typed icons, reusable surfaces and states, semantic orb, stable content motion, operator preference, and reduced-motion contract are implemented.
   - id: D020-01
     parent: T071
     title: Materialize supplied Mission Canvas visual references and provenance

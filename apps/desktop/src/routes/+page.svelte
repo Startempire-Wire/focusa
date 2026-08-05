@@ -8,6 +8,7 @@
   import IconButton from '$lib/ui/IconButton.svelte';
   import StatePanel from '$lib/ui/StatePanel.svelte';
   import ThinkingOrb from '$lib/ui/ThinkingOrb.svelte';
+  import MotionControl from '$lib/ui/MotionControl.svelte';
   import { installMotionPreference, scene } from '$lib/ui/motion';
 
   const sidebarGroups: ReadonlyArray<{ id: string; label: string; workspaceIds: readonly string[] }> = [
@@ -170,6 +171,7 @@
         </section>
       {/each}
     </div>
+    {#if sidebarMode === 'expanded'}<MotionControl />{/if}
     {#if sidebarMode === 'expanded'}<button class="sidebar-resize-handle" type="button" aria-label="Resize sidebar" onpointerdown={beginSidebarResize}></button>{/if}
   </aside>
   {/if}
@@ -218,7 +220,7 @@
             latest record, or daemon-global selection.
           </p>
           <div class="identity-chain" aria-label="Required canonical identity chain">
-            <span>ScopeRef</span><i>→</i><span>WorkstreamId</span><i>→</i><span>ContinuityId</span><i>→</i><span>AttachmentKey</span>
+            <span>ScopeRef</span><i><Icon name="chevron-right" size={14}/></i><span>WorkstreamId</span><i><Icon name="chevron-right" size={14}/></i><span>ContinuityId</span><i><Icon name="chevron-right" size={14}/></i><span>AttachmentKey</span>
           </div>
         </article>
         <article class="status-card">
@@ -238,10 +240,10 @@
           <span class="eyebrow">Runtime boundary</span>
           <h2>Presentation without duplication</h2>
           <ul>
-            <li>Infrastructure health only</li>
-            <li>No canonical cognitive cache</li>
-            <li>No implicit active Workstream</li>
-            <li>No domain mutation</li>
+            <li><Icon name="check" size={14}/>Infrastructure health only</li>
+            <li><Icon name="check" size={14}/>No canonical cognitive cache</li>
+            <li><Icon name="check" size={14}/>No implicit active Workstream</li>
+            <li><Icon name="check" size={14}/>No domain mutation</li>
           </ul>
         </article>
       </section>

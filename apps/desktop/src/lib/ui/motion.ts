@@ -15,11 +15,15 @@ export function scene(_node: Element, { duration = 220, y = 5 }: { duration?: nu
   };
 }
 
+export function readMotionPreference(): MotionMode {
+  if (typeof window === 'undefined') return 'system';
+  const stored = window.localStorage.getItem(STORAGE_KEY);
+  return stored === 'full' || stored === 'reduced' ? stored : 'system';
+}
+
 export function installMotionPreference(): () => void {
   if (typeof window === 'undefined') return () => {};
-  const stored = window.localStorage.getItem(STORAGE_KEY);
-  const mode: MotionMode = stored === 'full' || stored === 'reduced' ? stored : 'system';
-  document.documentElement.dataset.motion = mode;
+  document.documentElement.dataset.motion = readMotionPreference();
   return () => {};
 }
 

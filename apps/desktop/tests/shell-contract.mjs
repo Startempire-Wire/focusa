@@ -8,6 +8,7 @@ const sidebarPreferences = readFileSync(new URL('../src/lib/shell/sidebar-prefer
 const tokens = readFileSync(new URL('../static/styles/tokens.css', import.meta.url), 'utf8');
 const designSystem = readFileSync(new URL('../docs/design-system.md', import.meta.url), 'utf8');
 const icon = readFileSync(new URL('../src/lib/ui/Icon.svelte', import.meta.url), 'utf8');
+const motion = readFileSync(new URL('../src/lib/ui/motion.ts', import.meta.url), 'utf8');
 const tauri = readFileSync(new URL('../src-tauri/tauri.conf.json', import.meta.url), 'utf8');
 
 assert.match(page, /Focusa Desktop/);
@@ -22,6 +23,7 @@ assert.match(sidebarPreferences, /Math\.min\(320, Math\.max\(208/);
 assert.match(tokens, /--layout-section-gap: 16px/);
 assert.match(tokens, /--motion-normal: 210ms/);
 assert.match(icon, /export type IconName/);
+assert.match(motion, /system.*full.*reduced/);
 assert.match(designSystem, /calm cognitive cockpit/);
 assert.match(designSystem, /Visual acceptance is exclusively performed through UIAI Engine/);
 assert.match(manifest, /mission-deck/);
