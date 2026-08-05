@@ -1,18 +1,18 @@
 use std::collections::BTreeMap;
 
-use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use chrono::{DateTime, Utc};
 use ed25519_dalek::{Signer, SigningKey, VerifyingKey};
-use focusa_license::{resolve_license_guard_from, Capability, CapabilityCheck, Tier};
 use focusa_license::authority::{
     AuthorityKeySet, AuthorityKeyStatus, AuthorityLeasePayload, AuthorityLeaseStatus,
-    AuthorityLeaseVerifier, AuthorityVerificationError, EntitlementState, LeaseVerificationContext,
-    SignedEnvelope, ENVELOPE_SCHEMA,
+    AuthorityLeaseVerifier, AuthorityVerificationError, ENVELOPE_SCHEMA, EntitlementState,
+    LeaseVerificationContext, SignedEnvelope,
 };
 use focusa_license::authority_store::{
-    parse_production_trust_roots, resolve_authority_state, AuthorityStoreError,
-    PersistedAuthorityState, AUTHORITY_STATE_SCHEMA,
+    AUTHORITY_STATE_SCHEMA, AuthorityStoreError, PersistedAuthorityState,
+    parse_production_trust_roots, resolve_authority_state,
 };
+use focusa_license::{Capability, CapabilityCheck, Tier, resolve_license_guard_from};
 use serde::Deserialize;
 
 const FIXTURE: &str = include_str!("fixtures/spec152-authority-golden-vector.json");
@@ -65,8 +65,7 @@ fn context(now: &str) -> LeaseVerificationContext {
         now: at(now),
         minimum_sequence: Some(42),
         expected_previous_digest: Some(
-            "sha256:4e738ca5563c06cfd0018299933d58db1dd8bf97f6973dc99bf6cdc64b5550bd"
-                .to_string(),
+            "sha256:4e738ca5563c06cfd0018299933d58db1dd8bf97f6973dc99bf6cdc64b5550bd".to_string(),
         ),
     }
 }
@@ -116,7 +115,10 @@ fn authority_golden_vector_verifies_byte_for_byte() {
         .verify_lease(&vector.lease_envelope, &context("2026-08-03T00:00:00Z"))
         .expect("golden lease verifies");
     assert_eq!(snapshot.state, EntitlementState::Active);
-    assert_eq!(snapshot.lease_digest.as_deref(), Some(vector.expected_lease_digest.as_str()));
+    assert_eq!(
+        snapshot.lease_digest.as_deref(),
+        Some(vector.expected_lease_digest.as_str())
+    );
     assert!(snapshot.feature_enabled("agent_runtime"));
     assert!(!snapshot.feature_enabled("release"));
     assert_eq!(snapshot.limit("active_sessions"), Some(4));
@@ -157,11 +159,13 @@ fn stale_sequence_and_chain_mismatch_are_rejected() {
     let stale = resign_lease(|payload| payload.sequence = 41);
     assert_eq!(
         verifier(&vector).verify_lease(&stale, &context("2026-08-03T00:00:00Z")),
-        Err(AuthorityVerificationError::StaleSequence { minimum: 42, actual: 41 })
+        Err(AuthorityVerificationError::StaleSequence {
+            minimum: 42,
+            actual: 41
+        })
     );
-    let wrong_chain = resign_lease(|payload| {
-        payload.previous_lease_digest = Some("sha256:wrong".to_string())
-    });
+    let wrong_chain =
+        resign_lease(|payload| payload.previous_lease_digest = Some("sha256:wrong".to_string()));
     assert_eq!(
         verifier(&vector).verify_lease(&wrong_chain, &context("2026-08-03T00:00:00Z")),
         Err(AuthorityVerificationError::PreviousDigestMismatch)
@@ -210,14 +214,22 @@ fn revoked_rotation_key_and_stale_key_set_are_rejected() {
             Some(8),
         )
         .unwrap_err(),
-        AuthorityVerificationError::StaleSequence { minimum: 8, actual: 7 }
+        AuthorityVerificationError::StaleSequence {
+            minimum: 8,
+            actual: 7
+        }
     );
 }
 
 #[test]
 fn production_trust_root_parser_rejects_test_and_local_roots() {
     let vector = vector();
-    for key_id in ["test-root", "fixture-authority", "local-dev-root", "example-root"] {
+    for key_id in [
+        "test-root",
+        "fixture-authority",
+        "local-dev-root",
+        "example-root",
+    ] {
         let raw = serde_json::json!({ key_id: vector.root_public_key_b64 }).to_string();
         assert!(matches!(
             parse_production_trust_roots(&raw),
@@ -242,7 +254,10 @@ fn signed_feature_claim_is_the_only_capability_grant() {
         .verify_lease(&signed, &context("2026-08-03T00:00:00Z"))
         .unwrap();
     let guard = focusa_license::LicenseGuard::from_entitlement(snapshot);
-    assert_eq!(guard.check(Capability::HostedMode), CapabilityCheck::Permitted);
+    assert_eq!(
+        guard.check(Capability::HostedMode),
+        CapabilityCheck::Permitted
+    );
     assert!(guard.check(Capability::CommercialUse).is_denied());
 }
 
@@ -307,11 +322,8 @@ fn durable_entitlement_service_is_fail_closed() {
     assert_eq!(missing.state, EntitlementState::Unactivated);
 
     std::fs::write(&state_path, b"not-json").unwrap();
-    let malformed = resolve_authority_state(
-        &state_path,
-        Ok(roots),
-        &context("2026-08-03T00:00:00Z"),
-    );
+    let malformed =
+        resolve_authority_state(&state_path, Ok(roots), &context("2026-08-03T00:00:00Z"));
     assert_eq!(malformed.state, EntitlementState::RecoveryOnly);
     assert_eq!(
         malformed.recovery_reason.as_deref(),
