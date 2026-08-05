@@ -63,11 +63,22 @@ try {
   });
   const transported = await transport.request('focusa.mission_canvas.projection.get', { scope: fixture.scope });
   assert.equal(transported.projection_digest, fixture.projection_digest);
-  assert.match(requestedUrls[0], /^http:\/\/127\.0\.0\.1:8787\/v1\/mission-canvas\/projection\?scope=/);
+  assert.match(requestedUrls[0], /^http:\/\/127\.0\.0\.1:8787\/v1\/mission-canvas\/projection\?project_root=/);
+  assert.match(requestedUrls[0], /attachment_id=/);
   await assert.rejects(
     () => transport.request('focusa.mission_canvas.not-generated'),
     (error) => error instanceof MissionCanvasTransportError && error.message === 'operation_unavailable'
   );
+  await assert.rejects(
+    () => transport.request('focusa.mission_canvas.profile.get', { profile_id: 'software', scope: fixture.scope }),
+    (error) => error instanceof MissionCanvasTransportError && error.message.startsWith('invalid_response:')
+  );
+  assert.match(requestedUrls.at(-1), /\/v1\/mission-canvas\/profiles\/software\?project_root=/);
+  assert.doesNotMatch(requestedUrls.at(-1), /profile_id=/);
+  const arrayTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
+    new Response('[]', { status: 200, headers: { 'Content-Type': 'application/json' } })
+  );
+  assert.deepEqual(await arrayTransport.request('focusa.mission_canvas.activity.list', { scope: fixture.scope }), []);
 
   const { MissionCanvasProjectionController } = await server.ssrLoadModule('/src/lib/mission-canvas/projection-controller.svelte.ts');
   let response = structuredClone(fixture);

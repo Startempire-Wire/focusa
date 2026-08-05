@@ -29,6 +29,7 @@
   const actionableSend = $derived(
     sendBinding?.enabled === true
       && !sendBinding.disabled_reason_ref
+      && (!sendBinding.confirmation || sendBinding.confirmation === 'none')
       && sendBinding.authority_ref.length > 0
       && sendBinding.target_contribution_id === contribution.contribution_id
       && contribution.operation_ids.includes(sendBinding.operation_id)

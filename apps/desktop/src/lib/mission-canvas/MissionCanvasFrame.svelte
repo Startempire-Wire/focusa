@@ -30,5 +30,5 @@
 </section>
 
 <style>
-  .mission-canvas-frame{min-width:0;min-height:0;height:100%;display:grid;overflow:auto}
+  .mission-canvas-frame{container:mission-canvas / inline-size;min-width:0;min-height:0;height:100%;display:grid;overflow:auto}
 </style>

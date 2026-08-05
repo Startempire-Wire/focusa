@@ -124,6 +124,12 @@ function appendQuery(url: URL, input: unknown): void {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return;
   for (const [key, value] of Object.entries(input)) {
     if (value === undefined || value === null) continue;
+    if (key === 'scope' && typeof value === 'object' && !Array.isArray(value)) {
+      for (const [scopeKey, scopeValue] of Object.entries(value)) {
+        if (scopeValue !== undefined && scopeValue !== null) url.searchParams.set(scopeKey, String(scopeValue));
+      }
+      continue;
+    }
     url.searchParams.set(key, typeof value === 'object' ? JSON.stringify(value) : String(value));
   }
 }

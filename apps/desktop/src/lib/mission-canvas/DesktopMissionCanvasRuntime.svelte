@@ -25,6 +25,7 @@
   const controller = new MissionCanvasProjectionController((exactScope) => client.projectionGet({ scope: exactScope }));
   let activities = $state<ActivityMode[]>([]);
   let profiles = $state<WorkspaceProfile[]>([]);
+  let mutationInFlight = $state(false);
   let controlsGeneration = 0;
 
   $effect(() => {
@@ -59,36 +60,60 @@
       binding.operation_id === operationId
       && binding.enabled
       && !binding.disabled_reason_ref
+      && (!binding.confirmation || binding.confirmation === 'none')
       && binding.authority_ref.length > 0
       && (!targetContributionId || binding.target_contribution_id === targetContributionId)
     );
   }
 
   async function selectActivity(activity: ActivityMode): Promise<void> {
-    if (!scope || !operationEnabled(ACTIVITY_SELECT_OPERATION)) return;
+    if (!scope || mutationInFlight || !operationEnabled(ACTIVITY_SELECT_OPERATION)) return;
+    const state = controller.state;
+    if (state.kind !== 'ready' && state.kind !== 'stale') return;
+    const idempotencyKey = crypto.randomUUID();
+    mutationInFlight = true;
     try {
-      const projection = await client.activitySelect({ scope, activity_mode_id: activity.activity_mode_id });
+      const projection = await client.activitySelect({
+        scope,
+        selection_id: activity.activity_mode_id,
+        expected_projection_revision: state.projection.projection_revision,
+        idempotency_key: idempotencyKey
+      });
       controller.accept(scope, projection);
     } catch (error) {
       controller.markStale(error instanceof Error ? error.message : 'activity_selection_failed');
+    } finally {
+      mutationInFlight = false;
     }
   }
 
   async function selectProfile(profile: WorkspaceProfile): Promise<void> {
-    if (!scope || !operationEnabled(PROFILE_SELECT_OPERATION)) return;
+    if (!scope || mutationInFlight || !operationEnabled(PROFILE_SELECT_OPERATION)) return;
+    const state = controller.state;
+    if (state.kind !== 'ready' && state.kind !== 'stale') return;
+    const idempotencyKey = crypto.randomUUID();
+    mutationInFlight = true;
     try {
-      const projection = await client.profileSelect({ scope, profile_id: profile.profile_id });
+      const projection = await client.profileSelect({
+        scope,
+        selection_id: profile.profile_id,
+        expected_projection_revision: state.projection.projection_revision,
+        idempotency_key: idempotencyKey
+      });
       controller.accept(scope, projection);
     } catch (error) {
       controller.markStale(error instanceof Error ? error.message : 'profile_selection_failed');
+    } finally {
+      mutationInFlight = false;
     }
   }
 
   async function selectTab(contributionId: string): Promise<void> {
-    if (!scope || !operationEnabled(LAYOUT_MUTATE_OPERATION, contributionId)) return;
+    if (!scope || mutationInFlight || !operationEnabled(LAYOUT_MUTATE_OPERATION, contributionId)) return;
     const state = controller.state;
     if (state.kind !== 'ready' && state.kind !== 'stale') return;
     const commandId = crypto.randomUUID();
+    mutationInFlight = true;
     try {
       await client.layoutMutate({
         action: 'set_active_tab',
@@ -103,6 +128,8 @@
       await controller.load(scope);
     } catch (error) {
       controller.markStale(error instanceof Error ? error.message : 'tab_selection_failed');
+    } finally {
+      mutationInFlight = false;
     }
   }
 
@@ -128,7 +155,13 @@
   });
 </script>
 
-<div class="desktop-canvas-runtime" data-runtime-state={controller.state.kind}>
+<div
+  class="desktop-canvas-runtime"
+  class:has-controls={(activities.length > 1 && operationEnabled(ACTIVITY_SELECT_OPERATION)) || (profiles.length > 1 && operationEnabled(PROFILE_SELECT_OPERATION))}
+  class:mutation-pending={mutationInFlight}
+  aria-busy={mutationInFlight}
+  data-runtime-state={controller.state.kind}
+>
   {#if (activities.length > 1 && operationEnabled(ACTIVITY_SELECT_OPERATION)) || (profiles.length > 1 && operationEnabled(PROFILE_SELECT_OPERATION))}
     <header class="workspace-controls">
       <WorkspaceProfileSelector profiles={operationEnabled(PROFILE_SELECT_OPERATION) ? profiles : []} activeProfileId={controller.state.kind === 'ready' || controller.state.kind === 'refreshing' || controller.state.kind === 'stale' ? controller.state.projection.workspace_profile_id : ''} onSelect={(profile) => void selectProfile(profile)}/>
@@ -151,10 +184,12 @@
 </div>
 
 <style>
-  .desktop-canvas-runtime{position:relative;display:grid;grid-template-rows:auto minmax(0,1fr);min-width:0;min-height:0;height:100%}
+  .desktop-canvas-runtime{position:relative;display:grid;grid-template-rows:minmax(0,1fr);min-width:0;min-height:0;height:100%}
+  .desktop-canvas-runtime.has-controls{grid-template-rows:auto minmax(0,1fr)}
   .workspace-controls{display:flex;align-items:center;gap:var(--layout-control-gap);min-width:0;border-bottom:1px solid var(--color-border);background:var(--color-panel)}
   .workspace-controls :global(nav){flex:1}
   .workspace-controls :global(label){padding-inline:var(--space-3)}
+  .mutation-pending .workspace-controls,.mutation-pending :global([role='tablist']){pointer-events:none;opacity:.72}
   .state-banner{position:absolute;z-index:2;inset-block-start:var(--space-2);inset-inline:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--color-warning);border-radius:var(--radius-control);background:var(--color-raised);color:var(--color-warning);font:var(--type-caption)}
   .state-message{align-self:center;justify-self:center;padding:var(--layout-card-padding);color:var(--color-text-secondary)}
   .state-message.error{max-width:34rem;border:1px solid var(--color-error);border-radius:var(--radius-card);background:var(--color-raised);color:var(--color-error)}

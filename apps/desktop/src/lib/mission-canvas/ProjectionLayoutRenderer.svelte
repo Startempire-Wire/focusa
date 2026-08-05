@@ -122,5 +122,5 @@
   .layout-inspector.has-inspector:not(.end){grid-template-columns:minmax(220px,calc(var(--inspector-span) * 4%)) minmax(0,1fr);gap:var(--layout-cluster-gap)}
   .layout-inspector.has-inspector:not(.end)>main{grid-column:2;grid-row:1}.layout-inspector:not(.end)>aside{grid-column:1;grid-row:1}
   .layout-inspector main,.layout-inspector aside{min-width:0;min-height:0}.layout-inspector aside{display:grid;align-content:start;gap:var(--layout-cluster-gap)}
-  @media(max-width:820px){.layout-split{grid-template-columns:1fr;grid-template-rows:auto}.layout-grid{grid-template-columns:1fr}.layout-inspector,.layout-inspector:not(.end){grid-template-columns:1fr}.layout-inspector:not(.end)>main,.layout-inspector:not(.end)>aside{grid-column:1;grid-row:auto}}
+  @container mission-canvas (max-width:820px){.layout-split{grid-template-columns:1fr;grid-template-rows:auto}.layout-grid{grid-template-columns:1fr}.layout-inspector,.layout-inspector:not(.end){grid-template-columns:1fr}.layout-inspector:not(.end)>main,.layout-inspector:not(.end)>aside{grid-column:1;grid-row:auto}}
 </style>
