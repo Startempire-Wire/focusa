@@ -15,6 +15,10 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
+/// Immutable posture for the meeting-safe demo prerelease. Stable releases must
+/// set this to false and use the completed EDD authority.
+pub const UNRESTRICTED_DEMO_BUILD: bool = true;
+
 /// License tiers supported by Focusa.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -158,6 +162,14 @@ impl LicenseGuard {
 
     /// Check a capability against the current tier.
     pub fn check(&self, capability: Capability) -> CapabilityCheck {
+        if UNRESTRICTED_DEMO_BUILD {
+            return CapabilityCheck::PermittedWithWarning {
+                warning: format!(
+                    "unrestricted demo build permits {}; licensing enforcement is disabled",
+                    capability.label()
+                ),
+            };
+        }
         match (self.tier, capability) {
             // Local-eval: always permitted.
             (_, Capability::LocalEval) => CapabilityCheck::Permitted,

@@ -169,6 +169,14 @@ err()  { printf '\033[1;31m[focusa-install]\033[0m %s\n' "$*" >&2; }
 die()  { err "$@"; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
+# Meeting-safe prerelease: install without a key and let the immutable demo
+# binary permit all currently public capabilities. No fake commercial license
+# or authority record is created.
+if [ -z "$LICENSE_KEY" ] && [ "$EVAL" != 1 ]; then
+  EVAL=1
+  warn "v0.9.144-demo.1: licensing enforcement is disabled for this demo build."
+fi
+
 # ----------------------------------------------------------------------------
 # Pre-flight: required tools.
 # ----------------------------------------------------------------------------
