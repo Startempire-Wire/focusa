@@ -35,7 +35,7 @@ test("module reload clears stale global owner and re-registers", () => {
   assert.match(source, /moduleLoadId: MODULE_LOAD_ID/);
 });
 
-test("session reload preserves and rebinds the compaction coordinator", () => {
+test("session reload preserves, rebinds, and proves the compaction coordinator", () => {
   const shutdown = handlerBody("session_shutdown");
   const start = handlerBody("session_start");
   assert.doesNotMatch(shutdown, /processLease\.request = undefined/);
@@ -43,6 +43,8 @@ test("session reload preserves and rebinds the compaction coordinator", () => {
   assert.match(shutdown, /processLease\.owner\.nativeSession = undefined/);
   assert.match(start, /processLease\.request = maybeCompact/);
   assert.match(start, /reduceCompactionAuthorityEvents\(persistedEvents\)/);
+  assert.match(start, /runtime_registration_verified/);
+  assert.match(start, /extension_build: EXTENSION_BUILD/);
 });
 
 test("agent_end never races Pi native compaction with extension compaction", () => {
@@ -148,12 +150,13 @@ test("Rust lease adapter owns policy resolution with exact local fallback", () =
   assert.match(source, /\["manual", "provider_overflow"\]\.includes\(activeEpoch\.triggerClass\)/);
 });
 
-test("compaction outcomes automatically evaluate and quarantine degraded policies", () => {
+test("compaction outcomes settle once from the authoritative ctx.compact callback", () => {
   const beforeCompact = handlerBody("session_before_compact");
   const compacted = handlerBody("session_compact");
   assert.match(beforeCompact, /outcomeBaseline/);
   assert.match(beforeCompact, /outcome_baseline_recorded/);
-  assert.match(compacted, /recordOutcome\(ctx, activeEpoch/);
+  assert.match(source, /recordOutcome\(ctx, completedEpoch/);
+  assert.doesNotMatch(compacted, /recordOutcome/);
   assert.match(source, /outcome_evaluated/);
   assert.match(source, /policy_rollback_required/);
   assert.match(source, /quarantinedPolicyKeys/);

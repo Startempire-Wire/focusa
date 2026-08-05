@@ -764,6 +764,14 @@ export function registerAutoCompaction(
         const completedEpoch = invokedEpoch;
         const usageAfter = ctx.getContextUsage();
         const tokensAfter = usageAfter?.tokens ?? undefined;
+        if (completedEpoch.outcomeBaseline) {
+          recordOutcome(ctx, completedEpoch, {
+            ...completedEpoch.outcomeBaseline.snapshot,
+            providerOutcome: "succeeded",
+            qualityScore: null,
+            contextTokens: tokensAfter ?? null,
+          });
+        }
         const savedTokens = tokensAfter === undefined ? undefined : result.tokensBefore - tokensAfter;
         persist(
           "attempt_completed",
@@ -1210,16 +1218,6 @@ export function registerAutoCompaction(
     // completion may reset observation state only when no Focusa call is active.
     if (processLease.inFlightEpochId) return;
     if (!ownsRegistrationLease()) return;
-    if (activeEpoch?.outcomeBaseline) {
-      recordOutcome(ctx, activeEpoch, {
-        ...activeEpoch.outcomeBaseline.snapshot,
-        projectRoot: ctx.cwd,
-        sessionId: ctx.sessionManager.getSessionId(),
-        providerOutcome: "succeeded",
-        qualityScore: null,
-        contextTokens: ctx.getContextUsage()?.tokens ?? null,
-      });
-    }
     processLease.lastSuccessfulCompactionAt = Date.now();
     if (retryTimer) clearTimeout(retryTimer);
     retryTimer = undefined;
@@ -1249,6 +1247,11 @@ export function registerAutoCompaction(
       )
       .map((entry) => entry.data);
     processLease.projection = reduceCompactionAuthorityEvents(persistedEvents);
+    persist("runtime_registration_verified", {
+      extension_build: EXTENSION_BUILD,
+      registration_source: REGISTRATION_SOURCE,
+      native_session: ctx.sessionManager.getSessionId(),
+    });
     await prewarmCompactionPolicy(ctx, getConfig()).catch(() => undefined);
     const policyStatus = await focusaFetch("/compaction/policy").catch(() => null);
     processLease.operatorOverride = policyOverride(policyStatus);
