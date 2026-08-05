@@ -1,6 +1,7 @@
 schema: focusa.desktop.transition_task_graph.v1
 transition_id: FOCUSA-TRANSITION-001
 parent_graph: docs/transitions/FOCUSA-TRANSITION-001-task-graph.yaml
+mission_canvas_callgraph: docs/transitions/FOCUSA-TRANSITION-001-mission-canvas-desktop-callgraph.yaml
 scope: T070_T071_desktop_5_to_25
 status: active
 rules:
@@ -72,20 +73,25 @@ nodes:
     depends_on: [D005-01]
   - id: D020-02
     parent: T071
-    title: Reconstruct Mission Canvas context bar activity tabs and left mode rail
+    title: Reconstruct Mission Canvas context bar activity tabs and left mode rail scaffold
     status: complete
     depends_on: [D020-01]
     evidence: [docs/contracts/evidence/spec158-desktop-m05-mission-canvas-current.png]
+    notes: Presentation scaffold only; it does not satisfy adaptive composition or canonical activity/profile resolution.
   - id: D020-03
     parent: T071
-    title: Reconstruct recomposable workspace panel grid and persistent prompt editor
+    title: Consume canonical ResolvedWorkspaceProjection in recursive Desktop layout and prompt routing
     status: blocked
     depends_on: [D020-02, T061]
+    callgraph_nodes: [MC-040, MC-050, MC-060, MC-090, MC-100, MC-105, MC-110, MC-120, MC-130, MC-230]
+    notes: Preserve the existing Focusa Core resolver/layout/reducer; do not implement a second Svelte resolver or fixed dashboard grid.
   - id: D020-04
     parent: T071
-    title: Implement vertical profile recomposition for software legal markets and research
+    title: Render canonical profile and activity recomposition for general software legal markets research and custom
     status: blocked
     depends_on: [D020-03]
+    callgraph_nodes: [MC-070, MC-080, MC-140, MC-210]
+    notes: Profile switching consumes registry and projection output; it is not a client-local alternate page or color theme.
   - id: D021-01
     parent: T071
     title: Version Workstream-aware workspace manifest

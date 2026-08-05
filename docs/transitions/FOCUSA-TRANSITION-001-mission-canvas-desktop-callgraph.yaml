@@ -1,0 +1,840 @@
+schema: focusa.mission_canvas_desktop_implementation_callgraph.v1
+status: implementation_guide
+purpose: >-
+  Source-grounded callgraph for transferring the fundamental Spec 135 Mission Canvas
+  into Focusa Desktop without inventing product structure, state, panels, authority, or actions.
+
+source_precedence:
+  - operator_steering_in_this_transition
+  - /tmp/focusa-spec158-transition/docs__135-series-spec158-desktop-transition-overlay.md
+  - /tmp/focusa-spec158-transition/docs__transitions__FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md
+  - /tmp/focusa-spec158-transition/docs__transitions__FOCUSA-TRANSITION-001-task-graph.yaml
+  - docs/135-series-current-manifest.md
+  - docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md
+  - docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml
+  - docs/135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md
+  - docs/135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md
+  - docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md
+  - docs/135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md
+  - docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md
+  - docs/135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md
+  - docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md
+  - docs/135k-uxp-ufi-adaptive-generated-ui-friction-learning-and-nontechnical-usability-spec.md
+  - docs/contracts/spec135-adaptive-composition.v1.yaml
+  - docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json
+  - docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts
+  - docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts
+  - docs/contracts/spec135/mission-canvas-v1/operation-registry.json
+  - docs/contracts/spec135-mission-canvas-completion-dag.v2.json
+  - /Volumes/Macintosh HD/Users/vsmith/focusa-desktop-design-handoff.md
+
+resolved_architecture:
+  unchanged_fundamentals:
+    - Mission Canvas is an adaptive professional workspace, not a fixed dashboard.
+    - ResolvedWorkspaceProjection is computed before rendering.
+    - Empty or ineligible contributions are omitted before geometry.
+    - Work Surface tabs show actual open surfaces only.
+    - Activity mode and Workspace Profile are independent composition inputs.
+    - The canonical shell order is Work Surface strip, focused surface plus inspector, Work Rail, queues, prompt editor.
+    - Pi transcript is one pi_session Work Surface; it is not the whole Mission Canvas.
+    - Visual focus never creates canonical authority.
+    - All mutations use typed scoped operations, preview/commit where required, and receipts.
+    - Context, Role, Interview, Spec, Tasks, Sessions, Documents, Research, Evidence, History, and Controls remain activity capabilities.
+    - General, Software, Legal, Markets, Research, and Custom remain workspace profiles.
+  transition_delta:
+    old_primary_host: Pi ctx.ui.custom terminal overlay
+    new_primary_host: Focusa Desktop Tauri shell with Svelte Mission Canvas
+    pi_runtime: authentic PTY-backed Agent TUI Work Surface inside Focusa Desktop
+    canvas_switch: Mission Canvas and Agent TUI replace the complete inner Desktop surface
+    semantic_core: shared Focusa Core projection and generated contracts; never copied into Svelte
+    pi_extension_after_cutover: compatibility adapter and Desktop launcher/presenter for the exact Workstream
+    menubar_after_cutover: bounded status, resume, pairing, lifecycle, and Desktop handoff only
+    visual_handoff_role: finishing-language guidance only; it does not define layout inventory or behavior
+
+non_negotiable_prohibitions:
+  - no fixed dashboard slots
+  - no client-local eligibility or ad-hoc reflow algorithm
+  - no permanent unavailable, empty, degraded, or not-configured cards in the primary Canvas
+  - no possible-type Work Surface tabs
+  - no handwritten duplicate transport DTOs
+  - no project_root-plus-continuity authority
+  - no CWD, selected tab, latest record, remembered workspace, or daemon-global authority inference
+  - no ordinary child-process pipes for interactive Pi
+  - no mocked canonical data presented as live
+  - no browser framework other than UIAI Engine for browser execution or evaluation
+  - no visual redesign work before the corresponding core call path exists
+
+current_implementation_truth:
+  implemented_reusable_core:
+    - file: crates/focusa-core/src/mission_canvas/resolver.rs
+      exports: [collect_candidates, resolve_eligibility]
+    - file: crates/focusa-core/src/mission_canvas/layout.rs
+      exports: [resolve_layout, validate_no_dead_chrome, LayoutNode]
+    - file: crates/focusa-core/src/mission_canvas/reducer.rs
+      exports: [resolve_projection, projection_digest, candidate_partition_is_complete]
+    - file: crates/focusa-core/src/mission_canvas/persistence.rs
+      exports: [MissionCanvasStore]
+    - file: crates/focusa-core/src/mission_canvas/profiles.rs
+      exports: [WorkspaceProfileRegistry, ActivityModeRegistry]
+    - file: crates/focusa-api/src/routes/mission_canvas.rs
+      exports: [mission_canvas_router]
+    - file: docs/contracts/spec135/mission-canvas-v1/operation-registry.json
+      operation_count: 25
+    - file: docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts
+      contains: ResolvedWorkspaceProjection
+    - file: apps/pi-extension/src/mission-canvas-model.ts
+      role: legacy Pi projection adapter requiring Workstream identity correction
+    - file: apps/pi-extension/src/mission-canvas-session-inventory.ts
+      role: legacy session inventory adapter requiring exact Attachment and Workstream identity
+  desktop_present_but_not_core_complete:
+    - apps/desktop/src/routes/+page.svelte
+    - apps/desktop/src/lib/shell/MissionCanvasShell.svelte
+    - apps/desktop/src/lib/shell/AgentTuiSurface.svelte
+    - apps/desktop/src/lib/shell/pi-attachment-contract.ts
+  invalid_current_canvas_behavior_to_replace:
+    - static possible-type Work Surface tabs
+    - fixed status cards
+    - fixed overview and transcript panels
+    - permanently empty steering and follow-up queues
+    - local mode/profile composition with no ResolvedWorkspaceProjection input
+    - prompt editor not routed to an exact canonical recipient
+  blocking_identity_gap:
+    current_scope: project_root + continuity_id + session/attachment strings
+    required_scope: ScopeRef/ProjectRootKey + WorkstreamId + ContinuityId + AttachmentKey + SessionId/InstanceId + WorkSurfaceId
+
+runtime_callgraph:
+  desktop_start:
+    calls:
+      - TauriApp.start
+      - DesktopManifest.load
+      - WorkstreamContext.resolve_exact
+      - MissionCanvasProjectionController.start
+      - MissionCanvasProjectionClient.get_projection
+      - MissionCanvasRenderer.render_projection
+      - DesktopEventClient.subscribe
+  projection_resolution:
+    calls:
+      - mission_canvas_router.POST_/v1/mission-canvas/projection/resolve
+      - resolve_projection
+      - WorkspaceProfileRegistry.resolve
+      - ActivityModeRegistry.resolve
+      - collect_candidates
+      - resolve_eligibility
+      - resolve_layout
+      - validate_no_dead_chrome
+      - MissionCanvasStore.save_projection
+      - MissionCanvasStore.append_event
+      - return_RecompositionResult_with_evidence_and_receipt
+  desktop_render:
+    calls:
+      - MissionCanvasShell.render_frame
+      - ActualWorkSurfaceStrip.render
+      - ActivityNavigation.render
+      - ProjectionLayoutRenderer.render_LayoutNode_recursively
+      - ContributionRendererRegistry.render_by_renderer_binding_id
+      - ConditionalWorkRail.render_if_present
+      - ConditionalQueueRegion.render_if_present
+      - PromptEditor.render_if_present_and_recipient_resolved
+  activity_change:
+    calls:
+      - ActivityNavigation.select
+      - MissionCanvasProjectionController.resolve_with_activity
+      - focusa.mission_canvas.activity.select
+      - receive_projection_revision
+      - preserve_focus_draft_scroll_and_surface_identity
+      - MissionCanvasRenderer.render_projection
+  profile_change:
+    calls:
+      - WorkspaceProfileSelector.select_eligible_profile
+      - focusa.mission_canvas.profile.select
+      - MissionCanvasProjectionController.resolve_with_profile
+      - restore_profile_layout_memory
+      - MissionCanvasRenderer.render_projection
+  surface_focus:
+    calls:
+      - ActualWorkSurfaceStrip.focus
+      - typed_WorkSurface_focus_operation
+      - canonical_event
+      - projection_invalidation
+      - MissionCanvasProjectionController.refresh
+  mutation:
+    calls:
+      - ContributionAction.invoke
+      - OperationRegistry.lookup
+      - CapabilityPermissionGate.check
+      - preview_if_required
+      - operator_confirmation_if_required
+      - commit
+      - ToolResult
+      - canonical_event
+      - Evidence_and_Receipt
+      - projection_or_generated_surface_delta
+  pi_surface:
+    calls:
+      - DesktopPiSurfaceController.open_exact_attachment
+      - TauriPtyAdapter.spawn_or_reconnect
+      - PiProcess.keep_alive_when_hidden
+      - PtyOutputStream.to_terminal_renderer
+      - TerminalInput.to_pty
+      - TerminalResize.to_pty
+      - WorkSurfaceLifecycle.persist_and_rehydrate
+  generated_surface:
+    calls:
+      - GeneratedSurfaceEnvelope.receive
+      - A2UI_web_core.process
+      - A2UI_Lit_renderer.render
+      - FocusaSvelteCustomElement.invoke_action_binding
+      - mutation
+  live_refresh:
+    calls:
+      - SQLite_event_replay
+      - broadcast_live_tail
+      - DesktopEventClient.filter_exact_workstream
+      - ProjectionInvalidation.coalesce
+      - MissionCanvasProjectionController.refresh
+      - preserve_local_presentation_state
+
+execution_rules_for_agents:
+  - Execute only a node whose status is ready and whose dependencies are complete.
+  - Read every file in node.read_before_edit before changing code.
+  - Change only node.targets.
+  - Do not invent renderer IDs, contribution IDs, operation IDs, profile IDs, or activity IDs; consume registries and generated contracts.
+  - Do not implement a later node as a shortcut around a blocked dependency.
+  - If actual code contradicts this graph, stop and update this graph from the higher-authority source before coding.
+  - A node is complete only when its output is consumed by the next node; isolated scaffolding is not completion.
+
+nodes:
+  - id: MC-000
+    title: Reconcile transition task graph with the existing Spec 135 semantic core
+    status: complete
+    depends_on: []
+    read_before_edit:
+      - docs/contracts/spec135-mission-canvas-completion-dag.v2.json
+      - docs/transitions/FOCUSA-TRANSITION-001-desktop-implementation-task-graph.yaml
+      - crates/focusa-core/src/mission_canvas/
+      - crates/focusa-api/src/routes/mission_canvas.rs
+    targets:
+      - docs/transitions/FOCUSA-TRANSITION-001-desktop-implementation-task-graph.yaml
+    steps:
+      - Mark the existing resolver, layout, reducer, persistence, registry, API, and generated-contract foundations as preserved inputs rather than missing work.
+      - Replace the coarse D020-03 static-grid wording with projection-driven Desktop renderer work.
+      - Add the nodes in this callgraph as task-graph children without claiming blocked identity work complete.
+    output: Task graph points agents to extraction and consumption of existing core instead of recreating it.
+    acceptance:
+      - T061 means Pi-independent extraction plus Spec 158 identity correction, not a second resolver.
+      - No node directs an agent to hard-code the populated reference screenshots.
+
+  - id: MC-010
+    title: Land canonical Workstream identity primitives
+    status: blocked_external
+    transition_refs: [T021, T022, T023]
+    depends_on: []
+    read_before_edit:
+      - /tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md
+      - /tmp/focusa-spec158-transition/docs__spec158__02-persistence-migration-and-quarantine.md
+    targets: [Focusa identity, ownership, reducer, and persistence owners]
+    steps:
+      - Implement stable WorkstreamId under ScopeRef/ProjectRootKey.
+      - Implement AttachmentKey and SessionId/InstanceId ownership under WorkstreamId.
+      - Implement active Workstream state as canonical reducer state.
+      - Provide quarantine and migration rules for legacy ambiguous rows.
+    output: Canonical identity types and reducer authority usable by Mission Canvas.
+    do_not:
+      - Do not patch Desktop local state to simulate these identities.
+
+  - id: MC-020
+    title: Correct Mission Canvas scope and Work Surface identity
+    status: blocked
+    transition_refs: [T060]
+    depends_on: [MC-010]
+    read_before_edit:
+      - crates/focusa-core/src/mission_canvas/model.rs
+      - apps/pi-extension/src/mission-canvas-model.ts
+      - apps/pi-extension/src/mission-canvas-session-inventory.ts
+      - docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md
+    targets:
+      - crates/focusa-core/src/mission_canvas/model.rs
+      - apps/pi-extension/src/mission-canvas-model.ts
+      - apps/pi-extension/src/mission-canvas-session-inventory.ts
+      - related schemas and migrations
+    calls:
+      - CanonicalWorkstreamKey.from_scope_ref_and_workstream_id
+      - ExactAttachmentRef.from_attachment_key_and_session_instance
+      - WorkSurfaceProjection.bind_exact_identity
+    output:
+      - MissionCanvasScope contains canonical Workstream identity.
+      - WorkSurfaceProjection and inventory rows contain WorkstreamKey and exact Attachment.
+    acceptance:
+      - project_root plus continuity_id cannot bind or focus a Work Surface.
+      - ambiguous legacy rows are quarantined, not guessed.
+
+  - id: MC-030
+    title: Regenerate Mission Canvas transport contracts after identity correction
+    status: blocked
+    transition_refs: [T050, T061]
+    depends_on: [MC-020]
+    read_before_edit:
+      - docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json
+      - docs/contracts/spec135/mission-canvas-v1/operation-registry.json
+      - tests/spec135_mission_canvas_generated_parity_test.py
+    targets:
+      - OpenAPI and JSON Schema generators
+      - docs/contracts/spec135/mission-canvas-v1/
+      - generated TypeScript client package
+    calls:
+      - Rust_schema_generation
+      - OpenAPI_3_0_3_generation
+      - OperationRegistry_generation
+      - TypeScript_client_generation
+      - validator_generation
+    output: Generated Workstream-aware ResolvedWorkspaceProjection, requests, results, receipts, client, and validators.
+    do_not:
+      - Do not hand-edit generated DTO copies inside apps/desktop.
+
+  - id: MC-040
+    title: Extract a Pi-independent Mission Canvas consumer package
+    status: blocked
+    transition_refs: [T061]
+    depends_on: [MC-030]
+    read_before_edit:
+      - crates/focusa-core/src/mission_canvas/
+      - docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts
+      - apps/pi-extension/src/mission-canvas-view.ts
+    targets:
+      - packages/mission-canvas-core or repository-equivalent
+      - packages/generated-client or repository-equivalent
+      - Pi compatibility adapter
+      - Desktop consumer fixture
+    steps:
+      - Re-export generated transport types without redefining them.
+      - Define bounded presentation selectors only where generated DTOs need renderer-friendly indexing.
+      - Move Pi-independent contribution lookup, layout traversal helpers, and semantic labels out of Pi UI files.
+      - Keep resolve_eligibility and resolve_layout canonical in Focusa Core.
+      - Add identical Pi and Desktop fixture consumption.
+    output: Pi and Desktop consume the same semantic projection and renderer binding identifiers.
+    do_not:
+      - Do not port the Rust resolver into TypeScript.
+      - Do not make Svelte interpret arbitrary any payloads.
+
+  - id: MC-050
+    title: Build the Desktop Mission Canvas projection client
+    status: blocked
+    depends_on: [MC-040, MC-010]
+    transition_refs: [D021-01, D021-03, D022-01]
+    targets:
+      - apps/desktop/src/lib/mission-canvas/projection-client.ts
+      - apps/desktop/src/lib/mission-canvas/projection-controller.svelte.ts
+      - apps/desktop/src/lib/mission-canvas/context.ts
+    calls:
+      - generated_client.projection_get
+      - generated_client.projection_resolve
+      - generated_client.events_stream
+      - generated_validator.validate_ResolvedWorkspaceProjection
+    state_machine: [unbound, loading, ready, stale, blocked, error]
+    output: Exact-Workstream controller supplies validated projections and revisions to Svelte.
+    acceptance:
+      - Desktop selection cannot mint or repair authority.
+      - stale responses from a prior Workstream or projection revision are rejected.
+      - renderer receives no mock canonical content.
+
+  - id: MC-060
+    title: Replace the static Mission Canvas body with a projection-driven frame
+    status: blocked
+    transition_refs: [D020-03]
+    depends_on: [MC-050]
+    read_before_edit:
+      - apps/desktop/src/lib/shell/MissionCanvasShell.svelte
+      - docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md
+      - docs/135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md
+    targets:
+      - apps/desktop/src/lib/shell/MissionCanvasShell.svelte
+      - apps/desktop/src/lib/mission-canvas/MissionCanvasFrame.svelte
+    renders_in_order:
+      - resolved scope/profile/session/activity top bar when meaningful
+      - actual Work Surface strip
+      - activity navigation
+      - resolved layout tree
+      - prompt editor contribution
+    output: Stable shell geometry around server-resolved contributions.
+    remove:
+      - static surfaceTabs list
+      - static status-cards grid
+      - static overview workspace
+      - static queue placeholders
+      - static identity-chain content used as primary workspace
+    acceptance:
+      - No fixed panel exists without an eligible contribution.
+
+  - id: MC-070
+    title: Render actual Work Surfaces and focus state
+    status: blocked
+    depends_on: [MC-060, MC-020]
+    transition_refs: [T071]
+    targets:
+      - apps/desktop/src/lib/mission-canvas/ActualWorkSurfaceStrip.svelte
+      - apps/desktop/src/lib/mission-canvas/FocusedWorkSurface.svelte
+    calls:
+      - projection.open_work_surfaces
+      - typed_surface_focus_operation
+      - projection_refresh
+    output: Strip shows only open, pinned, or contextually important surfaces; focused surface renders by stable WorkSurfaceId.
+    acceptance:
+      - Pi, UIAI, Silent Session, document, generated surface, and custom entries appear only when actual instances exist.
+      - Add Surface is the discovery path for absent surface kinds.
+
+  - id: MC-080
+    title: Render activity navigation from the canonical registry
+    status: blocked
+    depends_on: [MC-060]
+    targets:
+      - apps/desktop/src/lib/mission-canvas/ActivityNavigation.svelte
+    registry_values:
+      - overview
+      - context
+      - role
+      - interview
+      - spec
+      - tasks
+      - sessions
+      - documents
+      - research
+      - evidence
+      - history
+      - controls
+    calls:
+      - generated_client.activity_list
+      - generated_client.activity_select
+      - projection_controller.resolve_with_activity
+    output: Desktop rail or compact tabs include only registered and applicable modes.
+    do_not:
+      - Do not define activity composition in the component.
+
+  - id: MC-090
+    title: Implement recursive LayoutNode rendering
+    status: blocked
+    depends_on: [MC-060, MC-100]
+    targets:
+      - apps/desktop/src/lib/mission-canvas/ProjectionLayoutRenderer.svelte
+      - apps/desktop/src/lib/mission-canvas/layout/SingleNode.svelte
+      - apps/desktop/src/lib/mission-canvas/layout/SplitNode.svelte
+      - apps/desktop/src/lib/mission-canvas/layout/StackNode.svelte
+      - apps/desktop/src/lib/mission-canvas/layout/GridNode.svelte
+      - apps/desktop/src/lib/mission-canvas/layout/TabsNode.svelte
+      - apps/desktop/src/lib/mission-canvas/layout/InspectorNode.svelte
+    input_variants: [single, split, stack, grid, tabs, inspector]
+    calls:
+      - LayoutNode.visit
+      - ContributionRendererRegistry.resolve
+      - renderer_binding.render
+    output: Svelte geometry is a direct rendering of canonical LayoutNode.
+    acceptance:
+      - Omitted contribution IDs cannot leave DOM nodes, headings, borders, or gaps.
+      - Unknown semantic or renderer binding fails closed; no substitute panel is rendered.
+      - Resize mutations call focusa.mission_canvas.layout.mutate rather than changing canonical layout locally.
+
+  - id: MC-100
+    title: Implement the contribution renderer registry
+    status: blocked
+    depends_on: [MC-040]
+    targets:
+      - apps/desktop/src/lib/mission-canvas/contribution-renderers.ts
+      - apps/desktop/src/lib/mission-canvas/contributions/
+    canonical_kinds:
+      - work_surface_strip
+      - focused_work_surface
+      - inspector
+      - inspector_section
+      - work_rail
+      - steering_queue
+      - follow_up_queue
+      - prompt_editor
+      - scope_bar
+      - activity_navigation
+      - toolbar_control
+      - contextual_action
+      - transient_notification
+      - generated_surface
+    calls:
+      - renderer_binding_id_to_trusted_component
+      - semantic_binding_id_to_component_props
+    output: Trusted renderer map with no fallback reinterpretation.
+    do_not:
+      - Do not map by display title.
+      - Do not render unknown bindings as a generic status card.
+
+  - id: MC-105
+    title: Bind every canonical activity to its existing domain projection
+    status: blocked
+    depends_on: [MC-100, MC-030]
+    targets:
+      - apps/desktop/src/lib/mission-canvas/activity-renderers.ts
+      - trusted contribution renderers backed by generated domain contracts
+    bindings:
+      overview:
+        owners: [Project, Trajectory, Workpoint, Evidence, active Work Surface]
+        rule: Render only eligible overview contributions emitted by the projection.
+      context:
+        owners: [ProjectContextArtifact, ProjectContextClaim, semantic graph]
+      role:
+        owners: [ProjectAgentRoleProfile, Role Composer]
+      interview:
+        owners: [InterviewSession, QuestionRecord, AnswerRecord, Grill Interview]
+      spec:
+        owners: [CRIST handoff packet, Spec 120, Project Genesis Spec]
+      tasks:
+        owners: [TaskPlan, provider adapter, Workpoint, Work Rail]
+      sessions:
+        owners: [WorkSurface, Session, Attachment, Instance, isolation]
+      documents:
+        owners: [Context artifact, document renderer, provenance]
+      research:
+        owners: [research source, claim graph, UIAI artifact]
+      evidence:
+        owners: [Evidence, Receipt, verification, promotion]
+      history:
+        owners: [durable canonical event stream]
+      controls:
+        owners: [capabilities, permissions, profile management, layout memory, recovery diagnostics]
+    calls:
+      - renderer_binding_id_to_activity_domain_renderer
+      - generated_domain_contract_to_component_props
+      - operation_binding_for_actions
+    output: All twelve activity modes can render real canonical contributions without fixed page templates.
+    do_not:
+      - Do not invent a panel set from the reference screenshots.
+      - Do not replace missing domain data with an unavailable card.
+      - Do not treat a stage transcript as its generated activity UI.
+
+  - id: MC-110
+    title: Implement conditional Work Rail composition
+    status: blocked
+    depends_on: [MC-090, MC-100]
+    targets:
+      - apps/desktop/src/lib/mission-canvas/contributions/WorkRailContribution.svelte
+    calls:
+      - resolved_contribution.work_rail_binding
+      - WorkRailProjection.render_rows
+      - typed_workpoint_actions
+    behavior:
+      populated: render surface-local, project aggregate, or labeled cross-project advisory scope
+      empty: render no region and keep New Workpoint as a contextual action
+    acceptance:
+      - No empty Work Rail container remains.
+      - Row actions preserve Workpoint and provider capability truth.
+
+  - id: MC-120
+    title: Implement conditional Steering and Follow-up queue composition
+    status: blocked
+    depends_on: [MC-090, MC-100]
+    targets:
+      - apps/desktop/src/lib/mission-canvas/contributions/SteeringQueueContribution.svelte
+      - apps/desktop/src/lib/mission-canvas/contributions/FollowUpQueueContribution.svelte
+      - apps/desktop/src/lib/mission-canvas/contributions/QueueRegion.svelte
+    behavior:
+      both_present: render the projection-defined arrangement
+      one_present: single queue spans the queue region
+      neither_present: render no queue region and allow prompt editor expansion
+    calls:
+      - recipient_resolve
+      - operation_preview
+      - operation_commit
+    acceptance:
+      - No blank queue lane.
+      - Queue recipient is exact Attachment/WorkSurface identity.
+
+  - id: MC-130
+    title: Implement canonical Prompt Editor routing and draft preservation
+    status: blocked
+    depends_on: [MC-050, MC-090]
+    targets:
+      - apps/desktop/src/lib/mission-canvas/contributions/PromptEditorContribution.svelte
+      - apps/desktop/src/lib/mission-canvas/draft-controller.ts
+    calls:
+      - generated_client.recipient_resolve
+      - generated_client.draft_get
+      - generated_client.draft_sync
+      - exact_recipient_send_operation
+    output: Prompt editor targets the current Pi session or selected exact recipient and survives recomposition.
+    acceptance:
+      - No send control is available without a resolved authorized recipient.
+      - Profile/activity/surface changes preserve drafts.
+
+  - id: MC-140
+    title: Implement profile resolution and vertical recomposition
+    status: blocked
+    transition_refs: [D020-04]
+    depends_on: [MC-090, MC-100]
+    targets:
+      - apps/desktop/src/lib/mission-canvas/WorkspaceProfileSelector.svelte
+      - profile-specific trusted renderers only where registry binding requires them
+    profile_ids: [general, software, legal, markets, research, custom]
+    calls:
+      - generated_client.profile_list
+      - generated_client.profile_select
+      - generated_client.layout_memory_get
+      - projection_controller.resolve_with_profile
+    behavior:
+      - Recompose geometry, contribution set/order, terminology, renderers, Evidence emphasis, history, density, and controls over the same canonical state.
+      - Show only profiles that can produce a meaningful projection.
+    acceptance:
+      - A vertical is not a color swap or a hard-coded alternate page.
+      - Per-profile layout memory survives contribution disappearance and return.
+
+  - id: MC-150
+    title: Integrate generated C.R.I.S.T. Work Surfaces
+    status: blocked
+    depends_on: [MC-070, MC-100, MC-030]
+    spec_refs: [135B, 135I, 135J, 135K]
+    targets:
+      - apps/desktop generated-surface host
+      - existing A2UI/Lit renderer package
+      - existing Focusa Svelte Custom Element catalog
+    calls:
+      - GeneratedSurfaceEnvelope.receive
+      - A2UI_web_core
+      - A2UI_Lit_renderer
+      - Focusa_UI_ActionBinding
+      - OperationRegistry
+    stages: [context, role, interview, spec, tasks, operational_continuation]
+    acceptance:
+      - Generated UI uses canonical operations and durable events.
+      - No transcript Markdown is relabeled as generated GUI.
+      - UXP/UFI may alter presentation but never authority, required proof, or safety.
+
+  - id: MC-160
+    title: Integrate UIAI browser Work Surfaces
+    status: blocked
+    depends_on: [MC-070, MC-050]
+    spec_refs: [135C, 135G]
+    targets:
+      - apps/desktop browser artifact Work Surface adapter
+    calls:
+      - exact_UIAI_session_and_artifact_reference
+      - isolated_browser_context_projection
+      - FPV_or_artifact_renderer
+      - scoped_invalidation
+    acceptance:
+      - Browser context identity and isolation are visible.
+      - Browser execution stays owned by UIAI Engine.
+      - Browser state is not duplicated in Desktop.
+
+  - id: MC-170
+    title: Implement authentic embedded Pi PTY Work Surface
+    status: blocked
+    transition_refs: [D023-02, D023-03, T080]
+    depends_on: [MC-020, MC-070]
+    targets:
+      - apps/desktop/src-tauri PTY adapter
+      - apps/desktop Pi terminal renderer bridge
+      - apps/desktop/src/lib/shell/AgentTuiSurface.svelte
+    calls:
+      - PTY.spawn_or_attach
+      - PTY.resize
+      - PTY.input
+      - PTY.output
+      - PTY.interrupt
+      - PTY.detach_without_destroy
+      - WorkSurfaceLifecycle.persist
+      - WorkSurfaceLifecycle.rehydrate
+    acceptance:
+      - Pi remains alive while Mission Canvas is visible.
+      - Mission Canvas and Agent TUI show the same Pi session and Attachment.
+      - resize, input, output, interrupt, detach, close, restart, and stale-output rejection are defined and implemented.
+      - ordinary child-process pipes are not used.
+
+  - id: MC-180
+    title: Implement Desktop live event and invalidation loop
+    status: blocked
+    transition_refs: [T072]
+    depends_on: [MC-050, MC-030]
+    targets:
+      - apps/desktop event client and projection cache
+      - Desktop semantic state projection
+    calls:
+      - generated_client.events_stream
+      - cursor_replay
+      - live_tail
+      - exact_workstream_filter
+      - invalidation_coalescer
+      - projection_controller.refresh
+    acceptance:
+      - reconnect resumes from cursor without duplicating state.
+      - refresh does not remount the entire shell or lose focus/drafts/scroll.
+      - events from another Workstream cannot update the active Canvas.
+
+  - id: MC-190
+    title: Implement Work Surface lifecycle commands and Desktop semantic control plane
+    status: blocked
+    transition_refs: [T072]
+    depends_on: [MC-070, MC-180]
+    targets:
+      - Desktop manifest, status, state, events, and present routes
+      - CLI and Pi presentation adapters
+    commands:
+      - surface.list
+      - surface.open
+      - surface.focus
+      - surface.split
+      - surface.move
+      - surface.close
+      - desktop.present
+      - desktop.navigate
+      - desktop.wait
+    acceptance:
+      - Every command requires exact Workstream context and returns an operation Receipt.
+      - Agent verification uses semantic Desktop state, not screenshot parsing.
+      - Closing a view does not silently destroy canonical work.
+
+  - id: MC-200
+    title: Transfer Pi Mission Canvas command to Desktop presentation
+    status: blocked
+    depends_on: [MC-190, MC-170]
+    targets:
+      - apps/pi-extension Mission Canvas command and compatibility adapter
+      - menubar Mission Canvas ownership cleanup
+    behavior:
+      desktop_available: present Mission Canvas for exact Workstream
+      desktop_unavailable_or_terminal_requested: open bounded Pi compatibility projection
+    acceptance:
+      - Pi command does not launch or bind the wrong Workstream.
+      - Pi remains interactive inside Desktop through the PTY Work Surface.
+      - Menubar retains only bounded status and handoff responsibilities.
+
+  - id: MC-210
+    title: Implement responsive projection rendering
+    status: blocked
+    depends_on: [MC-090, MC-140]
+    targets:
+      - ProjectionLayoutRenderer responsive host mechanics
+    canonical_modes:
+      narrow:
+        activity_navigation: compact_tabs
+        contribution_columns: 1
+      stacked:
+        activity_navigation: rail_when_viable
+        contribution_columns: 1
+      desktop:
+        activity_navigation: persistent_rail
+        contribution_columns: 2
+    acceptance:
+      - Viewport is an input to canonical projection resolution.
+      - Desktop does not locally choose different semantic contributions.
+      - Keyboard focus and active Work Surface survive recomposition.
+
+  - id: MC-220
+    title: Implement continuity, restoration, and capability-loss behavior
+    status: blocked
+    depends_on: [MC-130, MC-170, MC-180, MC-190]
+    targets:
+      - Desktop persistence adapters
+      - Work Surface restoration controller
+    preserves:
+      - canonical state
+      - Workstream identity
+      - Session and Attachment identity
+      - focused Work Surface
+      - Workpoint
+      - Evidence
+      - drafts
+      - scroll and selection
+      - per-profile layout memory
+    behavior:
+      capability_loss:
+        - preserve loaded content when safe
+        - remove dead controls
+        - omit or collapse unusable contributions
+        - restore automatically when capability returns
+    acceptance:
+      - Canvas/TUI switching, hide/show, Desktop restart, daemon reconnect, and contribution recomposition retain the required invariants.
+
+  - id: MC-230
+    title: Remove the static Desktop Mission Canvas scaffold
+    status: blocked
+    depends_on: [MC-060, MC-070, MC-090, MC-110, MC-120, MC-130]
+    targets:
+      - apps/desktop/src/lib/shell/MissionCanvasShell.svelte
+      - obsolete scaffold-only tests and fixtures
+    steps:
+      - Delete fixed dashboard markup after projection renderer reaches feature parity.
+      - Delete possible-type tab arrays and local activity composition arrays.
+      - Keep only stable shell delegation to the projection-driven components.
+    acceptance:
+      - No static scaffold is reachable in production Desktop code.
+      - No capability is lost during deletion.
+
+  - id: MC-240
+    title: Run functional acceptance for the core Mission Canvas
+    status: blocked
+    transition_refs: [D025-01]
+    depends_on: [MC-140, MC-150, MC-160, MC-170, MC-220, MC-230]
+    acceptance_matrix:
+      - actual Work Surface inventory and focus
+      - each registered activity with meaningful contributions
+      - general, software, legal, markets, research, and custom profile recomposition
+      - empty optional omission and deterministic reflow
+      - one queue spans and zero queues collapse
+      - empty Work Rail collapses with New Workpoint retained
+      - exact prompt recipient and draft preservation
+      - generated C.R.I.S.T. surface action
+      - isolated UIAI browser surface
+      - authentic Pi input/output/resize/interrupt/detach/restore
+      - Canvas/TUI same-session continuity
+      - reconnect and stale-event rejection
+      - narrow, stacked, and desktop responsive modes
+    output: Core functionality accepted before finishing visual refinement.
+
+  - id: MC-250
+    title: Apply final visual-system refinement
+    status: blocked
+    depends_on: [MC-240]
+    read_before_edit:
+      - /Volumes/Macintosh HD/Users/vsmith/focusa-desktop-design-handoff.md
+    scope:
+      - typography rhythm
+      - final spacing and radii
+      - motion tuning
+      - icon optical alignment
+      - semantic glow restraint
+      - native Tauri visual polish
+    do_not:
+      - Do not change product composition, authority, operations, or state semantics during this node.
+
+next_ready_sequence:
+  - MC-000
+  - MC-010
+  - MC-020
+  - MC-030
+  - MC-040
+  - MC-050
+  - MC-060
+  - MC-100
+  - MC-105
+  - MC-070
+  - MC-080
+  - MC-090
+  - MC-110
+  - MC-120
+  - MC-130
+  - MC-140
+  - MC-150
+  - MC-160
+  - MC-170
+  - MC-180
+  - MC-190
+  - MC-200
+  - MC-210
+  - MC-220
+  - MC-230
+  - MC-240
+  - MC-250
+
+legacy_phase_translation:
+  P00_P01: authority and recovery inputs remain required
+  P02_P03: preserve existing schemas, resolver, reducer, persistence, API, and generated contracts; migrate identity and extract shared consumer
+  P04_P05: replace Pi-native primary host tasks with Desktop Tauri/Svelte host tasks while retaining same-session lifecycle semantics
+  P06: transfer live Pi and Work Surface mechanics into Desktop plus the authentic PTY adapter
+  P07: preserve profile/activity registries and render their canonical projections in Desktop
+  P08: host existing A2UI/Lit and UIAI artifact foundations as Desktop Work Surfaces
+  P09: re-run continuity, security, accessibility, and performance requirements under Desktop architecture
+  P10: use UIAI Engine for browser-facing evaluation after functional implementation
+  P11: closure and release remain downstream and are not part of current core-layout implementation
