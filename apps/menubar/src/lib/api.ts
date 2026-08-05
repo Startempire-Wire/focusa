@@ -179,9 +179,18 @@ export async function requestJson<T = any>(path: string, options: ApiRequestOpti
       }
     }
     if (!resp.ok) {
-      const err = new Error(data?.error || data?.message || `${path} returned HTTP ${resp.status}`);
+      const errorBody = data?.error && typeof data.error === 'object' ? data.error : null;
+      const code = String(errorBody?.code || data?.code || '');
+      const message = String(errorBody?.message || data?.error || data?.message || `${path} returned HTTP ${resp.status}`);
+      const err = new Error(message);
       (err as any).status = resp.status;
-      (err as any).failure_class = data?.failure_class || `http_${resp.status}`;
+      (err as any).code = code || undefined;
+      (err as any).failure_class = code.startsWith('ENTITLEMENT_')
+        ? 'entitlement_blocked'
+        : data?.failure_class || `http_${resp.status}`;
+      (err as any).required_feature = errorBody?.required_feature || null;
+      (err as any).limit_bucket = errorBody?.limit_bucket || null;
+      (err as any).recovery = errorBody?.recovery || null;
       (err as any).body = data;
       diagnosticsStore.record({ area: 'api', phase: 'http_response', error: err, url, method, status: resp.status, body: data });
       // FOCUSA_FIX-1vfz/67ud: Handle 401 auth failures from daemon.
