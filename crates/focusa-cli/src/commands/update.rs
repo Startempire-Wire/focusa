@@ -1997,7 +1997,13 @@ async fn execute_verified_apply_locked(
                 &stage,
                 Some(extension_root),
                 None,
-            )?;
+            )
+            .with_context(|| {
+                format!(
+                    "activate verified Pi extension package in {}",
+                    extension_root.display()
+                )
+            })?;
             std::fs::write(
                 state.join("pi-extension-silent-restart-required.json"),
                 serde_json::to_vec_pretty(&json!({

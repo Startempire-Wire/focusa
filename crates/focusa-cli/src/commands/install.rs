@@ -2790,6 +2790,24 @@ fn resolve_npm_binary(explicit: Option<&std::path::Path>) -> Result<std::path::P
     Ok(candidate)
 }
 
+fn rename_pi_extension_path(source: &std::path::Path, destination: &std::path::Path) -> Result<()> {
+    const WINDOWS_LOCK_RETRIES: usize = 120;
+    for attempt in 0..WINDOWS_LOCK_RETRIES {
+        match std::fs::rename(source, destination) {
+            Ok(()) => return Ok(()),
+            Err(error)
+                if cfg!(target_os = "windows")
+                    && error.raw_os_error() == Some(5)
+                    && attempt + 1 < WINDOWS_LOCK_RETRIES =>
+            {
+                std::thread::sleep(std::time::Duration::from_millis(500));
+            }
+            Err(error) => return Err(error.into()),
+        }
+    }
+    unreachable!("bounded Pi extension rename loop always returns")
+}
+
 pub(crate) fn integrate_pi_extension(
     asset: &InstalledAsset,
     install_root: &std::path::Path,
@@ -2906,18 +2924,26 @@ pub(crate) fn integrate_pi_extension(
                 .map(|home| std::path::PathBuf::from(home).join(".pi/agent/extensions"))
         })
         .ok_or_else(|| anyhow!("HOME is unavailable; cannot locate Pi extensions"))?;
-    std::fs::create_dir_all(&root)?;
+    std::fs::create_dir_all(&root)
+        .with_context(|| format!("create Pi extension root {}", root.display()))?;
     let destination = root.join("focusa");
     let backup = root.join(format!(".focusa-backup-{}", uuid::Uuid::now_v7()));
     if destination.exists() {
-        std::fs::rename(&destination, &backup)?;
+        rename_pi_extension_path(&destination, &backup)
+            .with_context(|| format!("backup active Pi extension {}", destination.display()))?;
     }
-    if let Err(error) = std::fs::rename(&staged, &destination) {
+    if let Err(error) = rename_pi_extension_path(&staged, &destination) {
         if backup.exists() {
-            let _ = std::fs::rename(&backup, &destination);
+            let _ = rename_pi_extension_path(&backup, &destination);
         }
         cleanup();
-        return Err(error).context("activate Pi extension");
+        return Err(error).with_context(|| {
+            format!(
+                "activate Pi extension {} from {}",
+                destination.display(),
+                staged.display()
+            )
+        });
     }
     let _ = std::fs::remove_dir_all(&backup);
     cleanup();

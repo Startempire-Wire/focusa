@@ -60,6 +60,9 @@ assert (
     'stop_daemon_before_promotion().context("stop promoted daemon before rollback")?'
     in updater
 )
+assert "fn rename_pi_extension_path" in installer
+assert "error.raw_os_error() == Some(5)" in installer
+assert "activate verified Pi extension package" in updater
 assert '.join("extensions/focusa-runtime/package.json")' in updater
 assert "$env:PI_CODING_AGENT_DIR = Join-Path $testHome '.pi\\agent'" in workflow
 assert workflow.count("'--latest-version', 'v0.9.117-dev'") == 3
