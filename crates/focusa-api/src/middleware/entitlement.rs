@@ -140,6 +140,9 @@ pub(crate) fn route_requires_entitlement(method: &Method, path: &str) -> bool {
     let recovery_path = path == "/health"
         || path == "/v1/health"
         || path == "/v1/version"
+        || path == "/v1/update/check"
+        || path == "/v1/update/plan"
+        || path == "/v1/update/rollback"
         || path.starts_with("/v1/license/");
     !recovery_path
 }
@@ -178,6 +181,22 @@ mod tests {
             "/v1/device/pair/start"
         ));
         assert!(!route_requires_entitlement(&Method::GET, "/v1/health"));
+        assert!(!route_requires_entitlement(
+            &Method::POST,
+            "/v1/update/check"
+        ));
+        assert!(!route_requires_entitlement(
+            &Method::POST,
+            "/v1/update/plan"
+        ));
+        assert!(!route_requires_entitlement(
+            &Method::POST,
+            "/v1/update/rollback"
+        ));
+        assert!(route_requires_entitlement(
+            &Method::POST,
+            "/v1/update/apply"
+        ));
     }
 
     #[test]

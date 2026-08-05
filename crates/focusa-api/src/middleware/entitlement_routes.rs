@@ -464,6 +464,31 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("workpoints"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/update/admin",
+        feature: "focusa.update.unattended",
+        limit_bucket: Some("unattended_update_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/update/apply",
+        feature: "focusa.update.apply",
+        limit_bucket: Some("update_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/update/notifications",
+        feature: "focusa.update.unattended",
+        limit_bucket: Some("unattended_update_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/update/policy",
+        feature: "focusa.update.unattended",
+        limit_bucket: Some("unattended_update_runs"),
+    },
+    RouteEntitlementRequirement {
+        template: "/v1/update/scheduler",
+        feature: "focusa.update.unattended",
+        limit_bucket: Some("unattended_update_runs"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/work-loop/driver/abort",
         feature: "focusa.core.workpoint",
         limit_bucket: Some("workpoints"),

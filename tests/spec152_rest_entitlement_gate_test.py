@@ -20,6 +20,10 @@ assert GENERATED.read_text() == module.render(), "generated route entitlement ta
 requirements = module.requirements()
 assert len(requirements) >= 100, "too few descriptor-bound routes are governed"
 assert len({path for path, _, _ in requirements}) == len(requirements)
+requirement_map = {path: (feature, bucket) for path, feature, bucket in requirements}
+assert requirement_map["/v1/update/apply"][0] == "focusa.update.apply"
+assert requirement_map["/v1/update/scheduler"][0] == "focusa.update.unattended"
+assert "/v1/update/rollback" not in requirement_map
 
 registry = yaml.safe_load((ROOT / "docs/contracts/spec152-feature-registry.v1.yaml").read_text())
 features = {item["key"]: item["limit_bucket"] for item in registry["features"]}

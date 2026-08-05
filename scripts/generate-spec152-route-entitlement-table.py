@@ -23,6 +23,11 @@ EXPLICIT_ROUTE_FEATURES = {
     "/v1/device/pair/complete": "focusa.team.multi_operator",
     "/v1/device/pair/revoke": "focusa.team.multi_operator",
     "/v1/device/pair/start": "focusa.team.multi_operator",
+    "/v1/update/admin": "focusa.update.unattended",
+    "/v1/update/apply": "focusa.update.apply",
+    "/v1/update/notifications": "focusa.update.unattended",
+    "/v1/update/policy": "focusa.update.unattended",
+    "/v1/update/scheduler": "focusa.update.unattended",
 }
 
 spec = importlib.util.spec_from_file_location("coverage", ROOT / "scripts/generate-spec152-entitlement-coverage.py")
