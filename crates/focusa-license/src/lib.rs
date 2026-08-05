@@ -12,6 +12,7 @@ pub mod authority_credentials;
 pub mod authority_http;
 pub mod authority_store;
 pub mod feature_decision;
+pub mod uiai_child_token;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
