@@ -1,6 +1,6 @@
 # Agent TUI Integration Contract
 
-Status: frontend integration shell browser-accepted; native PTY bridge pending
+Status: live xterm frontend complete; native PTY bridge pending
 
 Browser Evidence: `docs/contracts/evidence/spec158-desktop-agent-tui-integrated.png` and `uiai-diagnostics:session=b0R1Oebd:seq=0` (zero console errors, warnings, exceptions, or failed requests).
 
@@ -26,19 +26,17 @@ The typed contract is implemented in `src/lib/shell/pi-attachment-contract.ts`. 
 
 ## Frontend surface
 
-`src/lib/shell/AgentTuiSurface.svelte` provides:
+`src/lib/shell/AgentTuiSurface.svelte` and `PtyTerminal.svelte` provide:
 
 - integrated Agent TUI identity and verified runtime status;
-- horizontal Workstream/Continuity/Attachment/Work Surface authority strip;
-- Transcript, Work Rail, Evidence, and Context views;
-- terminal geometry reserved for the native PTY renderer;
-- scoped steering composer;
-- interrupt, resume, and detach lifecycle controls;
-- truthful unbound, disconnected, and error presentation;
-- system/full/reduced motion behavior;
-- no sidebar.
+- a real xterm terminal renderer rather than a fabricated transcript;
+- exact Attachment-gated input, resize, output subscription, interrupt, attach, and detach commands;
+- responsive terminal fitting through `ResizeObserver`;
+- bounded scrollback and authentic ANSI terminal rendering;
+- truthful unbound, disconnected, bridge-unavailable, and error presentation;
+- no sidebar and no fake terminal controls.
 
-All mutation controls are disabled in the unbound projection. The current transcript is explicitly an integration shell and does not pretend that a Pi process exists.
+The visual treatment follows the useful pi.dev terminal principles—content-first dark terminal, monospaced typography, compact padding, and no decorative browser chrome—while using a live PTY stream instead of pi.dev's prerecorded Asciinema casts.
 
 ## Native bridge boundary
 

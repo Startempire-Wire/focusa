@@ -1143,7 +1143,7 @@ integration_tasks:
   - id: PTY-002
     parent: MC-170
     title: Define Tauri PTY command and event envelopes
-    status: blocked
+    status: implemented_partial
     depends_on: [PTY-001]
     read: [/tmp/focusa-spec158-transition/docs__transitions__FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md]
     targets: [apps/desktop/src-tauri/src/pty/model.rs, generated frontend bridge types]
@@ -1195,7 +1195,7 @@ integration_tasks:
   - id: PTY-006
     parent: MC-170
     title: Stream PTY output to Tauri events
-    status: blocked
+    status: implemented_partial
     depends_on: [PTY-005]
     read: [apps/desktop/src-tauri/src/pty/model.rs]
     targets: [apps/desktop/src-tauri/src/pty/output.rs]
@@ -1208,7 +1208,7 @@ integration_tasks:
   - id: PTY-007
     parent: MC-170
     title: Route terminal input to exact PTY
-    status: blocked
+    status: implemented_partial
     depends_on: [PTY-005]
     read: [apps/desktop/src-tauri/src/pty/registry.rs]
     targets: [apps/desktop/src-tauri/src/pty/input.rs]
@@ -1221,7 +1221,7 @@ integration_tasks:
   - id: PTY-008
     parent: MC-170
     title: Propagate terminal resize
-    status: blocked
+    status: implemented_partial
     depends_on: [PTY-005]
     read: [apps/desktop/src/lib/shell/pi-attachment-contract.ts]
     targets: [apps/desktop/src-tauri/src/pty/resize.rs]
@@ -1234,7 +1234,7 @@ integration_tasks:
   - id: PTY-009
     parent: MC-170
     title: Implement interrupt semantics
-    status: blocked
+    status: implemented_partial
     depends_on: [PTY-005]
     read: [/tmp/focusa-spec158-transition/docs__transitions__FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md]
     targets: [apps/desktop/src-tauri/src/pty/lifecycle.rs]
@@ -1247,7 +1247,7 @@ integration_tasks:
   - id: PTY-010
     parent: MC-170
     title: Implement detach without runtime destruction
-    status: blocked
+    status: implemented_partial
     depends_on: [PTY-004]
     read: [docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md]
     targets: [apps/desktop/src-tauri/src/pty/lifecycle.rs]
@@ -1286,7 +1286,7 @@ integration_tasks:
   - id: PTY-013
     parent: MC-170
     title: Connect AgentTuiSurface to native PTY bridge
-    status: blocked
+    status: implemented_partial
     depends_on: [PTY-012, PTY-001]
     read: [apps/desktop/src/lib/shell/AgentTuiSurface.svelte]
     targets: [apps/desktop/src/lib/shell/AgentTuiSurface.svelte, apps/desktop/src/lib/pty/native-bridge.ts]
@@ -1299,7 +1299,7 @@ integration_tasks:
   - id: PTY-014
     parent: MC-170
     title: Reject stale PTY output in frontend
-    status: blocked
+    status: implemented_partial
     depends_on: [PTY-013]
     read: [apps/desktop/src/lib/pty/native-bridge.ts]
     targets: [apps/desktop/src/lib/pty/native-bridge.ts]
@@ -1312,7 +1312,7 @@ integration_tasks:
   - id: PTY-015
     parent: MC-170
     title: Preserve Pi process across Canvas and Agent TUI switching
-    status: blocked
+    status: implemented_partial
     depends_on: [PTY-013, PTY-014, UI-013]
     read: [apps/desktop/src/routes/+page.svelte]
     targets: [apps/desktop/src/routes/+page.svelte, Desktop surface controller]
