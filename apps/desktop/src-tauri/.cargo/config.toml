@@ -1,3 +1,3 @@
 [build]
-target-dir = "../../../../target/focusa-desktop-dev"
+target-dir = "../../../target/focusa-desktop-dev"
 jobs = 2

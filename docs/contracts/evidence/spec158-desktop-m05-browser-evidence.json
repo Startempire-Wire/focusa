@@ -2,7 +2,7 @@
   "schema": "focusa.desktop.milestone_evidence.v1",
   "transition_id": "FOCUSA-TRANSITION-001",
   "milestone": 5,
-  "status": "browser_proven_native_pending",
+  "status": "browser_and_native_open_proven_native_screenshot_blocked",
   "application": {
     "name": "Focusa Desktop",
     "path": "apps/desktop",
@@ -43,8 +43,8 @@
     "vite_build": "pass",
     "browser_preview": "pass",
     "uiai_engine": "pass",
-    "native_tauri_open": "pending_resource_bounded_gate",
-    "native_screenshot": "pending_resource_bounded_gate"
+    "native_tauri_open": "pass_development_binary_opened",
+    "native_screenshot": "blocked_macos_screen_capture_permission"
   },
   "environment": {
     "node": "22.23.1",
@@ -58,6 +58,8 @@
   "resource_policy": {
     "rust_jobs": 2,
     "target_dir": "target/focusa-desktop-dev",
+    "native_build_duration": "88m37s",
+    "native_build_jobs": 1,
     "workspace_rust_version_contract": "1.91",
     "toolchain_manager": "none_homebrew_toolchain",
     "additional_toolchain_install": false,

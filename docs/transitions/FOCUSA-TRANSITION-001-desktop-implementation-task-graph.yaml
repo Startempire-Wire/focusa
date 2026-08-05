@@ -1,0 +1,105 @@
+schema: focusa.desktop.transition_task_graph.v1
+transition_id: FOCUSA-TRANSITION-001
+parent_graph: docs/transitions/FOCUSA-TRANSITION-001-task-graph.yaml
+scope: T070_T071_desktop_5_to_25
+status: active
+rules:
+  browser_authority: UIAI Engine
+  native_build_policy: one_resource_bounded_build_per_milestone
+  canonical_identity: ScopeRef_WorkstreamId_ContinuityId_AttachmentKey
+  release_allowed: false
+nodes:
+  - id: D005-01
+    parent: T070
+    title: Establish real Focusa Desktop SvelteKit and Tauri identity
+    status: complete
+    depends_on: [T000]
+    evidence: [apps/desktop, docs/contracts/evidence/spec158-desktop-m05-browser-evidence.json]
+  - id: D005-02
+    parent: T070
+    title: Prove shared browser application through UIAI Engine
+    status: complete
+    depends_on: [D005-01]
+    evidence: [docs/contracts/evidence/spec158-desktop-m05-browser-wide.png, docs/contracts/evidence/spec158-desktop-m05-browser-responsive.png]
+  - id: D005-03
+    parent: T070
+    title: Build and open native Tauri development shell
+    status: complete
+    depends_on: [D005-01]
+    notes: Single jobs=1 development build completed; no release build.
+  - id: D005-04
+    parent: T070
+    title: Capture native shell screenshot and close 5 percent Evidence packet
+    status: blocked
+    depends_on: [D005-03]
+    blocker: macOS screen-capture permission prevents bounded window capture
+  - id: D010-01
+    parent: T070
+    title: Implement app-wide Mission Canvas and Agent TUI segmented switch
+    status: complete
+    depends_on: [D005-01]
+  - id: D010-02
+    parent: T070
+    title: Preserve outer Desktop chrome while replacing the complete inner UI
+    status: complete
+    depends_on: [D010-01]
+  - id: D020-01
+    parent: T071
+    title: Materialize supplied Mission Canvas visual references and provenance
+    status: complete
+    depends_on: [D005-01]
+  - id: D020-02
+    parent: T071
+    title: Reconstruct Mission Canvas context bar activity tabs and left mode rail
+    status: ready
+    depends_on: [D020-01]
+  - id: D020-03
+    parent: T071
+    title: Reconstruct recomposable workspace panel grid and persistent prompt editor
+    status: blocked
+    depends_on: [D020-02, T061]
+  - id: D020-04
+    parent: T071
+    title: Implement vertical profile recomposition for software legal markets and research
+    status: blocked
+    depends_on: [D020-03]
+  - id: D021-01
+    parent: T071
+    title: Version Workstream-aware workspace manifest
+    status: blocked
+    depends_on: [T021, T022, T023]
+  - id: D021-02
+    parent: T071
+    title: Version semantic command manifest with presentation-only operations
+    status: ready
+    depends_on: [D005-01]
+  - id: D021-03
+    parent: T071
+    title: Implement semantic Desktop state skeleton without canonical duplication
+    status: blocked
+    depends_on: [D021-01, D021-02, T050]
+  - id: D022-01
+    parent: T071
+    title: Implement Workstream Context Control envelope and unbound recovery
+    status: blocked
+    depends_on: [T021, T022, T023]
+  - id: D023-01
+    parent: T080
+    title: Build integrated Agent TUI frontend work surface without a sidebar
+    status: ready
+    depends_on: [D010-02]
+  - id: D023-02
+    parent: T080
+    title: Define native Pi PTY lifecycle resize input output and shutdown contract
+    status: blocked
+    depends_on: [T022, D023-01]
+  - id: D023-03
+    parent: T080
+    title: Bind Pi runtime to exact Workstream Attachment and rehydration contract
+    status: blocked
+    depends_on: [T023, D023-02, T072]
+  - id: D025-01
+    parent: T071
+    title: Run 25 percent browser and native acceptance matrix
+    status: blocked
+    depends_on: [D020-04, D021-03, D022-01, D023-01]
