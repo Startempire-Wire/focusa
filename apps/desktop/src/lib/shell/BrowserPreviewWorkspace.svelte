@@ -9,6 +9,19 @@
   let { workspace }: { workspace: WorkspaceManifestItem } = $props();
 
   const SCREEN_SECTIONS: Readonly<Record<string, readonly PreviewSection[]>> = {
+    'mission-deck': [
+      { title: 'Mission orientation', description: 'Verified identity, active mission, and execution posture at a glance.', items: [
+        { label: 'Project', value: 'Focusa Mission Canvas', detail: 'Current project scope', tone: 'ready' },
+        { label: 'Workstream', value: 'Desktop pivot', detail: 'Primary implementation workstream', tone: 'ready' },
+        { label: 'Mission', value: 'Complete functional Desktop parity', detail: 'Current bounded mission', tone: 'watch' },
+        { label: 'Attachment', value: 'Preview only', detail: 'Native runtime authority remains unbound', tone: 'blocked' }
+      ]},
+      { title: 'Execution posture', description: 'Current progress without conflating preview state with canonical authority.', items: [
+        { label: 'Mission Canvas', value: 'Active', detail: 'Adaptive projection renderer and governed operations', tone: 'ready' },
+        { label: 'Agent TUI', value: 'Frontend ready', detail: 'Awaiting native PTY attachment', tone: 'watch' },
+        { label: 'Workspace screens', value: 'Available', detail: 'All Desktop preview destinations are implemented', tone: 'ready' }
+      ]}
+    ],
     crist: [
       { title: 'Reasoning frame', description: 'Structured C.R.I.S.T. stages for the selected Workstream.', items: [
         { label: 'Context', value: 'Bound', detail: 'Exact project and Workstream context', tone: 'ready' },
