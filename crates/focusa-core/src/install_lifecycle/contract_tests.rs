@@ -389,3 +389,156 @@ fn uninstall_and_recovery_boundaries_fail_closed() {
         Err(InstallLifecycleValidationError::UnknownCompletionRequiresInspection)
     );
 }
+
+fn entitlement_time(value: &str) -> chrono::DateTime<Utc> {
+    chrono::DateTime::parse_from_rfc3339(value)
+        .expect("valid fixture timestamp")
+        .with_timezone(&Utc)
+}
+
+fn digest(byte: char) -> String {
+    format!("sha256:{}", byte.to_string().repeat(64))
+}
+
+fn evaluation_entitlement() -> LifecycleEntitlementBinding {
+    LifecycleEntitlementBinding {
+        schema_version: "focusa.lifecycle_entitlement_binding.v1".into(),
+        state: LifecycleEntitlementState::ActiveEvaluation,
+        lease_id: "lease:evaluation:001".into(),
+        lease_sequence: 7,
+        lease_payload_digest: digest('a'),
+        product_grants_digest: digest('b'),
+        feature_grants_digest: digest('c'),
+        node_id: "node:evaluation:001".into(),
+        license_class: "evaluation".into(),
+        refresh_after: entitlement_time("2026-08-05T13:00:00Z"),
+        offline_valid_until: entitlement_time("2026-08-06T12:00:00Z"),
+        expires_at: Some(entitlement_time("2026-08-12T12:00:00Z")),
+        authority_key_id: "authority-lease-2026-01".into(),
+        signature_verified: true,
+    }
+}
+
+#[test]
+fn lifecycle_entitlement_binding_round_trips_with_versioned_authority_fields() {
+    let binding = evaluation_entitlement();
+    binding.validate().expect("valid signed binding");
+    assert_eq!(
+        binding.receipt_class(),
+        LifecycleEntitlementReceiptClass::EvaluationReady
+    );
+
+    let encoded = serde_json::to_value(&binding).expect("serialize binding");
+    for forbidden in ["email", "token", "key", "licensed", "eval"] {
+        assert!(
+            !encoded
+                .as_object()
+                .expect("binding object")
+                .contains_key(forbidden),
+            "forbidden shortcut or secret field: {forbidden}"
+        );
+    }
+    let decoded: LifecycleEntitlementBinding =
+        serde_json::from_value(encoded.clone()).expect("deserialize binding");
+    assert_eq!(decoded, binding);
+
+    let mut legacy_without_schema = encoded;
+    legacy_without_schema
+        .as_object_mut()
+        .expect("binding object")
+        .remove("schema_version");
+    let decoded_legacy: LifecycleEntitlementBinding = serde_json::from_value(legacy_without_schema)
+        .expect("v1 default for pre-version field data");
+    assert_eq!(
+        decoded_legacy.schema_version,
+        "focusa.lifecycle_entitlement_binding.v1"
+    );
+}
+
+#[test]
+fn lifecycle_entitlement_receipt_classes_never_collapse_to_boolean_status() {
+    let mut binding = evaluation_entitlement();
+    let cases = [
+        (
+            LifecycleEntitlementState::ActiveEvaluation,
+            LifecycleEntitlementReceiptClass::EvaluationReady,
+        ),
+        (
+            LifecycleEntitlementState::ActivePaid,
+            LifecycleEntitlementReceiptClass::PaidReady,
+        ),
+        (
+            LifecycleEntitlementState::OfflineGrace,
+            LifecycleEntitlementReceiptClass::RecoveryReady,
+        ),
+        (
+            LifecycleEntitlementState::Expired,
+            LifecycleEntitlementReceiptClass::BlockedEntitlement,
+        ),
+        (
+            LifecycleEntitlementState::Revoked,
+            LifecycleEntitlementReceiptClass::BlockedEntitlement,
+        ),
+        (
+            LifecycleEntitlementState::Invalid,
+            LifecycleEntitlementReceiptClass::BlockedEntitlement,
+        ),
+    ];
+    for (state, expected) in cases {
+        binding.state = state;
+        binding.license_class = "evaluation".into();
+        assert_eq!(binding.receipt_class(), expected);
+    }
+    binding.state = LifecycleEntitlementState::OfflineGrace;
+    binding.license_class = "authorized_development".into();
+    assert_eq!(
+        binding.receipt_class(),
+        LifecycleEntitlementReceiptClass::DevelopmentReady
+    );
+}
+
+#[test]
+fn lifecycle_entitlement_binding_rejects_unverified_or_unbound_authority() {
+    let mut binding = evaluation_entitlement();
+    binding.signature_verified = false;
+    assert_eq!(
+        binding.validate(),
+        Err(InstallLifecycleValidationError::EntitlementBindingIncomplete)
+    );
+    binding.signature_verified = true;
+    binding.lease_sequence = 0;
+    assert_eq!(
+        binding.validate(),
+        Err(InstallLifecycleValidationError::EntitlementBindingIncomplete)
+    );
+    binding.lease_sequence = 7;
+    binding.feature_grants_digest = "not-a-digest".into();
+    assert_eq!(
+        binding.validate(),
+        Err(InstallLifecycleValidationError::EntitlementBindingIncomplete)
+    );
+}
+
+#[test]
+fn adapter_capability_or_health_cannot_imply_entitlement() {
+    let mut posture = AdapterEntitlementPosture {
+        schema_version: "focusa.adapter_entitlement_posture.v1".into(),
+        product: "uiai-engine".into(),
+        lease_id: "lease:evaluation:001".into(),
+        lease_sequence: 7,
+        product_granted: true,
+        required_features_granted: false,
+        child_token_audience: Some("uiai-engine:node:evaluation:001".into()),
+        child_token_expires_at: Some(entitlement_time("2026-08-05T12:15:00Z")),
+        entitlement_digest: digest('d'),
+    };
+    posture.validate().expect("typed adapter posture");
+    assert!(!posture.is_entitled());
+    posture.required_features_granted = true;
+    assert!(posture.is_entitled());
+
+    let decoded: AdapterEntitlementPosture =
+        serde_json::from_value(serde_json::to_value(&posture).expect("serialize adapter posture"))
+            .expect("deserialize adapter posture");
+    assert_eq!(decoded, posture);
+}
