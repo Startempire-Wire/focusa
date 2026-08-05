@@ -81,6 +81,16 @@ pub enum LicenseMigrationError {
     JournalWrite,
 }
 
+pub fn migration_id_for_source_digest(source_digest: &str) -> Uuid {
+    let digest = Sha256::digest(source_digest.as_bytes());
+    let mut bytes = [0_u8; 16];
+    bytes.copy_from_slice(&digest[..16]);
+    // RFC 4122 variant with deterministic version-8 application namespace.
+    bytes[6] = (bytes[6] & 0x0f) | 0x80;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    Uuid::from_bytes(bytes)
+}
+
 pub fn inventory_legacy_license_files(
     candidates: &[(LegacyLicenseSourceClass, PathBuf)],
 ) -> Result<Vec<LegacyLicenseInventoryItem>, LicenseMigrationError> {

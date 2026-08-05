@@ -38,6 +38,10 @@ use focusa_license::authority_store::{
     AUTHORITY_STATE_FILE, PersistedAuthorityState, embedded_production_trust_roots,
     resolve_authority_state,
 };
+use focusa_license::license_migration::{
+    LegacyLicenseSourceClass, LicenseMigrationJournalEntry, LicenseMigrationStatus,
+    append_license_migration_entry, inventory_legacy_license_files, migration_id_for_source_digest,
+};
 use focusa_terminal_ui::install::completion::InstallCompletionSummary;
 use focusa_terminal_ui::install::event::NullEventSink;
 use focusa_terminal_ui::install::presenter::{PlainPresenter, Presenter, presenter_for_mode};
@@ -2306,14 +2310,20 @@ async fn phase_license(args: &InstallArgs, channel: Channel) -> Result<String> {
         );
     }
     let legacy_path = config_dir.join("license.json");
-    if legacy_path.is_file() {
-        if let Ok(legacy) = load_license_status() {
-            if legacy.commercial_use && legacy.status == "active" {
-                bail!(
-                    "E_AUTHORITY_PAID_MIGRATION_REQUIRED: an active paid legacy entitlement was found; preserve it and complete authority migration without repurchase before installing evaluation assets"
-                );
-            }
-        }
+    let legacy_status = if legacy_path.is_file() {
+        load_license_status().ok()
+    } else {
+        None
+    };
+    let pending_migration =
+        begin_legacy_license_migration(config_dir, &legacy_path, legacy_status.as_ref())?;
+    if legacy_status
+        .as_ref()
+        .is_some_and(|legacy| legacy.commercial_use && legacy.status == "active")
+    {
+        bail!(
+            "E_AUTHORITY_PAID_MIGRATION_REQUIRED: an active paid legacy entitlement was found; preserve it and complete authority migration without repurchase before installing evaluation assets"
+        );
     }
     if args
         .license_key
@@ -2332,11 +2342,104 @@ async fn phase_license(args: &InstallArgs, channel: Channel) -> Result<String> {
                 "E_AUTHORITY_LEASE_UNUSABLE: authority authorization completed without a usable signed product/channel lease"
             )
         })?;
+    if let Some(migration) = pending_migration {
+        complete_legacy_license_migration(&migration, &snapshot)?;
+    }
     Ok(format!(
         "authority_{}_sequence_{}",
         entitlement_state_label(snapshot.state),
         snapshot.sequence.unwrap_or_default()
     ))
+}
+
+struct PendingLegacyMigration {
+    migration_id: uuid::Uuid,
+    source_class: LegacyLicenseSourceClass,
+    source_digest: String,
+    journal_path: std::path::PathBuf,
+}
+
+fn begin_legacy_license_migration(
+    config_dir: &std::path::Path,
+    legacy_path: &std::path::Path,
+    legacy_status: Option<&focusa_core::license::LicenseStatus>,
+) -> Result<Option<PendingLegacyMigration>> {
+    if !legacy_path.is_file() {
+        return Ok(None);
+    }
+    let source_class = if legacy_status.is_some_and(|status| status.commercial_use) {
+        LegacyLicenseSourceClass::PaidKeyRecord
+    } else {
+        LegacyLicenseSourceClass::EvaluationRecord
+    };
+    let inventory = inventory_legacy_license_files(&[(source_class, legacy_path.to_path_buf())])
+        .context("inventory legacy license for authority migration")?;
+    let Some(item) = inventory.into_iter().next() else {
+        return Ok(None);
+    };
+    let migration = PendingLegacyMigration {
+        migration_id: migration_id_for_source_digest(&item.source_digest),
+        source_class,
+        source_digest: item.source_digest,
+        journal_path: config_dir.join("license-migration.jsonl"),
+    };
+    for status in [
+        LicenseMigrationStatus::Discovered,
+        LicenseMigrationStatus::AwaitingAuthority,
+    ] {
+        append_license_migration_entry(
+            &migration.journal_path,
+            migration_entry(&migration, status, None),
+        )
+        .context("persist legacy license migration preflight")?;
+    }
+    Ok(Some(migration))
+}
+
+fn complete_legacy_license_migration(
+    migration: &PendingLegacyMigration,
+    snapshot: &EntitlementSnapshot,
+) -> Result<()> {
+    for status in [
+        LicenseMigrationStatus::AuthorityIssued,
+        LicenseMigrationStatus::Committed,
+    ] {
+        append_license_migration_entry(
+            &migration.journal_path,
+            migration_entry(migration, status, Some(snapshot)),
+        )
+        .context("commit authority-backed legacy license migration")?;
+    }
+    Ok(())
+}
+
+fn migration_entry(
+    migration: &PendingLegacyMigration,
+    status: LicenseMigrationStatus,
+    snapshot: Option<&EntitlementSnapshot>,
+) -> LicenseMigrationJournalEntry {
+    LicenseMigrationJournalEntry {
+        schema: String::new(),
+        migration_id: migration.migration_id,
+        sequence: 0,
+        source_class: migration.source_class,
+        source_digest: migration.source_digest.clone(),
+        status,
+        authority_lease_id: snapshot.and_then(|value| value.lease_id.clone()),
+        authority_lease_sequence: snapshot.and_then(|value| value.sequence),
+        authority_lease_digest: snapshot.and_then(|value| value.lease_digest.clone()),
+        preserved_data_refs: vec![
+            "node_identity".into(),
+            "device_pairing".into(),
+            "projects".into(),
+            "workpoints".into(),
+            "evidence".into(),
+        ],
+        evidence_refs: vec!["evidence:legacy-license-source-digest".into()],
+        observed_at: chrono::Utc::now(),
+        previous_entry_hash: String::new(),
+        entry_hash: String::new(),
+    }
 }
 
 fn resolve_installer_entitlement(
