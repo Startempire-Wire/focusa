@@ -5,6 +5,7 @@
   interface FocusaGeneratedSurfaceElement extends HTMLElement {
     allowedActions: Iterable<string>;
     snapshot: readonly unknown[];
+    delta: readonly unknown[];
   }
 
   let {
@@ -40,6 +41,7 @@
     const currentBindings = [...actionBindings];
     let disposed = false;
     let element: FocusaGeneratedSurfaceElement | undefined;
+    let unsubscribeDelta: (() => void) | undefined;
     state = 'loading';
     errorMessage = '';
 
@@ -54,14 +56,22 @@
     void (async () => {
       try {
         await import('@focusa/a2ui-renderer/rich-host');
-        const snapshot = await snapshotResolver(currentContribution, currentProjection);
+        const resolved = await snapshotResolver(currentContribution, currentProjection);
         if (disposed || requestGeneration !== generation) return;
+        const source = Array.isArray(resolved) ? { snapshot: resolved } : resolved;
         element = document.createElement('focusa-generated-surface') as FocusaGeneratedSurfaceElement;
         element.setAttribute('aria-label', currentContribution.accessibility.label);
         element.allowedActions = currentBindings.map((binding) => binding.operation_id);
         element.addEventListener('focusa-operation', handleOperation as EventListener);
         host.replaceChildren(element);
-        element.snapshot = snapshot;
+        element.snapshot = source.snapshot;
+        if (source.subscribeDelta) {
+          const stop = await source.subscribeDelta((messages) => {
+            if (!disposed && requestGeneration === generation && element) element.delta = messages;
+          });
+          if (disposed || requestGeneration !== generation) stop();
+          else unsubscribeDelta = stop;
+        }
         state = 'ready';
       } catch (error) {
         if (disposed || requestGeneration !== generation) return;
@@ -73,6 +83,7 @@
     return () => {
       disposed = true;
       generation += 1;
+      unsubscribeDelta?.();
       element?.removeEventListener('focusa-operation', handleOperation as EventListener);
       element?.remove();
     };
