@@ -432,25 +432,13 @@ fn print_human_status(status: &LicenseStatus, license_file: &Path) {
             println!("  - {}", f);
         }
     }
-    let disabled = [
-        "team_writer_arbitration",
-        "hosted_service_use",
-        "client_delivery_use",
-        "commercial_export",
-        "official_release_bundle",
-    ];
-    let enabled_set: std::collections::HashSet<&str> =
-        status.features.iter().map(String::as_str).collect();
-    let disabled_active: Vec<&&str> = disabled
-        .iter()
-        .filter(|f| !enabled_set.contains(**f))
-        .collect();
-    if !disabled_active.is_empty() {
-        println!("\nDisabled features:");
-        for f in &disabled_active {
-            println!("  - {}", f);
-        }
-    }
+    println!(
+        "\nRecovery policy: recovery, export, repair, and uninstall remain available when execution is locked."
+    );
+    println!(
+        "Locked capabilities and remaining limits are authority-signed; no local cap list is inferred."
+    );
+    println!("Marketing preference is managed separately from terms and entitlement.");
 }
 
 fn print_human_doctor(doctor: &focusa_core::license::DoctorReport) {

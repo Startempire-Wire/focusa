@@ -14,6 +14,7 @@
   } from '$lib/api';
   import { focusStore } from '$lib/stores/focus.svelte';
   import { runtimeStore } from '$lib/stores/runtime.svelte';
+  import EntitlementPosture from './EntitlementPosture.svelte';
   import {
     MENUBAR_RELEASE_MODE,
     runMenubarUpdate,
@@ -154,6 +155,7 @@
 </script>
 
 <div class="settings-view">
+  <EntitlementPosture />
   <section class="section connect-hero">
     <div class="section-label">CONNECT TO FOCUSA</div>
     <p class="hint">Connect to your remote Focusa server. Local Focusa remains available for future local development.</p>

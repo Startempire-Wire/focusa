@@ -60,7 +60,9 @@ async fn license_status(
     let next_action = match authority_state {
         Some(EntitlementState::Unactivated) => "begin authority device-code activation",
         Some(EntitlementState::RecoveryOnly) => "repair or refresh signed authority lease",
-        Some(EntitlementState::OfflineGrace) => "refresh signed authority lease before grace expiry",
+        Some(EntitlementState::OfflineGrace) => {
+            "refresh signed authority lease before grace expiry"
+        }
         Some(EntitlementState::Active) => "authority entitlement ready",
         None => "migrate legacy license through authority activation",
     };
@@ -71,8 +73,7 @@ async fn license_status(
         "issued_at": g.issued_at.to_rfc3339(),
         "expires_at": g.expires_at.map(|d| d.to_rfc3339()),
         "bsl_change_date": g.bsl_change_date.to_rfc3339(),
-        "customer_email": g.customer_email,
-        "key_hash": g.key_hash,
+        "masked_identity": mask_identity(&g.customer_email),
         "expired": g.is_expired(),
         "authority": g.entitlement,
         "capabilities": posture,
@@ -83,4 +84,28 @@ async fn license_status(
         ),
         "next_action": next_action,
     }))
+}
+
+fn mask_identity(value: &str) -> Option<String> {
+    let (local, domain) = value.trim().split_once('@')?;
+    if local.is_empty() || domain.is_empty() {
+        return None;
+    }
+    let first = local.chars().next()?;
+    Some(format!("{first}***@{domain}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::mask_identity;
+
+    #[test]
+    fn identity_is_masked_and_invalid_values_are_omitted() {
+        assert_eq!(
+            mask_identity("operator@example.com").as_deref(),
+            Some("o***@example.com")
+        );
+        assert_eq!(mask_identity(""), None);
+        assert_eq!(mask_identity("raw-token-without-domain"), None);
+    }
 }
