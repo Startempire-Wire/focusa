@@ -1,4 +1,8 @@
-use super::{LifecycleScope, LifecycleState, PreservationDeclaration};
+use super::{
+    LifecycleEntitlementDecision, LifecycleEntitlementReceiptClass, LifecycleScope, LifecycleState,
+    PreservationDeclaration,
+};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
@@ -10,6 +14,7 @@ const GENESIS_HASH: &str =
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum LifecycleOperation {
+    Inspect,
     Install,
     Repair,
     Rerun,
@@ -29,6 +34,20 @@ pub struct LifecycleOperationRequest {
     pub artifact_signature_verified: bool,
     pub preservation: PreservationDeclaration,
     pub purge_confirmed_separately: bool,
+    #[serde(default)]
+    pub dry_run: bool,
+    #[serde(default)]
+    pub recovery_safe: bool,
+    #[serde(default)]
+    pub unattended: bool,
+    #[serde(default)]
+    pub selected_product: String,
+    #[serde(default)]
+    pub selected_channel: String,
+    #[serde(default)]
+    pub required_features: BTreeSet<String>,
+    #[serde(default)]
+    pub entitlement: Option<LifecycleEntitlementDecision>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -77,6 +96,9 @@ pub struct LifecycleAcceptanceReceipt {
     pub genesis_committed: bool,
     pub first_workpoint_id: Option<String>,
     pub preserved_data_classes: BTreeSet<String>,
+    pub entitlement_receipt_class: LifecycleEntitlementReceiptClass,
+    pub entitlement_binding: Option<super::LifecycleEntitlementBinding>,
+    pub entitlement_evidence_refs: Vec<String>,
     pub closure_allowed: bool,
 }
 
@@ -98,6 +120,14 @@ pub enum LifecycleOrchestratorError {
     VersionSetIncoherent,
     #[error("first Workpoint acceptance evidence is incomplete")]
     FirstWorkpointNotAccepted,
+    #[error("canonical entitlement decision is required before product mutation")]
+    EntitlementRequired,
+    #[error("signed entitlement does not grant the selected product")]
+    ProductGrantRequired,
+    #[error("signed entitlement does not grant every required lifecycle feature")]
+    FeatureGrantRequired,
+    #[error("entitlement state or signed time boundary blocks product execution")]
+    EntitlementBlocked,
 }
 
 pub fn append_lifecycle_transition(
@@ -195,6 +225,7 @@ pub fn finalize_lifecycle(
     genesis_committed: bool,
     first_workpoint_id: Option<String>,
 ) -> Result<LifecycleAcceptanceReceipt, LifecycleOrchestratorError> {
+    validate_request(request)?;
     verify_journal(journal)?;
     if !version_set.coherent() {
         return Err(LifecycleOrchestratorError::VersionSetIncoherent);
@@ -223,6 +254,20 @@ pub fn finalize_lifecycle(
         .filter(|item| format!("{:?}", item.disposition) == "Preserve")
         .map(|item| format!("{:?}", item.data_class))
         .collect();
+    let entitlement_receipt_class = request
+        .entitlement
+        .as_ref()
+        .map(|decision| decision.binding.receipt_class())
+        .unwrap_or(LifecycleEntitlementReceiptClass::RecoveryReady);
+    let entitlement_binding = request
+        .entitlement
+        .as_ref()
+        .map(|decision| decision.binding.clone());
+    let entitlement_evidence_refs = request
+        .entitlement
+        .as_ref()
+        .map(|decision| decision.evidence_refs.clone())
+        .unwrap_or_default();
     Ok(LifecycleAcceptanceReceipt {
         transaction_id: request.transaction_id.clone(),
         operation: request.operation,
@@ -239,11 +284,21 @@ pub fn finalize_lifecycle(
         genesis_committed,
         first_workpoint_id,
         preserved_data_classes,
+        entitlement_receipt_class,
+        entitlement_binding,
+        entitlement_evidence_refs,
         closure_allowed: final_state == LifecycleState::Accepted,
     })
 }
 
 fn validate_request(request: &LifecycleOperationRequest) -> Result<(), LifecycleOrchestratorError> {
+    validate_request_at(request, Utc::now())
+}
+
+pub fn validate_request_at(
+    request: &LifecycleOperationRequest,
+    now: DateTime<Utc>,
+) -> Result<(), LifecycleOrchestratorError> {
     if request.transaction_id.is_empty() || request.idempotency_key.is_empty() {
         return Err(LifecycleOrchestratorError::MissingAuthority);
     }
@@ -261,6 +316,64 @@ fn validate_request(request: &LifecycleOperationRequest) -> Result<(), Lifecycle
         .preservation
         .validate()
         .map_err(|_| LifecycleOrchestratorError::InvalidPreservation)?;
+
+    let requires_entitlement = match request.operation {
+        LifecycleOperation::Inspect | LifecycleOperation::Uninstall | LifecycleOperation::Purge => {
+            false
+        }
+        LifecycleOperation::Rollback => false,
+        LifecycleOperation::Repair | LifecycleOperation::Rerun => !request.recovery_safe,
+        LifecycleOperation::Install | LifecycleOperation::Update => !request.dry_run,
+    };
+    if !requires_entitlement {
+        return Ok(());
+    }
+    if request.selected_product.trim().is_empty() || request.selected_channel.trim().is_empty() {
+        return Err(LifecycleOrchestratorError::ProductGrantRequired);
+    }
+    let decision = request
+        .entitlement
+        .as_ref()
+        .ok_or(LifecycleOrchestratorError::EntitlementRequired)?;
+    decision
+        .binding
+        .validate()
+        .map_err(|_| LifecycleOrchestratorError::EntitlementBlocked)?;
+    if !decision.binding.allows_product_execution_at(now) {
+        return Err(LifecycleOrchestratorError::EntitlementBlocked);
+    }
+    if !decision
+        .granted_products
+        .contains(&request.selected_product)
+    {
+        return Err(LifecycleOrchestratorError::ProductGrantRequired);
+    }
+    let mut required_features = request.required_features.clone();
+    match request.operation {
+        LifecycleOperation::Install => {
+            required_features.insert(format!(
+                "focusa.install.channel.{}",
+                request.selected_channel
+            ));
+        }
+        LifecycleOperation::Update => {
+            required_features.insert("focusa.update.apply".into());
+            if request.unattended {
+                required_features.insert("focusa.update.unattended".into());
+            }
+        }
+        LifecycleOperation::Repair | LifecycleOperation::Rerun => {
+            required_features.insert("focusa.repair.execute".into());
+        }
+        LifecycleOperation::Inspect
+        | LifecycleOperation::Rollback
+        | LifecycleOperation::Uninstall
+        | LifecycleOperation::Purge => {}
+    }
+    if !required_features.is_subset(&decision.granted_features) || decision.evidence_refs.is_empty()
+    {
+        return Err(LifecycleOrchestratorError::FeatureGrantRequired);
+    }
     Ok(())
 }
 

@@ -232,6 +232,24 @@ impl LifecycleEntitlementBinding {
         }
     }
 
+    pub fn allows_product_execution_at(&self, now: DateTime<Utc>) -> bool {
+        if self.validate().is_err() {
+            return false;
+        }
+        match self.state {
+            LifecycleEntitlementState::ActiveEvaluation | LifecycleEntitlementState::ActivePaid => {
+                self.expires_at.is_some_and(|expires_at| now < expires_at)
+            }
+            LifecycleEntitlementState::OfflineGrace => now < self.offline_valid_until,
+            LifecycleEntitlementState::Unactivated
+            | LifecycleEntitlementState::PendingIdentity
+            | LifecycleEntitlementState::PendingDeviceCode
+            | LifecycleEntitlementState::Expired
+            | LifecycleEntitlementState::Revoked
+            | LifecycleEntitlementState::Invalid => false,
+        }
+    }
+
     pub fn validate(&self) -> Result<(), InstallLifecycleValidationError> {
         let required_text = [
             &self.schema_version,
@@ -258,6 +276,31 @@ impl LifecycleEntitlementBinding {
             return Err(InstallLifecycleValidationError::EntitlementBindingIncomplete);
         }
         Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LifecycleEntitlementDecision {
+    pub binding: LifecycleEntitlementBinding,
+    #[serde(default)]
+    pub granted_products: std::collections::BTreeSet<String>,
+    #[serde(default)]
+    pub granted_features: std::collections::BTreeSet<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+}
+
+impl LifecycleEntitlementDecision {
+    pub fn grants(
+        &self,
+        product: &str,
+        required_features: &std::collections::BTreeSet<String>,
+        now: DateTime<Utc>,
+    ) -> bool {
+        self.binding.allows_product_execution_at(now)
+            && self.granted_products.contains(product)
+            && required_features.is_subset(&self.granted_features)
+            && !self.evidence_refs.is_empty()
     }
 }
 
