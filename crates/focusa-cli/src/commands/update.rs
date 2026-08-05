@@ -1812,6 +1812,8 @@ async fn execute_verified_apply_locked(
     std::fs::create_dir_all(&stage)?;
     std::fs::create_dir_all(&backup_root)?;
     let journal = state.join("update-journal.json");
+    let progress = state.join("update-progress.txt");
+    std::fs::write(&progress, "staging")?;
     std::fs::write(
         &journal,
         serde_json::to_vec_pretty(&json!({
@@ -1830,6 +1832,7 @@ async fn execute_verified_apply_locked(
             .iter()
             .filter(|part| matches!(part.action, "would_update" | "would_install"))
         {
+            std::fs::write(&progress, format!("binary:{}:download", part.part))?;
             let url = part
                 .download_url
                 .as_deref()
@@ -1882,6 +1885,7 @@ async fn execute_verified_apply_locked(
             if part.part == "daemon" {
                 stop_daemon_before_promotion()?;
             }
+            std::fs::write(&progress, format!("binary:{}:promote", part.part))?;
             let backup = backup_root.join(target.file_name().context("target filename missing")?);
             let backup_sha256 = if target.exists() {
                 let digest = sha256_file(&target)?;
@@ -1937,6 +1941,7 @@ async fn execute_verified_apply_locked(
         if let Some((_, daemon_path, _, _)) =
             promoted.iter().find(|(part, _, _, _)| part == "daemon")
         {
+            std::fs::write(&progress, "daemon:restart_and_health")?;
             restart_daemon_service(daemon_path)?;
             let mut observed_version = None;
             for _ in 0..20 {
@@ -1961,6 +1966,7 @@ async fn execute_verified_apply_locked(
                 "would_update_package" | "would_install_package"
             )
         }) {
+            std::fs::write(&progress, format!("package:{}:download", part.part))?;
             let url = part
                 .download_url
                 .as_deref()
@@ -1992,6 +1998,7 @@ async fn execute_verified_apply_locked(
                 sha256: expected.to_string(),
                 install_path: archive.display().to_string(),
             };
+            std::fs::write(&progress, format!("package:{}:activate", part.part))?;
             crate::commands::install::integrate_pi_extension(
                 &installed,
                 &stage,
@@ -2019,6 +2026,9 @@ async fn execute_verified_apply_locked(
     }
     .await;
     if let Err(error) = operation {
+        let failed_phase = std::fs::read_to_string(&progress)
+            .unwrap_or_else(|_| "unknown_transaction_phase".into());
+        let error = error.context(format!("update transaction phase {failed_phase}"));
         let rollback_result = rollback_promoted_parts(&promoted);
         let daemon_was_touched = promoted.iter().any(|(part, _, _, _)| part == "daemon")
             || (cfg!(target_os = "windows") && plan.parts.iter().any(|part| part.part == "daemon"));
