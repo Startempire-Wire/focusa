@@ -1,10 +1,11 @@
 <script lang="ts">
-  export type IconName = 'panel-left' | 'chevron-left' | 'chevron-right' | 'chevron-down' | 'scope' | 'deck' | 'canvas' | 'terminal' | 'crist' | 'context' | 'target' | 'route' | 'sessions' | 'approvals' | 'evidence' | 'documents' | 'research' | 'runtime' | 'search' | 'settings' | 'warning' | 'blocked' | 'check' | 'sparkles';
+  export type IconName = 'panel-left' | 'x' | 'chevron-left' | 'chevron-right' | 'chevron-down' | 'scope' | 'deck' | 'canvas' | 'terminal' | 'crist' | 'context' | 'target' | 'route' | 'sessions' | 'approvals' | 'evidence' | 'documents' | 'research' | 'runtime' | 'search' | 'settings' | 'warning' | 'blocked' | 'check' | 'sparkles';
   let { name, size = 16, strokeWidth = 1.7, label }: { name: IconName; size?: 14 | 16 | 18 | 20; strokeWidth?: number; label?: string } = $props();
 </script>
 
 <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width={strokeWidth} stroke-linecap="round" stroke-linejoin="round" role={label ? 'img' : undefined} aria-label={label} aria-hidden={label ? undefined : 'true'}>
   {#if name === 'panel-left'}<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/>
+  {:else if name === 'x'}<path d="m6 6 12 12M18 6 6 18"/>
   {:else if name === 'chevron-left'}<path d="m15 18-6-6 6-6"/>
   {:else if name === 'chevron-right'}<path d="m9 18 6-6-6-6"/>
   {:else if name === 'chevron-down'}<path d="m6 9 6 6 6-6"/>

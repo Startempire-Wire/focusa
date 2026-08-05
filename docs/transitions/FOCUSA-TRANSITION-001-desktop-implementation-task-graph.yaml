@@ -95,6 +95,12 @@ nodes:
     title: Implement semantic Desktop state skeleton without canonical duplication
     status: blocked
     depends_on: [D021-01, D021-02, T050]
+  - id: D022-00
+    parent: T071
+    title: Implement truthful unbound Context Control and recovery shell
+    status: complete
+    depends_on: [D010-04]
+    evidence: [apps/desktop/docs/context-control-shell.md, docs/contracts/evidence/spec158-desktop-context-control-unbound.png, uiai-diagnostics:session=mbZEfNhs:seq=103]
   - id: D022-01
     parent: T071
     title: Implement Workstream Context Control envelope and unbound recovery

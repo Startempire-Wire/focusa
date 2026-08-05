@@ -4,6 +4,7 @@
   import { readDaemonHealth, type DaemonReadStatus } from '$lib/shell/daemon-health';
   import MissionCanvasShell from '$lib/shell/MissionCanvasShell.svelte';
   import AgentTuiSurface from '$lib/shell/AgentTuiSurface.svelte';
+  import ContextControlPanel from '$lib/shell/ContextControlPanel.svelte';
   import { readSidebarPreferences, saveSidebarPreferences, type DesktopSidebarMode } from '$lib/shell/sidebar-preferences';
   import Icon, { type IconName } from '$lib/ui/Icon.svelte';
   import IconButton from '$lib/ui/IconButton.svelte';
@@ -40,6 +41,7 @@
   let sidebarWidth = $state(248);
   let collapsedSidebarGroups = $state<string[]>([]);
   let commandOpen = $state(false);
+  let contextOpen = $state(false);
   let sidebarResizeStart: { x: number; width: number } | null = null;
 
   async function refreshDaemon(): Promise<void> {
@@ -91,6 +93,7 @@
     const onKeyDown = (event: KeyboardEvent) => {
       const typing = event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement;
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); commandOpen = true; }
+      if (event.key === 'Escape') contextOpen = false;
       if (!typing && event.key === '[' && !event.metaKey && !event.ctrlKey) {
         event.preventDefault();
         setSidebarMode(sidebarMode === 'expanded' ? 'compact' : 'expanded');
@@ -153,10 +156,11 @@
         onclick={() => setSidebarMode(sidebarMode === 'compact' ? 'expanded' : 'compact')}
       />
     </div>
-    <button class="scope-card" type="button" aria-label="Context Control: Unbound" title="Context Control · Unbound">
+    <button class="scope-card" type="button" aria-label="Context Control: Unbound" aria-expanded={contextOpen} title="Context Control · Unbound" onclick={() => (contextOpen = !contextOpen)}>
       <span class="scope-icon" aria-hidden="true"><Icon name="scope" size={18} /></span>
       <span class="scope-copy"><span class="eyebrow">Context Control</span><strong>Unbound</strong><small>No exact Attachment selected.</small></span>
     </button>
+    <ContextControlPanel bind:open={contextOpen} {daemon}/>
     <button class="find-button" type="button" aria-label="Find or do" onclick={() => (commandOpen = true)}><Icon name="search" size={16}/><span>Find or do</span><kbd>⌘K</kbd></button>
     <div class="workspace-groups">
       {#each sidebarGroups as group}
