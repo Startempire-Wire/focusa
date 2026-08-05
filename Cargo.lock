@@ -1308,7 +1308,7 @@ checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
 name = "focusa-api"
-version = "0.9.143"
+version = "0.9.144"
 dependencies = [
  "anyhow",
  "async-stream",
@@ -1338,7 +1338,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-bench"
-version = "0.9.143"
+version = "0.9.144"
 dependencies = [
  "chrono",
  "serde",
@@ -1349,7 +1349,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-cli"
-version = "0.9.143"
+version = "0.9.144"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -1377,7 +1377,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-core"
-version = "0.9.143"
+version = "0.9.144"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1411,7 +1411,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-harness-adapters"
-version = "0.9.143"
+version = "0.9.144"
 dependencies = [
  "chrono",
  "focusa-core",
@@ -1422,7 +1422,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-license"
-version = "0.9.143"
+version = "0.9.144"
 dependencies = [
  "chrono",
  "focusa-core",
@@ -1434,7 +1434,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-session-runner"
-version = "0.9.143"
+version = "0.9.144"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -1456,7 +1456,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-terminal-ui"
-version = "0.9.143"
+version = "0.9.144"
 dependencies = [
  "crossterm 0.28.1",
  "ratatui",
@@ -1467,7 +1467,7 @@ dependencies = [
 
 [[package]]
 name = "focusa-tui"
-version = "0.9.143"
+version = "0.9.144"
 dependencies = [
  "anyhow",
  "chrono",
