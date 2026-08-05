@@ -44,6 +44,7 @@ TAG_CHAINS = {
     ),
 }
 ALLOWED_RECEIPT_PATHS = {
+    ".github/workflows/locked-release-candidate-artifacts.yml",
     ".github/workflows/windows-ota-e2e.yml",
     "crates/focusa-cli/src/commands/install.rs",
     "crates/focusa-cli/src/commands/update.rs",
@@ -60,6 +61,7 @@ ALLOWED_RECEIPT_PATHS = {
     "tests/166_focusa_locked_release_candidate_ancestry_test.py",
     "tests/167_focusa_locked_release_governance_receipt_test.py",
     "tests/168_focusa_windows_native_ota_workflow_test.py",
+    "tests/169_focusa_rel4_candidate_artifact_workflow_test.py",
     "tests/final_release_gap_gate.sh",
 }
 

@@ -1,0 +1,270 @@
+name: Locked release candidate artifacts
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+
+jobs:
+  rust-artifacts:
+    name: Candidate Rust (${{ matrix.target }})
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            runner: macos-14
+          - target: x86_64-apple-darwin
+            runner: macos-15-intel
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-latest
+          - target: x86_64-unknown-linux-musl
+            runner: ubuntu-latest
+            musl: true
+          - target: x86_64-pc-windows-msvc
+            runner: windows-latest
+            exe: .exe
+          - target: aarch64-pc-windows-msvc
+            runner: windows-11-arm
+            exe: .exe
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: nightly-2026-01-08
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rel4-rust-${{ matrix.target }}
+      - name: Install cross for musl
+        if: ${{ matrix.musl == true }}
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+      - name: Build candidate binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(grep -m1 '^version = ' Cargo.toml | cut -d '"' -f2)" = 0.9.144
+          if [ "${{ matrix.musl || false }}" = true ]; then
+            cat > Cross.toml <<'EOF'
+          [build.env]
+          passthrough = ["CFLAGS_x86_64_unknown_linux_musl"]
+          EOF
+            export CFLAGS_x86_64_unknown_linux_musl="-Du_int8_t=uint8_t -Du_int16_t=uint16_t -Du_int64_t=uint64_t"
+            cross build --release --target "${{ matrix.target }}"
+          else
+            cargo build --release --target "${{ matrix.target }}"
+          fi
+          mkdir -p dist
+          for bin in focusa focusa-daemon focusa-tui; do
+            src="target/${{ matrix.target }}/release/${bin}${{ matrix.exe || '' }}"
+            test -s "$src"
+            cp "$src" "dist/${bin}-v0.9.144-${{ matrix.target }}${{ matrix.exe || '' }}"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rel4-rust-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  desktop-artifacts:
+    name: Candidate desktop (${{ matrix.target }})
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            runner: macos-14
+            family: macos
+            label: aarch64
+          - target: x86_64-apple-darwin
+            runner: macos-15-intel
+            family: macos
+            label: x64
+          - target: x86_64-pc-windows-msvc
+            runner: windows-latest
+            family: windows
+            label: x64
+          - target: aarch64-pc-windows-msvc
+            runner: windows-11-arm
+            family: windows
+            label: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: nightly-2026-01-08
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rel4-desktop-${{ matrix.target }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.6
+      - name: Verify candidate version and signing authority
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          python3 scripts/verify-version-surfaces.py v0.9.144
+          test -n "${TAURI_SIGNING_PRIVATE_KEY:-}"
+          test -n "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}"
+      - name: Install desktop dependencies
+        working-directory: apps/menubar
+        run: bun install --frozen-lockfile
+      - name: Build signed updater bundles
+        working-directory: apps/menubar
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ matrix.family == 'macos' && '-' || '' }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: bunx tauri build --target ${{ matrix.target }}
+      - name: Package and verify macOS bundles
+        if: ${{ matrix.family == 'macos' }}
+        shell: bash
+        working-directory: apps/menubar
+        run: |
+          set -euo pipefail
+          mkdir -p ../../dist
+          app="$(find src-tauri/target/${{ matrix.target }}/release/bundle/macos -maxdepth 1 -type d -name '*.app' -print -quit)"
+          dmg="$(find src-tauri/target/${{ matrix.target }}/release/bundle/dmg -type f -name '*.dmg' -print -quit)"
+          updater="$(find src-tauri/target/${{ matrix.target }}/release/bundle/macos -type f -name '*.app.tar.gz' -print -quit)"
+          test -n "$app" && test -n "$dmg" && test -n "$updater"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          ditto -c -k --keepParent "$app" "../../dist/Focusa-v0.9.144-${{ matrix.target }}.app.zip"
+          cp "$dmg" "../../dist/Focusa_0.9.144_${{ matrix.label }}.dmg"
+          cp "$updater" "../../dist/Focusa-v0.9.144-${{ matrix.target }}.app.tar.gz"
+          test -s "${updater}.sig"
+          cp "${updater}.sig" "../../dist/Focusa-v0.9.144-${{ matrix.target }}.app.tar.gz.sig"
+      - name: Package Windows installers
+        if: ${{ matrix.family == 'windows' }}
+        shell: pwsh
+        working-directory: apps/menubar
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force ../../dist | Out-Null
+          $bundle = "src-tauri/target/${{ matrix.target }}/release/bundle"
+          $setup = Get-ChildItem "$bundle/nsis/*-setup.exe" | Select-Object -First 1
+          $msi = Get-ChildItem "$bundle/msi/*.msi" | Select-Object -First 1
+          if (-not $setup -or -not $msi) { throw 'missing native Windows setup/MSI bundle' }
+          Copy-Item $setup.FullName "../../dist/Focusa_0.9.144_${{ matrix.label }}-setup.exe"
+          Copy-Item $msi.FullName "../../dist/Focusa_0.9.144_${{ matrix.label }}_en-US.msi"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rel4-desktop-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  portable-artifacts:
+    name: Candidate portable surfaces
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - name: Package exact versioned portable surfaces
+        run: |
+          set -euo pipefail
+          python3 scripts/verify-version-surfaces.py v0.9.144
+          mkdir -p dist bundle/focusa-agent-context/skills bundle/focusa-agent-context/bin
+          tar -C apps -czf dist/focusa-pi-extension-v0.9.144.tar.gz pi-extension
+          tar -czf dist/focusa-generated-clients-v0.9.144.tar.gz packages/generated/spec135 docs/contracts/spec135/generated-contract-v1
+          cp scripts/install-focusa.sh dist/focusa-installer-v0.9.144.sh
+          sed -i 's/FOCUSA_INSTALLER_VERSION="dev-source"/FOCUSA_INSTALLER_VERSION="0.9.144"/' dist/focusa-installer-v0.9.144.sh
+          chmod 0755 dist/focusa-installer-v0.9.144.sh
+          dist/focusa-installer-v0.9.144.sh --version | grep -F 0.9.144
+          cp scripts/install-focusa.ps1 dist/focusa-installer-v0.9.144.ps1
+          cp AGENTS.md bundle/focusa-agent-context/AGENTS.md
+          cp -R .pi/skills/. bundle/focusa-agent-context/skills/
+          cp scripts/focusa-skill-doctor bundle/focusa-agent-context/bin/focusa-skill-doctor
+          chmod 0755 bundle/focusa-agent-context/bin/focusa-skill-doctor
+          tar -C bundle -czf dist/focusa-agent-context-v0.9.144.tar.gz focusa-agent-context
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rel4-portable-surfaces
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  assemble-sign-verify:
+    name: Assemble, sign, and verify candidate
+    needs: [rust-artifacts, desktop-artifacts, portable-artifacts]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: rel4-*
+          path: dist
+          merge-multiple: true
+      - uses: sigstore/cosign-installer@v3.10.0
+      - uses: anchore/sbom-action/download-syft@v0
+      - name: Generate candidate SBOMs
+        run: |
+          set -euo pipefail
+          syft dir:. -o cyclonedx-json=dist/focusa-v0.9.144.cdx.json
+          syft dir:. -o spdx-json=dist/focusa-v0.9.144.spdx.json
+      - name: Require every canonical payload
+        run: python3 scripts/verify-canonical-release-assets.py --dist dist --tag v0.9.144
+      - name: Generate release intelligence
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          chmod +x dist/focusa-v0.9.144-x86_64-unknown-linux-gnu
+          python3 scripts/generate-release-intelligence-packet.py \
+            --dist dist --tag v0.9.144 --sha "$GITHUB_SHA" \
+            --repo "$GITHUB_REPOSITORY" \
+            --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --previous-tag v0.9.143 \
+            --output dist/release-intelligence.json
+          dist/focusa-v0.9.144-x86_64-unknown-linux-gnu release render-intelligence \
+            --packet dist/release-intelligence.json \
+            --output dist/release-intelligence.md --publishable
+      - name: Generate and verify detached trust metadata
+        env:
+          FOCUSA_RELEASE_ED25519_PRIVATE_KEY: ${{ secrets.FOCUSA_RELEASE_ED25519_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${FOCUSA_RELEASE_ED25519_PRIVATE_KEY:-}"
+          python3 -m pip install --disable-pip-version-check --user 'cryptography==46.0.4'
+          umask 077
+          key="${RUNNER_TEMP}/focusa-release-ed25519.pem"
+          trap 'shred -u "$key" 2>/dev/null || rm -f "$key"' EXIT
+          printf '%s\n' "$FOCUSA_RELEASE_ED25519_PRIVATE_KEY" > "$key"
+          python3 scripts/release-trust-metadata.py \
+            --dist dist --tag v0.9.144 --commit "$GITHUB_SHA" \
+            --repo "$GITHUB_REPOSITORY" \
+            --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --workflow .github/workflows/locked-release-candidate-artifacts.yml \
+            --candidate \
+            --private-key "$key" \
+            --trusted-keys config/focusa-trusted-release-keys.json
+          cosign sign-blob --yes \
+            --output-signature dist/SHA256SUMS.txt.cosign.sig \
+            --output-certificate dist/SHA256SUMS.txt.cosign.pem \
+            dist/SHA256SUMS.txt
+          jq -e '.publication_status == "candidate_only" and (.gates.release_success | not) and .gates.release_run_url == null' dist/release-manifest.json >/dev/null
+          jq -e '.workflow == ".github/workflows/locked-release-candidate-artifacts.yml"' dist/release-provenance.json >/dev/null
+          (cd dist && sha256sum -c SHA256SUMS.txt)
+      - name: Upload immutable candidate proof bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: focusa-v0.9.144-candidate-bundle
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 30

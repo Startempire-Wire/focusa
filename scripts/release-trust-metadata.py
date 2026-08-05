@@ -118,6 +118,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--commit", required=True)
     parser.add_argument("--repo", required=True)
     parser.add_argument("--run-url", required=True)
+    parser.add_argument("--workflow", default=".github/workflows/release.yml")
+    parser.add_argument("--candidate", action="store_true")
     parser.add_argument("--private-key", required=True, type=pathlib.Path)
     parser.add_argument("--trusted-keys", required=True, type=pathlib.Path)
     return parser.parse_args()
@@ -177,7 +179,11 @@ def main() -> int:
                 "name": asset.name,
                 "sha256": digest,
                 "size_bytes": asset.stat().st_size,
-                "url": f"https://github.com/{args.repo}/releases/download/{args.tag}/{asset.name}",
+                "url": (
+                    f"{args.run_url}#artifact-{asset.name}"
+                    if args.candidate
+                    else f"https://github.com/{args.repo}/releases/download/{args.tag}/{asset.name}"
+                ),
                 "signature": {
                     "algorithm": "ed25519",
                     "key_id": key["key_id"],
@@ -206,7 +212,7 @@ def main() -> int:
             "tag": args.tag,
             "commit": args.commit,
             "builder": "github-actions",
-            "workflow": ".github/workflows/release.yml",
+            "workflow": args.workflow,
             "run_url": args.run_url,
             "artifact_digest": sha256(checksums),
             "subjects": subjects,
@@ -222,17 +228,18 @@ def main() -> int:
             "commit": args.commit,
             "channel": channel_for(args.tag),
             "published_at": published_at,
+            "publication_status": "candidate_only" if args.candidate else "published",
             "yanked": False,
             "revoked": False,
             "superseded_by": None,
             "gates": {
                 "ci_success": True,
-                "release_success": True,
+                "release_success": not args.candidate,
                 "deploy_success": None,
                 "smoke_success": True,
                 "installer_proof_success": True,
                 "ci_run_url": args.run_url,
-                "release_run_url": args.run_url,
+                "release_run_url": None if args.candidate else args.run_url,
                 "deploy_run_url": None,
             },
             "trust": {

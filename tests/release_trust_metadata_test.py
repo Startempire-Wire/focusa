@@ -73,7 +73,7 @@ def main() -> int:
         assets[0].write_bytes(b"linux-fixture")
         assets[1].write_bytes(b"macos-fixture")
 
-        result = run(
+        common_args = [
             "python3",
             str(SCRIPT),
             "--dist",
@@ -90,7 +90,8 @@ def main() -> int:
             str(private_key),
             "--trusted-keys",
             str(trusted_keys),
-        )
+        ]
+        result = run(*common_args)
         summary = json.loads(result.stdout)
         assert summary["status"] == "completed"
         assert summary["asset_count"] == 2
@@ -100,6 +101,9 @@ def main() -> int:
         assert manifest["schema"] == "focusa.release_manifest.v1"
         assert manifest["tag"] == "v0.9.95-dev"
         assert manifest["channel"] == "nightly"
+        assert manifest["publication_status"] == "published"
+        assert manifest["gates"]["release_success"] is True
+        assert manifest["gates"]["release_run_url"].endswith("/runs/1")
         assert manifest["rollback_supported"] is True
         assert set(manifest["assets"]) == {asset.name for asset in assets}
         assert manifest["assets"][assets[0].name]["platform"] == "linux-x86_64-musl"
@@ -115,6 +119,30 @@ def main() -> int:
             signature = path.with_name(path.name + ".sig")
             assert signature.stat().st_size == 64
             public.verify(signature.read_bytes(), path.read_bytes())
+
+        candidate = run(
+            *common_args,
+            "--candidate",
+            "--workflow",
+            ".github/workflows/locked-release-candidate-artifacts.yml",
+        )
+        assert json.loads(candidate.stdout)["status"] == "completed"
+        candidate_manifest = json.loads((dist / "release-manifest.json").read_text())
+        candidate_provenance = json.loads(
+            (dist / "release-provenance.json").read_text()
+        )
+        assert candidate_manifest["publication_status"] == "candidate_only"
+        assert candidate_manifest["gates"]["release_success"] is False
+        assert candidate_manifest["gates"]["release_run_url"] is None
+        assert all(
+            value["url"].startswith(
+                "https://github.com/Startempire-Wire/focusa/actions/runs/1#artifact-"
+            )
+            for value in candidate_manifest["assets"].values()
+        )
+        assert candidate_provenance["workflow"].endswith(
+            "locked-release-candidate-artifacts.yml"
+        )
 
         assets[0].write_bytes(b"tampered")
         try:

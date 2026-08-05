@@ -5,6 +5,8 @@ on:
 
 permissions:
   contents: read
+  actions: read
+  id-token: write
 
 jobs:
   windows-release-build-smoke:
@@ -329,3 +331,8 @@ jobs:
           name: windows-native-ota-${{ matrix.architecture }}
           path: ${{ runner.temp }}/windows-native-ota-${{ matrix.architecture }}.json
           if-no-files-found: error
+
+  locked-release-candidate-artifacts:
+    name: REL.4 non-publishing candidate artifacts
+    uses: ./.github/workflows/locked-release-candidate-artifacts.yml
+    secrets: inherit
