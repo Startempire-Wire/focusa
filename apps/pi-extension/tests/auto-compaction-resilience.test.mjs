@@ -51,14 +51,17 @@ test("agent_end never races Pi native compaction with extension compaction", () 
   assert.match(body, /native post-run compaction/);
 });
 
-test("agent_settled evaluates pressure without starting a competing native call", () => {
+test("agent_settled acquires the coordinator and starts one supported Pi compaction", () => {
   assert.match(handlerBody("agent_settled"), /maybeCompact\(ctx\)/);
-  assert.match(source, /pi_compact_api_is_fire_and_forget/);
-  assert.match(source, /return "deferred_to_native"/);
+  assert.match(source, /Pi defines[\s\S]*event as fully settled/);
   const maybeStart = source.indexOf("const maybeCompact =");
   const maybeEnd = source.indexOf("processLease.request = maybeCompact", maybeStart);
   const maybeBody = source.slice(maybeStart, maybeEnd);
-  assert.doesNotMatch(maybeBody, /attemptCompaction\(ctx, usage\)/);
+  assert.match(maybeBody, /activeRequest = request/);
+  assert.match(maybeBody, /setActiveEpoch\(requestedEpoch\)/);
+  assert.match(maybeBody, /attemptCompaction\(ctx, usage\)/);
+  assert.match(maybeBody, /return "requested"/);
+  assert.doesNotMatch(maybeBody, /native_compaction_delegated|deferred_to_native/);
 });
 
 test("provider transport failures retain bounded recovery for unchanged context", () => {
@@ -77,7 +80,7 @@ test("transient provider failures retain the Spec130A one-retry budget", () => {
   assert.match(source, /failed after \$\{failedAttempts\} attempt/);
 });
 
-test("pressure alone cannot invoke compaction without preflight and exact live eligibility", () => {
+test("pressure invokes compaction only after preflight and exact live eligibility", () => {
   assert.ok(
     indexSource.indexOf("registerAutoCompaction(") < indexSource.indexOf("registerCompaction(pi)"),
     "eligibility handler must register before authoritative checkpoint/summary work"
@@ -87,9 +90,9 @@ test("pressure alone cannot invoke compaction without preflight and exact live e
     source.indexOf("processLease.request = maybeCompact")
   );
   const preflightIndex = settledPath.indexOf("evaluateProactiveCompactionEligibility");
-  const delegationIndex = settledPath.indexOf('return "deferred_to_native"');
-  assert.ok(preflightIndex >= 0 && preflightIndex < delegationIndex);
-  assert.doesNotMatch(settledPath, /ctx\.compact|legacyUnsafeAttemptCompaction/);
+  const attemptIndex = settledPath.indexOf("attemptCompaction(ctx, usage)");
+  assert.ok(preflightIndex >= 0 && attemptIndex > preflightIndex);
+  assert.match(settledPath, /requestedEpoch\.exactEligibility = eligibility/);
 
   const exactGate = handlerBody("session_before_compact");
   assert.match(exactGate, /messagesToSummarize/);

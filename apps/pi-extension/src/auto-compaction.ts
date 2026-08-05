@@ -701,10 +701,11 @@ export function registerAutoCompaction(
     if (processLease.retryOwnerId === registrationId) processLease.retryOwnerId = undefined;
   };
 
-  // Quarantined legacy path retained only for recovery-state compatibility.
-  // No caller may invoke Pi's fire-and-forget compact() until Pi exposes a
-  // serialized acquisition API.
-  const _legacyUnsafeAttemptCompaction = (ctx: ExtensionContext, usageBefore: ContextUsage): void => {
+  // Invoke Pi's supported extension compaction API only after agent_settled.
+  // At that lifecycle boundary Pi guarantees no native retry, auto-compaction,
+  // or queued continuation remains, while the process lease below prevents a
+  // second Focusa call until the callback settles.
+  const attemptCompaction = (ctx: ExtensionContext, usageBefore: ContextUsage): void => {
     if (!activeEpoch) return;
     if (!ownsRegistrationLease()) {
       persist("attempt_suppressed", { reason: "registration_lease_lost" });
@@ -917,7 +918,7 @@ export function registerAutoCompaction(
               setActiveEpoch(undefined);
               return;
             }
-            _legacyUnsafeAttemptCompaction(ctx, liveUsage);
+            attemptCompaction(ctx, liveUsage);
           }, retryDelay);
           retryTimer.unref?.();
           return;
@@ -1070,32 +1071,28 @@ export function registerAutoCompaction(
       return "ineligible";
     }
 
-    // Pi 0.82/0.83 exposes only a fire-and-forget compact() call. It has no
-    // serialized/awaitable acquisition API, so racing an operator or native
-    // compaction can replace and clear Pi's abort controller mid-flight. Focusa
-    // must observe/enrich native compaction rather than starting a second one.
-    lastAttemptAt = Date.now();
-    const delegatedEpoch = createEpoch(ctx, request.triggerClass, usage.contextWindow);
-    delegatedEpoch.startedAt = lastAttemptAt;
-    delegatedEpoch.state = "observing";
-    delegatedEpoch.policySelection = policySelection;
+    // maybeCompact is reached from agent_settled for proactive work. Pi defines
+    // that event as fully settled: no retry, auto-compaction retry, or queued
+    // continuation remains. Acquire the Focusa process lease, then invoke Pi's
+    // public compaction API once; callbacks release or retry the same epoch.
+    const requestedEpoch = createEpoch(ctx, request.triggerClass, usage.contextWindow);
+    requestedEpoch.exactEligibility = eligibility;
+    requestedEpoch.policySelection = policySelection;
+    requestedEpoch.state = "native_compaction_requested";
+    activeRequest = request;
+    setActiveEpoch(requestedEpoch);
     persist(
-      "native_compaction_delegated",
+      "native_compaction_requested",
       {
-        reason: "pi_compact_api_is_fire_and_forget",
+        reason: "agent_settled_pressure_threshold",
         tokens_before: usage.tokens,
         context_window: usage.contextWindow,
         eligibility,
       },
-      delegatedEpoch
+      requestedEpoch
     );
-    notifyOnce(
-      ctx,
-      `native-delegation:${contextKey}`,
-      "Focusa preserved compaction safety; Pi owns the next native compaction.",
-      "warning"
-    );
-    return "deferred_to_native";
+    attemptCompaction(ctx, usage);
+    return "requested";
   };
 
   processLease.request = maybeCompact;
