@@ -16,7 +16,7 @@
   import type { PresentationCommand } from '$lib/shell/command-manifest';
 
   const sidebarGroups: ReadonlyArray<{ id: string; label: string; workspaceIds: readonly string[] }> = [
-    { id: 'orient', label: 'Orient', workspaceIds: ['mission-deck', 'mission-canvas'] },
+    { id: 'orient', label: 'Orient', workspaceIds: ['mission-canvas', 'mission-deck'] },
     { id: 'work', label: 'Work', workspaceIds: ['pi-work-surface', 'crist', 'context-role', 'workpoints', 'trajectory'] },
     { id: 'records', label: 'Records', workspaceIds: ['sessions', 'contention', 'evidence', 'documents', 'research'] },
     { id: 'system', label: 'System', workspaceIds: ['agent-runtime'] }

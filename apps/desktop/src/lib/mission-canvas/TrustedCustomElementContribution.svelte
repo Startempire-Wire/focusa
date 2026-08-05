@@ -16,10 +16,10 @@
   type ContributionElement = HTMLElement & { contribution?: ResolvedContribution };
 
   function attachContribution(node: ContributionElement, value: ResolvedContribution) {
-    node.contribution = value;
+    node.contribution = structuredClone(value);
     return {
       update(next: ResolvedContribution) {
-        node.contribution = next;
+        node.contribution = structuredClone(next);
       },
       destroy() {
         delete node.contribution;
