@@ -9,6 +9,8 @@ const tools = fs.readFileSync(path.join(root, 'src/tools.ts'), 'utf8');
 
 const helper = state.slice(state.indexOf('export async function focusaFetch'), state.indexOf('// Fire-and-forget variant'));
 assert.match(helper, /r\.status === 403/);
+assert.match(helper, /body\.idempotency_key/);
+assert.match(helper, /"Idempotency-Key": key\.trim\(\)/);
 assert.match(helper, /code\.startsWith\("ENTITLEMENT_"\)/);
 assert.match(helper, /failure_class: "entitlement_blocked"/);
 assert.match(helper, /required_feature/);

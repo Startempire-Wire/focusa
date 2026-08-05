@@ -726,6 +726,19 @@ export async function focusaFetch(path: string, opts: RequestInit = {}): Promise
           "X-Scope-Session-Id": attachment.session_id,
         }
       : {};
+  const mutationMethod = String(opts.method || "GET").toUpperCase();
+  let idempotencyHeader: Record<string, string> = {};
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(mutationMethod) && typeof opts.body === "string") {
+    try {
+      const body = JSON.parse(opts.body) as Record<string, unknown>;
+      const key = body.idempotency_key ?? body.idempotencyKey ?? body.request_id ?? body.requestId;
+      if (typeof key === "string" && key.trim()) {
+        idempotencyHeader = { "Idempotency-Key": key.trim() };
+      }
+    } catch {
+      // The daemon JSON guard rejects malformed mutation bodies before handlers.
+    }
+  }
   const attempts = 2;
   for (let attempt = 0; attempt < attempts; attempt++) {
     const ac = new AbortController();
@@ -743,6 +756,7 @@ export async function focusaFetch(path: string, opts: RequestInit = {}): Promise
           "X-Extension-Token": `focusa-pi-${runtime?.cfg?.focusaExtensionBuild || "v0"}`,
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
           ...typedScopeHeaders,
+          ...idempotencyHeader,
           ...((opts.headers as Record<string, string>) || {}),
         },
         signal: ac.signal,
