@@ -60,7 +60,10 @@ assert "LicenseGuard::eval" not in resolver, "production resolver must not self-
 assert "read_license_json" not in resolver, "legacy plaintext must not enter production resolver"
 assert "LicenseGuard::eval(7)" in entitlement
 assert "!entitlement_allows_mutation" in entitlement
-assert "Active | EntitlementState::OfflineGrace" in entitlement
+assert "EntitlementState::Active => snapshot.expires_at" in entitlement
+assert "EntitlementState::OfflineGrace => snapshot" in entitlement
+assert ".offline_grace_until" in entitlement
+assert "EntitlementState::Unactivated | EntitlementState::RecoveryOnly => false" in entitlement
 assert "resolve_license_guard()" in legacy
 assert "load_local_license()" not in legacy[legacy.index("pub fn load_license_status"):legacy.index("pub fn load_local_license")]
 
