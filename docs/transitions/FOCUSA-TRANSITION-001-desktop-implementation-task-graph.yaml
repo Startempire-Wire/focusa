@@ -84,7 +84,7 @@ nodes:
     title: Implement generated-contract recursive LayoutNode renderer foundation
     status: complete
     depends_on: [D020-02]
-    callgraph_nodes: [FIXTURE-001, FIXTURE-002, FIXTURE-003, FIXTURE-004, UI-004, UI-005, UI-006, UI-007, UI-008, UI-009, UI-010, UI-011, UI-012]
+    callgraph_nodes: [FIXTURE-001, FIXTURE-002, FIXTURE-003, FIXTURE-004, UI-004, UI-005, UI-006, UI-007, UI-008, UI-009, UI-010, UI-011, UI-012, UI-021]
     notes: Test-only canonical-contract fixtures cover every LayoutNode variant; production binding remains blocked on T061 and exact Workstream identity.
   - id: D020-03
     parent: T071

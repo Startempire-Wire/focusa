@@ -1,5 +1,10 @@
 <script lang="ts">
+  import MissionCanvasRenderer from '$lib/mission-canvas/MissionCanvasRenderer.svelte';
+  import type { ContributionRendererRegistry } from '$lib/mission-canvas/contribution-renderers';
+  import type { ResolvedWorkspaceProjection } from '$lib/mission-canvas/types';
   import Icon, { type IconName } from '$lib/ui/Icon.svelte';
+
+  let { projection, rendererRegistry }: { projection?: ResolvedWorkspaceProjection; rendererRegistry?: ContributionRendererRegistry } = $props();
   const surfaceTabs = ['Overview', 'Pi', 'UIAI Browser', 'Silent Session', 'Docs', 'Research', 'Evidence', 'Providers', 'Custom'];
   const activityModes = ['Overview', 'Context', 'Role', 'Interview', 'Spec', 'Tasks / Work', 'Sessions', 'Documents', 'Research', 'Evidence', 'History', 'Controls'];
   const activityIcons: Record<string, IconName> = { Overview: 'deck', Context: 'context', Role: 'scope', Interview: 'sessions', Spec: 'documents', 'Tasks / Work': 'target', Sessions: 'sessions', Documents: 'documents', Research: 'research', Evidence: 'evidence', History: 'route', Controls: 'settings' };
@@ -7,6 +12,11 @@
   let activeMode = $state('Overview');
 </script>
 
+{#if projection && rendererRegistry}
+  <section class="canvas-live" aria-label="Focusa Mission Canvas workspace">
+    <MissionCanvasRenderer {projection} registry={rendererRegistry}/>
+  </section>
+{:else}
 <section class="canvas-frame" aria-label="Focusa Mission Canvas workspace">
   <div class="context-bar">
     <span class="f-mark">F</span>
@@ -79,8 +89,10 @@
     </div>
   </div>
 </section>
+{/if}
 
 <style>
+  .canvas-live{height:calc(100vh - 190px);min-height:610px;min-width:0;overflow:hidden}
   .canvas-frame{display:grid;grid-template-rows:38px 38px minmax(0,1fr);height:calc(100vh - 190px);min-height:610px;border:1px solid rgba(142,166,207,.2);border-radius:12px;overflow:hidden;background:var(--color-bg);color:var(--color-text-soft);box-shadow:0 20px 60px rgba(0,0,0,.28)}
   .context-bar,.surface-tabs{display:flex;align-items:center;gap:6px;padding:0 9px;border-bottom:1px solid rgba(130,154,194,.14);background:var(--color-panel);overflow-x:auto;white-space:nowrap}
   .f-mark{display:grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--color-violet);color:white;font-size:11px;font-weight:800}

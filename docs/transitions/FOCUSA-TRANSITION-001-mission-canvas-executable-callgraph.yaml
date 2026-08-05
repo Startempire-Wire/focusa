@@ -744,7 +744,7 @@ atomic_tasks:
   - id: UI-021
     parent: MC-060
     title: Wire fixture-driven recursive Canvas in development tests
-    status: blocked
+    status: complete
     depends_on: [UI-004, UI-012, UI-013, UI-015, UI-018, FIXTURE-004]
     read: [apps/desktop/src/lib/shell/MissionCanvasShell.svelte]
     targets: [apps/desktop test harness only, apps/desktop/src/lib/shell/MissionCanvasShell.svelte]
