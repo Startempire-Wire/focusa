@@ -1,0 +1,77 @@
+:root {
+  --color-bg: #090a0e;
+  --color-panel: #11141b;
+  --color-raised: #161a23;
+  --color-elevated: #1b202b;
+  --color-floating: #202633;
+  --color-text: #f7f8fb;
+  --color-text-soft: #d8dbe4;
+  --color-text-secondary: #b6b6bf;
+  --color-text-tertiary: #7f8797;
+  --color-border: rgb(225 232 255 / 10%);
+  --color-border-strong: rgb(229 236 255 / 19%);
+  --color-border-luminous: rgb(102 190 255 / 34%);
+  --color-accent: #4f9cff;
+  --color-accent-bright: #73b7ff;
+  --color-cyan: #46dafb;
+  --color-violet: #a98cff;
+  --color-success: #4bde91;
+  --color-warning: #ffbd59;
+  --color-error: #ff6e7f;
+  --gradient-accent: linear-gradient(135deg, #46dafb 0%, #5c9cff 48%, #a98cff 100%);
+  --gradient-ambient: radial-gradient(circle at 22% 0%, rgb(70 218 251 / 11%), transparent 34%), radial-gradient(circle at 82% 8%, rgb(169 140 255 / 9%), transparent 32%);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --layout-page-gutter: 14px;
+  --layout-section-gap: 16px;
+  --layout-cluster-gap: 10px;
+  --layout-control-gap: 8px;
+  --layout-card-padding: 14px;
+  --layout-card-padding-roomy: 18px;
+
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-panel: 16px;
+  --radius-pill: 999px;
+  --shadow-card: 0 1px 0 rgb(255 255 255 / 3%), 0 14px 36px rgb(0 0 0 / 22%);
+  --shadow-popover: 0 24px 70px rgb(0 0 0 / 42%);
+
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, system-ui, sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif;
+  --font-mono: "SFMono-Regular", "SF Mono", Menlo, ui-monospace, monospace;
+  --type-display: 600 22px / 27px var(--font-display);
+  --type-heading: 620 18px / 24px var(--font-display);
+  --type-title: 600 15px / 20px var(--font-display);
+  --type-body: 400 13px / 19px var(--font-body);
+  --type-caption: 500 11px / 15px var(--font-body);
+  --type-eyebrow: 650 10px / 14px var(--font-body);
+
+  --motion-micro: 90ms;
+  --motion-fast: 140ms;
+  --motion-normal: 210ms;
+  --motion-slow: 320ms;
+  --ease-out-quart: cubic-bezier(.25, 1, .5, 1);
+  --ease-in-quart: cubic-bezier(.5, 0, .75, 0);
+  --ease-in-out-quart: cubic-bezier(.76, 0, .24, 1);
+}
+
+:root[data-motion='reduced'] {
+  --motion-micro: 70ms;
+  --motion-fast: 90ms;
+  --motion-normal: 110ms;
+  --motion-slow: 140ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='full']) {
+    --motion-micro: 70ms;
+    --motion-fast: 90ms;
+    --motion-normal: 110ms;
+    --motion-slow: 140ms;
+  }
+}

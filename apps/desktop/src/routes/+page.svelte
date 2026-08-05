@@ -4,6 +4,11 @@
   import { readDaemonHealth, type DaemonReadStatus } from '$lib/shell/daemon-health';
   import MissionCanvasShell from '$lib/shell/MissionCanvasShell.svelte';
   import { readSidebarPreferences, saveSidebarPreferences, type DesktopSidebarMode } from '$lib/shell/sidebar-preferences';
+  import Icon, { type IconName } from '$lib/ui/Icon.svelte';
+  import IconButton from '$lib/ui/IconButton.svelte';
+  import StatePanel from '$lib/ui/StatePanel.svelte';
+  import ThinkingOrb from '$lib/ui/ThinkingOrb.svelte';
+  import { installMotionPreference, scene } from '$lib/ui/motion';
 
   const sidebarGroups: ReadonlyArray<{ id: string; label: string; workspaceIds: readonly string[] }> = [
     { id: 'orient', label: 'Orient', workspaceIds: ['mission-deck', 'mission-canvas'] },
@@ -11,6 +16,11 @@
     { id: 'records', label: 'Records', workspaceIds: ['sessions', 'contention', 'evidence', 'documents', 'research'] },
     { id: 'system', label: 'System', workspaceIds: ['agent-runtime'] }
   ];
+  const workspaceIcons: Record<string, IconName> = {
+    'mission-deck': 'deck', 'mission-canvas': 'canvas', 'pi-work-surface': 'terminal', crist: 'crist',
+    'context-role': 'context', workpoints: 'target', trajectory: 'route', sessions: 'sessions',
+    contention: 'approvals', evidence: 'evidence', documents: 'documents', research: 'research', 'agent-runtime': 'runtime'
+  };
 
   let activeWorkspaceId = $state('mission-deck');
   let uiMode = $state<'tui' | 'canvas'>('canvas');
@@ -21,6 +31,7 @@
     detail: 'Reading infrastructure health only.'
   });
   let activeWorkspace = $derived(workspaceById(activeWorkspaceId));
+  let daemonOrbState = $derived<'idle' | 'loading' | 'error'>(daemon.kind === 'checking' ? 'loading' : daemon.kind === 'unavailable' ? 'error' : 'idle');
   let sidebarMode = $state<DesktopSidebarMode>('expanded');
   let sidebarWidth = $state(248);
   let collapsedSidebarGroups = $state<string[]>([]);
@@ -59,6 +70,7 @@
 
   onMount(() => {
     shellMode = '__TAURI_INTERNALS__' in window ? 'native desktop' : 'browser preview';
+    const stopMotionPreference = installMotionPreference();
     const preferences = readSidebarPreferences();
     sidebarMode = preferences.mode;
     sidebarWidth = preferences.widthPx;
@@ -75,6 +87,7 @@
     return () => {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('pointermove', resizeSidebar);
+      stopMotionPreference();
     };
   });
 </script>
@@ -119,23 +132,22 @@
   <aside class="sidebar" class:compact={sidebarMode === 'compact'} aria-label="Focusa workspaces">
     <div class="sidebar-heading">
       <span>Workspaces</span>
-      <button
-        class="sidebar-mode-button"
-        type="button"
-        aria-label={sidebarMode === 'compact' ? 'Expand sidebar' : 'Collapse sidebar'}
-        title={`${sidebarMode === 'compact' ? 'Expand' : 'Collapse'} sidebar ([)`}
+      <IconButton
+        icon="panel-left"
+        label={`${sidebarMode === 'compact' ? 'Expand' : 'Collapse'} sidebar ([)`}
+        pressed={sidebarMode === 'compact'}
         onclick={() => setSidebarMode(sidebarMode === 'compact' ? 'expanded' : 'compact')}
-      ><span aria-hidden="true">{sidebarMode === 'compact' ? '›' : '‹'}</span></button>
+      />
     </div>
     <button class="scope-card" type="button" aria-label="Context Control: Unbound" title="Context Control · Unbound">
-      <span class="scope-icon" aria-hidden="true">◎</span>
+      <span class="scope-icon" aria-hidden="true"><Icon name="scope" size={18} /></span>
       <span class="scope-copy"><span class="eyebrow">Context Control</span><strong>Unbound</strong><small>No exact Attachment selected.</small></span>
     </button>
     <div class="workspace-groups">
       {#each sidebarGroups as group}
         <section class="workspace-group" aria-label={`${group.label} workspaces`}>
           <button class="group-heading" type="button" aria-expanded={!collapsedSidebarGroups.includes(group.id)} onclick={() => toggleSidebarGroup(group.id)}>
-            <span>{group.label}</span><span aria-hidden="true">{collapsedSidebarGroups.includes(group.id) ? '›' : '⌄'}</span>
+            <span>{group.label}</span><Icon name={collapsedSidebarGroups.includes(group.id) ? 'chevron-right' : 'chevron-down'} size={14} />
           </button>
           {#if sidebarMode === 'compact' || !collapsedSidebarGroups.includes(group.id)}
             <nav aria-label={`${group.label} workspaces`}>
@@ -148,7 +160,7 @@
                   aria-current={workspace.id === activeWorkspaceId ? 'page' : undefined}
                   onclick={() => (activeWorkspaceId = workspace.id)}
                 >
-                  <span class="workspace-icon" aria-hidden="true">{workspace.shortLabel.slice(0, 2)}</span>
+                  <span class="workspace-icon" aria-hidden="true"><Icon name={workspaceIcons[workspace.id] ?? 'sparkles'} /></span>
                   <span class="workspace-label">{workspace.shortLabel}</span>
                   {#if workspace.availability === 'planned'}<small>M{workspace.milestone}</small>{:else}<small>live</small>{/if}
                 </button>
@@ -163,6 +175,8 @@
   {/if}
 
   <main>
+    {#key `${uiMode}:${activeWorkspaceId}`}
+    <div class="view-scene" in:scene={{ duration: 220, y: 5 }} out:scene={{ duration: 110, y: 2 }}>
     {#if uiMode === 'tui'}
       <section class="tui-surface" aria-label="Focusa terminal compatibility projection">
         <div class="tui-bar">AGENT TUI (PI) · NATIVE WORK SURFACE</div>
@@ -213,7 +227,7 @@
               <span class="eyebrow">Infrastructure</span>
               <h2>{daemon.label}</h2>
             </div>
-            <span class="status-orb {daemon.kind}" aria-hidden="true"></span>
+            <ThinkingOrb state={daemonOrbState} size={28} label="Daemon infrastructure" />
           </div>
           <p>{daemon.detail}</p>
           <button class="secondary-button" type="button" onclick={refreshDaemon} disabled={daemon.kind === 'checking'}>
@@ -243,16 +257,15 @@
         </button>
       </section>
     {:else}
-      <section class="empty-state planned-state">
-        <span class="eyebrow">Truthful milestone boundary</span>
-        <h2>{activeWorkspace.label} is not implemented at 5%</h2>
-        <p>
-          Navigation is active, but this workspace will remain visibly unavailable until its typed
-          Workstream contracts and parity evidence are complete.
-        </p>
-      </section>
+      <StatePanel
+        state="blocked"
+        title={`${activeWorkspace.label} is not implemented at 5%`}
+        description="Navigation is active, but this workspace remains unavailable until its typed Workstream contracts and parity Evidence are complete."
+      />
     {/if}
     {/if}
+    </div>
+    {/key}
   </main>
 
   <footer>

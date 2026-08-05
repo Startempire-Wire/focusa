@@ -1,23 +1,21 @@
 :root {
-  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
-  color: #e8edf7;
-  background: #080c14;
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background: var(--color-bg);
   font-synthesis: none;
   color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; min-width: 320px; min-height: 100%; background: #080c14; }
+html, body { margin: 0; min-width: 320px; min-height: 100%; background: var(--color-bg); }
 button { font: inherit; }
-button:focus-visible { outline: 2px solid #8cb5ff; outline-offset: 2px; }
+button:focus-visible { outline: 2px solid var(--color-accent-bright); outline-offset: 2px; }
 
 .desktop-shell {
   display: grid;
   grid-template: 64px minmax(0, 1fr) 36px / var(--sidebar-width, 248px) minmax(0, 1fr);
   min-height: 100vh;
-  background:
-    radial-gradient(circle at 72% -10%, rgba(62, 105, 177, 0.18), transparent 38%),
-    linear-gradient(145deg, #0b101a 0%, #080c14 60%, #0c111c 100%);
+  background: var(--gradient-ambient), var(--color-bg);
 }
 
 .desktop-shell.sidebar-compact { grid-template-columns: 64px minmax(0, 1fr); }
@@ -129,7 +127,7 @@ button:focus-visible { outline: 2px solid #8cb5ff; outline-offset: 2px; }
   border-right: 1px solid rgba(162, 183, 221, 0.12);
   background: rgba(10, 15, 24, 0.72);
   box-shadow: 16px 0 48px rgba(0, 0, 0, 0.1);
-  transition: width 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: none;
 }
 .sidebar-heading { display: flex; align-items: center; justify-content: space-between; min-height: 32px; padding: 0 5px 8px 9px; color: #78869b; font-size: 11px; font-weight: 650; }
 .sidebar-mode-button { display: grid; place-items: center; width: 27px; height: 27px; border: 0; border-radius: 7px; color: #7c899d; background: transparent; cursor: pointer; }
@@ -277,5 +275,5 @@ footer {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+  html { scroll-behavior: auto; }
 }

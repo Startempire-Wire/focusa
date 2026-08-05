@@ -50,6 +50,13 @@ nodes:
     status: implementation_complete_visual_proof_pending
     depends_on: [D010-02]
     notes: Expanded and compact modes, persistence, grouped disclosure, keyboard toggle, resize handle, responsive icon rail, and no Agent TUI sidebar.
+  - id: D010-04
+    parent: T071
+    title: Adopt documented calm cognitive cockpit design system
+    status: implementation_complete_visual_proof_pending
+    depends_on: [D010-03]
+    evidence: [apps/desktop/docs/design-system.md]
+    notes: Tokens, typed icons, reusable surfaces and states, semantic orb, stable content motion, and reduced-motion contract are implemented.
   - id: D020-01
     parent: T071
     title: Materialize supplied Mission Canvas visual references and provenance
