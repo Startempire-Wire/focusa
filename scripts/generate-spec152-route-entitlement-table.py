@@ -23,6 +23,7 @@ EXPLICIT_ROUTE_FEATURES = {
     "/v1/device/pair/complete": "focusa.team.multi_operator",
     "/v1/device/pair/revoke": "focusa.team.multi_operator",
     "/v1/device/pair/start": "focusa.team.multi_operator",
+    "/v1/export/run": "focusa.export.packaged",
     "/v1/update/admin": "focusa.update.unattended",
     "/v1/update/apply": "focusa.update.apply",
     "/v1/update/notifications": "focusa.update.unattended",

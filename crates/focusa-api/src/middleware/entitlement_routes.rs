@@ -159,6 +159,11 @@ pub(crate) static ROUTE_ENTITLEMENT_REQUIREMENTS: &[RouteEntitlementRequirement]
         limit_bucket: Some("workpoints"),
     },
     RouteEntitlementRequirement {
+        template: "/v1/export/run",
+        feature: "focusa.export.packaged",
+        limit_bucket: Some("export_jobs"),
+    },
+    RouteEntitlementRequirement {
         template: "/v1/interview/strategy/grill-with-docs/next-question",
         feature: "focusa.core.mission",
         limit_bucket: Some("missions"),

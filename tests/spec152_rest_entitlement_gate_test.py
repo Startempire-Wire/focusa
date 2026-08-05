@@ -23,6 +23,7 @@ assert len({path for path, _, _ in requirements}) == len(requirements)
 requirement_map = {path: (feature, bucket) for path, feature, bucket in requirements}
 assert requirement_map["/v1/update/apply"][0] == "focusa.update.apply"
 assert requirement_map["/v1/update/scheduler"][0] == "focusa.update.unattended"
+assert requirement_map["/v1/export/run"][0] == "focusa.export.packaged"
 assert "/v1/update/rollback" not in requirement_map
 
 registry = yaml.safe_load((ROOT / "docs/contracts/spec152-feature-registry.v1.yaml").read_text())

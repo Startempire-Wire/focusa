@@ -143,8 +143,14 @@ pub(crate) fn route_requires_entitlement(method: &Method, path: &str) -> bool {
         || path == "/v1/update/check"
         || path == "/v1/update/plan"
         || path == "/v1/update/rollback"
+        || is_recovery_export(path)
         || path.starts_with("/v1/license/");
     !recovery_path
+}
+
+fn is_recovery_export(path: &str) -> bool {
+    let segments: Vec<_> = path.trim_matches('/').split('/').collect();
+    matches!(segments.as_slice(), ["v1", "silent-sessions", session_id, "export"] if !session_id.is_empty())
 }
 
 #[cfg(test)]
@@ -196,6 +202,11 @@ mod tests {
         assert!(route_requires_entitlement(
             &Method::POST,
             "/v1/update/apply"
+        ));
+        assert!(route_requires_entitlement(&Method::POST, "/v1/export/run"));
+        assert!(!route_requires_entitlement(
+            &Method::POST,
+            "/v1/silent-sessions/session-1/export"
         ));
     }
 
