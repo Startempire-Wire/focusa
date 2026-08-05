@@ -54,6 +54,15 @@ try {
   const { body: customElements } = render(CustomElementHarness);
   assert.match(customElements, /<fixture-pi-session[^>]*data-contribution-id="contribution:pi-session"/);
   assert.match(customElements, /<fixture-focusa-inspector[^>]*data-contribution-id="contribution:focusa-inspector"/);
+  const { trustedGeneratedSurfaceRenderer } = await server.ssrLoadModule('/src/lib/mission-canvas/generated-surface-renderer.ts');
+  assert.throws(() => trustedGeneratedSurfaceRenderer({ rendererBindingId: '', semanticBindingIds: [], snapshotResolver: async () => [] }));
+  const generatedEntry = trustedGeneratedSurfaceRenderer({
+    rendererBindingId: 'renderer:fixture-generated@v1',
+    semanticBindingIds: ['semantic:fixture-generated'],
+    snapshotResolver: async () => []
+  });
+  assert.equal(generatedEntry.rendererBindingId, 'renderer:fixture-generated@v1');
+  assert.deepEqual(generatedEntry.contributionKinds, ['generated_surface']);
 
   const fixture = JSON.parse(await readFile(new URL('./fixtures/mission-canvas/populated-projection.json', import.meta.url), 'utf8'));
   const { validateLayoutIntegrity } = await server.ssrLoadModule('/src/lib/mission-canvas/layout-references.ts');
