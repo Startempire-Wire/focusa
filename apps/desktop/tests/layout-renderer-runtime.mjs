@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { createServer } from 'vite';
 
 const server = await createServer({
@@ -30,7 +31,27 @@ try {
   assert.match(populated, /data-rendered-contribution="contribution:focusa-inspector"/);
   assert.doesNotMatch(populated, /contribution:empty-work-rail/);
 
-  console.log('Mission Canvas recursive layout runtime: PASS (6 variants, omitted contribution absent)');
+  const fixture = JSON.parse(await readFile(new URL('./fixtures/mission-canvas/populated-projection.json', import.meta.url), 'utf8'));
+  const { MissionCanvasProjectionController } = await server.ssrLoadModule('/src/lib/mission-canvas/projection-controller.svelte.ts');
+  let response = structuredClone(fixture);
+  const controller = new MissionCanvasProjectionController(async () => structuredClone(response));
+  await controller.load(fixture.scope);
+  assert.equal(controller.state.kind, 'ready');
+
+  response = structuredClone(fixture);
+  response.scope.session_id = 'foreign-session';
+  await controller.load(fixture.scope);
+  assert.equal(controller.state.kind, 'blocked');
+  assert.equal(controller.state.reason, 'projection_scope_mismatch');
+
+  response = structuredClone(fixture);
+  await controller.load(fixture.scope);
+  response.projection_revision -= 1;
+  await controller.load(fixture.scope);
+  assert.equal(controller.state.kind, 'stale');
+  assert.equal(controller.state.reason, 'projection_revision_regressed');
+
+  console.log('Mission Canvas recursive layout runtime: PASS (6 variants, omission, scope and stale rejection)');
 } finally {
   await server.close();
 }

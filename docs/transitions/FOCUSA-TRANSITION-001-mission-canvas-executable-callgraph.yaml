@@ -53,6 +53,7 @@ status_meanings:
   ready: may be executed now
   blocked: dependency is incomplete
   blocked_external: parent Spec 158 transition work is absent from this worktree
+  implemented_partial: implementation exists and is tested, but a declared upstream dependency still blocks canonical production use
   superseded: old host-specific implementation is not a target
 
 atomic_tasks:
@@ -509,7 +510,7 @@ atomic_tasks:
   - id: UI-003
     parent: MC-050
     title: Add projection state machine
-    status: blocked
+    status: implemented_partial
     depends_on: [UI-001, UI-002, CONTRACT-006]
     read: [docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts]
     targets: [apps/desktop/src/lib/mission-canvas/projection-controller.svelte.ts]
