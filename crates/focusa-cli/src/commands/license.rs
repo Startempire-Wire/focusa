@@ -494,14 +494,16 @@ fn print_license_gate_matrix(matrix: &[Value], missing_gates: &[Value], recovery
 
 pub async fn run(json_output: bool, args: LicenseArgs) -> anyhow::Result<()> {
     match args.command {
-        LicenseCmd::Activate(a) => run_activate(json_output, a).await,
         LicenseCmd::Status => run_status(json_output).await,
-        LicenseCmd::Deactivate => run_deactivate(json_output).await,
         LicenseCmd::Doctor => run_doctor(json_output).await,
         LicenseCmd::CheckFeature(a) => run_check_feature(json_output, a).await,
-        LicenseCmd::DevmodeFull(a) => run_devmode_full(json_output, a).await,
-        LicenseCmd::Refresh(a) => run_refresh(json_output, a).await,
-        LicenseCmd::Watch(a) => run_watch(json_output, a).await,
+        LicenseCmd::Activate(_)
+        | LicenseCmd::Deactivate
+        | LicenseCmd::DevmodeFull(_)
+        | LicenseCmd::Refresh(_)
+        | LicenseCmd::Watch(_) => anyhow::bail!(
+            "E_AUTHORITY_COMMAND_RETIRED: plaintext activation, deactivation, dev-mode issuance, registry refresh, and watch cannot grant or mutate production entitlement; use signed authority device authorization"
+        ),
     }
 }
 
@@ -587,12 +589,46 @@ async fn run_activate(json_output: bool, args: ActivateArgs) -> anyhow::Result<(
 }
 
 async fn run_status(json_output: bool) -> anyhow::Result<()> {
-    let license_file = local_license_path();
-    let status = core_status()?;
+    let guard = focusa_license::resolve_license_guard();
+    let snapshot = guard.entitlement.as_ref();
+    let state = snapshot
+        .map(|value| format!("{:?}", value.state).to_ascii_lowercase())
+        .unwrap_or_else(|| "unactivated".into());
+    let payload = json!({
+        "schema": "focusa.authority_license_status.v1",
+        "state": state,
+        "product": snapshot.map(|value| value.product.as_str()).unwrap_or("focusa"),
+        "node_id": snapshot.map(|value| value.node_id.as_str()),
+        "lease_id": snapshot.and_then(|value| value.lease_id.as_deref()),
+        "lease_sequence": snapshot.and_then(|value| value.sequence),
+        "expires_at": snapshot.and_then(|value| value.expires_at),
+        "offline_grace_until": snapshot.and_then(|value| value.offline_grace_until),
+        "features": snapshot.map(|value| &value.features),
+        "limits": snapshot.map(|value| &value.limits),
+        "recovery_reason": snapshot.and_then(|value| value.recovery_reason.as_deref()),
+        "recovery_policy": "recovery, export, repair, and uninstall remain available when execution is locked",
+        "marketing_preference": "managed_separately"
+    });
     if json_output {
-        println!("{}", serde_json::to_string_pretty(&status)?);
+        println!("{}", serde_json::to_string_pretty(&payload)?);
     } else {
-        print_human_status(&status, &license_file);
+        println!("Focusa Signed Authority Status\n");
+        println!(
+            "State:          {}",
+            payload["state"].as_str().unwrap_or("unactivated")
+        );
+        println!(
+            "Product:        {}",
+            payload["product"].as_str().unwrap_or("focusa")
+        );
+        if let Some(sequence) = payload["lease_sequence"].as_u64() {
+            println!("Lease sequence: {sequence}");
+        }
+        println!(
+            "Recovery policy: {}",
+            payload["recovery_policy"].as_str().unwrap_or_default()
+        );
+        println!("Marketing preference: managed separately");
     }
     Ok(())
 }
@@ -658,42 +694,33 @@ fn missing_license_gates(matrix: &[Value]) -> Vec<Value> {
 }
 
 async fn run_check_feature(json_output: bool, args: CheckFeatureArgs) -> anyhow::Result<()> {
-    let license_file = local_license_path();
     let feature = args.feature.as_str();
-    // Spec §5.2: returns JSON with enabled + reason, or 402-equivalent error JSON
-    let result = core_check_feature(&license_file, feature);
-    match result {
-        Ok(reason) => {
-            let out = json!({
-                "feature": feature,
-                "enabled": true,
-                "reason": reason,
-            });
-            if json_output {
-                println!("{}", serde_json::to_string_pretty(&out)?);
-            } else {
-                println!("feature={} enabled=true reason={}", feature, reason);
-            }
-        }
-        Err(err) => {
-            let purchase = "https://focusa.dev";
-            let docs_url = "https://focusa.dev/support";
-            let out = json!({
-                "error": "license_required",
-                "feature": feature,
-                "message": err.to_string(),
-                "purchase_url": purchase,
-                "docs_url": docs_url,
-            });
-            if json_output {
-                println!("{}", serde_json::to_string_pretty(&out)?);
-            } else {
-                eprintln!("feature={} license_required", feature);
-                eprintln!("reason: {}", err);
-                eprintln!("purchase: {}", purchase);
-            }
-            std::process::exit(2);
-        }
+    let guard = focusa_license::resolve_license_guard();
+    let enabled = guard
+        .entitlement
+        .as_ref()
+        .and_then(|snapshot| snapshot.features.get(feature))
+        .copied()
+        .unwrap_or(false);
+    let out = json!({
+        "schema": "focusa.authority_feature_decision.v1",
+        "feature": feature,
+        "enabled": enabled,
+        "reason": if enabled { "signed_feature_grant" } else { "unknown_or_not_granted" },
+        "recovery_policy": "recovery, export, repair, and uninstall remain available"
+    });
+    if json_output {
+        println!("{}", serde_json::to_string_pretty(&out)?);
+    } else {
+        println!(
+            "feature={} enabled={} reason={}",
+            feature,
+            enabled,
+            out["reason"].as_str().unwrap_or("unknown_or_not_granted")
+        );
+    }
+    if !enabled {
+        anyhow::bail!("ENTITLEMENT_FEATURE_REQUIRED: unknown or ungranted feature {feature}");
     }
     Ok(())
 }
