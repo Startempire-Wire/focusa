@@ -153,6 +153,13 @@ export async function requestJson<T = any>(path: string, options: ApiRequestOpti
   // localStorage anymore. The api module is consumed by Svelte components
   // that import { currentAuthToken } from the pairing store.
   const mergedHeaders = { ...headers };
+  if (body && typeof body === 'object' && !Array.isArray(body)) {
+    const values = body as Record<string, unknown>;
+    const key = values.idempotency_key ?? values.idempotencyKey ?? values.request_id ?? values.requestId;
+    if (typeof key === 'string' && key.trim() && !mergedHeaders['Idempotency-Key']) {
+      mergedHeaders['Idempotency-Key'] = key.trim();
+    }
+  }
   if (!mergedHeaders['Authorization'] && !mergedHeaders['authorization']) {
     try {
       const tok = getCurrentAuthToken();

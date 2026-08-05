@@ -5,6 +5,9 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const api = fs.readFileSync(path.join(root, 'src/lib/api.ts'), 'utf8');
+assert.match(api, /values\.idempotency_key/);
+assert.match(api, /mergedHeaders\['Idempotency-Key'\] = key\.trim\(\)/);
+
 const block = api.slice(api.indexOf('if (!resp.ok)'), api.indexOf("diagnosticsStore.record", api.indexOf('if (!resp.ok)')));
 
 assert.match(block, /errorBody\?\.code/);
