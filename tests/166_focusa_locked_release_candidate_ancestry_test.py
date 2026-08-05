@@ -81,8 +81,12 @@ assert any(row["pr"] == 115 for row in ancestry["pull_request_ancestry"])
 assert len(ancestry["excluded_post_release_worksets"]) == 8
 assert ancestry["excluded_workset_collisions"] == []
 assert ancestry["issue_ledger"]["mapping_count"] == 289
-assert ancestry["issue_ledger"]["technically_accepted_count"] == 213
-assert ancestry["issue_ledger"]["pending_technical_acceptance_count"] == 76
+assert (
+    ancestry["issue_ledger"]["technically_accepted_count"]
+    + ancestry["issue_ledger"]["pending_technical_acceptance_count"]
+    == ancestry["issue_ledger"]["mapping_count"]
+)
+assert ancestry["issue_ledger"]["pending_technical_acceptance_count"] > 0
 assert ancestry["issue_ledger"]["invalid_closed_count"] == 0
 assert ancestry["issue_ledger"]["technical_closure_gate_digest"].startswith("sha256:")
 

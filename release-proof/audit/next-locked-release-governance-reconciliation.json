@@ -3,9 +3,9 @@
   "evidence_links_digest": "sha256:07b43caa73fd2559ea810679714eddd3c4c0883808acc5209e884fbe5377f795",
   "evidence_state_counts": {
     "aggregate_child_evidence": 3,
-    "evidence_linked": 117,
+    "evidence_linked": 118,
     "exact_duplicate_receipt": 85,
-    "pending_technical_acceptance": 84
+    "pending_technical_acceptance": 83
   },
   "gaps": {
     "ambiguous_duplicate_closure_ids": [],
@@ -87,7 +87,6 @@
       "focusa-vbcqu.9.9.6",
       "focusa-vbcqu.10",
       "focusa-vbcqu.19",
-      "focusa-vbcqu.19.3",
       "focusa-vbcqu.19.4",
       "focusa-vbcqu.19.5",
       "focusa-vbcqu.19.6",
@@ -8063,11 +8062,17 @@
       "active_blocker_refs": [],
       "authority": "authorized_release_repair_overlay",
       "bead_id": "focusa-vbcqu.19.3",
-      "closure_receipt": null,
-      "evidence_state": "pending_technical_acceptance",
+      "closure_receipt": {
+        "close_reason": "Completed: exact reproducible v0.9.144 candidate ancestry, versions, admitted task ledger, and mutation/runtime authority proven through git:0310695f; later artifact, installed, and publication gates remain explicitly pending.",
+        "closed_at": "2026-08-05T01:50:58.603384676Z",
+        "exact_duplicate_of": null
+      },
+      "evidence_state": "evidence_linked",
       "frozen_projection": null,
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:0310695f"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -8076,17 +8081,15 @@
       ],
       "parent_bead_id": "focusa-vbcqu.19",
       "projection_drift": false,
-      "provider_record_digest": "sha256:1d23339e39d215c324dedc328172694418dea1cbf14d895740b4ff17db74aac7",
-      "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-05T01:18:46.135979864Z",
+      "provider_record_digest": "sha256:aea6d57c3fa29fb9739aa2ffb6ef6f8707d4ef0d0c4f01141881984e11846ce7",
+      "provider_state": "closed",
+      "provider_updated_at": "2026-08-05T01:50:58.603538684Z",
       "runtime_or_acceptance_evidence_refs": [],
       "task_plan_ref": null,
       "title": "REL.3 Assemble regression-safe release candidate"
     },
     {
-      "active_blocker_refs": [
-        "focusa-vbcqu.19.3"
-      ],
+      "active_blocker_refs": [],
       "authority": "authorized_release_repair_overlay",
       "bead_id": "focusa-vbcqu.19.4",
       "closure_receipt": null,
@@ -8102,9 +8105,9 @@
       ],
       "parent_bead_id": "focusa-vbcqu.19",
       "projection_drift": false,
-      "provider_record_digest": "sha256:5fca6bea49e65d9b5e0f04fdc599b0850771d1144e5d6620cf104d87cc95f12a",
-      "provider_state": "open",
-      "provider_updated_at": "2026-08-03T11:02:27.045624756Z",
+      "provider_record_digest": "sha256:c865d51a8f2e9be74a29c2cca3a7b930604db882aa8334ed42f3ae0d1cf50a8c",
+      "provider_state": "in_progress",
+      "provider_updated_at": "2026-08-05T01:50:59.159542083Z",
       "runtime_or_acceptance_evidence_refs": [],
       "task_plan_ref": null,
       "title": "REL.4 Build, sign, and verify every artifact"
@@ -8543,18 +8546,18 @@
   ],
   "provider_snapshot": {
     "record_count": 2317,
-    "sha256": "sha256:6b3f8d9f4a13a9bce0cf381b669690babfe7118ca9cb4d6b9271e60ae40db0f2",
+    "sha256": "sha256:e87d5df23054b542a4ad2a4846fa0894f2ff5b7ef37f1f651712bb4c3ebc49b0",
     "source": "canonical:.beads/issues.jsonl"
   },
   "provider_state_counts": {
-    "closed": 205,
+    "closed": 206,
     "in_progress": 49,
-    "open": 35
+    "open": 34
   },
-  "reconciliation_digest": "sha256:b600fbf5444338c2841e5d01cfa5f3d7180c05866e38f2dfe311046400f8be6d",
+  "reconciliation_digest": "sha256:d4285c1e6d1884fe68116cb0a12692dba2ebb64312c8bd6d420fda650141b5bc",
   "repair_overlay_mapping_count": 14,
   "schema": "focusa.locked_release_governance_reconciliation.v1",
   "status": "blocked",
-  "unresolved_gap_count": 84,
+  "unresolved_gap_count": 83,
   "workset_id": "workset:focusa-next-locked-release:r7"
 }

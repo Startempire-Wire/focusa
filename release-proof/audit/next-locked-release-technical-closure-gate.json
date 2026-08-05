@@ -490,7 +490,7 @@
       "direct_evidence"
     ],
     "focusa-vbcqu.19.3": [
-      "technical_evidence_missing"
+      "direct_evidence"
     ],
     "focusa-vbcqu.19.4": [
       "technical_evidence_missing"
@@ -868,7 +868,7 @@
       "direct_evidence"
     ]
   },
-  "gate_digest": "sha256:ad1759315df63ddddb1dc83ea0071a653fea5bbcbd21c3b53cffb57f7f89af14",
+  "gate_digest": "sha256:d189b60d48fd3ec2bd976445dd783135270db48d6443081d503bb0419a9fc4df",
   "invalid_closed_count": 0,
   "invalid_closed_ids": [],
   "mapping_count": 289,
@@ -883,15 +883,14 @@
     "reopen_is_idempotent": true,
     "unknown_beads_fail_closed": true
   },
-  "reconciliation_digest": "sha256:b600fbf5444338c2841e5d01cfa5f3d7180c05866e38f2dfe311046400f8be6d",
+  "reconciliation_digest": "sha256:d4285c1e6d1884fe68116cb0a12692dba2ebb64312c8bd6d420fda650141b5bc",
   "schema": "focusa.locked_release_technical_closure_gate.v1",
   "status": "verified",
-  "technically_accepted_count": 213,
-  "technically_pending_count": 76,
+  "technically_accepted_count": 214,
+  "technically_pending_count": 75,
   "technically_pending_ids": [
     "focusa-vbcqu.10",
     "focusa-vbcqu.19",
-    "focusa-vbcqu.19.3",
     "focusa-vbcqu.19.4",
     "focusa-vbcqu.19.5",
     "focusa-vbcqu.19.6",
