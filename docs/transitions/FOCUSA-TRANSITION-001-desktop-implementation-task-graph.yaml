@@ -87,8 +87,9 @@ nodes:
   - id: D021-02
     parent: T071
     title: Version semantic command manifest with presentation-only operations
-    status: ready
+    status: complete
     depends_on: [D005-01]
+    evidence: [apps/desktop/docs/presentation-command-manifest.md, docs/contracts/evidence/spec158-desktop-command-palette.png, uiai-diagnostics:session=2lJjZJ9S:seq=0]
   - id: D021-03
     parent: T071
     title: Implement semantic Desktop state skeleton without canonical duplication

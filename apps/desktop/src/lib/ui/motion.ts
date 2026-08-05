@@ -21,6 +21,15 @@ export function readMotionPreference(): MotionMode {
   return stored === 'full' || stored === 'reduced' ? stored : 'system';
 }
 
+export function pop(_node: Element, { duration = 190, y = 4, scale = .985 }: { duration?: number; y?: number; scale?: number } = {}): TransitionConfig {
+  const reduced = typeof document !== 'undefined' && (document.documentElement.dataset.motion === 'reduced' || (matchMedia('(prefers-reduced-motion: reduce)').matches && document.documentElement.dataset.motion !== 'full'));
+  return {
+    duration: reduced ? 100 : duration,
+    easing: quartOut,
+    css: (t) => `opacity:${t};transform:translate3d(0,${reduced ? 0 : (1 - t) * y}px,0) scale(${reduced ? 1 : scale + (1 - scale) * t})`
+  };
+}
+
 export function installMotionPreference(): () => void {
   if (typeof window === 'undefined') return () => {};
   document.documentElement.dataset.motion = readMotionPreference();

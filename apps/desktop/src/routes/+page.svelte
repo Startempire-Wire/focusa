@@ -10,7 +10,9 @@
   import StatePanel from '$lib/ui/StatePanel.svelte';
   import ThinkingOrb from '$lib/ui/ThinkingOrb.svelte';
   import MotionControl from '$lib/ui/MotionControl.svelte';
-  import { installMotionPreference, scene } from '$lib/ui/motion';
+  import CommandPalette from '$lib/ui/CommandPalette.svelte';
+  import { installMotionPreference, scene, setMotionPreference } from '$lib/ui/motion';
+  import type { PresentationCommand } from '$lib/shell/command-manifest';
 
   const sidebarGroups: ReadonlyArray<{ id: string; label: string; workspaceIds: readonly string[] }> = [
     { id: 'orient', label: 'Orient', workspaceIds: ['mission-deck', 'mission-canvas'] },
@@ -37,6 +39,7 @@
   let sidebarMode = $state<DesktopSidebarMode>('expanded');
   let sidebarWidth = $state(248);
   let collapsedSidebarGroups = $state<string[]>([]);
+  let commandOpen = $state(false);
   let sidebarResizeStart: { x: number; width: number } | null = null;
 
   async function refreshDaemon(): Promise<void> {
@@ -53,6 +56,14 @@
     collapsedSidebarGroups = collapsedSidebarGroups.includes(group) ? collapsedSidebarGroups.filter((item) => item !== group) : [...collapsedSidebarGroups, group];
     persistSidebar();
   }
+  function executePresentationCommand(command: PresentationCommand): void {
+    const action = command.action;
+    if (action.kind === 'navigate-workspace') { activeWorkspaceId = action.workspaceId; uiMode = 'canvas'; }
+    if (action.kind === 'set-interface') uiMode = action.interfaceMode;
+    if (action.kind === 'set-sidebar') setSidebarMode(action.sidebarMode);
+    if (action.kind === 'set-motion') setMotionPreference(action.motionMode);
+  }
+
   function resizeSidebar(event: PointerEvent): void {
     if (!sidebarResizeStart) return;
     sidebarWidth = Math.min(320, Math.max(208, sidebarResizeStart.width + event.clientX - sidebarResizeStart.x));
@@ -79,6 +90,7 @@
     collapsedSidebarGroups = preferences.collapsedGroups;
     const onKeyDown = (event: KeyboardEvent) => {
       const typing = event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement;
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); commandOpen = true; }
       if (!typing && event.key === '[' && !event.metaKey && !event.ctrlKey) {
         event.preventDefault();
         setSidebarMode(sidebarMode === 'expanded' ? 'compact' : 'expanded');
@@ -145,6 +157,7 @@
       <span class="scope-icon" aria-hidden="true"><Icon name="scope" size={18} /></span>
       <span class="scope-copy"><span class="eyebrow">Context Control</span><strong>Unbound</strong><small>No exact Attachment selected.</small></span>
     </button>
+    <button class="find-button" type="button" aria-label="Find or do" onclick={() => (commandOpen = true)}><Icon name="search" size={16}/><span>Find or do</span><kbd>⌘K</kbd></button>
     <div class="workspace-groups">
       {#each sidebarGroups as group}
         <section class="workspace-group" aria-label={`${group.label} workspaces`}>
@@ -260,3 +273,4 @@
     <span>No canonical state duplicated</span>
   </footer>
 </div>
+<CommandPalette bind:open={commandOpen} onSelect={executePresentationCommand}/>

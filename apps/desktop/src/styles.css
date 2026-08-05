@@ -155,6 +155,11 @@ button:focus-visible { outline: 2px solid var(--color-accent-bright); outline-of
   cursor: pointer;
 }
 .scope-card:hover { background: rgba(33, 44, 65, 0.64); }
+.find-button { display: flex; align-items: center; gap: var(--space-2); width: 100%; min-height: 34px; margin-top: var(--space-2); padding: 0 9px; border: 0; border-radius: var(--radius-control); color: var(--color-text-tertiary); background: transparent; text-align: left; cursor: pointer; transition: color var(--motion-fast) var(--ease-out-quart), background var(--motion-fast) var(--ease-out-quart), transform var(--motion-micro) var(--ease-out-quart); }
+.find-button:hover { color: var(--color-text); background: color-mix(in srgb, var(--color-accent) 8%, transparent); }
+.find-button:active { transform: scale(.98); }
+.find-button span { font: var(--type-caption); }
+.find-button kbd { margin-left: auto; padding: 2px 4px; border: 1px solid var(--color-border); border-radius: 4px; color: var(--color-text-tertiary); font-size: 9px; }
 .scope-icon { flex: 0 0 auto; width: 20px; color: #d8a75a; text-align: center; }
 .scope-copy { min-width: 0; display: grid; gap: 1px; }
 .scope-card strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
@@ -183,8 +188,8 @@ nav small { color: #68758b; font-size: 9px; text-transform: uppercase; letter-sp
 nav button.active small { color: #9eb9ef; }
 .sidebar.compact { padding-inline: 7px; }
 .sidebar.compact .sidebar-heading { justify-content: center; padding-inline: 0; }
-.sidebar.compact .sidebar-heading > span, .sidebar.compact .scope-copy, .sidebar.compact .group-heading, .sidebar.compact .workspace-label, .sidebar.compact nav small { display: none; }
-.sidebar.compact .scope-card, .sidebar.compact nav button { justify-content: center; padding-inline: 5px; }
+.sidebar.compact .sidebar-heading > span, .sidebar.compact .scope-copy, .sidebar.compact .group-heading, .sidebar.compact .workspace-label, .sidebar.compact nav small, .sidebar.compact .find-button span, .sidebar.compact .find-button kbd { display: none; }
+.sidebar.compact .scope-card, .sidebar.compact .find-button, .sidebar.compact nav button { justify-content: center; padding-inline: 5px; }
 .sidebar.compact .scope-card { min-height: 38px; }
 .sidebar.compact .workspace-groups { padding-top: 7px; }
 .sidebar.compact .workspace-group + .workspace-group { margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(162, 183, 221, 0.09); }
@@ -257,8 +262,8 @@ footer {
   .daemon-chip { display: none; }
   .sidebar { grid-row: 2; grid-column: 1; padding-inline: 7px; }
   .sidebar-heading { justify-content: center; padding-inline: 0; }
-  .sidebar-heading > span, .scope-copy, .group-heading, .workspace-label, .sidebar nav small, .sidebar-resize-handle { display: none; }
-  .scope-card, .sidebar nav button { justify-content: center; padding-inline: 5px; }
+  .sidebar-heading > span, .scope-copy, .group-heading, .workspace-label, .sidebar nav small, .sidebar-resize-handle, .find-button span, .find-button kbd { display: none; }
+  .scope-card, .find-button, .sidebar nav button { justify-content: center; padding-inline: 5px; }
   .scope-card { min-height: 38px; }
   .workspace-groups { padding-top: 7px; }
   .workspace-group + .workspace-group { margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(162, 183, 221, 0.09); }

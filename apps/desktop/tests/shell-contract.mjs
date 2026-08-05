@@ -11,6 +11,7 @@ const icon = readFileSync(new URL('../src/lib/ui/Icon.svelte', import.meta.url),
 const motion = readFileSync(new URL('../src/lib/ui/motion.ts', import.meta.url), 'utf8');
 const piAttachment = readFileSync(new URL('../src/lib/shell/pi-attachment-contract.ts', import.meta.url), 'utf8');
 const agentTui = readFileSync(new URL('../src/lib/shell/AgentTuiSurface.svelte', import.meta.url), 'utf8');
+const commandManifest = readFileSync(new URL('../src/lib/shell/command-manifest.ts', import.meta.url), 'utf8');
 const tauri = readFileSync(new URL('../src-tauri/tauri.conf.json', import.meta.url), 'utf8');
 
 assert.match(page, /Focusa Desktop/);
@@ -30,6 +31,8 @@ assert.match(piAttachment, /scopeRef.*workstreamId.*continuityId.*attachmentKey/
 assert.match(piAttachment, /sessionId.*instanceId.*workSurfaceId/s);
 assert.match(agentTui, /Integrated Pi Work Surface/);
 assert.match(agentTui, /disabled=\{!attachment\.canSteer\}/);
+assert.match(commandManifest, /authority: 'presentation-only'/);
+assert.doesNotMatch(commandManifest, /(attach-runtime|create-workstream|approve-contention)/);
 assert.match(designSystem, /calm cognitive cockpit/);
 assert.match(designSystem, /Visual acceptance is exclusively performed through UIAI Engine/);
 assert.match(manifest, /mission-deck/);
