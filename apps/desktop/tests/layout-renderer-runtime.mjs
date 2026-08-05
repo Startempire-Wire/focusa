@@ -13,6 +13,7 @@ try {
   const { default: Harness } = await server.ssrLoadModule('/tests/fixtures/MissionCanvasLayoutHarness.svelte');
   const { default: RegistryControlsHarness } = await server.ssrLoadModule('/tests/fixtures/MissionCanvasRegistryControlsHarness.svelte');
   const { default: TrustedRegistryHarness } = await server.ssrLoadModule('/tests/fixtures/MissionCanvasTrustedRegistryHarness.svelte');
+  const { default: CustomElementHarness } = await server.ssrLoadModule('/tests/fixtures/MissionCanvasCustomElementHarness.svelte');
   const expectations = {
     single: ['layout-single'],
     split: ['layout-split'],
@@ -49,8 +50,25 @@ try {
   assert.doesNotMatch(completeRegistry, /role="alert"/);
   assert.match(completeRegistry, /data-trusted-renderer="renderer:pi-session@v1"/);
   assert.match(completeRegistry, /data-trusted-renderer="renderer:focusa-inspector@v1"/);
+  const { body: customElements } = render(CustomElementHarness);
+  assert.match(customElements, /<fixture-pi-session[^>]*data-contribution-id="contribution:pi-session"/);
+  assert.match(customElements, /<fixture-focusa-inspector[^>]*data-contribution-id="contribution:focusa-inspector"/);
 
   const fixture = JSON.parse(await readFile(new URL('./fixtures/mission-canvas/populated-projection.json', import.meta.url), 'utf8'));
+  const requestedUrls = [];
+  const { MissionCanvasHttpTransport, MissionCanvasTransportError } = await server.ssrLoadModule('/src/lib/mission-canvas/http-transport.ts');
+  const transport = new MissionCanvasHttpTransport('http://127.0.0.1:8787/', async (url) => {
+    requestedUrls.push(String(url));
+    return new Response(JSON.stringify(fixture), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  });
+  const transported = await transport.request('focusa.mission_canvas.projection.get', { scope: fixture.scope });
+  assert.equal(transported.projection_digest, fixture.projection_digest);
+  assert.match(requestedUrls[0], /^http:\/\/127\.0\.0\.1:8787\/v1\/mission-canvas\/projection\?scope=/);
+  await assert.rejects(
+    () => transport.request('focusa.mission_canvas.not-generated'),
+    (error) => error instanceof MissionCanvasTransportError && error.message === 'operation_unavailable'
+  );
+
   const { MissionCanvasProjectionController } = await server.ssrLoadModule('/src/lib/mission-canvas/projection-controller.svelte.ts');
   let response = structuredClone(fixture);
   const controller = new MissionCanvasProjectionController(async () => structuredClone(response));

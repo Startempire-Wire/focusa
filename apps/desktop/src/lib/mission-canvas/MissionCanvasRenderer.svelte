@@ -17,9 +17,10 @@
 </script>
 
 {#snippet renderContribution(contribution: ResolvedContribution)}
-  {@const Renderer = registry.resolve(contribution)}
-  {#if Renderer}
-    <Renderer {contribution}/>
+  {@const resolved = registry.resolve(contribution)}
+  {#if resolved}
+    {@const Renderer = resolved.component}
+    <Renderer {contribution} {...resolved.componentProps}/>
   {/if}
 {/snippet}
 

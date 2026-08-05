@@ -8,7 +8,13 @@ export interface ContributionRendererProps {
 export interface TrustedContributionRenderer {
   rendererBindingId: string;
   semanticBindingIds?: readonly string[];
-  component: Component<ContributionRendererProps>;
+  component: Component<any>;
+  componentProps?: Readonly<Record<string, unknown>>;
+}
+
+export interface ResolvedContributionRenderer {
+  component: Component<any>;
+  componentProps: Readonly<Record<string, unknown>>;
 }
 
 export class ContributionRendererRegistry {
@@ -25,13 +31,13 @@ export class ContributionRendererRegistry {
     this.#entries = indexed;
   }
 
-  resolve(contribution: ResolvedContribution): Component<ContributionRendererProps> | undefined {
+  resolve(contribution: ResolvedContribution): ResolvedContributionRenderer | undefined {
     const entry = this.#entries.get(contribution.renderer_binding_id);
     if (!entry) return undefined;
     if (entry.semanticBindingIds && !entry.semanticBindingIds.includes(contribution.semantic_binding_id)) {
       return undefined;
     }
-    return entry.component;
+    return { component: entry.component, componentProps: entry.componentProps ?? {} };
   }
 
   has(rendererBindingId: string): boolean {

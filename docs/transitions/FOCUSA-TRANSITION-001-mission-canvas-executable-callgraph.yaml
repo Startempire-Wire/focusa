@@ -484,7 +484,7 @@ atomic_tasks:
   - id: UI-001
     parent: MC-050
     title: Add generated-client HTTP transport adapter
-    status: blocked
+    status: complete
     depends_on: [CONTRACT-007]
     read: [docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts, apps/desktop/src/lib/shell/daemon-health.ts]
     targets: [apps/desktop/src/lib/mission-canvas/http-transport.ts]
