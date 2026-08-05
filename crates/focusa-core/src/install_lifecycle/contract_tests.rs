@@ -17,6 +17,55 @@ fn project_scope() -> LifecycleScope {
     }
 }
 
+fn first_mission_entitlement() -> FirstMissionEntitlementReservation {
+    let now = Utc::now();
+    let digest = |byte: char| format!("sha256:{}", byte.to_string().repeat(64));
+    FirstMissionEntitlementReservation {
+        schema_version: "focusa.first_mission_entitlement_reservation.v1".into(),
+        entitlement: LifecycleEntitlementDecision {
+            binding: LifecycleEntitlementBinding {
+                schema_version: "focusa.lifecycle_entitlement_binding.v1".into(),
+                state: LifecycleEntitlementState::ActiveEvaluation,
+                lease_id: "lease:first-mission".into(),
+                lease_sequence: 4,
+                lease_payload_digest: digest('a'),
+                product_grants_digest: digest('b'),
+                feature_grants_digest: digest('c'),
+                node_id: "node:first-mission".into(),
+                license_class: "evaluation".into(),
+                refresh_after: now + chrono::Duration::hours(1),
+                offline_valid_until: now + chrono::Duration::days(1),
+                expires_at: Some(now + chrono::Duration::days(7)),
+                authority_key_id: "authority-2026".into(),
+                signature_verified: true,
+            },
+            granted_products: ["focusa".into()].into_iter().collect(),
+            granted_features: [
+                "focusa.mission.create".into(),
+                "focusa.workpoint.create".into(),
+                "focusa.evidence.capture".into(),
+            ]
+            .into_iter()
+            .collect(),
+            remaining_limits: [
+                ("missions".into(), 1),
+                ("workpoints".into(), 1),
+                ("evidence_records".into(), 1),
+            ]
+            .into_iter()
+            .collect(),
+            evidence_refs: vec!["evidence:signed-first-mission-lease".into()],
+        },
+        reserved_limits: [
+            ("missions".into(), 1),
+            ("workpoints".into(), 1),
+            ("evidence_records".into(), 1),
+        ]
+        .into_iter()
+        .collect(),
+    }
+}
+
 fn versions() -> Vec<ComponentVersion> {
     vec![ComponentVersion {
         component: "focusa".into(),
@@ -213,6 +262,7 @@ fn typed_transactions_validate_and_resume_idempotently() {
             exact_scope: project_scope(),
             bootstrap_preview_ref: "preview:1".into(),
             mutation_confirmation_ref: Some("confirmation:1".into()),
+            first_mission_entitlement: None,
         },
         persisted: persisted(LifecycleTransactionKind::ProjectOnboarding, project_scope()),
     };
@@ -283,6 +333,7 @@ fn project_transaction_rejects_scope_and_confirmation_gaps() {
             exact_scope: project_scope(),
             bootstrap_preview_ref: "preview:1".into(),
             mutation_confirmation_ref: None,
+            first_mission_entitlement: None,
         },
         persisted: persisted(LifecycleTransactionKind::ProjectOnboarding, project_scope()),
     };
@@ -295,6 +346,24 @@ fn project_transaction_rejects_scope_and_confirmation_gaps() {
     assert_eq!(
         transaction.validate(),
         Err(InstallLifecycleValidationError::MutationConfirmationRequired)
+    );
+    transaction.intent.mutation_confirmation_ref = Some("confirmation:1".into());
+    assert_eq!(
+        transaction.validate(),
+        Err(InstallLifecycleValidationError::FirstMissionEntitlementRequired)
+    );
+    transaction.intent.first_mission_entitlement = Some(first_mission_entitlement());
+    assert_eq!(transaction.validate(), Ok(()));
+    transaction
+        .intent
+        .first_mission_entitlement
+        .as_mut()
+        .unwrap()
+        .reserved_limits
+        .insert("workpoints".into(), 2);
+    assert_eq!(
+        transaction.validate(),
+        Err(InstallLifecycleValidationError::FirstMissionLimitReservationInvalid)
     );
 }
 

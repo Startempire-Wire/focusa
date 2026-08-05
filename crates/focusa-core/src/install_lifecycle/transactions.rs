@@ -1,12 +1,14 @@
+use std::collections::{BTreeMap, BTreeSet};
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use super::{
     ArtifactTrustEvidence, CanvasSelection, ComponentVersion, GitSelection,
-    InstallLifecycleValidationError, InstructionSelection, IntegrationSelection, LifecycleScope,
-    LifecycleSelections, LifecycleState, LifecycleTransactionKind, MaintenanceAction,
-    PreflightReport, PreservationDeclaration, ProjectSelection, RecoveryInstructions,
-    RollbackBoundary, TaskProviderSelection,
+    InstallLifecycleValidationError, InstructionSelection, IntegrationSelection,
+    LifecycleEntitlementDecision, LifecycleScope, LifecycleSelections, LifecycleState,
+    LifecycleTransactionKind, MaintenanceAction, PreflightReport, PreservationDeclaration,
+    ProjectSelection, RecoveryInstructions, RollbackBoundary, TaskProviderSelection,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -110,11 +112,51 @@ pub struct HostInstallIntent {
     pub artifact: ArtifactTrustEvidence,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FirstMissionEntitlementReservation {
+    pub schema_version: String,
+    pub entitlement: LifecycleEntitlementDecision,
+    pub reserved_limits: BTreeMap<String, u64>,
+}
+
+impl FirstMissionEntitlementReservation {
+    pub fn validate_at(&self, now: DateTime<Utc>) -> Result<(), InstallLifecycleValidationError> {
+        let required_features = BTreeSet::from([
+            "focusa.mission.create".to_string(),
+            "focusa.workpoint.create".to_string(),
+            "focusa.evidence.capture".to_string(),
+        ]);
+        if self.schema_version != "focusa.first_mission_entitlement_reservation.v1"
+            || !self.entitlement.grants("focusa", &required_features, now)
+        {
+            return Err(InstallLifecycleValidationError::FirstMissionEntitlementRequired);
+        }
+        for required_limit in ["missions", "workpoints", "evidence_records"] {
+            let reserved = self
+                .reserved_limits
+                .get(required_limit)
+                .copied()
+                .unwrap_or(0);
+            let remaining = self
+                .entitlement
+                .remaining_limits
+                .get(required_limit)
+                .copied()
+                .unwrap_or(0);
+            if reserved != 1 || reserved > remaining {
+                return Err(InstallLifecycleValidationError::FirstMissionLimitReservationInvalid);
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProjectOnboardingIntent {
     pub selections: LifecycleSelections,
     pub exact_scope: LifecycleScope,
     pub bootstrap_preview_ref: String,
     pub mutation_confirmation_ref: Option<String>,
+    pub first_mission_entitlement: Option<FirstMissionEntitlementReservation>,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LifecycleMaintenanceIntent {
@@ -193,6 +235,20 @@ impl ProjectOnboardingTransaction {
             && self.intent.mutation_confirmation_ref.is_none()
         {
             return Err(InstallLifecycleValidationError::MutationConfirmationRequired);
+        }
+        if matches!(
+            self.persisted.current_state,
+            LifecycleState::ProjectBootstrapped
+                | LifecycleState::GenesisStarted
+                | LifecycleState::GenesisCommitted
+                | LifecycleState::FirstWorkpointReady
+                | LifecycleState::Accepted
+        ) {
+            self.intent
+                .first_mission_entitlement
+                .as_ref()
+                .ok_or(InstallLifecycleValidationError::FirstMissionEntitlementRequired)?
+                .validate_at(Utc::now())?;
         }
         Ok(())
     }

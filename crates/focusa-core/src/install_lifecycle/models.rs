@@ -24,6 +24,8 @@ pub enum InstallLifecycleValidationError {
     ProjectScopeForbiddenForHostInstall,
     ProjectSelectionForbiddenForHostInstall,
     ProjectScopeRequiredForOnboarding,
+    FirstMissionEntitlementRequired,
+    FirstMissionLimitReservationInvalid,
     ScopeMismatch,
     BootstrapPreviewRequired,
     MutationConfirmationRequired,
@@ -286,6 +288,8 @@ pub struct LifecycleEntitlementDecision {
     pub granted_products: std::collections::BTreeSet<String>,
     #[serde(default)]
     pub granted_features: std::collections::BTreeSet<String>,
+    #[serde(default)]
+    pub remaining_limits: std::collections::BTreeMap<String, u64>,
     #[serde(default)]
     pub evidence_refs: Vec<String>,
 }

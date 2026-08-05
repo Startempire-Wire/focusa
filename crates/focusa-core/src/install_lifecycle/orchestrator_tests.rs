@@ -69,6 +69,7 @@ fn entitlement(state: LifecycleEntitlementState) -> LifecycleEntitlementDecision
             "focusa.update.apply".into(),
             "focusa.update.unattended".into(),
         ]),
+        remaining_limits: std::collections::BTreeMap::new(),
         evidence_refs: vec!["evidence:signed-entitlement".into()],
     }
 }
