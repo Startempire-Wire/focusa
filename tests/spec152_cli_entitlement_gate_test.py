@@ -32,6 +32,8 @@ assert "core_check_feature" not in check
 assert 'return Ok("eval".to_string())' not in INSTALL
 assert "E_AUTHORITY_RAW_KEY_FORBIDDEN" in INSTALL
 assert "E_AUTHORITY_LEASE_UNUSABLE" in INSTALL
+assert "E_AUTHORITY_PAID_MIGRATION_REQUIRED" in INSTALL
+assert "legacy.commercial_use && legacy.status == \"active\"" in INSTALL
 assert "body_idempotency_key" in API_CLIENT
 assert 'req.header("Idempotency-Key", key.trim())' in API_CLIENT
 assert 'format!("Idempotency-Key: {}", key.trim())' in API_CLIENT

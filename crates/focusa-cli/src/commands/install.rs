@@ -2305,6 +2305,16 @@ async fn phase_license(args: &InstallArgs, channel: Channel) -> Result<String> {
             "E_AUTHORITY_EXISTING_UNUSABLE: existing signed authority lease is missing, expired, revoked, or lacks {required_feature}; reactivate before upgrade"
         );
     }
+    let legacy_path = config_dir.join("license.json");
+    if legacy_path.is_file() {
+        if let Ok(legacy) = load_license_status() {
+            if legacy.commercial_use && legacy.status == "active" {
+                bail!(
+                    "E_AUTHORITY_PAID_MIGRATION_REQUIRED: an active paid legacy entitlement was found; preserve it and complete authority migration without repurchase before installing evaluation assets"
+                );
+            }
+        }
+    }
     if args
         .license_key
         .as_deref()
