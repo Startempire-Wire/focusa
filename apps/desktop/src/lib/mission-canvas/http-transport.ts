@@ -34,7 +34,8 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
   constructor(
     baseUrl: string,
     fetchImplementation: typeof fetch = fetch,
-    private readonly accessToken?: string
+    private readonly accessToken?: string,
+    private readonly timeoutMs = 30_000
   ) {
     this.#baseUrl = baseUrl.replace(/\/$/, '');
     this.#fetch = fetchImplementation;
@@ -67,6 +68,9 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
       init.body = JSON.stringify(resolved.input);
     }
 
+    const abort = new AbortController();
+    const timeout = setTimeout(() => abort.abort(), this.timeoutMs);
+    init.signal = abort.signal;
     let response: Response;
     try {
       response = await this.#fetch(url, init);
@@ -75,6 +79,8 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
         error instanceof Error ? error.message : 'transport_request_failed',
         operationId
       );
+    } finally {
+      clearTimeout(timeout);
     }
 
     const value = await readResponse(response);

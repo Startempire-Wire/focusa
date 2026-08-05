@@ -1,9 +1,11 @@
 import TrustedCustomElementContribution from './TrustedCustomElementContribution.svelte';
 import type { TrustedContributionRenderer } from './contribution-renderers';
+import type { ContributionKind } from './types';
 
 export interface TrustedCustomElementBinding {
   rendererBindingId: string;
   semanticBindingIds?: readonly string[];
+  contributionKinds?: readonly ContributionKind[];
   elementName: string;
 }
 
@@ -14,6 +16,7 @@ export function trustedCustomElementRenderer(binding: TrustedCustomElementBindin
   return {
     rendererBindingId: binding.rendererBindingId,
     semanticBindingIds: binding.semanticBindingIds,
+    contributionKinds: binding.contributionKinds,
     component: TrustedCustomElementContribution,
     componentProps: { elementName: binding.elementName }
   };

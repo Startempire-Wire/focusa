@@ -1,6 +1,7 @@
 export type {
   ActivityMode,
   CanvasDraftState,
+  ContributionKind,
   ExactScope,
   GridLayoutNode,
   InspectorLayoutNode,

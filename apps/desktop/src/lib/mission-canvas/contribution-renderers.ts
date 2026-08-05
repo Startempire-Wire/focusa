@@ -1,5 +1,5 @@
 import type { Component } from 'svelte';
-import type { ResolvedContribution } from './types';
+import type { ContributionKind, ResolvedContribution } from './types';
 
 export interface ContributionRendererProps {
   contribution: ResolvedContribution;
@@ -8,6 +8,7 @@ export interface ContributionRendererProps {
 export interface TrustedContributionRenderer {
   rendererBindingId: string;
   semanticBindingIds?: readonly string[];
+  contributionKinds?: readonly ContributionKind[];
   component: Component<any>;
   componentProps?: Readonly<Record<string, unknown>>;
 }
@@ -35,6 +36,9 @@ export class ContributionRendererRegistry {
     const entry = this.#entries.get(contribution.renderer_binding_id);
     if (!entry) return undefined;
     if (entry.semanticBindingIds && !entry.semanticBindingIds.includes(contribution.semantic_binding_id)) {
+      return undefined;
+    }
+    if (entry.contributionKinds && !entry.contributionKinds.includes(contribution.kind)) {
       return undefined;
     }
     return { component: entry.component, componentProps: entry.componentProps ?? {} };
