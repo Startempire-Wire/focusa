@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { collectLayoutContributionIds } from './layout-references';
   import MissionCanvasFrame from './MissionCanvasFrame.svelte';
   import type { ResolvedContribution, ResolvedWorkspaceProjection } from './types';
   import type { ContributionRendererRegistry } from './contribution-renderers';
@@ -16,6 +17,17 @@
   const unavailable = $derived(
     projection.eligible_contributions.filter((contribution) => !registry.resolve(contribution))
   );
+  const layoutContributionIds = $derived(collectLayoutContributionIds(projection.layout_tree));
+  const unresolvedLayoutIds = $derived(
+    [...layoutContributionIds].filter((contributionId) =>
+      !projection.eligible_contributions.some((contribution) => contribution.contribution_id === contributionId)
+    )
+  );
+  const unplacedContributionIds = $derived(
+    projection.eligible_contributions
+      .filter((contribution) => !layoutContributionIds.has(contribution.contribution_id))
+      .map((contribution) => contribution.contribution_id)
+  );
 </script>
 
 {#snippet renderContribution(contribution: ResolvedContribution)}
@@ -26,13 +38,19 @@
   {/if}
 {/snippet}
 
-{#if unavailable.length > 0}
+{#if unavailable.length > 0 || unresolvedLayoutIds.length > 0 || unplacedContributionIds.length > 0}
   <section class="renderer-blocked" role="alert" aria-label="Mission Canvas renderer unavailable">
     <strong>Renderer unavailable</strong>
     <span>The canonical workspace cannot be rendered by this Desktop build.</span>
     <ul>
       {#each unavailable as contribution (contribution.contribution_id)}
         <li data-unavailable-renderer={contribution.renderer_binding_id}>{contribution.accessibility.label}</li>
+      {/each}
+      {#each unresolvedLayoutIds as contributionId (contributionId)}
+        <li data-unresolved-layout-contribution={contributionId}>{contributionId}</li>
+      {/each}
+      {#each unplacedContributionIds as contributionId (contributionId)}
+        <li data-unplaced-contribution={contributionId}>{contributionId}</li>
       {/each}
     </ul>
   </section>

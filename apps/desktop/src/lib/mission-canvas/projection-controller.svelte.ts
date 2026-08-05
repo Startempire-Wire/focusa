@@ -1,4 +1,5 @@
 import { validateMissionCanvasContract } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated';
+import { sameExactScope as sameScope } from './exact-scope';
 import type { ExactScope, ResolvedWorkspaceProjection } from './types';
 
 export type ProjectionState =
@@ -11,15 +12,6 @@ export type ProjectionState =
   | { kind: 'error'; scope?: ExactScope; reason: string };
 
 export type ProjectionLoader = (scope: ExactScope) => Promise<unknown>;
-
-function sameScope(left: ExactScope, right: ExactScope): boolean {
-  return left.project_root === right.project_root
-    && left.continuity_id === right.continuity_id
-    && left.attachment_id === right.attachment_id
-    && left.session_id === right.session_id
-    && (left.instance_id ?? null) === (right.instance_id ?? null)
-    && (left.working_subpath_id ?? null) === (right.working_subpath_id ?? null);
-}
 
 export class MissionCanvasProjectionController {
   state = $state<ProjectionState>({ kind: 'unbound' });

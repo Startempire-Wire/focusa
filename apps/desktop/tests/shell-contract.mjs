@@ -50,4 +50,4 @@ assert.match(health, /method: 'GET'/);
 assert.doesNotMatch(health, /method: '(POST|PUT|PATCH|DELETE)'/);
 assert.equal(JSON.parse(tauri).identifier, 'com.focusa.desktop');
 
-console.log('Focusa Desktop 5% shell contract: PASS');
+console.log('Focusa Desktop shell contract: PASS');

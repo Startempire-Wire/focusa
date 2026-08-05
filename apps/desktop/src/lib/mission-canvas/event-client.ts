@@ -1,4 +1,5 @@
 import type { MissionCanvasClient } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated';
+import { exactScopeStorageKey, sameExactScope as sameScope } from './exact-scope';
 import type { ExactScope, ProjectionLifecycleEvent } from './types';
 
 export interface EventCursorStore {
@@ -10,15 +11,6 @@ export interface EventBatch {
   accepted: ProjectionLifecycleEvent[];
   rejected: Array<{ event: ProjectionLifecycleEvent; reason: string }>;
   cursor?: string;
-}
-
-function sameScope(left: ExactScope, right: ExactScope): boolean {
-  return left.project_root === right.project_root
-    && left.continuity_id === right.continuity_id
-    && left.attachment_id === right.attachment_id
-    && left.session_id === right.session_id
-    && (left.instance_id ?? null) === (right.instance_id ?? null)
-    && (left.working_subpath_id ?? null) === (right.working_subpath_id ?? null);
 }
 
 export class MissionCanvasEventClient {
@@ -110,6 +102,6 @@ export class SessionEventCursorStore implements EventCursorStore {
   }
 
   private key(scope: ExactScope): string {
-    return `${this.#prefix}${encodeURIComponent(JSON.stringify(scope))}`;
+    return `${this.#prefix}${exactScopeStorageKey(scope)}`;
   }
 }

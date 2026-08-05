@@ -34,7 +34,7 @@
 {/if}
 
 <style>
-  .canvas-live,.canvas-unbound{height:calc(100vh - 190px);min-height:610px;min-width:0;overflow:hidden}
+  .canvas-live,.canvas-unbound{flex:1;min-height:0;min-width:0;overflow:hidden}
   .canvas-unbound{display:grid;place-content:center;gap:var(--space-2);padding:var(--layout-card-padding-roomy);border:1px solid var(--color-border);border-radius:var(--radius-panel);background:var(--color-bg);color:var(--color-text);text-align:center}
   .canvas-unbound span{max-width:34rem;color:var(--color-text-secondary)}
 </style>

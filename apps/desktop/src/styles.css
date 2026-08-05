@@ -197,7 +197,7 @@ nav button.active small { color: var(--color-accent-bright); }
 .sidebar.compact .workspace-icon { flex-basis: 26px; width: 26px; }
 
 main { grid-row: 2; min-width: 0; overflow: auto; padding: var(--space-6) clamp(var(--layout-page-gutter), 4vw, 52px); }
-main > .view-scene { display: flex; flex-direction: column; gap: var(--layout-section-gap); }
+main > .view-scene { display: flex; flex-direction: column; gap: var(--layout-section-gap); min-height: 100%; }
 .workspace-heading { display: flex; justify-content: space-between; gap: var(--space-6); align-items: flex-start; width: 100%; max-width: 1120px; margin: 0 auto; }
 h1 { margin: var(--space-1) 0 var(--space-2); color: var(--color-text); font: var(--type-display); letter-spacing: -0.02em; }
 .workspace-heading p { max-width: 68ch; margin: 0; color: var(--color-text-tertiary); font: var(--type-body); }

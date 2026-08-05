@@ -37,7 +37,7 @@
     class:vertical={node.orientation === 'vertical'}
     class="layout-split"
     data-layout-node={node.node_id}
-    style={`--split-ratio:${Math.max(0.1, Math.min(0.9, node.ratio))}`}
+    style={`--split-ratio:${Math.max(0.1, Math.min(0.9, node.ratio))};--split-tail-count:${Math.max(1, node.children.length - 1)}`}
   >
     {#each node.children as child, index (`${child.node_id}:${index}`)}
       <div class="split-child" class:first={index === 0}>
@@ -89,6 +89,7 @@
   {@const inspectorItems = node.inspector_contribution_ids.map(contribution).filter((item): item is ResolvedContribution => Boolean(item))}
   <div
     class:end={node.side === 'end'}
+    class:has-inspector={inspectorItems.length > 0}
     class="layout-inspector"
     data-layout-node={node.node_id}
     style={`--inspector-span:${Math.max(1, node.span ?? 4)}`}
@@ -106,8 +107,8 @@
 
 <style>
   .layout-single{min-width:0;min-height:0;height:100%}
-  .layout-split{min-width:0;min-height:0;display:grid;grid-template-columns:minmax(0,calc(var(--split-ratio) * 100%)) minmax(0,1fr);gap:var(--layout-cluster-gap)}
-  .layout-split.vertical{grid-template-columns:1fr;grid-template-rows:minmax(0,calc(var(--split-ratio) * 100%)) minmax(0,1fr)}
+  .layout-split{min-width:0;min-height:0;display:grid;grid-template-columns:minmax(0,calc(var(--split-ratio) * 100%)) repeat(var(--split-tail-count),minmax(0,1fr));gap:var(--layout-cluster-gap)}
+  .layout-split.vertical{grid-template-columns:1fr;grid-template-rows:minmax(0,calc(var(--split-ratio) * 100%)) repeat(var(--split-tail-count),minmax(0,1fr))}
   .split-child{min-width:0;min-height:0}
   .layout-stack{min-width:0;min-height:0;display:grid;gap:var(--layout-cluster-gap)}
   .layout-grid{min-width:0;min-height:0;display:grid;grid-template-columns:repeat(var(--layout-columns),minmax(0,1fr));gap:var(--layout-cluster-gap)}
@@ -116,9 +117,10 @@
   .tab-list{display:flex;align-items:center;gap:var(--space-1);overflow-x:auto}
   .tab-list button{min-height:28px;padding:0 var(--space-2);border:1px solid var(--color-border);border-radius:var(--radius-control);color:var(--color-text-tertiary);background:transparent;font:var(--type-caption);white-space:nowrap;cursor:pointer}
   .tab-list button[aria-selected='true']{color:var(--color-text);border-color:var(--color-border-strong);background:var(--color-raised)}
-  .layout-inspector{min-width:0;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,calc(var(--inspector-span) * 4%));gap:var(--layout-cluster-gap)}
-  .layout-inspector:not(.end){grid-template-columns:minmax(220px,calc(var(--inspector-span) * 4%)) minmax(0,1fr)}
-  .layout-inspector:not(.end)>main{grid-column:2;grid-row:1}.layout-inspector:not(.end)>aside{grid-column:1;grid-row:1}
+  .layout-inspector{min-width:0;min-height:0;display:grid;grid-template-columns:minmax(0,1fr)}
+  .layout-inspector.has-inspector.end{grid-template-columns:minmax(0,1fr) minmax(220px,calc(var(--inspector-span) * 4%));gap:var(--layout-cluster-gap)}
+  .layout-inspector.has-inspector:not(.end){grid-template-columns:minmax(220px,calc(var(--inspector-span) * 4%)) minmax(0,1fr);gap:var(--layout-cluster-gap)}
+  .layout-inspector.has-inspector:not(.end)>main{grid-column:2;grid-row:1}.layout-inspector:not(.end)>aside{grid-column:1;grid-row:1}
   .layout-inspector main,.layout-inspector aside{min-width:0;min-height:0}.layout-inspector aside{display:grid;align-content:start;gap:var(--layout-cluster-gap)}
   @media(max-width:820px){.layout-split{grid-template-columns:1fr;grid-template-rows:auto}.layout-grid{grid-template-columns:1fr}.layout-inspector,.layout-inspector:not(.end){grid-template-columns:1fr}.layout-inspector:not(.end)>main,.layout-inspector:not(.end)>aside{grid-column:1;grid-row:auto}}
 </style>

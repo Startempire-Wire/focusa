@@ -27,7 +27,7 @@
     contention: 'approvals', evidence: 'evidence', documents: 'documents', research: 'research', 'agent-runtime': 'runtime'
   };
 
-  let activeWorkspaceId = $state('mission-deck');
+  let activeWorkspaceId = $state('mission-canvas');
   let uiMode = $state<'tui' | 'canvas'>('canvas');
   let shellMode = $state<'browser preview' | 'native desktop'>('browser preview');
   let daemon = $state<DaemonReadStatus>({
@@ -199,17 +199,19 @@
     <div class="view-scene" in:scene={{ duration: 220, y: 5 }} out:scene={{ duration: 110, y: 2 }}>
     {#if uiMode === 'tui'}
       <AgentTuiSurface />
+    {:else if activeWorkspace.id === 'mission-canvas'}
+      <MissionCanvasShell />
     {:else}
-    <section class="workspace-heading">
-      <div>
-        <span class="eyebrow">Primary application · 5% native shell</span>
-        <h1>{activeWorkspace.label}</h1>
-        <p>{activeWorkspace.description}</p>
-      </div>
-      <span class:planned={activeWorkspace.availability === 'planned'} class="availability">
-        {activeWorkspace.availability === 'shell' ? 'Shell available' : `Planned milestone ${activeWorkspace.milestone}%`}
-      </span>
-    </section>
+      <section class="workspace-heading">
+        <div>
+          <span class="eyebrow">Focusa Desktop workspace</span>
+          <h1>{activeWorkspace.label}</h1>
+          <p>{activeWorkspace.description}</p>
+        </div>
+        <span class:planned={activeWorkspace.availability === 'planned'} class="availability">
+          {activeWorkspace.availability === 'shell' ? 'Available' : `Planned milestone ${activeWorkspace.milestone}%`}
+        </span>
+      </section>
 
     {#if activeWorkspace.id === 'mission-deck'}
       <section class="mission-grid" aria-label="Mission Deck shell">
@@ -248,8 +250,6 @@
           </ul>
         </article>
       </section>
-    {:else if activeWorkspace.id === 'mission-canvas'}
-      <MissionCanvasShell />
     {:else if activeWorkspace.id === 'agent-runtime'}
       <section class="empty-state">
         <span class="eyebrow">Infrastructure plane</span>

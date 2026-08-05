@@ -10,8 +10,8 @@ export interface WorkspaceManifestItem {
 }
 
 export const FOCUSA_DESKTOP_WORKSPACES: readonly WorkspaceManifestItem[] = [
+  { id: 'mission-canvas', label: 'Mission Canvas', shortLabel: 'Canvas', description: 'Compose the primary Workstream-aware mission workspace.', availability: 'shell', milestone: 25 },
   { id: 'mission-deck', label: 'Mission Deck', shortLabel: 'Deck', description: 'Orient around verified scope, Workstreams, and active missions.', availability: 'shell', milestone: 5 },
-  { id: 'mission-canvas', label: 'Mission Canvas', shortLabel: 'Canvas', description: 'Compose the primary Workstream-aware mission workspace.', availability: 'planned', milestone: 25 },
   { id: 'pi-work-surface', label: 'Pi Work Surface', shortLabel: 'Pi', description: 'Use Pi as an authentic standalone or embedded coding surface.', availability: 'planned', milestone: 75 },
   { id: 'crist', label: 'C.R.I.S.T.', shortLabel: 'C.R.I.S.T.', description: 'Inspect and guide structured reasoning without duplicating authority.', availability: 'planned', milestone: 75 },
   { id: 'context-role', label: 'Context and Role', shortLabel: 'Context', description: 'See exact Context and Role bindings for the selected Workstream.', availability: 'planned', milestone: 50 },

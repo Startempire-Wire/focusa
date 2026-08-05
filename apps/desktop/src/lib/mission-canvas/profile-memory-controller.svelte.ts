@@ -1,3 +1,4 @@
+import { sameExactScope as sameScope } from './exact-scope';
 import type { ExactScope, ProfileLayoutMemory } from './types';
 
 export interface ProfileMemoryBinding {
@@ -19,15 +20,6 @@ export type ProfileMemoryState =
   | { kind: 'saving'; binding: ProfileMemoryBinding; memory: ProfileLayoutMemory }
   | { kind: 'conflict'; binding: ProfileMemoryBinding; memory: ProfileLayoutMemory; reason: string }
   | { kind: 'error'; binding?: ProfileMemoryBinding; reason: string };
-
-function sameScope(left: ExactScope, right: ExactScope): boolean {
-  return left.project_root === right.project_root
-    && left.continuity_id === right.continuity_id
-    && left.attachment_id === right.attachment_id
-    && left.session_id === right.session_id
-    && (left.instance_id ?? null) === (right.instance_id ?? null)
-    && (left.working_subpath_id ?? null) === (right.working_subpath_id ?? null);
-}
 
 function matches(memory: ProfileLayoutMemory, binding: ProfileMemoryBinding): boolean {
   return sameScope(memory.scope, binding.scope)

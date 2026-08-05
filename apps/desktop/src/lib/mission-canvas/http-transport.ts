@@ -31,7 +31,11 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
   readonly #baseUrl: string;
   readonly #fetch: typeof fetch;
 
-  constructor(baseUrl: string, fetchImplementation: typeof fetch = fetch) {
+  constructor(
+    baseUrl: string,
+    fetchImplementation: typeof fetch = fetch,
+    private readonly accessToken?: string
+  ) {
     this.#baseUrl = baseUrl.replace(/\/$/, '');
     this.#fetch = fetchImplementation;
   }
@@ -46,17 +50,21 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
     }
 
     const method = operation.method.toUpperCase();
-    const url = new URL(`${this.#baseUrl}${operation.path}`);
+    const resolved = resolvePath(operation.path, input, operationId);
+    const url = new URL(`${this.#baseUrl}${resolved.path}`);
     const init: RequestInit = {
       method,
-      headers: { Accept: 'application/json' }
+      headers: {
+        Accept: 'application/json',
+        ...(this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {})
+      }
     };
 
     if (method === 'GET' || method === 'HEAD') {
-      appendQuery(url, input);
-    } else if (input !== undefined) {
+      appendQuery(url, resolved.input);
+    } else if (resolved.input !== undefined) {
       (init.headers as Record<string, string>)['Content-Type'] = 'application/json';
-      init.body = JSON.stringify(input);
+      init.body = JSON.stringify(resolved.input);
     }
 
     let response: Response;
@@ -74,7 +82,7 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
       throw new MissionCanvasTransportError('transport_response_failed', operationId, response.status, value);
     }
 
-    const validation = validateMissionCanvasContract(operation.response_schema_ref, value);
+    const validation = validateResponse(operation.response_schema_ref, value);
     if (!validation.valid) {
       throw new MissionCanvasTransportError(
         `invalid_response:${validation.errors.join(',')}`,
@@ -85,6 +93,31 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
     }
     return value as T;
   }
+}
+
+function validateResponse(schemaRef: string, value: unknown): { valid: boolean; errors: string[] } {
+  if (!schemaRef.endsWith('[]')) return validateMissionCanvasContract(schemaRef, value);
+  if (!Array.isArray(value)) return { valid: false, errors: ['expected array'] };
+  const itemSchema = schemaRef.slice(0, -2);
+  const errors = value.flatMap((item, index) =>
+    validateMissionCanvasContract(itemSchema, item).errors.map((error) => `${index}:${error}`)
+  );
+  return { valid: errors.length === 0, errors };
+}
+
+function resolvePath(path: string, input: unknown, operationId: string): { path: string; input: unknown } {
+  const record = input && typeof input === 'object' && !Array.isArray(input)
+    ? { ...(input as Record<string, unknown>) }
+    : undefined;
+  const resolvedPath = path.replace(/\{([^}]+)\}/g, (_match, name: string) => {
+    const value = record?.[name];
+    if (value === undefined || value === null || typeof value === 'object') {
+      throw new MissionCanvasTransportError(`path_parameter_required:${name}`, operationId);
+    }
+    delete record?.[name];
+    return encodeURIComponent(String(value));
+  });
+  return { path: resolvedPath, input: record ?? input };
 }
 
 function appendQuery(url: URL, input: unknown): void {

@@ -1,3 +1,4 @@
+import { sameExactScope as sameScope } from './exact-scope';
 import type { CanvasDraftState, ExactScope } from './types';
 
 export interface DraftBinding {
@@ -25,15 +26,6 @@ export type DraftControllerState =
   | { kind: 'saving'; binding: DraftBinding; draft: CanvasDraftState; localContent: string }
   | { kind: 'conflict'; binding: DraftBinding; draft: CanvasDraftState; localContent: string; reason: string }
   | { kind: 'error'; binding?: DraftBinding; reason: string };
-
-function sameScope(left: ExactScope, right: ExactScope): boolean {
-  return left.project_root === right.project_root
-    && left.continuity_id === right.continuity_id
-    && left.attachment_id === right.attachment_id
-    && left.session_id === right.session_id
-    && (left.instance_id ?? null) === (right.instance_id ?? null)
-    && (left.working_subpath_id ?? null) === (right.working_subpath_id ?? null);
-}
 
 function matchesBinding(draft: CanvasDraftState, binding: DraftBinding): boolean {
   return sameScope(draft.scope, binding.scope)
