@@ -31,6 +31,7 @@
   let controlsGeneration = 0;
 
   $effect(() => {
+    pendingConfirmation = undefined;
     if (!scope) {
       controller.clear();
       activities = [];

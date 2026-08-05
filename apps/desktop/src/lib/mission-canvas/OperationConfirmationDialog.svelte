@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import type { OperationBinding } from './types';
 
   let {
@@ -12,10 +13,34 @@
     onConfirm: () => void;
     onCancel: () => void;
   } = $props();
+
+  let dialog: HTMLDivElement;
+  let cancelButton: HTMLButtonElement;
+
+  onMount(() => cancelButton.focus());
+
+  function handleKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      onCancel();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const controls = [...dialog.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')];
+    if (controls.length === 0) return;
+    const current = controls.indexOf(document.activeElement as HTMLButtonElement);
+    const next = event.shiftKey
+      ? controls[(current <= 0 ? controls.length : current) - 1]
+      : controls[(current + 1) % controls.length];
+    event.preventDefault();
+    next.focus();
+  }
 </script>
 
+<svelte:window onkeydown={handleKeydown}/>
+
 <div class="backdrop" role="presentation" onclick={(event) => event.currentTarget === event.target && onCancel()}>
-  <div class="confirmation" role="alertdialog" aria-modal="true" aria-labelledby="operation-confirmation-title">
+  <div bind:this={dialog} class="confirmation" role="alertdialog" aria-modal="true" aria-labelledby="operation-confirmation-title">
     <span class="requirement">{binding.confirmation === 'preview' ? 'Preview required' : 'Confirmation required'}</span>
     <h2 id="operation-confirmation-title">{subjectLabel}</h2>
     <dl>
@@ -23,7 +48,7 @@
       <div><dt>Authority</dt><dd>{binding.authority_ref}</dd></div>
     </dl>
     <div class="actions">
-      <button type="button" class="secondary" onclick={onCancel}>{binding.confirmation === 'preview' ? 'Close' : 'Cancel'}</button>
+      <button bind:this={cancelButton} type="button" class="secondary" onclick={onCancel}>{binding.confirmation === 'preview' ? 'Close' : 'Cancel'}</button>
       {#if binding.confirmation === 'explicit'}
         <button type="button" class="primary" onclick={onConfirm}>Confirm</button>
       {/if}

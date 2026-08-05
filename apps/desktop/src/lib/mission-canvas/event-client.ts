@@ -20,6 +20,7 @@ export class MissionCanvasEventClient {
   #seenEventIds = new Set<string>();
   #running = false;
   #timer?: ReturnType<typeof setTimeout>;
+  #failureCount = 0;
   readonly #listeners = new Set<(batch: EventBatch) => void>();
 
   constructor(
@@ -64,12 +65,15 @@ export class MissionCanvasEventClient {
     this.#running = true;
     const tick = async () => {
       if (!this.#running) return;
+      let delay = intervalMs;
       try {
         await this.poll();
+        this.#failureCount = 0;
       } catch {
-        // Projection state remains visible while the next bounded replay attempt waits.
+        this.#failureCount += 1;
+        delay = Math.min(intervalMs * 2 ** Math.min(this.#failureCount, 5), 30_000);
       } finally {
-        if (this.#running) this.#timer = setTimeout(tick, intervalMs);
+        if (this.#running) this.#timer = setTimeout(tick, delay);
       }
     };
     void tick();
@@ -79,6 +83,7 @@ export class MissionCanvasEventClient {
     this.#running = false;
     if (this.#timer) clearTimeout(this.#timer);
     this.#timer = undefined;
+    this.#failureCount = 0;
   }
 
   private rejectionReason(event: ProjectionLifecycleEvent): string | undefined {
