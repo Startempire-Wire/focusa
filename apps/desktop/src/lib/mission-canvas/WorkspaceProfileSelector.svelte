@@ -18,7 +18,7 @@
   }
 </script>
 
-{#if profiles.length > 0}
+{#if profiles.length > 1}
   <label class="profile-selector">
     <span>Workspace profile</span>
     <select value={activeProfileId} onchange={selectProfile}>

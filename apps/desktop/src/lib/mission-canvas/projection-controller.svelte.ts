@@ -67,6 +67,31 @@ export class MissionCanvasProjectionController {
     }
   }
 
+  accept(scope: ExactScope, value: unknown): boolean {
+    this.#requestGeneration += 1;
+    const prior = this.currentProjection();
+    const validation = validateMissionCanvasContract('ResolvedWorkspaceProjection', value);
+    if (!validation.valid) {
+      const reason = validation.errors.join(',');
+      this.state = prior
+        ? { kind: 'stale', scope, projection: prior, reason }
+        : { kind: 'error', scope, reason };
+      return false;
+    }
+
+    const projection = value as ResolvedWorkspaceProjection;
+    if (!sameScope(scope, projection.scope)) {
+      this.state = { kind: 'blocked', scope, reason: 'projection_scope_mismatch' };
+      return false;
+    }
+    if (prior && sameScope(prior.scope, scope) && projection.projection_revision < prior.projection_revision) {
+      this.state = { kind: 'stale', scope, projection: prior, reason: 'projection_revision_regressed' };
+      return false;
+    }
+    this.state = { kind: 'ready', scope, projection };
+    return true;
+  }
+
   markStale(reason: string): void {
     const projection = this.currentProjection();
     if (projection) this.state = { kind: 'stale', scope: projection.scope, projection, reason };

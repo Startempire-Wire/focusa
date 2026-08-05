@@ -653,7 +653,7 @@ atomic_tasks:
   - id: UI-014
     parent: MC-080
     title: Render activity navigation from registry
-    status: implemented_partial
+    status: complete
     depends_on: [UI-004, OPS-006]
     read: [tests/fixtures/spec135-profile-activity-matrix.json]
     targets: [apps/desktop/src/lib/mission-canvas/ActivityNavigation.svelte]
@@ -913,7 +913,7 @@ atomic_tasks:
   - id: PROFILE-001
     parent: MC-140
     title: Render eligible profile selector
-    status: implemented_partial
+    status: complete
     depends_on: [OPS-003, UI-004]
     read: [docs/135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md]
     targets: [apps/desktop/src/lib/mission-canvas/WorkspaceProfileSelector.svelte]

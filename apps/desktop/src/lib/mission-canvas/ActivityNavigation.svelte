@@ -12,7 +12,7 @@
   } = $props();
 </script>
 
-{#if activities.length > 0}
+{#if activities.length > 1}
   <nav class="activity-navigation" aria-label="Activities">
     {#each activities as activity (activity.activity_mode_id)}
       <button

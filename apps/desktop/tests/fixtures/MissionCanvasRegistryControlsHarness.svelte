@@ -33,6 +33,18 @@
       domain_semantic_binding_registry_ref: 'fixture:semantic',
       installed: true,
       viability_rule_revision: 'fixture:profile:v1'
+    },
+    {
+      profile_id: 'profile:general',
+      revision: 1,
+      display_name: 'General',
+      candidate_contribution_ids: ['contribution:pi-session'],
+      density: 'standard',
+      terminology_registry_ref: 'fixture:terminology',
+      renderer_registry_ref: 'fixture:renderer',
+      domain_semantic_binding_registry_ref: 'fixture:semantic',
+      installed: true,
+      viability_rule_revision: 'fixture:profile:v1'
     }
   ]);
 </script>
