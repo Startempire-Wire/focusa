@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
 """Static contract for REL.2 native Windows x64/ARM64 lifecycle proof."""
 
+import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 workflow = (ROOT / ".github/workflows/windows-ota-e2e.yml").read_text()
 installer = (ROOT / "crates/focusa-cli/src/commands/install.rs").read_text()
 updater = (ROOT / "crates/focusa-cli/src/commands/update.rs").read_text()
+run_proof = json.loads(
+    (
+        ROOT
+        / "release-proof/audit/next-locked-release-windows-native-ota-run-proof.json"
+    ).read_text()
+)
 
 required = (
     "runner: windows-latest",
@@ -72,4 +79,12 @@ assert workflow.count("runner: windows-11-arm") >= 2
 assert workflow.count("native runner architecture mismatch") >= 2
 assert "Windows release build (${{ matrix.target }})" in workflow
 assert "target: aarch64-pc-windows-msvc" in workflow
+assert run_proof["github_run"]["conclusion"] == "success"
+assert {job["runtime_architecture"] for job in run_proof["native_jobs"]} == {
+    "X64",
+    "Arm64",
+}
+assert all(proof["result"] == "pass" for proof in run_proof["artifact_proofs"])
+assert run_proof["authority_boundary"]["current_release_assets_proven"] is False
+assert run_proof["authority_boundary"]["v0.9.144_publication_proven"] is False
 print("REL.2 native Windows x64/ARM64 OTA workflow contract: PASS")
