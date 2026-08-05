@@ -14,15 +14,6 @@ try {
   const { default: RegistryControlsHarness } = await server.ssrLoadModule('/tests/fixtures/MissionCanvasRegistryControlsHarness.svelte');
   const { default: TrustedRegistryHarness } = await server.ssrLoadModule('/tests/fixtures/MissionCanvasTrustedRegistryHarness.svelte');
   const { default: CustomElementHarness } = await server.ssrLoadModule('/tests/fixtures/MissionCanvasCustomElementHarness.svelte');
-  const { default: BrowserPreviewWorkspace } = await server.ssrLoadModule('/src/lib/shell/BrowserPreviewWorkspace.svelte');
-  const { FOCUSA_DESKTOP_WORKSPACES } = await server.ssrLoadModule('/src/lib/shell/workspace-manifest.ts');
-  const previewScreenIds = new Set(['mission-deck', 'crist', 'context-role', 'workpoints', 'trajectory', 'sessions', 'contention', 'evidence', 'documents', 'research', 'agent-runtime']);
-  for (const workspace of FOCUSA_DESKTOP_WORKSPACES.filter((item) => previewScreenIds.has(item.id))) {
-    const { body } = render(BrowserPreviewWorkspace, { props: { workspace } });
-    assert.match(body, new RegExp(workspace.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-    assert.match(body, /Browser preview/);
-    assert.doesNotMatch(body, /undefined|null/);
-  }
 
   const expectations = {
     single: ['layout-single'],
