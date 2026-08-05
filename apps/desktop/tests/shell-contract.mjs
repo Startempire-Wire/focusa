@@ -16,6 +16,7 @@ const commandManifest = readFileSync(new URL('../src/lib/shell/command-manifest.
 const contextControl = readFileSync(new URL('../src/lib/shell/ContextControlPanel.svelte', import.meta.url), 'utf8');
 const desktopStyles = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
 const missionCanvas = readFileSync(new URL('../src/lib/shell/MissionCanvasShell.svelte', import.meta.url), 'utf8');
+const previewProjection = readFileSync(new URL('../src/lib/mission-canvas/preview-projection.ts', import.meta.url), 'utf8');
 const tauri = readFileSync(new URL('../src-tauri/tauri.conf.json', import.meta.url), 'utf8');
 
 assert.match(page, /Focusa Desktop/);
@@ -47,6 +48,8 @@ assert.match(contextControl, /disabled/);
 assert.match(contextControl, /cannot infer authority/);
 assert.doesNotMatch(desktopStyles, /#[0-9a-fA-F]{3,8}/);
 assert.doesNotMatch(missionCanvas.split('<style>')[1] ?? '', /#[0-9a-fA-F]{3,8}/);
+assert.match(page, /DESKTOP_BROWSER_PREVIEW_PROJECTIONS/);
+assert.match(previewProjection, /mission-canvas.*mission-deck.*pi-work-surface/s);
 assert.match(designSystem, /calm cognitive cockpit/);
 assert.match(designSystem, /Visual acceptance is exclusively performed through UIAI Engine/);
 assert.match(manifest, /mission-deck/);
