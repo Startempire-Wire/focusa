@@ -926,7 +926,7 @@ atomic_tasks:
   - id: PROFILE-002
     parent: MC-140
     title: Preserve profile layout memory
-    status: blocked
+    status: implemented_partial
     depends_on: [PROFILE-001, OPS-009, OPS-010]
     read: [docs/contracts/spec135-adaptive-composition.v1.yaml]
     targets: [apps/desktop/src/lib/mission-canvas/profile-memory-controller.ts]

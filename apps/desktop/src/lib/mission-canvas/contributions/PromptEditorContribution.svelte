@@ -1,19 +1,19 @@
 <script lang="ts">
   import type { DraftControllerState } from '../draft-controller.svelte';
-  import type { ResolvedContribution } from '../types';
+  import type { OperationBinding, ResolvedContribution } from '../types';
 
   let {
     contribution,
     draftState,
-    sendAuthorized,
+    sendBinding,
     onEdit,
     onSend
   }: {
     contribution: ResolvedContribution;
     draftState: DraftControllerState;
-    sendAuthorized: boolean;
+    sendBinding?: OperationBinding;
     onEdit: (content: string, selectionStart?: number, selectionEnd?: number) => void;
-    onSend: (content: string, recipientRef: string) => void;
+    onSend: (content: string, recipientRef: string, operation: OperationBinding) => void;
   } = $props();
 
   const bound = $derived(
@@ -26,6 +26,13 @@
   );
   const recipientRef = $derived(bound?.binding.recipientRef);
   const editable = $derived(bound?.kind === 'ready' || bound?.kind === 'conflict');
+  const actionableSend = $derived(
+    sendBinding?.enabled === true
+      && !sendBinding.disabled_reason_ref
+      && sendBinding.authority_ref.length > 0
+      && sendBinding.target_contribution_id === contribution.contribution_id
+      && contribution.operation_ids.includes(sendBinding.operation_id)
+  );
 
   function edit(event: Event): void {
     const input = event.currentTarget as HTMLTextAreaElement;
@@ -45,8 +52,8 @@
       disabled={!editable}
       oninput={edit}
     ></textarea>
-    {#if sendAuthorized && recipientRef}
-      <button type="button" disabled={!editable || content.trim().length === 0} onclick={() => onSend(content, recipientRef)}>
+    {#if actionableSend && recipientRef && sendBinding}
+      <button type="button" disabled={!editable || content.trim().length === 0} onclick={() => onSend(content, recipientRef, sendBinding)}>
         Send
       </button>
     {/if}

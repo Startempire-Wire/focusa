@@ -5,6 +5,8 @@ export type {
   GridLayoutNode,
   InspectorLayoutNode,
   LayoutNode,
+  OperationBinding,
+  ProfileLayoutMemory,
   ResolvedContribution,
   ResolvedWorkspaceProjection,
   SingleLayoutNode,
