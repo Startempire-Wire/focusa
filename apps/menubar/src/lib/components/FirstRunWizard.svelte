@@ -19,7 +19,19 @@
   // Spec: docs/55-focusa-self-host-architecture.md §6.2, doc 53 §2.0.
 
   import { onMount } from 'svelte';
-  import { DEFAULT_API_URL, getApiUrl } from '$lib/api';
+  import { DEFAULT_API_URL, fetchJson, getApiUrl } from '$lib/api';
+  import {
+    FIRST_RUN_STORAGE_KEY,
+    MANUAL_AUTHORITY_FALLBACK,
+    advanceFirstRun,
+    entitlementReady,
+    initialFirstRunState,
+    restoreFirstRunState,
+    serializeFirstRunState,
+    type AuthorityProjection,
+    type EntitlementChoice,
+    type FirstRunEntitlementState,
+  } from '$lib/firstRunEntitlement';
   import QRCode from './QRCode.svelte';
   import Settings from './Settings.svelte';
   import {
@@ -81,6 +93,110 @@
       localStorage.setItem(WIZARD_STATE_KEY, step);
     } catch {
       /* ignore */
+    }
+  }
+
+  function loadEntitlementState(): FirstRunEntitlementState {
+    try {
+      return restoreFirstRunState(localStorage.getItem(FIRST_RUN_STORAGE_KEY));
+    } catch {
+      return initialFirstRunState();
+    }
+  }
+
+  let entitlementState = $state<FirstRunEntitlementState>(loadEntitlementState());
+  let entitlementBusy = $state(false);
+  let entitlementMessage = $state('Checking signed entitlement authority…');
+
+  function persistEntitlementState(next: FirstRunEntitlementState) {
+    entitlementState = next;
+    try {
+      localStorage.setItem(FIRST_RUN_STORAGE_KEY, serializeFirstRunState(next));
+    } catch {
+      /* persistence is resumability only; daemon authority remains canonical */
+    }
+  }
+
+  function selectEntitlementChoice(choice: EntitlementChoice) {
+    persistEntitlementState(advanceFirstRun(entitlementState, { type: 'choice_selected', choice }));
+    entitlementMessage = MANUAL_AUTHORITY_FALLBACK;
+  }
+
+  function continueToPairing() {
+    persistEntitlementState(advanceFirstRun(entitlementState, { type: 'skip_optional_uiai' }));
+  }
+
+  async function verifyProjectBinding() {
+    entitlementBusy = true;
+    try {
+      const project = await fetchJson<Record<string, unknown>>('/v1/project/current', 5000);
+      if (!project.project_id && !project.project_root && !project.identity) throw new Error('project_not_verified');
+      persistEntitlementState(advanceFirstRun(entitlementState, { type: 'project_verified' }));
+      entitlementMessage = 'Project verified. Checking the first canonical Workpoint…';
+    } catch {
+      entitlementMessage = 'No verified project is active. Select or bootstrap a project, then retry.';
+    } finally {
+      entitlementBusy = false;
+    }
+  }
+
+  async function verifyFirstWorkpoint() {
+    entitlementBusy = true;
+    try {
+      const workpoint = await fetchJson<Record<string, unknown>>('/v1/workpoint/current', 5000);
+      if (!workpoint.workpoint_id && !workpoint.id) throw new Error('workpoint_not_ready');
+      persistEntitlementState(advanceFirstRun(entitlementState, { type: 'first_workpoint_accepted' }));
+      entitlementMessage = 'Signed entitlement, pairing, project, and first Workpoint are verified.';
+    } catch {
+      entitlementMessage = 'The daemon has not accepted a first Workpoint. Complete Project Genesis, then retry.';
+    } finally {
+      entitlementBusy = false;
+    }
+  }
+
+  async function refreshEntitlement() {
+    entitlementBusy = true;
+    try {
+      const response = await fetchJson<{
+        status?: string;
+        authority?: {
+          state?: string;
+          product?: string;
+          sequence?: number;
+          lease_id?: string;
+          lease_digest?: string;
+          features?: Record<string, boolean>;
+        };
+      }>('/v1/license/status', 5000);
+      const authority = response.authority;
+      const features = authority?.features ?? {};
+      const projection: AuthorityProjection = {
+        state: response.status === 'active' || response.status === 'offline_grace'
+          ? response.status
+          : response.status === 'recovery_only'
+            ? 'recovery_only'
+            : 'unactivated',
+        product: authority?.product ?? 'focusa',
+        sequence: authority?.sequence,
+        signature_verified: Boolean(authority?.lease_id && authority?.lease_digest && authority?.sequence),
+        channel_granted: Object.entries(features).some(([key, value]) => key.startsWith('focusa.install.channel.') && value),
+        terms_accepted: response.status === 'active' || response.status === 'offline_grace',
+        privacy_accepted: response.status === 'active' || response.status === 'offline_grace',
+      };
+      persistEntitlementState(advanceFirstRun(entitlementState, { type: 'authority_observed', authority: projection }));
+      entitlementMessage = entitlementReady(projection)
+        ? 'Signed entitlement verified. Optional integrations are now available.'
+        : 'No runnable entitlement is active. Recovery operations remain available.';
+    } catch {
+      persistEntitlementState({
+        ...entitlementState,
+        stage: 'trust_recovery',
+        last_error: 'authority_status_unavailable',
+        updated_at: new Date().toISOString(),
+      });
+      entitlementMessage = 'Authority status unavailable. Recovery, export, repair, and uninstall remain available.';
+    } finally {
+      entitlementBusy = false;
     }
   }
 
@@ -484,6 +600,7 @@
       }
       localStorage.setItem('focusa_has_connected_successfully', 'true');
       advanceTo('connected');
+      persistEntitlementState(advanceFirstRun(entitlementState, { type: 'pairing_saved' }));
     } catch (err) {
       // Keychain unavailable — surface as a DEGRADED state so the operator
       // knows the daemon does NOT durably trust this Mac (token not in
@@ -550,6 +667,7 @@
 
   onMount(() => {
     installGlobalDiagnostics();
+    void refreshEntitlement();
     if (typeof window !== 'undefined' && !(window as { __FOCUSA_HEADLESS__?: boolean }).__FOCUSA_HEADLESS__) {
       void import('@tauri-apps/api/core')
         .then((mod) => {
@@ -578,6 +696,64 @@
     <p class="stepper">Step {stepIndex} of {stepTotal}</p>
   </header>
 
+  {#if entitlementState.stage === 'trust_recovery'}
+    <div class="card">
+      <h3>Trust and recovery</h3>
+      <p>{entitlementMessage}</p>
+      <p class="dim">Runnable features remain blocked. Recovery, export, repair, and uninstall stay available.</p>
+      <div class="row">
+        <button class="primary" disabled={entitlementBusy} onclick={refreshEntitlement}>Retry authority</button>
+        <button class="utility" onclick={() => selectEntitlementChoice('manage')}>Manage license</button>
+      </div>
+    </div>
+  {:else if entitlementState.stage === 'choice'}
+    <div class="card">
+      <h3>Choose entitlement</h3>
+      <p>Every installation requires an authority-issued signed lease.</p>
+      <div class="row">
+        <button class="primary" onclick={() => selectEntitlementChoice('evaluate')}>Evaluate</button>
+        <button class="primary" onclick={() => selectEntitlementChoice('activate')}>Activate</button>
+        <button class="utility" onclick={() => selectEntitlementChoice('manage')}>Manage</button>
+      </div>
+      <p class="dim">Evaluation verifies email and terms/privacy. Marketing consent remains separate.</p>
+    </div>
+  {:else if ['device_code', 'account_pending', 'terms_consent', 'lease_verification'].includes(entitlementState.stage)}
+    <div class="card">
+      <h3>Authorize this installation</h3>
+      {#if entitlementState.challenge}
+        <p>Open <a href={entitlementState.challenge.verification_uri}>{entitlementState.challenge.verification_uri}</a></p>
+        <p>User code: <code>{entitlementState.challenge.user_code}</code></p>
+      {:else}
+        <p>{MANUAL_AUTHORITY_FALLBACK}</p>
+      {/if}
+      <p class="dim">Email and credentials are never stored or displayed by this wizard.</p>
+      <button class="primary" disabled={entitlementBusy} onclick={refreshEntitlement}>Verify signed lease</button>
+    </div>
+  {:else if entitlementState.stage === 'optional_uiai'}
+    <div class="card">
+      <h3>Entitlement verified</h3>
+      <p>{entitlementMessage}</p>
+      <p>UIAI is optional and cannot grant project, Workstream, or mutation authority.</p>
+      <button class="primary" onclick={continueToPairing}>Continue to device pairing</button>
+    </div>
+  {:else if entitlementState.stage === 'project'}
+    <div class="card">
+      <h3>Verify project</h3>
+      <p>{entitlementMessage}</p>
+      <button class="primary" disabled={entitlementBusy} onclick={verifyProjectBinding}>Verify active project</button>
+    </div>
+  {:else if entitlementState.stage === 'first_workpoint'}
+    <div class="card">
+      <h3>Verify first Workpoint</h3>
+      <p>{entitlementMessage}</p>
+      <button class="primary" disabled={entitlementBusy} onclick={verifyFirstWorkpoint}>Verify Workpoint</button>
+    </div>
+  {:else if entitlementState.stage === 'complete'}
+    <div class="card">
+      <h3>Focusa is ready</h3>
+      <p>{entitlementMessage}</p>
+    </div>
+  {:else}
   {#if step === 'welcome'}
     <div class="card">
       <h3>Welcome</h3>
@@ -722,6 +898,7 @@
       <button class="utility" onclick={() => advanceTo('welcome')}>Restart</button>
     {/if}
   </footer>
+  {/if}
 </section>
 
 <style>
