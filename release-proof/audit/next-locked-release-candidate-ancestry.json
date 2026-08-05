@@ -19,12 +19,17 @@
     "d418039d3657eff0c690d1b2497a1f253d8ecf09",
     "ee569eb1e65eb8baada1000429a7400d46addb41"
   ],
-  "ancestry_digest": "sha256:96dc99198efefbb94678b0f5897a465108017ad20cb17f45572d01ebfebe4892",
+  "ancestry_digest": "sha256:91cfb1bb97579a9d160f9ba38aef1e648370d1796689e1f88ee666e3c203d8ab",
   "audit_errors": [],
   "candidate": {
-    "audit_head": "9d28163a29be67e2f839563536238e5f42fcf4ab",
-    "changed_after_source_commit": [],
-    "source_commit": "9d28163a29be67e2f839563536238e5f42fcf4ab",
+    "audit_head": "0e9783fa44a070a6bcc6f53b347857f2fd3519c2",
+    "changed_after_source_commit": [
+      "release-proof/audit/next-locked-release-governance-reconciliation.json",
+      "release-proof/audit/next-locked-release-technical-closure-gate.json",
+      "scripts/generate-locked-release-candidate-ancestry.py",
+      "tests/166_focusa_locked_release_candidate_ancestry_test.py"
+    ],
+    "source_commit": "3b19bc0a87e8d1c6602c1e856f32e7f80025f62e",
     "source_is_ancestor_of_audit_head": true,
     "unexpected_changes_after_source_commit": []
   },
@@ -89,10 +94,13 @@
     "tag": "v0.9.143"
   },
   "issue_ledger": {
+    "invalid_closed_count": 0,
     "inventory_digest": "sha256:9dad314492bc798205d7a64b89fc46e4bc8239b3394f1c4898b474720f1cb686",
     "mapping_count": 289,
-    "pending_technical_acceptance_count": 85,
-    "reconciliation_digest": "sha256:1547fce86b8bf556628f07b7746be4875046b146d0ce44eb3feed8b8e1f92675",
+    "pending_technical_acceptance_count": 76,
+    "reconciliation_digest": "sha256:b600fbf5444338c2841e5d01cfa5f3d7180c05866e38f2dfe311046400f8be6d",
+    "technical_closure_gate_digest": "sha256:ad1759315df63ddddb1dc83ea0071a653fea5bbcbd21c3b53cffb57f7f89af14",
+    "technically_accepted_count": 213,
     "workset_id": "workset:focusa-next-locked-release:r7"
   },
   "missing_accepted_implementation_commits": [],
@@ -134,17 +142,15 @@
     }
   ],
   "release_blockers": [
-    "immutable_v0.9.143_missing_required_assets",
-    "source_version_must_advance_to_v0.9.144",
     "technical_acceptance_pending"
   ],
   "release_ready": false,
   "schema": "focusa.locked_release_candidate_ancestry.v1",
   "source_version_agreement": true,
   "source_versions": {
-    "menubar": "0.9.143",
-    "pi_extension": "0.9.143",
-    "workspace": "0.9.143"
+    "menubar": "0.9.144",
+    "pi_extension": "0.9.144",
+    "workspace": "0.9.144"
   },
   "status": "verified",
   "tag_chain": {
