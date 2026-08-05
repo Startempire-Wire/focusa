@@ -55,6 +55,23 @@ try {
   assert.match(customElements, /<fixture-focusa-inspector[^>]*data-contribution-id="contribution:focusa-inspector"/);
 
   const fixture = JSON.parse(await readFile(new URL('./fixtures/mission-canvas/populated-projection.json', import.meta.url), 'utf8'));
+  const { validateLayoutIntegrity } = await server.ssrLoadModule('/src/lib/mission-canvas/layout-references.ts');
+  assert.deepEqual(validateLayoutIntegrity({
+    kind: 'tabs',
+    node_id: 'layout:invalid-tabs',
+    contribution_ids: ['contribution:a'],
+    active_contribution_id: 'contribution:foreign'
+  }).map((issue) => issue.code), ['invalid_active_tab']);
+  assert.deepEqual(validateLayoutIntegrity({
+    kind: 'split',
+    node_id: 'layout:duplicate-root',
+    direction: 'horizontal',
+    ratio: 0.5,
+    children: [
+      { kind: 'single', node_id: 'layout:duplicate-a', contribution_id: 'contribution:a' },
+      { kind: 'single', node_id: 'layout:duplicate-b', contribution_id: 'contribution:a' }
+    ]
+  }).map((issue) => issue.code), ['duplicate_contribution']);
   const { DEFAULT_CONTRIBUTION_REGISTRY } = await server.ssrLoadModule('/src/lib/mission-canvas/default-contribution-registry.ts');
   for (const contribution of fixture.eligible_contributions) {
     assert.ok(DEFAULT_CONTRIBUTION_REGISTRY.resolve(contribution), `default registry missing ${contribution.renderer_binding_id}`);

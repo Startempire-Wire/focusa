@@ -640,7 +640,7 @@ atomic_tasks:
   - id: UI-013
     parent: MC-070
     title: Render actual Work Surface strip
-    status: blocked
+    status: implemented_partial
     depends_on: [UI-004, CORE-007]
     read: [docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md]
     targets: [apps/desktop/src/lib/mission-canvas/ActualWorkSurfaceStrip.svelte]

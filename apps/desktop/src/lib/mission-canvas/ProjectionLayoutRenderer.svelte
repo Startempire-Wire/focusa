@@ -20,8 +20,20 @@
   }
 
   function activeTab(ids: string[], canonicalActive: string): string | undefined {
-    if (ids.includes(canonicalActive)) return canonicalActive;
-    return ids[0];
+    return ids.includes(canonicalActive) ? canonicalActive : undefined;
+  }
+
+  function navigateTabs(event: KeyboardEvent, ids: string[], selectedId: string): void {
+    if (!onSelectTab || ids.length < 2) return;
+    const current = ids.indexOf(selectedId);
+    let next = current;
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = (current + 1) % ids.length;
+    else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = (current - 1 + ids.length) % ids.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = ids.length - 1;
+    else return;
+    event.preventDefault();
+    onSelectTab(ids[next]);
   }
 </script>
 
@@ -62,9 +74,9 @@
   {@const selectedId = activeTab(availableIds, node.active_contribution_id)}
   {#if selectedId}
     {@const selected = contribution(selectedId)}
-    <div class="layout-tabs" class:interactive={Boolean(onSelectTab)} data-layout-node={node.node_id}>
-      {#if onSelectTab}
-        <div class="tab-list" role="tablist" aria-label="Canvas contribution tabs">
+    <div class="layout-tabs" class:with-strip={availableIds.length > 1} class:interactive={Boolean(onSelectTab)} data-layout-node={node.node_id}>
+      {#if availableIds.length > 1}
+        <div class="tab-list" role="tablist" aria-label="Work Surfaces">
           {#each availableIds as id}
             {@const item = contribution(id)}
             {#if item}
@@ -72,14 +84,18 @@
                 type="button"
                 role="tab"
                 aria-selected={id === selectedId}
-                onclick={() => onSelectTab(id)}
+                aria-controls={`panel-${node.node_id}-${id}`}
+                tabindex={id === selectedId ? 0 : -1}
+                disabled={!onSelectTab}
+                onclick={() => onSelectTab?.(id)}
+                onkeydown={(event) => navigateTabs(event, availableIds, selectedId)}
               >{item.accessibility.label}</button>
             {/if}
           {/each}
         </div>
       {/if}
       {#if selected}
-        <div role="tabpanel" data-contribution-id={selected.contribution_id}>
+        <div id={`panel-${node.node_id}-${selected.contribution_id}`} role="tabpanel" data-contribution-id={selected.contribution_id}>
           {@render renderContribution(selected)}
         </div>
       {/if}
@@ -113,10 +129,11 @@
   .layout-stack{min-width:0;min-height:0;display:grid;gap:var(--layout-cluster-gap)}
   .layout-grid{min-width:0;min-height:0;display:grid;grid-template-columns:repeat(var(--layout-columns),minmax(0,1fr));gap:var(--layout-cluster-gap)}
   .layout-tabs{min-width:0;min-height:0;display:grid;grid-template-rows:minmax(0,1fr)}
-  .layout-tabs.interactive{grid-template-rows:auto minmax(0,1fr);gap:var(--space-2)}
+  .layout-tabs.with-strip{grid-template-rows:auto minmax(0,1fr);gap:var(--space-2)}
   .tab-list{display:flex;align-items:center;gap:var(--space-1);overflow-x:auto}
   .tab-list button{min-height:28px;padding:0 var(--space-2);border:1px solid var(--color-border);border-radius:var(--radius-control);color:var(--color-text-tertiary);background:transparent;font:var(--type-caption);white-space:nowrap;cursor:pointer}
   .tab-list button[aria-selected='true']{color:var(--color-text);border-color:var(--color-border-strong);background:var(--color-raised)}
+  .tab-list button:disabled{cursor:default;opacity:1}
   .layout-inspector{min-width:0;min-height:0;display:grid;grid-template-columns:minmax(0,1fr)}
   .layout-inspector.has-inspector.end{grid-template-columns:minmax(0,1fr) minmax(220px,calc(var(--inspector-span) * 4%));gap:var(--layout-cluster-gap)}
   .layout-inspector.has-inspector:not(.end){grid-template-columns:minmax(220px,calc(var(--inspector-span) * 4%)) minmax(0,1fr);gap:var(--layout-cluster-gap)}

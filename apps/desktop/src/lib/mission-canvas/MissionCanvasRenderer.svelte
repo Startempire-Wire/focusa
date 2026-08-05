@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { MissionCanvasClient } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated';
-  import { collectLayoutContributionIds } from './layout-references';
+  import { collectLayoutContributionIds, validateLayoutIntegrity } from './layout-references';
   import MissionCanvasFrame from './MissionCanvasFrame.svelte';
   import type { OperationBinding, ResolvedContribution, ResolvedWorkspaceProjection } from './types';
   import type { ContributionRendererRegistry } from './contribution-renderers';
@@ -22,6 +22,7 @@
   const unavailable = $derived(
     projection.eligible_contributions.filter((contribution) => !registry.resolve(contribution))
   );
+  const layoutIntegrityIssues = $derived(validateLayoutIntegrity(projection.layout_tree));
   const layoutContributionIds = $derived(collectLayoutContributionIds(projection.layout_tree));
   const unresolvedLayoutIds = $derived(
     [...layoutContributionIds].filter((contributionId) =>
@@ -43,13 +44,16 @@
   {/if}
 {/snippet}
 
-{#if unavailable.length > 0 || unresolvedLayoutIds.length > 0 || unplacedContributionIds.length > 0}
+{#if unavailable.length > 0 || layoutIntegrityIssues.length > 0 || unresolvedLayoutIds.length > 0 || unplacedContributionIds.length > 0}
   <section class="renderer-blocked" role="alert" aria-label="Mission Canvas renderer unavailable">
     <strong>Renderer unavailable</strong>
     <span>The canonical workspace cannot be rendered by this Desktop build.</span>
     <ul>
       {#each unavailable as contribution (contribution.contribution_id)}
         <li data-unavailable-renderer={contribution.renderer_binding_id}>{contribution.accessibility.label}</li>
+      {/each}
+      {#each layoutIntegrityIssues as issue, index (`${issue.nodeId}:${issue.code}:${index}`)}
+        <li data-layout-integrity-issue={issue.code}>{issue.nodeId}{issue.contributionId ? ` · ${issue.contributionId}` : ''}</li>
       {/each}
       {#each unresolvedLayoutIds as contributionId (contributionId)}
         <li data-unresolved-layout-contribution={contributionId}>{contributionId}</li>
