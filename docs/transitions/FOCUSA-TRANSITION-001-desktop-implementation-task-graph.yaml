@@ -18,9 +18,10 @@ nodes:
   - id: D005-02
     parent: T070
     title: Prove shared browser application through UIAI Engine
-    status: complete
+    status: needs_refresh
     depends_on: [D005-01]
     evidence: [docs/contracts/evidence/spec158-desktop-m05-browser-wide.png, docs/contracts/evidence/spec158-desktop-m05-browser-responsive.png]
+    notes: Prior shell proof is valid; refresh is required after the complete-inner-surface switcher changes.
   - id: D005-03
     parent: T070
     title: Build and open native Tauri development shell
@@ -31,7 +32,7 @@ nodes:
     parent: T070
     title: Capture native shell screenshot and close 5 percent Evidence packet
     status: blocked
-    depends_on: [D005-03]
+    depends_on: [D005-02, D005-03]
     blocker: macOS screen-capture permission prevents bounded window capture
   - id: D010-01
     parent: T070
