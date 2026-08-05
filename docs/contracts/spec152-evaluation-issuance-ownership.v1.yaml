@@ -1,0 +1,46 @@
+schema: focusa.spec152.evaluation_issuance_ownership.v1
+contract_ref: docs/contracts/spec152-evaluation-issuance-contract.v1.schema.json
+operation_ref: issueEvaluationLease
+authority:
+  repository: WPUIAI/wpuiai
+  issue: 1
+  owns:
+    - account identity
+    - email collection and verification
+    - terms acceptance record
+    - privacy acknowledgement record
+    - independent marketing consent record
+    - device-code approval
+    - evaluation eligibility and consumption
+    - signed lease issuance and revocation
+focusa:
+  repository: Startempire-Wire/focusa
+  issue: 119
+  owns:
+    - public-safe schema consumption
+    - redacted onboarding state display
+    - signed envelope verification
+    - recovery-only behavior when issuance is unavailable or rejected
+  forbidden:
+    - collecting or persisting raw email in receipts or logs
+    - setting verified identity state
+    - inferring marketing consent from evaluation acceptance
+    - self-issuing an evaluation lease
+    - selecting Workstream, Workpoint, or cognitive authority from entitlement
+uiai:
+  repository: WPUIAI/uiai-engine
+  issue: 5
+  owns:
+    - independent child-token verification after Focusa entitlement exists
+  forbidden:
+    - duplicate account signup
+    - evaluation lease issuance
+redaction:
+  class: public_safe_no_direct_identifier
+  forbidden_fields:
+    - email
+    - email_address
+    - normalized_email
+    - marketing_opt_in_inferred
+stable_error_owner: WPUIAI/wpuiai#1
+fixture_owner: Startempire-Wire/focusa#119

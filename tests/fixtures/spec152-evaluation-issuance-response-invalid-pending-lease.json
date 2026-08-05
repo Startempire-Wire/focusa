@@ -1,0 +1,13 @@
+{
+  "schema": "focusa.evaluation_issuance_response.v1",
+  "request_ref": "req_01JEVV7A8M2F1X9R6Q5K4P3N2B",
+  "state": "pending",
+  "redaction_class": "public_safe_no_direct_identifier",
+  "lease_envelope": {
+    "schema": "focusa.signed_envelope.v1",
+    "signer_key_id": "client-self-issued",
+    "payload_b64": "Zm9yYmlkZGVuLWNsaWVudC1sZWFzZS1wYXlsb2Fk",
+    "signature_b64": "Zm9yYmlkZGVuLWNsaWVudC1zaWduYXR1cmU="
+  },
+  "error": null
+}

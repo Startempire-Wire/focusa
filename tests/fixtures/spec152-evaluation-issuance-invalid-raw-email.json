@@ -1,0 +1,28 @@
+{
+  "schema": "focusa.evaluation_issuance_request.v1",
+  "idempotency_key": "eval-issue:node_01JEVV7A8M2F1X9R6Q5K4P3N2B",
+  "account_handle": "acct_01JEVV7A8M2F1X9R6Q5K4P3N2B",
+  "email": "person@example.invalid",
+  "email_verification": {
+    "state": "verified",
+    "verification_receipt_ref": "evr_01JEVV7A8M2F1X9R6Q5K4P3N2B",
+    "verified_at": "2026-08-05T12:00:00Z"
+  },
+  "agreements": {
+    "terms_version": "2026-08-01",
+    "terms_accepted_at": "2026-08-05T12:01:00Z",
+    "privacy_version": "2026-08-01",
+    "privacy_acknowledged_at": "2026-08-05T12:01:00Z"
+  },
+  "marketing_consent": {
+    "status": "declined",
+    "policy_version": "2026-08-01",
+    "decided_at": "2026-08-05T12:01:00Z"
+  },
+  "device_code": {
+    "device_code_ref": "dvc_01JEVV7A8M2F1X9R6Q5K4P3N2B",
+    "state": "approved",
+    "approved_at": "2026-08-05T12:02:00Z"
+  },
+  "redaction_class": "public_safe_no_direct_identifier"
+}
