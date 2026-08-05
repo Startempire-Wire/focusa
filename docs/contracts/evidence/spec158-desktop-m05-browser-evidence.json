@@ -12,10 +12,10 @@
   },
   "browser_authority": "UIAI Engine",
   "uiai": {
-    "session_id": "bmcgg7jH",
-    "wide_read_ref": "uiai-browser:session=bmcgg7jH:read:2",
-    "interaction_read_ref": "uiai-browser:session=bmcgg7jH:read:3",
-    "diagnostics_ref": "uiai-diagnostics:session=bmcgg7jH:seq=75",
+    "session_id": "Ne1E6tD6",
+    "mission_canvas_read_ref": "uiai-browser:session=Ne1E6tD6:read:1",
+    "agent_tui_read_ref": "uiai-browser:session=Ne1E6tD6:read:2",
+    "diagnostics_ref": "uiai-diagnostics:session=Ne1E6tD6:seq=77",
     "diagnostics": {
       "console_errors": 0,
       "console_warnings": 0,
@@ -25,11 +25,14 @@
       "http_5xx": 0
     },
     "screenshots": [
-      "docs/contracts/evidence/spec158-desktop-m05-browser-wide.png",
+      "docs/contracts/evidence/spec158-desktop-m05-mission-canvas-current.png",
+      "docs/contracts/evidence/spec158-desktop-m05-agent-tui-current.png",
       "docs/contracts/evidence/spec158-desktop-m05-browser-responsive.png"
     ],
     "verified_behaviors": [
-      "shared SvelteKit application renders at 1440x900 and 760x900",
+      "Mission Canvas and Agent TUI replace the complete inner application surface",
+      "Mission Canvas leads the centered segmented switch",
+      "Agent TUI has no sidebar",
       "workspace navigation changes visible content",
       "planned workspaces remain truthfully unavailable",
       "daemon infrastructure health is read-only",

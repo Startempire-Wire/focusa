@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { FOCUSA_DESKTOP_WORKSPACES, workspaceById } from '$lib/shell/workspace-manifest';
   import { readDaemonHealth, type DaemonReadStatus } from '$lib/shell/daemon-health';
+  import MissionCanvasShell from '$lib/shell/MissionCanvasShell.svelte';
 
   let activeWorkspaceId = $state('mission-deck');
   let uiMode = $state<'tui' | 'canvas'>('canvas');
@@ -156,6 +157,8 @@
           </ul>
         </article>
       </section>
+    {:else if activeWorkspace.id === 'mission-canvas'}
+      <MissionCanvasShell />
     {:else if activeWorkspace.id === 'agent-runtime'}
       <section class="empty-state">
         <span class="eyebrow">Infrastructure plane</span>

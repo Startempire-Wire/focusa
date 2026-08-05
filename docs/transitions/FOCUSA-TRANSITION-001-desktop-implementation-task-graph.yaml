@@ -18,10 +18,10 @@ nodes:
   - id: D005-02
     parent: T070
     title: Prove shared browser application through UIAI Engine
-    status: needs_refresh
+    status: complete
     depends_on: [D005-01]
-    evidence: [docs/contracts/evidence/spec158-desktop-m05-browser-wide.png, docs/contracts/evidence/spec158-desktop-m05-browser-responsive.png]
-    notes: Prior shell proof is valid; refresh is required after the complete-inner-surface switcher changes.
+    evidence: [docs/contracts/evidence/spec158-desktop-m05-mission-canvas-current.png, docs/contracts/evidence/spec158-desktop-m05-agent-tui-current.png]
+    notes: UIAI Engine proved both complete inner surfaces and zero console, exception, or network failures.
   - id: D005-03
     parent: T070
     title: Build and open native Tauri development shell
@@ -52,8 +52,9 @@ nodes:
   - id: D020-02
     parent: T071
     title: Reconstruct Mission Canvas context bar activity tabs and left mode rail
-    status: ready
+    status: complete
     depends_on: [D020-01]
+    evidence: [docs/contracts/evidence/spec158-desktop-m05-mission-canvas-current.png]
   - id: D020-03
     parent: T071
     title: Reconstruct recomposable workspace panel grid and persistent prompt editor
