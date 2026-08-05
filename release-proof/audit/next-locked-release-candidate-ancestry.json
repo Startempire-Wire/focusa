@@ -19,11 +19,12 @@
     "d418039d3657eff0c690d1b2497a1f253d8ecf09",
     "ee569eb1e65eb8baada1000429a7400d46addb41"
   ],
-  "ancestry_digest": "sha256:91cfb1bb97579a9d160f9ba38aef1e648370d1796689e1f88ee666e3c203d8ab",
+  "ancestry_digest": "sha256:ddb168a3215463ba44303da32f16e7bd1894ae30154a8479db15400036128127",
   "audit_errors": [],
   "candidate": {
-    "audit_head": "0e9783fa44a070a6bcc6f53b347857f2fd3519c2",
+    "audit_head": "23bc55519e3ee9a5496cc38f648102249825aeba",
     "changed_after_source_commit": [
+      "release-proof/audit/next-locked-release-candidate-ancestry.json",
       "release-proof/audit/next-locked-release-governance-reconciliation.json",
       "release-proof/audit/next-locked-release-technical-closure-gate.json",
       "scripts/generate-locked-release-candidate-ancestry.py",
@@ -97,10 +98,10 @@
     "invalid_closed_count": 0,
     "inventory_digest": "sha256:9dad314492bc798205d7a64b89fc46e4bc8239b3394f1c4898b474720f1cb686",
     "mapping_count": 289,
-    "pending_technical_acceptance_count": 76,
-    "reconciliation_digest": "sha256:b600fbf5444338c2841e5d01cfa5f3d7180c05866e38f2dfe311046400f8be6d",
-    "technical_closure_gate_digest": "sha256:ad1759315df63ddddb1dc83ea0071a653fea5bbcbd21c3b53cffb57f7f89af14",
-    "technically_accepted_count": 213,
+    "pending_technical_acceptance_count": 75,
+    "reconciliation_digest": "sha256:d4285c1e6d1884fe68116cb0a12692dba2ebb64312c8bd6d420fda650141b5bc",
+    "technical_closure_gate_digest": "sha256:d189b60d48fd3ec2bd976445dd783135270db48d6443081d503bb0419a9fc4df",
+    "technically_accepted_count": 214,
     "workset_id": "workset:focusa-next-locked-release:r7"
   },
   "missing_accepted_implementation_commits": [],
