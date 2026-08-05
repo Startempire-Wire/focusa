@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Focusa verified bootstrapper. Product installation and entitlement authority
+# Focusa verified bootstrapper (Spec 112 §15A; Specs 150A/152). Product installation and entitlement authority
 # belong to the canonical Rust installer; this script only selects and verifies
 # that installer, then delegates.
 set -euo pipefail
@@ -47,6 +47,7 @@ USAGE
 log() { printf '\033[1;34m[focusa-install]\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[focusa-install]\033[0m %s\n' "$*" >&2; }
 die() { printf '\033[1;31m[focusa-install]\033[0m %s\n' "$*" >&2; exit 1; }
+usage_die() { printf '\033[1;31m[focusa-install]\033[0m %s\n' "$*" >&2; exit 64; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
 for arg in "$@"; do
@@ -69,7 +70,7 @@ for arg in "$@"; do
       die "raw credentials and legacy registry overrides are forbidden; use signed authority device authorization"
       ;;
     -h|--help) usage; exit 0 ;;
-    *) die "unknown option: $arg" ;;
+    *) usage_die "unknown option" ;;
   esac
 done
 
