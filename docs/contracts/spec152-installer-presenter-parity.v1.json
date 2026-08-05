@@ -1,0 +1,51 @@
+{
+  "schema": "focusa.installer_presenter_parity.v1",
+  "authority": "signed_daemon_projection_only",
+  "presenters": {
+    "rust_cli": {
+      "source": "crates/focusa-cli/src/commands/install.rs",
+      "role": "canonical_orchestrator",
+      "fields": ["state", "lease_sequence", "product", "channel_feature", "recovery_hint"]
+    },
+    "bash": {
+      "source": "scripts/install-focusa.sh",
+      "role": "verified_delegate",
+      "fields": ["target", "channel", "entitlement_requirement", "recovery_hint"]
+    },
+    "powershell": {
+      "source": "scripts/install-focusa.ps1",
+      "role": "verified_delegate",
+      "fields": ["target", "channel", "entitlement_requirement", "recovery_hint"]
+    },
+    "menubar": {
+      "source": "apps/menubar/src/lib/entitlementPosture.ts",
+      "role": "daemon_projection",
+      "fields": ["state", "masked_identity", "expires_at", "offline_grace_until", "limits", "locked_capabilities", "recovery_policy", "marketing_preference"]
+    }
+  },
+  "states": ["active", "offline_grace", "expired", "revoked", "invalid", "unactivated"],
+  "stable_errors": {
+    "raw_credential": "E_AUTHORITY_RAW_KEY_FORBIDDEN",
+    "existing_unusable": "E_AUTHORITY_EXISTING_UNUSABLE",
+    "device_denied": "E_AUTHORITY_DEVICE_DENIED",
+    "keyset_missing": "E_AUTHORITY_KEYSET_MISSING",
+    "lease_unusable": "E_AUTHORITY_LEASE_UNUSABLE",
+    "interrupted": "E_INSTALL_INTERRUPTED",
+    "status_unavailable": "authority_status_unavailable"
+  },
+  "recovery_actions": ["recovery", "export", "repair", "uninstall"],
+  "cases": [
+    {"id": "active", "state": "active", "execution": "allowed_if_exact_feature_and_limit", "action": "manage"},
+    {"id": "offline", "state": "offline_grace", "execution": "bounded_by_signed_window", "action": "refresh"},
+    {"id": "expired", "state": "expired", "execution": "blocked", "action": "purchase"},
+    {"id": "revoked", "state": "revoked", "execution": "blocked", "action": "purchase"},
+    {"id": "invalid", "state": "invalid", "execution": "blocked", "action": "refresh"},
+    {"id": "unactivated", "state": "unactivated", "execution": "blocked", "action": "evaluate"},
+    {"id": "raw_credential", "error": "E_AUTHORITY_RAW_KEY_FORBIDDEN", "secret_echo": false},
+    {"id": "interrupted", "error": "E_INSTALL_INTERRUPTED", "rollback": "preserve_prior_authority_and_data"}
+  ],
+  "redaction": {
+    "allowed_identity": "masked_only",
+    "forbidden_fields": ["email", "access_token", "refresh_token", "device_code", "credential", "manage_token", "key_hash"]
+  }
+}

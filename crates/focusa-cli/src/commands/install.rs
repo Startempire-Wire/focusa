@@ -2302,7 +2302,7 @@ async fn phase_license(args: &InstallArgs, channel: Channel) -> Result<String> {
     }
     if args.reuse_existing_license {
         bail!(
-            "existing signed authority lease is missing, expired, revoked, or lacks {required_feature}; reactivate before upgrade"
+            "E_AUTHORITY_EXISTING_UNUSABLE: existing signed authority lease is missing, expired, revoked, or lacks {required_feature}; reactivate before upgrade"
         );
     }
     if args
@@ -2311,7 +2311,7 @@ async fn phase_license(args: &InstallArgs, channel: Channel) -> Result<String> {
         .is_some_and(|key| !key.trim().is_empty())
     {
         bail!(
-            "raw license keys cannot authorize installation; use authority device authorization so a signed, node-bound lease is issued"
+            "E_AUTHORITY_RAW_KEY_FORBIDDEN: raw license keys cannot authorize installation; use authority device authorization so a signed, node-bound lease is issued"
         );
     }
 
@@ -2319,7 +2319,7 @@ async fn phase_license(args: &InstallArgs, channel: Channel) -> Result<String> {
     let snapshot =
         resolve_installer_entitlement(&config_dir, &required_feature)?.ok_or_else(|| {
             anyhow!(
-                "authority authorization completed without a usable signed product/channel lease"
+                "E_AUTHORITY_LEASE_UNUSABLE: authority authorization completed without a usable signed product/channel lease"
             )
         })?;
     Ok(format!(
@@ -2440,15 +2440,16 @@ async fn acquire_installer_entitlement(
         }
     }
     if session.status() != DeviceAuthorizationStatus::Authorized {
-        bail!("authority device authorization ended without an issued lease");
+        bail!(
+            "E_AUTHORITY_DEVICE_DENIED: authority device authorization ended without an issued lease"
+        );
     }
     let material = session
         .material()
         .ok_or_else(|| anyhow!("authority omitted authorized lease material"))?;
-    let key_set_raw = material
-        .key_set_envelope
-        .as_deref()
-        .ok_or_else(|| anyhow!("authority omitted signed key-set envelope"))?;
+    let key_set_raw = material.key_set_envelope.as_deref().ok_or_else(|| {
+        anyhow!("E_AUTHORITY_KEYSET_MISSING: authority omitted signed key-set envelope")
+    })?;
     let key_set: SignedEnvelope =
         serde_json::from_str(key_set_raw).context("decode authority key-set envelope")?;
     let lease: SignedEnvelope =
@@ -2473,7 +2474,7 @@ async fn acquire_installer_entitlement(
         .copied()
         .unwrap_or(false)
     {
-        bail!("issued lease does not grant {required_feature}");
+        bail!("E_AUTHORITY_LEASE_UNUSABLE: issued lease does not grant {required_feature}");
     }
     let handle = CredentialHandle::for_node("focusa", &identity.node_id)
         .context("derive protected refresh-credential handle")?;

@@ -165,10 +165,10 @@ try {
 
   $Focusa = $Bootstrap
   & $Focusa @Args
-  if ($LASTEXITCODE -ne 0) { Die "focusa install failed with exit code $LASTEXITCODE; prior installation and recovery data remain authoritative" }
+  if ($LASTEXITCODE -ne 0) { Die "E_INSTALL_INTERRUPTED: focusa install failed with exit code $LASTEXITCODE; prior installation and recovery data remain authoritative" }
   $Interrupted = $false
   Log "Focusa installation completed through the canonical Rust flow"
 } finally {
-  if ($Interrupted) { Warn "authorization or installation interrupted; no local entitlement was issued" }
+  if ($Interrupted) { Warn "E_INSTALL_INTERRUPTED: authorization or installation interrupted; no local entitlement was issued" }
   if (Test-Path -LiteralPath $TempRoot) { Remove-Item -LiteralPath $TempRoot -Recurse -Force }
 }

@@ -67,7 +67,7 @@ for arg in "$@"; do
     --uninstall) UNINSTALL=1 ;;
     --purge-data) PURGE_DATA=1 ;;
     --license-key=*|--email=*|--registry=*)
-      die "raw credentials and legacy registry overrides are forbidden; use signed authority device authorization"
+      die "E_AUTHORITY_RAW_KEY_FORBIDDEN: raw credentials and legacy registry overrides are forbidden; use signed authority device authorization"
       ;;
     -h|--help) usage; exit 0 ;;
     *) usage_die "unknown option" ;;
@@ -220,7 +220,7 @@ ARGS=(install --target="$RUST_TARGET" --channel="$CHANNEL" --github-repo="$GITHU
 BOOTSTRAP_STASH="$TMP/bootstrap-stash"
 mkdir -p "$BOOTSTRAP_STASH"
 restore_bootstrap_stash() {
-  warn "Rust installer failed; preserving recovery state and leaving prior installation authoritative"
+  warn "E_INSTALL_INTERRUPTED: Rust installer failed; preserving recovery state and leaving prior installation authoritative"
 }
 
 # The Rust installer performs entitlement acquisition before product asset download,
