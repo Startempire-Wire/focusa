@@ -11,7 +11,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "test": "node tests/shell-contract.mjs",
+    "test": "node tests/shell-contract.mjs && node tests/layout-renderer-runtime.mjs",
     "gate": "npm run test && npm run check && npm run build",
     "tauri": "tauri"
   },

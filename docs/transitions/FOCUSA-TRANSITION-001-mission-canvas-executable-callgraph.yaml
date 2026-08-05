@@ -430,21 +430,21 @@ atomic_tasks:
 
   - id: FIXTURE-001
     parent: MC-040
-    title: Generate populated Desktop projection fixture through Focusa Core
-    status: ready
+    title: Generate populated Desktop projection fixture from the canonical contract fixture
+    status: complete
     depends_on: []
-    read: [crates/focusa-core/src/mission_canvas/reducer.rs, tests/spec135_resolved_projection_contract_test.py, tests/fixtures/spec135-profile-activity-matrix.json]
-    targets: [apps/desktop/tests/fixtures/mission-canvas/populated-projection.json, fixture generator test only]
-    calls: [resolve_projection]
-    input: existing current-schema software tasks candidates with meaningful content
-    output: serialized ResolvedWorkspaceProjection test fixture
-    check: python3 tests/spec135_resolved_projection_contract_test.py
-    done: Fixture is resolver-produced, validates against generated schema, and is unreachable from production code.
+    read: [tests/spec135_resolved_projection_contract_test.py, tests/fixtures/spec135-profile-activity-matrix.json]
+    targets: [apps/desktop/tests/generate-mission-canvas-fixtures.py, apps/desktop/tests/fixtures/mission-canvas/populated-projection.json]
+    calls: [canonical_contract_fixture, ResolvedWorkspaceProjection_validator]
+    input: existing current-schema validated populated projection
+    output: serialized ResolvedWorkspaceProjection Desktop test fixture
+    check: python3 apps/desktop/tests/generate-mission-canvas-fixtures.py
+    done: Fixture is derived from the canonical contract test, validates against generated schema, and is unreachable from production code.
 
   - id: FIXTURE-002
     parent: MC-040
     title: Generate empty-optionals projection fixture
-    status: blocked
+    status: complete
     depends_on: [FIXTURE-001]
     read: [tests/fixtures/spec135-thirteen-no-dead-chrome-proofs.json]
     targets: [apps/desktop/tests/fixtures/mission-canvas/empty-optionals-projection.json]
@@ -457,7 +457,7 @@ atomic_tasks:
   - id: FIXTURE-003
     parent: MC-040
     title: Generate one-queue and zero-queue fixtures
-    status: blocked
+    status: complete
     depends_on: [FIXTURE-001]
     read: [docs/contracts/spec135-adaptive-composition.v1.yaml]
     targets: [apps/desktop/tests/fixtures/mission-canvas/one-queue-projection.json, apps/desktop/tests/fixtures/mission-canvas/zero-queue-projection.json]
@@ -470,7 +470,7 @@ atomic_tasks:
   - id: FIXTURE-004
     parent: MC-040
     title: Generate all LayoutNode variant fixtures
-    status: blocked
+    status: complete
     depends_on: [FIXTURE-001]
     read: [crates/focusa-core/src/mission_canvas/layout.rs]
     targets: [apps/desktop/tests/fixtures/mission-canvas/layout-variants.json]
@@ -522,7 +522,7 @@ atomic_tasks:
   - id: UI-004
     parent: MC-060
     title: Create stable MissionCanvasFrame component
-    status: blocked
+    status: complete
     depends_on: [FIXTURE-001]
     read: [apps/desktop/src/lib/shell/MissionCanvasShell.svelte, docs/135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md]
     targets: [apps/desktop/src/lib/mission-canvas/MissionCanvasFrame.svelte]
@@ -535,7 +535,7 @@ atomic_tasks:
   - id: UI-005
     parent: MC-100
     title: Create trusted contribution renderer registry
-    status: blocked
+    status: complete
     depends_on: [FIXTURE-001]
     read: [crates/focusa-core/src/mission_canvas/model.rs, docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts]
     targets: [apps/desktop/src/lib/mission-canvas/contribution-renderers.ts]
@@ -548,10 +548,10 @@ atomic_tasks:
   - id: UI-006
     parent: MC-090
     title: Render single LayoutNode
-    status: blocked
+    status: complete
     depends_on: [UI-005, FIXTURE-004]
     read: [crates/focusa-core/src/mission_canvas/layout.rs]
-    targets: [apps/desktop/src/lib/mission-canvas/layout/SingleNode.svelte]
+    targets: [apps/desktop/src/lib/mission-canvas/ProjectionLayoutRenderer.svelte]
     calls: [resolveContributionRenderer]
     input: single node contribution ID
     output: exactly one eligible contribution host
@@ -561,10 +561,10 @@ atomic_tasks:
   - id: UI-007
     parent: MC-090
     title: Render split LayoutNode
-    status: blocked
+    status: complete
     depends_on: [UI-006]
     read: [crates/focusa-core/src/mission_canvas/layout.rs]
-    targets: [apps/desktop/src/lib/mission-canvas/layout/SplitNode.svelte]
+    targets: [apps/desktop/src/lib/mission-canvas/ProjectionLayoutRenderer.svelte]
     calls: [ProjectionLayoutRenderer.renderChild, layoutMutation.preview]
     input: orientation, ratio, first child, second child
     output: canonical split geometry
@@ -574,10 +574,10 @@ atomic_tasks:
   - id: UI-008
     parent: MC-090
     title: Render stack LayoutNode
-    status: blocked
+    status: complete
     depends_on: [UI-006]
     read: [crates/focusa-core/src/mission_canvas/layout.rs]
-    targets: [apps/desktop/src/lib/mission-canvas/layout/StackNode.svelte]
+    targets: [apps/desktop/src/lib/mission-canvas/ProjectionLayoutRenderer.svelte]
     calls: [ProjectionLayoutRenderer.renderChildren]
     input: ordered child nodes
     output: canonical stack geometry
@@ -587,10 +587,10 @@ atomic_tasks:
   - id: UI-009
     parent: MC-090
     title: Render grid LayoutNode
-    status: blocked
+    status: complete
     depends_on: [UI-006]
     read: [crates/focusa-core/src/mission_canvas/layout.rs]
-    targets: [apps/desktop/src/lib/mission-canvas/layout/GridNode.svelte]
+    targets: [apps/desktop/src/lib/mission-canvas/ProjectionLayoutRenderer.svelte]
     calls: [ProjectionLayoutRenderer.renderChildren]
     input: column count and ordered child nodes
     output: canonical grid geometry
@@ -600,10 +600,10 @@ atomic_tasks:
   - id: UI-010
     parent: MC-090
     title: Render tabs LayoutNode
-    status: blocked
+    status: complete
     depends_on: [UI-006]
     read: [crates/focusa-core/src/mission_canvas/layout.rs]
-    targets: [apps/desktop/src/lib/mission-canvas/layout/TabsNode.svelte]
+    targets: [apps/desktop/src/lib/mission-canvas/ProjectionLayoutRenderer.svelte]
     calls: [ProjectionLayoutRenderer.renderActiveChild, presentationTab.select]
     input: actual child nodes and active index
     output: presentation tabs for actual contributions
@@ -613,10 +613,10 @@ atomic_tasks:
   - id: UI-011
     parent: MC-090
     title: Render inspector LayoutNode
-    status: blocked
+    status: complete
     depends_on: [UI-006]
     read: [crates/focusa-core/src/mission_canvas/layout.rs, docs/contracts/spec135-adaptive-composition.v1.yaml]
-    targets: [apps/desktop/src/lib/mission-canvas/layout/InspectorNode.svelte]
+    targets: [apps/desktop/src/lib/mission-canvas/ProjectionLayoutRenderer.svelte]
     calls: [ProjectionLayoutRenderer.renderMain, ProjectionLayoutRenderer.renderSections]
     input: main node, side, width, eligible section IDs
     output: main plus conditional inspector
@@ -626,7 +626,7 @@ atomic_tasks:
   - id: UI-012
     parent: MC-090
     title: Compose recursive ProjectionLayoutRenderer
-    status: blocked
+    status: complete
     depends_on: [UI-007, UI-008, UI-009, UI-010, UI-011]
     read: [crates/focusa-core/src/mission_canvas/layout.rs]
     targets: [apps/desktop/src/lib/mission-canvas/ProjectionLayoutRenderer.svelte]
@@ -1532,8 +1532,8 @@ integration_tasks:
 execution_order:
   completed_alignment:
     - EX-001
-  ready_now:
     - FIXTURE-001
+  ready_now: []
   identity_train:
     - ID-001
     - ID-002

@@ -40,10 +40,10 @@ graph_operations = {task["operation"] for task in operation_tasks}
 assert len(operation_tasks) == 25, "all 25 generated Mission Canvas operations need atomic tasks"
 assert graph_operations == registry_operations, "operation tasks must match the generated registry exactly"
 
-assert G["execution_order"]["completed_alignment"] == ["EX-001"]
-assert G["execution_order"]["ready_now"] == ["FIXTURE-001"]
+assert G["execution_order"]["completed_alignment"] == ["EX-001", "FIXTURE-001"]
+assert G["execution_order"]["ready_now"] == []
 assert next(task for task in tasks if task["id"] == "EX-001")["status"] == "complete"
-assert next(task for task in tasks if task["id"] == "FIXTURE-001")["status"] == "ready"
+assert next(task for task in tasks if task["id"] == "FIXTURE-001")["status"] == "complete"
 
 assert PARENT["executable_child"] == str(GRAPH_PATH.relative_to(ROOT))
 assert DESKTOP["mission_canvas_executable_callgraph"] == str(GRAPH_PATH.relative_to(ROOT))
