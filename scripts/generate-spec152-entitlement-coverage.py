@@ -14,15 +14,44 @@ OPERATIONS = ROOT / "docs/contracts/spec135/generated-contract-v1/operation-regi
 CAPABILITIES = ROOT / "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json"
 
 FAMILY_FEATURE = {
+    "agent": "focusa.core.workpoint",
+    "awareness": "focusa.core.evidence",
+    "bloatgaurd": "focusa.core.evidence",
+    "call_stack": "focusa.core.evidence",
+    "context": "focusa.core.evidence",
+    "context_cognition": "focusa.core.evidence",
+    "device": "focusa.team.multi_operator",
+    "diagnostics": "focusa.core.evidence",
+    "dxux": "focusa.core.evidence",
+    "events": "focusa.core.workpoint",
     "evidence": "focusa.core.evidence",
-    "workpoint": "focusa.core.workpoint",
-    "trajectory": "focusa.core.mission",
+    "interview_strategy": "focusa.core.mission",
+    "lineage": "focusa.core.evidence",
+    "memory": "focusa.core.evidence",
+    "metacognition": "focusa.core.evidence",
+    "mission_canvas": "focusa.core.mission",
+    "prediction": "focusa.core.evidence",
     "project": "focusa.core.mission",
     "project_genesis": "focusa.core.mission",
-    "silent_sessions": "focusa.agent.silent_sessions",
+    "project_interview": "focusa.core.mission",
+    "project_role_profile": "focusa.core.mission",
+    "provider_execution": "focusa.agent.parallelism",
     "release": "focusa.release.proof",
+    "resource": "focusa.core.evidence",
+    "silent_sessions": "focusa.agent.silent_sessions",
+    "spec_workbench": "focusa.core.mission",
+    "state": "focusa.core.workpoint",
+    "task_plan": "focusa.core.mission",
+    "trajectory": "focusa.core.mission",
+    "traverse": "focusa.core.evidence",
+    "turn": "focusa.core.workpoint",
     "update": "focusa.update.apply",
+    "work_loop": "focusa.core.workpoint",
+    "work_rail": "focusa.core.workpoint",
+    "workpoint": "focusa.core.workpoint",
+    "workspace_artifact": "focusa.core.evidence",
 }
+RECOVERY_FAMILIES = {"health", "license"}
 RECOVERY_PATHS = {"/health", "/v1/health", "/v1/license/status"}
 
 
@@ -88,12 +117,13 @@ def build():
         mutation = mutation_class([], item.get("side_effect_profile"))
         family = item.get("family")
         feature = FAMILY_FEATURE.get(family) if mutation == "mutation" else None
-        covered = mutation == "read" or feature is not None
+        recovery = family in RECOVERY_FAMILIES
+        covered = mutation == "read" or feature is not None or recovery
         record = entry(
             "operation", item["operation_id"], mutation, feature=feature,
             gate="focusa-api entitlement middleware" if feature else None,
-            pre_side_effect_test="required" if mutation == "mutation" else "not_applicable",
-            recovery=False, source=item.get("docs_ref"),
+            pre_side_effect_test="required" if mutation == "mutation" and not recovery else "not_applicable",
+            recovery=recovery, source=item.get("docs_ref"),
         )
         (coverage if covered else unmatched).append(record)
 
@@ -116,16 +146,18 @@ def build():
         (coverage if covered else unmatched).append(record)
 
     for descriptor in capabilities:
-        name = descriptor.get("tool_name") or descriptor.get("name") or descriptor.get("operation_id")
-        operation_ref = descriptor.get("operation_ref") or descriptor.get("operation_id")
-        operation = operation_by_id.get(operation_ref, {})
-        mutation = mutation_class([], operation.get("side_effect_profile") or descriptor.get("side_effect"))
-        feature = FAMILY_FEATURE.get(operation.get("family")) if mutation == "mutation" else None
+        name = descriptor.get("tool_names", {}).get("pi") or descriptor.get("capability_id")
+        effects = set(descriptor.get("side_effects", []))
+        mutation = "read" if effects and effects <= {"read", "read_only", "none"} else "mutation"
+        family = descriptor.get("family")
+        feature = FAMILY_FEATURE.get(family) if mutation == "mutation" else None
+        recovery = family in RECOVERY_FAMILIES
         record = entry("pi_tool", str(name), mutation, feature=feature,
                        gate="Pi tool preflight" if feature else None,
-                       pre_side_effect_test="required" if mutation == "mutation" else "not_applicable",
+                       pre_side_effect_test="required" if mutation == "mutation" and not recovery else "not_applicable",
+                       recovery=recovery,
                        source="docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json")
-        (coverage if mutation == "read" or feature else unmatched).append(record)
+        (coverage if mutation == "read" or feature or recovery else unmatched).append(record)
 
     for command in discover_cli():
         unmatched.append(entry("cli", command, "unknown", source="crates/focusa-cli/src/main.rs"))

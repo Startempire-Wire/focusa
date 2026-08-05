@@ -47,7 +47,7 @@ for row in actual["unmatched_surfaces"]:
     assert row["mutation_class"] in {"mutation", "unknown"} or row["feature"] is None
 
 source = GENERATOR.read_text()
-assert "FAMILY_FEATURE" in source and "operation.get(\"family\")" in source
+assert "FAMILY_FEATURE" in source and '.get("family")' in source
 assert "in item[\"operation_id\"]" not in source, "substring classification detected"
 
 print(json.dumps({
