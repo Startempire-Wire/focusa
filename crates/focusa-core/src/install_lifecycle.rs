@@ -6,6 +6,7 @@ mod models;
 mod orchestrator;
 mod preflight;
 mod preservation;
+mod receipts;
 mod transactions;
 
 pub use adapters::*;
@@ -13,6 +14,7 @@ pub use models::*;
 pub use orchestrator::*;
 pub use preflight::*;
 pub use preservation::*;
+pub use receipts::*;
 pub use transactions::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://focusa.dev/contracts/spec150a-lifecycle-entitlement-receipt.v1.schema.json",
+  "title": "Focusa Lifecycle Entitlement Receipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_id",
+    "transaction_id",
+    "operation",
+    "final_state",
+    "created_at",
+    "installer_artifact_digest",
+    "daemon_service_healthy",
+    "entitlement_receipt_class",
+    "signature_verified",
+    "entitlement_evidence_refs",
+    "adapter_entitlement_postures",
+    "journal_head_hash",
+    "previous_receipt_hash",
+    "receipt_hash"
+  ],
+  "properties": {
+    "schema_version": { "const": "focusa.lifecycle_acceptance_receipt.v1" },
+    "receipt_id": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "transaction_id": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "operation": { "enum": ["inspect", "install", "repair", "rerun", "update", "rollback", "uninstall", "purge"] },
+    "final_state": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "installer_artifact_digest": { "$ref": "#/$defs/digest" },
+    "daemon_service_healthy": { "type": "boolean" },
+    "entitlement_receipt_class": { "enum": ["recovery_ready", "evaluation_ready", "paid_ready", "development_ready", "blocked_entitlement"] },
+    "lease_id": { "type": ["string", "null"], "maxLength": 200 },
+    "lease_sequence": { "type": ["integer", "null"], "minimum": 1 },
+    "lease_payload_digest": { "oneOf": [{ "$ref": "#/$defs/digest" }, { "type": "null" }] },
+    "product_grants_digest": { "oneOf": [{ "$ref": "#/$defs/digest" }, { "type": "null" }] },
+    "feature_grants_digest": { "oneOf": [{ "$ref": "#/$defs/digest" }, { "type": "null" }] },
+    "node_id": { "type": ["string", "null"], "maxLength": 200 },
+    "license_class": { "type": ["string", "null"], "maxLength": 80 },
+    "signature_verified": { "type": "boolean" },
+    "offline_valid_until": { "type": ["string", "null"], "format": "date-time" },
+    "entitlement_evidence_refs": { "type": "array", "items": { "type": "string", "maxLength": 300 }, "maxItems": 64 },
+    "protected_component_set_digest": { "oneOf": [{ "$ref": "#/$defs/digest" }, { "type": "null" }] },
+    "adapter_entitlement_postures": { "type": "array", "items": { "type": "object" }, "maxItems": 32 },
+    "journal_head_hash": { "$ref": "#/$defs/digest" },
+    "previous_receipt_hash": { "$ref": "#/$defs/digest" },
+    "receipt_hash": { "$ref": "#/$defs/digest" }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-fA-F]{64}$" }
+  }
+}
