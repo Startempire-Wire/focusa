@@ -27,6 +27,8 @@ pub enum DeviceCodePollResponse {
     SlowDown,
     Authorized {
         signed_lease: String,
+        #[serde(default)]
+        key_set_envelope: Option<String>,
         refresh_credential: String,
     },
     Denied {
@@ -74,6 +76,7 @@ impl std::fmt::Display for SensitiveCredential {
 #[derive(Clone, PartialEq, Eq)]
 pub struct AuthorizedLeaseMaterial {
     pub signed_lease: String,
+    pub key_set_envelope: Option<String>,
     pub refresh_credential: SensitiveCredential,
 }
 
@@ -227,6 +230,7 @@ impl DeviceAuthorizationSession {
             }
             DeviceCodePollResponse::Authorized {
                 signed_lease,
+                key_set_envelope,
                 refresh_credential,
             } => {
                 if signed_lease.trim().is_empty() {
@@ -234,6 +238,7 @@ impl DeviceAuthorizationSession {
                 }
                 self.material = Some(AuthorizedLeaseMaterial {
                     signed_lease,
+                    key_set_envelope,
                     refresh_credential: SensitiveCredential::new(refresh_credential)?,
                 });
                 self.status = DeviceAuthorizationStatus::Authorized;
@@ -320,12 +325,17 @@ mod tests {
             .observe_poll(
                 DeviceCodePollResponse::Authorized {
                     signed_lease: "signed-envelope".into(),
+                    key_set_envelope: Some("signed-key-set".into()),
                     refresh_credential: "refresh-secret".into(),
                 },
                 10_000,
             )
             .unwrap();
         assert_eq!(session.status(), DeviceAuthorizationStatus::Authorized);
+        assert_eq!(
+            session.material().unwrap().key_set_envelope.as_deref(),
+            Some("signed-key-set")
+        );
         assert_eq!(
             session.material().unwrap().refresh_credential.to_string(),
             "[REDACTED]"
@@ -360,6 +370,7 @@ mod tests {
                 .observe_poll(
                     DeviceCodePollResponse::Authorized {
                         signed_lease: format!("signed-{lease_kind}"),
+                        key_set_envelope: None,
                         refresh_credential: format!("refresh-{lease_kind}"),
                     },
                     3_000,

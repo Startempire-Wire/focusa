@@ -2,7 +2,7 @@
 //!
 //! Replaces the shell-heavy `scripts/install-focusa.sh` with a Rust subcommand
 //! that owns all install behavior:
-//!   * license validation (via `license::registry_validate`)
+//!   * signed authority-lease resolution and verified-email device authorization
 //!   * asset download (`focusa`, `focusa-daemon`, `focusa-tui`)
 //!   * SHA256SUMS verification
 //!   * symlink placement (`~/.local/bin > /usr/local/bin`)
@@ -20,6 +20,24 @@ use anyhow::{Context, Result, anyhow, bail};
 use clap::Args;
 use focusa_core::license::load_license_status;
 use focusa_core::update::{UPDATE_POLICY_SCHEMA_V1, UpdatePolicy};
+use focusa_license::authority::{
+    EntitlementSnapshot, EntitlementState, LeaseVerificationContext, SignedEnvelope,
+};
+use focusa_license::authority_client::{
+    DeviceAuthorizationSession, DeviceAuthorizationStatus, DeviceCodePollResponse,
+    DeviceCodeStartRequest, PollAction,
+};
+use focusa_license::authority_credentials::{
+    CredentialHandle, KeyringCredentialStore, load_or_create_node_identity,
+    rotate_refresh_credential,
+};
+use focusa_license::authority_http::{
+    AuthorityEndpointSet, AuthorityHttpClient, AuthorityHttpPolicy, DeviceCodePollRequest,
+};
+use focusa_license::authority_store::{
+    AUTHORITY_STATE_FILE, PersistedAuthorityState, embedded_production_trust_roots,
+    resolve_authority_state,
+};
 use focusa_terminal_ui::install::completion::InstallCompletionSummary;
 use focusa_terminal_ui::install::event::NullEventSink;
 use focusa_terminal_ui::install::presenter::{PlainPresenter, Presenter, presenter_for_mode};
@@ -34,6 +52,7 @@ use std::io::{IsTerminal, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread::JoinHandle;
+use std::time::Duration;
 
 struct UiChannel {
     sender: mpsc::Sender<InstallEvent>,
@@ -181,11 +200,11 @@ pub struct InstallArgs {
     #[arg(long, requires = "install_dependencies")]
     pub assume_yes: bool,
 
-    /// License key (commercial install). Eval mode is selected by absence.
+    /// Deprecated raw-key input; installation requires an authority-issued signed lease.
     #[arg(long, value_name = "KEY")]
     pub license_key: Option<String>,
 
-    /// Eval mode: skip license validation, write `eval: true` to license.json.
+    /// Request an authority-issued evaluation lease through verified-email device authorization.
     #[arg(long)]
     pub eval: bool,
 
@@ -1054,12 +1073,11 @@ fn detect_license_override(args: &InstallArgs) -> LicenseOverrideInventory {
     let local_tier = load_license_status()
         .map(|status| status.tier)
         .unwrap_or_else(|_| "unknown".into());
-    let override_active =
-        args.eval || args.accept_license || args.license_key.is_some() || dev_mode_requested;
+    let override_active = args.license_key.is_some() || dev_mode_requested;
     let effective_mode = if args.eval {
-        "evaluation".into()
+        "authority_evaluation_request".into()
     } else if args.accept_license || args.license_key.is_some() {
-        "license_override".into()
+        "unsupported_legacy_input".into()
     } else if dev_mode_requested {
         "dev_mode".into()
     } else {
@@ -2268,97 +2286,224 @@ pub async fn run(args: InstallArgs) -> Result<()> {
 }
 
 // ----- Phase 1: License re-validation (focusa-112-license-revalidate) -----
-async fn phase_license(args: &InstallArgs) -> Result<String> {
-    use crate::commands::license::{RegistryValidateOutcome, registry_validate};
-    if args.eval {
-        return Ok("eval".to_string());
-    }
-    if args.reuse_existing_license {
-        let home = std::env::var_os("HOME")
-            .map(std::path::PathBuf::from)
-            .ok_or_else(|| anyhow!("HOME not set; cannot reuse existing license"))?;
-        let license_path = home.join(".config/focusa/license.json");
-        if !license_path.is_file() {
-            return Err(anyhow!(
-                "existing license record not found at {}; pass `focusa upgrade --eval` for evaluation mode or `focusa upgrade --license-key <key>` for commercial activation",
-                license_path.display()
-            ));
-        }
-        let status = load_license_status().context("load existing license for upgrade")?;
-        if status.status != "active" {
-            return Err(anyhow!(
-                "existing license status is {}; reactivate the license before upgrading",
-                status.status
-            ));
-        }
+async fn phase_license(args: &InstallArgs, channel: Channel) -> Result<String> {
+    let home = std::env::var_os("HOME")
+        .map(std::path::PathBuf::from)
+        .ok_or_else(|| anyhow!("HOME not set; cannot resolve authority entitlement"))?;
+    let config_dir = home.join(".config/focusa");
+    let required_feature = install_channel_feature(channel);
+
+    if let Some(snapshot) = resolve_installer_entitlement(&config_dir, &required_feature)? {
         return Ok(format!(
-            "existing_{}",
-            status.mode.label().to_ascii_lowercase()
+            "authority_{}_sequence_{}",
+            entitlement_state_label(snapshot.state),
+            snapshot.sequence.unwrap_or_default()
         ));
     }
-    let key = match args.license_key.as_deref() {
-        Some(k) if !k.trim().is_empty() => k,
-        _ => {
-            return Err(anyhow!(
-                "license_key required for commercial install; pass --license-key <key> or --eval"
-            ));
-        }
+    if args.reuse_existing_license {
+        bail!(
+            "existing signed authority lease is missing, expired, revoked, or lacks {required_feature}; reactivate before upgrade"
+        );
+    }
+    if args
+        .license_key
+        .as_deref()
+        .is_some_and(|key| !key.trim().is_empty())
+    {
+        bail!(
+            "raw license keys cannot authorize installation; use authority device authorization so a signed, node-bound lease is issued"
+        );
+    }
+
+    acquire_installer_entitlement(&config_dir, &required_feature, args.json).await?;
+    let snapshot =
+        resolve_installer_entitlement(&config_dir, &required_feature)?.ok_or_else(|| {
+            anyhow!(
+                "authority authorization completed without a usable signed product/channel lease"
+            )
+        })?;
+    Ok(format!(
+        "authority_{}_sequence_{}",
+        entitlement_state_label(snapshot.state),
+        snapshot.sequence.unwrap_or_default()
+    ))
+}
+
+fn resolve_installer_entitlement(
+    config_dir: &std::path::Path,
+    required_feature: &str,
+) -> Result<Option<EntitlementSnapshot>> {
+    let identity = load_or_create_node_identity(config_dir, "focusa")
+        .context("resolve node identity for authority entitlement")?;
+    let context = LeaseVerificationContext {
+        expected_product: "focusa".into(),
+        expected_node_id: identity.node_id,
+        now: chrono::Utc::now(),
+        minimum_sequence: None,
+        expected_previous_digest: None,
     };
-    // License registry URL. Read from FOCUSA_LICENSE_REGISTRY env var when set,
-    // so operators can point at a private endpoint without baking the URL into the
-    // binary. The default points at wpuiai.com, the actual license authority that
-    // hosts the live /wp-json/wpuiai-ai-cloud/v1/license/validate endpoint.
-    // install.focusa.dev is only the public shell-script distribution facade; its
-    // license API path returns license_not_found.
-    let registry = std::env::var("FOCUSA_LICENSE_REGISTRY")
-        .unwrap_or_else(|_| "https://wpuiai.com".to_string());
-    let outcome = registry_validate(&registry, key).await;
-    match outcome {
-        RegistryValidateOutcome {
-            response: Some(r),
-            error: None,
-        } if r.valid && r.status == "dev_mode" => {
-            // Operator rule (2026-07-07): dev_mode is a test fixture for the
-            // operator's testing and must not hinder transactions. The
-            // registry returned a successful test-fixture response, not a
-            // real license row. The bash bootstrapper downgrades this to
-            // eval mode before reaching the Rust orchestrator, but if we
-            // hit this branch the caller passed `--license-key` to the
-            // Rust installer directly. Refuse and explain.
-            let require_real = std::env::var("FOCUSA_REQUIRE_REAL_LICENSE")
-                .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-                .unwrap_or(false);
-            if require_real {
-                return Err(anyhow!(
-                    "registry returned status=dev_mode for a license key; this is a TEST FIXTURE, not a real purchase. \
-                     unset FOCUSA_REQUIRE_REAL_LICENSE to allow dev_mode downgrades, or purchase at {}/buy.",
-                    registry
-                ));
+    let snapshot = resolve_authority_state(
+        &config_dir.join(AUTHORITY_STATE_FILE),
+        embedded_production_trust_roots(),
+        &context,
+    );
+    if !matches!(
+        snapshot.state,
+        EntitlementState::Active | EntitlementState::OfflineGrace
+    ) || snapshot.product != "focusa"
+        || !snapshot
+            .features
+            .get(required_feature)
+            .copied()
+            .unwrap_or(false)
+    {
+        return Ok(None);
+    }
+    Ok(Some(snapshot))
+}
+
+async fn acquire_installer_entitlement(
+    config_dir: &std::path::Path,
+    required_feature: &str,
+    json_output: bool,
+) -> Result<()> {
+    let identity = load_or_create_node_identity(config_dir, "focusa")
+        .context("create node-bound authority identity")?;
+    let request = DeviceCodeStartRequest {
+        request_id: uuid::Uuid::now_v7(),
+        product: "focusa".into(),
+        node_id: identity.node_id.clone(),
+        requested_features: vec![required_feature.into()],
+    };
+    let origin = std::env::var("FOCUSA_AUTHORITY_ORIGIN")
+        .unwrap_or_else(|_| "https://wpuiai.com/wp-json/wpuiai-ai-cloud/v1/authority/".into());
+    let origin = reqwest::Url::parse(&origin).context("parse FOCUSA_AUTHORITY_ORIGIN")?;
+    let endpoints = AuthorityEndpointSet {
+        start: origin.join("device/start")?,
+        poll: origin.join("device/poll")?,
+        refresh: origin.join("lease/refresh")?,
+        nodes: origin.join("nodes")?,
+        deactivate_node: origin.join("nodes/deactivate")?,
+    };
+    let client = AuthorityHttpClient::new(AuthorityHttpPolicy {
+        endpoints,
+        timeout: Duration::from_secs(30),
+        max_response_bytes: 1024 * 1024,
+    })
+    .context("initialize authority client")?;
+    let challenge = client
+        .start(&request)
+        .await
+        .context("start device authorization")?;
+    if json_output {
+        eprintln!(
+            "authority_verification_uri={} authority_user_code={}",
+            challenge.verification_uri, challenge.user_code
+        );
+    } else {
+        eprintln!(
+            "Verify your email and authorize this install at {} using code {}",
+            challenge.verification_uri, challenge.user_code
+        );
+    }
+    let device_code = challenge.device_code.clone();
+    let mut session = DeviceAuthorizationSession::new(
+        &request,
+        challenge,
+        chrono::Utc::now().timestamp_millis(),
+        180,
+    )
+    .context("initialize device authorization session")?;
+    loop {
+        let now_ms = chrono::Utc::now().timestamp_millis();
+        match session
+            .poll_action(now_ms)
+            .context("evaluate device authorization poll")?
+        {
+            PollAction::Wait { until_unix_ms } => {
+                let delay = until_unix_ms.saturating_sub(now_ms) as u64;
+                tokio::time::sleep(Duration::from_millis(delay.min(60_000))).await;
             }
-            eprintln!(
-                "[focusa-install] registry returned status=dev_mode for license key; downgrading to eval. \
-                 this is a TEST FIXTURE — purchase at {}/buy for a real commercial license.",
-                registry
-            );
-            Ok("dev_mode_downgraded_to_eval".to_string())
+            PollAction::Poll => {
+                let response: DeviceCodePollResponse = client
+                    .poll(&DeviceCodePollRequest {
+                        request_id: request.request_id,
+                        device_code: device_code.clone(),
+                    })
+                    .await
+                    .context("poll device authorization")?;
+                session
+                    .observe_poll(response, chrono::Utc::now().timestamp_millis())
+                    .context("apply device authorization response")?;
+            }
+            PollAction::Terminal => break,
         }
-        RegistryValidateOutcome {
-            response: Some(r),
-            error: None,
-        } if r.valid => Ok("active".to_string()),
-        RegistryValidateOutcome {
-            response: Some(_),
-            error: None,
-        } => Ok("not_valid".to_string()),
-        RegistryValidateOutcome {
-            response: None,
-            error: Some(err),
-        } => Err(anyhow!(
-            "license validation failed: {} ({})",
-            err,
-            err.recovery_hint()
-        )),
-        _ => Err(anyhow!("license validation: unexpected outcome")),
+    }
+    if session.status() != DeviceAuthorizationStatus::Authorized {
+        bail!("authority device authorization ended without an issued lease");
+    }
+    let material = session
+        .material()
+        .ok_or_else(|| anyhow!("authority omitted authorized lease material"))?;
+    let key_set_raw = material
+        .key_set_envelope
+        .as_deref()
+        .ok_or_else(|| anyhow!("authority omitted signed key-set envelope"))?;
+    let key_set: SignedEnvelope =
+        serde_json::from_str(key_set_raw).context("decode authority key-set envelope")?;
+    let lease: SignedEnvelope =
+        serde_json::from_str(&material.signed_lease).context("decode authority lease envelope")?;
+    let context = LeaseVerificationContext {
+        expected_product: "focusa".into(),
+        expected_node_id: identity.node_id.clone(),
+        now: chrono::Utc::now(),
+        minimum_sequence: None,
+        expected_previous_digest: None,
+    };
+    let roots = embedded_production_trust_roots().context("load production authority roots")?;
+    let (state, snapshot) =
+        PersistedAuthorityState::from_verified_envelopes(key_set, lease, &roots, &context)
+            .context("verify issued authority lease")?;
+    if !matches!(
+        snapshot.state,
+        EntitlementState::Active | EntitlementState::OfflineGrace
+    ) || !snapshot
+        .features
+        .get(required_feature)
+        .copied()
+        .unwrap_or(false)
+    {
+        bail!("issued lease does not grant {required_feature}");
+    }
+    let handle = CredentialHandle::for_node("focusa", &identity.node_id)
+        .context("derive protected refresh-credential handle")?;
+    rotate_refresh_credential(
+        &KeyringCredentialStore,
+        &handle,
+        &material.refresh_credential,
+        chrono::Utc::now(),
+    )
+    .context("persist refresh credential in native protected storage")?;
+    state
+        .write_atomic(&config_dir.join(AUTHORITY_STATE_FILE))
+        .context("persist verified authority state")?;
+    Ok(())
+}
+
+fn install_channel_feature(channel: Channel) -> &'static str {
+    match channel {
+        Channel::Stable => "focusa.install.channel.stable",
+        Channel::Preview => "focusa.install.channel.preview",
+        Channel::Nightly => "focusa.install.channel.nightly",
+    }
+}
+
+fn entitlement_state_label(state: EntitlementState) -> &'static str {
+    match state {
+        EntitlementState::Unactivated => "unactivated",
+        EntitlementState::Active => "active",
+        EntitlementState::OfflineGrace => "offline_grace",
+        EntitlementState::RecoveryOnly => "recovery_only",
     }
 }
 
@@ -3803,7 +3948,7 @@ async fn execute_real_install(
         phase: InstallPhase::ValidateLicense,
         message: "Validating installation license".into(),
     });
-    let phase = phase_license(args).await?;
+    let phase = phase_license(args, channel).await?;
     sink.emit(InstallEvent::PhaseSucceeded {
         phase: InstallPhase::ValidateLicense,
         detail: Some(phase.clone()),
@@ -4146,16 +4291,16 @@ fn build_plan(
             "~/.zshrc".to_string(),
             "~/.config/fish/config.fish".to_string(),
         ],
-        license_mode: if args.eval {
-            "eval".to_string()
-        } else if args.license_key.is_some() {
-            "commercial".to_string()
+        license_mode: if args.license_key.is_some() {
+            "unsupported_raw_key".to_string()
+        } else if args.eval {
+            "authority_evaluation".to_string()
         } else {
-            "missing".to_string()
+            "authority_existing_or_evaluation".to_string()
         },
         notes: vec![
             "--target auto-detected from uname / GetSystemInfo".to_string(),
-            "license json shape parity audit must pass before live install".to_string(),
+            "runnable assets activate only after signed product/channel entitlement".to_string(),
             "PATH automation writes idemptoent export lines to rc files".to_string(),
         ],
         first_install_walkthrough_v1: Some(build_first_install_walkthrough(
@@ -4340,7 +4485,7 @@ mod tests {
                 .iter()
                 .any(|a| a.name == "focusa-agent-context" && a.triple == "all")
         );
-        assert_eq!(plan.license_mode, "missing");
+        assert_eq!(plan.license_mode, "authority_existing_or_evaluation");
     }
 
     #[test]
@@ -4372,7 +4517,7 @@ mod tests {
             std::path::Path::new("/tmp/.focusa"),
         )
         .unwrap();
-        assert_eq!(plan.license_mode, "eval");
+        assert_eq!(plan.license_mode, "authority_evaluation");
         assert!(plan.service_manager_planned.contains("launchd"));
     }
 
@@ -4685,7 +4830,7 @@ mod tests {
             std::path::Path::new("/tmp/.focusa"),
         )
         .unwrap();
-        assert_eq!(plan.license_mode, "commercial");
+        assert_eq!(plan.license_mode, "unsupported_raw_key");
     }
 
     #[test]

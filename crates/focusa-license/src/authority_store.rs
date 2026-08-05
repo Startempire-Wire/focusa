@@ -1,6 +1,11 @@
 //! Durable authority-lease state and production trust-root boundary.
 
-use std::{collections::BTreeMap, path::Path};
+use std::{
+    collections::BTreeMap,
+    fs::OpenOptions,
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use chrono::{DateTime, Utc};
@@ -9,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::authority::{
-    AuthorityLeaseVerifier, AuthorityVerificationError, EntitlementSnapshot,
+    AuthorityKeySet, AuthorityLeaseVerifier, AuthorityVerificationError, EntitlementSnapshot,
     LeaseVerificationContext, SignedEnvelope,
 };
 
@@ -33,6 +38,8 @@ pub enum AuthorityStoreError {
     Missing,
     #[error("authority state cannot be read: {0}")]
     Read(String),
+    #[error("authority state cannot be written atomically: {0}")]
+    Write(String),
     #[error("authority state is invalid JSON")]
     InvalidJson,
     #[error("unsupported authority state schema: {0}")]
@@ -75,6 +82,69 @@ impl PersistedAuthorityState {
         )?;
         Ok(verifier.verify_lease(&self.lease, context)?)
     }
+
+    pub fn from_verified_envelopes(
+        key_set: SignedEnvelope,
+        lease: SignedEnvelope,
+        roots: &BTreeMap<String, VerifyingKey>,
+        context: &LeaseVerificationContext,
+    ) -> Result<(Self, EntitlementSnapshot), AuthorityStoreError> {
+        let payload = BASE64
+            .decode(&key_set.payload_b64)
+            .map_err(|_| AuthorityStoreError::InvalidJson)?;
+        let key_set_payload: AuthorityKeySet =
+            serde_json::from_slice(&payload).map_err(|_| AuthorityStoreError::InvalidJson)?;
+        let state = Self {
+            schema: AUTHORITY_STATE_SCHEMA.into(),
+            key_set,
+            lease,
+            key_set_sequence: key_set_payload.sequence,
+            last_validated_at: context.now,
+            refresh_after: None,
+        };
+        let snapshot = state.verify(roots, context)?;
+        Ok((state, snapshot))
+    }
+
+    pub fn write_atomic(&self, path: &Path) -> Result<(), AuthorityStoreError> {
+        let parent = path.parent().ok_or_else(|| {
+            AuthorityStoreError::Write("authority state path has no parent".into())
+        })?;
+        std::fs::create_dir_all(parent)
+            .map_err(|error| AuthorityStoreError::Write(error.to_string()))?;
+        let temporary = temporary_state_path(path);
+        let result = (|| {
+            let mut options = OpenOptions::new();
+            options.write(true).create_new(true);
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::OpenOptionsExt;
+                options.mode(0o600);
+            }
+            let mut file = options
+                .open(&temporary)
+                .map_err(|error| AuthorityStoreError::Write(error.to_string()))?;
+            let payload = serde_json::to_vec_pretty(self)
+                .map_err(|error| AuthorityStoreError::Write(error.to_string()))?;
+            file.write_all(&payload)
+                .and_then(|_| file.write_all(b"\n"))
+                .and_then(|_| file.sync_all())
+                .map_err(|error| AuthorityStoreError::Write(error.to_string()))?;
+            std::fs::rename(&temporary, path)
+                .map_err(|error| AuthorityStoreError::Write(error.to_string()))?;
+            Ok(())
+        })();
+        if result.is_err() {
+            let _ = std::fs::remove_file(&temporary);
+        }
+        result
+    }
+}
+
+fn temporary_state_path(path: &Path) -> PathBuf {
+    let mut temporary = path.as_os_str().to_owned();
+    temporary.push(format!(".tmp-{}", uuid::Uuid::now_v7()));
+    PathBuf::from(temporary)
 }
 
 /// Parse roots embedded at compile time by the trusted distribution build.
@@ -165,6 +235,7 @@ fn store_error_code(error: &AuthorityStoreError) -> &'static str {
     match error {
         AuthorityStoreError::Missing => "authority_state_missing",
         AuthorityStoreError::Read(_) => "authority_state_unreadable",
+        AuthorityStoreError::Write(_) => "authority_state_unwritable",
         AuthorityStoreError::InvalidJson => "authority_state_invalid_json",
         AuthorityStoreError::UnsupportedSchema(_) => "authority_state_unsupported_schema",
         AuthorityStoreError::MissingTrustRoots => "authority_trust_roots_missing",
