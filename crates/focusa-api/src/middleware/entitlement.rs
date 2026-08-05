@@ -9,18 +9,19 @@ use axum::{
 };
 use focusa_license::authority::EntitlementState;
 
-use crate::server::AppState;
+use crate::{middleware::entitlement_routes::requirement_for_path, server::AppState};
 
 pub async fn entitlement_gate_layer(
     State(state): State<Arc<AppState>>,
     request: Request,
     next: Next,
 ) -> Response {
-    if !route_requires_entitlement(request.method(), request.uri().path())
-        || entitlement_allows_mutation(&state.license_guard)
-    {
+    if !route_requires_entitlement(request.method(), request.uri().path()) {
         return next.run(request).await;
     }
+    let Some(denial) = route_entitlement_denial(&state.license_guard, request.uri().path()) else {
+        return next.run(request).await;
+    };
 
     let authority_state = state
         .license_guard
@@ -39,9 +40,11 @@ pub async fn entitlement_gate_layer(
         Json(serde_json::json!({
             "status": "blocked",
             "error": {
-                "code": "ENTITLEMENT_REQUIRED",
-                "message": "A valid signed Focusa authority lease is required for this operation.",
+                "code": denial.code,
+                "message": denial.message,
                 "state": state_label,
+                "required_feature": denial.required_feature,
+                "limit_bucket": denial.limit_bucket,
                 "recovery": {
                     "status_path": "/v1/license/status",
                     "allowed": ["health", "version", "license_recovery", "safe_read"]
@@ -50,6 +53,62 @@ pub async fn entitlement_gate_layer(
         })),
     )
         .into_response()
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct RouteEntitlementDenial {
+    code: &'static str,
+    message: &'static str,
+    required_feature: Option<&'static str>,
+    limit_bucket: Option<&'static str>,
+}
+
+fn route_entitlement_denial(
+    guard: &focusa_license::LicenseGuard,
+    path: &str,
+) -> Option<RouteEntitlementDenial> {
+    if !entitlement_allows_mutation(guard) {
+        return Some(RouteEntitlementDenial {
+            code: "ENTITLEMENT_REQUIRED",
+            message: "A valid signed Focusa authority lease is required for this operation.",
+            required_feature: requirement_for_path(path).map(|requirement| requirement.feature),
+            limit_bucket: requirement_for_path(path)
+                .and_then(|requirement| requirement.limit_bucket),
+        });
+    }
+    let Some(requirement) = requirement_for_path(path) else {
+        return Some(RouteEntitlementDenial {
+            code: "ENTITLEMENT_ROUTE_UNCLASSIFIED",
+            message: "This mutation route has no exact entitlement descriptor and is blocked fail-closed.",
+            required_feature: None,
+            limit_bucket: None,
+        });
+    };
+    let snapshot = guard.entitlement.as_ref()?;
+    if !snapshot
+        .features
+        .get(requirement.feature)
+        .copied()
+        .unwrap_or(false)
+    {
+        return Some(RouteEntitlementDenial {
+            code: "ENTITLEMENT_FEATURE_REQUIRED",
+            message: "The signed authority lease does not grant this exact feature.",
+            required_feature: Some(requirement.feature),
+            limit_bucket: requirement.limit_bucket,
+        });
+    }
+    if let Some(bucket) = requirement.limit_bucket {
+        if snapshot.limits.get(bucket).copied().unwrap_or(0) == 0 {
+            return Some(RouteEntitlementDenial {
+                code: "ENTITLEMENT_LIMIT_EXHAUSTED",
+                message: "The signed authority limit for this operation is unavailable or exhausted.",
+                required_feature: Some(requirement.feature),
+                limit_bucket: Some(bucket),
+            });
+        }
+    }
+    None
 }
 
 pub(crate) fn entitlement_allows_mutation(guard: &focusa_license::LicenseGuard) -> bool {
@@ -81,9 +140,7 @@ pub(crate) fn route_requires_entitlement(method: &Method, path: &str) -> bool {
     let recovery_path = path == "/health"
         || path == "/v1/health"
         || path == "/v1/version"
-        || path.starts_with("/v1/license/")
-        || path.starts_with("/v1/connect/")
-        || path.starts_with("/v1/device/pair/");
+        || path.starts_with("/v1/license/");
     !recovery_path
 }
 
@@ -112,11 +169,11 @@ mod tests {
             &Method::POST,
             "/v1/license/refresh"
         ));
-        assert!(!route_requires_entitlement(
+        assert!(route_requires_entitlement(
             &Method::POST,
             "/v1/connect/room/create"
         ));
-        assert!(!route_requires_entitlement(
+        assert!(route_requires_entitlement(
             &Method::POST,
             "/v1/device/pair/start"
         ));
@@ -158,5 +215,40 @@ mod tests {
         assert!(!entitlement_allows_mutation(
             &LicenseGuard::from_entitlement(recovery)
         ));
+    }
+
+    #[test]
+    fn exact_feature_and_signed_limit_are_required_before_route_handler() {
+        let mut snapshot = EntitlementSnapshot::unactivated("focusa", "node");
+        snapshot.state = EntitlementState::Active;
+        snapshot.expires_at = Some(chrono::Utc::now() + chrono::Duration::minutes(5));
+        snapshot.lease_id = Some("lease-1".into());
+        snapshot.lease_digest = Some("sha256:lease".into());
+        let path = "/v1/workpoint/checkpoint";
+
+        let guard = LicenseGuard::from_entitlement(snapshot.clone());
+        assert_eq!(
+            route_entitlement_denial(&guard, path).unwrap().code,
+            "ENTITLEMENT_FEATURE_REQUIRED"
+        );
+
+        snapshot
+            .features
+            .insert("focusa.core.workpoint".into(), true);
+        let guard = LicenseGuard::from_entitlement(snapshot.clone());
+        assert_eq!(
+            route_entitlement_denial(&guard, path).unwrap().code,
+            "ENTITLEMENT_LIMIT_EXHAUSTED"
+        );
+
+        snapshot.limits.insert("workpoints".into(), 1);
+        let guard = LicenseGuard::from_entitlement(snapshot);
+        assert_eq!(route_entitlement_denial(&guard, path), None);
+        assert_eq!(
+            route_entitlement_denial(&guard, "/v1/unclassified/mutation")
+                .unwrap()
+                .code,
+            "ENTITLEMENT_ROUTE_UNCLASSIFIED"
+        );
     }
 }
