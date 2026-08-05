@@ -1,8 +1,12 @@
 import type { Component } from 'svelte';
-import type { ContributionKind, ResolvedContribution } from './types';
+import type { MissionCanvasClient } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated';
+import type { ContributionKind, OperationBinding, ResolvedContribution, ResolvedWorkspaceProjection } from './types';
 
 export interface ContributionRendererProps {
   contribution: ResolvedContribution;
+  projection: ResolvedWorkspaceProjection;
+  client?: MissionCanvasClient;
+  onOperation?: (binding: OperationBinding) => void | Promise<void>;
 }
 
 export interface TrustedContributionRenderer {

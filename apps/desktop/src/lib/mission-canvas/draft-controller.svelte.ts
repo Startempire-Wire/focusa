@@ -4,12 +4,15 @@ import type { CanvasDraftState, ExactScope } from './types';
 export interface DraftBinding {
   scope: ExactScope;
   attachmentId: string;
+  draftId: string;
   recipientRef: string;
 }
 
 export interface DraftSyncInput extends DraftBinding {
+  baseDraft: CanvasDraftState;
   content: string;
   expectedDraftRevision: number;
+  idempotencyKey: string;
   selectionStart?: number;
   selectionEnd?: number;
 }
@@ -30,6 +33,7 @@ export type DraftControllerState =
 function matchesBinding(draft: CanvasDraftState, binding: DraftBinding): boolean {
   return sameScope(draft.scope, binding.scope)
     && draft.attachment_id === binding.attachmentId
+    && draft.draft_id === binding.draftId
     && draft.recipient_ref === binding.recipientRef;
 }
 
@@ -64,8 +68,10 @@ export class MissionCanvasDraftController {
     try {
       const next = await this.transport.sync({
         ...binding,
+        baseDraft: draft,
         content,
         expectedDraftRevision: draft.draft_revision,
+        idempotencyKey: crypto.randomUUID(),
         selectionStart,
         selectionEnd
       });

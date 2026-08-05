@@ -7,17 +7,19 @@
   import MissionCanvasRenderer from './MissionCanvasRenderer.svelte';
   import OperationConfirmationDialog from './OperationConfirmationDialog.svelte';
   import { MissionCanvasProjectionController } from './projection-controller.svelte';
-  import type { ActivityMode, ExactScope, OperationBinding, WorkspaceProfile } from './types';
+  import type { ActivityMode, ExactScope, OperationBinding, ResolvedWorkspaceProjection, WorkspaceProfile } from './types';
   import WorkspaceProfileSelector from './WorkspaceProfileSelector.svelte';
 
   let {
     scope,
     client,
-    registry
+    registry,
+    executeContributionOperation
   }: {
     scope?: ExactScope;
     client: MissionCanvasClient;
     registry: ContributionRendererRegistry;
+    executeContributionOperation?: (binding: OperationBinding, projection: ResolvedWorkspaceProjection) => Promise<void>;
   } = $props();
 
   const PROFILE_SELECT_OPERATION = 'focusa.mission_canvas.profile.select';
@@ -71,6 +73,23 @@
   function operationEnabled(operationId: string, targetContributionId?: string): boolean {
     const binding = operationBinding(operationId, targetContributionId);
     return Boolean(binding && binding.confirmation !== 'preview');
+  }
+
+  function invokeContributionOperation(binding: OperationBinding): void {
+    if (!executeContributionOperation || binding.confirmation === 'preview') return;
+    const current = operationBinding(binding.operation_id, binding.target_contribution_id);
+    if (!current || current.authority_ref !== binding.authority_ref) return;
+    const state = controller.state;
+    if (state.kind !== 'ready' && state.kind !== 'refreshing' && state.kind !== 'stale') return;
+    const contribution = state.projection.eligible_contributions.find((item) => item.contribution_id === binding.target_contribution_id);
+    if (!contribution) return;
+    requestOperation(current, contribution.accessibility.label, async () => {
+      const latest = operationBinding(current.operation_id, current.target_contribution_id);
+      const latestState = controller.state;
+      if (!latest || latest.authority_ref !== current.authority_ref) return;
+      if (latestState.kind !== 'ready' && latestState.kind !== 'refreshing' && latestState.kind !== 'stale') return;
+      await executeContributionOperation(latest, latestState.projection);
+    });
   }
 
   function requestOperation(binding: OperationBinding, subjectLabel: string, run: () => Promise<void>): void {
@@ -223,13 +242,13 @@
     </header>
   {/if}
   {#if controller.state.kind === 'ready'}
-    <MissionCanvasRenderer projection={controller.state.projection} {registry} onSelectTab={operationEnabled(LAYOUT_MUTATE_OPERATION) ? (id) => void selectTab(id) : undefined}/>
+    <MissionCanvasRenderer projection={controller.state.projection} {registry} {client} onOperation={executeContributionOperation ? invokeContributionOperation : undefined} onSelectTab={operationEnabled(LAYOUT_MUTATE_OPERATION) ? (id) => void selectTab(id) : undefined}/>
   {:else if controller.state.kind === 'refreshing'}
     <div class="state-banner" role="status">Refreshing canonical workspace…</div>
-    <MissionCanvasRenderer projection={controller.state.projection} {registry} onSelectTab={operationEnabled(LAYOUT_MUTATE_OPERATION) ? (id) => void selectTab(id) : undefined}/>
+    <MissionCanvasRenderer projection={controller.state.projection} {registry} {client} onOperation={executeContributionOperation ? invokeContributionOperation : undefined} onSelectTab={operationEnabled(LAYOUT_MUTATE_OPERATION) ? (id) => void selectTab(id) : undefined}/>
   {:else if controller.state.kind === 'stale'}
     <div class="state-banner" role="status">{controller.state.reason}</div>
-    <MissionCanvasRenderer projection={controller.state.projection} {registry} onSelectTab={operationEnabled(LAYOUT_MUTATE_OPERATION) ? (id) => void selectTab(id) : undefined}/>
+    <MissionCanvasRenderer projection={controller.state.projection} {registry} {client} onOperation={executeContributionOperation ? invokeContributionOperation : undefined} onSelectTab={operationEnabled(LAYOUT_MUTATE_OPERATION) ? (id) => void selectTab(id) : undefined}/>
   {:else if controller.state.kind === 'loading'}
     <div class="state-message" role="status">Loading canonical workspace…</div>
   {:else if controller.state.kind === 'blocked' || controller.state.kind === 'error'}

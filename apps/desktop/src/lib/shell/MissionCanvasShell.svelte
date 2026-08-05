@@ -1,26 +1,29 @@
 <script lang="ts">
   import type { MissionCanvasClient } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated';
   import DesktopMissionCanvasRuntime from '$lib/mission-canvas/DesktopMissionCanvasRuntime.svelte';
+  import { DEFAULT_CONTRIBUTION_REGISTRY } from '$lib/mission-canvas/default-contribution-registry';
   import MissionCanvasRenderer from '$lib/mission-canvas/MissionCanvasRenderer.svelte';
   import type { ContributionRendererRegistry } from '$lib/mission-canvas/contribution-renderers';
-  import type { ExactScope, ResolvedWorkspaceProjection } from '$lib/mission-canvas/types';
+  import type { ExactScope, OperationBinding, ResolvedWorkspaceProjection } from '$lib/mission-canvas/types';
 
   let {
     projection,
     scope,
     client,
-    rendererRegistry
+    rendererRegistry = DEFAULT_CONTRIBUTION_REGISTRY,
+    executeContributionOperation
   }: {
     projection?: ResolvedWorkspaceProjection;
     scope?: ExactScope;
     client?: MissionCanvasClient;
     rendererRegistry?: ContributionRendererRegistry;
+    executeContributionOperation?: (binding: OperationBinding, projection: ResolvedWorkspaceProjection) => Promise<void>;
   } = $props();
 </script>
 
 {#if scope && client && rendererRegistry}
   <section class="canvas-live" aria-label="Focusa Mission Canvas workspace">
-    <DesktopMissionCanvasRuntime {scope} {client} registry={rendererRegistry}/>
+    <DesktopMissionCanvasRuntime {scope} {client} registry={rendererRegistry} {executeContributionOperation}/>
   </section>
 {:else if projection && rendererRegistry}
   <section class="canvas-live" aria-label="Focusa Mission Canvas workspace">

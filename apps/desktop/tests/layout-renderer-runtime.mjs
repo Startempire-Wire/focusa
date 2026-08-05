@@ -127,7 +127,7 @@ try {
     sync_state: 'synchronized',
     updated_at: '2026-08-04T00:00:00Z'
   };
-  const binding = { scope: fixture.scope, attachmentId: fixture.scope.attachment_id, recipientRef: 'recipient:pi' };
+  const binding = { scope: fixture.scope, attachmentId: fixture.scope.attachment_id, draftId: draftFixture.draft_id, recipientRef: 'recipient:pi' };
   let draftResponse = structuredClone(draftFixture);
   const { MissionCanvasDraftController } = await server.ssrLoadModule('/src/lib/mission-canvas/draft-controller.svelte.ts');
   const draftController = new MissionCanvasDraftController({
@@ -141,6 +141,33 @@ try {
   assert.equal(draftController.state.kind, 'conflict');
   assert.equal(draftController.state.reason, 'foreign_draft_binding');
   assert.equal(draftController.state.localContent, 'preserve this local edit');
+
+  let synchronizedBody;
+  const generatedClient = {
+    draftGet: async ({ params }) => {
+      assert.equal(params.path.draft_id, draftFixture.draft_id);
+      return structuredClone(draftFixture);
+    },
+    draftSync: async ({ body }) => {
+      synchronizedBody = structuredClone(body);
+      return { ...structuredClone(body), draft_revision: body.draft_revision + 1, sync_state: 'synchronized' };
+    },
+    recipientResolve: async ({ body }) => ({ schema: 'focusa.mission_canvas.recipient_resolution.v1', ...structuredClone(body), routable: true })
+  };
+  const { GeneratedDraftTransport, resolveRecipient } = await server.ssrLoadModule('/src/lib/mission-canvas/generated-draft-transport.ts');
+  const generatedDraftTransport = new GeneratedDraftTransport(generatedClient);
+  assert.equal((await generatedDraftTransport.get(binding)).draft_id, draftFixture.draft_id);
+  await generatedDraftTransport.sync({
+    ...binding,
+    baseDraft: draftFixture,
+    content: 'canonical prompt',
+    expectedDraftRevision: draftFixture.draft_revision,
+    idempotencyKey: 'idempotency:prompt-sync'
+  });
+  assert.equal(synchronizedBody.owner, 'canvas_prompt_editor');
+  assert.equal(synchronizedBody.idempotency_key, 'idempotency:prompt-sync');
+  assert.match(synchronizedBody.content_sha256, /^[a-f0-9]{64}$/);
+  assert.equal((await resolveRecipient(generatedClient, fixture.scope, 'recipient:pi')).recipient_ref, 'recipient:pi');
 
   const eventFixture = {
     event_cursor: 'cursor:1',

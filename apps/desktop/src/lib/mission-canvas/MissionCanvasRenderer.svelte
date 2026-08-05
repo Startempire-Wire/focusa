@@ -1,17 +1,22 @@
 <script lang="ts">
+  import type { MissionCanvasClient } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated';
   import { collectLayoutContributionIds } from './layout-references';
   import MissionCanvasFrame from './MissionCanvasFrame.svelte';
-  import type { ResolvedContribution, ResolvedWorkspaceProjection } from './types';
+  import type { OperationBinding, ResolvedContribution, ResolvedWorkspaceProjection } from './types';
   import type { ContributionRendererRegistry } from './contribution-renderers';
 
   let {
     projection,
     registry,
-    onSelectTab
+    client,
+    onSelectTab,
+    onOperation
   }: {
     projection: ResolvedWorkspaceProjection;
     registry: ContributionRendererRegistry;
+    client?: MissionCanvasClient;
     onSelectTab?: (contributionId: string) => void;
+    onOperation?: (binding: OperationBinding) => void | Promise<void>;
   } = $props();
 
   const unavailable = $derived(
@@ -34,7 +39,7 @@
   {@const resolved = registry.resolve(contribution)}
   {#if resolved}
     {@const Renderer = resolved.component}
-    <Renderer {contribution} {...resolved.componentProps}/>
+    <Renderer {contribution} {projection} {client} {onOperation} {...resolved.componentProps}/>
   {/if}
 {/snippet}
 
