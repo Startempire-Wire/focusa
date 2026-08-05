@@ -44,6 +44,12 @@ nodes:
     title: Preserve outer Desktop chrome while replacing the complete inner UI
     status: complete
     depends_on: [D010-01]
+  - id: D010-03
+    parent: T071
+    title: Match UIAI Engine sidebar interaction dynamics in Focusa Desktop
+    status: implementation_complete_visual_proof_pending
+    depends_on: [D010-02]
+    notes: Expanded and compact modes, persistence, grouped disclosure, keyboard toggle, resize handle, responsive icon rail, and no Agent TUI sidebar.
   - id: D020-01
     parent: T071
     title: Materialize supplied Mission Canvas visual references and provenance

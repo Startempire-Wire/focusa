@@ -3,6 +3,14 @@
   import { FOCUSA_DESKTOP_WORKSPACES, workspaceById } from '$lib/shell/workspace-manifest';
   import { readDaemonHealth, type DaemonReadStatus } from '$lib/shell/daemon-health';
   import MissionCanvasShell from '$lib/shell/MissionCanvasShell.svelte';
+  import { readSidebarPreferences, saveSidebarPreferences, type DesktopSidebarMode } from '$lib/shell/sidebar-preferences';
+
+  const sidebarGroups: ReadonlyArray<{ id: string; label: string; workspaceIds: readonly string[] }> = [
+    { id: 'orient', label: 'Orient', workspaceIds: ['mission-deck', 'mission-canvas'] },
+    { id: 'work', label: 'Work', workspaceIds: ['pi-work-surface', 'crist', 'context-role', 'workpoints', 'trajectory'] },
+    { id: 'records', label: 'Records', workspaceIds: ['sessions', 'contention', 'evidence', 'documents', 'research'] },
+    { id: 'system', label: 'System', workspaceIds: ['agent-runtime'] }
+  ];
 
   let activeWorkspaceId = $state('mission-deck');
   let uiMode = $state<'tui' | 'canvas'>('canvas');
@@ -13,15 +21,61 @@
     detail: 'Reading infrastructure health only.'
   });
   let activeWorkspace = $derived(workspaceById(activeWorkspaceId));
+  let sidebarMode = $state<DesktopSidebarMode>('expanded');
+  let sidebarWidth = $state(248);
+  let collapsedSidebarGroups = $state<string[]>([]);
+  let sidebarResizeStart: { x: number; width: number } | null = null;
 
   async function refreshDaemon(): Promise<void> {
     daemon = { kind: 'checking', label: 'Checking daemon', detail: 'Reading infrastructure health only.' };
     daemon = await readDaemonHealth();
   }
 
+  function persistSidebar(): void {
+    saveSidebarPreferences({ schema: 'focusa.desktop.sidebar_preferences.v1', mode: sidebarMode, widthPx: sidebarWidth, collapsedGroups: collapsedSidebarGroups });
+  }
+
+  function setSidebarMode(mode: DesktopSidebarMode): void { sidebarMode = mode; persistSidebar(); }
+  function toggleSidebarGroup(group: string): void {
+    collapsedSidebarGroups = collapsedSidebarGroups.includes(group) ? collapsedSidebarGroups.filter((item) => item !== group) : [...collapsedSidebarGroups, group];
+    persistSidebar();
+  }
+  function resizeSidebar(event: PointerEvent): void {
+    if (!sidebarResizeStart) return;
+    sidebarWidth = Math.min(320, Math.max(208, sidebarResizeStart.width + event.clientX - sidebarResizeStart.x));
+  }
+  function endSidebarResize(): void {
+    sidebarResizeStart = null;
+    persistSidebar();
+    window.removeEventListener('pointermove', resizeSidebar);
+  }
+  function beginSidebarResize(event: PointerEvent): void {
+    if (sidebarMode !== 'expanded') return;
+    event.preventDefault();
+    sidebarResizeStart = { x: event.clientX, width: sidebarWidth };
+    window.addEventListener('pointermove', resizeSidebar);
+    window.addEventListener('pointerup', endSidebarResize, { once: true });
+  }
+
   onMount(() => {
     shellMode = '__TAURI_INTERNALS__' in window ? 'native desktop' : 'browser preview';
+    const preferences = readSidebarPreferences();
+    sidebarMode = preferences.mode;
+    sidebarWidth = preferences.widthPx;
+    collapsedSidebarGroups = preferences.collapsedGroups;
+    const onKeyDown = (event: KeyboardEvent) => {
+      const typing = event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement;
+      if (!typing && event.key === '[' && !event.metaKey && !event.ctrlKey) {
+        event.preventDefault();
+        setSidebarMode(sidebarMode === 'expanded' ? 'compact' : 'expanded');
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
     void refreshDaemon();
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('pointermove', resizeSidebar);
+    };
   });
 </script>
 
@@ -29,7 +83,7 @@
   <title>Focusa Desktop</title>
 </svelte:head>
 
-<div class="desktop-shell" class:tui-mode={uiMode === 'tui'}>
+<div class="desktop-shell" class:tui-mode={uiMode === 'tui'} class:sidebar-compact={sidebarMode === 'compact'} style={`--sidebar-width:${sidebarWidth}px`}>
   <header class="titlebar">
     <div class="brand-lockup" aria-label="Focusa Desktop">
       <span class="brand-mark" aria-hidden="true">F</span>
@@ -62,29 +116,49 @@
   </header>
 
   {#if uiMode === 'canvas'}
-  <aside class="sidebar" aria-label="Focusa workspaces">
-    <div class="scope-card">
-      <span class="eyebrow">Context Control</span>
-      <strong>Unbound</strong>
-      <p>No Scope, Workstream, or Attachment selected.</p>
+  <aside class="sidebar" class:compact={sidebarMode === 'compact'} aria-label="Focusa workspaces">
+    <div class="sidebar-heading">
+      <span>Workspaces</span>
+      <button
+        class="sidebar-mode-button"
+        type="button"
+        aria-label={sidebarMode === 'compact' ? 'Expand sidebar' : 'Collapse sidebar'}
+        title={`${sidebarMode === 'compact' ? 'Expand' : 'Collapse'} sidebar ([)`}
+        onclick={() => setSidebarMode(sidebarMode === 'compact' ? 'expanded' : 'compact')}
+      ><span aria-hidden="true">{sidebarMode === 'compact' ? '›' : '‹'}</span></button>
     </div>
-    <nav>
-      {#each FOCUSA_DESKTOP_WORKSPACES as workspace}
-        <button
-          type="button"
-          class:active={workspace.id === activeWorkspaceId}
-          aria-current={workspace.id === activeWorkspaceId ? 'page' : undefined}
-          onclick={() => (activeWorkspaceId = workspace.id)}
-        >
-          <span>{workspace.shortLabel}</span>
-          {#if workspace.availability === 'planned'}
-            <small>M{workspace.milestone}</small>
-          {:else}
-            <small>live</small>
+    <button class="scope-card" type="button" aria-label="Context Control: Unbound" title="Context Control · Unbound">
+      <span class="scope-icon" aria-hidden="true">◎</span>
+      <span class="scope-copy"><span class="eyebrow">Context Control</span><strong>Unbound</strong><small>No exact Attachment selected.</small></span>
+    </button>
+    <div class="workspace-groups">
+      {#each sidebarGroups as group}
+        <section class="workspace-group" aria-label={`${group.label} workspaces`}>
+          <button class="group-heading" type="button" aria-expanded={!collapsedSidebarGroups.includes(group.id)} onclick={() => toggleSidebarGroup(group.id)}>
+            <span>{group.label}</span><span aria-hidden="true">{collapsedSidebarGroups.includes(group.id) ? '›' : '⌄'}</span>
+          </button>
+          {#if sidebarMode === 'compact' || !collapsedSidebarGroups.includes(group.id)}
+            <nav aria-label={`${group.label} workspaces`}>
+              {#each FOCUSA_DESKTOP_WORKSPACES.filter((workspace) => group.workspaceIds.includes(workspace.id)) as workspace}
+                <button
+                  type="button"
+                  class:active={workspace.id === activeWorkspaceId}
+                  aria-label={workspace.label}
+                  title={workspace.label}
+                  aria-current={workspace.id === activeWorkspaceId ? 'page' : undefined}
+                  onclick={() => (activeWorkspaceId = workspace.id)}
+                >
+                  <span class="workspace-icon" aria-hidden="true">{workspace.shortLabel.slice(0, 2)}</span>
+                  <span class="workspace-label">{workspace.shortLabel}</span>
+                  {#if workspace.availability === 'planned'}<small>M{workspace.milestone}</small>{:else}<small>live</small>{/if}
+                </button>
+              {/each}
+            </nav>
           {/if}
-        </button>
+        </section>
       {/each}
-    </nav>
+    </div>
+    {#if sidebarMode === 'expanded'}<button class="sidebar-resize-handle" type="button" aria-label="Resize sidebar" onpointerdown={beginSidebarResize}></button>{/if}
   </aside>
   {/if}
 
