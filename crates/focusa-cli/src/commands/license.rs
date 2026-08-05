@@ -1452,7 +1452,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn registry_error_codes_are_stable() {
+    fn license_registry_error_codes_are_stable() {
         // WP code values are part of the wire contract; lock them down.
         assert_eq!(RegistryError::NotFound.code(), "focusa_license_not_found");
         assert_eq!(RegistryError::Invalid.code(), "focusa_license_invalid");
@@ -1480,7 +1480,7 @@ mod tests {
     }
 
     #[test]
-    fn registry_error_recovery_hints_are_actionable() {
+    fn license_registry_error_recovery_hints_are_actionable() {
         // Every variant must produce a non-empty hint that mentions a URL,
         // a retry, or a remediation — never blank.
         let variants: Vec<RegistryError> = vec![
@@ -1517,7 +1517,7 @@ mod tests {
     }
 
     #[test]
-    fn wp_envelope_status_to_error() {
+    fn license_wp_envelope_status_to_error() {
         // 404 → NotFound
         let body = serde_json::json!({"code": "focusa_license_not_found", "message": "missing"});
         assert!(matches!(
