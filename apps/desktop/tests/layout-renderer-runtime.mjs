@@ -77,6 +77,10 @@ try {
     assert.ok(DEFAULT_CONTRIBUTION_REGISTRY.resolve(contribution), `default registry missing ${contribution.renderer_binding_id}`);
   }
   const queueFixture = JSON.parse(await readFile(new URL('./fixtures/mission-canvas/one-queue-projection.json', import.meta.url), 'utf8'));
+  const previewPrompt = queueFixture.eligible_contributions.find((contribution) => contribution.kind === 'prompt_editor');
+  assert.equal(previewPrompt.data_ref.kind, 'canvas_draft');
+  assert.equal(queueFixture.operation_bindings[0].operation_id, 'focusa.agent_execution.prompt');
+  assert.equal(queueFixture.operation_bindings[0].enabled, true);
   for (const contribution of queueFixture.eligible_contributions) {
     assert.ok(DEFAULT_CONTRIBUTION_REGISTRY.resolve(contribution), `default registry missing ${contribution.renderer_binding_id}`);
   }
@@ -236,5 +240,7 @@ try {
 
   console.log('Mission Canvas runtime: PASS (layout, renderer, transport, projection, draft and event authority)');
 } finally {
-  await server.close();
+  await server.watcher.close();
+  await server.ws.close();
+  if (server.httpServer) await new Promise((resolve) => server.httpServer.close(resolve));
 }

@@ -91,14 +91,12 @@
       "semantic_binding_id": "semantic:steering-queue",
       "renderer_binding_id": "renderer:steering-queue@v1",
       "data_ref": {
-        "kind": "work_surface",
-        "ref": "surface:pi",
-        "revision": 7,
+        "kind": "steering_queue",
+        "ref": "queue:steering",
+        "revision": 1,
         "freshness": "current"
       },
-      "operation_ids": [
-        "focusa.agent_execution.prompt"
-      ],
+      "operation_ids": [],
       "authority": {
         "canonical_owner": "Focusa Core",
         "mutation_owner": "Pi AgentExecutionAdapter",
@@ -137,7 +135,7 @@
       },
       "accessibility": {
         "label": "Steering Queue",
-        "description": "Live transcript and governed prompt controls",
+        "description": "Pending steering requests for the focused Work Surface",
         "landmark_role": "region",
         "focus_semantic_id": "focus:pi-session",
         "live_region": "off",
@@ -156,9 +154,9 @@
       "semantic_binding_id": "semantic:prompt-editor",
       "renderer_binding_id": "renderer:prompt-editor@v1",
       "data_ref": {
-        "kind": "work_surface",
-        "ref": "surface:pi",
-        "revision": 7,
+        "kind": "canvas_draft",
+        "ref": "draft:prompt-preview",
+        "revision": 1,
         "freshness": "current"
       },
       "operation_ids": [
@@ -202,7 +200,7 @@
       },
       "accessibility": {
         "label": "Prompt Editor",
-        "description": "Live transcript and governed prompt controls",
+        "description": "Governed draft and prompt routing for the focused Work Surface",
         "landmark_role": "region",
         "focus_semantic_id": "focus:pi-session",
         "live_region": "off",
@@ -239,7 +237,16 @@
       }
     ]
   },
-  "operation_bindings": [],
+  "operation_bindings": [
+    {
+      "operation_id": "focusa.agent_execution.prompt",
+      "target_contribution_id": "contribution:prompt-editor",
+      "enabled": true,
+      "disabled_reason_ref": null,
+      "confirmation": "none",
+      "authority_ref": "authority:fixture:prompt-preview"
+    }
+  ],
   "focused_semantic_target": "focus:pi-session",
   "projection_revision": 12,
   "layout_revision": 5,

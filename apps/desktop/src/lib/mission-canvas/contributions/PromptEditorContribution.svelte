@@ -20,6 +20,7 @@
   let loadedRevision = $state<number>();
   let sending = $state(false);
   let sendError = $state('');
+  let sendNotice = $state('');
   const controller = $derived(client ? new MissionCanvasDraftController(new GeneratedDraftTransport(client)) : undefined);
   const draftId = $derived(contribution.data_ref.kind === 'canvas_draft' ? contribution.data_ref.ref : undefined);
   const recipientRef = $derived(projection.focused_work_surface_id ?? undefined);
@@ -55,6 +56,7 @@
     if (!sendEnabled || !client || !controller || !recipientRef || !sendBinding) return;
     sending = true;
     sendError = '';
+    sendNotice = '';
     try {
       await resolveRecipient(client, projection.scope, recipientRef);
       await controller.sync(localContent);
@@ -62,6 +64,8 @@
         throw new Error(controller.state.kind === 'conflict' ? controller.state.reason : 'Draft synchronization did not complete.');
       }
       await onOperation?.(sendBinding);
+      localContent = '';
+      sendNotice = 'Prompt routed.';
     } catch (error) {
       sendError = error instanceof Error ? error.message : 'Prompt routing failed.';
     } finally {
@@ -82,7 +86,7 @@
   ></textarea>
   <div class="prompt-actions">
     <span id={`prompt-status-${contribution.contribution_id}`} class:error={Boolean(sendError)}>
-      {sendError || (controller?.state.kind === 'conflict' ? 'Draft conflict requires reconciliation.' : recipientRef ? `Recipient: ${recipientRef}` : 'No exact recipient resolved.')}
+      {sendError || sendNotice || (controller?.state.kind === 'conflict' ? 'Draft conflict requires reconciliation.' : recipientRef ? `Recipient: ${recipientRef}` : 'No exact recipient resolved.')}
     </span>
     <button type="button" disabled={!sendEnabled} onclick={() => void submit()}>
       {sending ? 'Routing…' : 'Send'}

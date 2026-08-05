@@ -50,7 +50,16 @@ def single(node_id: str, identifier: str) -> dict:
 primary = contribution("contribution:pi-session")
 secondary = contribution("contribution:focusa-inspector", "inspector_section")
 queue = contribution("contribution:steering-queue", "steering_queue")
+queue["data_ref"] = {"kind": "steering_queue", "ref": "queue:steering", "revision": 1, "freshness": "current"}
+queue["operation_ids"] = []
+queue["accessibility"]["label"] = "Steering Queue"
+queue["accessibility"]["description"] = "Pending steering requests for the focused Work Surface"
+
 prompt = contribution("contribution:prompt-editor", "prompt_editor")
+prompt["data_ref"] = {"kind": "canvas_draft", "ref": "draft:prompt-preview", "revision": 1, "freshness": "current"}
+prompt["operation_ids"] = ["focusa.agent_execution.prompt"]
+prompt["accessibility"]["label"] = "Prompt Editor"
+prompt["accessibility"]["description"] = "Governed draft and prompt routing for the focused Work Surface"
 
 populated = copy.deepcopy(base)
 validate(populated)
@@ -80,6 +89,16 @@ one_queue = projection(
         ],
     },
 )
+one_queue["operation_bindings"] = [{
+    "operation_id": "focusa.agent_execution.prompt",
+    "target_contribution_id": prompt["contribution_id"],
+    "enabled": True,
+    "disabled_reason_ref": None,
+    "confirmation": "none",
+    "authority_ref": "authority:fixture:prompt-preview",
+}]
+validate(one_queue)
+
 zero_queue = projection(
     "zero-queue",
     [primary, prompt],
@@ -93,6 +112,8 @@ zero_queue = projection(
         ],
     },
 )
+zero_queue["operation_bindings"] = copy.deepcopy(one_queue["operation_bindings"])
+validate(zero_queue)
 
 variants = {
     "single": projection("layout-single", [primary], single("layout:single", primary["contribution_id"])),

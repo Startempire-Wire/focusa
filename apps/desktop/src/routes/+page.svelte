@@ -4,6 +4,7 @@
   import { readDaemonHealth, type DaemonReadStatus } from '$lib/shell/daemon-health';
   import MissionCanvasShell from '$lib/shell/MissionCanvasShell.svelte';
   import { DESKTOP_BROWSER_PREVIEW_PROJECTIONS } from '$lib/mission-canvas/preview-projection';
+  import { createBrowserPreviewClient, executeBrowserPreviewOperation } from '$lib/mission-canvas/browser-preview-runtime';
   import AgentTuiSurface from '$lib/shell/AgentTuiSurface.svelte';
   import ContextControlPanel from '$lib/shell/ContextControlPanel.svelte';
   import { readSidebarPreferences, saveSidebarPreferences, type DesktopSidebarMode } from '$lib/shell/sidebar-preferences';
@@ -40,6 +41,7 @@
   let previewProjection = $derived(import.meta.env.DEV && shellMode === 'browser preview'
     ? DESKTOP_BROWSER_PREVIEW_PROJECTIONS[activeWorkspace.id]
     : undefined);
+  let previewClient = $derived(previewProjection ? createBrowserPreviewClient(previewProjection) : undefined);
   let daemonOrbState = $derived<'idle' | 'loading' | 'error'>(daemon.kind === 'checking' ? 'loading' : daemon.kind === 'unavailable' ? 'error' : 'idle');
   let sidebarMode = $state<DesktopSidebarMode>('expanded');
   let sidebarWidth = $state(248);
@@ -204,7 +206,11 @@
     {#if uiMode === 'tui'}
       <AgentTuiSurface />
     {:else if activeWorkspace.id === 'mission-canvas' || previewProjection}
-      <MissionCanvasShell projection={previewProjection} />
+      <MissionCanvasShell
+        projection={previewProjection}
+        client={previewClient}
+        executeContributionOperation={previewProjection ? executeBrowserPreviewOperation : undefined}
+      />
     {:else}
       <section class="workspace-heading">
         <div>

@@ -27,7 +27,16 @@
   </section>
 {:else if projection && rendererRegistry}
   <section class="canvas-live" aria-label="Focusa Mission Canvas workspace">
-    <MissionCanvasRenderer {projection} registry={rendererRegistry}/>
+    <MissionCanvasRenderer
+      {projection}
+      registry={rendererRegistry}
+      {client}
+      onOperation={executeContributionOperation
+        ? (binding) => binding.confirmation === 'none' || !binding.confirmation
+          ? executeContributionOperation(binding, projection)
+          : undefined
+        : undefined}
+    />
   </section>
 {:else}
   <section class="canvas-unbound" aria-label="Mission Canvas unbound">
