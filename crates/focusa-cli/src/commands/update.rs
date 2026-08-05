@@ -1981,7 +1981,13 @@ async fn execute_verified_apply_locked(
                 anyhow::bail!("Pi extension staged checksum mismatch");
             }
             std::fs::write(&archive, &bytes)?;
-            std::fs::File::open(&archive)?.sync_all()?;
+            std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(&archive)
+                .context("open staged Pi extension archive for durable flush")?
+                .sync_all()
+                .context("durably flush staged Pi extension archive")?;
             let package_json = PathBuf::from(
                 part.target_path
                     .as_deref()
