@@ -1,0 +1,1676 @@
+schema: focusa.mission_canvas_executable_callgraph.v1
+status: executable_decomposition
+parent: docs/transitions/FOCUSA-TRANSITION-001-mission-canvas-desktop-callgraph.yaml
+purpose: >-
+  Atomic implementation tasks for a weaker model. Each task changes one bounded seam,
+  names exact inputs and outputs, and has one completion test. Product behavior comes
+  only from the cited contracts and generated registries.
+
+agent_contract:
+  select:
+    - Select the first task in execution_order whose status is ready and whose dependencies are complete.
+    - Never skip a blocked dependency by creating local identity, state, mock authority, or a second resolver.
+  before_edit:
+    - Read every path in read.
+    - Verify every named existing symbol with rg before editing.
+    - If a symbol or generated field differs, stop and correct this callgraph from the higher-authority contract.
+  edit:
+    - Edit only files in targets.
+    - New product IDs must come from generated contracts or registries.
+    - Test fixtures must be under test or fixture paths and must never be selected by production runtime code.
+  finish:
+    - Run the exact check command.
+    - Confirm the done condition.
+    - Mark only that task complete and unblock only direct children.
+  forbidden:
+    - fixed dashboard layouts
+    - possible-type Work Surface tabs
+    - empty contribution placeholders
+    - client-local contribution eligibility
+    - client-local canonical layout resolution
+    - handwritten duplicate DTOs
+    - inferred Workstream or Attachment identity
+    - fake PTY data
+    - design-only substitutions for missing behavior
+
+shared_sources:
+  identity: /tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md
+  migration: /tmp/focusa-spec158-transition/docs__spec158__02-persistence-migration-and-quarantine.md
+  desktop: /tmp/focusa-spec158-transition/docs__spec158__03-client-runtime-and-desktop-contracts.md
+  handoff: /tmp/focusa-spec158-transition/docs__transitions__FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md
+  composition: docs/contracts/spec135-adaptive-composition.v1.yaml
+  host_contract: docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml
+  operation_registry: docs/contracts/spec135/mission-canvas-v1/operation-registry.json
+  generated_types: docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts
+  generated_client: docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts
+  generated_validators: docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts
+  profile_matrix: tests/fixtures/spec135-profile-activity-matrix.json
+  responsive_matrix: tests/fixtures/spec135-responsive-evaluations.json
+  no_dead_chrome_matrix: tests/fixtures/spec135-thirteen-no-dead-chrome-proofs.json
+
+status_meanings:
+  complete: implemented and consumed by a downstream seam
+  ready: may be executed now
+  blocked: dependency is incomplete
+  blocked_external: parent Spec 158 transition work is absent from this worktree
+  superseded: old host-specific implementation is not a target
+
+atomic_tasks:
+  - id: EX-001
+    parent: MC-000
+    title: Link parent and executable callgraphs from the Desktop graph
+    status: complete
+    depends_on: []
+    read: [docs/transitions/FOCUSA-TRANSITION-001-desktop-implementation-task-graph.yaml]
+    targets: [docs/transitions/FOCUSA-TRANSITION-001-desktop-implementation-task-graph.yaml]
+    calls: [desktop_graph.load, executable_callgraph.reference]
+    input: executable callgraph path
+    output: mission_canvas_executable_callgraph field
+    check: python3 -c "import yaml; d=yaml.safe_load(open('docs/transitions/FOCUSA-TRANSITION-001-desktop-implementation-task-graph.yaml')); assert d['mission_canvas_executable_callgraph'].endswith('executable-callgraph.yaml')"
+    done: Desktop graph resolves both parent and executable Mission Canvas graphs.
+
+  - id: ID-001
+    parent: MC-010
+    title: Add ScopeRef and ProjectRootKey target types
+    status: blocked_external
+    depends_on: []
+    read: [/tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md, crates/focusa-core/src/types.rs]
+    targets: [canonical Spec 158 identity owner in focusa-core]
+    calls: [ProjectRootKey.parse, ScopeRef.Project]
+    input: verified project identity
+    output: serializable ScopeRef and ProjectRootKey
+    check: cargo test -p focusa-core scope_ref --lib
+    done: ScopeRef cannot be constructed from CWD or display name.
+
+  - id: ID-002
+    parent: MC-010
+    title: Add stable WorkstreamId and WorkstreamKey
+    status: blocked
+    depends_on: [ID-001]
+    read: [/tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md]
+    targets: [canonical Spec 158 identity owner in focusa-core]
+    calls: [WorkstreamId.parse, WorkstreamKey.new]
+    input: ScopeRef plus durable WorkstreamId
+    output: WorkstreamKey
+    check: cargo test -p focusa-core workstream_key --lib
+    done: Two Workstreams under one project remain distinct map keys.
+
+  - id: ID-003
+    parent: MC-010
+    title: Add AttachmentKey ownership type
+    status: blocked
+    depends_on: [ID-002]
+    read: [/tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md]
+    targets: [canonical Spec 158 identity owner in focusa-core]
+    calls: [AttachmentKey.new, AttachmentKey.validate_owner]
+    input: WorkstreamKey plus runtime attachment identifier
+    output: AttachmentKey bound to one Workstream
+    check: cargo test -p focusa-core attachment_key --lib
+    done: Cross-Workstream Attachment reuse is rejected.
+
+  - id: ID-004
+    parent: MC-010
+    title: Partition ProjectState by WorkstreamId
+    status: blocked
+    depends_on: [ID-002]
+    read: [/tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md, crates/focusa-core/src/reducer.rs]
+    targets: [canonical Spec 158 reducer owner]
+    calls: [DaemonState.projects, ProjectState.workstreams, WorkstreamState.reduce]
+    input: Workstream-scoped event
+    output: mutation of exactly one WorkstreamState
+    check: cargo test -p focusa-core reducer_workstream_partition --lib
+    done: Same event under another Workstream leaves the first Workstream unchanged.
+
+  - id: ID-005
+    parent: MC-010
+    title: Implement WorkstreamContext extraction
+    status: blocked
+    depends_on: [ID-002, ID-003]
+    read: [/tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md]
+    targets: [canonical Spec 158 request-context owner]
+    calls: [RequestEnvelope.scope_ref, RequestEnvelope.workstream_id, RequestEnvelope.attachment_key, WorkstreamContext.try_from]
+    input: typed request envelope
+    output: exact WorkstreamContext or typed scope error
+    check: cargo test -p focusa-core workstream_context --lib
+    done: Missing WorkstreamId fails closed and no latest-record fallback executes.
+
+  - id: ID-006
+    parent: MC-010
+    title: Define Workstream creation and migration mapping
+    status: blocked
+    depends_on: [ID-002]
+    read: [/tmp/focusa-spec158-transition/docs__spec158__02-persistence-migration-and-quarantine.md]
+    targets: [Spec 158 migration model and schema owner]
+    calls: [MigrationInventory.read, WorkstreamMigrationMapping.resolve]
+    input: unique legacy workspace evidence or operator-confirmed mapping
+    output: focusa.workstream_migration_mapping.v1 record
+    check: cargo test -p focusa-core workstream_migration_mapping --lib
+    done: Mapping records source refs, rationale, and approval source.
+
+  - id: ID-007
+    parent: MC-010
+    title: Quarantine ambiguous legacy ownership
+    status: blocked
+    depends_on: [ID-006]
+    read: [/tmp/focusa-spec158-transition/docs__spec158__02-persistence-migration-and-quarantine.md]
+    targets: [Spec 158 persistence migration owner]
+    calls: [LegacyRecord.classify, LegacyQuarantine.append]
+    input: ambiguous, conflicting, foreign, or unverified legacy record
+    output: quarantine row with reason and source refs
+    check: cargo test -p focusa-core legacy_quarantine --lib
+    done: No ambiguous row is assigned to a Workstream.
+
+  - id: ID-008
+    parent: MC-010
+    title: Materialize shadow Workstream persistence
+    status: blocked
+    depends_on: [ID-004, ID-006, ID-007]
+    read: [/tmp/focusa-spec158-transition/docs__spec158__02-persistence-migration-and-quarantine.md]
+    targets: [Spec 158 persistence and migration owner]
+    calls: [LegacyState.read, ShadowWorkstreamStore.write, ParityComparator.compare]
+    input: legacy canonical state and migration mapping
+    output: Workstream-partitioned shadow rows plus parity report
+    check: cargo test -p focusa-core workstream_shadow_materialization --lib
+    done: Equal mapped state passes and ambiguous state remains quarantined.
+
+  - id: ID-009
+    parent: MC-010
+    title: Cut active Workstream selection into canonical reducer state
+    status: blocked
+    depends_on: [ID-004, ID-008]
+    read: [/tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md]
+    targets: [Spec 158 active-state reducer and API owner]
+    calls: [ActiveWorkstreamCommand.validate, WorkstreamState.reduce, Receipt.emit]
+    input: exact WorkstreamKey and idempotency key
+    output: canonical active Workstream event and Receipt
+    check: cargo test -p focusa-core active_workstream_state --lib
+    done: UI focus alone does not alter active Workstream state.
+
+  - id: ID-010
+    parent: MC-010
+    title: Cut Workstream identity APIs and generated schemas
+    status: blocked
+    depends_on: [ID-005, ID-009]
+    read: [/tmp/focusa-spec158-transition/docs__spec158__03-client-runtime-and-desktop-contracts.md]
+    targets: [Spec 158 OpenAPI, generated-client, CLI, MCP, and Pi-tool owners]
+    calls: [OpenAPI.generate, TypeScript.generate, CapabilityRegistry.generate]
+    input: canonical identity and reducer schemas
+    output: one Workstream-aware cross-client contract
+    check: canonical Spec 158 generated-contract parity gate
+    done: Every canonical Result and Receipt echoes exact WorkstreamKey.
+
+  - id: CORE-001
+    parent: MC-020
+    title: Replace MissionCanvasScope legacy fields with WorkstreamKey
+    status: blocked
+    depends_on: [ID-010]
+    read: [crates/focusa-core/src/mission_canvas/model.rs]
+    targets: [crates/focusa-core/src/mission_canvas/model.rs]
+    symbols: [MissionCanvasScope]
+    calls: [MissionCanvasScope.new, WorkstreamKey.validate]
+    input: WorkstreamKey plus optional exact Attachment context
+    output: Workstream-scoped MissionCanvasScope
+    check: cargo test -p focusa-core mission_canvas_scope --lib
+    done: MissionCanvasScope no longer uses project_root plus continuity_id as authority.
+
+  - id: CORE-002
+    parent: MC-020
+    title: Bind CandidateContribution to exact scope revision
+    status: blocked
+    depends_on: [CORE-001]
+    read: [crates/focusa-core/src/mission_canvas/model.rs, crates/focusa-core/src/mission_canvas/resolver.rs]
+    targets: [crates/focusa-core/src/mission_canvas/model.rs, crates/focusa-core/src/mission_canvas/resolver.rs]
+    symbols: [CandidateContribution, collect_candidates]
+    calls: [collect_candidates, CandidateContribution.validate_scope]
+    input: canonical candidate set for one Workstream
+    output: candidates that cannot cross Workstream boundary
+    check: cargo test -p focusa-core mission_canvas_candidate_scope --lib
+    done: Foreign-scope candidate is omitted with not_authorized or scope-mismatch diagnostics.
+
+  - id: CORE-003
+    parent: MC-020
+    title: Bind ResolvedWorkspaceProjection to exact WorkstreamKey
+    status: blocked
+    depends_on: [CORE-001, CORE-002]
+    read: [crates/focusa-core/src/mission_canvas/model.rs]
+    targets: [crates/focusa-core/src/mission_canvas/model.rs]
+    symbols: [ResolvedWorkspaceProjection]
+    calls: [ResolvedWorkspaceProjection.validate_scope]
+    input: resolved contributions and LayoutNode
+    output: projection with WorkstreamKey and projection revision
+    check: cargo test -p focusa-core resolved_workspace_projection_scope --lib
+    done: Projection serialization contains exact Workstream identity.
+
+  - id: CORE-004
+    parent: MC-020
+    title: Update projection digest for Workstream identity
+    status: blocked
+    depends_on: [CORE-003]
+    read: [crates/focusa-core/src/mission_canvas/reducer.rs]
+    targets: [crates/focusa-core/src/mission_canvas/reducer.rs]
+    symbols: [projection_digest]
+    calls: [projection_digest]
+    input: Workstream-bound projection
+    output: digest including WorkstreamKey and semantic/layout revisions
+    check: cargo test -p focusa-core mission_canvas_projection_digest --lib
+    done: Equal layouts under different Workstreams have different digests.
+
+  - id: CORE-005
+    parent: MC-020
+    title: Re-key MissionCanvasStore by WorkstreamKey
+    status: blocked
+    depends_on: [CORE-003, CORE-004, ID-008]
+    read: [crates/focusa-core/src/mission_canvas/persistence.rs]
+    targets: [crates/focusa-core/src/mission_canvas/persistence.rs]
+    symbols: [MissionCanvasStore]
+    calls: [MissionCanvasStore.save_projection, MissionCanvasStore.load_projection]
+    input: WorkstreamKey and projection revision
+    output: isolated projection, layout memory, evidence, receipt, and diagnostics rows
+    check: cargo test -p focusa-core mission_canvas_store_workstream_isolation --lib
+    done: Reading Workstream A cannot return Workstream B data.
+
+  - id: CORE-006
+    parent: MC-020
+    title: Update resolve_projection scope validation
+    status: blocked
+    depends_on: [CORE-002, CORE-003, CORE-005]
+    read: [crates/focusa-core/src/mission_canvas/reducer.rs]
+    targets: [crates/focusa-core/src/mission_canvas/reducer.rs]
+    symbols: [ResolveProjectionInput, resolve_projection]
+    calls: [resolve_projection, collect_candidates, resolve_eligibility, resolve_layout, validate_no_dead_chrome]
+    input: exact Workstream input, profile, activity, viewport, candidates, capabilities, permissions, memory
+    output: RecompositionResult for one Workstream
+    check: cargo test -p focusa-core resolve_projection_workstream --lib
+    done: Scope mismatch returns typed error before eligibility or layout.
+
+  - id: CORE-007
+    parent: MC-020
+    title: Correct Pi WorkSurfaceProjection identity
+    status: blocked
+    depends_on: [CORE-003]
+    read: [apps/pi-extension/src/mission-canvas-model.ts]
+    targets: [apps/pi-extension/src/mission-canvas-model.ts]
+    symbols: [WorkSurfaceProjection, projectWorkSurfaces]
+    calls: [projectWorkSurfaces, WorkSurfaceProjection.identity]
+    input: generated Work Surface payload
+    output: WorkSurfaceProjection with WorkstreamKey, AttachmentKey, SessionId, InstanceId, WorkSurfaceId
+    check: npm --prefix apps/pi-extension test -- mission-canvas-pi-surface
+    done: Legacy payload missing exact identity is not attachable or steerable.
+
+  - id: CORE-008
+    parent: MC-020
+    title: Correct Pi session inventory identity
+    status: blocked
+    depends_on: [CORE-007]
+    read: [apps/pi-extension/src/mission-canvas-session-inventory.ts]
+    targets: [apps/pi-extension/src/mission-canvas-session-inventory.ts]
+    symbols: [MissionCanvasSessionInventoryRow, projectSessionInventory]
+    calls: [projectSessionInventory]
+    input: exact Work Surface projections
+    output: inventory rows with WorkstreamKey and exact Attachment
+    check: node --test apps/pi-extension/tests/mission-canvas-session-inventory.test.mjs
+    done: Ambiguous inventory row is visible only as non-actionable compatibility data.
+
+  - id: CORE-009
+    parent: MC-020
+    title: Add Mission Canvas identity migration fixtures
+    status: blocked
+    depends_on: [CORE-005, CORE-008]
+    read: [tests/spec135_g1_work_surface_test.py, tests/spec135_resolved_projection_contract_test.py]
+    targets: [tests/fixtures/spec158-mission-canvas-identity/, Mission Canvas identity tests]
+    calls: [legacy_fixture.migrate, ambiguous_fixture.quarantine]
+    input: unique, ambiguous, and cross-Workstream legacy records
+    output: deterministic migration expectations
+    check: python3 tests/spec135_resolved_projection_contract_test.py
+    done: Unique rows migrate and ambiguous/cross-owner rows fail closed.
+
+  - id: CONTRACT-001
+    parent: MC-030
+    title: Regenerate Mission Canvas JSON Schema
+    status: blocked
+    depends_on: [CORE-009]
+    read: [scripts/generate-spec135-mission-canvas-derived-contracts.py]
+    targets: [generated Mission Canvas JSON Schema artifacts]
+    calls: [schema_generator.run]
+    input: corrected Rust domain types
+    output: Workstream-aware schemas
+    check: python3 tests/spec135_resolved_projection_contract_test.py
+    done: ResolvedWorkspaceProjection schema requires exact Workstream identity.
+
+  - id: CONTRACT-002
+    parent: MC-030
+    title: Regenerate Mission Canvas OpenAPI
+    status: blocked
+    depends_on: [CONTRACT-001]
+    read: [crates/focusa-api/src/routes/mission_canvas.rs]
+    targets: [docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json]
+    calls: [OpenAPI_generator.run]
+    input: corrected routes and schemas
+    output: OpenAPI 3.0.3 contract
+    check: python3 tests/spec135_mission_canvas_generated_parity_test.py
+    done: All 25 operations accept or resolve exact Workstream context.
+
+  - id: CONTRACT-003
+    parent: MC-030
+    title: Regenerate Operation Registry and action bindings
+    status: blocked
+    depends_on: [CONTRACT-002]
+    read: [docs/contracts/spec135/mission-canvas-v1/operation-registry.json]
+    targets: [docs/contracts/spec135/mission-canvas-v1/operation-registry.json, docs/contracts/spec135/mission-canvas-v1/ui-action-bindings.json]
+    calls: [OperationRegistry_generator.run, UiActionBinding_generator.run]
+    input: OpenAPI operations and x-focusa annotations
+    output: 25 scoped operations and generated action bindings
+    check: python3 tests/spec135_mission_canvas_generated_parity_test.py
+    done: Registry and OpenAPI operation IDs are one-to-one.
+
+  - id: CONTRACT-004
+    parent: MC-030
+    title: Regenerate TypeScript types
+    status: blocked
+    depends_on: [CONTRACT-002]
+    read: [docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts]
+    targets: [docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts]
+    calls: [TypeScript_type_generator.run]
+    input: OpenAPI and JSON Schema
+    output: generated Workstream-aware types
+    check: python3 tests/spec135_mission_canvas_generated_parity_test.py
+    done: No transport type is handwritten in Desktop or Pi.
+
+  - id: CONTRACT-005
+    parent: MC-030
+    title: Regenerate TypeScript client
+    status: blocked
+    depends_on: [CONTRACT-003, CONTRACT-004]
+    read: [docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts]
+    targets: [docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts]
+    calls: [TypeScript_client_generator.run]
+    input: operation registry and generated types
+    output: MissionCanvasClient methods for all 25 operations
+    check: python3 tests/spec135_mission_canvas_generated_parity_test.py
+    done: Client operation count equals registry operation count.
+
+  - id: CONTRACT-006
+    parent: MC-030
+    title: Regenerate runtime validators
+    status: blocked
+    depends_on: [CONTRACT-004]
+    read: [docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts]
+    targets: [docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts]
+    calls: [validator_generator.run]
+    input: generated JSON schemas
+    output: projection and envelope validators
+    check: python3 tests/spec135_mission_canvas_generated_parity_test.py
+    done: Validator rejects missing Workstream identity and malformed LayoutNode.
+
+  - id: CONTRACT-007
+    parent: MC-040
+    title: Create shared Mission Canvas contracts package entrypoint
+    status: blocked
+    depends_on: [CONTRACT-005, CONTRACT-006]
+    read: [/tmp/focusa-spec158-transition/docs__transitions__FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md]
+    targets: [packages/mission-canvas-core/package.json, packages/mission-canvas-core/src/index.ts]
+    calls: [generated_types.reexport, generated_client.reexport, generated_validators.reexport]
+    input: generated artifacts
+    output: one package import path for Desktop and Pi
+    check: package-specific TypeScript check
+    done: Package re-exports generated artifacts without copying DTO definitions.
+
+  - id: CONTRACT-008
+    parent: MC-040
+    title: Add shared layout traversal helpers
+    status: blocked
+    depends_on: [CONTRACT-007]
+    read: [crates/focusa-core/src/mission_canvas/layout.rs]
+    targets: [packages/mission-canvas-core/src/layout.ts]
+    calls: [visitLayoutNode, collectLayoutContributionIds]
+    input: generated LayoutNode only
+    output: pure traversal utilities
+    check: package test for all single, split, stack, grid, tabs, and inspector variants
+    done: Helpers traverse canonical geometry but never choose eligibility or layout.
+
+  - id: FIXTURE-001
+    parent: MC-040
+    title: Generate populated Desktop projection fixture through Focusa Core
+    status: ready
+    depends_on: []
+    read: [crates/focusa-core/src/mission_canvas/reducer.rs, tests/spec135_resolved_projection_contract_test.py, tests/fixtures/spec135-profile-activity-matrix.json]
+    targets: [apps/desktop/tests/fixtures/mission-canvas/populated-projection.json, fixture generator test only]
+    calls: [resolve_projection]
+    input: existing current-schema software tasks candidates with meaningful content
+    output: serialized ResolvedWorkspaceProjection test fixture
+    check: python3 tests/spec135_resolved_projection_contract_test.py
+    done: Fixture is resolver-produced, validates against generated schema, and is unreachable from production code.
+
+  - id: FIXTURE-002
+    parent: MC-040
+    title: Generate empty-optionals projection fixture
+    status: blocked
+    depends_on: [FIXTURE-001]
+    read: [tests/fixtures/spec135-thirteen-no-dead-chrome-proofs.json]
+    targets: [apps/desktop/tests/fixtures/mission-canvas/empty-optionals-projection.json]
+    calls: [resolve_projection, validate_no_dead_chrome]
+    input: candidates with empty Work Rail, queues, and inspector sections
+    output: projection omitting all empty optionals
+    check: projection fixture validator
+    done: Layout contains no omitted contribution ID.
+
+  - id: FIXTURE-003
+    parent: MC-040
+    title: Generate one-queue and zero-queue fixtures
+    status: blocked
+    depends_on: [FIXTURE-001]
+    read: [docs/contracts/spec135-adaptive-composition.v1.yaml]
+    targets: [apps/desktop/tests/fixtures/mission-canvas/one-queue-projection.json, apps/desktop/tests/fixtures/mission-canvas/zero-queue-projection.json]
+    calls: [resolve_projection]
+    input: one meaningful queue then no meaningful queues
+    output: canonical queue layout variants
+    check: projection fixture validator
+    done: One queue spans and zero queues produce no queue node.
+
+  - id: FIXTURE-004
+    parent: MC-040
+    title: Generate all LayoutNode variant fixtures
+    status: blocked
+    depends_on: [FIXTURE-001]
+    read: [crates/focusa-core/src/mission_canvas/layout.rs]
+    targets: [apps/desktop/tests/fixtures/mission-canvas/layout-variants.json]
+    calls: [resolve_layout]
+    input: valid candidates and constraints for each supported variant
+    output: single, split, stack, grid, tabs, and inspector fixture projections
+    check: projection fixture validator
+    done: Every canonical LayoutNode variant has one valid renderer fixture.
+
+  - id: UI-001
+    parent: MC-050
+    title: Add generated-client HTTP transport adapter
+    status: blocked
+    depends_on: [CONTRACT-007]
+    read: [docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts, apps/desktop/src/lib/shell/daemon-health.ts]
+    targets: [apps/desktop/src/lib/mission-canvas/http-transport.ts]
+    calls: [MissionCanvasTransport.request, fetch]
+    input: operation ID, typed input, daemon base URL
+    output: validated JSON or typed transport failure
+    check: npm --prefix apps/desktop test
+    done: Adapter resolves paths from generated registry and contains no handwritten operation switch beyond generated metadata.
+
+  - id: UI-002
+    parent: MC-050
+    title: Add exact Desktop Workstream context store
+    status: blocked
+    depends_on: [ID-010]
+    read: [/tmp/focusa-spec158-transition/docs__spec158__03-client-runtime-and-desktop-contracts.md]
+    targets: [apps/desktop/src/lib/mission-canvas/context.ts]
+    calls: [DesktopContext.fromCanonicalPacket, DesktopContext.clear]
+    input: verified ScopeRef and WorkstreamId
+    output: immutable exact context or unbound state
+    check: npm --prefix apps/desktop test
+    done: Context cannot be created from CWD, tab, remembered workspace, or latest record.
+
+  - id: UI-003
+    parent: MC-050
+    title: Add projection state machine
+    status: blocked
+    depends_on: [UI-001, UI-002, CONTRACT-006]
+    read: [docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts]
+    targets: [apps/desktop/src/lib/mission-canvas/projection-controller.svelte.ts]
+    calls: [MissionCanvasClient.projectionGet, validateProjection, rejectStaleRevision]
+    input: exact Desktop context
+    output: unbound, loading, ready, stale, blocked, or error state
+    check: npm --prefix apps/desktop test
+    done: A response for another Workstream or older revision cannot enter ready state.
+
+  - id: UI-004
+    parent: MC-060
+    title: Create stable MissionCanvasFrame component
+    status: blocked
+    depends_on: [FIXTURE-001]
+    read: [apps/desktop/src/lib/shell/MissionCanvasShell.svelte, docs/135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md]
+    targets: [apps/desktop/src/lib/mission-canvas/MissionCanvasFrame.svelte]
+    calls: [ActualWorkSurfaceStrip.render, ActivityNavigation.render, ProjectionLayoutRenderer.render]
+    input: validated ResolvedWorkspaceProjection fixture
+    output: stable shell regions only
+    check: npm --prefix apps/desktop run check
+    done: Frame contains no fixed status cards, contribution panels, or possible-type tabs.
+
+  - id: UI-005
+    parent: MC-100
+    title: Create trusted contribution renderer registry
+    status: blocked
+    depends_on: [FIXTURE-001]
+    read: [crates/focusa-core/src/mission_canvas/model.rs, docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts]
+    targets: [apps/desktop/src/lib/mission-canvas/contribution-renderers.ts]
+    calls: [resolveContributionRenderer]
+    input: renderer_binding_id and semantic_binding_id
+    output: trusted component factory or blocked unknown-binding result
+    check: npm --prefix apps/desktop test
+    done: Unknown binding renders nothing and records a bounded error; no generic substitute card exists.
+
+  - id: UI-006
+    parent: MC-090
+    title: Render single LayoutNode
+    status: blocked
+    depends_on: [UI-005, FIXTURE-004]
+    read: [crates/focusa-core/src/mission_canvas/layout.rs]
+    targets: [apps/desktop/src/lib/mission-canvas/layout/SingleNode.svelte]
+    calls: [resolveContributionRenderer]
+    input: single node contribution ID
+    output: exactly one eligible contribution host
+    check: npm --prefix apps/desktop test
+    done: Missing contribution ID fails closed with no reserved geometry.
+
+  - id: UI-007
+    parent: MC-090
+    title: Render split LayoutNode
+    status: blocked
+    depends_on: [UI-006]
+    read: [crates/focusa-core/src/mission_canvas/layout.rs]
+    targets: [apps/desktop/src/lib/mission-canvas/layout/SplitNode.svelte]
+    calls: [ProjectionLayoutRenderer.renderChild, layoutMutation.preview]
+    input: orientation, ratio, first child, second child
+    output: canonical split geometry
+    check: npm --prefix apps/desktop test
+    done: Split ratio is rendered from projection and local drag does not commit canonical state directly.
+
+  - id: UI-008
+    parent: MC-090
+    title: Render stack LayoutNode
+    status: blocked
+    depends_on: [UI-006]
+    read: [crates/focusa-core/src/mission_canvas/layout.rs]
+    targets: [apps/desktop/src/lib/mission-canvas/layout/StackNode.svelte]
+    calls: [ProjectionLayoutRenderer.renderChildren]
+    input: ordered child nodes
+    output: canonical stack geometry
+    check: npm --prefix apps/desktop test
+    done: Empty child list is rejected and omitted children leave no gap.
+
+  - id: UI-009
+    parent: MC-090
+    title: Render grid LayoutNode
+    status: blocked
+    depends_on: [UI-006]
+    read: [crates/focusa-core/src/mission_canvas/layout.rs]
+    targets: [apps/desktop/src/lib/mission-canvas/layout/GridNode.svelte]
+    calls: [ProjectionLayoutRenderer.renderChildren]
+    input: column count and ordered child nodes
+    output: canonical grid geometry
+    check: npm --prefix apps/desktop test
+    done: Grid does not create vacant cells for omitted contributions.
+
+  - id: UI-010
+    parent: MC-090
+    title: Render tabs LayoutNode
+    status: blocked
+    depends_on: [UI-006]
+    read: [crates/focusa-core/src/mission_canvas/layout.rs]
+    targets: [apps/desktop/src/lib/mission-canvas/layout/TabsNode.svelte]
+    calls: [ProjectionLayoutRenderer.renderActiveChild, presentationTab.select]
+    input: actual child nodes and active index
+    output: presentation tabs for actual contributions
+    check: npm --prefix apps/desktop test
+    done: Tab selection changes presentation only and no absent contribution receives a tab.
+
+  - id: UI-011
+    parent: MC-090
+    title: Render inspector LayoutNode
+    status: blocked
+    depends_on: [UI-006]
+    read: [crates/focusa-core/src/mission_canvas/layout.rs, docs/contracts/spec135-adaptive-composition.v1.yaml]
+    targets: [apps/desktop/src/lib/mission-canvas/layout/InspectorNode.svelte]
+    calls: [ProjectionLayoutRenderer.renderMain, ProjectionLayoutRenderer.renderSections]
+    input: main node, side, width, eligible section IDs
+    output: main plus conditional inspector
+    check: npm --prefix apps/desktop test
+    done: Empty inspector sections disappear and remaining sections close all gaps.
+
+  - id: UI-012
+    parent: MC-090
+    title: Compose recursive ProjectionLayoutRenderer
+    status: blocked
+    depends_on: [UI-007, UI-008, UI-009, UI-010, UI-011]
+    read: [crates/focusa-core/src/mission_canvas/layout.rs]
+    targets: [apps/desktop/src/lib/mission-canvas/ProjectionLayoutRenderer.svelte]
+    calls: [renderSingle, renderSplit, renderStack, renderGrid, renderTabs, renderInspector]
+    input: canonical LayoutNode root
+    output: recursive rendered layout
+    check: npm --prefix apps/desktop test
+    done: All fixture variants render and unknown variant fails closed.
+
+  - id: UI-013
+    parent: MC-070
+    title: Render actual Work Surface strip
+    status: blocked
+    depends_on: [UI-004, CORE-007]
+    read: [docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md]
+    targets: [apps/desktop/src/lib/mission-canvas/ActualWorkSurfaceStrip.svelte]
+    calls: [projection.open_work_surfaces, surfaceFocus.invoke]
+    input: actual surface inventory and focused WorkSurfaceId
+    output: one tab per actual open, pinned, or contextually important surface
+    check: npm --prefix apps/desktop test
+    done: Possible surface kinds do not appear until instantiated.
+
+  - id: UI-014
+    parent: MC-080
+    title: Render activity navigation from registry
+    status: blocked
+    depends_on: [UI-004, OPS-006]
+    read: [tests/fixtures/spec135-profile-activity-matrix.json]
+    targets: [apps/desktop/src/lib/mission-canvas/ActivityNavigation.svelte]
+    calls: [MissionCanvasClient.activityList, activitySelect]
+    input: applicable ActivityMode entries and current activity ID
+    output: rail on desktop or compact tabs on narrow viewport
+    check: npm --prefix apps/desktop test
+    done: Component contains no local activity composition table.
+
+  - id: UI-015
+    parent: MC-110
+    title: Render conditional Work Rail contribution
+    status: blocked
+    depends_on: [UI-005, UI-012]
+    read: [docs/135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md, apps/pi-extension/src/work-rail-widget.ts]
+    targets: [apps/desktop/src/lib/mission-canvas/contributions/WorkRailContribution.svelte]
+    calls: [rendererBinding.renderRows, contextualNewWorkpoint.invoke]
+    input: meaningful Work Rail contribution
+    output: scoped rows and actions
+    check: npm --prefix apps/desktop test
+    done: Empty Work Rail contributes no DOM region while New Workpoint remains contextual.
+
+  - id: UI-016
+    parent: MC-120
+    title: Render Steering Queue contribution
+    status: blocked
+    depends_on: [UI-005, UI-012]
+    read: [docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md]
+    targets: [apps/desktop/src/lib/mission-canvas/contributions/SteeringQueueContribution.svelte]
+    calls: [recipientResolve, operationPreview, operationCommit]
+    input: populated Steering Queue and exact recipient
+    output: actionable queue contribution
+    check: npm --prefix apps/desktop test
+    done: Queue is absent when empty or recipient is unauthorized.
+
+  - id: UI-017
+    parent: MC-120
+    title: Render Follow-up Queue contribution
+    status: blocked
+    depends_on: [UI-005, UI-012]
+    read: [docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md]
+    targets: [apps/desktop/src/lib/mission-canvas/contributions/FollowUpQueueContribution.svelte]
+    calls: [recipientResolve, operationPreview, operationCommit]
+    input: populated Follow-up Queue and exact recipient
+    output: actionable queue contribution
+    check: npm --prefix apps/desktop test
+    done: Queue is absent when empty or recipient is unauthorized.
+
+  - id: UI-018
+    parent: MC-120
+    title: Compose one-queue, two-queue, and zero-queue region
+    status: blocked
+    depends_on: [UI-016, UI-017, FIXTURE-003]
+    read: [docs/contracts/spec135-adaptive-composition.v1.yaml]
+    targets: [apps/desktop/src/lib/mission-canvas/contributions/QueueRegion.svelte]
+    calls: [renderSteering, renderFollowUp]
+    input: projection-resolved queue contributions
+    output: two lanes, one spanning lane, or no region
+    check: npm --prefix apps/desktop test
+    done: Zero queues leave no container and prompt region receives available space.
+
+  - id: UI-019
+    parent: MC-130
+    title: Implement draft controller
+    status: blocked
+    depends_on: [UI-003, OPS-018, OPS-019]
+    read: [docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md]
+    targets: [apps/desktop/src/lib/mission-canvas/draft-controller.ts]
+    calls: [draftGet, draftSync, rejectForeignDraft]
+    input: exact Workstream, WorkSurfaceId, recipient, draft revision
+    output: durable draft state
+    check: npm --prefix apps/desktop test
+    done: Activity/profile/recomposition changes preserve the draft and foreign revisions are rejected.
+
+  - id: UI-020
+    parent: MC-130
+    title: Render canonical Prompt Editor contribution
+    status: blocked
+    depends_on: [UI-019, OPS-020]
+    read: [docs/contracts/spec135-adaptive-composition.v1.yaml]
+    targets: [apps/desktop/src/lib/mission-canvas/contributions/PromptEditorContribution.svelte]
+    calls: [recipientResolve, draftController.sync, scopedSend.invoke]
+    input: prompt contribution and resolved recipient
+    output: editor with enabled send only for authorized exact recipient
+    check: npm --prefix apps/desktop test
+    done: No recipient means no actionable Send control; no empty status panel substitutes for it.
+
+  - id: UI-021
+    parent: MC-060
+    title: Wire fixture-driven recursive Canvas in development tests
+    status: blocked
+    depends_on: [UI-004, UI-012, UI-013, UI-015, UI-018, FIXTURE-004]
+    read: [apps/desktop/src/lib/shell/MissionCanvasShell.svelte]
+    targets: [apps/desktop test harness only, apps/desktop/src/lib/shell/MissionCanvasShell.svelte]
+    calls: [MissionCanvasFrame.render]
+    input: resolver-produced fixture selected only by test harness
+    output: functional recursive core layout for component development
+    check: npm --prefix apps/desktop run check && npm --prefix apps/desktop test
+    done: Production runtime has no fixture import and static dashboard body is no longer required by tests.
+
+  - id: DOMAIN-001
+    parent: MC-105
+    title: Bind Overview activity renderer
+    status: blocked
+    depends_on: [UI-005, CONTRACT-007]
+    read: [docs/135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md]
+    targets: [apps/desktop/src/lib/mission-canvas/activity-renderers.ts, trusted Overview contribution components]
+    calls: [rendererBinding.resolve]
+    input: emitted Project, Trajectory, Workpoint, Evidence, and active-surface contributions
+    output: only eligible overview contributions
+    check: npm --prefix apps/desktop test
+    done: No fixed mission-status dashboard is encoded.
+
+  - id: DOMAIN-002
+    parent: MC-105
+    title: Bind Context activity renderer
+    status: blocked
+    depends_on: [UI-005, CONTRACT-007]
+    read: [docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md]
+    targets: [trusted Context contribution components]
+    calls: [ProjectContextArtifact.render, ProjectContextClaim.render, semanticGraph.render]
+    input: canonical Context contribution bindings
+    output: provenance-aware Context surface
+    check: npm --prefix apps/desktop test
+    done: Context data comes from canonical artifacts and claims, not static examples.
+
+  - id: DOMAIN-003
+    parent: MC-105
+    title: Bind Role activity renderer
+    status: blocked
+    depends_on: [UI-005, CONTRACT-007]
+    read: [docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md]
+    targets: [trusted Role contribution components]
+    calls: [ProjectAgentRoleProfile.render, RoleComposer.render]
+    input: canonical Role Profile and draft state
+    output: governed Role surface
+    check: npm --prefix apps/desktop test
+    done: Role identity remains separate from permissions.
+
+  - id: DOMAIN-004
+    parent: MC-105
+    title: Bind Interview activity renderer
+    status: blocked
+    depends_on: [UI-005, CONTRACT-007]
+    read: [docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md]
+    targets: [trusted Interview contribution components]
+    calls: [InterviewSession.render, QuestionRecord.render, AnswerRecord.render]
+    input: canonical Grill Interview session
+    output: one-question-at-a-time resumable Interview surface
+    check: npm --prefix apps/desktop test
+    done: Answers autosave and close/resume retains branch state.
+
+  - id: DOMAIN-005
+    parent: MC-105
+    title: Bind Spec activity renderer
+    status: blocked
+    depends_on: [UI-005, CONTRACT-007]
+    read: [docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md]
+    targets: [trusted Spec contribution components]
+    calls: [CristHandoffPacket.render, Spec120Cycle.render, ProjectGenesisSpec.render]
+    input: canonical Spec artifacts and approval state
+    output: governed Spec workbench contribution
+    check: npm --prefix apps/desktop test
+    done: Static Markdown projection is not treated as the generated Spec UI.
+
+  - id: DOMAIN-006
+    parent: MC-105
+    title: Bind Tasks and Work activity renderer
+    status: blocked
+    depends_on: [UI-005, UI-015, CONTRACT-007]
+    read: [docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md]
+    targets: [trusted Tasks contribution components]
+    calls: [TaskPlan.render, ProviderCapability.render, Workpoint.render]
+    input: canonical task plan, provider state, Workpoint, and Work Rail
+    output: actionable Tasks/Work composition
+    check: npm --prefix apps/desktop test
+    done: Provider-unavailable actions are omitted at action point; no dead panel remains.
+
+  - id: DOMAIN-007
+    parent: MC-105
+    title: Bind Sessions activity renderer
+    status: blocked
+    depends_on: [UI-005, UI-013, CORE-008]
+    read: [docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md]
+    targets: [trusted Sessions contribution components]
+    calls: [WorkSurfaceInventory.render, SessionAttachmentIdentity.render]
+    input: exact Work Surface, Session, Instance, and Attachment inventory
+    output: multiplexed runtime inventory
+    check: npm --prefix apps/desktop test
+    done: Aggregate and local inventories are labeled and visual focus is not canonical activity.
+
+  - id: DOMAIN-008
+    parent: MC-105
+    title: Bind Documents activity renderer
+    status: blocked
+    depends_on: [UI-005, CONTRACT-007]
+    read: [docs/135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md]
+    targets: [trusted document and provenance components]
+    calls: [ContextArtifact.render, DocumentRenderer.render, Provenance.render]
+    input: canonical document artifact and provenance
+    output: document Work Surface contribution
+    check: npm --prefix apps/desktop test
+    done: Missing document capability omits action and contribution rather than showing dead chrome.
+
+  - id: DOMAIN-009
+    parent: MC-105
+    title: Bind Research activity renderer
+    status: blocked
+    depends_on: [UI-005, CONTRACT-007]
+    read: [docs/135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md]
+    targets: [trusted research contribution components]
+    calls: [ResearchSource.render, ClaimGraph.render, UIAIArtifactRef.render]
+    input: canonical research sources, claims, and artifacts
+    output: provenance-aware Research composition
+    check: npm --prefix apps/desktop test
+    done: UIAI Engine owns browser execution and Desktop renders references only.
+
+  - id: DOMAIN-010
+    parent: MC-105
+    title: Bind Evidence activity renderer
+    status: blocked
+    depends_on: [UI-005, CONTRACT-007]
+    read: [docs/135-focusa-professional-workspaces-and-crist-project-genesis-master-spec.md]
+    targets: [trusted Evidence and Receipt components]
+    calls: [Evidence.render, Receipt.render, Verification.render, Promotion.render]
+    input: canonical Evidence and Receipts
+    output: proof, provenance, verification, and promotion composition
+    check: npm --prefix apps/desktop test
+    done: Empty Evidence is omitted unless evidence posture affects the current action.
+
+  - id: DOMAIN-011
+    parent: MC-105
+    title: Bind History activity renderer
+    status: blocked
+    depends_on: [UI-005, LIVE-001]
+    read: [docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md]
+    targets: [trusted History contribution components]
+    calls: [CanonicalEventHistory.render]
+    input: cursor-scoped durable events
+    output: bounded Workstream history
+    check: npm --prefix apps/desktop test
+    done: History excludes foreign Workstream events and does not use transcript as canonical event history.
+
+  - id: DOMAIN-012
+    parent: MC-105
+    title: Bind Controls activity renderer
+    status: blocked
+    depends_on: [UI-005, CONTRACT-007]
+    read: [docs/135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md]
+    targets: [trusted Controls contribution components]
+    calls: [Capabilities.render, Permissions.render, ProfileManagement.render, LayoutMemory.render, OmissionDiagnostics.render]
+    input: canonical management and diagnostics data
+    output: explicit management flow separate from daily workspace
+    check: npm --prefix apps/desktop test
+    done: Internal diagnostics appear only here or on explicit request, not as primary Canvas cards.
+
+  - id: PROFILE-001
+    parent: MC-140
+    title: Render eligible profile selector
+    status: blocked
+    depends_on: [OPS-003, UI-004]
+    read: [docs/135a-workspace-projection-pi-sidebar-work-rail-and-vertical-ux-spec.md]
+    targets: [apps/desktop/src/lib/mission-canvas/WorkspaceProfileSelector.svelte]
+    calls: [profileList, profileSelect]
+    input: profiles capable of meaningful projection
+    output: General, Software, Legal, Markets, Research, or Custom eligible choices
+    check: npm --prefix apps/desktop test
+    done: Unsupported or empty profiles do not appear in daily selector.
+
+  - id: PROFILE-002
+    parent: MC-140
+    title: Preserve profile layout memory
+    status: blocked
+    depends_on: [PROFILE-001, OPS-009, OPS-010]
+    read: [docs/contracts/spec135-adaptive-composition.v1.yaml]
+    targets: [apps/desktop/src/lib/mission-canvas/profile-memory-controller.ts]
+    calls: [layoutMemoryGet, layoutMemoryUpdate]
+    input: WorkstreamKey, profile ID, semantic placement preferences
+    output: durable profile layout memory
+    check: npm --prefix apps/desktop test
+    done: Contribution disappearance and return restore preferred order without reserved geometry.
+
+  - id: PROFILE-003
+    parent: MC-140
+    title: Verify General profile recomposition
+    status: blocked
+    depends_on: [DOMAIN-001, PROFILE-002]
+    read: [tests/fixtures/spec135-profile-activity-matrix.json]
+    targets: [General profile component tests]
+    calls: [profileSelect, projectionResolve]
+    input: identical canonical state
+    output: General projection
+    check: General profile matrix test
+    done: Only resolver-emitted General contributions render.
+
+  - id: PROFILE-004
+    parent: MC-140
+    title: Verify Software profile recomposition
+    status: blocked
+    depends_on: [DOMAIN-002, DOMAIN-005, DOMAIN-006, PROFILE-002]
+    read: [tests/fixtures/spec135-profile-activity-matrix.json]
+    targets: [Software profile component tests]
+    calls: [profileSelect, projectionResolve]
+    input: identical canonical state
+    output: Software projection
+    check: Software profile matrix test
+    done: Context, Spec, Tasks, Sessions, and other activities use canonical emitted contributions.
+
+  - id: PROFILE-005
+    parent: MC-140
+    title: Verify Legal profile recomposition
+    status: blocked
+    depends_on: [DOMAIN-008, DOMAIN-011, PROFILE-002]
+    read: [tests/fixtures/spec135-profile-activity-matrix.json]
+    targets: [Legal profile component tests]
+    calls: [profileSelect, projectionResolve]
+    input: identical canonical state
+    output: Legal projection
+    check: Legal profile matrix test
+    done: Legal terminology, artifacts, authority emphasis, and geometry come from registry/projection.
+
+  - id: PROFILE-006
+    parent: MC-140
+    title: Verify Markets profile recomposition
+    status: blocked
+    depends_on: [DOMAIN-010, PROFILE-002]
+    read: [tests/fixtures/spec135-profile-activity-matrix.json]
+    targets: [Markets profile component tests]
+    calls: [profileSelect, projectionResolve]
+    input: identical canonical state
+    output: Markets projection
+    check: Markets profile matrix test
+    done: Markets risk/evidence contributions render only when emitted.
+
+  - id: PROFILE-007
+    parent: MC-140
+    title: Verify Research profile recomposition
+    status: blocked
+    depends_on: [DOMAIN-009, DOMAIN-010, PROFILE-002]
+    read: [tests/fixtures/spec135-profile-activity-matrix.json]
+    targets: [Research profile component tests]
+    calls: [profileSelect, projectionResolve]
+    input: identical canonical state
+    output: Research projection
+    check: Research profile matrix test
+    done: Sources, claims, Evidence, and renderer bindings come from projection.
+
+  - id: PROFILE-008
+    parent: MC-140
+    title: Verify Custom profile recomposition
+    status: blocked
+    depends_on: [DOMAIN-012, PROFILE-002]
+    read: [tests/fixtures/spec135-profile-activity-matrix.json]
+    targets: [Custom profile component tests]
+    calls: [profileSelect, projectionResolve]
+    input: installed custom profile definition
+    output: Custom projection
+    check: Custom profile matrix test
+    done: Custom profile cannot introduce unknown semantic or renderer binding IDs.
+
+operation_task_defaults:
+  status: blocked_until_dependencies_complete
+  read:
+    - docs/contracts/spec135/mission-canvas-v1/operation-registry.json
+    - docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json
+    - docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts
+    - crates/focusa-api/src/routes/mission_canvas.rs
+  target_owners:
+    - crates/focusa-api/src/routes/mission_canvas.rs
+    - matching Focusa Core mission_canvas owner
+    - generated OpenAPI, registry, client, validator, and action binding
+    - apps/desktop generated-client consumer
+  required_call_stack:
+    - generated client method
+    - generated operation ID lookup
+    - HTTP method and path from registry
+    - WorkstreamContext extraction
+    - capability and permission check
+    - core service call
+    - Result or Receipt with exact WorkstreamKey
+    - runtime validation in Desktop
+  required_negative_cases:
+    - missing WorkstreamId
+    - foreign WorkstreamId
+    - stale revision or cursor when applicable
+    - unavailable capability
+    - unauthorized mutation
+  check:
+    - python3 tests/spec135_mission_canvas_generated_parity_test.py
+    - per-operation API contract test named after the operation ID
+    - Desktop consumer test named after the generated client method
+  completion_rule: The operation passes positive and negative cases with no handwritten Desktop DTO or route metadata.
+
+operation_tasks:
+  - {id: OPS-001, operation: focusa.mission_canvas.projection.get, client: projectionGet, depends_on: [UI-001, UI-002], done: Returns latest validated projection for exact Workstream only.}
+  - {id: OPS-002, operation: focusa.mission_canvas.projection.resolve, client: projectionResolve, depends_on: [OPS-001, CORE-006], done: Resolves profile/activity/viewport inputs through Focusa Core and returns revision.}
+  - {id: OPS-003, operation: focusa.mission_canvas.profile.list, client: profileList, depends_on: [UI-001, UI-002], done: Returns only profiles with meaningful eligible projection.}
+  - {id: OPS-004, operation: focusa.mission_canvas.profile.select, client: profileSelect, depends_on: [OPS-002, OPS-003], done: Selects profile canonically and returns recomposed projection plus Receipt.}
+  - {id: OPS-005, operation: focusa.mission_canvas.profile.get, client: profileGet, depends_on: [OPS-003], done: Returns exact registered profile or typed not-found.}
+  - {id: OPS-006, operation: focusa.mission_canvas.activity.list, client: activityList, depends_on: [UI-001, UI-002], done: Returns registered applicable activities.}
+  - {id: OPS-007, operation: focusa.mission_canvas.activity.select, client: activitySelect, depends_on: [OPS-002, OPS-006], done: Selects activity and returns recomposed projection without changing Workstream authority.}
+  - {id: OPS-008, operation: focusa.mission_canvas.domain_pack.install, client: domain_packInstall, depends_on: [ID-010], done: Installs through explicit management flow and returns governed Result/Receipt.}
+  - {id: OPS-009, operation: focusa.mission_canvas.layout_memory.get, client: layout_memoryGet, depends_on: [UI-001, UI-002], done: Returns memory scoped by exact Workstream and profile.}
+  - {id: OPS-010, operation: focusa.mission_canvas.layout_memory.update, client: layout_memoryUpdate, depends_on: [OPS-009], done: Persists semantic placement preference with idempotency and Receipt.}
+  - {id: OPS-011, operation: focusa.mission_canvas.layout.mutate, client: layoutMutate, depends_on: [OPS-002], done: Preview/commit mutation returns canonical layout and rejects unknown contribution IDs.}
+  - {id: OPS-012, operation: focusa.mission_canvas.registry.list, client: registryList, depends_on: [UI-001, UI-002], done: Returns typed requested registry with revision.}
+  - {id: OPS-013, operation: focusa.mission_canvas.rich_host.resolve, client: rich_hostResolve, depends_on: [ID-010], done: Resolves Focusa Desktop Tauri as primary host and Pi overlay as compatibility only.}
+  - {id: OPS-014, operation: focusa.mission_canvas.rich_host.launch, client: rich_hostLaunch, depends_on: [OPS-013], done: Launches/presents Desktop for exact Workstream without forking Pi.}
+  - {id: OPS-015, operation: focusa.mission_canvas.rich_host.focus, client: rich_hostFocus, depends_on: [OPS-014], done: Focuses existing Desktop presentation without changing canonical activity.}
+  - {id: OPS-016, operation: focusa.mission_canvas.rich_host.hide, client: rich_hostHide, depends_on: [OPS-014], done: Hides presentation while preserving runtime, surface, and drafts.}
+  - {id: OPS-017, operation: focusa.mission_canvas.rich_host.close, client: rich_hostClose, depends_on: [OPS-014], done: Closes view using explicit lifecycle semantics without silent canonical destruction.}
+  - {id: OPS-018, operation: focusa.mission_canvas.draft.get, client: draftGet, depends_on: [UI-001, UI-002], done: Returns exact Workstream/Surface/recipient draft revision.}
+  - {id: OPS-019, operation: focusa.mission_canvas.draft.sync, client: draftSync, depends_on: [OPS-018], done: Idempotently persists draft and rejects stale or foreign revision.}
+  - {id: OPS-020, operation: focusa.mission_canvas.recipient.resolve, client: recipientResolve, depends_on: [UI-002, CORE-007], done: Returns authorized exact recipient or blocked reason.}
+  - {id: OPS-021, operation: focusa.mission_canvas.recomposition.evidence.get, client: recompositionEvidenceGet, depends_on: [OPS-002], done: Returns evidence matching projection revision/profile/activity/contribution set.}
+  - {id: OPS-022, operation: focusa.mission_canvas.recomposition.receipt.get, client: recompositionReceiptGet, depends_on: [OPS-002], done: Returns Receipt matching exact Workstream and revision.}
+  - {id: OPS-023, operation: focusa.mission_canvas.recomposition.diagnostics.list, client: recompositionDiagnosticsList, depends_on: [OPS-002], done: Returns internal omission reasons only on explicit diagnostics request.}
+  - {id: OPS-024, operation: focusa.mission_canvas.pi_session.event.append, client: pi_sessionEventAppend, depends_on: [PTY-008, ID-010], done: Appends exact Attachment/Session event with stable ID and sequence.}
+  - {id: OPS-025, operation: focusa.mission_canvas.events.stream, client: eventsStream, depends_on: [ID-010], done: Replays then tails exact Workstream events by cursor.}
+
+integration_tasks:
+  - id: GEN-001
+    parent: MC-150
+    title: Host GeneratedSurface contribution with existing A2UI/Lit renderer
+    status: blocked
+    depends_on: [UI-005, DOMAIN-002, CONTRACT-007]
+    read: [docs/135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md]
+    targets: [apps/desktop generated-surface host adapter]
+    calls: [GeneratedSurfaceEnvelope.validate, A2UI_web_core.process, A2UI_Lit.render]
+    input: trusted generated surface envelope
+    output: generated Work Surface contribution
+    check: existing A2UI deterministic fixture plus Desktop component test
+    done: Desktop does not implement a second A2UI processor or renderer.
+
+  - id: GEN-002
+    parent: MC-150
+    title: Bind Focusa Custom Element actions
+    status: blocked
+    depends_on: [GEN-001, CONTRACT-003]
+    read: [docs/135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md]
+    targets: [Desktop generated action adapter]
+    calls: [UiActionBinding.lookup, OperationRegistry.lookup, preview, commit]
+    input: trusted catalog action
+    output: governed Result, Evidence, Receipt, and generated delta
+    check: generated action binding parity test
+    done: Component cannot call unregistered operation or bypass permission projection.
+
+  - id: GEN-003
+    parent: MC-150
+    title: Bind Context Role Interview Spec and Tasks generated surfaces
+    status: blocked
+    depends_on: [GEN-002, DOMAIN-002, DOMAIN-003, DOMAIN-004, DOMAIN-005, DOMAIN-006]
+    read: [docs/135b-crist-project-genesis-context-role-interview-spec-tasks.md]
+    targets: [generated stage Work Surface bindings]
+    calls: [Context.surface, Role.surface, Interview.surface, Spec.surface, Tasks.surface]
+    input: canonical stage envelopes
+    output: five resumable generated stage surfaces
+    check: Cross-Functional Alpha stage component fixtures
+    done: Each stage has primary action, autosave/resume, recovery states, and terminal fallback truth.
+
+  - id: BROWSER-001
+    parent: MC-160
+    title: Render exact UIAI browser artifact Work Surface
+    status: blocked
+    depends_on: [UI-013, OPS-025]
+    read: [docs/135c-uiai-rich-artifact-live-refresh-and-research-bridge-spec.md, docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md]
+    targets: [apps/desktop browser Work Surface adapter]
+    calls: [UIAISessionRef.validate, BrowserArtifactRef.validate, ArtifactRenderer.render]
+    input: exact browser session/context/artifact references
+    output: isolated browser Work Surface projection
+    check: Desktop component test with typed UIAI artifact fixture
+    done: Desktop never executes browser actions or stores browser auth state.
+
+  - id: PTY-001
+    parent: MC-170
+    title: Replace frontend Pi identity DTO with generated Attachment types
+    status: blocked
+    depends_on: [CORE-007, CONTRACT-004]
+    read: [apps/desktop/src/lib/shell/pi-attachment-contract.ts]
+    targets: [apps/desktop/src/lib/shell/pi-attachment-contract.ts]
+    calls: [generatedAttachmentIdentity.validate]
+    input: generated exact Attachment projection
+    output: frontend Pi attachment state
+    check: npm --prefix apps/desktop test
+    done: Handwritten identity interface is removed or reduced to a generated-type alias.
+
+  - id: PTY-002
+    parent: MC-170
+    title: Define Tauri PTY command and event envelopes
+    status: blocked
+    depends_on: [PTY-001]
+    read: [/tmp/focusa-spec158-transition/docs__transitions__FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md]
+    targets: [apps/desktop/src-tauri/src/pty/model.rs, generated frontend bridge types]
+    calls: [PtyCommand.deserialize, PtyEvent.serialize]
+    input: attach, input, resize, interrupt, detach, close commands
+    output: typed command/event enums with attachment key and generation
+    check: cargo test -p focusa-desktop pty_model
+    done: Every event identifies AttachmentKey, WorkSurfaceId, run generation, and monotonic sequence.
+
+  - id: PTY-003
+    parent: MC-170
+    title: Add cross-platform PTY dependency and adapter trait
+    status: blocked
+    depends_on: [PTY-002]
+    read: [apps/desktop/src-tauri/Cargo.toml]
+    targets: [apps/desktop/src-tauri/Cargo.toml, apps/desktop/src-tauri/src/pty/adapter.rs]
+    calls: [PtyAdapter.spawn, write, resize, interrupt, terminate]
+    input: executable, args, environment, terminal geometry
+    output: platform-neutral PTY handle
+    check: cargo check -p focusa-desktop
+    done: Adapter uses a real PTY library and no ordinary pipe implementation exists.
+
+  - id: PTY-004
+    parent: MC-170
+    title: Implement PTY process registry
+    status: blocked
+    depends_on: [PTY-003, ID-010]
+    read: [apps/desktop/src-tauri/src/main.rs]
+    targets: [apps/desktop/src-tauri/src/pty/registry.rs]
+    calls: [PtyRegistry.attach, get, detach_view, close_runtime]
+    input: exact AttachmentKey and WorkSurfaceId
+    output: one persistent Pi process per governed Attachment
+    check: cargo test -p focusa-desktop pty_registry
+    done: Hiding or switching views does not kill process; duplicate attach is idempotent.
+
+  - id: PTY-005
+    parent: MC-170
+    title: Implement PTY spawn with exact Workstream environment
+    status: blocked
+    depends_on: [PTY-004]
+    read: [/tmp/focusa-spec158-transition/docs__spec158__03-client-runtime-and-desktop-contracts.md]
+    targets: [apps/desktop/src-tauri/src/pty/process.rs]
+    calls: [WorkstreamContext.validate, PtyAdapter.spawn, PtyRegistry.attach]
+    input: exact context, Pi executable, geometry
+    output: persistent Pi PTY process
+    check: cargo test -p focusa-desktop pty_spawn
+    done: Spawn fails before process creation on scope mismatch or missing Attachment.
+
+  - id: PTY-006
+    parent: MC-170
+    title: Stream PTY output to Tauri events
+    status: blocked
+    depends_on: [PTY-005]
+    read: [apps/desktop/src-tauri/src/pty/model.rs]
+    targets: [apps/desktop/src-tauri/src/pty/output.rs]
+    calls: [PtyHandle.read, sequence.increment, AppHandle.emit]
+    input: PTY bytes
+    output: ordered output events with exact identity and generation
+    check: cargo test -p focusa-desktop pty_output
+    done: Partial reads preserve bytes and stale generation cannot impersonate current process.
+
+  - id: PTY-007
+    parent: MC-170
+    title: Route terminal input to exact PTY
+    status: blocked
+    depends_on: [PTY-005]
+    read: [apps/desktop/src-tauri/src/pty/registry.rs]
+    targets: [apps/desktop/src-tauri/src/pty/input.rs]
+    calls: [PtyRegistry.get_exact, PtyHandle.write]
+    input: AttachmentKey, generation, bytes
+    output: PTY write acknowledgement
+    check: cargo test -p focusa-desktop pty_input
+    done: Foreign Attachment or stale generation input is rejected.
+
+  - id: PTY-008
+    parent: MC-170
+    title: Propagate terminal resize
+    status: blocked
+    depends_on: [PTY-005]
+    read: [apps/desktop/src/lib/shell/pi-attachment-contract.ts]
+    targets: [apps/desktop/src-tauri/src/pty/resize.rs]
+    calls: [geometry.validate, PtyHandle.resize]
+    input: columns, rows, pixel width, pixel height
+    output: resized PTY
+    check: cargo test -p focusa-desktop pty_resize
+    done: Latest geometry reaches PTY and invalid zero/overflow dimensions fail.
+
+  - id: PTY-009
+    parent: MC-170
+    title: Implement interrupt semantics
+    status: blocked
+    depends_on: [PTY-005]
+    read: [/tmp/focusa-spec158-transition/docs__transitions__FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md]
+    targets: [apps/desktop/src-tauri/src/pty/lifecycle.rs]
+    calls: [PtyRegistry.get_exact, platform_interrupt]
+    input: exact AttachmentKey and generation
+    output: interrupt acknowledgement and event
+    check: cargo test -p focusa-desktop pty_interrupt
+    done: Interrupt targets one process and is distinct from terminate.
+
+  - id: PTY-010
+    parent: MC-170
+    title: Implement detach without runtime destruction
+    status: blocked
+    depends_on: [PTY-004]
+    read: [docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md]
+    targets: [apps/desktop/src-tauri/src/pty/lifecycle.rs]
+    calls: [PtyRegistry.detach_view]
+    input: WorkSurfaceId and AttachmentKey
+    output: detached presentation with live process
+    check: cargo test -p focusa-desktop pty_detach
+    done: Reattach receives subsequent output from same process generation.
+
+  - id: PTY-011
+    parent: MC-170
+    title: Implement explicit close and shutdown semantics
+    status: blocked
+    depends_on: [PTY-009, PTY-010]
+    read: [docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md]
+    targets: [apps/desktop/src-tauri/src/pty/lifecycle.rs]
+    calls: [close_preview, close_commit, PtyHandle.terminate, Receipt.emit]
+    input: explicit close intent and exact identity
+    output: governed runtime termination
+    check: cargo test -p focusa-desktop pty_close
+    done: Closing a view and terminating canonical runtime are separate operations.
+
+  - id: PTY-012
+    parent: MC-170
+    title: Register Tauri PTY commands
+    status: blocked
+    depends_on: [PTY-006, PTY-007, PTY-008, PTY-009, PTY-010, PTY-011]
+    read: [apps/desktop/src-tauri/src/main.rs]
+    targets: [apps/desktop/src-tauri/src/main.rs, apps/desktop/src-tauri/src/pty/mod.rs]
+    calls: [tauri.generate_handler, PtyRegistry.manage]
+    input: frontend typed commands
+    output: invoke handlers and output/lifecycle events
+    check: cargo check -p focusa-desktop
+    done: Only typed PTY operations are exposed and registry lifecycle is app-managed.
+
+  - id: PTY-013
+    parent: MC-170
+    title: Connect AgentTuiSurface to native PTY bridge
+    status: blocked
+    depends_on: [PTY-012, PTY-001]
+    read: [apps/desktop/src/lib/shell/AgentTuiSurface.svelte]
+    targets: [apps/desktop/src/lib/shell/AgentTuiSurface.svelte, apps/desktop/src/lib/pty/native-bridge.ts]
+    calls: [invokeAttach, listenOutput, invokeInput, invokeResize, invokeInterrupt, invokeDetach]
+    input: exact attachment projection
+    output: authentic terminal renderer stream and controls
+    check: npm --prefix apps/desktop run check && npm --prefix apps/desktop test
+    done: Static transcript is removed; controls activate only for exact current generation.
+
+  - id: PTY-014
+    parent: MC-170
+    title: Reject stale PTY output in frontend
+    status: blocked
+    depends_on: [PTY-013]
+    read: [apps/desktop/src/lib/pty/native-bridge.ts]
+    targets: [apps/desktop/src/lib/pty/native-bridge.ts]
+    calls: [eventIdentity.matchesCurrentAttachment, sequence.accept]
+    input: PTY output event
+    output: accepted current bytes or rejected stale event
+    check: npm --prefix apps/desktop test
+    done: Prior Attachment, generation, or sequence cannot update terminal surface.
+
+  - id: PTY-015
+    parent: MC-170
+    title: Preserve Pi process across Canvas and Agent TUI switching
+    status: blocked
+    depends_on: [PTY-013, PTY-014, UI-013]
+    read: [apps/desktop/src/routes/+page.svelte]
+    targets: [apps/desktop/src/routes/+page.svelte, Desktop surface controller]
+    calls: [presentationMode.switch, PtyRegistry.keepAlive, WorkSurfaceFocus.restore]
+    input: Mission Canvas or Agent TUI presentation selection
+    output: complete-inner-surface replacement over same Pi process
+    check: Desktop integration test with process generation and output sequence
+    done: Switching twice returns to same Attachment, process generation, transcript stream, and draft.
+
+  - id: LIVE-001
+    parent: MC-180
+    title: Implement Workstream-scoped event client
+    status: blocked
+    depends_on: [OPS-025, UI-002]
+    read: [docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md]
+    targets: [apps/desktop/src/lib/mission-canvas/event-client.ts]
+    calls: [eventsStream, cursor.persist, eventScope.validate]
+    input: exact Workstream context and last event cursor
+    output: replayed then live ordered events
+    check: npm --prefix apps/desktop test
+    done: Foreign, duplicate, and out-of-order events are rejected.
+
+  - id: LIVE-002
+    parent: MC-180
+    title: Coalesce projection invalidations
+    status: blocked
+    depends_on: [LIVE-001, UI-003]
+    read: [docs/135j-core-api-operation-registry-durable-ui-stream-and-runtime-reuse-hardening-spec.md]
+    targets: [apps/desktop/src/lib/mission-canvas/invalidation-controller.ts]
+    calls: [event.classify, invalidation.coalesce, projectionController.refresh]
+    input: relevant canonical events
+    output: bounded projection refresh
+    check: npm --prefix apps/desktop test
+    done: Event bursts cause one refresh and routine refresh does not remount shell.
+
+  - id: LIVE-003
+    parent: MC-180
+    title: Preserve presentation state during projection refresh
+    status: blocked
+    depends_on: [LIVE-002, UI-012]
+    read: [docs/contracts/spec135-adaptive-composition.v1.yaml]
+    targets: [apps/desktop/src/lib/mission-canvas/presentation-state.ts]
+    calls: [captureFocus, captureScroll, captureSelection, restoreIfStillPresent]
+    input: prior and next projection revisions
+    output: preserved focus, scroll, selection, and active tab where semantic object remains
+    check: npm --prefix apps/desktop test
+    done: Polling or live updates do not reset operator context.
+
+  - id: LIVE-004
+    parent: MC-220
+    title: Restore projection after Desktop restart
+    status: blocked
+    depends_on: [LIVE-001, LIVE-003, PROFILE-002, PTY-010]
+    read: [docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md]
+    targets: [Desktop restoration controller]
+    calls: [canonicalContext.load, projectionGet, layoutMemoryGet, PtyRegistry.reattach]
+    input: canonical Workstream and stored presentation references
+    output: restored Canvas and Work Surfaces
+    check: Desktop restart integration test
+    done: No local snapshot becomes canonical; missing surfaces are reconciled truthfully.
+
+  - id: LIVE-005
+    parent: MC-220
+    title: Handle active capability loss and return
+    status: blocked
+    depends_on: [LIVE-002, UI-012]
+    read: [docs/contracts/spec135-adaptive-composition.v1.yaml]
+    targets: [Desktop capability-loss controller]
+    calls: [projectionRefresh, deadControl.remove, safeContent.preserve]
+    input: capability change event
+    output: recomposed projection and bounded notification when needed
+    check: npm --prefix apps/desktop test
+    done: Capability loss creates no permanent unavailable panel and return restores eligible contribution.
+
+  - id: CUT-001
+    parent: MC-230
+    title: Wire production MissionCanvasShell to projection controller
+    status: blocked
+    depends_on: [UI-003, UI-021, LIVE-003]
+    read: [apps/desktop/src/lib/shell/MissionCanvasShell.svelte]
+    targets: [apps/desktop/src/lib/shell/MissionCanvasShell.svelte]
+    calls: [projectionController.state, MissionCanvasFrame.render]
+    input: live validated projection state
+    output: production adaptive Canvas
+    check: npm --prefix apps/desktop run check && npm --prefix apps/desktop test
+    done: Production shell consumes no fixture and no static dashboard body.
+
+  - id: CUT-002
+    parent: MC-230
+    title: Remove local static activity and surface arrays
+    status: blocked
+    depends_on: [CUT-001, UI-013, UI-014]
+    read: [apps/desktop/src/lib/shell/MissionCanvasShell.svelte]
+    targets: [apps/desktop/src/lib/shell/MissionCanvasShell.svelte]
+    calls: [actualWorkSurfaceStrip, activityNavigation]
+    input: canonical inventories and registries
+    output: no local possible-type lists
+    check: npm --prefix apps/desktop test
+    done: Static surfaceTabs and activityModes arrays are absent.
+
+  - id: CUT-003
+    parent: MC-230
+    title: Remove fixed status, transcript, queue, and prompt placeholders
+    status: blocked
+    depends_on: [CUT-002, UI-015, UI-018, UI-020]
+    read: [apps/desktop/src/lib/shell/MissionCanvasShell.svelte]
+    targets: [apps/desktop/src/lib/shell/MissionCanvasShell.svelte]
+    calls: [ProjectionLayoutRenderer.render]
+    input: canonical contribution tree
+    output: no fixed content panels
+    check: npm --prefix apps/desktop test
+    done: Every primary workspace border and heading traces to an eligible contribution ID.
+
+  - id: CUT-004
+    parent: MC-200
+    title: Route Pi mission-canvas command to Desktop present operation
+    status: blocked
+    depends_on: [OPS-014, OPS-015, CUT-001]
+    read: [/tmp/focusa-spec158-transition/docs__transitions__FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md]
+    targets: [apps/pi-extension Mission Canvas command adapter]
+    calls: [desktopPresent.exactWorkstream, compatibilityProjection.open]
+    input: current exact Workstream context and explicit host preference
+    output: Desktop presentation or truthful bounded terminal fallback
+    check: Pi extension command test
+    done: Default uses Desktop when available and never launches wrong Workstream.
+
+  - id: CUT-005
+    parent: MC-200
+    title: Reduce menubar to bounded Desktop handoff
+    status: blocked
+    depends_on: [CUT-001, CUT-004]
+    read: [/tmp/focusa-spec158-transition/docs__transitions__FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md, apps/menubar/src/lib/components/MissionCanvasView.svelte]
+    targets: [apps/menubar bounded status/handoff surfaces]
+    calls: [DesktopPresent.invoke]
+    input: exact project-bound handoff context
+    output: status, resume, pairing, lifecycle, and Desktop open actions only
+    check: menubar contract test
+    done: Menubar no longer owns full Mission Canvas content.
+
+  - id: ACCEPT-001
+    parent: MC-240
+    title: Verify all thirteen no-dead-chrome scenarios functionally
+    status: blocked
+    depends_on: [CUT-003, PROFILE-008, LIVE-005]
+    read: [tests/fixtures/spec135-thirteen-no-dead-chrome-proofs.json]
+    targets: [Desktop Mission Canvas functional acceptance suite]
+    calls: [projectionResolve, MissionCanvasFrame.render]
+    input: thirteen canonical scenarios
+    output: functional assertions over semantic state and DOM
+    check: Desktop Mission Canvas functional acceptance command
+    done: All thirteen scenarios pass without snapshot-only assertions.
+
+  - id: ACCEPT-002
+    parent: MC-240
+    title: Verify all twelve activities and six profiles
+    status: blocked
+    depends_on: [DOMAIN-012, PROFILE-008, CUT-003]
+    read: [tests/fixtures/spec135-profile-activity-matrix.json]
+    targets: [Desktop profile/activity functional suite]
+    calls: [profileSelect, activitySelect, projectionResolve]
+    input: canonical matrix vectors
+    output: expected contribution IDs and renderer bindings
+    check: Desktop profile/activity acceptance command
+    done: Every matrix vector renders only expected eligible semantic contributions.
+
+  - id: ACCEPT-003
+    parent: MC-240
+    title: Verify same-session Canvas and Agent TUI continuity
+    status: blocked
+    depends_on: [PTY-015, LIVE-004]
+    read: [/tmp/focusa-spec158-transition/docs__transitions__FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md]
+    targets: [Desktop native integration suite]
+    calls: [Pi.input, Canvas.switch, AgentTui.switch, Desktop.restart, Pi.output]
+    input: one exact Pi Attachment
+    output: same process generation, stream, draft, Workpoint, and surface identity
+    check: bounded native Desktop integration test
+    done: Hide, switch, detach, and restart preserve exact Pi session as specified.
+
+  - id: ACCEPT-004
+    parent: MC-240
+    title: Verify generated and browser Work Surfaces
+    status: blocked
+    depends_on: [GEN-003, BROWSER-001, LIVE-002]
+    read: [docs/135i-real-time-generated-crist-ui-nontechnical-onboarding-and-core-api-integration-spec.md]
+    targets: [Desktop generated/browser integration suite]
+    calls: [GeneratedSurface.action, UIAIArtifact.refresh]
+    input: one canonical generated stage and one isolated UIAI artifact
+    output: governed action result and scoped refresh
+    check: UIAI Engine functional evaluation after local integration passes
+    done: Generated action emits Receipt and UIAI refresh changes only targeted Work Surface.
+
+  - id: ACCEPT-005
+    parent: MC-240
+    title: Verify narrow stacked and desktop projection modes
+    status: blocked
+    depends_on: [UI-012, PROFILE-008, CUT-003]
+    read: [tests/fixtures/spec135-responsive-evaluations.json]
+    targets: [Desktop responsive functional suite]
+    calls: [projectionResolve.withViewport, MissionCanvasFrame.render]
+    input: canonical viewport vectors
+    output: one-column narrow/stacked and two-column desktop projection
+    check: UIAI Engine responsive evaluation after functional assertions pass
+    done: Viewport changes geometry through projection input and preserve semantic focus.
+
+  - id: POLISH-001
+    parent: MC-250
+    title: Apply finishing visual handoff after functional acceptance
+    status: blocked
+    depends_on: [ACCEPT-001, ACCEPT-002, ACCEPT-003, ACCEPT-004, ACCEPT-005]
+    read: [/Volumes/Macintosh HD/Users/vsmith/focusa-desktop-design-handoff.md]
+    targets: [already-functional Desktop Mission Canvas components]
+    calls: [visual_tokens.apply, motion.refine, typography.refine]
+    input: accepted functional Canvas
+    output: finishing visual quality without semantic changes
+    check: visual acceptance only after all core acceptance tasks remain passing
+    done: Visual changes do not alter projection, authority, operation, or lifecycle behavior.
+
+execution_order:
+  completed_alignment:
+    - EX-001
+  ready_now:
+    - FIXTURE-001
+  identity_train:
+    - ID-001
+    - ID-002
+    - ID-003
+    - ID-004
+    - ID-005
+    - ID-006
+    - ID-007
+    - ID-008
+    - ID-009
+    - ID-010
+  core_and_contract_train:
+    - CORE-001
+    - CORE-002
+    - CORE-003
+    - CORE-004
+    - CORE-005
+    - CORE-006
+    - CORE-007
+    - CORE-008
+    - CORE-009
+    - CONTRACT-001
+    - CONTRACT-002
+    - CONTRACT-003
+    - CONTRACT-004
+    - CONTRACT-005
+    - CONTRACT-006
+    - CONTRACT-007
+    - CONTRACT-008
+  fixture_parallel_train:
+    - FIXTURE-002
+    - FIXTURE-003
+    - FIXTURE-004
+    - UI-004
+    - UI-005
+    - UI-006
+    - UI-007
+    - UI-008
+    - UI-009
+    - UI-010
+    - UI-011
+    - UI-012
+    - UI-021
+  live_desktop_train:
+    - UI-001
+    - UI-002
+    - UI-003
+    - OPS-001
+    - OPS-002
+    - OPS-003
+    - OPS-004
+    - OPS-005
+    - OPS-006
+    - OPS-007
+    - OPS-008
+    - OPS-009
+    - OPS-010
+    - OPS-011
+    - OPS-012
+    - OPS-013
+    - OPS-014
+    - OPS-015
+    - OPS-016
+    - OPS-017
+    - OPS-018
+    - OPS-019
+    - OPS-020
+    - OPS-021
+    - OPS-022
+    - OPS-023
+    - OPS-025
+    - UI-013
+    - UI-014
+    - UI-015
+    - UI-016
+    - UI-017
+    - UI-018
+    - UI-019
+    - UI-020
+  domain_and_profile_train:
+    - DOMAIN-001
+    - DOMAIN-002
+    - DOMAIN-003
+    - DOMAIN-004
+    - DOMAIN-005
+    - DOMAIN-006
+    - DOMAIN-007
+    - DOMAIN-008
+    - DOMAIN-009
+    - DOMAIN-010
+    - DOMAIN-011
+    - DOMAIN-012
+    - PROFILE-001
+    - PROFILE-002
+    - PROFILE-003
+    - PROFILE-004
+    - PROFILE-005
+    - PROFILE-006
+    - PROFILE-007
+    - PROFILE-008
+  generated_and_browser_train:
+    - GEN-001
+    - GEN-002
+    - GEN-003
+    - BROWSER-001
+  pty_train:
+    - PTY-001
+    - PTY-002
+    - PTY-003
+    - PTY-004
+    - PTY-005
+    - PTY-006
+    - PTY-007
+    - PTY-008
+    - PTY-009
+    - PTY-010
+    - PTY-011
+    - PTY-012
+    - PTY-013
+    - PTY-014
+    - PTY-015
+    - OPS-024
+  live_and_cutover_train:
+    - LIVE-001
+    - LIVE-002
+    - LIVE-003
+    - LIVE-004
+    - LIVE-005
+    - CUT-001
+    - CUT-002
+    - CUT-003
+    - CUT-004
+    - CUT-005
+  acceptance_then_polish:
+    - ACCEPT-001
+    - ACCEPT-002
+    - ACCEPT-003
+    - ACCEPT-004
+    - ACCEPT-005
+    - POLISH-001

@@ -1,5 +1,6 @@
 schema: focusa.mission_canvas_desktop_implementation_callgraph.v1
 status: implementation_guide
+executable_child: docs/transitions/FOCUSA-TRANSITION-001-mission-canvas-executable-callgraph.yaml
 purpose: >-
   Source-grounded callgraph for transferring the fundamental Spec 135 Mission Canvas
   into Focusa Desktop without inventing product structure, state, panels, authority, or actions.

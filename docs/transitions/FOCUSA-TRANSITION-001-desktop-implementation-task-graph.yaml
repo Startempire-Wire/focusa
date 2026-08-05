@@ -2,6 +2,7 @@ schema: focusa.desktop.transition_task_graph.v1
 transition_id: FOCUSA-TRANSITION-001
 parent_graph: docs/transitions/FOCUSA-TRANSITION-001-task-graph.yaml
 mission_canvas_callgraph: docs/transitions/FOCUSA-TRANSITION-001-mission-canvas-desktop-callgraph.yaml
+mission_canvas_executable_callgraph: docs/transitions/FOCUSA-TRANSITION-001-mission-canvas-executable-callgraph.yaml
 scope: T070_T071_desktop_5_to_25
 status: active
 rules:
