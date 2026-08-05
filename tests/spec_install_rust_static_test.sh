@@ -71,10 +71,9 @@ grep -qi 'checksum mismatch' "$PS1" \
 pass "checksum verification failure paths retained in Rust + thin scripts"
 
 # Thin bootstrapper contract: scripts download focusa, then delegate to Rust install.
-# Bash invokes directly (not exec) so its EXIT trap can roll back partial clean installs.
+# Bash invokes directly so it can preserve the exact Rust exit status and recovery hint.
 for marker in 'ARGS=(install --target="$RUST_TARGET"' 'if "$BOOTSTRAP_BIN" "${ARGS[@]}"; then' \
-  'record_install_success' 'install failed; restored exact pre-bootstrap state' \
-  'Rust install orchestrator failed (exit ${status})'; do
+  'restore_bootstrap_stash' 'status=$?' 'exit "$status"'; do
   grep -qF "$marker" "$SH" \
     || fail "install-focusa.sh missing rollback-aware delegate marker: $marker"
 done
@@ -87,30 +86,26 @@ pass "shell/PowerShell installers delegate to focusa install"
 python3 - "$SH" <<'PY'
 import pathlib, re, sys
 text = pathlib.Path(sys.argv[1]).read_text()
-assignment = text.index('RELEASE_TAG="${SELECTED%%')
-first_expansion = text.index('$RELEASE_TAG')
-assert assignment < first_expansion, "RELEASE_TAG is expanded before initialization under set -u"
 pattern = re.compile(
-    r'if "\$BOOTSTRAP_BIN" "\$\{ARGS\[@\]\}"; then\s+'
-    r'record_install_success\s+BOOTSTRAP_SUCCESS=1\s+exit 0\s+'
-    r'else\s+status=\$\?\s+'
-    r'err "Rust install orchestrator failed \(exit \$\{status\}\)"\s+exit "\$status"',
-    re.MULTILINE,
+    r'if "\$BOOTSTRAP_BIN" "\$\{ARGS\[@\]\}"; then.*?'
+    r'else\s+status=\$\?\s+restore_bootstrap_stash\s+exit "\$status"',
+    re.DOTALL,
 )
 assert pattern.search(text), "orchestrator failure status is not preserved through an explicit else branch"
+assert text.index('if [ "$DRY_RUN" = 1 ]') < text.index('mktemp -d'), "dry-run writes temporary state"
 PY
-pass "bootstrapper initializes release state and preserves nonzero orchestrator exits"
+pass "bootstrapper preserves nonzero orchestrator exits and dry-run is non-mutating"
 
 grep -qF 'curl --http1.1 --retry 5 $CURL_RETRY_ALL_ERRORS --retry-delay 2 --connect-timeout 20' "$SH" \
   || fail "install-focusa.sh missing bounded resilient download policy"
 pass "bootstrapper retries transient GitHub/CDN transport failures over HTTP/1.1"
 
 for marker in \
-  "stable)  TAG_PATTERN='v[0-9]+\\.[0-9]+\\.[0-9]+'" \
-  "preview) TAG_PATTERN='v[0-9]+\\.[0-9]+\\.[0-9]+-(dev|rc)(\\..*)?'" \
+  "stable) TAG_PATTERN='^v[0-9]+\\.[0-9]+\\.[0-9]+$'" \
+  "preview) TAG_PATTERN='^v[0-9]+\\.[0-9]+\\.[0-9]+-(dev|rc)(\\..*)?$'" \
   'stable install requires valid Cosign signature metadata; SHA256 alone is insufficient' \
-  '${base}.cosign.sig' \
-  '${base}.cosign.pem' \
+  'SHA256SUMS.txt.cosign.sig' \
+  'SHA256SUMS.txt.cosign.pem' \
   'install is preview-only'; do
   grep -qF "$marker" "$SH" || fail "install-focusa.sh missing truthful channel/signature marker: $marker"
 done
