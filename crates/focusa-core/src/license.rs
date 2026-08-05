@@ -247,7 +247,8 @@ pub fn load_local_license() -> anyhow::Result<LocalLicense> {
 /// Check whether a specific feature is enabled by the current license.
 /// Returns `true` if enabled, `false` if not (or if in evaluation mode).
 pub fn feature_enabled(feature: &str) -> bool {
-    if focusa_license::UNRESTRICTED_DEMO_BUILD {
+    const UNRESTRICTED_DEMO_BUILD: bool = true;
+    if UNRESTRICTED_DEMO_BUILD {
         let _ = feature;
         return true;
     }
