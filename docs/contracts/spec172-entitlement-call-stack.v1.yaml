@@ -58,31 +58,31 @@ stages:
   - order: 5
     id: confirmation_and_platform_permission
     owner: confirmation_permission_guard
-    chokepoint: crates/focusa-core/src/confirmation.rs
+    chokepoint: crates/focusa-core/src/permissions/mod.rs
     independence: confirmation
     failure_codes: [CONFIRMATION_REQUIRED]
   - order: 6
     id: artifact_trust
     owner: artifact_trust_verifier
-    chokepoint: crates/focusa-core/src/lifecycle/trust.rs
+    chokepoint: crates/focusa-core/src/install_lifecycle/adapters.rs
     independence: trust
     failure_codes: [ARTIFACT_TRUST_REQUIRED]
   - order: 7
     id: privacy
     owner: privacy_policy_guard
-    chokepoint: crates/focusa-core/src/privacy.rs
+    chokepoint: crates/focusa-core/src/permissions/mod.rs
     independence: privacy
     failure_codes: [PRIVACY_POLICY_REQUIRED]
   - order: 8
     id: verified_identity
     owner: authority_identity_verifier
-    chokepoint: WPUIAI.com authority identity service
+    chokepoint: external:WPUIAI.com/authority/identity
     independence: entitlement
     failure_codes: [EMAIL_VERIFICATION_REQUIRED]
   - order: 9
     id: limited_assertion_or_edd_paid_key
     owner: WPUIAI.com_EDD_authority
-    chokepoint: WPUIAI.com authority grant resolver
+    chokepoint: external:WPUIAI.com/authority/grant-resolver
     independence: entitlement
     accepted_inputs: [authority_signed_verified_no_license_assertion, EDD_Software_Licensing_paid_key]
     failure_codes: [LICENSE_TYPE_REQUIRED, VERIFIED_LIMITED_ACCESS]
@@ -125,12 +125,12 @@ stages:
   - order: 16
     id: execution
     owner: canonical_operation_handler
-    chokepoint: crates/focusa-core/src/entitlement_execution_guard.rs
+    chokepoint: planned:crates/focusa-core/src/entitlement_execution_guard.rs
     independence: execution
     failure_codes: []
 implementation_locations:
   handlers:
-    protected_operation: crates/focusa-core/src/entitlement_execution_guard.rs
+    protected_operation: planned:crates/focusa-core/src/entitlement_execution_guard.rs
     http_projection: crates/focusa-api/src/middleware/entitlement.rs
   services:
     operation_policy: crates/focusa-api/src/middleware/entitlement_routes.rs
@@ -141,8 +141,8 @@ implementation_locations:
     resource_reservation: crates/focusa-core/src/runtime/persistence_sqlite.rs
   chokepoints:
     http: crates/focusa-api/src/middleware/entitlement.rs
-    non_http: crates/focusa-core/src/entitlement_execution_guard.rs
-    delayed_dispatch: crates/focusa-core/src/entitlement_execution_guard.rs
+    non_http: planned:crates/focusa-core/src/entitlement_execution_guard.rs
+    delayed_dispatch: planned:crates/focusa-core/src/entitlement_execution_guard.rs
 unknown_metadata:
   product: {disposition: deny_before_execution, error_code: PRODUCT_NOT_INCLUDED}
   license_type: {disposition: deny_before_execution, error_code: LICENSE_TYPE_NOT_INCLUDED}

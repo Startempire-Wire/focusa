@@ -19,6 +19,14 @@ def yaml_map(path: pathlib.Path) -> dict:
     return value
 
 
+def is_locatable(location: object) -> bool:
+    if not isinstance(location, str) or not location.strip():
+        return False
+    if location.startswith(("planned:", "external:")):
+        return len(location.split(":", 1)[1].strip()) > 0
+    return (ROOT / location).exists()
+
+
 def main() -> int:
     failures: list[str] = []
     stack = yaml_map(STACK)
@@ -42,16 +50,16 @@ def main() -> int:
         if not isinstance(owner, str) or not owner.strip():
             failures.append(f"{stage.get('id')}: must have exactly one scalar owner")
         chokepoint = stage.get("chokepoint")
-        if not isinstance(chokepoint, str) or not chokepoint.strip():
-            failures.append(f"{stage.get('id')}: must locate its chokepoint")
+        if not is_locatable(chokepoint):
+            failures.append(f"{stage.get('id')}: chokepoint must exist or be explicitly planned/external")
 
     locations = stack.get("implementation_locations", {})
     for kind in ("handlers", "services", "stores", "chokepoints"):
         entries_for_kind = locations.get(kind)
         if not isinstance(entries_for_kind, dict) or not entries_for_kind:
             failures.append(f"implementation_locations.{kind} must locate every {kind[:-1]}")
-        elif any(not isinstance(path, str) or not path.strip() for path in entries_for_kind.values()):
-            failures.append(f"implementation_locations.{kind} contains an empty location")
+        elif any(not is_locatable(path) for path in entries_for_kind.values()):
+            failures.append(f"implementation_locations.{kind} contains an unlocatable location")
 
     unknown_metadata = stack.get("unknown_metadata", {})
     expected_unknown_codes = {
