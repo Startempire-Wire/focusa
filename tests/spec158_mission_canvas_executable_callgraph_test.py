@@ -72,7 +72,7 @@ assert all(task["translation_contract_ref"] == CARDINAL_TRANSLATION_REF for task
 assert all(task["execution_packet_ref"] == f"{EXECUTION_PACKET_REF_PREFIX}{task['id']}.json" for task in tasks)
 assert EXECUTION_INDEX["task_count"] == len(tasks) == 133
 assert set(EXECUTION_PACKETS) == {task["id"] for task in tasks}
-assert set(EXECUTION_INDEX["unresolved_packets"]) == {f"ID-{index:03d}" for index in range(4, 11)}
+assert set(EXECUTION_INDEX["unresolved_packets"]) == {f"ID-{index:03d}" for index in range(5, 11)}
 for task in tasks:
     packet = EXECUTION_PACKETS[task["id"]]
     assert packet["cardinal_translation_ref"] == CARDINAL_TRANSLATION_REF

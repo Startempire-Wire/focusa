@@ -1,0 +1,27 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "ID-004",
+  "result": "Added the canonical ProjectState Workstream partition container keyed exclusively by WorkstreamId. Explicit registration rejects silent replacement, and reads/mutations require an exact durable WorkstreamId rather than continuity, session, attachment, or recency.",
+  "targets": [
+    "crates/focusa-core/src/workstream_state.rs",
+    "crates/focusa-core/src/lib.rs",
+    "tests/spec158_workstream_state_source_test.py"
+  ],
+  "checks": [
+    "rustfmt --edition 2021 crates/focusa-core/src/workstream_state.rs",
+    "python3 tests/spec158_workstream_state_source_test.py"
+  ],
+  "remaining_checks": [
+    "cargo test -p focusa-core reducer_workstream_partition --lib"
+  ],
+  "remaining_work": [
+    "Route the existing reducer through one exact ProjectState Workstream entry after the canonical WorkstreamState payload is introduced"
+  ],
+  "blockers": [
+    "Cargo validation remains deferred under the operator's pre-50-percent build prohibition"
+  ],
+  "evidence_refs": [
+    "docs/spec158/01-identity-ownership-and-reducer.md"
+  ],
+  "status": "implemented_partial"
+}

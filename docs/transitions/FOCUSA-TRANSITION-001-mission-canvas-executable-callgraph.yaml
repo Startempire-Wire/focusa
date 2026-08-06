@@ -148,11 +148,11 @@ atomic_tasks:
     execution_packet_ref: docs/contracts/spec135-svelte-task-packets/ID-004.json
     parent: MC-010
     title: Partition ProjectState by WorkstreamId
-    status: blocked
+    status: implemented_partial
     depends_on: [ID-002]
-    read: [/tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md, crates/focusa-core/src/reducer.rs]
-    targets: [canonical Spec 158 reducer owner]
-    calls: [DaemonState.projects, ProjectState.workstreams, WorkstreamState.reduce]
+    read: [docs/spec158/01-identity-ownership-and-reducer.md, crates/focusa-core/src/reducer.rs]
+    targets: [crates/focusa-core/src/workstream_state.rs, crates/focusa-core/src/lib.rs, tests/spec158_workstream_state_source_test.py]
+    calls: [ProjectState.register_workstream, ProjectState.workstream, ProjectState.workstream_mut]
     input: Workstream-scoped event
     output: mutation of exactly one WorkstreamState
     check: cargo test -p focusa-core reducer_workstream_partition --lib
