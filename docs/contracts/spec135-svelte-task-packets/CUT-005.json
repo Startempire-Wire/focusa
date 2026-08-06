@@ -13,7 +13,7 @@
   "source_requirement": {
     "parent_callgraph_node": "MC-200",
     "source_refs": [
-      "/tmp/focusa-spec158-transition/docs__transitions__FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md",
+      "docs/transitions/FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md",
       "apps/menubar/src/lib/components/MissionCanvasView.svelte"
     ],
     "pi_overlay_behavior_sources": [],
@@ -47,7 +47,7 @@
     {
       "step": 2,
       "action": "read_authority",
-      "instruction": "Read these sources completely before editing: ['/tmp/focusa-spec158-transition/docs__transitions__FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md', 'apps/menubar/src/lib/components/MissionCanvasView.svelte']. Follow CARDINAL-135-SVELTE-001; Pi-overlay files are behavior sources, not the destination host."
+      "instruction": "Read these sources completely before editing: ['docs/transitions/FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md', 'apps/menubar/src/lib/components/MissionCanvasView.svelte']. Follow CARDINAL-135-SVELTE-001; Pi-overlay files are behavior sources, not the destination host."
     },
     {
       "step": 3,

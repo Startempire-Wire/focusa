@@ -20,6 +20,16 @@ PACKET_DIR = ROOT / "docs/contracts/spec135-svelte-task-packets"
 CARDINAL_REF = "CARDINAL-135-SVELTE-001"
 PACKET_REF_PREFIX = "docs/contracts/spec135-svelte-task-packets/"
 PATH_PREFIXES = ("apps/", "crates/", "docs/", "packages/", "scripts/", "tests/", "/tmp/")
+SOURCE_REF_MIGRATIONS = {
+    "/tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md": "docs/spec158/01-identity-ownership-and-reducer.md",
+    "/tmp/focusa-spec158-transition/docs__spec158__02-persistence-migration-and-quarantine.md": "docs/spec158/02-persistence-migration-and-quarantine.md",
+    "/tmp/focusa-spec158-transition/docs__spec158__03-client-runtime-and-desktop-contracts.md": "docs/spec158/03-client-runtime-and-desktop-contracts.md",
+    "/tmp/focusa-spec158-transition/docs__transitions__FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md": "docs/transitions/FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md",
+}
+
+
+def canonical_source_ref(value: str) -> str:
+    return SOURCE_REF_MIGRATIONS.get(value, value)
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -105,7 +115,8 @@ def task_packet(
     else:
         mode = "execute_only_after_dependencies_complete"
     source_refs = []
-    for value in [*parent.get("read_before_edit", []), *reads]:
+    for raw_value in [*parent.get("read_before_edit", []), *reads]:
+        value = canonical_source_ref(raw_value)
         if value not in source_refs:
             source_refs.append(value)
     ordered_steps = [

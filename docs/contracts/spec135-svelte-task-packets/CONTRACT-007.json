@@ -16,7 +16,7 @@
       "crates/focusa-core/src/mission_canvas/",
       "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts",
       "apps/pi-extension/src/mission-canvas-view.ts",
-      "/tmp/focusa-spec158-transition/docs__transitions__FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md"
+      "docs/transitions/FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md"
     ],
     "pi_overlay_behavior_sources": [],
     "behavior_to_preserve": "generated artifacts",
@@ -48,7 +48,7 @@
     {
       "step": 2,
       "action": "read_authority",
-      "instruction": "Read these sources completely before editing: ['crates/focusa-core/src/mission_canvas/', 'docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts', 'apps/pi-extension/src/mission-canvas-view.ts', '/tmp/focusa-spec158-transition/docs__transitions__FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md']. Follow CARDINAL-135-SVELTE-001; Pi-overlay files are behavior sources, not the destination host."
+      "instruction": "Read these sources completely before editing: ['crates/focusa-core/src/mission_canvas/', 'docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts', 'apps/pi-extension/src/mission-canvas-view.ts', 'docs/transitions/FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md']. Follow CARDINAL-135-SVELTE-001; Pi-overlay files are behavior sources, not the destination host."
     },
     {
       "step": 3,

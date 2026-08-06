@@ -12,9 +12,8 @@
   "source_requirement": {
     "parent_callgraph_node": "MC-010",
     "source_refs": [
-      "/tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md",
-      "/tmp/focusa-spec158-transition/docs__spec158__02-persistence-migration-and-quarantine.md",
       "docs/spec158/01-identity-ownership-and-reducer.md",
+      "docs/spec158/02-persistence-migration-and-quarantine.md",
       "crates/focusa-core/src/reducer.rs"
     ],
     "pi_overlay_behavior_sources": [],
@@ -47,7 +46,7 @@
     {
       "step": 2,
       "action": "read_authority",
-      "instruction": "Read these sources completely before editing: ['/tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md', '/tmp/focusa-spec158-transition/docs__spec158__02-persistence-migration-and-quarantine.md', 'docs/spec158/01-identity-ownership-and-reducer.md', 'crates/focusa-core/src/reducer.rs']. Follow CARDINAL-135-SVELTE-001; Pi-overlay files are behavior sources, not the destination host."
+      "instruction": "Read these sources completely before editing: ['docs/spec158/01-identity-ownership-and-reducer.md', 'docs/spec158/02-persistence-migration-and-quarantine.md', 'crates/focusa-core/src/reducer.rs']. Follow CARDINAL-135-SVELTE-001; Pi-overlay files are behavior sources, not the destination host."
     },
     {
       "step": 3,

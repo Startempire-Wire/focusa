@@ -12,7 +12,7 @@
   "source_requirement": {
     "parent_callgraph_node": "MC-170",
     "source_refs": [
-      "/tmp/focusa-spec158-transition/docs__spec158__03-client-runtime-and-desktop-contracts.md"
+      "docs/spec158/03-client-runtime-and-desktop-contracts.md"
     ],
     "pi_overlay_behavior_sources": [],
     "behavior_to_preserve": "exact context, Pi executable, geometry",
@@ -47,7 +47,7 @@
     {
       "step": 2,
       "action": "read_authority",
-      "instruction": "Read these sources completely before editing: ['/tmp/focusa-spec158-transition/docs__spec158__03-client-runtime-and-desktop-contracts.md']. Follow CARDINAL-135-SVELTE-001; Pi-overlay files are behavior sources, not the destination host."
+      "instruction": "Read these sources completely before editing: ['docs/spec158/03-client-runtime-and-desktop-contracts.md']. Follow CARDINAL-135-SVELTE-001; Pi-overlay files are behavior sources, not the destination host."
     },
     {
       "step": 3,
