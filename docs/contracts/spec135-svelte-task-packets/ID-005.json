@@ -4,8 +4,8 @@
   "task_class": "atomic",
   "title": "Implement WorkstreamContext extraction",
   "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
-  "current_status": "blocked",
-  "execution_mode": "stop_specification_gap",
+  "current_status": "implemented_partial",
+  "execution_mode": "execute_only_after_dependencies_complete",
   "depends_on": [
     "ID-002",
     "ID-003"
@@ -14,7 +14,8 @@
     "parent_callgraph_node": "MC-010",
     "source_refs": [
       "/tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md",
-      "/tmp/focusa-spec158-transition/docs__spec158__02-persistence-migration-and-quarantine.md"
+      "/tmp/focusa-spec158-transition/docs__spec158__02-persistence-migration-and-quarantine.md",
+      "docs/spec158/01-identity-ownership-and-reducer.md"
     ],
     "pi_overlay_behavior_sources": [],
     "behavior_to_preserve": "typed request envelope",
@@ -22,12 +23,14 @@
   },
   "destination": {
     "host": "Focusa Desktop Mission Canvas Svelte GUI tab",
-    "exact_target_paths": [],
+    "exact_target_paths": [
+      "crates/focusa-core/src/workstream_context.rs",
+      "crates/focusa-core/src/lib.rs",
+      "tests/spec158_workstream_context_source_test.py"
+    ],
     "named_symbols_or_calls": [
-      "RequestEnvelope.scope_ref",
-      "RequestEnvelope.workstream_id",
-      "RequestEnvelope.attachment_key",
-      "WorkstreamContext.try_from"
+      "WorkstreamContext.extract",
+      "AttachmentKey.validate_owner"
     ],
     "generated_operation": null,
     "agent_tui_boundary": "Agent TUI remains the separate authentic PTY-backed Pi terminal; it is never the Mission Canvas renderer."
@@ -43,12 +46,12 @@
     {
       "step": 2,
       "action": "read_authority",
-      "instruction": "Read these sources completely before editing: ['/tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md', '/tmp/focusa-spec158-transition/docs__spec158__02-persistence-migration-and-quarantine.md']. Follow CARDINAL-135-SVELTE-001; Pi-overlay files are behavior sources, not the destination host."
+      "instruction": "Read these sources completely before editing: ['/tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md', '/tmp/focusa-spec158-transition/docs__spec158__02-persistence-migration-and-quarantine.md', 'docs/spec158/01-identity-ownership-and-reducer.md']. Follow CARDINAL-135-SVELTE-001; Pi-overlay files are behavior sources, not the destination host."
     },
     {
       "step": 3,
       "action": "inspect_destination",
-      "instruction": "Inspect only these destination paths and named symbols before changing code: []; symbols/calls: ['RequestEnvelope.scope_ref', 'RequestEnvelope.workstream_id', 'RequestEnvelope.attachment_key', 'WorkstreamContext.try_from']. Do not invent a substitute path or API."
+      "instruction": "Inspect only these destination paths and named symbols before changing code: ['crates/focusa-core/src/workstream_context.rs', 'crates/focusa-core/src/lib.rs', 'tests/spec158_workstream_context_source_test.py']; symbols/calls: ['WorkstreamContext.extract', 'AttachmentKey.validate_owner']. Do not invent a substitute path or API."
     },
     {
       "step": 4,
@@ -96,9 +99,7 @@
   ],
   "evidence_artifact": "docs/contracts/evidence/spec135-svelte-tasks/ID-005.json",
   "stop_conditions": {
-    "unresolved_specification_items": [
-      "canonical Spec 158 request-context owner"
-    ],
+    "unresolved_specification_items": [],
     "stop_if": [
       "any dependency lacks completion evidence",
       "exact Workstream/Attachment authority is unavailable for an authority-bearing action",

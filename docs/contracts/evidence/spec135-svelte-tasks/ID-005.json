@@ -1,0 +1,27 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "ID-005",
+  "result": "Added fail-closed WorkstreamContext extraction from an explicit WorkstreamKey and/or exact AttachmentKey. Conflicting owner, continuity, or workspace-binding claims are rejected; continuity or session data alone cannot select a Workstream.",
+  "targets": [
+    "crates/focusa-core/src/workstream_context.rs",
+    "crates/focusa-core/src/lib.rs",
+    "tests/spec158_workstream_context_source_test.py"
+  ],
+  "checks": [
+    "rustfmt --edition 2021 crates/focusa-core/src/workstream_context.rs",
+    "python3 tests/spec158_workstream_context_source_test.py"
+  ],
+  "remaining_checks": [
+    "cargo test -p focusa-core workstream_context --lib"
+  ],
+  "remaining_work": [
+    "Bind extraction to the canonical request envelope once concrete ActorRef and AuthorityContext owners are migrated"
+  ],
+  "blockers": [
+    "Cargo validation remains deferred under the operator's pre-50-percent build prohibition"
+  ],
+  "evidence_refs": [
+    "docs/spec158/01-identity-ownership-and-reducer.md"
+  ],
+  "status": "implemented_partial"
+}
