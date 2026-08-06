@@ -10,74 +10,72 @@ authority:
   unassigned_product_code: PRODUCT_MAPPING_REQUIRED
   spec158: excluded
 protected_offers:
-  - public_code: focusa_operator
-    human_name: Focusa Operator
-    mapping_status: blocked_unassigned
+  - public_code: focusa_operator_lifetime_v1
+    human_name: Focusa Operator Lifetime v1
+    license_type_ref: focusa_operator_lifetime_v1
+    mapping_status: approved_policy_blocked_edd_mapping
     checkout_enabled: false
     edd_download_id: null
     edd_price_id: null
-    price_authority: unassigned_operator_decision_required
-    license_duration: null
-    node_limit: null
+    price_usd: '697.00'
+    price_authority: spec172_server_owned
+    license_duration: lifetime
+    operator_seats: 1
+    node_limit: 3
+    node_set: operator_shared_v1
     products: [focusa]
-    features: []
-    commercial_rights: []
     evaluation: false
-    evaluation_duration_days: null
-    supported_facades: []
-    refund_policy: unassigned_operator_decision_required
-    upgrade_policy: unassigned_operator_decision_required
-  - public_code: uiai_engine_operator
-    human_name: UIAI Engine Operator
-    mapping_status: blocked_unassigned
+    refund_policy: whole_order_30_days
+    future_products_included: false
+    future_license_types_included: false
+  - public_code: uiai_operator_lifetime_v1
+    human_name: UIAI Engine Operator Lifetime v1
+    license_type_ref: uiai_operator_lifetime_v1
+    mapping_status: approved_policy_blocked_edd_mapping
     checkout_enabled: false
     edd_download_id: null
     edd_price_id: null
-    price_authority: unassigned_operator_decision_required
-    license_duration: null
-    node_limit: null
-    products: [uiai-engine]
-    features: []
-    commercial_rights: []
+    price_usd: '697.00'
+    price_authority: spec172_server_owned
+    license_duration: lifetime
+    operator_seats: 1
+    node_limit: 3
+    node_set: operator_shared_v1
+    products: [uiai_engine]
     evaluation: false
-    evaluation_duration_days: null
-    supported_facades: []
-    refund_policy: unassigned_operator_decision_required
-    upgrade_policy: unassigned_operator_decision_required
-  - public_code: focusa_uiai_bundle
-    human_name: Focusa and UIAI Engine Bundle
-    mapping_status: blocked_unassigned
+    refund_policy: whole_order_30_days
+    future_products_included: false
+    future_license_types_included: false
+  - public_code: focusa_uiai_operator_bundle_lifetime_v1
+    human_name: Focusa and UIAI Engine Operator Lifetime Bundle v1
+    composite_sku_ref: focusa_uiai_operator_bundle_lifetime_v1
+    mapping_status: approved_policy_blocked_edd_mapping
     checkout_enabled: false
     edd_download_id: null
     edd_price_id: null
-    price_authority: unassigned_operator_decision_required
-    license_duration: null
-    node_limit: null
-    products: [focusa, uiai-engine]
-    features: []
-    commercial_rights: []
+    price_usd: '1254.60'
+    price_authority: spec172_server_owned
+    license_duration: lifetime
+    operator_seats: 1
+    node_limit: 3
+    node_set: operator_shared_v1
+    products: [focusa, uiai_engine]
+    grants: [focusa_operator_lifetime_v1, uiai_operator_lifetime_v1]
+    grant_composition: exact_union
     evaluation: false
-    evaluation_duration_days: null
-    supported_facades: []
-    refund_policy: unassigned_operator_decision_required
-    upgrade_policy: unassigned_operator_decision_required
-  - public_code: focusa_evaluation
-    human_name: Focusa Evaluation
-    mapping_status: blocked_unassigned
-    checkout_enabled: false
-    edd_download_id: null
-    edd_price_id: null
-    price_authority: no_charge_dedicated_edd_mapping_required
-    license_duration: null
-    node_limit: null
-    products: [focusa]
-    features: []
-    commercial_rights: []
-    evaluation: true
-    evaluation_duration_days: null
-    supported_facades: []
-    refund_policy: not_applicable
-    upgrade_policy: preserve_paid_posture_and_require_authority_eligibility
+    refund_policy: whole_order_30_days
+    component_refunds_allowed: false
+    future_products_included: false
+    future_license_types_included: false
+verified_no_license:
+  kind: account_runtime_posture
+  is_license_type: false
+  edd_download_id: null
+  edd_price_id: null
+  checkout_enabled: false
+  edd_software_license_key: false
+  grant_source: authority_signed_limited_access_assertion
+  anonymous_access: false
 current_edd_catalog:
   observed_at: '2026-08-06T10:31:00Z'
   entries:
@@ -108,22 +106,25 @@ legacy_record_classes:
   - {id: install_revoked_focusa, source: install.focusa.dev, observed_count: 13, disposition: retire, requirement: preserve_revocation_history_never_reactivate}
 activation_requirements:
   - operator_approved_dedicated_edd_download_and_optional_price_id
-  - verified_registration_required_before_checkout_or_evaluation
+  - verified_registration_required_before_checkout_or_limited_access
   - edd_software_licensing_enabled
   - exact_product_and_price_relationship
   - server_owned_products_features_limits_and_commercial_rights
   - node_limit_and_duration_decision
   - supported_facade_allowlist
-  - refund_upgrade_and_evaluation_policy
+  - refund_upgrade_and_verified_limited_access_policy
   - migration_and_recovery_analysis
   - acceptance_evidence
 invariants:
   - no_protected_offer_is_currently_checkout_enabled
+  - protected_offer_policy_values_are_server_owned_by_spec172
+  - bundle_is_exact_union_at_1254_60_with_one_operator_and_three_shared_nodes
+  - future_products_and_license_types_are_excluded
   - download_453_is_not_focusa_authority
   - credit_packs_never_grant_entitlement
   - caller_metadata_never_selects_price_product_grant_limit_or_right
-  - evaluation_requires_verified_identity_and_dedicated_edd_mapping
-  - paid_records_are_never_downgraded_to_evaluation
+  - verified_no_license_is_a_non_license_posture_with_no_edd_key
+  - paid_records_are_never_downgraded_to_anonymous_or_local_grants
   - refunded_or_revoked_records_never_reactivate
   - legacy_email_match_alone_never_transfers_ownership
   - every_legacy_class_is_migrate_quarantine_or_retire

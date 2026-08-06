@@ -1,0 +1,38 @@
+Spec 172 License Type registry acceptance
+Work item: focusa-vbcqu.20.15.2
+
+Repository state
+- Canonical project root: /tmp/focusa-rel3-candidate
+- Exact base commit tested with this atom's bounded working-tree changes: b8d66b4c96423d966c3c1cf9b165c7ba2e401e4b
+- Unrelated pre-existing working-tree changes were preserved.
+
+Exact verification
+- Command: python3 tests/spec172_license_type_contract_test.py
+- Exit code: 0
+- Bounded result:
+  Spec 172 License Type contract test passed
+  semantic_digest=sha256:b67a175a319f55539d967f7e6b7b4af84def25cfc7dae6d6e86d1c358ad35b7d
+  license_types=2 composite_skus=1 postures=1
+
+Additional check
+- Command: git diff --check
+- Exit code: 0
+- Result: no whitespace errors.
+
+Acceptance summary
+- verified_no_license is encoded as a permanent authority-signed account/runtime posture, not a License Type, EDD key, anonymous grant, or local/self-issued grant.
+- focusa_operator_lifetime_v1 and uiai_operator_lifetime_v1 are server-owned lifetime License Types at USD 697.00 each.
+- focusa_uiai_operator_bundle_lifetime_v1 is USD 1254.60 and grants the exact union of those two License Types without an independent feature catalog.
+- All records use one operator seat and the same three-node operator_shared_v1 set.
+- Refund policy is 30 days, whole order only; Bundle component refunds are forbidden.
+- Unknown/future products and License Types are excluded and cannot inherit.
+- Checkout remains disabled pending dedicated EDD mappings and downstream no-sales/cutover acceptance.
+
+Remaining blockers
+- Dedicated EDD Download/price identifiers remain deliberately unassigned; checkout remains blocked.
+- This governance atom does not prove no-sales, implement EDD mappings, enable checkout, issue grants, or accept downstream runtime/cutover work.
+- No bead was closed and no remote was touched.
+
+Rollback
+- Revert only docs/contracts/spec172-license-types.v1.yaml, the scoped reconciliation in docs/contracts/spec152e-edd-product-registry.v1.yaml, tests/spec172_license_type_contract_test.py, and this evidence file.
+- Preserve verified identities, customers, orders, refunds, License Types, keys, nodes, sequences, customer data, migration journals, evidence, and unrelated working-tree changes.
