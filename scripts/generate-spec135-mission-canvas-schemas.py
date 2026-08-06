@@ -22,6 +22,221 @@ def string_array(unique: bool = True) -> dict[str, Any]:
 
 def definitions() -> dict[str, Any]:
     return {
+        # These identity definitions mirror the canonical Spec 158 Rust owners.
+        # Continuity and runtime/presentation identifiers are subordinate to a
+        # Workstream and are never accepted as standalone authority.
+        "ProjectRootKey": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["scope_kind", "scope_id", "root_path", "canonical_name", "fingerprint"],
+            "properties": {
+                "scope_kind": {"const": "project"},
+                "scope_id": {"type": "string", "minLength": 1},
+                "root_path": {"type": "string", "minLength": 1},
+                "canonical_name": {"type": "string", "minLength": 1},
+                "fingerprint": {"type": "string", "minLength": 1},
+            },
+        },
+        "HostScopeKey": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["scope_kind", "scope_id", "root_path", "canonical_name", "fingerprint"],
+            "properties": {
+                "scope_kind": {"const": "host"},
+                "scope_id": {"type": "string", "minLength": 1},
+                "root_path": {"type": "string", "minLength": 1},
+                "canonical_name": {"type": "string", "minLength": 1},
+                "fingerprint": {"type": "string", "minLength": 1},
+            },
+        },
+        "ScopeRef": {
+            "oneOf": [
+                {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["scope_kind", "scope_key"],
+                    "properties": {
+                        "scope_kind": {"const": "project"},
+                        "scope_key": {"$ref": "#/$defs/ProjectRootKey"},
+                    },
+                },
+                {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["scope_kind", "scope_key"],
+                    "properties": {
+                        "scope_kind": {"const": "host"},
+                        "scope_key": {"$ref": "#/$defs/HostScopeKey"},
+                    },
+                },
+            ],
+        },
+        "WorkstreamId": {"type": "string", "minLength": 1},
+        "WorkstreamKey": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["scope", "workstream_id"],
+            "properties": {
+                "scope": {"$ref": "#/$defs/ScopeRef"},
+                "workstream_id": {"$ref": "#/$defs/WorkstreamId"},
+            },
+        },
+        "ContinuityId": {"type": "string", "minLength": 1},
+        "InstanceId": {"type": "string", "minLength": 1},
+        "SessionId": {"type": "string", "minLength": 1},
+        "AttachmentId": {"type": "string", "minLength": 1},
+        "WorkspaceBindingId": {"type": "string", "minLength": 1},
+        "AttachmentKey": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["workstream", "instance_id", "session_id", "attachment_id", "workspace_binding_id"],
+            "properties": {
+                "workstream": {"$ref": "#/$defs/WorkstreamKey"},
+                "continuity_id": {"anyOf": [{"$ref": "#/$defs/ContinuityId"}, {"type": "null"}]},
+                "instance_id": {"$ref": "#/$defs/InstanceId"},
+                "session_id": {"$ref": "#/$defs/SessionId"},
+                "attachment_id": {"$ref": "#/$defs/AttachmentId"},
+                "workspace_binding_id": {"$ref": "#/$defs/WorkspaceBindingId"},
+            },
+        },
+        "RuntimeObjectRef": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["runtime_kind", "runtime_id"],
+            "properties": {
+                "runtime_kind": {"type": "string", "minLength": 1},
+                "runtime_id": {"type": "string", "minLength": 1},
+            },
+        },
+        "WorkSurfaceId": {"type": "string", "minLength": 1},
+        "WorkSurfaceIdentity": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["work_surface_id", "workstream"],
+            "properties": {
+                "work_surface_id": {"$ref": "#/$defs/WorkSurfaceId"},
+                "workstream": {"$ref": "#/$defs/WorkstreamKey"},
+                "continuity_id": {"anyOf": [{"$ref": "#/$defs/ContinuityId"}, {"type": "null"}]},
+                "attachment": {"anyOf": [{"$ref": "#/$defs/AttachmentKey"}, {"type": "null"}]},
+                "runtime_object": {"anyOf": [{"$ref": "#/$defs/RuntimeObjectRef"}, {"type": "null"}]},
+            },
+        },
+        "WorkstreamAuthorityContext": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["workstream"],
+            "properties": {
+                "workstream": {"$ref": "#/$defs/WorkstreamKey"},
+                "continuity_id": {"anyOf": [{"$ref": "#/$defs/ContinuityId"}, {"type": "null"}]},
+                "attachment": {"anyOf": [{"$ref": "#/$defs/AttachmentKey"}, {"type": "null"}]},
+                "workspace_binding_id": {"anyOf": [{"$ref": "#/$defs/WorkspaceBindingId"}, {"type": "null"}]},
+                "runtime_object": {"anyOf": [{"$ref": "#/$defs/RuntimeObjectRef"}, {"type": "null"}]},
+                "work_surface_id": {"anyOf": [{"$ref": "#/$defs/WorkSurfaceId"}, {"type": "null"}]},
+            },
+        },
+        "ActorRef": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["actor_type", "actor_id"],
+            "properties": {
+                "actor_type": {"enum": ["operator", "agent", "pi", "desktop", "web", "service"]},
+                "actor_id": {"type": "string", "minLength": 1},
+            },
+        },
+        "AuthorityEnvelope": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["status", "why"],
+            "properties": {
+                "status": {"enum": ["canonical", "blocked", "degraded", "missing", "stale"]},
+                "why": {"type": "string", "minLength": 1},
+            },
+        },
+        "AuthorityContext": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["authority_ref", "envelope"],
+            "properties": {
+                "authority_ref": {"type": "string", "minLength": 1},
+                "envelope": {"$ref": "#/$defs/AuthorityEnvelope"},
+            },
+        },
+        "WorkstreamOperationRequest": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["schema", "workstream", "actor", "authority", "command_id", "input"],
+            "properties": {
+                "schema": {"const": "focusa.workstream_operation_request.v1"},
+                "workstream": {"$ref": "#/$defs/WorkstreamKey"},
+                "continuity_id": {"anyOf": [{"$ref": "#/$defs/ContinuityId"}, {"type": "null"}]},
+                "attachment": {"anyOf": [{"$ref": "#/$defs/AttachmentKey"}, {"type": "null"}]},
+                "workspace_binding_id": {"anyOf": [{"$ref": "#/$defs/WorkspaceBindingId"}, {"type": "null"}]},
+                "runtime_object": {"anyOf": [{"$ref": "#/$defs/RuntimeObjectRef"}, {"type": "null"}]},
+                "work_surface_id": {"anyOf": [{"$ref": "#/$defs/WorkSurfaceId"}, {"type": "null"}]},
+                "actor": {"$ref": "#/$defs/ActorRef"},
+                "authority": {"$ref": "#/$defs/AuthorityContext"},
+                "command_id": {"type": "string", "minLength": 1},
+                "input": {},
+                "idempotency_key": {"type": ["string", "null"]},
+                "expected_revision": {"type": ["integer", "null"], "minimum": 0},
+                "expected_fencing_token": {"type": ["integer", "null"], "minimum": 0},
+            },
+        },
+        "RecipientResolution": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["schema", "workstream", "recipient_ref", "routable"],
+            "properties": {
+                "schema": {"const": "focusa.mission_canvas.recipient_resolution.v1"},
+                "workstream": {"$ref": "#/$defs/WorkstreamKey"},
+                "continuity_id": {"anyOf": [{"$ref": "#/$defs/ContinuityId"}, {"type": "null"}]},
+                "attachment": {"anyOf": [{"$ref": "#/$defs/AttachmentKey"}, {"type": "null"}]},
+                "workspace_binding_id": {"anyOf": [{"$ref": "#/$defs/WorkspaceBindingId"}, {"type": "null"}]},
+                "runtime_object": {"anyOf": [{"$ref": "#/$defs/RuntimeObjectRef"}, {"type": "null"}]},
+                "work_surface_id": {"anyOf": [{"$ref": "#/$defs/WorkSurfaceId"}, {"type": "null"}]},
+                "recipient_ref": {"type": "string", "minLength": 1},
+                "routable": {"type": "boolean"},
+            },
+        },
+        "DomainPackInstallReceipt": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["schema", "workstream", "installed", "pack_id", "receipt_ref"],
+            "properties": {
+                "schema": {"const": "focusa.mission_canvas.domain_pack_install_receipt.v1"},
+                "workstream": {"$ref": "#/$defs/WorkstreamKey"},
+                "installed": {"type": "boolean"},
+                "pack_id": {"type": "string", "minLength": 1},
+                "receipt_ref": {"type": "string", "minLength": 1},
+            },
+        },
+        "PiSessionEventReceipt": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["schema", "workstream", "event_id", "accepted", "receipt_ref"],
+            "properties": {
+                "schema": {"const": "focusa.mission_canvas.pi_session_event_receipt.v1"},
+                "workstream": {"$ref": "#/$defs/WorkstreamKey"},
+                "event_id": {"type": "string", "minLength": 1},
+                "accepted": {"type": "boolean"},
+                "receipt_ref": {"type": "string", "minLength": 1},
+            },
+        },
+        "LegacyExactScopeCompatibilityInput": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["project_root", "continuity_id", "session_id", "attachment_id"],
+            "properties": {
+                "project_root": {"type": "string", "minLength": 1},
+                "continuity_id": {"type": "string", "minLength": 1},
+                "instance_id": {"type": ["string", "null"]},
+                "session_id": {"type": "string", "minLength": 1},
+                "attachment_id": {"type": "string", "minLength": 1},
+                "working_subpath_id": {"type": ["string", "null"]},
+            },
+            "description": "Compatibility input only. It must be resolved to an exact WorkstreamKey with provenance before canonical use and never grants authority by itself.",
+            "x-focusa-compatibility-only": True,
+        },
         "ContributionId": {
             "type": "string",
             "pattern": r"^contribution:[a-z0-9][a-z0-9._:-]{0,159}$",
@@ -79,19 +294,6 @@ def definitions() -> dict[str, Any]:
                 "suspended",
                 "viewport_omitted",
             ],
-        },
-        "ExactScope": {
-            "type": "object",
-            "additionalProperties": False,
-            "required": ["project_root", "continuity_id", "session_id", "attachment_id"],
-            "properties": {
-                "project_root": {"type": "string", "minLength": 1},
-                "continuity_id": {"type": "string", "minLength": 1},
-                "instance_id": {"type": ["string", "null"]},
-                "session_id": {"type": "string", "minLength": 1},
-                "attachment_id": {"type": "string", "minLength": 1},
-                "working_subpath_id": {"type": ["string", "null"]},
-            },
         },
         "ViewportDescriptor": {
             "type": "object",
@@ -1129,13 +1331,78 @@ def proof_definitions() -> dict[str, Any]:
     }
 
 
+def _nullable_ref(name: str) -> dict[str, Any]:
+    return {"anyOf": [{"$ref": f"#/$defs/{name}"}, {"type": "null"}]}
+
+
+def canonicalize_identity_contract(definitions_by_name: dict[str, Any]) -> dict[str, Any]:
+    """Replace the pre-Spec-158 flat scope shape in every canonical DTO.
+
+    The old ExactScope object is intentionally not emitted.  A legacy caller may
+    still use LegacyExactScopeCompatibilityInput, but it has no canonical DTO
+    references and cannot grant authority without an explicit Workstream mapping.
+    """
+    definitions_by_name.pop("ExactScope", None)
+    for schema_name, schema in definitions_by_name.items():
+        if schema_name == "LegacyExactScopeCompatibilityInput":
+            continue
+        properties = schema.get("properties")
+        if not isinstance(properties, dict):
+            continue
+        required = schema.setdefault("required", [])
+        if "scope" in properties and properties["scope"].get("$ref", "").endswith("/ExactScope"):
+            properties.pop("scope")
+            properties.update(
+                {
+                    "workstream": {"$ref": "#/$defs/WorkstreamKey"},
+                    "continuity_id": _nullable_ref("ContinuityId"),
+                    "attachment": _nullable_ref("AttachmentKey"),
+                    "workspace_binding_id": _nullable_ref("WorkspaceBindingId"),
+                    "runtime_object": _nullable_ref("RuntimeObjectRef"),
+                    "work_surface_id": _nullable_ref("WorkSurfaceId"),
+                }
+            )
+            schema["required"] = ["workstream" if item == "scope" else item for item in required]
+            required = schema["required"]
+        if "attachment_id" in properties and properties["attachment_id"].get("type") == "string":
+            properties.pop("attachment_id")
+            properties["attachment"] = {"$ref": "#/$defs/AttachmentKey"}
+            schema["required"] = ["attachment" if item == "attachment_id" else item for item in required]
+        if "focused_work_surface_id" in properties:
+            properties["focused_work_surface_id"] = _nullable_ref("WorkSurfaceId")
+        for field in ("open_work_surface_ids", "pinned_work_surface_ids"):
+            if field in properties:
+                properties[field] = {"type": "array", "uniqueItems": True, "items": {"$ref": "#/$defs/WorkSurfaceId"}}
+        for field in ("target_work_surface_id", "secondary_work_surface_id"):
+            if field in properties:
+                properties[field] = _nullable_ref("WorkSurfaceId")
+    layout_result = definitions_by_name.get("LayoutMutationResult")
+    if isinstance(layout_result, dict):
+        properties = layout_result.setdefault("properties", {})
+        properties.update(
+            {
+                "workstream": {"$ref": "#/$defs/WorkstreamKey"},
+                "continuity_id": _nullable_ref("ContinuityId"),
+                "attachment": _nullable_ref("AttachmentKey"),
+                "workspace_binding_id": _nullable_ref("WorkspaceBindingId"),
+                "runtime_object": _nullable_ref("RuntimeObjectRef"),
+                "work_surface_id": _nullable_ref("WorkSurfaceId"),
+            }
+        )
+        required = layout_result.setdefault("required", [])
+        if "workstream" not in required:
+            required.insert(0, "workstream")
+    return definitions_by_name
+
+
 def bundle() -> dict[str, Any]:
+    definitions_by_name = canonicalize_identity_contract({**definitions(), **proof_definitions()})
     return {
         "$schema": DIALECT,
         "$id": f"{BASE}/composition-bundle.v1.schema.json",
         "title": "Focusa Spec 135 Mission Canvas composition contract bundle",
-        "description": "Portable contribution identity, eligibility, omission, and resolved contribution contracts.",
-        "$defs": {**definitions(), **proof_definitions()},
+        "description": "Portable Workstream identity, contribution eligibility, omission, and resolved contribution contracts.",
+        "$defs": definitions_by_name,
     }
 
 

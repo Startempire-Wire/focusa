@@ -18,20 +18,36 @@ def validate(name: str, value: object) -> None:
     ).validate(value)
 
 
-def scope() -> dict:
-    return {
-        "project_root": "/example/focusa",
-        "continuity_id": "mission-canvas",
+def authority() -> dict:
+    project_root_key = {
+        "scope_kind": "project",
+        "scope_id": "project:focusa",
+        "root_path": "/example/focusa",
+        "canonical_name": "Focusa",
+        "fingerprint": "host-a:worktree-main",
+    }
+    workstream = {"scope": {"scope_kind": "project", "scope_key": project_root_key}, "workstream_id": "ws:mission-canvas"}
+    attachment = {
+        "workstream": workstream,
+        "continuity_id": "continuity:mission-canvas",
         "instance_id": "instance:pi",
         "session_id": "session:pi",
         "attachment_id": "attachment:pi",
-        "working_subpath_id": "working-subpath:primary",
+        "workspace_binding_id": "workspace:mission-canvas",
+    }
+    return {
+        "workstream": workstream,
+        "continuity_id": "continuity:mission-canvas",
+        "attachment": attachment,
+        "workspace_binding_id": "workspace:mission-canvas",
+        "runtime_object": {"runtime_kind": "pi_session", "runtime_id": "session:pi"},
+        "work_surface_id": "surface:pi",
     }
 
 
 memory = {
     "memory_id": "layout-memory:software:overview:standard",
-    "scope": scope(),
+    **authority(),
     "profile_id": "software",
     "activity_mode_id": "overview",
     "viewport_class": "standard",
@@ -58,12 +74,12 @@ assert memory["absent_contribution_ids"] == ["contribution:work-rail"]
 content = "Preserve this unsent instruction"
 draft = {
     "draft_id": "draft:canvas:pi",
-    "scope": scope(),
+    **authority(),
     "owner": "canvas_prompt_editor",
     "content": content,
     "content_sha256": hashlib.sha256(content.encode()).hexdigest(),
     "recipient_ref": "session:pi",
-    "attachment_id": "attachment:pi",
+    "attachment": authority()["attachment"],
     "selection_start": 0,
     "selection_end": len(content),
     "draft_revision": 3,
@@ -73,7 +89,7 @@ draft = {
     "updated_at": "2026-07-30T12:00:00Z",
 }
 validate("CanvasDraftState", draft)
-assert draft["attachment_id"] == draft["scope"]["attachment_id"]
+assert draft["attachment"]["attachment_id"] == authority()["attachment"]["attachment_id"]
 
 renderer = {
     "interaction_mode": "canvas-guided",
@@ -89,7 +105,7 @@ renderer = {
 validate("HostRendererResolution", renderer)
 host = {
     "host_instance_id": "rich-host:pi:1",
-    "scope": scope(),
+    **authority(),
     "renderer_resolution": renderer,
     "state": "focused",
     "process_id": 1234,
@@ -105,7 +121,7 @@ host = {
 validate("HostLifecycleState", host)
 
 capabilities = {
-    "scope": scope(),
+    **authority(),
     "capabilities": ["pi_session_stream", "rich_host"],
     "permissions": ["session:read", "session:prompt"],
     "available_operation_ids": ["focusa.agent_execution.prompt"],
@@ -124,9 +140,9 @@ assert "focusa.browser.click" not in capabilities["available_operation_ids"]
 
 command = {
     "command_id": "layout-command:split:1",
-    "scope": scope(),
+    **authority(),
     "action": "split_horizontal",
-    "attachment_id": "attachment:pi",
+    "attachment": authority()["attachment"],
     "target_work_surface_id": "surface:pi",
     "secondary_work_surface_id": "surface:evidence",
     "target_contribution_id": "contribution:pi-session",
@@ -140,6 +156,7 @@ command = {
 }
 validate("LayoutMutationCommand", command)
 result = {
+    "workstream": authority()["workstream"],
     "command_id": command["command_id"],
     "accepted": True,
     "projection_revision": 13,
@@ -152,7 +169,7 @@ result = {
 }
 validate("LayoutMutationResult", result)
 assert command["expected_layout_revision"] < result["layout_revision"]
-assert command["attachment_id"] == command["scope"]["attachment_id"]
+assert command["attachment"]["attachment_id"] == authority()["attachment"]["attachment_id"]
 
 invalid_command = dict(command)
 invalid_command["split_ratio"] = 1.2

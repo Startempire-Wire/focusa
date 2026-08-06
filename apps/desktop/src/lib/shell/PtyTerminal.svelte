@@ -3,11 +3,12 @@
   import { FitAddon } from '@xterm/addon-fit';
   import { Terminal } from '@xterm/xterm';
   import '@xterm/xterm/css/xterm.css';
+  import type { AttachmentId, WorkSurfaceId } from '$lib/mission-canvas/types';
   import { hasExactPiAttachment, type PiAttachmentProjection, type PiNativeCommand, type PiTerminalGeometry } from './pi-attachment-contract';
 
   export interface PiTerminalOutput {
-    attachmentKey: string;
-    workSurfaceId: string;
+    attachment_id: AttachmentId;
+    work_surface_id: WorkSurfaceId;
     generation: number;
     sequence: number;
     data: string;
@@ -15,7 +16,7 @@
 
   export interface PiTerminalBridge {
     send(command: PiNativeCommand): Promise<void>;
-    subscribeOutput(attachmentKey: string, listener: (output: PiTerminalOutput) => void): Promise<() => void> | (() => void);
+    subscribeOutput(attachmentId: AttachmentId, listener: (output: PiTerminalOutput) => void): Promise<() => void> | (() => void);
   }
 
   let {
@@ -78,7 +79,7 @@
 
     const input = terminal.onData((data) => {
       if (attachment.canWrite && hasExactPiAttachment(attachment)) {
-        void send({ kind: 'input', attachmentKey: attachment.identity.attachmentKey, data });
+        void send({ kind: 'input', attachment_id: attachment.identity.attachment_id, data });
       }
     });
     const resize = new ResizeObserver(() => {
@@ -87,7 +88,7 @@
       if (!next || !hasExactPiAttachment(attachment)) return;
       if (geometry && next.columns === geometry.columns && next.rows === geometry.rows && next.pixelWidth === geometry.pixelWidth && next.pixelHeight === geometry.pixelHeight) return;
       geometry = next;
-      void send({ kind: 'resize', attachmentKey: attachment.identity.attachmentKey, geometry: next });
+      void send({ kind: 'resize', attachment_id: attachment.identity.attachment_id, geometry: next });
     });
     resize.observe(host);
 
@@ -111,8 +112,8 @@
     let generation: number | undefined;
     let lastSequence = -1;
 
-    void Promise.resolve(bridge.subscribeOutput(identity.attachmentKey, (output) => {
-      if (output.attachmentKey !== identity.attachmentKey || output.workSurfaceId !== identity.workSurfaceId) return;
+    void Promise.resolve(bridge.subscribeOutput(identity.attachment_id, (output) => {
+      if (output.attachment_id !== identity.attachment_id || output.work_surface_id !== identity.work_surface_id) return;
       if (generation === undefined) generation = output.generation;
       if (output.generation !== generation || output.sequence <= lastSequence) return;
       lastSequence = output.sequence;
@@ -126,12 +127,12 @@
     return () => {
       cancelled = true;
       unsubscribe?.();
-      void send({ kind: 'detach', attachmentKey: identity.attachmentKey });
+      void send({ kind: 'detach', attachment_id: identity.attachment_id });
     };
   });
 </script>
 
-<div bind:this={host} class="pty-terminal" aria-label="Live Pi terminal" data-attachment-key={attachment.identity?.attachmentKey}></div>
+<div bind:this={host} class="pty-terminal" aria-label="Live Pi terminal" data-attachment-id={attachment.identity?.attachment_id}></div>
 
 <style>
   .pty-terminal{width:100%;height:100%;min-width:0;min-height:0;overflow:hidden;border-radius:10px;background:var(--color-bg);text-align:left}

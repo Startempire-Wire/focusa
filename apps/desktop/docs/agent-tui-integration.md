@@ -12,15 +12,16 @@ The outer Desktop titlebar and Mission Canvas/Agent TUI switch remain stable. Ag
 
 ## Exact attachment identity
 
-Native input is unavailable until all identity fields are present:
+Native input is unavailable until the generated identity chain is present:
 
-1. `ScopeRef`
+1. `ScopeRef` / `ProjectRootKey`
 2. `WorkstreamId`
-3. `ContinuityId`
+3. optional `ContinuityId` lineage
 4. `AttachmentKey`
-5. `SessionId`
-6. `InstanceId`
-7. `WorkSurfaceId`
+5. `SessionId` / `InstanceId`
+6. `WorkspaceBindingId`
+7. runtime object identity
+8. `WorkSurfaceId`
 
 The typed contract is implemented in `src/lib/shell/pi-attachment-contract.ts`. Project root, current tab, CWD, remembered workspace selection, latest session, and daemon-global state are not substitutes.
 
@@ -43,10 +44,10 @@ The visual treatment follows the useful pi.dev terminal principles—content-fir
 The future Tauri bridge accepts only typed `PiNativeCommand` envelopes:
 
 - `attach` with exact identity and terminal geometry;
-- `input` with exact `AttachmentKey`;
-- `resize` with exact `AttachmentKey` and geometry;
-- `interrupt` with exact `AttachmentKey`;
-- `detach` with exact `AttachmentKey`.
+- `input` with the exact generated AttachmentKey's `attachment_id` handle;
+- `resize` with the exact generated AttachmentKey's `attachment_id` handle and geometry;
+- `interrupt` with the exact generated AttachmentKey's `attachment_id` handle;
+- `detach` with the exact generated AttachmentKey's `attachment_id` handle.
 
 The bridge must own PTY spawn, process-group lifecycle, resize, byte-stream output, backpressure, reconnect, and shutdown. Frontend state cannot mint or repair an Attachment. Native events must return the exact Attachment identity they belong to; mismatched or stale output is rejected rather than routed to the visible tab.
 

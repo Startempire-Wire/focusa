@@ -4,26 +4,26 @@
   import { DEFAULT_CONTRIBUTION_REGISTRY } from '$lib/mission-canvas/default-contribution-registry';
   import MissionCanvasRenderer from '$lib/mission-canvas/MissionCanvasRenderer.svelte';
   import type { ContributionRendererRegistry } from '$lib/mission-canvas/contribution-renderers';
-  import type { ExactScope, OperationBinding, ResolvedWorkspaceProjection } from '$lib/mission-canvas/types';
+  import type { OperationBinding, ResolvedWorkspaceProjection, WorkstreamAuthorityContext } from '$lib/mission-canvas/types';
 
   let {
     projection,
-    scope,
+    authority,
     client,
     rendererRegistry = DEFAULT_CONTRIBUTION_REGISTRY,
     executeContributionOperation
   }: {
     projection?: ResolvedWorkspaceProjection;
-    scope?: ExactScope;
+    authority?: WorkstreamAuthorityContext;
     client?: MissionCanvasClient;
     rendererRegistry?: ContributionRendererRegistry;
     executeContributionOperation?: (binding: OperationBinding, projection: ResolvedWorkspaceProjection) => Promise<void>;
   } = $props();
 </script>
 
-{#if scope && client && rendererRegistry}
+{#if authority && client && rendererRegistry}
   <section class="canvas-live" aria-label="Focusa Mission Canvas workspace">
-    <DesktopMissionCanvasRuntime {scope} {client} registry={rendererRegistry} {executeContributionOperation}/>
+    <DesktopMissionCanvasRuntime {authority} {client} registry={rendererRegistry} {executeContributionOperation}/>
   </section>
 {:else if projection && rendererRegistry}
   <section class="canvas-live" aria-label="Focusa Mission Canvas workspace">
@@ -32,7 +32,7 @@
 {:else}
   <section class="canvas-unbound" aria-label="Mission Canvas unbound">
     <strong>Mission Canvas is unbound</strong>
-    <span>An exact Workstream and Attachment are required before canonical workspace contributions can render.</span>
+    <span>A canonical Workstream is required before workspace contributions can render; runtime Attachment identity gates attached interactions.</span>
   </section>
 {/if}
 

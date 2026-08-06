@@ -7,8 +7,23 @@
       "ActivityMode": {
         "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ActivityMode"
       },
+      "ActorRef": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ActorRef"
+      },
+      "AttachmentId": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/AttachmentId"
+      },
+      "AttachmentKey": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/AttachmentKey"
+      },
+      "AuthorityContext": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/AuthorityContext"
+      },
       "AuthorityDescriptor": {
         "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/AuthorityDescriptor"
+      },
+      "AuthorityEnvelope": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/AuthorityEnvelope"
       },
       "CandidateContribution": {
         "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/CandidateContribution"
@@ -22,6 +37,9 @@
       "CapabilityProjection": {
         "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/CapabilityProjection"
       },
+      "ContinuityId": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ContinuityId"
+      },
       "ContributionEligibilityContext": {
         "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ContributionEligibilityContext"
       },
@@ -34,11 +52,11 @@
       "ContributionPlacementPreference": {
         "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ContributionPlacementPreference"
       },
+      "DomainPackInstallReceipt": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/DomainPackInstallReceipt"
+      },
       "EligibilityDecision": {
         "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/EligibilityDecision"
-      },
-      "ExactScope": {
-        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ExactScope"
       },
       "FreshnessDescriptor": {
         "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/FreshnessDescriptor"
@@ -55,8 +73,14 @@
       "HostRendererResolution": {
         "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/HostRendererResolution"
       },
+      "HostScopeKey": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/HostScopeKey"
+      },
       "InspectorLayoutNode": {
         "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/InspectorLayoutNode"
+      },
+      "InstanceId": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/InstanceId"
       },
       "LayoutMutationCommand": {
         "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/LayoutMutationCommand"
@@ -66,6 +90,9 @@
       },
       "LayoutNode": {
         "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/LayoutNode"
+      },
+      "LegacyExactScopeCompatibilityInput": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/LegacyExactScopeCompatibilityInput"
       },
       "LegacyLayoutMapping": {
         "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/LegacyLayoutMapping"
@@ -82,8 +109,14 @@
       "OperationBinding": {
         "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/OperationBinding"
       },
+      "PiSessionEventReceipt": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/PiSessionEventReceipt"
+      },
       "ProfileLayoutMemory": {
         "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ProfileLayoutMemory"
+      },
+      "ProjectRootKey": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ProjectRootKey"
       },
       "ProjectionDigest": {
         "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ProjectionDigest"
@@ -93,6 +126,9 @@
       },
       "ProjectionLifecycleEvent": {
         "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ProjectionLifecycleEvent"
+      },
+      "RecipientResolution": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/RecipientResolution"
       },
       "RecompositionEvidence": {
         "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/RecompositionEvidence"
@@ -118,8 +154,17 @@
       "ResponsiveEvaluationFixture": {
         "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ResponsiveEvaluationFixture"
       },
+      "RuntimeObjectRef": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/RuntimeObjectRef"
+      },
+      "ScopeRef": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ScopeRef"
+      },
       "SemanticBindingId": {
         "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/SemanticBindingId"
+      },
+      "SessionId": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/SessionId"
       },
       "SingleLayoutNode": {
         "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/SingleLayoutNode"
@@ -139,8 +184,29 @@
       "ViewportDescriptor": {
         "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/ViewportDescriptor"
       },
+      "WorkSurfaceId": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/WorkSurfaceId"
+      },
+      "WorkSurfaceIdentity": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/WorkSurfaceIdentity"
+      },
+      "WorkspaceBindingId": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/WorkspaceBindingId"
+      },
       "WorkspaceProfile": {
         "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/WorkspaceProfile"
+      },
+      "WorkstreamAuthorityContext": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/WorkstreamAuthorityContext"
+      },
+      "WorkstreamId": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/WorkstreamId"
+      },
+      "WorkstreamKey": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/WorkstreamKey"
+      },
+      "WorkstreamOperationRequest": {
+        "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/WorkstreamOperationRequest"
       }
     },
     "securitySchemes": {
@@ -189,7 +255,29 @@
         "x-focusa-permissions": [
           "mission_canvas:read"
         ],
-        "x-focusa-receipt-required": false
+        "x-focusa-receipt-required": false,
+        "x-focusa-scope-keys": [
+          "scope_ref",
+          "project_root_key",
+          "workstream_id",
+          "continuity_id",
+          "attachment_key",
+          "session_id",
+          "instance_id",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-optional": [
+          "continuity_id",
+          "attachment",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-required": [
+          "workstream"
+        ]
       }
     },
     "/v1/mission-canvas/activities/select": {
@@ -201,6 +289,64 @@
             "application/json": {
               "schema": {
                 "additionalProperties": true,
+                "properties": {
+                  "attachment": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/AttachmentKey"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "continuity_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/ContinuityId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "runtime_object": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/RuntimeObjectRef"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "work_surface_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/WorkSurfaceId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "workspace_binding_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/WorkspaceBindingId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "workstream": {
+                    "$ref": "#/components/schemas/WorkstreamKey"
+                  }
+                },
+                "required": [
+                  "workstream"
+                ],
                 "type": "object",
                 "x-focusa-schema-ref": "focusa.mission_canvas.composition_selection.request.v1"
               }
@@ -237,7 +383,29 @@
         "x-focusa-permissions": [
           "mission_canvas:write"
         ],
-        "x-focusa-receipt-required": true
+        "x-focusa-receipt-required": true,
+        "x-focusa-scope-keys": [
+          "scope_ref",
+          "project_root_key",
+          "workstream_id",
+          "continuity_id",
+          "attachment_key",
+          "session_id",
+          "instance_id",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-optional": [
+          "continuity_id",
+          "attachment",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-required": [
+          "workstream"
+        ]
       }
     },
     "/v1/mission-canvas/domain-packs/install": {
@@ -249,6 +417,64 @@
             "application/json": {
               "schema": {
                 "additionalProperties": true,
+                "properties": {
+                  "attachment": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/AttachmentKey"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "continuity_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/ContinuityId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "runtime_object": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/RuntimeObjectRef"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "work_surface_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/WorkSurfaceId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "workspace_binding_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/WorkspaceBindingId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "workstream": {
+                    "$ref": "#/components/schemas/WorkstreamKey"
+                  }
+                },
+                "required": [
+                  "workstream"
+                ],
                 "type": "object",
                 "x-focusa-schema-ref": "focusa.mission_canvas.domain_pack_install.request.v1"
               }
@@ -261,9 +487,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "x-focusa-schema-ref": "focusa.mission_canvas.domain_pack_install_receipt.v1"
+                  "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/DomainPackInstallReceipt"
                 }
               }
             },
@@ -287,7 +511,29 @@
         "x-focusa-permissions": [
           "mission_canvas:write"
         ],
-        "x-focusa-receipt-required": true
+        "x-focusa-receipt-required": true,
+        "x-focusa-scope-keys": [
+          "scope_ref",
+          "project_root_key",
+          "workstream_id",
+          "continuity_id",
+          "attachment_key",
+          "session_id",
+          "instance_id",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-optional": [
+          "continuity_id",
+          "attachment",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-required": [
+          "workstream"
+        ]
       }
     },
     "/v1/mission-canvas/drafts/sync": {
@@ -333,7 +579,29 @@
         "x-focusa-permissions": [
           "mission_canvas:draft"
         ],
-        "x-focusa-receipt-required": true
+        "x-focusa-receipt-required": true,
+        "x-focusa-scope-keys": [
+          "scope_ref",
+          "project_root_key",
+          "workstream_id",
+          "continuity_id",
+          "attachment_key",
+          "session_id",
+          "instance_id",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-optional": [
+          "continuity_id",
+          "attachment",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-required": [
+          "workstream"
+        ]
       }
     },
     "/v1/mission-canvas/drafts/{draft_id}": {
@@ -378,7 +646,29 @@
         "x-focusa-permissions": [
           "mission_canvas:draft"
         ],
-        "x-focusa-receipt-required": false
+        "x-focusa-receipt-required": false,
+        "x-focusa-scope-keys": [
+          "scope_ref",
+          "project_root_key",
+          "workstream_id",
+          "continuity_id",
+          "attachment_key",
+          "session_id",
+          "instance_id",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-optional": [
+          "continuity_id",
+          "attachment",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-required": [
+          "workstream"
+        ]
       }
     },
     "/v1/mission-canvas/events": {
@@ -414,7 +704,29 @@
         "x-focusa-permissions": [
           "mission_canvas:read"
         ],
-        "x-focusa-receipt-required": false
+        "x-focusa-receipt-required": false,
+        "x-focusa-scope-keys": [
+          "scope_ref",
+          "project_root_key",
+          "workstream_id",
+          "continuity_id",
+          "attachment_key",
+          "session_id",
+          "instance_id",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-optional": [
+          "continuity_id",
+          "attachment",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-required": [
+          "workstream"
+        ]
       }
     },
     "/v1/mission-canvas/layout-memory": {
@@ -450,7 +762,29 @@
         "x-focusa-permissions": [
           "mission_canvas:read"
         ],
-        "x-focusa-receipt-required": false
+        "x-focusa-receipt-required": false,
+        "x-focusa-scope-keys": [
+          "scope_ref",
+          "project_root_key",
+          "workstream_id",
+          "continuity_id",
+          "attachment_key",
+          "session_id",
+          "instance_id",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-optional": [
+          "continuity_id",
+          "attachment",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-required": [
+          "workstream"
+        ]
       },
       "post": {
         "operationId": "focusa.mission_canvas.layout_memory.update",
@@ -494,7 +828,29 @@
         "x-focusa-permissions": [
           "mission_canvas:write"
         ],
-        "x-focusa-receipt-required": true
+        "x-focusa-receipt-required": true,
+        "x-focusa-scope-keys": [
+          "scope_ref",
+          "project_root_key",
+          "workstream_id",
+          "continuity_id",
+          "attachment_key",
+          "session_id",
+          "instance_id",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-optional": [
+          "continuity_id",
+          "attachment",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-required": [
+          "workstream"
+        ]
       }
     },
     "/v1/mission-canvas/layout/mutations": {
@@ -540,7 +896,29 @@
         "x-focusa-permissions": [
           "mission_canvas:write"
         ],
-        "x-focusa-receipt-required": true
+        "x-focusa-receipt-required": true,
+        "x-focusa-scope-keys": [
+          "scope_ref",
+          "project_root_key",
+          "workstream_id",
+          "continuity_id",
+          "attachment_key",
+          "session_id",
+          "instance_id",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-optional": [
+          "continuity_id",
+          "attachment",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-required": [
+          "workstream"
+        ]
       }
     },
     "/v1/mission-canvas/pi-session/events": {
@@ -552,6 +930,64 @@
             "application/json": {
               "schema": {
                 "additionalProperties": true,
+                "properties": {
+                  "attachment": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/AttachmentKey"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "continuity_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/ContinuityId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "runtime_object": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/RuntimeObjectRef"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "work_surface_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/WorkSurfaceId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "workspace_binding_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/WorkspaceBindingId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "workstream": {
+                    "$ref": "#/components/schemas/WorkstreamKey"
+                  }
+                },
+                "required": [
+                  "workstream"
+                ],
                 "type": "object",
                 "x-focusa-schema-ref": "focusa.mission_canvas.pi_session_event_append.request.v1"
               }
@@ -564,9 +1000,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "x-focusa-schema-ref": "focusa.mission_canvas.pi_session_event_receipt.v1"
+                  "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/PiSessionEventReceipt"
                 }
               }
             },
@@ -590,7 +1024,29 @@
         "x-focusa-permissions": [
           "mission_canvas:write"
         ],
-        "x-focusa-receipt-required": true
+        "x-focusa-receipt-required": true,
+        "x-focusa-scope-keys": [
+          "scope_ref",
+          "project_root_key",
+          "workstream_id",
+          "continuity_id",
+          "attachment_key",
+          "session_id",
+          "instance_id",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-optional": [
+          "continuity_id",
+          "attachment",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-required": [
+          "workstream"
+        ]
       }
     },
     "/v1/mission-canvas/profiles": {
@@ -626,7 +1082,29 @@
         "x-focusa-permissions": [
           "mission_canvas:read"
         ],
-        "x-focusa-receipt-required": false
+        "x-focusa-receipt-required": false,
+        "x-focusa-scope-keys": [
+          "scope_ref",
+          "project_root_key",
+          "workstream_id",
+          "continuity_id",
+          "attachment_key",
+          "session_id",
+          "instance_id",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-optional": [
+          "continuity_id",
+          "attachment",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-required": [
+          "workstream"
+        ]
       }
     },
     "/v1/mission-canvas/profiles/select": {
@@ -638,6 +1116,64 @@
             "application/json": {
               "schema": {
                 "additionalProperties": true,
+                "properties": {
+                  "attachment": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/AttachmentKey"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "continuity_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/ContinuityId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "runtime_object": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/RuntimeObjectRef"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "work_surface_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/WorkSurfaceId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "workspace_binding_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/WorkspaceBindingId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "workstream": {
+                    "$ref": "#/components/schemas/WorkstreamKey"
+                  }
+                },
+                "required": [
+                  "workstream"
+                ],
                 "type": "object",
                 "x-focusa-schema-ref": "focusa.mission_canvas.composition_selection.request.v1"
               }
@@ -674,7 +1210,29 @@
         "x-focusa-permissions": [
           "mission_canvas:write"
         ],
-        "x-focusa-receipt-required": true
+        "x-focusa-receipt-required": true,
+        "x-focusa-scope-keys": [
+          "scope_ref",
+          "project_root_key",
+          "workstream_id",
+          "continuity_id",
+          "attachment_key",
+          "session_id",
+          "instance_id",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-optional": [
+          "continuity_id",
+          "attachment",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-required": [
+          "workstream"
+        ]
       }
     },
     "/v1/mission-canvas/profiles/{profile_id}": {
@@ -719,7 +1277,29 @@
         "x-focusa-permissions": [
           "mission_canvas:read"
         ],
-        "x-focusa-receipt-required": false
+        "x-focusa-receipt-required": false,
+        "x-focusa-scope-keys": [
+          "scope_ref",
+          "project_root_key",
+          "workstream_id",
+          "continuity_id",
+          "attachment_key",
+          "session_id",
+          "instance_id",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-optional": [
+          "continuity_id",
+          "attachment",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-required": [
+          "workstream"
+        ]
       }
     },
     "/v1/mission-canvas/projection": {
@@ -755,7 +1335,29 @@
         "x-focusa-permissions": [
           "mission_canvas:read"
         ],
-        "x-focusa-receipt-required": false
+        "x-focusa-receipt-required": false,
+        "x-focusa-scope-keys": [
+          "scope_ref",
+          "project_root_key",
+          "workstream_id",
+          "continuity_id",
+          "attachment_key",
+          "session_id",
+          "instance_id",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-optional": [
+          "continuity_id",
+          "attachment",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-required": [
+          "workstream"
+        ]
       }
     },
     "/v1/mission-canvas/projection/resolve": {
@@ -801,7 +1403,29 @@
         "x-focusa-permissions": [
           "mission_canvas:write"
         ],
-        "x-focusa-receipt-required": true
+        "x-focusa-receipt-required": true,
+        "x-focusa-scope-keys": [
+          "scope_ref",
+          "project_root_key",
+          "workstream_id",
+          "continuity_id",
+          "attachment_key",
+          "session_id",
+          "instance_id",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-optional": [
+          "continuity_id",
+          "attachment",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-required": [
+          "workstream"
+        ]
       }
     },
     "/v1/mission-canvas/recipients/resolve": {
@@ -813,6 +1437,64 @@
             "application/json": {
               "schema": {
                 "additionalProperties": true,
+                "properties": {
+                  "attachment": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/AttachmentKey"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "continuity_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/ContinuityId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "runtime_object": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/RuntimeObjectRef"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "work_surface_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/WorkSurfaceId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "workspace_binding_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/WorkspaceBindingId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "workstream": {
+                    "$ref": "#/components/schemas/WorkstreamKey"
+                  }
+                },
+                "required": [
+                  "workstream"
+                ],
                 "type": "object",
                 "x-focusa-schema-ref": "focusa.mission_canvas.recipient_resolve.request.v1"
               }
@@ -825,9 +1507,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "x-focusa-schema-ref": "focusa.mission_canvas.recipient_resolution.v1"
+                  "$ref": "../../../../schemas/spec135/mission-canvas/composition-bundle.v1.schema.json#/$defs/RecipientResolution"
                 }
               }
             },
@@ -851,7 +1531,29 @@
         "x-focusa-permissions": [
           "mission_canvas:draft"
         ],
-        "x-focusa-receipt-required": false
+        "x-focusa-receipt-required": false,
+        "x-focusa-scope-keys": [
+          "scope_ref",
+          "project_root_key",
+          "workstream_id",
+          "continuity_id",
+          "attachment_key",
+          "session_id",
+          "instance_id",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-optional": [
+          "continuity_id",
+          "attachment",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-required": [
+          "workstream"
+        ]
       }
     },
     "/v1/mission-canvas/recompositions/{revision}/diagnostics": {
@@ -896,7 +1598,29 @@
         "x-focusa-permissions": [
           "mission_canvas:read"
         ],
-        "x-focusa-receipt-required": false
+        "x-focusa-receipt-required": false,
+        "x-focusa-scope-keys": [
+          "scope_ref",
+          "project_root_key",
+          "workstream_id",
+          "continuity_id",
+          "attachment_key",
+          "session_id",
+          "instance_id",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-optional": [
+          "continuity_id",
+          "attachment",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-required": [
+          "workstream"
+        ]
       }
     },
     "/v1/mission-canvas/recompositions/{revision}/evidence": {
@@ -941,7 +1665,29 @@
         "x-focusa-permissions": [
           "mission_canvas:read"
         ],
-        "x-focusa-receipt-required": false
+        "x-focusa-receipt-required": false,
+        "x-focusa-scope-keys": [
+          "scope_ref",
+          "project_root_key",
+          "workstream_id",
+          "continuity_id",
+          "attachment_key",
+          "session_id",
+          "instance_id",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-optional": [
+          "continuity_id",
+          "attachment",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-required": [
+          "workstream"
+        ]
       }
     },
     "/v1/mission-canvas/recompositions/{revision}/receipt": {
@@ -986,7 +1732,29 @@
         "x-focusa-permissions": [
           "mission_canvas:read"
         ],
-        "x-focusa-receipt-required": false
+        "x-focusa-receipt-required": false,
+        "x-focusa-scope-keys": [
+          "scope_ref",
+          "project_root_key",
+          "workstream_id",
+          "continuity_id",
+          "attachment_key",
+          "session_id",
+          "instance_id",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-optional": [
+          "continuity_id",
+          "attachment",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-required": [
+          "workstream"
+        ]
       }
     },
     "/v1/mission-canvas/registries/{registry_kind}": {
@@ -1031,7 +1799,29 @@
         "x-focusa-permissions": [
           "mission_canvas:read"
         ],
-        "x-focusa-receipt-required": false
+        "x-focusa-receipt-required": false,
+        "x-focusa-scope-keys": [
+          "scope_ref",
+          "project_root_key",
+          "workstream_id",
+          "continuity_id",
+          "attachment_key",
+          "session_id",
+          "instance_id",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-optional": [
+          "continuity_id",
+          "attachment",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-required": [
+          "workstream"
+        ]
       }
     },
     "/v1/mission-canvas/rich-host/close": {
@@ -1043,6 +1833,64 @@
             "application/json": {
               "schema": {
                 "additionalProperties": true,
+                "properties": {
+                  "attachment": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/AttachmentKey"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "continuity_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/ContinuityId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "runtime_object": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/RuntimeObjectRef"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "work_surface_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/WorkSurfaceId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "workspace_binding_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/WorkspaceBindingId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "workstream": {
+                    "$ref": "#/components/schemas/WorkstreamKey"
+                  }
+                },
+                "required": [
+                  "workstream"
+                ],
                 "type": "object",
                 "x-focusa-schema-ref": "focusa.mission_canvas.rich_host_command.v1"
               }
@@ -1079,7 +1927,29 @@
         "x-focusa-permissions": [
           "mission_canvas:host"
         ],
-        "x-focusa-receipt-required": true
+        "x-focusa-receipt-required": true,
+        "x-focusa-scope-keys": [
+          "scope_ref",
+          "project_root_key",
+          "workstream_id",
+          "continuity_id",
+          "attachment_key",
+          "session_id",
+          "instance_id",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-optional": [
+          "continuity_id",
+          "attachment",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-required": [
+          "workstream"
+        ]
       }
     },
     "/v1/mission-canvas/rich-host/focus": {
@@ -1091,6 +1961,64 @@
             "application/json": {
               "schema": {
                 "additionalProperties": true,
+                "properties": {
+                  "attachment": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/AttachmentKey"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "continuity_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/ContinuityId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "runtime_object": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/RuntimeObjectRef"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "work_surface_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/WorkSurfaceId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "workspace_binding_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/WorkspaceBindingId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "workstream": {
+                    "$ref": "#/components/schemas/WorkstreamKey"
+                  }
+                },
+                "required": [
+                  "workstream"
+                ],
                 "type": "object",
                 "x-focusa-schema-ref": "focusa.mission_canvas.rich_host_command.v1"
               }
@@ -1127,7 +2055,29 @@
         "x-focusa-permissions": [
           "mission_canvas:host"
         ],
-        "x-focusa-receipt-required": true
+        "x-focusa-receipt-required": true,
+        "x-focusa-scope-keys": [
+          "scope_ref",
+          "project_root_key",
+          "workstream_id",
+          "continuity_id",
+          "attachment_key",
+          "session_id",
+          "instance_id",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-optional": [
+          "continuity_id",
+          "attachment",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-required": [
+          "workstream"
+        ]
       }
     },
     "/v1/mission-canvas/rich-host/hide": {
@@ -1139,6 +2089,64 @@
             "application/json": {
               "schema": {
                 "additionalProperties": true,
+                "properties": {
+                  "attachment": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/AttachmentKey"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "continuity_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/ContinuityId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "runtime_object": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/RuntimeObjectRef"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "work_surface_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/WorkSurfaceId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "workspace_binding_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/WorkspaceBindingId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "workstream": {
+                    "$ref": "#/components/schemas/WorkstreamKey"
+                  }
+                },
+                "required": [
+                  "workstream"
+                ],
                 "type": "object",
                 "x-focusa-schema-ref": "focusa.mission_canvas.rich_host_command.v1"
               }
@@ -1175,7 +2183,29 @@
         "x-focusa-permissions": [
           "mission_canvas:host"
         ],
-        "x-focusa-receipt-required": true
+        "x-focusa-receipt-required": true,
+        "x-focusa-scope-keys": [
+          "scope_ref",
+          "project_root_key",
+          "workstream_id",
+          "continuity_id",
+          "attachment_key",
+          "session_id",
+          "instance_id",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-optional": [
+          "continuity_id",
+          "attachment",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-required": [
+          "workstream"
+        ]
       }
     },
     "/v1/mission-canvas/rich-host/launch": {
@@ -1187,6 +2217,64 @@
             "application/json": {
               "schema": {
                 "additionalProperties": true,
+                "properties": {
+                  "attachment": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/AttachmentKey"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "continuity_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/ContinuityId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "runtime_object": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/RuntimeObjectRef"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "work_surface_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/WorkSurfaceId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "workspace_binding_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/WorkspaceBindingId"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "workstream": {
+                    "$ref": "#/components/schemas/WorkstreamKey"
+                  }
+                },
+                "required": [
+                  "workstream"
+                ],
                 "type": "object",
                 "x-focusa-schema-ref": "focusa.mission_canvas.rich_host_command.v1"
               }
@@ -1223,7 +2311,29 @@
         "x-focusa-permissions": [
           "mission_canvas:host"
         ],
-        "x-focusa-receipt-required": true
+        "x-focusa-receipt-required": true,
+        "x-focusa-scope-keys": [
+          "scope_ref",
+          "project_root_key",
+          "workstream_id",
+          "continuity_id",
+          "attachment_key",
+          "session_id",
+          "instance_id",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-optional": [
+          "continuity_id",
+          "attachment",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-required": [
+          "workstream"
+        ]
       }
     },
     "/v1/mission-canvas/rich-host/resolution": {
@@ -1259,7 +2369,29 @@
         "x-focusa-permissions": [
           "mission_canvas:host"
         ],
-        "x-focusa-receipt-required": false
+        "x-focusa-receipt-required": false,
+        "x-focusa-scope-keys": [
+          "scope_ref",
+          "project_root_key",
+          "workstream_id",
+          "continuity_id",
+          "attachment_key",
+          "session_id",
+          "instance_id",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-optional": [
+          "continuity_id",
+          "attachment",
+          "workspace_binding_id",
+          "runtime_object",
+          "work_surface_id"
+        ],
+        "x-focusa-scope-required": [
+          "workstream"
+        ]
       }
     }
   },

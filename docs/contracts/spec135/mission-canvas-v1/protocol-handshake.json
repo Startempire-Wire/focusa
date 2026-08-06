@@ -1,15 +1,24 @@
 {
+  "authority_chain": [
+    "scope_ref",
+    "project_root_key",
+    "workstream_id",
+    "continuity_id",
+    "attachment_key",
+    "session_id",
+    "instance_id",
+    "workspace_binding_id",
+    "runtime_object",
+    "work_surface_id"
+  ],
   "compatibility_lock_ref": "compatibility-lock.json",
   "minimum_client_version": "1.0.0",
-  "operation_registry_digest": "sha256:3102b9ced96652f6a4d626709c9129fcce8acd3e39c31cf105f7c1df2ce68ffc",
+  "operation_registry_digest": "sha256:b77178a72f2df1e6c71cbd875b89056d478c17cbc75635cc7f00d034f02898ee",
   "protocol_version": "1.0.0",
   "required_scope_keys": [
-    "project_root",
-    "continuity_id",
-    "session_id",
-    "attachment_id"
+    "workstream"
   ],
   "runtime_promotion_required": false,
   "schema": "focusa.mission_canvas.protocol_handshake.v1",
-  "schema_bundle_digest": "sha256:16991bc916560208b08a521adf42b387fe63ca9954f88011fcf7b51d3ccec8ef"
+  "schema_bundle_digest": "sha256:1bfc6780ccaae08ba93d0e913308f3fc3de7733f139310f74e11eba6520b95f0"
 }

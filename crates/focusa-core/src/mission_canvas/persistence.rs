@@ -1,7 +1,7 @@
 use std::{path::Path, sync::Arc};
 
 use parking_lot::Mutex;
-use rusqlite::{params, Connection, OptionalExtension, Transaction};
+use rusqlite::{Connection, OptionalExtension, Transaction, params};
 use thiserror::Error;
 
 use super::model::{
@@ -452,13 +452,39 @@ mod tests {
     use super::*;
 
     fn scope() -> MissionCanvasScope {
+        let legacy = crate::scoped_state::ScopeRef::project(
+            "project:focusa",
+            "/workspace/focusa",
+            "Focusa",
+            "host-a:worktree-main",
+        )
+        .unwrap();
+        let workstream = crate::workstream_identity::WorkstreamKey::new(
+            crate::workstream_identity::ScopeRef::project(legacy).unwrap(),
+            crate::workstream_identity::WorkstreamId::parse("ws:mission-canvas").unwrap(),
+        );
+        let continuity =
+            crate::workstream_identity::ContinuityId::parse("continuity:mission-canvas").unwrap();
         MissionCanvasScope {
-            project_root: "/tmp/focusa".into(),
-            continuity_id: "mission-canvas".into(),
-            instance_id: Some("instance:1".into()),
-            session_id: "session:1".into(),
-            attachment_id: "attachment:1".into(),
-            working_subpath_id: Some("primary".into()),
+            workstream: workstream.clone(),
+            continuity_id: Some(continuity.clone()),
+            attachment: Some(crate::workstream_identity::AttachmentKey::new(
+                workstream,
+                Some(continuity),
+                crate::workstream_identity::InstanceId::parse("instance:1").unwrap(),
+                crate::workstream_identity::SessionId::parse("session:1").unwrap(),
+                crate::workstream_identity::AttachmentId::parse("attachment:1").unwrap(),
+                crate::workstream_identity::WorkspaceBindingId::parse("workspace:mission-canvas")
+                    .unwrap(),
+            )),
+            workspace_binding_id: Some(
+                crate::workstream_identity::WorkspaceBindingId::parse("workspace:mission-canvas")
+                    .unwrap(),
+            ),
+            runtime_object: None,
+            work_surface_id: Some(
+                crate::workstream_identity::WorkSurfaceId::parse("surface:primary").unwrap(),
+            ),
         }
     }
 

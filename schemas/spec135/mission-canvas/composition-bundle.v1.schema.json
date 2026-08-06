@@ -85,11 +85,104 @@
       ],
       "type": "object"
     },
+    "ActorRef": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "actor_type": {
+          "enum": [
+            "operator",
+            "agent",
+            "pi",
+            "desktop",
+            "web",
+            "service"
+          ]
+        }
+      },
+      "required": [
+        "actor_type",
+        "actor_id"
+      ],
+      "type": "object"
+    },
+    "AttachmentId": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "AttachmentKey": {
+      "additionalProperties": false,
+      "properties": {
+        "attachment_id": {
+          "$ref": "#/$defs/AttachmentId"
+        },
+        "continuity_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContinuityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "instance_id": {
+          "$ref": "#/$defs/InstanceId"
+        },
+        "session_id": {
+          "$ref": "#/$defs/SessionId"
+        },
+        "workspace_binding_id": {
+          "$ref": "#/$defs/WorkspaceBindingId"
+        },
+        "workstream": {
+          "$ref": "#/$defs/WorkstreamKey"
+        }
+      },
+      "required": [
+        "workstream",
+        "instance_id",
+        "session_id",
+        "attachment_id",
+        "workspace_binding_id"
+      ],
+      "type": "object"
+    },
+    "AuthorityContext": {
+      "additionalProperties": false,
+      "properties": {
+        "authority_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "envelope": {
+          "$ref": "#/$defs/AuthorityEnvelope"
+        }
+      },
+      "required": [
+        "authority_ref",
+        "envelope"
+      ],
+      "type": "object"
+    },
     "AuthorityDescriptor": {
       "additionalProperties": false,
       "properties": {
         "approval_required": {
           "type": "boolean"
+        },
+        "attachment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AttachmentKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "canonical_owner": {
           "minLength": 1,
@@ -101,6 +194,16 @@
             "null"
           ]
         },
+        "continuity_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContinuityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "mutation_owner": {
           "minLength": 1,
           "type": "string"
@@ -108,15 +211,68 @@
         "read_only": {
           "type": "boolean"
         },
-        "scope": {
-          "$ref": "#/$defs/ExactScope"
+        "runtime_object": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "work_surface_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkSurfaceId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workspace_binding_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkspaceBindingId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workstream": {
+          "$ref": "#/$defs/WorkstreamKey"
         }
       },
       "required": [
         "canonical_owner",
         "mutation_owner",
-        "scope",
+        "workstream",
         "read_only"
+      ],
+      "type": "object"
+    },
+    "AuthorityEnvelope": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "canonical",
+            "blocked",
+            "degraded",
+            "missing",
+            "stale"
+          ]
+        },
+        "why": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "why"
       ],
       "type": "object"
     },
@@ -268,9 +424,8 @@
     "CanvasDraftState": {
       "additionalProperties": false,
       "properties": {
-        "attachment_id": {
-          "minLength": 1,
-          "type": "string"
+        "attachment": {
+          "$ref": "#/$defs/AttachmentKey"
         },
         "conflict_ref": {
           "type": [
@@ -284,6 +439,16 @@
         "content_sha256": {
           "pattern": "^[a-f0-9]{64}$",
           "type": "string"
+        },
+        "continuity_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContinuityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "draft_id": {
           "pattern": "^draft:[a-z0-9._:-]+$",
@@ -307,8 +472,15 @@
           "minLength": 1,
           "type": "string"
         },
-        "scope": {
-          "$ref": "#/$defs/ExactScope"
+        "runtime_object": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "selection_end": {
           "minimum": 0,
@@ -330,16 +502,39 @@
         "updated_at": {
           "format": "date-time",
           "type": "string"
+        },
+        "work_surface_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkSurfaceId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workspace_binding_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkspaceBindingId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workstream": {
+          "$ref": "#/$defs/WorkstreamKey"
         }
       },
       "required": [
         "draft_id",
-        "scope",
+        "workstream",
         "owner",
         "content",
         "content_sha256",
         "recipient_ref",
-        "attachment_id",
+        "attachment",
         "draft_revision",
         "sync_state",
         "idempotency_key",
@@ -350,6 +545,16 @@
     "CapabilityProjection": {
       "additionalProperties": false,
       "properties": {
+        "attachment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AttachmentKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "available_operation_ids": {
           "items": {
             "type": "string"
@@ -368,6 +573,16 @@
           "minimum": 0,
           "type": "integer"
         },
+        "continuity_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContinuityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "observed_at": {
           "format": "date-time",
           "type": "string"
@@ -379,18 +594,48 @@
           "type": "array",
           "uniqueItems": true
         },
-        "scope": {
-          "$ref": "#/$defs/ExactScope"
+        "runtime_object": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "unavailable_operations": {
           "items": {
             "$ref": "#/$defs/UnavailableOperationDiagnostic"
           },
           "type": "array"
+        },
+        "work_surface_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkSurfaceId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workspace_binding_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkspaceBindingId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workstream": {
+          "$ref": "#/$defs/WorkstreamKey"
         }
       },
       "required": [
-        "scope",
+        "workstream",
         "capabilities",
         "permissions",
         "available_operation_ids",
@@ -399,6 +644,10 @@
         "observed_at"
       ],
       "type": "object"
+    },
+    "ContinuityId": {
+      "minLength": 1,
+      "type": "string"
     },
     "ContributionEligibilityContext": {
       "additionalProperties": false,
@@ -410,6 +659,16 @@
         "activity_mode_revision": {
           "minimum": 0,
           "type": "integer"
+        },
+        "attachment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AttachmentKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "available_operations": {
           "items": {
@@ -429,10 +688,24 @@
           "type": "array",
           "uniqueItems": true
         },
+        "continuity_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContinuityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "focused_work_surface_id": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkSurfaceId"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "observed_at": {
@@ -441,7 +714,7 @@
         },
         "open_work_surface_ids": {
           "items": {
-            "type": "string"
+            "$ref": "#/$defs/WorkSurfaceId"
           },
           "type": "array",
           "uniqueItems": true
@@ -455,7 +728,7 @@
         },
         "pinned_work_surface_ids": {
           "items": {
-            "type": "string"
+            "$ref": "#/$defs/WorkSurfaceId"
           },
           "type": "array",
           "uniqueItems": true
@@ -471,8 +744,15 @@
           "minLength": 1,
           "type": "string"
         },
-        "scope": {
-          "$ref": "#/$defs/ExactScope"
+        "runtime_object": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "user_preference_ref": {
           "type": [
@@ -483,6 +763,26 @@
         "viewport": {
           "$ref": "#/$defs/ViewportDescriptor"
         },
+        "work_surface_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkSurfaceId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workspace_binding_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkspaceBindingId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "workspace_profile_id": {
           "minLength": 1,
           "type": "string"
@@ -490,10 +790,13 @@
         "workspace_profile_revision": {
           "minimum": 0,
           "type": "integer"
+        },
+        "workstream": {
+          "$ref": "#/$defs/WorkstreamKey"
         }
       },
       "required": [
-        "scope",
+        "workstream",
         "workspace_profile_id",
         "workspace_profile_revision",
         "activity_mode_id",
@@ -582,6 +885,36 @@
         "preferred_order",
         "minimum_span",
         "maximum_span"
+      ],
+      "type": "object"
+    },
+    "DomainPackInstallReceipt": {
+      "additionalProperties": false,
+      "properties": {
+        "installed": {
+          "type": "boolean"
+        },
+        "pack_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "receipt_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "schema": {
+          "const": "focusa.mission_canvas.domain_pack_install_receipt.v1"
+        },
+        "workstream": {
+          "$ref": "#/$defs/WorkstreamKey"
+        }
+      },
+      "required": [
+        "schema",
+        "workstream",
+        "installed",
+        "pack_id",
+        "receipt_ref"
       ],
       "type": "object"
     },
@@ -681,46 +1014,6 @@
         "outcome",
         "rule_revision",
         "projection_revision"
-      ],
-      "type": "object"
-    },
-    "ExactScope": {
-      "additionalProperties": false,
-      "properties": {
-        "attachment_id": {
-          "minLength": 1,
-          "type": "string"
-        },
-        "continuity_id": {
-          "minLength": 1,
-          "type": "string"
-        },
-        "instance_id": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "project_root": {
-          "minLength": 1,
-          "type": "string"
-        },
-        "session_id": {
-          "minLength": 1,
-          "type": "string"
-        },
-        "working_subpath_id": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "required": [
-        "project_root",
-        "continuity_id",
-        "session_id",
-        "attachment_id"
       ],
       "type": "object"
     },
@@ -873,10 +1166,30 @@
     "HostLifecycleState": {
       "additionalProperties": false,
       "properties": {
+        "attachment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AttachmentKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "canvas_draft_ref": {
           "type": [
             "string",
             "null"
+          ]
+        },
+        "continuity_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContinuityId"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "durable_event_cursor": {
@@ -916,8 +1229,15 @@
         "renderer_resolution": {
           "$ref": "#/$defs/HostRendererResolution"
         },
-        "scope": {
-          "$ref": "#/$defs/ExactScope"
+        "runtime_object": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "state": {
           "enum": [
@@ -940,11 +1260,34 @@
             "string",
             "null"
           ]
+        },
+        "work_surface_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkSurfaceId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workspace_binding_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkspaceBindingId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workstream": {
+          "$ref": "#/$defs/WorkstreamKey"
         }
       },
       "required": [
         "host_instance_id",
-        "scope",
+        "workstream",
         "renderer_resolution",
         "state",
         "focused",
@@ -1027,6 +1370,38 @@
       ],
       "type": "object"
     },
+    "HostScopeKey": {
+      "additionalProperties": false,
+      "properties": {
+        "canonical_name": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "fingerprint": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "root_path": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "scope_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "scope_kind": {
+          "const": "host"
+        }
+      },
+      "required": [
+        "scope_kind",
+        "scope_id",
+        "root_path",
+        "canonical_name",
+        "fingerprint"
+      ],
+      "type": "object"
+    },
     "InspectorLayoutNode": {
       "additionalProperties": false,
       "properties": {
@@ -1069,6 +1444,10 @@
       ],
       "type": "object"
     },
+    "InstanceId": {
+      "minLength": 1,
+      "type": "string"
+    },
     "LayoutMutationCommand": {
       "additionalProperties": false,
       "properties": {
@@ -1091,13 +1470,22 @@
             "set_active_tab"
           ]
         },
-        "attachment_id": {
-          "minLength": 1,
-          "type": "string"
+        "attachment": {
+          "$ref": "#/$defs/AttachmentKey"
         },
         "command_id": {
           "pattern": "^layout-command:[a-z0-9._:-]+$",
           "type": "string"
+        },
+        "continuity_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContinuityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "expected_layout_revision": {
           "minimum": 0,
@@ -1115,13 +1503,24 @@
           "format": "date-time",
           "type": "string"
         },
-        "scope": {
-          "$ref": "#/$defs/ExactScope"
+        "runtime_object": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "secondary_work_surface_id": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkSurfaceId"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "split_ratio": {
@@ -1156,17 +1555,44 @@
           ]
         },
         "target_work_surface_id": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkSurfaceId"
+            },
+            {
+              "type": "null"
+            }
           ]
+        },
+        "work_surface_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkSurfaceId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workspace_binding_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkspaceBindingId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workstream": {
+          "$ref": "#/$defs/WorkstreamKey"
         }
       },
       "required": [
         "command_id",
-        "scope",
+        "workstream",
         "action",
-        "attachment_id",
+        "attachment",
         "expected_projection_revision",
         "expected_layout_revision",
         "idempotency_key"
@@ -1179,9 +1605,29 @@
         "accepted": {
           "type": "boolean"
         },
+        "attachment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AttachmentKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "command_id": {
           "minLength": 1,
           "type": "string"
+        },
+        "continuity_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContinuityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "error_ref": {
           "type": [
@@ -1215,9 +1661,43 @@
             "string",
             "null"
           ]
+        },
+        "runtime_object": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "work_surface_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkSurfaceId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workspace_binding_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkspaceBindingId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workstream": {
+          "$ref": "#/$defs/WorkstreamKey"
         }
       },
       "required": [
+        "workstream",
         "command_id",
         "accepted",
         "projection_revision",
@@ -1248,6 +1728,48 @@
           "$ref": "#/$defs/InspectorLayoutNode"
         }
       ]
+    },
+    "LegacyExactScopeCompatibilityInput": {
+      "additionalProperties": false,
+      "description": "Compatibility input only. It must be resolved to an exact WorkstreamKey with provenance before canonical use and never grants authority by itself.",
+      "properties": {
+        "attachment_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "continuity_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "instance_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "project_root": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "session_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "working_subpath_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "project_root",
+        "continuity_id",
+        "session_id",
+        "attachment_id"
+      ],
+      "type": "object",
+      "x-focusa-compatibility-only": true
     },
     "LegacyLayoutMapping": {
       "additionalProperties": false,
@@ -1283,6 +1805,26 @@
     "LegacyLayoutMigrationEnvelope": {
       "additionalProperties": false,
       "properties": {
+        "attachment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AttachmentKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "continuity_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContinuityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "created_at": {
           "format": "date-time",
           "type": "string"
@@ -1313,8 +1855,15 @@
             "null"
           ]
         },
-        "scope": {
-          "$ref": "#/$defs/ExactScope"
+        "runtime_object": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "source_digest": {
           "pattern": "^sha256:[a-f0-9]{64}$",
@@ -1363,11 +1912,34 @@
           },
           "type": "array",
           "uniqueItems": true
+        },
+        "work_surface_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkSurfaceId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workspace_binding_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkspaceBindingId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workstream": {
+          "$ref": "#/$defs/WorkstreamKey"
         }
       },
       "required": [
         "migration_id",
-        "scope",
+        "workstream",
         "source_kind",
         "source_revision",
         "source_digest",
@@ -1477,6 +2049,36 @@
       ],
       "type": "object"
     },
+    "PiSessionEventReceipt": {
+      "additionalProperties": false,
+      "properties": {
+        "accepted": {
+          "type": "boolean"
+        },
+        "event_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "receipt_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "schema": {
+          "const": "focusa.mission_canvas.pi_session_event_receipt.v1"
+        },
+        "workstream": {
+          "$ref": "#/$defs/WorkstreamKey"
+        }
+      },
+      "required": [
+        "schema",
+        "workstream",
+        "event_id",
+        "accepted",
+        "receipt_ref"
+      ],
+      "type": "object"
+    },
     "ProfileLayoutMemory": {
       "additionalProperties": false,
       "properties": {
@@ -1490,6 +2092,26 @@
         "activity_mode_id": {
           "minLength": 1,
           "type": "string"
+        },
+        "attachment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AttachmentKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "continuity_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContinuityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "focused_semantic_target": {
           "type": [
@@ -1519,8 +2141,15 @@
           "minLength": 1,
           "type": "string"
         },
-        "scope": {
-          "$ref": "#/$defs/ExactScope"
+        "runtime_object": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "updated_at": {
           "format": "date-time",
@@ -1535,11 +2164,34 @@
             "wide",
             "reference_capture"
           ]
+        },
+        "work_surface_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkSurfaceId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workspace_binding_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkspaceBindingId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workstream": {
+          "$ref": "#/$defs/WorkstreamKey"
         }
       },
       "required": [
         "memory_id",
-        "scope",
+        "workstream",
         "profile_id",
         "activity_mode_id",
         "viewport_class",
@@ -1548,6 +2200,38 @@
         "memory_revision",
         "idempotency_key",
         "updated_at"
+      ],
+      "type": "object"
+    },
+    "ProjectRootKey": {
+      "additionalProperties": false,
+      "properties": {
+        "canonical_name": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "fingerprint": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "root_path": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "scope_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "scope_kind": {
+          "const": "project"
+        }
+      },
+      "required": [
+        "scope_kind",
+        "scope_id",
+        "root_path",
+        "canonical_name",
+        "fingerprint"
       ],
       "type": "object"
     },
@@ -1593,10 +2277,30 @@
     "ProjectionLifecycleEvent": {
       "additionalProperties": false,
       "properties": {
+        "attachment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AttachmentKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "causation_id": {
           "type": [
             "string",
             "null"
+          ]
+        },
+        "continuity_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContinuityId"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "contribution_id": {
@@ -1662,14 +2366,44 @@
           "type": "array",
           "uniqueItems": true
         },
-        "scope": {
-          "$ref": "#/$defs/ExactScope"
+        "runtime_object": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "work_surface_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkSurfaceId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workspace_binding_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkspaceBindingId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workstream": {
+          "$ref": "#/$defs/WorkstreamKey"
         }
       },
       "required": [
         "event_id",
         "event_kind",
-        "scope",
+        "workstream",
         "projection_revision",
         "layout_revision",
         "event_cursor",
@@ -1680,15 +2414,110 @@
       ],
       "type": "object"
     },
+    "RecipientResolution": {
+      "additionalProperties": false,
+      "properties": {
+        "attachment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AttachmentKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "continuity_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContinuityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "recipient_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "routable": {
+          "type": "boolean"
+        },
+        "runtime_object": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "schema": {
+          "const": "focusa.mission_canvas.recipient_resolution.v1"
+        },
+        "work_surface_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkSurfaceId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workspace_binding_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkspaceBindingId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workstream": {
+          "$ref": "#/$defs/WorkstreamKey"
+        }
+      },
+      "required": [
+        "schema",
+        "workstream",
+        "recipient_ref",
+        "routable"
+      ],
+      "type": "object"
+    },
     "RecompositionEvidence": {
       "additionalProperties": false,
       "properties": {
+        "attachment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AttachmentKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "candidate_contribution_ids": {
           "items": {
             "$ref": "#/$defs/ContributionId"
           },
           "type": "array",
           "uniqueItems": true
+        },
+        "continuity_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContinuityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "diagnostic_refs": {
           "items": {
@@ -1735,8 +2564,15 @@
           "minLength": 1,
           "type": "string"
         },
-        "scope": {
-          "$ref": "#/$defs/ExactScope"
+        "runtime_object": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "trigger": {
           "enum": [
@@ -1750,11 +2586,34 @@
             "migration",
             "explicit_resolve"
           ]
+        },
+        "work_surface_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkSurfaceId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workspace_binding_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkspaceBindingId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workstream": {
+          "$ref": "#/$defs/WorkstreamKey"
         }
       },
       "required": [
         "evidence_id",
-        "scope",
+        "workstream",
         "trigger",
         "input_projection_digest",
         "output_projection_digest",
@@ -1770,6 +2629,26 @@
       "properties": {
         "accepted": {
           "type": "boolean"
+        },
+        "attachment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AttachmentKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "continuity_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContinuityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "error_ref": {
           "type": [
@@ -1808,13 +2687,43 @@
           "pattern": "^recomposition-receipt:[a-z0-9._:-]+$",
           "type": "string"
         },
-        "scope": {
-          "$ref": "#/$defs/ExactScope"
+        "runtime_object": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "work_surface_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkSurfaceId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workspace_binding_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkspaceBindingId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workstream": {
+          "$ref": "#/$defs/WorkstreamKey"
         }
       },
       "required": [
         "receipt_id",
-        "scope",
+        "workstream",
         "accepted",
         "projection_revision",
         "layout_revision",
@@ -1983,6 +2892,16 @@
           "minimum": 0,
           "type": "integer"
         },
+        "attachment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AttachmentKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "candidate_contribution_ids": {
           "items": {
             "$ref": "#/$defs/ContributionId"
@@ -1993,6 +2912,16 @@
         "canonical_read_model_revision": {
           "minimum": 0,
           "type": "integer"
+        },
+        "continuity_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContinuityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "durable_event_cursor": {
           "minLength": 1,
@@ -2016,9 +2945,13 @@
           "type": "string"
         },
         "focused_work_surface_id": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkSurfaceId"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "layout_revision": {
@@ -2058,11 +2991,38 @@
           "format": "date-time",
           "type": "string"
         },
+        "runtime_object": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "schema": {
           "const": "focusa.resolved_workspace_projection.v1"
         },
-        "scope": {
-          "$ref": "#/$defs/ExactScope"
+        "work_surface_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkSurfaceId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workspace_binding_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkspaceBindingId"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "workspace_profile_id": {
           "minLength": 1,
@@ -2071,11 +3031,14 @@
         "workspace_profile_revision": {
           "minimum": 0,
           "type": "integer"
+        },
+        "workstream": {
+          "$ref": "#/$defs/WorkstreamKey"
         }
       },
       "required": [
         "schema",
-        "scope",
+        "workstream",
         "workspace_profile_id",
         "workspace_profile_revision",
         "activity_mode_id",
@@ -2190,8 +3153,66 @@
       ],
       "type": "object"
     },
+    "RuntimeObjectRef": {
+      "additionalProperties": false,
+      "properties": {
+        "runtime_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "runtime_kind": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "runtime_kind",
+        "runtime_id"
+      ],
+      "type": "object"
+    },
+    "ScopeRef": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "scope_key": {
+              "$ref": "#/$defs/ProjectRootKey"
+            },
+            "scope_kind": {
+              "const": "project"
+            }
+          },
+          "required": [
+            "scope_kind",
+            "scope_key"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "scope_key": {
+              "$ref": "#/$defs/HostScopeKey"
+            },
+            "scope_kind": {
+              "const": "host"
+            }
+          },
+          "required": [
+            "scope_kind",
+            "scope_key"
+          ],
+          "type": "object"
+        }
+      ]
+    },
     "SemanticBindingId": {
       "pattern": "^semantic:[a-z0-9][a-z0-9._:-]{0,159}$",
+      "type": "string"
+    },
+    "SessionId": {
+      "minLength": 1,
       "type": "string"
     },
     "SingleLayoutNode": {
@@ -2406,6 +3427,60 @@
       ],
       "type": "object"
     },
+    "WorkSurfaceId": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "WorkSurfaceIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "attachment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AttachmentKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "continuity_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContinuityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "runtime_object": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "work_surface_id": {
+          "$ref": "#/$defs/WorkSurfaceId"
+        },
+        "workstream": {
+          "$ref": "#/$defs/WorkstreamKey"
+        }
+      },
+      "required": [
+        "work_surface_id",
+        "workstream"
+      ],
+      "type": "object"
+    },
+    "WorkspaceBindingId": {
+      "minLength": 1,
+      "type": "string"
+    },
     "WorkspaceProfile": {
       "additionalProperties": false,
       "properties": {
@@ -2469,10 +3544,193 @@
         "viability_rule_revision"
       ],
       "type": "object"
+    },
+    "WorkstreamAuthorityContext": {
+      "additionalProperties": false,
+      "properties": {
+        "attachment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AttachmentKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "continuity_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContinuityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "runtime_object": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "work_surface_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkSurfaceId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workspace_binding_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkspaceBindingId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workstream": {
+          "$ref": "#/$defs/WorkstreamKey"
+        }
+      },
+      "required": [
+        "workstream"
+      ],
+      "type": "object"
+    },
+    "WorkstreamId": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "WorkstreamKey": {
+      "additionalProperties": false,
+      "properties": {
+        "scope": {
+          "$ref": "#/$defs/ScopeRef"
+        },
+        "workstream_id": {
+          "$ref": "#/$defs/WorkstreamId"
+        }
+      },
+      "required": [
+        "scope",
+        "workstream_id"
+      ],
+      "type": "object"
+    },
+    "WorkstreamOperationRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "actor": {
+          "$ref": "#/$defs/ActorRef"
+        },
+        "attachment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AttachmentKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "authority": {
+          "$ref": "#/$defs/AuthorityContext"
+        },
+        "command_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "continuity_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContinuityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expected_fencing_token": {
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "expected_revision": {
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "idempotency_key": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "input": {},
+        "runtime_object": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeObjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "schema": {
+          "const": "focusa.workstream_operation_request.v1"
+        },
+        "work_surface_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkSurfaceId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workspace_binding_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkspaceBindingId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workstream": {
+          "$ref": "#/$defs/WorkstreamKey"
+        }
+      },
+      "required": [
+        "schema",
+        "workstream",
+        "actor",
+        "authority",
+        "command_id",
+        "input"
+      ],
+      "type": "object"
     }
   },
   "$id": "https://focusa.dev/schemas/spec135/mission-canvas/composition-bundle.v1.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "description": "Portable contribution identity, eligibility, omission, and resolved contribution contracts.",
+  "description": "Portable Workstream identity, contribution eligibility, omission, and resolved contribution contracts.",
   "title": "Focusa Spec 135 Mission Canvas composition contract bundle"
 }

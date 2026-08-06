@@ -2,7 +2,7 @@
   import type { MissionCanvasClient } from '../../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated';
   import { MissionCanvasDraftController } from '../draft-controller.svelte';
   import { GeneratedDraftTransport, resolveRecipient } from '../generated-draft-transport';
-  import type { OperationBinding, ResolvedContribution, ResolvedWorkspaceProjection } from '../types';
+  import type { AttachmentKey, OperationBinding, ResolvedContribution, ResolvedWorkspaceProjection } from '../types';
 
   let {
     contribution,
@@ -24,6 +24,7 @@
   const controller = $derived(client ? new MissionCanvasDraftController(new GeneratedDraftTransport(client)) : undefined);
   const draftId = $derived(contribution.data_ref.kind === 'canvas_draft' ? contribution.data_ref.ref : undefined);
   const recipientRef = $derived(projection.focused_work_surface_id ?? undefined);
+  const attachment = $derived(projection.attachment ?? undefined);
   const bindings = $derived(projection.operation_bindings.filter((binding) =>
     binding.target_contribution_id === contribution.contribution_id
     && contribution.operation_ids.includes(binding.operation_id)
@@ -32,13 +33,18 @@
     binding.enabled && Boolean(binding.authority_ref) && !binding.disabled_reason_ref
   ));
   const draftReady = $derived(controller?.state.kind === 'ready' || controller?.state.kind === 'conflict');
-  const sendEnabled = $derived(Boolean(client && controller && draftId && recipientRef && draftReady && sendBinding && onOperation && localContent.trim() && !sending));
+  const sendEnabled = $derived(Boolean(client && controller && draftId && recipientRef && attachment && draftReady && sendBinding && onOperation && localContent.trim() && !sending));
 
   $effect(() => {
-    if (!controller || !draftId || !recipientRef) return;
+    if (!controller || !draftId || !recipientRef || !attachment) return;
+    const exactAttachment: AttachmentKey = attachment;
     void controller.load({
-      scope: projection.scope,
-      attachmentId: projection.scope.attachment_id,
+      workstream: projection.workstream,
+      continuity_id: projection.continuity_id ?? exactAttachment.continuity_id ?? null,
+      attachment: exactAttachment,
+      workspace_binding_id: projection.workspace_binding_id ?? exactAttachment.workspace_binding_id,
+      runtime_object: projection.runtime_object ?? null,
+      work_surface_id: projection.work_surface_id ?? projection.focused_work_surface_id ?? null,
       draftId,
       recipientRef
     });
@@ -53,12 +59,19 @@
   });
 
   async function submit(): Promise<void> {
-    if (!sendEnabled || !client || !controller || !recipientRef || !sendBinding) return;
+    if (!sendEnabled || !client || !controller || !recipientRef || !attachment || !sendBinding) return;
     sending = true;
     sendError = '';
     sendNotice = '';
     try {
-      await resolveRecipient(client, projection.scope, recipientRef);
+      await resolveRecipient(client, {
+        workstream: projection.workstream,
+        continuity_id: projection.continuity_id ?? attachment.continuity_id ?? null,
+        attachment,
+        workspace_binding_id: projection.workspace_binding_id ?? attachment.workspace_binding_id,
+        runtime_object: projection.runtime_object ?? null,
+        work_surface_id: projection.work_surface_id ?? projection.focused_work_surface_id ?? null
+      }, recipientRef);
       await controller.sync(localContent);
       if (controller.state.kind !== 'ready') {
         throw new Error(controller.state.kind === 'conflict' ? controller.state.reason : 'Draft synchronization did not complete.');
@@ -86,7 +99,7 @@
   ></textarea>
   <div class="prompt-actions">
     <span id={`prompt-status-${contribution.contribution_id}`} class:error={Boolean(sendError)}>
-      {sendError || sendNotice || (controller?.state.kind === 'conflict' ? 'Draft conflict requires reconciliation.' : recipientRef ? `Recipient: ${recipientRef}` : 'No exact recipient resolved.')}
+      {sendError || sendNotice || (controller?.state.kind === 'conflict' ? 'Draft conflict requires reconciliation.' : recipientRef && attachment ? `Recipient: ${recipientRef}` : 'No exact Workstream recipient resolved.')}
     </span>
     <button type="button" disabled={!sendEnabled} onclick={() => void submit()}>
       {sending ? 'Routing…' : 'Send'}

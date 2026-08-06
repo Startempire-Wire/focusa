@@ -101,6 +101,34 @@ subordinate_id!(InstanceId, "instance_id");
 subordinate_id!(SessionId, "session_id");
 subordinate_id!(AttachmentId, "attachment_id");
 subordinate_id!(WorkspaceBindingId, "workspace_binding_id");
+subordinate_id!(WorkSurfaceId, "work_surface_id");
+
+/// Stable identity of a runtime object subordinate to a Workstream.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+pub struct RuntimeObjectRef {
+    pub runtime_kind: String,
+    pub runtime_id: String,
+}
+
+impl RuntimeObjectRef {
+    pub fn new(
+        runtime_kind: impl Into<String>,
+        runtime_id: impl Into<String>,
+    ) -> Result<Self, ScopeKeyError> {
+        let runtime_kind = runtime_kind.into().trim().to_string();
+        let runtime_id = runtime_id.into().trim().to_string();
+        if runtime_kind.is_empty() {
+            return Err(ScopeKeyError::Missing("runtime_kind"));
+        }
+        if runtime_id.is_empty() {
+            return Err(ScopeKeyError::Missing("runtime_id"));
+        }
+        Ok(Self {
+            runtime_kind,
+            runtime_id,
+        })
+    }
+}
 
 /// Canonical Workstream map key. Continuity and session identity are deliberately
 /// subordinate and therefore cannot participate in this key.

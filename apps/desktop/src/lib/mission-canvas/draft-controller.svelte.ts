@@ -1,12 +1,11 @@
-import { sameExactScope as sameScope } from './exact-scope';
-import type { CanvasDraftState, ExactScope } from './types';
+import { sameWorkstreamAuthority as sameScope } from './exact-scope';
+import type { AttachmentKey, CanvasDraftState, WorkstreamAuthorityContext } from './types';
 
-export interface DraftBinding {
-  scope: ExactScope;
-  attachmentId: string;
+export type DraftBinding = Omit<WorkstreamAuthorityContext, 'attachment'> & {
+  attachment: AttachmentKey;
   draftId: string;
   recipientRef: string;
-}
+};
 
 export interface DraftSyncInput extends DraftBinding {
   baseDraft: CanvasDraftState;
@@ -31,8 +30,7 @@ export type DraftControllerState =
   | { kind: 'error'; binding?: DraftBinding; reason: string };
 
 function matchesBinding(draft: CanvasDraftState, binding: DraftBinding): boolean {
-  return sameScope(draft.scope, binding.scope)
-    && draft.attachment_id === binding.attachmentId
+  return sameScope(draft, binding)
     && draft.draft_id === binding.draftId
     && draft.recipient_ref === binding.recipientRef;
 }

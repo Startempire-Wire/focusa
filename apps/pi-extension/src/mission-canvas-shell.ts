@@ -51,7 +51,7 @@ function recentConversation(ctx: ExtensionContext): string[] {
 }
 
 /**
- * Pi-native Mission Canvas overlay. It leaves Pi's transcript and editor
+ * Authoritative Pi-native Mission Canvas overlay. It leaves Pi's transcript and editor
  * mounted underneath, owns input only while visible, and always provides a
  * direct Escape/Ctrl+G path back to the normal terminal.
  */

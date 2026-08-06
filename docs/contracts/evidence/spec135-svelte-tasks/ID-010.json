@@ -1,0 +1,111 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "ID-010",
+  "result": "Implemented the canonical Workstream identity contract across the Mission Canvas schema bundle, generated OpenAPI/operation registry/TypeScript client/validators/handshake artifacts, Rust Mission Canvas authority and API adapters, and bounded Focusa Desktop consumers. The removed flat project_root/continuity_id/session/attachment authority shape is available only as the explicitly named LegacyExactScopeCompatibilityInput and never validates as canonical authority.",
+  "targets": [
+    "scripts/generate-spec135-mission-canvas-schemas.py",
+    "scripts/generate-spec135-mission-canvas-operations.py",
+    "scripts/generate-spec135-mission-canvas-derived-contracts.py",
+    "schemas/spec135/mission-canvas/composition-bundle.v1.schema.json",
+    "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "crates/focusa-core/src/workstream_identity.rs",
+    "crates/focusa-core/src/mission_canvas/model.rs",
+    "crates/focusa-core/src/mission_canvas/resolver.rs",
+    "crates/focusa-core/src/mission_canvas/reducer.rs",
+    "crates/focusa-core/src/mission_canvas/memory.rs",
+    "crates/focusa-core/src/mission_canvas/persistence.rs",
+    "crates/focusa-api/src/routes/mission_canvas.rs",
+    "apps/desktop/src/lib/mission-canvas",
+    "apps/desktop/src/lib/shell",
+    "tests/spec158_mission_canvas_identity_contract_test.py",
+    "tests/spec135_mission_canvas_generated_parity_test.py"
+  ],
+  "authority_chain": [
+    "ScopeRef",
+    "ProjectRootKey",
+    "WorkstreamId",
+    "optional ContinuityId",
+    "AttachmentKey",
+    "SessionId",
+    "InstanceId",
+    "WorkspaceBindingId",
+    "RuntimeObjectRef",
+    "WorkSurfaceId"
+  ],
+  "checks": [
+    "python3 tests/spec158_mission_canvas_identity_contract_test.py (exit 0; generated identity, legacy-only, missing, foreign Workstream, foreign Continuity, and foreign workspace-binding checks: PASS)",
+    "python3 tests/spec158_workstream_identity_source_test.py (exit 0)",
+    "python3 tests/spec158_workstream_context_source_test.py (exit 0)",
+    "python3 tests/spec135_mission_canvas_generated_parity_test.py (exit 0; generated artifacts, canonical request identity, parity, and determinism: PASS)",
+    "python3 tests/spec135_mission_canvas_operation_registry_test.py (exit 0; 25 operations: PASS)",
+    "python3 tests/spec135_projection_events_proof_test.py (exit 0)",
+    "python3 tests/spec135_projection_state_contract_test.py (exit 0)",
+    "python3 tests/spec135_resolved_projection_contract_test.py (exit 0)",
+    "python3 tests/spec135_mission_canvas_api_static_test.py (exit 0)",
+    "python3 tests/spec135_mission_canvas_full_shell_gui_test.py (exit 0)",
+    "python3 tests/spec135_generated_clients_test.py (exit 0)",
+    "python3 tests/spec135_generated_pi_surface_test.py (exit 0)",
+    "python3 tests/spec135_protocol_handshake_test.py (exit 0)",
+    "python3 tests/spec135_work_rail_test.py (exit 0)",
+    "python3 -m py_compile changed Python generators and contract tests (exit 0)",
+    "rustfmt --edition 2024 --check changed Rust identity/Mission Canvas/API sources (exit 0; Cargo intentionally not run)",
+    "npm --prefix apps/desktop test (exit 0; shell and Mission Canvas runtime: PASS)",
+    "npm --prefix apps/desktop run check (exit 0; svelte-check: 0 errors, 0 warnings)",
+    "npm --prefix apps/desktop run build (exit 0)",
+    "npm --prefix packages/focusa-elements run build (exit 0)",
+    "npm --prefix packages/a2ui-renderer run build (exit 0)",
+    "git diff --check (exit 0)"
+  ],
+  "negative_cases": {
+    "missing_workstream": "Canonical projection, authority, and generated operation inputs require WorkstreamKey; missing identity fails closed.",
+    "legacy_only": "LegacyExactScopeCompatibilityInput validates only under its compatibility schema and cannot validate as WorkstreamAuthorityContext.",
+    "foreign_workstream": "AttachmentKey ownership is checked against the requested WorkstreamKey; foreign nested owners are rejected.",
+    "foreign_continuity": "ContinuityId is subordinate and mismatches with the AttachmentKey lineage are rejected.",
+    "foreign_workspace_binding": "WorkspaceBindingId is subordinate and mismatches with the AttachmentKey binding are rejected.",
+    "foreign_projection_event_draft": "Desktop projection, event, draft, profile-memory, HTTP transport, and Pi attachment paths compare generated identity rather than tab/CWD/latest-record fallbacks.",
+    "stale_revision_cursor": "Existing projection/event/draft revision and cursor gates remain fail-closed and are covered by the Desktop runtime and contract tests.",
+    "empty_or_ineligible_contribution": "Existing generated projection fixtures preserve omission diagnostics and deterministic adaptive layout behavior."
+  },
+  "acceptance": [
+    "Every canonical Result and Receipt schema carries or echoes the exact WorkstreamKey; Rust recomposition evidence/receipts and API receipts now emit the same generated identity chain.",
+    "Generated OpenAPI, operation registry, TypeScript client, validators, capability/parity artifacts, compatibility lock, and protocol handshake agree on Workstream authority metadata.",
+    "ScopeRef/ProjectRootKey is nested under WorkstreamKey; ContinuityId is optional and subordinate; AttachmentKey owns SessionId, InstanceId, and WorkspaceBindingId; runtime and WorkSurface identity are explicit.",
+    "Bounded Desktop consumers use generated identity types and generated validators rather than duplicate project_root/continuity authority DTOs.",
+    "Canonical HTTP query/body adapters and Mission Canvas core/API authority validation reject missing, malformed, foreign, or mismatched identity instead of inferring ownership.",
+    "The authentic Agent TUI remains a separate PTY-backed surface and does not become the Mission Canvas renderer."
+  ],
+  "deferred_repository_observation": "python3 tests/spec158_mission_canvas_executable_callgraph_test.py remains blocked before exercising ID-010 by the stale generated docs/contracts/spec135-svelte-task-execution-index.v1.json. That task-packet/index area is explicitly forbidden to edit for this change.",
+  "remaining_checks": [
+    "cargo test/check for the changed Rust Mission Canvas/API sources (not run; Cargo is prohibited for this corrective pass)"
+  ],
+  "remaining_work": [],
+  "blockers": [
+    "Only deferred Rust Cargo validation remains; no unresolved ID-010 source implementation work remains."
+  ],
+  "source_authority": {
+    "docs/spec158/01-identity-ownership-and-reducer.md": "read completely",
+    "docs/spec158/02-persistence-migration-and-quarantine.md": "read completely",
+    "docs/spec158/03-client-runtime-and-desktop-contracts.md": "read completely",
+    "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml": "read completely",
+    "crates/focusa-core/src/workstream_identity.rs": "read and updated",
+    "crates/focusa-core/src/workstream_context.rs": "read; canonical request context owner retained",
+    "crates/focusa-api/src/routes/mission_canvas.rs": "read and updated",
+    "apps/desktop/src/lib/mission-canvas": "bounded generated identity consumers updated"
+  },
+  "evidence_refs": [
+    "docs/spec158/01-identity-ownership-and-reducer.md",
+    "docs/spec158/02-persistence-migration-and-quarantine.md",
+    "docs/spec158/03-client-runtime-and-desktop-contracts.md",
+    "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "schemas/spec135/mission-canvas/composition-bundle.v1.schema.json",
+    "tests/spec158_mission_canvas_identity_contract_test.py",
+    "tests/spec135_mission_canvas_generated_parity_test.py",
+    "apps/desktop/tests/fixtures/mission-canvas/populated-projection.json"
+  ],
+  "status": "implemented_partial"
+}

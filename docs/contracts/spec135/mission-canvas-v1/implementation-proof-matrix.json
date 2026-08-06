@@ -55,5 +55,5 @@
     "focusa.mission_canvas.events.stream"
   ],
   "schema": "focusa.mission_canvas.implementation_proof_matrix.v1",
-  "schema_definition_count": 47
+  "schema_definition_count": 69
 }

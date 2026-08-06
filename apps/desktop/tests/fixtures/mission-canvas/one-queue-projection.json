@@ -1,13 +1,45 @@
 {
   "schema": "focusa.resolved_workspace_projection.v1",
-  "scope": {
-    "project_root": "/example/focusa",
-    "continuity_id": "mission-canvas",
+  "workstream": {
+    "scope": {
+      "scope_kind": "project",
+      "scope_key": {
+        "scope_kind": "project",
+        "scope_id": "project:focusa",
+        "root_path": "/example/focusa",
+        "canonical_name": "Focusa",
+        "fingerprint": "host-a:worktree-main"
+      }
+    },
+    "workstream_id": "ws:mission-canvas"
+  },
+  "continuity_id": "continuity:mission-canvas",
+  "attachment": {
+    "workstream": {
+      "scope": {
+        "scope_kind": "project",
+        "scope_key": {
+          "scope_kind": "project",
+          "scope_id": "project:focusa",
+          "root_path": "/example/focusa",
+          "canonical_name": "Focusa",
+          "fingerprint": "host-a:worktree-main"
+        }
+      },
+      "workstream_id": "ws:mission-canvas"
+    },
+    "continuity_id": "continuity:mission-canvas",
     "instance_id": "instance:pi",
     "session_id": "session:pi",
     "attachment_id": "attachment:pi",
-    "working_subpath_id": "working-subpath:primary"
+    "workspace_binding_id": "workspace:mission-canvas"
   },
+  "workspace_binding_id": "workspace:mission-canvas",
+  "runtime_object": {
+    "runtime_kind": "pi_session",
+    "runtime_id": "session:pi"
+  },
+  "work_surface_id": "surface:pi",
   "workspace_profile_id": "software",
   "workspace_profile_revision": 2,
   "activity_mode_id": "overview",
@@ -37,14 +69,46 @@
       "authority": {
         "canonical_owner": "Focusa Core",
         "mutation_owner": "Pi AgentExecutionAdapter",
-        "scope": {
-          "project_root": "/example/focusa",
-          "continuity_id": "mission-canvas",
+        "workstream": {
+          "scope": {
+            "scope_kind": "project",
+            "scope_key": {
+              "scope_kind": "project",
+              "scope_id": "project:focusa",
+              "root_path": "/example/focusa",
+              "canonical_name": "Focusa",
+              "fingerprint": "host-a:worktree-main"
+            }
+          },
+          "workstream_id": "ws:mission-canvas"
+        },
+        "continuity_id": "continuity:mission-canvas",
+        "attachment": {
+          "workstream": {
+            "scope": {
+              "scope_kind": "project",
+              "scope_key": {
+                "scope_kind": "project",
+                "scope_id": "project:focusa",
+                "root_path": "/example/focusa",
+                "canonical_name": "Focusa",
+                "fingerprint": "host-a:worktree-main"
+              }
+            },
+            "workstream_id": "ws:mission-canvas"
+          },
+          "continuity_id": "continuity:mission-canvas",
           "instance_id": "instance:pi",
           "session_id": "session:pi",
           "attachment_id": "attachment:pi",
-          "working_subpath_id": "working-subpath:primary"
+          "workspace_binding_id": "workspace:mission-canvas"
         },
+        "workspace_binding_id": "workspace:mission-canvas",
+        "runtime_object": {
+          "runtime_kind": "pi_session",
+          "runtime_id": "session:pi"
+        },
+        "work_surface_id": "surface:pi",
         "read_only": false,
         "approval_required": false,
         "contention_ref": null
@@ -100,14 +164,46 @@
       "authority": {
         "canonical_owner": "Focusa Core",
         "mutation_owner": "Pi AgentExecutionAdapter",
-        "scope": {
-          "project_root": "/example/focusa",
-          "continuity_id": "mission-canvas",
+        "workstream": {
+          "scope": {
+            "scope_kind": "project",
+            "scope_key": {
+              "scope_kind": "project",
+              "scope_id": "project:focusa",
+              "root_path": "/example/focusa",
+              "canonical_name": "Focusa",
+              "fingerprint": "host-a:worktree-main"
+            }
+          },
+          "workstream_id": "ws:mission-canvas"
+        },
+        "continuity_id": "continuity:mission-canvas",
+        "attachment": {
+          "workstream": {
+            "scope": {
+              "scope_kind": "project",
+              "scope_key": {
+                "scope_kind": "project",
+                "scope_id": "project:focusa",
+                "root_path": "/example/focusa",
+                "canonical_name": "Focusa",
+                "fingerprint": "host-a:worktree-main"
+              }
+            },
+            "workstream_id": "ws:mission-canvas"
+          },
+          "continuity_id": "continuity:mission-canvas",
           "instance_id": "instance:pi",
           "session_id": "session:pi",
           "attachment_id": "attachment:pi",
-          "working_subpath_id": "working-subpath:primary"
+          "workspace_binding_id": "workspace:mission-canvas"
         },
+        "workspace_binding_id": "workspace:mission-canvas",
+        "runtime_object": {
+          "runtime_kind": "pi_session",
+          "runtime_id": "session:pi"
+        },
+        "work_surface_id": "surface:pi",
         "read_only": false,
         "approval_required": false,
         "contention_ref": null
@@ -165,14 +261,46 @@
       "authority": {
         "canonical_owner": "Focusa Core",
         "mutation_owner": "Pi AgentExecutionAdapter",
-        "scope": {
-          "project_root": "/example/focusa",
-          "continuity_id": "mission-canvas",
+        "workstream": {
+          "scope": {
+            "scope_kind": "project",
+            "scope_key": {
+              "scope_kind": "project",
+              "scope_id": "project:focusa",
+              "root_path": "/example/focusa",
+              "canonical_name": "Focusa",
+              "fingerprint": "host-a:worktree-main"
+            }
+          },
+          "workstream_id": "ws:mission-canvas"
+        },
+        "continuity_id": "continuity:mission-canvas",
+        "attachment": {
+          "workstream": {
+            "scope": {
+              "scope_kind": "project",
+              "scope_key": {
+                "scope_kind": "project",
+                "scope_id": "project:focusa",
+                "root_path": "/example/focusa",
+                "canonical_name": "Focusa",
+                "fingerprint": "host-a:worktree-main"
+              }
+            },
+            "workstream_id": "ws:mission-canvas"
+          },
+          "continuity_id": "continuity:mission-canvas",
           "instance_id": "instance:pi",
           "session_id": "session:pi",
           "attachment_id": "attachment:pi",
-          "working_subpath_id": "working-subpath:primary"
+          "workspace_binding_id": "workspace:mission-canvas"
         },
+        "workspace_binding_id": "workspace:mission-canvas",
+        "runtime_object": {
+          "runtime_kind": "pi_session",
+          "runtime_id": "session:pi"
+        },
+        "work_surface_id": "surface:pi",
         "read_only": false,
         "approval_required": false,
         "contention_ref": null
