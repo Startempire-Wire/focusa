@@ -35,15 +35,21 @@ PASS cargo fmt -p focusa-license -- --check
 PASS git diff --check
 PASS each new source/test file is below 500 lines
 
-EXACT HARNESS BLOCKER
-The literal project-root command was also attempted through the mandatory KH-to-OVH Cargo route:
+EXACT HARNESS CLOSURE
+A separately scoped blocker repair changed crates/focusa-api/src/routes/license.rs:87 to unwrap the optional customer identity before masking:
+  repair bead: focusa-v1cjo
+  repair commit: ed489a7113f5f04d2c7915855dea7cd5aa64c888
+The API regression command passed through the mandatory KH-to-OVH Cargo route:
+  cargo test -p focusa-api identity_is_masked_and_invalid_values_are_omitted
+  exit=0; 1 passed; 0 failed; 465 filtered out
+The literal project-root command was then rerun through the same mandatory route:
   cargo test -p focusa-license entitlement_policy_types
-  exit=101 before package tests
-The route's test runner unconditionally builds focusa-api/focusa-daemon first. That unrelated preflight currently fails at crates/focusa-api/src/routes/license.rs:87 because mask_identity expects &str but receives &Option<String>. The focusa-license package itself compiles and all exact filtered tests pass when invoked directly on the same synced OVH source. No out-of-scope API file was changed.
+  exit=0; 3 passed; 0 failed; 23 filtered out
+The earlier unrelated preflight failure is resolved. The Spec 152F implementation surfaces remain limited to the files listed above; the API repair is independently tracked and accepted by focusa-v1cjo.
 
 ROLLBACK
 Revert implementation commit c85ed1f0 only. Preserve Spec 152F contracts and baseline, Spec 152E authority, customers, orders, refunds, licenses, nodes, sequences, data, migration journals, and prior evidence.
 
 RESULT
-TECHNICAL_ACCEPTANCE: BLOCKED
-Implementation and package-level verification pass, but this atom remains open because the mandated project-root harness command does not exit zero. Closure requires the separately owned focusa-api compile defect to be repaired and the literal command rerun successfully. This record must not be interpreted as acceptance or dependency release.
+TECHNICAL_ACCEPTANCE: PASS
+The typed policy model, focused package tests, formatting check, size gate, and mandatory project-root harness command pass. The separately scoped API compile blocker is repaired and verified. This atom is accepted and may release its dependency edges.
