@@ -41,11 +41,11 @@
     },
     "spec152_document_set": {
       "path": "docs/contracts/spec152-document-set.v1.yaml",
-      "sha256": "sha256:2da6b73278bfa193d0a74f757ef085711f5fd2b7d82f784bf33a71bc70d2f51d"
+      "sha256": "sha256:45ca985077bfb5d8485f814fa3690bd582720cdf61ff27dfaa3fa4ee75e62770"
     },
     "spec152e_correction": {
       "path": "docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md",
-      "sha256": "sha256:0fdaa55cd886bbdb84c3f7df1924f01a8350e8e5a8c3c0c83a46d4a342d1b945"
+      "sha256": "sha256:b9d811fbe28c6f84651099c434925e5c924fff96cd1a714a03eb7294fd208728"
     }
   },
   "authorized_release_repair_overlay": [
@@ -174,7 +174,7 @@
   "immutable_edge_count": 706,
   "immutable_event_count": 7,
   "immutable_member_count": 275,
-  "inventory_digest": "sha256:871bf230c436dc5e2b72eecd1fd8313f2f8dc06fe0a9bdfb158ca7cbcb2feb92",
+  "inventory_digest": "sha256:13736b9e0076527713ed8d2fe2cce9d9b291ba49a923696b9dcabc035d5ce47f",
   "membership_digest": "sha256:03e384bbf5728df135f36838451098413701f4ee09430fc31797fe2d5e1379f0",
   "operator_authorized_post_lock_additions": [
     {

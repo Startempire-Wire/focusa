@@ -1,4 +1,4 @@
-Focusa Spec 152 / 152E locked-release reconciliation
+Focusa Spec 152 / 152E / 152F locked-release reconciliation
 Candidate implementation head before evidence commit: 556e6c99
 Canonical provider: /home/wirebot/focusa/.beads/issues.jsonl (digest pinned in reconciliation ledger)
 
@@ -44,5 +44,13 @@ TRUTHFUL BLOCKERS
 - WPUIAI EDD verified identity, commerce, delivery, node, lease, migration, and cutover acceptance remain.
 - UIAI shared-vector acceptance remains external.
 - Final exact-SHA installed acceptance and publication remain forbidden.
+
+SPEC 152F SCOPE EXPANSION — 2026-08-06
+- Added release-blocking root focusa-vbcqu.20.14 plus 52 atomic implementation tasks.
+- Accepted governance atom focusa-vbcqu.20.14.1 with evidence at docs/evidence/spec152f/focusa-vbcqu.20.14.1-acceptance.txt.
+- Admitted mappings increased from 412 to 465; accepted increased from 209 to 210; pending increased from 203 to 255.
+- Technical ratio changed from 50.7% to 45.2% because the denominator expanded by explicit new work; no previously accepted work regressed.
+- Current Spec 152F frontier: focusa-vbcqu.20.14.2.
+- Graph: 52 tasks, 123 internal edges, 8 external Spec 152E edges, zero cycles.
 
 No bulk administrative closure was performed.

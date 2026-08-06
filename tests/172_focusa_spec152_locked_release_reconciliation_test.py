@@ -31,6 +31,8 @@ assert by_name["spec152_granular_legacy"]["node_count"] == 40
 assert by_name["spec152_replay"]["node_count"] == 6
 assert by_name["spec152_protected_distribution"]["node_count"] == 6
 assert by_name["spec152e_correction_atoms"]["node_count"] == 63
+assert by_name["spec152f_policy_atoms"]["node_count"] == 52
+assert by_name["spec152f_policy_atoms"]["provider_status"] == {"closed": 1, "open": 51}
 assert by_name["final_release_milestones"]["node_count"] == 7
 assert (
     by_name["spec152_granular_legacy"]["reconciliation_classification"]
@@ -62,11 +64,13 @@ assert SUMMARY["build_independent_gates"]["prelicensing_python"]["passed"] == 20
 assert SUMMARY["build_independent_gates"]["prelicensing_python"]["failed"] == 3
 assert SUMMARY["build_independent_gates"]["prelicensing_python"]["total"] == 23
 assert SUMMARY["current_frontier"]["work_item"] == "focusa-vbcqu.20.13.2"
+assert SUMMARY["current_frontier"]["parallel_work_item"] == "focusa-vbcqu.20.14.2"
 assert SUMMARY["current_frontier"]["publication"] == "forbidden"
 assert any("395" in finding for finding in SUMMARY["material_findings"])
 assert any("stale-excluded" in finding for finding in SUMMARY["material_findings"])
 assert any("Spec 137 applicability" in finding for finding in SUMMARY["material_findings"])
 assert any("615 lines" in finding for finding in SUMMARY["material_findings"])
+assert any("Spec 152F adds 52 atomic policy tasks" in finding for finding in SUMMARY["material_findings"])
 
 print("Spec 152 expanded locked-release reconciliation: PASS")
 print(f"admitted={GATE['mapping_count']} accepted={GATE['technically_accepted_count']} pending={GATE['technically_pending_count']}")

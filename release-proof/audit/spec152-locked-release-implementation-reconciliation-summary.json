@@ -28,6 +28,7 @@
   "candidate_head_before_summary": "556e6c99691810b77c3dad4fdaad6824f2c9dd35",
   "current_frontier": {
     "action": "Freeze deployed WPUIAI.com EDD and install.focusa.dev authority/facade parity inventory.",
+    "parallel_work_item": "focusa-vbcqu.20.14.2",
     "publication": "forbidden",
     "work_item": "focusa-vbcqu.20.13.2"
   },
@@ -38,35 +39,35 @@
     "shellcheck is unavailable; no installation was authorized",
     "WPUIAI/uiai-engine shared-vector acceptance remains external"
   ],
-  "generated_at": "2026-08-06T03:29:23.653951Z",
+  "generated_at": "2026-08-06T04:13:55.158000Z",
   "governance": {
-    "admitted_mapping_count": 412,
+    "admitted_mapping_count": 465,
     "evidence_state_counts": {
       "aggregate_child_evidence": 1,
-      "evidence_linked": 189,
+      "evidence_linked": 190,
       "exact_duplicate_receipt": 19,
-      "pending_technical_acceptance": 203
+      "pending_technical_acceptance": 255
     },
     "invalid_closed_count": 0,
     "locked_release_detail_tombstones_excluded": 75,
-    "pending_aggregate_parent_count": 28,
+    "pending_aggregate_parent_count": 29,
     "pending_leaf_classification": {
       "acceptance_verified_but_dependency_blocked": 1,
-      "no_current_evidence": 82,
+      "no_current_evidence": 133,
       "partial_or_linked_evidence": 92
     },
-    "pending_leaf_count": 175,
+    "pending_leaf_count": 226,
     "provider_state_counts": {
-      "closed": 209,
-      "in_progress": 52,
-      "open": 151
+      "closed": 210,
+      "in_progress": 53,
+      "open": 202
     },
-    "repair_overlay_mapping_count": 137,
+    "repair_overlay_mapping_count": 190,
     "status": "blocked",
-    "technical_completion_percent": 50.7,
-    "technically_accepted_count": 209,
-    "technically_pending_count": 203,
-    "unresolved_gap_count": 203,
+    "technical_completion_percent": 45.2,
+    "technically_accepted_count": 210,
+    "technically_pending_count": 255,
+    "unresolved_gap_count": 255,
     "untracked_locked_release_count": 0
   },
   "licensing_graph": [
@@ -120,6 +121,18 @@
       }
     },
     {
+      "name": "spec152f_policy_atoms",
+      "node_count": 52,
+      "provider_status": {
+        "closed": 1,
+        "open": 51
+      },
+      "reconciliation_classification": {
+        "closed": 1,
+        "no_current_acceptance_evidence": 51
+      }
+    },
+    {
       "name": "final_release_milestones",
       "node_count": 7,
       "provider_status": {
@@ -141,7 +154,8 @@
     "No bulk closure was performed: passing static tests do not override unmet Cargo, external, installed, migration, or final-SHA criteria.",
     "Entitlement coverage remains incomplete: the static ledger reports 395 explicitly unmatched surfaces.",
     "Spec 137 applicability remains pre-activation and its full-conformance source digest is stale.",
-    "Spec 150 lifecycle runtime gate fails the repository file-size policy: contract_tests.rs is 615 lines and transactions.rs is 520 lines."
+    "Spec 150 lifecycle runtime gate fails the repository file-size policy: contract_tests.rs is 615 lines and transactions.rs is 520 lines.",
+    "Spec 152F adds 52 atomic policy tasks under focusa-vbcqu.20.14; one governance atom is accepted and 51 implementation/acceptance atoms remain."
   ],
   "prelicensing_graph": [
     {
@@ -237,8 +251,8 @@
     }
   ],
   "provider_snapshot": {
-    "record_count": 2766,
-    "sha256": "sha256:9363fb7ada687e3f34d770a014d1c7ed88e61795b4d47835b856a2c0f348d476",
+    "record_count": 2819,
+    "sha256": "sha256:dcc6c0f56dacd577224a7e1915348de4b9ac7f67eb3aa742931bd5992a6e4b6d",
     "source": "canonical:.beads/issues.jsonl"
   },
   "schema": "focusa.spec152_locked_release_implementation_reconciliation_summary.v1"
