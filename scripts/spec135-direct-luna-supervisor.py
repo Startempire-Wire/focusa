@@ -41,7 +41,8 @@ PROTECTED_PATHS = {
 def log(message: str) -> None:
     timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     line = f"{timestamp} {message}"
-    print(line, flush=True)
+    if sys.stdout.isatty():
+        print(line, flush=True)
     SUPERVISOR_ROOT.mkdir(parents=True, exist_ok=True)
     with LOG_PATH.open("a") as handle:
         handle.write(line + "\n")
@@ -228,7 +229,12 @@ def targets(task: dict[str, Any]) -> set[str]:
     }
 
 
-def select_ready(state: dict[str, Any], tasks: dict[str, dict[str, Any]], capacity: int) -> list[str]:
+def select_ready(
+    state: dict[str, Any],
+    tasks: dict[str, dict[str, Any]],
+    capacity: int,
+    active_task_ids: set[str],
+) -> list[str]:
     done = {
         task_id for task_id, task in tasks.items()
         if task["status"] == "complete"
@@ -246,12 +252,14 @@ def select_ready(state: dict[str, Any], tasks: dict[str, dict[str, Any]], capaci
         and all(dependency in done or dependency not in tasks for dependency in task.get("depends_on", []))
     ]
     selected: list[dict[str, Any]] = []
+    active_tasks = [tasks[task_id] for task_id in active_task_ids if task_id in tasks]
     for task in ready:
         if len(selected) >= capacity:
             break
-        if lane(task["id"]) in {lane(item["id"]) for item in selected}:
+        occupied_tasks = [*active_tasks, *selected]
+        if lane(task["id"]) in {lane(item["id"]) for item in occupied_tasks}:
             continue
-        occupied = set().union(*(targets(item) for item in selected)) if selected else set()
+        occupied = set().union(*(targets(item) for item in occupied_tasks)) if occupied_tasks else set()
         if occupied.intersection(targets(task)):
             continue
         selected.append(task)
@@ -268,7 +276,7 @@ def tick() -> None:
         if record and not exit_record(task_id) and process_alive(int(record["pid"])):
             running.append(task_id)
     capacity = max(0, MAX_WORKERS - len(running))
-    launches = select_ready(state, tasks, capacity)
+    launches = select_ready(state, tasks, capacity, set(running))
     for task_id in launches:
         log(f"LAUNCH {task_id}: source_staging")
         result = subprocess.run(
