@@ -6,6 +6,7 @@ canonical:
   - docs/152b-license-implementation-workbreakdown-and-acceptance-sequence.md
   - docs/152c-server-client-coordination-contract.md
   - docs/152d-authority-client-implementation-entrypoints.md
+  - docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md
   - docs/contracts/spec152-supersession-and-integration-matrix.v1.yaml
   - docs/contracts/spec152-current-head-audit-2026-08-01.md
   - docs/contracts/spec152-release-blocker-summary.v1.yaml
@@ -13,6 +14,18 @@ canonical:
   - docs/contracts/spec152-implementation-owners.v1.yaml
   - docs/contracts/spec152-open-code-gaps.v1.yaml
   - docs/contracts/spec152-final-audit-status.v1.yaml
+correction_authority:
+  spec: docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md
+  work_item_root: focusa-vbcqu.20.13
+  status: release_blocking
+  spec_158: excluded
+  supersedes:
+    - installer-local or self-issued Evaluation
+    - split authority registries and direct install-site issuance
+    - implicit EDD product mappings and caller-controlled grants
+    - canonical customer or entitlement creation before mailbox verification
+    - independent entitlement authority on branded facade domains
 gates:
   - tests/spec152_documentation_consistency_gate.py
+  - tests/spec152e_document_authority_test.py
   - .github/workflows/spec152-documentation-consistency.yml

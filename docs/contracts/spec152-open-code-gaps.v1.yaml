@@ -1,5 +1,26 @@
 schema: focusa.spec152.open_code_gaps.v1
+authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md
+status: release_blocking
+spec_158: excluded
 gaps:
+  - id: authority-unverified-email-promotion
+    paths: [WPUIAI/wpuiai authority registration and customer promotion]
+    severity: p0
+  - id: authority-split-registry-direct-stripe-issuance
+    paths: [WPUIAI/wpuiai, install.focusa.dev custom registry and Stripe webhook]
+    severity: p0
+  - id: authority-implicit-edd-product-grants
+    paths: [WPUIAI/wpuiai EDD integration and server-owned product registry]
+    severity: p0
+  - id: authority-human-key-node-lease-delivery
+    paths: [WPUIAI/wpuiai activation API, EDD Software Licensing, authority nodes and leases]
+    severity: p0
+  - id: authority-facade-origin-and-proxy-boundary
+    paths: [install.focusa.dev, focusa.dev, forge.focusa.dev, arena.focusa.dev, approved UIAI domains]
+    severity: p0
+  - id: authority-paid-evaluator-migration-cutover
+    paths: [WPUIAI/wpuiai migration journal, install.focusa.dev registry, EDD reconciliation]
+    severity: p0
   - id: focusa-dual-license-engines
     paths: [crates/focusa-license/src/lib.rs, crates/focusa-core/src/license.rs]
     severity: p0

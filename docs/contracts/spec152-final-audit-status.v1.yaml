@@ -1,5 +1,5 @@
 schema: focusa.spec152.final_audit_status.v1
-audited_at: 2026-08-01T20:25:00Z
+audited_at: 2026-08-06T00:53:00Z
 repository_heads_checked: true
 concurrent_unknown_commits_after_audit_start: false
 active_focusa_docs_corrected: true
@@ -8,7 +8,17 @@ root_license_faqs_corrected: true
 historical_contradictions_classified: true
 documentation_ci_added: true
 server_execution_runbook_added: true
+spec152e_registered: true
+spec152e_authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md
+spec152e_work_item_root: focusa-vbcqu.20.13
+spec152e_correction_status: in_progress
+spec_158: excluded
 live_server_verified: false
 code_enforcement_implemented: false
+code_enforcement_status: partial_unaccepted
+edd_centered_identity_checkout_delivery_implemented: false
+migration_cutover_accepted: false
+all_platform_final_candidate_verified: false
 distribution_status: blocked
-next_action: private authority Phase 0, then shared lease golden vectors
+next_action: focusa-vbcqu.20.13.2 freeze deployed authority and facade parity inventory
+publication_rule: forbidden until focusa-vbcqu.20.13.63 closes with linked acceptance evidence

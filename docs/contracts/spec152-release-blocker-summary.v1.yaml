@@ -1,8 +1,16 @@
 schema: focusa.spec152.release_blocker_summary.v1
-status: blocked_for_new_evaluator_and_customer_distribution
+authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md
+work_item_root: focusa-vbcqu.20.13
+status: blocked_for_new_evaluator_customer_and_stable_distribution
+spec_158: excluded
 blockers:
   - authority repository/live parity and rollback proof
-  - verified account/email device-code flow
+  - verified mailbox pending-registration and atomic EDD customer promotion
+  - verified-registration-gated EDD checkout and checkout-email integrity
+  - explicit server-owned EDD product price grant and commercial-right mappings
+  - one EDD Software Licensing human key delivered through email and one-time terminal envelope
+  - canonical account node sequence outbox and signed device-bound lease services
+  - registered facade exact-origin redirect and bounded-proxy enforcement
   - signed lease schema and cross-language golden vectors
   - one canonical Focusa verifier and recovery-mode gate
   - removal of self-issued Bash/PowerShell Evaluation
@@ -11,13 +19,17 @@ blockers:
   - complete CLI/API/Pi/TUI/menubar/worker feature and limit coverage
   - UIAI independent entitlement and child-token enforcement
   - protected worker/capsule proof for selected features
-  - existing paid/evaluator migration
+  - evidence-backed paid/evaluator migration and split-registry retirement
   - refund/revoke/expiry/offline/node/limit E2E
+  - facade and installer presenter parity across official and source builds
   - green documentation consistency workflows
+  - exact-SHA all-platform signed candidate and final publication evidence after correction closure
 approved_before_entitlement:
+  - pending registration without canonical customer or entitlement creation
   - non-mutating preflight
   - health/version and license recovery
   - safe backup/export and repair
+  - account management and node deactivation
   - data-preserving uninstall
   - explicit separately confirmed purge
 legacy_not_approved:
@@ -26,3 +38,6 @@ legacy_not_approved:
   - local or pairing token as entitlement
   - loopback UIAI Evaluation
   - source checkout as official product grant
+  - direct install-site or facade license issuance
+  - caller-supplied EDD product price tier feature limit or commercial grant
+  - canonical customer checkout Evaluation license node or lease before mailbox verification
