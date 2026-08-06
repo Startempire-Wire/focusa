@@ -137,6 +137,30 @@ pub type WorkstreamAuthorityContext = MissionCanvasAuthorityContext;
 /// is a canonical WorkstreamAuthorityContext, not the removed flat DTO.
 pub type MissionCanvasScope = WorkstreamAuthorityContext;
 
+/// The governed transport receipt for `focusa.mission_canvas.domain_pack.install`.
+///
+/// The public DTO is deliberately small and generated-contract shaped.  The
+/// idempotency key, authority, request digest, and durable event cursor remain
+/// in the core receipt ledger rather than being client-invented response data.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DomainPackInstallReceipt {
+    pub schema: String,
+    pub workstream: WorkstreamKey,
+    pub installed: bool,
+    pub pack_id: String,
+    pub receipt_ref: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GovernedDomainPackInstallReceipt {
+    pub receipt: DomainPackInstallReceipt,
+    pub idempotency_key: String,
+    pub request_digest: String,
+    pub authority_ref: String,
+    pub event_cursor: String,
+    pub issued_at: String,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ContributionKind {

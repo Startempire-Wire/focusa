@@ -1,12 +1,14 @@
 use std::{path::Path, sync::Arc};
 
 use parking_lot::Mutex;
-use rusqlite::{Connection, OptionalExtension, Transaction, params};
+use rusqlite::{params, Connection, OptionalExtension, Transaction};
 use thiserror::Error;
 
 use super::model::{
-    CompositionEvent, MissionCanvasScope, ResolvedWorkspaceProjection, StoredDocument,
+    CompositionEvent, DomainPackInstallReceipt, GovernedDomainPackInstallReceipt,
+    MissionCanvasScope, ResolvedWorkspaceProjection, StoredDocument,
 };
+use super::profiles::DomainPack;
 
 const DOCUMENT_TABLES: &[&str] = &[
     "mission_canvas_profiles",
@@ -32,6 +34,12 @@ pub enum MissionCanvasStoreError {
     RevisionConflict { expected: u64, observed: u64 },
     #[error("document already exists at revision {0}")]
     AlreadyExists(u64),
+    #[error("domain pack already installed: {0}")]
+    DomainPackAlreadyInstalled(String),
+    #[error("domain pack idempotency key conflicts with an existing request")]
+    DomainPackIdempotencyConflict,
+    #[error("domain pack document already exists: {0}")]
+    DomainPackDocumentAlreadyExists(String),
 }
 
 pub type Result<T> = std::result::Result<T, MissionCanvasStoreError>;
@@ -155,6 +163,19 @@ impl MissionCanvasStore {
             );
             CREATE INDEX IF NOT EXISTS idx_mission_canvas_events_scope_sequence
                 ON mission_canvas_composition_events(scope_key, sequence);
+            CREATE TABLE IF NOT EXISTS mission_canvas_domain_pack_installations (
+                scope_key TEXT NOT NULL,
+                pack_id TEXT NOT NULL,
+                idempotency_key TEXT NOT NULL,
+                request_digest TEXT NOT NULL,
+                receipt_ref TEXT NOT NULL,
+                receipt_json TEXT NOT NULL,
+                event_cursor TEXT NOT NULL,
+                authority_ref TEXT NOT NULL,
+                issued_at TEXT NOT NULL,
+                PRIMARY KEY(scope_key, pack_id),
+                UNIQUE(scope_key, idempotency_key)
+            );
             "#,
         )?;
         Ok(())
@@ -263,6 +284,133 @@ impl MissionCanvasStore {
         append_event_transaction(&transaction, event)?;
         transaction.commit()?;
         Ok(document.revision)
+    }
+
+    /// Atomically persist every document and lifecycle event for one domain
+    /// pack, then commit its governed receipt/idempotency record.  A retry with
+    /// the same exact scope, pack, idempotency key, and request digest returns
+    /// the original receipt without appending duplicate events.
+    pub fn install_domain_pack(
+        &self,
+        scope: &MissionCanvasScope,
+        pack: &DomainPack,
+        idempotency_key: &str,
+        request_digest: &str,
+        authority_ref: &str,
+        issued_at: &str,
+    ) -> Result<DomainPackInstallReceipt> {
+        let mut connection = self.connection.lock();
+        let transaction = connection.transaction()?;
+        let scope_key = scope.storage_key();
+
+        let existing_by_key: Option<(String, String, String)> = transaction
+            .query_row(
+                "SELECT pack_id, request_digest, receipt_json FROM mission_canvas_domain_pack_installations WHERE scope_key = ?1 AND idempotency_key = ?2",
+                params![scope_key, idempotency_key],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .optional()?;
+        if let Some((existing_pack_id, existing_digest, receipt_json)) = existing_by_key {
+            if existing_pack_id == pack.pack_id && existing_digest == request_digest {
+                return Ok(serde_json::from_str(&receipt_json)?);
+            }
+            return Err(MissionCanvasStoreError::DomainPackIdempotencyConflict);
+        }
+
+        let already_installed: Option<String> = transaction
+            .query_row(
+                "SELECT idempotency_key FROM mission_canvas_domain_pack_installations WHERE scope_key = ?1 AND pack_id = ?2",
+                params![scope_key, pack.pack_id],
+                |row| row.get(0),
+            )
+            .optional()?;
+        if already_installed.is_some() {
+            return Err(MissionCanvasStoreError::DomainPackAlreadyInstalled(
+                pack.pack_id.clone(),
+            ));
+        }
+
+        let receipt_ref = format!("receipt:domain-pack:{}:{}", pack.pack_id, request_digest);
+        let documents = domain_pack_documents(pack)?;
+        let mut event_cursor = 0_u64;
+        for (table, document_id, revision, payload, event_kind) in documents {
+            let current = current_document_revision(&transaction, table, &scope_key, &document_id)?;
+            if current.is_some() {
+                return Err(MissionCanvasStoreError::DomainPackDocumentAlreadyExists(
+                    document_id,
+                ));
+            }
+            let updated_at = issued_at.to_owned();
+            let sql = format!(
+                "INSERT INTO {table}(scope_key, document_id, revision, payload_json, updated_at) VALUES (?1, ?2, ?3, ?4, ?5)"
+            );
+            transaction.execute(
+                &sql,
+                params![
+                    scope_key,
+                    document_id,
+                    revision,
+                    serde_json::to_string(&payload)?,
+                    updated_at,
+                ],
+            )?;
+            let event = CompositionEvent {
+                event_id: format!(
+                    "mission-canvas:domain-pack:{}:{}:{}",
+                    scope_key, pack.pack_id, document_id
+                ),
+                event_kind: event_kind.to_owned(),
+                scope: scope.clone(),
+                projection_revision: 0,
+                layout_revision: 0,
+                causation_id: Some(idempotency_key.to_owned()),
+                correlation_id: Some(pack.pack_id.clone()),
+                occurred_at: issued_at.to_owned(),
+                payload: serde_json::json!({
+                    "document_id": document_id,
+                    "pack_id": pack.pack_id,
+                    "request_digest": request_digest,
+                }),
+                evidence_refs: vec![format!("evidence:domain-pack:{}", pack.pack_id)],
+                receipt_refs: vec![receipt_ref.clone()],
+            };
+            event_cursor = append_event_transaction(&transaction, &event)?;
+        }
+
+        let receipt = DomainPackInstallReceipt {
+            schema: "focusa.mission_canvas.domain_pack_install_receipt.v1".into(),
+            workstream: scope.workstream.clone(),
+            installed: true,
+            pack_id: pack.pack_id.clone(),
+            receipt_ref: receipt_ref.clone(),
+        };
+        let governed = GovernedDomainPackInstallReceipt {
+            receipt: receipt.clone(),
+            idempotency_key: idempotency_key.to_owned(),
+            request_digest: request_digest.to_owned(),
+            authority_ref: authority_ref.to_owned(),
+            event_cursor: format!("mission-canvas:domain-pack:{event_cursor}"),
+            issued_at: issued_at.to_owned(),
+        };
+        transaction.execute(
+            r#"INSERT INTO mission_canvas_domain_pack_installations(
+                    scope_key, pack_id, idempotency_key, request_digest, receipt_ref,
+                    receipt_json, event_cursor, authority_ref, issued_at
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)"#,
+            params![
+                scope_key,
+                pack.pack_id,
+                idempotency_key,
+                request_digest,
+                receipt_ref,
+                serde_json::to_string(&governed.receipt)?,
+                governed.event_cursor,
+                governed.authority_ref,
+                governed.issued_at,
+            ],
+        )?;
+        transaction.commit()?;
+        Ok(receipt)
     }
 
     pub fn get_projection(
@@ -392,6 +540,56 @@ impl MissionCanvasStore {
             ));
         }
         Ok(events)
+    }
+}
+
+fn domain_pack_documents(
+    pack: &DomainPack,
+) -> Result<Vec<(&'static str, String, u64, serde_json::Value, String)>> {
+    let mut documents = vec![(
+        "mission_canvas_profiles",
+        format!("profile:{}", pack.profile.profile_id),
+        pack.profile.revision,
+        serde_json::to_value(&pack.profile)?,
+        "profile_changed".to_owned(),
+    )];
+    documents.extend(
+        pack.activities
+            .iter()
+            .map(|activity| {
+                Ok((
+                    "mission_canvas_activity_modes",
+                    format!("activity:{}", activity.activity_mode_id),
+                    activity.revision,
+                    serde_json::to_value(activity)?,
+                    "activity_mode_changed".to_owned(),
+                ))
+            })
+            .collect::<Result<Vec<_>>>()?,
+    );
+    for entry in &pack.registry_entries {
+        let table = domain_pack_registry_table(&entry.registry_kind)
+            .ok_or_else(|| MissionCanvasStoreError::UnknownTable(entry.registry_kind.clone()))?;
+        documents.push((
+            table,
+            format!("registry:{}", entry.entry_id),
+            entry.revision,
+            serde_json::to_value(entry)?,
+            "candidate_discovered".to_owned(),
+        ));
+    }
+    Ok(documents)
+}
+
+fn domain_pack_registry_table(registry_kind: &str) -> Option<&'static str> {
+    match registry_kind {
+        "PanelRegistry"
+        | "HomeCanvasRegistry"
+        | "WorkSurfaceRendererRegistry"
+        | "ArtifactRendererRegistry"
+        | "TerminologyRegistry"
+        | "DomainSemanticBindingRegistry" => Some("mission_canvas_registry_entries"),
+        _ => None,
     }
 }
 

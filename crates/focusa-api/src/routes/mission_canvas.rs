@@ -1,22 +1,28 @@
 use std::sync::Arc;
 
 use axum::{
-    Json, Router,
     extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
     routing::{get, post},
+    Json, Router,
 };
 use chrono::Utc;
 use focusa_core::mission_canvas::{
-    CompositionEvent, MissionCanvasScope, MissionCanvasStore, ResolveProjectionInput,
-    StoredDocument, resolve_projection,
+    resolve_projection, CompositionEvent, DomainPackInstallCommand, DomainPackInstallError,
+    DomainPackInstallService, MissionCanvasScope, MissionCanvasStore, ResolveProjectionInput,
+    StoredDocument, DOMAIN_PACK_INSTALL_CAPABILITY,
+};
+use focusa_core::workstream_context::{
+    ActorRef, ActorType, AuthorityContext, WorkstreamContext, WorkstreamContextError,
+    WorkstreamRequestEnvelope,
 };
 use focusa_core::workstream_identity::{
     AttachmentKey, RuntimeObjectRef, WorkSurfaceId, WorkstreamKey,
 };
-use serde::{Deserialize, de::DeserializeOwned};
-use serde_json::{Value, json};
+use serde::{de::DeserializeOwned, Deserialize};
+use serde_json::{json, Value};
 
+use crate::routes::permissions::permission_context;
 use crate::server::AppState;
 
 type ApiResult = Result<Json<Value>, (StatusCode, Json<Value>)>;
@@ -162,6 +168,14 @@ struct DomainPackInstallRequest {
     scope: MissionCanvasScope,
     pack: focusa_core::mission_canvas::DomainPack,
     idempotency_key: String,
+    #[serde(default)]
+    confirmation: Option<String>,
+    #[serde(default)]
+    confirmed: bool,
+    #[serde(default)]
+    actor_id: Option<String>,
+    #[serde(default)]
+    authority_ref: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -701,75 +715,40 @@ async fn install_domain_pack(
     headers: HeaderMap,
     Json(request): Json<DomainPackInstallRequest>,
 ) -> ApiResult {
-    require_permission(&headers, "mission_canvas:write")?;
+    require_permission_with_state(&state, &headers, "mission_canvas:write")?;
     validate_authority(&request.scope)?;
-    let mut registry = focusa_core::mission_canvas::CompositionRegistry::builtin();
-    registry
-        .install_domain_pack(request.pack.clone())
-        .map_err(|error_value| {
-            error(
-                StatusCode::UNPROCESSABLE_ENTITY,
-                "domain_pack_invalid",
-                &error_value.to_string(),
-            )
-        })?;
-    let store = store(&state)?;
-    let now = Utc::now().to_rfc3339();
-    let mut documents = vec![(
-        "mission_canvas_profiles",
-        format!("profile:{}", request.pack.profile.profile_id),
-        serde_json::to_value(&request.pack.profile).map_err(json_error)?,
-    )];
-    documents.extend(request.pack.activities.iter().map(|activity| {
-        (
-            "mission_canvas_activity_modes",
-            format!("activity:{}", activity.activity_mode_id),
-            serde_json::to_value(activity).unwrap(),
-        )
-    }));
-    documents.extend(request.pack.registry_entries.iter().map(|entry| {
-        (
-            "mission_canvas_registry_entries",
-            format!("registry:{}", entry.entry_id),
-            serde_json::to_value(entry).unwrap(),
-        )
-    }));
-    for (table, document_id, payload) in documents {
-        let document = StoredDocument {
-            document_id: document_id.clone(),
-            scope: request.scope.clone(),
-            revision: 1,
-            payload,
-            updated_at: now.clone(),
-        };
-        let event = CompositionEvent {
-            event_id: format!(
-                "projection-event:domain-pack:{}:{}",
-                document_id.replace(':', "-"),
-                request.idempotency_key
-            ),
-            event_kind: "profile_changed".into(),
-            scope: request.scope.clone(),
-            projection_revision: 0,
-            layout_revision: 0,
-            causation_id: Some(request.idempotency_key.clone()),
-            correlation_id: Some(request.pack.pack_id.clone()),
-            occurred_at: now.clone(),
-            payload: json!({"document_id":document_id}),
-            evidence_refs: vec![format!("evidence:domain-pack:{}", request.pack.pack_id)],
-            receipt_refs: vec![],
-        };
-        store
-            .put_document(table, &document, None, &event)
-            .map_err(store_error)?;
-    }
-    Ok(Json(json!({
-        "schema": "focusa.mission_canvas.domain_pack_install_receipt.v1",
-        "workstream": request.scope.workstream,
-        "installed": true,
-        "pack_id": request.pack.pack_id,
-        "receipt_ref": format!("receipt:domain-pack:{}", request.pack.pack_id)
-    })))
+
+    let context = domain_pack_workstream_context(&request, &headers).map_err(|error_value| {
+        domain_pack_install_error(DomainPackInstallError::Context(error_value))
+    })?;
+    let permissions = permission_context(&headers, token_enabled(&state))
+        .list()
+        .into_iter()
+        .collect();
+    let capabilities = header_values(&headers, "x-focusa-capabilities");
+    let capabilities = if capabilities.is_empty() {
+        [DOMAIN_PACK_INSTALL_CAPABILITY.to_owned()]
+            .into_iter()
+            .collect()
+    } else {
+        capabilities
+    };
+    let confirmation = request
+        .confirmation
+        .or_else(|| request.confirmed.then(|| "confirm".to_owned()));
+    let command = DomainPackInstallCommand {
+        context,
+        scope: request.scope,
+        pack: request.pack,
+        idempotency_key: request.idempotency_key,
+        confirmation,
+        capabilities,
+        permissions,
+    };
+    let receipt = DomainPackInstallService
+        .install(&store(&state)?, &command)
+        .map_err(domain_pack_install_error)?;
+    Ok(Json(serde_json::to_value(receipt).map_err(json_error)?))
 }
 
 async fn list_profiles(
@@ -1483,6 +1462,131 @@ fn write_document(
 
 fn store(state: &Arc<AppState>) -> Result<MissionCanvasStore, (StatusCode, Json<Value>)> {
     MissionCanvasStore::open(&state.config.data_dir).map_err(store_error)
+}
+
+fn token_enabled(state: &Arc<AppState>) -> bool {
+    state.config.auth_token.is_some()
+        || std::env::var("FOCUSA_AUTH_TOKEN")
+            .ok()
+            .is_some_and(|value| !value.trim().is_empty())
+}
+
+fn header_values(headers: &HeaderMap, name: &str) -> std::collections::BTreeSet<String> {
+    headers
+        .get(name)
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or_default()
+        .split([',', ' '])
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned)
+        .collect()
+}
+
+fn require_permission_with_state(
+    state: &Arc<AppState>,
+    headers: &HeaderMap,
+    permission: &str,
+) -> Result<(), (StatusCode, Json<Value>)> {
+    if permission_context(headers, token_enabled(state)).allows(permission) {
+        Ok(())
+    } else {
+        Err(error(
+            StatusCode::FORBIDDEN,
+            "permission_denied",
+            &format!("Missing required permission: {permission}"),
+        ))
+    }
+}
+
+fn domain_pack_workstream_context(
+    request: &DomainPackInstallRequest,
+    headers: &HeaderMap,
+) -> Result<WorkstreamContext, WorkstreamContextError> {
+    let actor_id = request
+        .actor_id
+        .as_deref()
+        .or_else(|| {
+            headers
+                .get("x-focusa-actor-id")
+                .and_then(|value| value.to_str().ok())
+        })
+        .ok_or(WorkstreamContextError::MissingActor)?;
+    let authority_ref = request
+        .authority_ref
+        .as_deref()
+        .or_else(|| {
+            headers
+                .get("x-focusa-authority-ref")
+                .and_then(|value| value.to_str().ok())
+        })
+        .ok_or(WorkstreamContextError::MissingAuthority)?;
+    let actor = ActorRef::new(ActorType::Desktop, actor_id.to_owned())?;
+    let authority = AuthorityContext::canonical(
+        authority_ref.to_owned(),
+        "mission_canvas:write permission established for the exact Workstream",
+    );
+    let mut envelope = WorkstreamRequestEnvelope::new(
+        Some(request.scope.workstream.clone()),
+        request.scope.attachment.clone(),
+        actor,
+        authority,
+    );
+    envelope.continuity_id = request.scope.continuity_id.clone();
+    envelope.workspace_binding_id = request.scope.workspace_binding_id.clone();
+    WorkstreamContext::extract(envelope)
+}
+
+fn domain_pack_install_error(error_value: DomainPackInstallError) -> (StatusCode, Json<Value>) {
+    let message = error_value.to_string();
+    let (status, code) = match &error_value {
+        DomainPackInstallError::CapabilityUnavailable(_) => {
+            (StatusCode::FORBIDDEN, "capability_unavailable")
+        }
+        DomainPackInstallError::PermissionDenied(_) => (StatusCode::FORBIDDEN, "permission_denied"),
+        DomainPackInstallError::ConfirmationRequired => {
+            (StatusCode::PRECONDITION_REQUIRED, "confirmation_required")
+        }
+        DomainPackInstallError::IdempotencyKeyRequired => {
+            (StatusCode::UNPROCESSABLE_ENTITY, "idempotency_key_missing")
+        }
+        DomainPackInstallError::Context(context_error) => match context_error {
+            WorkstreamContextError::WorkstreamMismatch
+            | WorkstreamContextError::ContinuityMismatch
+            | WorkstreamContextError::WorkspaceBindingMismatch
+            | WorkstreamContextError::AuthorityDenied => {
+                (StatusCode::CONFLICT, "workstream_identity_mismatch")
+            }
+            _ => (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                "workstream_context_invalid",
+            ),
+        },
+        DomainPackInstallError::Scope(_) => (StatusCode::UNPROCESSABLE_ENTITY, "scope_incomplete"),
+        DomainPackInstallError::InvalidPack(_) => {
+            (StatusCode::UNPROCESSABLE_ENTITY, "domain_pack_invalid")
+        }
+        DomainPackInstallError::Store(store_error) => {
+            let conflict = matches!(
+                store_error,
+                focusa_core::mission_canvas::MissionCanvasStoreError::DomainPackAlreadyInstalled(_)
+                    | focusa_core::mission_canvas::MissionCanvasStoreError::DomainPackIdempotencyConflict
+                    | focusa_core::mission_canvas::MissionCanvasStoreError::DomainPackDocumentAlreadyExists(_)
+            );
+            if conflict {
+                (StatusCode::CONFLICT, "domain_pack_conflict")
+            } else {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "mission_canvas_store_error",
+                )
+            }
+        }
+        DomainPackInstallError::Serialization(_) => {
+            (StatusCode::UNPROCESSABLE_ENTITY, "domain_pack_invalid")
+        }
+    };
+    error(status, code, &message)
 }
 
 fn require_permission(

@@ -75,6 +75,26 @@ pub enum RegistryError {
     InvalidDomainProfileId,
     #[error("domain pack already installed: {0}")]
     DomainPackAlreadyInstalled(String),
+    #[error("domain pack version must be non-empty")]
+    InvalidDomainPackVersion,
+    #[error("domain pack profile must expose at least one contribution")]
+    EmptyDomainPackProfile,
+    #[error("domain pack must expose at least one activity mode")]
+    EmptyDomainPackActivities,
+    #[error("domain pack activity must expose at least one contribution: {0}")]
+    EmptyDomainPackActivity(String),
+    #[error("domain pack has no viable profile/activity contribution")]
+    NoViableDomainContribution,
+    #[error("domain pack contains duplicate activity: {0}")]
+    DuplicateDomainActivity(String),
+    #[error("domain pack contains duplicate registry entry: {0}")]
+    DuplicateDomainRegistryEntry(String),
+    #[error("domain pack registry kind is unsupported: {0}")]
+    UnsupportedDomainRegistryKind(String),
+    #[error("domain pack registry entry is invalid: {0}")]
+    InvalidDomainRegistryEntry(String),
+    #[error("domain pack entry collides with an existing registry entry: {0}")]
+    DomainPackEntryCollision(String),
 }
 
 impl CompositionRegistry {
@@ -154,20 +174,122 @@ impl CompositionRegistry {
             .collect()
     }
 
-    pub fn install_domain_pack(&mut self, pack: DomainPack) -> Result<(), RegistryError> {
-        if !pack.pack_id.starts_with("domain.") {
+    pub fn validate_domain_pack(&self, pack: &DomainPack) -> Result<(), RegistryError> {
+        if !pack.pack_id.starts_with("domain.")
+            || pack
+                .pack_id
+                .strip_prefix("domain.")
+                .is_none_or(|suffix| suffix.is_empty())
+        {
             return Err(RegistryError::InvalidDomainPackId);
         }
-        if !pack
-            .profile
-            .profile_id
-            .starts_with(&format!("{}.", pack.pack_id))
+        if pack.version.trim().is_empty() {
+            return Err(RegistryError::InvalidDomainPackVersion);
+        }
+        let profile_prefix = format!("{}.", pack.pack_id);
+        if !pack.profile.profile_id.starts_with(&profile_prefix)
+            || pack
+                .profile
+                .profile_id
+                .strip_prefix(&profile_prefix)
+                .is_none_or(|suffix| suffix.is_empty())
         {
             return Err(RegistryError::InvalidDomainProfileId);
         }
         if self.installed_domain_packs.contains_key(&pack.pack_id) {
-            return Err(RegistryError::DomainPackAlreadyInstalled(pack.pack_id));
+            return Err(RegistryError::DomainPackAlreadyInstalled(
+                pack.pack_id.clone(),
+            ));
         }
+        if pack.profile.candidate_contribution_ids.is_empty() {
+            return Err(RegistryError::EmptyDomainPackProfile);
+        }
+        if pack.activities.is_empty() {
+            return Err(RegistryError::EmptyDomainPackActivities);
+        }
+        let profile_candidates = pack
+            .profile
+            .candidate_contribution_ids
+            .iter()
+            .collect::<BTreeSet<_>>();
+        let mut activity_ids = BTreeSet::new();
+        let mut viable = false;
+        let activity_prefix = format!("{}.", pack.pack_id);
+        for activity in &pack.activities {
+            if activity.activity_mode_id.trim().is_empty()
+                || activity.display_name.trim().is_empty()
+                || !activity.activity_mode_id.starts_with(&activity_prefix)
+            {
+                return Err(RegistryError::EmptyDomainPackActivity(
+                    activity.activity_mode_id.clone(),
+                ));
+            }
+            if !activity_ids.insert(activity.activity_mode_id.clone()) {
+                return Err(RegistryError::DuplicateDomainActivity(
+                    activity.activity_mode_id.clone(),
+                ));
+            }
+            if activity.candidate_contribution_ids.is_empty() {
+                return Err(RegistryError::EmptyDomainPackActivity(
+                    activity.activity_mode_id.clone(),
+                ));
+            }
+            viable |= activity
+                .candidate_contribution_ids
+                .iter()
+                .any(|candidate| profile_candidates.contains(candidate));
+            if self.activities.contains_key(&activity.activity_mode_id) {
+                return Err(RegistryError::DomainPackEntryCollision(
+                    activity.activity_mode_id.clone(),
+                ));
+            }
+        }
+        if !viable {
+            return Err(RegistryError::NoViableDomainContribution);
+        }
+        if self.profiles.contains_key(&pack.profile.profile_id) {
+            return Err(RegistryError::DomainPackEntryCollision(
+                pack.profile.profile_id.clone(),
+            ));
+        }
+        let mut entry_ids = BTreeSet::new();
+        for entry in &pack.registry_entries {
+            if entry.entry_id.trim().is_empty()
+                || entry.schema_ref.trim().is_empty()
+                || entry.payload_ref.trim().is_empty()
+                || entry.payload.is_null()
+            {
+                return Err(RegistryError::InvalidDomainRegistryEntry(
+                    entry.entry_id.clone(),
+                ));
+            }
+            if !entry.enabled {
+                return Err(RegistryError::InvalidDomainRegistryEntry(format!(
+                    "{} is disabled",
+                    entry.entry_id
+                )));
+            }
+            if !entry_ids.insert(entry.entry_id.clone()) {
+                return Err(RegistryError::DuplicateDomainRegistryEntry(
+                    entry.entry_id.clone(),
+                ));
+            }
+            if self.registry_contains(&entry.registry_kind, &entry.entry_id) {
+                return Err(RegistryError::DomainPackEntryCollision(
+                    entry.entry_id.clone(),
+                ));
+            }
+            if self.registry_map(&entry.registry_kind).is_none() {
+                return Err(RegistryError::UnsupportedDomainRegistryKind(
+                    entry.registry_kind.clone(),
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    pub fn install_domain_pack(&mut self, pack: DomainPack) -> Result<(), RegistryError> {
+        self.validate_domain_pack(&pack)?;
         self.profiles
             .insert(pack.profile.profile_id.clone(), pack.profile.clone());
         for activity in &pack.activities {
@@ -175,14 +297,45 @@ impl CompositionRegistry {
                 .insert(activity.activity_mode_id.clone(), activity.clone());
         }
         for entry in &pack.registry_entries {
-            if entry.registry_kind == "DomainSemanticBindingRegistry" {
-                self.domain_semantics
-                    .insert(entry.entry_id.clone(), entry.clone());
+            if let Some(target) = self.registry_map_mut(&entry.registry_kind) {
+                target.insert(entry.entry_id.clone(), entry.clone());
             }
         }
         self.installed_domain_packs
             .insert(pack.pack_id.clone(), pack);
         Ok(())
+    }
+
+    fn registry_map(&self, registry_kind: &str) -> Option<&BTreeMap<String, RegistryDefinition>> {
+        match registry_kind {
+            "PanelRegistry" => Some(&self.panels),
+            "HomeCanvasRegistry" => Some(&self.home_canvases),
+            "WorkSurfaceRendererRegistry" => Some(&self.work_surface_renderers),
+            "ArtifactRendererRegistry" => Some(&self.artifact_renderers),
+            "TerminologyRegistry" => Some(&self.terminology),
+            "DomainSemanticBindingRegistry" => Some(&self.domain_semantics),
+            _ => None,
+        }
+    }
+
+    fn registry_map_mut(
+        &mut self,
+        registry_kind: &str,
+    ) -> Option<&mut BTreeMap<String, RegistryDefinition>> {
+        match registry_kind {
+            "PanelRegistry" => Some(&mut self.panels),
+            "HomeCanvasRegistry" => Some(&mut self.home_canvases),
+            "WorkSurfaceRendererRegistry" => Some(&mut self.work_surface_renderers),
+            "ArtifactRendererRegistry" => Some(&mut self.artifact_renderers),
+            "TerminologyRegistry" => Some(&mut self.terminology),
+            "DomainSemanticBindingRegistry" => Some(&mut self.domain_semantics),
+            _ => None,
+        }
+    }
+
+    fn registry_contains(&self, registry_kind: &str, entry_id: &str) -> bool {
+        self.registry_map(registry_kind)
+            .is_some_and(|entries| entries.contains_key(entry_id))
     }
 }
 

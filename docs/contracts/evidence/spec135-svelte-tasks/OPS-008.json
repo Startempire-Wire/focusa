@@ -1,0 +1,97 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "OPS-008",
+  "result": "Implemented focusa.mission_canvas.domain_pack.install through the canonical generated operation, exact WorkstreamContext, capability and permission gates, explicit confirmation, atomic durable persistence, idempotent governed Receipt, and the Focusa Desktop generated-client consumer.",
+  "targets": [
+    "crates/focusa-api/src/routes/mission_canvas.rs",
+    "crates/focusa-core/src/mission_canvas/domain_pack.rs",
+    "crates/focusa-core/src/mission_canvas/model.rs",
+    "crates/focusa-core/src/mission_canvas/mod.rs",
+    "crates/focusa-core/src/mission_canvas/persistence.rs",
+    "crates/focusa-core/src/mission_canvas/profiles.rs",
+    "apps/desktop/src/lib/mission-canvas/http-transport.ts",
+    "apps/desktop/src/lib/mission-canvas/types.ts",
+    "apps/desktop/src/lib/mission-canvas/domain-pack-install-controller.ts",
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "tests/spec135_mission_canvas_generated_parity_test.py",
+    "tests/spec135_mission_canvas_operation_contract_test.py",
+    "apps/desktop/tests/operation-consumer-runtime.mjs"
+  ],
+  "generated_contract": {
+    "operation_id": "focusa.mission_canvas.domain_pack.install",
+    "method": "POST",
+    "path": "/v1/mission-canvas/domain-packs/install",
+    "scope_required": ["workstream"],
+    "permissions_required": ["mission_canvas:write"],
+    "confirmation": "explicit",
+    "requires_idempotency_key": true,
+    "requires_if_match_revision": false,
+    "receipt_required": true,
+    "response_schema_ref": "DomainPackInstallReceipt",
+    "client_method": "domain_packInstall",
+    "artifact_status": "canonical generated registry/OpenAPI/TypeScript client/validator artifacts verified in parity; no generated contract drift"
+  },
+  "authority_chain": [
+    "ScopeRef",
+    "ProjectRootKey",
+    "WorkstreamId",
+    "optional ContinuityId",
+    "AttachmentKey",
+    "SessionId",
+    "InstanceId",
+    "WorkspaceBindingId",
+    "RuntimeObjectRef",
+    "WorkSurfaceId"
+  ],
+  "implementation": [
+    "The API adapter requires mission_canvas:write through the state-aware permission context, extracts a canonical WorkstreamContext, rejects missing actor/authority, and passes only the exact typed scope to the core service.",
+    "The core DomainPackInstallService enforces the mission_canvas capability, mission_canvas:write permission, confirmation=confirm, non-empty idempotency key, exact Workstream/Attachment/Continuity/WorkspaceBinding ownership, namespaced pack validation, and required entry capabilities/permissions.",
+    "MissionCanvasStore persists every pack document, lifecycle event, receipt reference, request digest, authority reference, and durable event cursor in one SQLite transaction. Same-scope retries return the original Receipt; conflicting idempotency keys, installed packs, or document collisions fail closed.",
+    "Desktop transport resolves method/path from the generated operation registry, enforces idempotency and explicit confirmation before HTTP, emits supplied capability/permission/actor/authority metadata, validates the generated Receipt, and rejects foreign Workstream receipts.",
+    "Desktop DomainPackInstallController exposes a non-mutating confirmation stage and calls only generated domain_packInstall after explicit confirmation, retaining the exact Workstream authority and stable idempotency key across retries."
+  ],
+  "checks": [
+    "python3 tests/spec135_mission_canvas_generated_parity_test.py (exit 0; contribution schemas, operation registry, derived contracts, generated parity and determinism: PASS)",
+    "python3 tests/spec135_mission_canvas_operation_contract_test.py --operation focusa.mission_canvas.domain_pack.install (exit 0; registry/OpenAPI/client/transport/core/API/consumer contract: PASS)",
+    "node apps/desktop/tests/operation-consumer-runtime.mjs --operation focusa.mission_canvas.domain_pack.install --client domain_packInstall (exit 0; generated client, POST path, exact scope, confirmation, Receipt, foreign receipt and Desktop consumer: PASS)",
+    "python3 -m py_compile tests/spec135_mission_canvas_operation_contract_test.py tests/spec135_mission_canvas_generated_parity_test.py (exit 0)",
+    "rustfmt --edition 2021 --check changed Mission Canvas/API Rust sources (exit 0; Cargo intentionally not run)",
+    "git diff --check (exit 0)"
+  ],
+  "negative_cases": {
+    "foreign_workstream": "MissionCanvasScope validation, WorkstreamContext extraction, core context matching, and Desktop receipt comparison reject a foreign nested AttachmentKey or Receipt Workstream.",
+    "missing_authority": "The install adapter requires explicit actor_id and authority_ref in the request or trusted headers; WorkstreamContext extraction fails closed when either is absent or empty.",
+    "stale_revision_cursor": "Not applicable to this generated operation: requires_if_match_revision is false. Durable idempotency, request-digest binding, and the committed domain-pack event cursor prevent stale replay or duplicate event append.",
+    "unavailable_capability": "An explicit x-focusa-capabilities set without mission_canvas is rejected before persistence; pack entries with unavailable required capabilities are also rejected by the core service.",
+    "permission_denied": "The state-aware permission context and core service both require mission_canvas:write (or an explicit governed wildcard); missing permission fails closed.",
+    "missing_confirmation_or_idempotency": "Desktop transport and the API/core service reject missing confirmation=confirm or blank idempotency_key before mutation.",
+    "empty_or_ineligible_contribution": "Core registry validation rejects empty profiles, empty activity modes, and packs with no viable profile/activity contribution; disabled, malformed, duplicate, unsupported, or colliding entries are rejected.",
+    "partial_persistence": "All pack documents, lifecycle events, and the governed Receipt record share one SQLite transaction, so a document/event failure rolls back the installation as a unit."
+  },
+  "acceptance": [
+    "The explicit management flow installs a validated domain pack and returns the generated focusa.mission_canvas.domain_pack_install_receipt.v1 Receipt with the exact WorkstreamKey.",
+    "The operation is reachable through POST /v1/mission-canvas/domain-packs/install and generated MissionCanvasClient.domain_packInstall, with registry/OpenAPI/validator/client parity preserved.",
+    "Capability, permission, explicit confirmation, exact Workstream authority, idempotency, atomic persistence, governed Receipt, and hostile-case behavior are enforced outside the Desktop renderer; Desktop consumes the generated operation without inferring scope or eligibility."
+  ],
+  "evidence_refs": [
+    "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+    "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "tests/spec135_mission_canvas_generated_parity_test.py",
+    "tests/spec135_mission_canvas_operation_contract_test.py",
+    "apps/desktop/tests/operation-consumer-runtime.mjs"
+  ],
+  "deferred_repository_observation": "Cargo validation was intentionally not run per the OPS-008 instruction. The protected orchestration and generated task-packet files were not edited.",
+  "remaining_checks": [
+    "cargo test/check for the changed Rust Mission Canvas/API sources (not run; Cargo is prohibited for this corrective pass)"
+  ],
+  "remaining_work": [],
+  "blockers": [
+    "Only deferred Rust Cargo validation remains; permitted generated parity, operation contract, Desktop consumer, Python, rustfmt, and diff checks pass."
+  ],
+  "status": "implemented_partial"
+}
