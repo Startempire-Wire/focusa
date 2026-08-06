@@ -189,6 +189,10 @@ pub struct WorkstreamRequestEnvelope {
     pub idempotency_key: Option<String>,
     #[serde(default)]
     pub expected_revision: Option<u64>,
+    /// Fencing cursor for authority-sensitive commands.  A request that does
+    /// not carry the current cursor cannot acquire reducer authority.
+    #[serde(default)]
+    pub expected_fencing_token: Option<u64>,
 }
 
 /// Compatibility name for callers that construct the extraction input directly.
@@ -214,7 +218,13 @@ impl WorkstreamRequestEnvelope {
             input: Value::Null,
             idempotency_key: None,
             expected_revision: None,
+            expected_fencing_token: None,
         }
+    }
+
+    pub fn with_expected_fencing_token(mut self, expected_fencing_token: u64) -> Self {
+        self.expected_fencing_token = Some(expected_fencing_token);
+        self
     }
 
     pub fn for_workstream(
