@@ -1,6 +1,6 @@
 # Spec 135 Parallel Luna Execution Runbook
 
-**Status:** prepared, not activated
+**Status:** active through the direct Pi/Luna workaround
 
 **Machine plan:** `docs/contracts/spec135-parallel-execution-plan.v1.json`
 
@@ -8,7 +8,7 @@
 
 ## Purpose
 
-This runbook accelerates the remaining Mission Canvas work without bypassing dependency, authority, evidence, Cargo, UIAI, or release gates. It does not activate Work Loop or Silent Sessions while Focusa issue [#132](https://github.com/Startempire-Wire/focusa/issues/132) is being repaired.
+This runbook accelerates the remaining Mission Canvas work without bypassing dependency, authority, evidence, Cargo, UIAI, or release gates. While Focusa issue [#132](https://github.com/Startempire-Wire/focusa/issues/132) is being repaired, `scripts/spec135-direct-luna-runner.py` launches isolated native Pi/Luna workers directly and does not call Work Loop or Silent Sessions.
 
 ## Current shape
 
@@ -55,9 +55,22 @@ One writer owns graph status, generated packet regeneration, shared registries, 
 
 A separate read-only Luna Max session checks acceptance criteria, negative cases, evidence, and diff scope. It does not repair the worker branch it evaluates.
 
-## Activation gate after issue #132
+## Immediate direct workaround
 
-Do not fan out immediately after the fix merges. First run one canary task and prove:
+Start, inspect, tail, or stop a native Luna worker without Focusa orchestration:
+
+```bash
+python3 scripts/spec135-direct-luna-runner.py start ID-001
+python3 scripts/spec135-direct-luna-runner.py status
+python3 scripts/spec135-direct-luna-runner.py tail ID-001
+python3 scripts/spec135-direct-luna-runner.py stop ID-001
+```
+
+The runner uses `openai-codex/gpt-5.6-luna` with maximum thinking, disables extensions/skills/templates/themes, allows only `read,bash,edit,write`, and creates a dedicated branch, worktree, session directory, prompt, PID record, exit record, and durable log for each task.
+
+## Returning to Focusa orchestration after issue #132
+
+The direct workaround is active now. Before switching back to Work Loop/Silent Sessions after the fix merges, run one canary and prove:
 
 1. requested Luna Max model equals the observed effective model;
 2. project, Workstream, branch, worktree, and task packet are exact;
@@ -67,7 +80,7 @@ Do not fan out immediately after the fix merges. First run one canary task and p
 6. checkpoint and completion receipts survive process exit;
 7. completed status requires checks and evidence rather than process exit alone.
 
-Only then set `activation_gate.launch_enabled` through a reviewed plan regeneration.
+Only then set `activation_gate.focusa_orchestration_enabled` through a reviewed plan regeneration. The direct runner remains independent of that gate.
 
 ## Worker launch contract
 

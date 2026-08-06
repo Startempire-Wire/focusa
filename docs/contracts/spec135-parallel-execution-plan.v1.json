@@ -1,6 +1,6 @@
 {
   "schema": "focusa.spec135.parallel_execution_plan.v1",
-  "status": "prepared_not_activated",
+  "status": "active_direct_pi_workaround",
   "translation_contract_ref": "CARDINAL-135-SVELTE-001",
   "source_graph": "docs/transitions/FOCUSA-TRANSITION-001-mission-canvas-executable-callgraph.yaml",
   "source_task_count": 133,
@@ -9,7 +9,9 @@
   "activation_gate": {
     "issue_ref": "https://github.com/Startempire-Wire/focusa/issues/132",
     "required_state": "fix merged and canary orchestration receipt verified",
-    "launch_enabled": false
+    "focusa_orchestration_enabled": false,
+    "direct_pi_workaround_enabled": true,
+    "direct_runner": "scripts/spec135-direct-luna-runner.py"
   },
   "scheduler_policy": {
     "dependency_rule": "A wave starts only after every dependency task is integrated and complete.",

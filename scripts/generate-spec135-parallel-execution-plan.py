@@ -163,7 +163,7 @@ def generate() -> dict[str, Any]:
 
     return {
         "schema": "focusa.spec135.parallel_execution_plan.v1",
-        "status": "prepared_not_activated",
+        "status": "active_direct_pi_workaround",
         "translation_contract_ref": graph["cardinal_translation_contract"]["id"],
         "source_graph": str(GRAPH_PATH.relative_to(ROOT)),
         "source_task_count": len(tasks),
@@ -172,7 +172,9 @@ def generate() -> dict[str, Any]:
         "activation_gate": {
             "issue_ref": "https://github.com/Startempire-Wire/focusa/issues/132",
             "required_state": "fix merged and canary orchestration receipt verified",
-            "launch_enabled": False,
+            "focusa_orchestration_enabled": False,
+            "direct_pi_workaround_enabled": True,
+            "direct_runner": "scripts/spec135-direct-luna-runner.py",
         },
         "scheduler_policy": {
             "dependency_rule": "A wave starts only after every dependency task is integrated and complete.",

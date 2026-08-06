@@ -36,7 +36,9 @@ assert len(projected_ids) == len(set(projected_ids))
 assert set(projected_ids) == remaining_ids
 assert plan["remaining_task_count"] == len(remaining_ids)
 assert plan["complete_task_count"] == len(complete_ids)
-assert plan["activation_gate"]["launch_enabled"] is False
+assert plan["activation_gate"]["focusa_orchestration_enabled"] is False
+assert plan["activation_gate"]["direct_pi_workaround_enabled"] is True
+assert plan["activation_gate"]["direct_runner"] == "scripts/spec135-direct-luna-runner.py"
 assert plan["activation_gate"]["issue_ref"].endswith("/issues/132")
 
 wave_by_id = {task["task_id"]: task["wave"] for task in projected}
