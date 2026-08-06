@@ -38,7 +38,7 @@ use uuid::Uuid;
 const WRITER_HEADER: &str = "x-focusa-writer-id";
 const FENCING_HEADER: &str = "x-focusa-fencing-token";
 // Leave enough bounded time for provider discovery and one atomic CLI mutation.
-const WRITER_LEASE_TTL_MS: i64 = 120_000;
+pub(crate) const WRITER_LEASE_TTL_MS: i64 = 120_000;
 const APPROVAL_HEADER: &str = "x-focusa-approval";
 const WORK_LOOP_STATUS_SCHEMA: &str = "focusa.work_loop_status.v3";
 const WORK_LOOP_REPLAY_SCHEMA: &str = "focusa.work_loop_replay.v2";
@@ -785,7 +785,7 @@ fn fencing_token_from_headers(headers: &HeaderMap) -> Result<u64, (StatusCode, J
         .ok_or_else(|| bad_request(format!("missing or invalid header: {FENCING_HEADER}")))
 }
 
-fn writer_lease_expiry(now: DateTime<Utc>) -> DateTime<Utc> {
+pub(crate) fn writer_lease_expiry(now: DateTime<Utc>) -> DateTime<Utc> {
     now + chrono::Duration::milliseconds(WRITER_LEASE_TTL_MS)
 }
 
@@ -3415,6 +3415,12 @@ async fn start_pi_driver(
         return Err(bad_request("idempotency_key must not be empty"));
     }
     let mut guard = state.pi_rpc_session.lock().await;
+    let stale_driver = guard.as_mut().is_some_and(|existing| {
+        !matches!(existing.child.try_wait(), Ok(None))
+    });
+    if stale_driver {
+        guard.take();
+    }
     if let Some(existing) = guard.as_ref() {
         if existing.idempotency_key == payload.idempotency_key {
             return Ok(Json(json!({

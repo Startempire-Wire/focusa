@@ -893,15 +893,44 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
             );
             let lease = {
                 let claims = state.writer_claims.read().await;
-                claims
-                    .get(&claim_key)
-                    .filter(|lease| lease.expires_at > chrono::Utc::now())
-                    .cloned()
+                claims.get(&claim_key).cloned()
             };
-            let Some(lease) = lease else {
+            let Some(mut lease) = lease else {
                 tokio::time::sleep(Duration::from_millis(delay_ms)).await;
                 continue;
             };
+            if lease.expires_at <= chrono::Utc::now() {
+                let live_driver = {
+                    let mut guard = state.pi_rpc_session.lock().await;
+                    guard.as_mut().is_some_and(|session| {
+                        matches!(session.child.try_wait(), Ok(None))
+                    })
+                };
+                if !live_driver {
+                    tokio::time::sleep(Duration::from_millis(delay_ms)).await;
+                    continue;
+                }
+                let now = chrono::Utc::now();
+                let renewed = {
+                    let mut claims = state.writer_claims.write().await;
+                    claims
+                        .get_mut(&claim_key)
+                        .filter(|active| {
+                            active.writer_id == lease.writer_id
+                                && active.fencing_token == lease.fencing_token
+                        })
+                        .map(|active| {
+                            active.expires_at =
+                                crate::routes::work_loop::writer_lease_expiry(now);
+                            active.clone()
+                        })
+                };
+                let Some(renewed) = renewed else {
+                    tokio::time::sleep(Duration::from_millis(delay_ms)).await;
+                    continue;
+                };
+                lease = renewed;
+            }
             let driver_idempotency_key = format!(
                 "work-loop-supervisor:{}:{}",
                 claim_key, lease.fencing_token

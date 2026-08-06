@@ -75,6 +75,10 @@ assert 'get("dependents")' in bd_adapter
 assert "show_values(&query.project_root, &child_ids)" in bd_adapter
 assert '"idempotency-key", &driver_idempotency_key' in api_server
 assert '"idempotency_key": driver_idempotency_key' in api_server
+assert "active.expires_at =" in api_server
+assert "writer_lease_expiry(now)" in api_server
+assert "stale_driver" in api_loop
+assert "existing.child.try_wait()" in api_loop
 for header in (
     "x-scope-project-root",
     "x-scope-continuity-id",
