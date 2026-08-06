@@ -1,0 +1,49 @@
+Spec 152F canonical entitlement policy types verification record
+Work item: focusa-vbcqu.20.14.5
+Implementation commit: c85ed1f0ca74950d44a8fd7e4d68492498d7cf61
+
+OUTPUTS
+- crates/focusa-license/src/entitlement_policy.rs
+  SHA256: a67bab056dc0a5f8f39b0a9f69dc589db4c28cb5558ebcaacb6403ffdc4a4e16
+- crates/focusa-license/src/entitlement_policy_tests.rs
+  SHA256: 1ed1e22c2477da14ebeb09783f2ead3eddecad5ca2ca445dad707875b8b2a199
+- crates/focusa-license/src/feature_decision.rs
+  SHA256: 9a109c0bcf9068a2022e26669d75cae6181e43eada8bbb9df2b5c5c92b60e045
+- crates/focusa-license/src/lib.rs
+  SHA256: 576ee33259e5b93f10446a4acabd1dc8ed7fc92d65e736c487b3624852ba0e71
+
+BOUNDED IMPLEMENTATION
+The focusa-license public API now owns stable serde types for:
+- five operation classes;
+- nine capability families;
+- six commercial treatments;
+- five policy-activation states;
+- eight entitlement states;
+- validated qualified required-feature identifiers;
+- validated limit-bucket identifiers;
+- seven recovery allowances;
+- eleven decision reasons;
+- a private-field ResolvedEntitlementPolicy with fail-closed construction.
+
+Construction rejects unknown operation classes, dormant commercial activation, family/treatment mismatch, operation/family mismatch, malformed feature or limit identifiers, premium feature/reason mismatch, invalid recovery allowances, and limit buckets attached to non-entitled decisions. Existing feature-registry validation now uses the typed feature and limit constructors. No local Evaluation, pricing, caller grants, presenter policy, or authority fallback was added.
+
+VERIFICATION
+PASS isolated package command on the canonical synced OVH source:
+  cargo test -p focusa-license entitlement_policy_types
+  exit=0; 3 passed; 0 failed; 23 filtered out
+PASS cargo fmt -p focusa-license -- --check
+PASS git diff --check
+PASS each new source/test file is below 500 lines
+
+EXACT HARNESS BLOCKER
+The literal project-root command was also attempted through the mandatory KH-to-OVH Cargo route:
+  cargo test -p focusa-license entitlement_policy_types
+  exit=101 before package tests
+The route's test runner unconditionally builds focusa-api/focusa-daemon first. That unrelated preflight currently fails at crates/focusa-api/src/routes/license.rs:87 because mask_identity expects &str but receives &Option<String>. The focusa-license package itself compiles and all exact filtered tests pass when invoked directly on the same synced OVH source. No out-of-scope API file was changed.
+
+ROLLBACK
+Revert implementation commit c85ed1f0 only. Preserve Spec 152F contracts and baseline, Spec 152E authority, customers, orders, refunds, licenses, nodes, sequences, data, migration journals, and prior evidence.
+
+RESULT
+TECHNICAL_ACCEPTANCE: BLOCKED
+Implementation and package-level verification pass, but this atom remains open because the mandated project-root harness command does not exit zero. Closure requires the separately owned focusa-api compile defect to be repaired and the literal command rerun successfully. This record must not be interpreted as acceptance or dependency release.
