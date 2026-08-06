@@ -33,6 +33,7 @@ NORMATIVE_FILES = [
     "docs/152-mandatory-authority-licensing-evaluation-entitlements-and-unified-onboarding-spec.md",
     "docs/152a-protected-distribution-private-feature-capsules-and-anti-tamper-spec.md",
     "docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md",
+    "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md",
     "docs/contracts/spec152-supersession-and-integration-matrix.v1.yaml",
 ]
 
@@ -52,6 +53,7 @@ REQUIRED_CONCEPT_GROUPS = {
 
 REQUIRED_MATRIX_TOKENS = [
     "docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md",
+    "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md",
     "deployment://install.focusa.dev/custom-license-registry",
     "activation://unverified-email",
     "facade://non-wpuiai-domains",
@@ -130,6 +132,20 @@ def main() -> int:
     ):
         if token not in correction:
             failures.append(f"Spec 152E correction missing required authority token: {token}")
+
+    simplification = contents.get(
+        "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md",
+        "",
+    )
+    for token in (
+        "one base entitlement gate",
+        "four optional premium capability families",
+        "The unmatched inventory SHALL be reconciled",
+        "Dormant dimensions MUST NOT deny customer capability",
+        "No entitlement:",
+    ):
+        if token not in simplification:
+            failures.append(f"Spec 152F simplification missing required policy token: {token}")
 
     overlay = contents.get("docs/150a-spec152-entitlement-overlay-and-lifecycle-integration.md", "")
     for token in (

@@ -7,6 +7,8 @@ canonical:
   - docs/152c-server-client-coordination-contract.md
   - docs/152d-authority-client-implementation-entrypoints.md
   - docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md
+  - docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md
+  - docs/contracts/spec152f-implementation-taskgraph.v1.json
   - docs/contracts/spec152-supersession-and-integration-matrix.v1.yaml
   - docs/contracts/spec152-current-head-audit-2026-08-01.md
   - docs/contracts/spec152-release-blocker-summary.v1.yaml
@@ -25,7 +27,22 @@ correction_authority:
     - implicit EDD product mappings and caller-controlled grants
     - canonical customer or entitlement creation before mailbox verification
     - independent entitlement authority on branded facade domains
+simplification_authority:
+  spec: docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md
+  work_item_root: focusa-vbcqu.20.14
+  final_work_item: focusa-vbcqu.20.14.52
+  status: release_blocking
+  spec_158: excluded
+  rules:
+    - one base entitlement gate for value-producing Focusa operations
+    - four optional premium capability families
+    - permanent account read export recovery repair security update rollback and uninstall paths
+    - surface inheritance instead of independent REST CLI desktop worker or facade paywalls
+    - dormant future granularity until explicit operator-approved activation
+
 gates:
   - tests/spec152_documentation_consistency_gate.py
   - tests/spec152e_document_authority_test.py
+  - tests/spec152f_document_authority_test.py
+  - tests/spec152f_taskgraph_contract_test.py
   - .github/workflows/spec152-documentation-consistency.yml

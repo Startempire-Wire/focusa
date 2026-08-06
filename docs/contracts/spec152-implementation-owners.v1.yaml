@@ -5,6 +5,14 @@ correction_authority:
   status: release_blocking
   rule: WPUIAI.com EDD is the sole customer, commerce, human-license, and entitlement authority
   spec_158: excluded
+simplification_authority:
+  spec: docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md
+  work_item_root: focusa-vbcqu.20.14
+  final_work_item: focusa-vbcqu.20.14.52
+  status: release_blocking
+  owner: Startempire-Wire/focusa
+  rule: surfaces inherit one base gate or four optional premium families; presenters never own commercial truth
+  spec_158: excluded
 workstreams:
   authority:
     repository: WPUIAI/wpuiai
@@ -14,7 +22,8 @@ workstreams:
     repository: Startempire-Wire/focusa
     issue: 119
     bead_root: focusa-vbcqu.20.13
-    owns: canonical verifier recovery daemon installer lifecycle menubar Pi TUI CLI REST terminal delivery envelope lease client facade presenter UIAI broker migration receipts
+    simplification_bead_root: focusa-vbcqu.20.14
+    owns: canonical verifier entitlement policy registry base and premium resolver recovery daemon installer lifecycle menubar Pi TUI CLI REST terminal delivery envelope lease client facade presenter UIAI broker migration receipts surface inheritance and future-granularity activation guard
   uiai:
     repository: WPUIAI/uiai-engine
     issue: 5

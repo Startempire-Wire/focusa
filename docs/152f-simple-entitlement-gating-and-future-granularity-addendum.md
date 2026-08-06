@@ -281,6 +281,7 @@ This addendum does not:
 - grant operator or cognitive authority through licensing;
 - block customer data, repair, account control, refund handling, security update, rollback, or uninstall;
 - count the unrestricted demo prerelease as stable licensing acceptance;
+- implement or admit Spec 158 into this locked-release scope;
 - authorize publication of stable `v0.9.144` before Specs 152/152E/152F and REL.4–REL.7 close truthfully.
 
 ---

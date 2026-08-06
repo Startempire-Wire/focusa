@@ -12,6 +12,12 @@ spec152e_registered: true
 spec152e_authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md
 spec152e_work_item_root: focusa-vbcqu.20.13
 spec152e_correction_status: in_progress
+spec152f_registered: true
+spec152f_authority: docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md
+spec152f_work_item_root: focusa-vbcqu.20.14
+spec152f_final_work_item: focusa-vbcqu.20.14.52
+spec152f_policy_status: implementation_open
+spec152f_task_count: 52
 spec_158: excluded
 live_server_verified: false
 code_enforcement_implemented: false
@@ -20,5 +26,5 @@ edd_centered_identity_checkout_delivery_implemented: false
 migration_cutover_accepted: false
 all_platform_final_candidate_verified: false
 distribution_status: blocked
-next_action: focusa-vbcqu.20.13.2 freeze deployed authority and facade parity inventory
-publication_rule: forbidden until focusa-vbcqu.20.13.63 closes with linked acceptance evidence
+next_action: focusa-vbcqu.20.13.2 freeze deployed authority and facade parity inventory; parallel focusa-vbcqu.20.14.1 register Spec 152F authority
+publication_rule: forbidden until focusa-vbcqu.20.13.63 and focusa-vbcqu.20.14.52 close with linked acceptance evidence

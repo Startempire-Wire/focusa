@@ -1,0 +1,1536 @@
+{
+  "authority": "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md",
+  "downstream_release_edges": [
+    {
+      "blocked": "focusa-vbcqu.20.13.63",
+      "blocker": "focusa-vbcqu.20.14.52"
+    }
+  ],
+  "execution_rule": "Follow dependency edges; one task at a time; never infer closure from parent status, static-only evidence, or adjacent implementation.",
+  "external_dependency_edges": [
+    {
+      "blocked": "focusa-vbcqu.20.14.35",
+      "blocker": "focusa-vbcqu.20.13.59"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.40",
+      "blocker": "focusa-vbcqu.20.13.44"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.40",
+      "blocker": "focusa-vbcqu.20.13.42"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.41",
+      "blocker": "focusa-vbcqu.20.13.31"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.45",
+      "blocker": "focusa-vbcqu.20.13.58"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.46",
+      "blocker": "focusa-vbcqu.20.13.61"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.46",
+      "blocker": "focusa-vbcqu.20.13.56"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.50",
+      "blocker": "focusa-vbcqu.20.13.62"
+    }
+  ],
+  "final_task": "focusa-vbcqu.20.14.52",
+  "first_task": "focusa-vbcqu.20.14.1",
+  "internal_dependency_edges": [
+    {
+      "blocked": "focusa-vbcqu.20.14.2",
+      "blocker": "focusa-vbcqu.20.14.1"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.3",
+      "blocker": "focusa-vbcqu.20.14.2"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.4",
+      "blocker": "focusa-vbcqu.20.14.2"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.5",
+      "blocker": "focusa-vbcqu.20.14.3"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.5",
+      "blocker": "focusa-vbcqu.20.14.2"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.6",
+      "blocker": "focusa-vbcqu.20.14.5"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.7",
+      "blocker": "focusa-vbcqu.20.14.5"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.8",
+      "blocker": "focusa-vbcqu.20.14.7"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.8",
+      "blocker": "focusa-vbcqu.20.14.6"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.9",
+      "blocker": "focusa-vbcqu.20.14.7"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.9",
+      "blocker": "focusa-vbcqu.20.14.6"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.10",
+      "blocker": "focusa-vbcqu.20.14.7"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.10",
+      "blocker": "focusa-vbcqu.20.14.6"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.11",
+      "blocker": "focusa-vbcqu.20.14.7"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.11",
+      "blocker": "focusa-vbcqu.20.14.6"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.12",
+      "blocker": "focusa-vbcqu.20.14.11"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.12",
+      "blocker": "focusa-vbcqu.20.14.10"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.12",
+      "blocker": "focusa-vbcqu.20.14.9"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.12",
+      "blocker": "focusa-vbcqu.20.14.8"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.13",
+      "blocker": "focusa-vbcqu.20.14.12"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.14",
+      "blocker": "focusa-vbcqu.20.14.13"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.15",
+      "blocker": "focusa-vbcqu.20.14.14"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.16",
+      "blocker": "focusa-vbcqu.20.14.15"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.16",
+      "blocker": "focusa-vbcqu.20.14.6"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.17",
+      "blocker": "focusa-vbcqu.20.14.15"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.17",
+      "blocker": "focusa-vbcqu.20.14.14"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.17",
+      "blocker": "focusa-vbcqu.20.14.10"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.18",
+      "blocker": "focusa-vbcqu.20.14.17"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.18",
+      "blocker": "focusa-vbcqu.20.14.14"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.19",
+      "blocker": "focusa-vbcqu.20.14.14"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.19",
+      "blocker": "focusa-vbcqu.20.14.4"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.20",
+      "blocker": "focusa-vbcqu.20.14.19"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.20",
+      "blocker": "focusa-vbcqu.20.14.18"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.20",
+      "blocker": "focusa-vbcqu.20.14.17"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.20",
+      "blocker": "focusa-vbcqu.20.14.16"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.21",
+      "blocker": "focusa-vbcqu.20.14.20"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.21",
+      "blocker": "focusa-vbcqu.20.14.15"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.21",
+      "blocker": "focusa-vbcqu.20.14.9"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.22",
+      "blocker": "focusa-vbcqu.20.14.6"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.22",
+      "blocker": "focusa-vbcqu.20.14.4"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.23",
+      "blocker": "focusa-vbcqu.20.14.22"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.23",
+      "blocker": "focusa-vbcqu.20.14.16"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.24",
+      "blocker": "focusa-vbcqu.20.14.23"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.24",
+      "blocker": "focusa-vbcqu.20.14.22"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.24",
+      "blocker": "focusa-vbcqu.20.14.15"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.25",
+      "blocker": "focusa-vbcqu.20.14.22"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.25",
+      "blocker": "focusa-vbcqu.20.14.14"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.26",
+      "blocker": "focusa-vbcqu.20.14.22"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.26",
+      "blocker": "focusa-vbcqu.20.14.15"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.27",
+      "blocker": "focusa-vbcqu.20.14.4"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.28",
+      "blocker": "focusa-vbcqu.20.14.27"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.28",
+      "blocker": "focusa-vbcqu.20.14.22"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.28",
+      "blocker": "focusa-vbcqu.20.14.19"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.28",
+      "blocker": "focusa-vbcqu.20.14.18"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.29",
+      "blocker": "focusa-vbcqu.20.14.28"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.29",
+      "blocker": "focusa-vbcqu.20.14.26"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.29",
+      "blocker": "focusa-vbcqu.20.14.25"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.29",
+      "blocker": "focusa-vbcqu.20.14.24"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.30",
+      "blocker": "focusa-vbcqu.20.14.29"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.30",
+      "blocker": "focusa-vbcqu.20.14.18"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.30",
+      "blocker": "focusa-vbcqu.20.14.17"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.30",
+      "blocker": "focusa-vbcqu.20.14.10"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.31",
+      "blocker": "focusa-vbcqu.20.14.29"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.31",
+      "blocker": "focusa-vbcqu.20.14.21"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.31",
+      "blocker": "focusa-vbcqu.20.14.17"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.31",
+      "blocker": "focusa-vbcqu.20.14.10"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.32",
+      "blocker": "focusa-vbcqu.20.14.29"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.32",
+      "blocker": "focusa-vbcqu.20.14.28"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.32",
+      "blocker": "focusa-vbcqu.20.14.10"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.33",
+      "blocker": "focusa-vbcqu.20.14.28"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.33",
+      "blocker": "focusa-vbcqu.20.14.21"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.33",
+      "blocker": "focusa-vbcqu.20.14.10"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.34",
+      "blocker": "focusa-vbcqu.20.14.28"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.34",
+      "blocker": "focusa-vbcqu.20.14.21"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.34",
+      "blocker": "focusa-vbcqu.20.14.10"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.35",
+      "blocker": "focusa-vbcqu.20.14.29"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.35",
+      "blocker": "focusa-vbcqu.20.14.10"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.36",
+      "blocker": "focusa-vbcqu.20.14.35"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.36",
+      "blocker": "focusa-vbcqu.20.14.34"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.36",
+      "blocker": "focusa-vbcqu.20.14.33"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.36",
+      "blocker": "focusa-vbcqu.20.14.32"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.36",
+      "blocker": "focusa-vbcqu.20.14.31"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.36",
+      "blocker": "focusa-vbcqu.20.14.30"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.37",
+      "blocker": "focusa-vbcqu.20.14.36"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.37",
+      "blocker": "focusa-vbcqu.20.14.25"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.37",
+      "blocker": "focusa-vbcqu.20.14.12"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.38",
+      "blocker": "focusa-vbcqu.20.14.36"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.38",
+      "blocker": "focusa-vbcqu.20.14.26"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.38",
+      "blocker": "focusa-vbcqu.20.14.12"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.39",
+      "blocker": "focusa-vbcqu.20.14.36"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.39",
+      "blocker": "focusa-vbcqu.20.14.22"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.39",
+      "blocker": "focusa-vbcqu.20.14.12"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.40",
+      "blocker": "focusa-vbcqu.20.14.36"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.40",
+      "blocker": "focusa-vbcqu.20.14.21"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.40",
+      "blocker": "focusa-vbcqu.20.14.12"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.41",
+      "blocker": "focusa-vbcqu.20.14.36"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.41",
+      "blocker": "focusa-vbcqu.20.14.12"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.42",
+      "blocker": "focusa-vbcqu.20.14.41"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.42",
+      "blocker": "focusa-vbcqu.20.14.40"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.42",
+      "blocker": "focusa-vbcqu.20.14.39"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.42",
+      "blocker": "focusa-vbcqu.20.14.38"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.42",
+      "blocker": "focusa-vbcqu.20.14.37"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.43",
+      "blocker": "focusa-vbcqu.20.14.36"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.43",
+      "blocker": "focusa-vbcqu.20.14.21"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.44",
+      "blocker": "focusa-vbcqu.20.14.43"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.44",
+      "blocker": "focusa-vbcqu.20.14.42"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.45",
+      "blocker": "focusa-vbcqu.20.14.44"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.45",
+      "blocker": "focusa-vbcqu.20.14.40"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.46",
+      "blocker": "focusa-vbcqu.20.14.45"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.47",
+      "blocker": "focusa-vbcqu.20.14.46"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.47",
+      "blocker": "focusa-vbcqu.20.14.44"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.47",
+      "blocker": "focusa-vbcqu.20.14.43"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.48",
+      "blocker": "focusa-vbcqu.20.14.43"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.48",
+      "blocker": "focusa-vbcqu.20.14.18"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.49",
+      "blocker": "focusa-vbcqu.20.14.44"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.49",
+      "blocker": "focusa-vbcqu.20.14.42"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.49",
+      "blocker": "focusa-vbcqu.20.14.29"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.50",
+      "blocker": "focusa-vbcqu.20.14.49"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.50",
+      "blocker": "focusa-vbcqu.20.14.48"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.50",
+      "blocker": "focusa-vbcqu.20.14.47"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.50",
+      "blocker": "focusa-vbcqu.20.14.46"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.51",
+      "blocker": "focusa-vbcqu.20.14.50"
+    },
+    {
+      "blocked": "focusa-vbcqu.20.14.52",
+      "blocker": "focusa-vbcqu.20.14.51"
+    }
+  ],
+  "parent": "focusa-vbcqu.20.14",
+  "phase_counts": {
+    "00": 4,
+    "01": 9,
+    "02": 8,
+    "03": 8,
+    "04": 7,
+    "05": 6,
+    "06": 10
+  },
+  "schema": "focusa.spec152f_implementation_taskgraph.v1",
+  "task_count": 52,
+  "tasks": [
+    {
+      "code": "00.01",
+      "dependencies": [],
+      "done_condition": "All authority contracts name Spec 152F, root .20.14, and final .52; no active text requires 395 independent paywalls or weakens EDD authority.",
+      "estimate_minutes": 90,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.1-acceptance.txt",
+      "exact_surfaces": "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md; docs/contracts/spec152-document-set.v1.yaml; spec152 implementation-owner, next-command, open-gap, blocker, final-audit, and supersession contracts; tests/spec152_documentation_consistency_gate.py; tests/spec152f_document_authority_test.py",
+      "id": "focusa-vbcqu.20.14.1",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "00",
+      "required_output": "Updated authority contracts and a static document-authority test.",
+      "required_steps": "Add Spec 152F to every active licensing authority index. State that it simplifies enforcement but does not weaken Spec 152E identity/EDD/lease authority. Register work root focusa-vbcqu.20.14, final atom .52, Spec 158 exclusion, and stable-publication prohibition.",
+      "title": "Register Spec 152F authority and release block",
+      "verification": "python3 tests/spec152_documentation_consistency_gate.py && python3 tests/spec152e_document_authority_test.py && python3 tests/spec152f_document_authority_test.py"
+    },
+    {
+      "code": "00.02",
+      "dependencies": [
+        "focusa-vbcqu.20.14.1"
+      ],
+      "done_condition": "Every grid cell and feature identifier in Spec 152F has exactly one machine policy; dormant dimensions cannot deny capability.",
+      "estimate_minutes": 150,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.2-acceptance.txt",
+      "exact_surfaces": "docs/contracts/spec152f-entitlement-policy.v1.yaml; docs/contracts/spec152-feature-registry.v1.yaml; tests/fixtures/spec152f-entitlement-policy-cases.v1.json; tests/spec152f_entitlement_policy_contract_test.py",
+      "id": "focusa-vbcqu.20.14.2",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "00",
+      "required_output": "Versioned policy registry, JSON cases, deterministic validator, and digest.",
+      "required_steps": "Encode the nine capability families, base/add-on/recovery treatment, eight entitlement states, four premium families, current feature-ID compatibility, stable-update/export exceptions, and dormant future dimensions. Reject duplicate family IDs, unknown active features, and recovery entries that require commercial grants.",
+      "title": "Freeze machine-readable entitlement policy registry",
+      "verification": "python3 tests/spec152f_entitlement_policy_contract_test.py"
+    },
+    {
+      "code": "00.03",
+      "dependencies": [
+        "focusa-vbcqu.20.14.2"
+      ],
+      "done_condition": "A weaker model can locate every implementation stage and no presenter or facade owns a commercial decision.",
+      "estimate_minutes": 150,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.3-acceptance.txt",
+      "exact_surfaces": "docs/contracts/spec152f-entitlement-call-stack.v1.yaml; docs/contracts/spec152f-entitlement-errors.v1.json; crates/focusa-license/src; crates/focusa-core/src/license.rs; crates/focusa-api/src/middleware/entitlement.rs",
+      "id": "focusa-vbcqu.20.14.3",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "00",
+      "required_output": "Typed call-stack contract and stable error fixture.",
+      "required_steps": "Document entrypoint -> classifier -> identity/permission -> recovery/read -> lease -> base/premium -> reservation -> execution for HTTP and non-HTTP paths. Assign one owner per stage. Reuse existing ENTITLEMENT_* errors; add only typed errors needed for unknown policy, family, or dormant activation.",
+      "title": "Freeze resolver call stack, ownership, and stable errors",
+      "verification": "python3 tests/spec152f_call_stack_contract_test.py"
+    },
+    {
+      "code": "00.04",
+      "dependencies": [
+        "focusa-vbcqu.20.14.2"
+      ],
+      "done_condition": "Counts equal 395, each row appears once, no row is silently called free, and the manifest contains no pricing/SKU decision per surface.",
+      "estimate_minutes": 150,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.4-acceptance.txt",
+      "exact_surfaces": "docs/contracts/spec152-entitlement-coverage.v1.json; docs/contracts/spec152f-surface-reconciliation.v1.json; scripts/generate-spec152-entitlement-coverage.py",
+      "id": "focusa-vbcqu.20.14.4",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "00",
+      "required_output": "Deterministic reconciliation manifest with source digests and counts.",
+      "required_steps": "Snapshot the 199 REST, 86 CLI, 83 menubar, and 27 filename-derived entries. Preserve the 31 unknown-method routes. Mark seven test-only file matches as scanner exclusions. Assign every row a future resolution owner: base, premium family, recovery/read, metadata repair, or inherited operation.",
+      "title": "Freeze the 395-surface reconciliation baseline",
+      "verification": "python3 tests/spec152f_surface_reconciliation_contract_test.py"
+    },
+    {
+      "code": "01.01",
+      "dependencies": [
+        "focusa-vbcqu.20.14.2",
+        "focusa-vbcqu.20.14.3"
+      ],
+      "done_condition": "All registry values round-trip and illegal combinations fail construction before runtime execution.",
+      "estimate_minutes": 150,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.5-acceptance.txt",
+      "exact_surfaces": "crates/focusa-license/src/feature_decision.rs; crates/focusa-license/src/lib.rs; crates/focusa-license/src/entitlement_policy.rs (new)",
+      "id": "focusa-vbcqu.20.14.5",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "01",
+      "required_output": "Typed policy model exported only through focusa-license public API.",
+      "required_steps": "Add enums/structs for operation class, capability family, commercial treatment, policy activation, entitlement state, required feature, limit bucket, recovery allowance, and decision reason. Use serde stable names from the policy registry; reject unknown active values.",
+      "title": "Add canonical capability-family and policy types",
+      "verification": "cargo test -p focusa-license entitlement_policy_types"
+    },
+    {
+      "code": "01.02",
+      "dependencies": [
+        "focusa-vbcqu.20.14.5"
+      ],
+      "done_condition": "Production policy is deterministic, digest-bound, and rejects malformed or externally substituted policy.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.6-acceptance.txt",
+      "exact_surfaces": "crates/focusa-license/src/entitlement_policy.rs; docs/contracts/spec152f-entitlement-policy.v1.yaml; build/generation entrypoint chosen in Cargo.toml",
+      "id": "focusa-vbcqu.20.14.6",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "01",
+      "required_output": "Validated embedded policy registry with digest available to receipts/status.",
+      "required_steps": "Load or compile the canonical registry deterministically. Validate family uniqueness, base/premium rules, recovery invariants, feature references, and dormant dimensions. Production must not accept an arbitrary user-supplied registry path.",
+      "title": "Implement deterministic operation-policy registry loader",
+      "verification": "cargo test -p focusa-license entitlement_policy_registry"
+    },
+    {
+      "code": "01.03",
+      "dependencies": [
+        "focusa-vbcqu.20.14.5"
+      ],
+      "done_condition": "Every Spec 152F grid cell has a positive and negative table case with deterministic reasons.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.7-acceptance.txt",
+      "exact_surfaces": "crates/focusa-license/src/entitlement_policy.rs; crates/focusa-license/tests/entitlement_policy_grid.rs",
+      "id": "focusa-vbcqu.20.14.7",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "01",
+      "required_output": "Pure reducer returning typed allow/read/base/feature/deny posture.",
+      "required_steps": "Implement Pending, VerifiedNoGrant, Evaluation, ActivePaid, OfflineGrace, Expired, RefundedOrRevoked, and MissingOrCorrupt. Resolve only policy posture; do not create customers, keys, leases, roles, or operator authority.",
+      "title": "Implement the entitlement-state grid reducer",
+      "verification": "cargo test -p focusa-license --test entitlement_policy_grid state_grid"
+    },
+    {
+      "code": "01.04",
+      "dependencies": [
+        "focusa-vbcqu.20.14.6",
+        "focusa-vbcqu.20.14.7"
+      ],
+      "done_condition": "Base core mutations need one usable signed product entitlement, not three separately purchased core feature flags.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.8-acceptance.txt",
+      "exact_surfaces": "crates/focusa-license/src/entitlement_policy.rs; crates/focusa-license/src/lib.rs; crates/focusa-core/src/license.rs",
+      "id": "focusa-vbcqu.20.14.8",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "01",
+      "required_output": "Canonical BASE decision and compatibility projection.",
+      "required_steps": "Treat usable Evaluation/Active/OfflineGrace product=focusa as the base gate for value-producing core mutations. Preserve core.mission/workpoint/evidence claims for compatibility and telemetry, but do not require separate purchases. Keep legacy parsing non-authoritative.",
+      "title": "Implement base Focusa product resolution",
+      "verification": "cargo test -p focusa-license base_product_resolution && cargo test -p focusa-core license"
+    },
+    {
+      "code": "01.05",
+      "dependencies": [
+        "focusa-vbcqu.20.14.6",
+        "focusa-vbcqu.20.14.7"
+      ],
+      "done_condition": "Every blocked entitlement state retains required customer-control paths and none of those paths grants production capability.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.9-acceptance.txt",
+      "exact_surfaces": "crates/focusa-license/src/entitlement_policy.rs; crates/focusa-api/src/middleware/entitlement.rs; docs/contracts/spec152f-entitlement-policy.v1.yaml",
+      "id": "focusa-vbcqu.20.14.9",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "01",
+      "required_output": "Typed allowance decisions with explicit security prerequisites.",
+      "required_steps": "Resolve account/recovery, safe read, basic customer-data export, diagnostics, repair, stable security update, rollback, node deactivation, and uninstall without commercial entitlement while preserving identity, role, device, confirmation, and scope checks.",
+      "title": "Implement recovery, read, export, and security-maintenance allowances",
+      "verification": "cargo test -p focusa-license recovery_allowances && cargo test -p focusa-api recovery_allowances"
+    },
+    {
+      "code": "01.06",
+      "dependencies": [
+        "focusa-vbcqu.20.14.6",
+        "focusa-vbcqu.20.14.7"
+      ],
+      "done_condition": "All premium decisions are authority-owned, base-first, sequence-bound, and fail closed on missing/mismatched grants.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.10-acceptance.txt",
+      "exact_surfaces": "crates/focusa-license/src/entitlement_policy.rs; docs/contracts/spec152-feature-registry.v1.yaml",
+      "id": "focusa-vbcqu.20.14.10",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "01",
+      "required_output": "Typed FEATURE decisions with exact missing-feature reasons.",
+      "required_steps": "Resolve automation, team_remote, release_proof, and premium_updates only after BASE. Map existing feature IDs exactly. Evaluation receives only authority-granted premium features. Offline Grace permits only cached unexpired grants and never expands them.",
+      "title": "Implement four premium-family resolution",
+      "verification": "cargo test -p focusa-license premium_family_resolution"
+    },
+    {
+      "code": "01.07",
+      "dependencies": [
+        "focusa-vbcqu.20.14.6",
+        "focusa-vbcqu.20.14.7"
+      ],
+      "done_condition": "Dormant fields are observable but cannot deny or grant capability; active fields require registered policy and authority claims.",
+      "estimate_minutes": 150,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.11-acceptance.txt",
+      "exact_surfaces": "crates/focusa-license/src/entitlement_policy.rs; docs/contracts/spec152f-entitlement-policy.v1.yaml",
+      "id": "focusa-vbcqu.20.14.11",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "01",
+      "required_output": "Dormant-dimension model and activation guard.",
+      "required_steps": "Represent operation, sub-capability, role, origin, channel, plan, limit, and time dimensions with explicit active/dormant status. Ignore absent dormant claims for authorization. Reject unapproved runtime activation and prevent licensing from granting roles/operator authority.",
+      "title": "Preserve dormant future-granularity dimensions",
+      "verification": "cargo test -p focusa-license dormant_granularity"
+    },
+    {
+      "code": "01.08",
+      "dependencies": [
+        "focusa-vbcqu.20.14.10",
+        "focusa-vbcqu.20.14.11",
+        "focusa-vbcqu.20.14.8",
+        "focusa-vbcqu.20.14.9"
+      ],
+      "done_condition": "Every presenter can render the same decision without recomputing policy or exposing credentials.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.12-acceptance.txt",
+      "exact_surfaces": "crates/focusa-license/src/entitlement_policy.rs; crates/focusa-license/src/lib.rs; crates/focusa-api/src/routes/license.rs; crates/focusa-cli/src/commands/license.rs",
+      "id": "focusa-vbcqu.20.14.12",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "01",
+      "required_output": "Presenter-neutral EntitlementDecision projection.",
+      "required_steps": "Project one redacted decision envelope: state, family, treatment, required feature/limit, reason, recovery action, policy digest, lease sequence, and no raw key/token. Keep API/CLI JSON names stable.",
+      "title": "Add canonical entitlement decision projection",
+      "verification": "cargo test -p focusa-license entitlement_decision_projection && python3 tests/spec152_entitlement_projection_test.py"
+    },
+    {
+      "code": "01.09",
+      "dependencies": [
+        "focusa-vbcqu.20.14.12"
+      ],
+      "done_condition": "All consumers produce byte-stable semantic decisions for the same vector and reject negative cases.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.13-acceptance.txt",
+      "exact_surfaces": "tests/fixtures/spec152f-entitlement-policy-cases.v1.json; crates/focusa-license/tests/entitlement_policy_grid.rs; tests/spec152f_entitlement_policy_vectors_test.py",
+      "id": "focusa-vbcqu.20.14.13",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "01",
+      "required_output": "Canonical vectors consumed by Rust and Python/static clients.",
+      "required_steps": "Create vectors for every state/family combination, base compatibility, premium missing/present, recovery, read, limits, dormant fields, unknown family, stale sequence, wrong product/node/audience, and refund/revoke override.",
+      "title": "Freeze cross-language policy golden vectors",
+      "verification": "cargo test -p focusa-license --test entitlement_policy_grid && python3 tests/spec152f_entitlement_policy_vectors_test.py"
+    },
+    {
+      "code": "02.01",
+      "dependencies": [
+        "focusa-vbcqu.20.14.13"
+      ],
+      "done_condition": "Direct non-HTTP invocation cannot bypass base/premium policy and recovery/read operations remain available.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.14-acceptance.txt",
+      "exact_surfaces": "crates/focusa-core/src/license.rs; crates/focusa-core/src/lib.rs; new focused guard module if needed",
+      "id": "focusa-vbcqu.20.14.14",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "02",
+      "required_output": "Core guard with no presenter-specific policy.",
+      "required_steps": "Add a single guard called by CLI, agents, embedded clients, workers, and schedulers before value-producing side effects. Accept canonical operation policy plus context; delegate all commercial resolution to focusa-license.",
+      "title": "Implement non-HTTP core execution guard",
+      "verification": "cargo test -p focusa-core entitlement_execution_guard"
+    },
+    {
+      "code": "02.02",
+      "dependencies": [
+        "focusa-vbcqu.20.14.14"
+      ],
+      "done_condition": "REST and non-HTTP paths return the same decision for identical context and no handler runs after denial.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.15-acceptance.txt",
+      "exact_surfaces": "crates/focusa-api/src/middleware/entitlement.rs; crates/focusa-api/src/middleware/route_scope.rs; crates/focusa-api/src/server.rs",
+      "id": "focusa-vbcqu.20.14.15",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "02",
+      "required_output": "Thin route middleware using the same resolver as the core guard.",
+      "required_steps": "Replace route-local feature inference with operation policy + canonical resolver. Preserve auth/scope order, run before handlers/side effects, and return stable decision/error envelopes.",
+      "title": "Refactor API middleware onto canonical resolver",
+      "verification": "cargo test -p focusa-api entitlement_middleware"
+    },
+    {
+      "code": "02.03",
+      "dependencies": [
+        "focusa-vbcqu.20.14.15",
+        "focusa-vbcqu.20.14.6"
+      ],
+      "done_condition": "Every unknown case fails before side effects with a stable error and exact source operation reference.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.16-acceptance.txt",
+      "exact_surfaces": "crates/focusa-api/src/middleware/entitlement.rs; docs/contracts/spec141/generated-capability-v2/route-classification.json; operation registry generators",
+      "id": "focusa-vbcqu.20.14.16",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "02",
+      "required_output": "Shared operation classifier and negative fixtures.",
+      "required_steps": "Distinguish safe read, recovery, value mutation, internal maintenance, and unknown. Unknown method or side effect returns ENTITLEMENT_ROUTE_UNCLASSIFIED before execution; no GET-with-side-effect shortcut.",
+      "title": "Fail closed on unknown method, mutation, or side effect",
+      "verification": "cargo test -p focusa-api unknown_entitlement_classification && python3 tests/spec152_recovery_only_route_gate_test.py"
+    },
+    {
+      "code": "02.04",
+      "dependencies": [
+        "focusa-vbcqu.20.14.10",
+        "focusa-vbcqu.20.14.14",
+        "focusa-vbcqu.20.14.15"
+      ],
+      "done_condition": "Concurrent/replayed operations cannot exceed limits, duplicate side effects, or consume reservations after denial.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.17-acceptance.txt",
+      "exact_surfaces": "crates/focusa-license/src/feature_decision.rs; crates/focusa-api/src/middleware/entitlement.rs; relevant reservation middleware/services",
+      "id": "focusa-vbcqu.20.14.17",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "02",
+      "required_output": "Canonical pre-side-effect reservation pipeline.",
+      "required_steps": "Resolve usable lease -> base/premium family -> idempotency -> reserve limit -> execute -> settle/release. Preserve existing ENTITLEMENT_IDEMPOTENCY_REQUIRED, LIMIT_EXHAUSTED, and RESERVATION_FAILED semantics.",
+      "title": "Order entitlement and atomic limit reservation before side effects",
+      "verification": "python3 tests/spec152_limit_reservation_test.py && cargo test -p focusa-api entitlement_limit_reservation"
+    },
+    {
+      "code": "02.05",
+      "dependencies": [
+        "focusa-vbcqu.20.14.14",
+        "focusa-vbcqu.20.14.17"
+      ],
+      "done_condition": "Queued work executes only under current usable authority and denied work settles without protected side effects or lost customer data.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.18-acceptance.txt",
+      "exact_surfaces": "crates/focusa-core/src/silent_session_scheduler.rs; crates/focusa-core/src/work_item/scheduler.rs; worker dispatch call sites discovered by the reconciliation manifest",
+      "id": "focusa-vbcqu.20.14.18",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "02",
+      "required_output": "Dispatch-time guard and cancellation settlement.",
+      "required_steps": "Persist initiating operation/family/reservation references, then re-read current authority state and policy at dispatch. Stop queued work after refund/revoke/expiry/node removal. Do not let queue time extend Offline Grace.",
+      "title": "Revalidate workers and schedulers at dispatch",
+      "verification": "cargo test -p focusa-core scheduler_entitlement_revalidation"
+    },
+    {
+      "code": "02.06",
+      "dependencies": [
+        "focusa-vbcqu.20.14.14",
+        "focusa-vbcqu.20.14.4"
+      ],
+      "done_condition": "Every maintenance entrypoint is explicitly recovery-safe or inherits a canonical initiating decision; none grants itself entitlement.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.19-acceptance.txt",
+      "exact_surfaces": "core workers, telemetry, cache maintenance, migrations, and helper operations listed in spec152f-surface-reconciliation.v1.json",
+      "id": "focusa-vbcqu.20.14.19",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "02",
+      "required_output": "Internal-maintenance policy adapters and trace fields.",
+      "required_steps": "Classify internal maintenance as recovery-safe or inherited. Carry initiating decision/operation where applicable. Prevent internal labels from becoming independent paid features or bypasses.",
+      "title": "Make internal maintenance inherit initiating authority",
+      "verification": "cargo test --workspace internal_maintenance_entitlement"
+    },
+    {
+      "code": "02.07",
+      "dependencies": [
+        "focusa-vbcqu.20.14.16",
+        "focusa-vbcqu.20.14.17",
+        "focusa-vbcqu.20.14.18",
+        "focusa-vbcqu.20.14.19"
+      ],
+      "done_condition": "All denial classes produce zero protected partial side effects and deterministic recovery guidance.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.20-acceptance.txt",
+      "exact_surfaces": "focusa-api/core negative integration tests; temporary SQLite fixtures; operation side-effect counters",
+      "id": "focusa-vbcqu.20.14.20",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "02",
+      "required_output": "Reusable denial-atomicity harness.",
+      "required_steps": "Inject missing/expired/refunded/wrong-feature/limit/unknown-policy denials immediately before every chokepoint. Assert handler, DB mutation, worker enqueue, external adapter, and reservation settlement behavior.",
+      "title": "Prove denial atomicity and no partial side effects",
+      "verification": "cargo test --workspace entitlement_denial_atomicity"
+    },
+    {
+      "code": "02.08",
+      "dependencies": [
+        "focusa-vbcqu.20.14.15",
+        "focusa-vbcqu.20.14.20",
+        "focusa-vbcqu.20.14.9"
+      ],
+      "done_condition": "Required customer-control routes remain available while protected mutations and accidental destructive purge remain denied.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.21-acceptance.txt",
+      "exact_surfaces": "crates/focusa-api route registry; entitlement middleware; export/update/repair/uninstall/account/node-deactivation routes; tests/spec152f_recovery_matrix_test.py",
+      "id": "focusa-vbcqu.20.14.21",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "02",
+      "required_output": "Machine allowlist plus positive/negative recovery matrix.",
+      "required_steps": "Enumerate and test registration, activation, status, refresh/recovery, account, node deactivation, safe read, basic export, diagnostics, repair, stable security update, rollback, uninstall, and confirmed purge boundaries in every blocked state.",
+      "title": "Prove permanent recovery and customer-control routes",
+      "verification": "python3 tests/spec152f_recovery_matrix_test.py && cargo test -p focusa-api recovery_route_matrix"
+    },
+    {
+      "code": "03.01",
+      "dependencies": [
+        "focusa-vbcqu.20.14.4",
+        "focusa-vbcqu.20.14.6"
+      ],
+      "done_condition": "Every callable operation has one valid policy owner and generated outputs reproduce without diff.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.22-acceptance.txt",
+      "exact_surfaces": "docs/contracts/spec135/generated-contract-v1/operation-registry.json; generator source; Agent Capability Descriptor V2 inputs",
+      "id": "focusa-vbcqu.20.14.22",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "03",
+      "required_output": "Generated operation metadata used by all surface projections.",
+      "required_steps": "Add operation class, family, base/premium/recovery treatment, limit bucket, and source owner at the operation level. Generate rather than hand-edit outputs. Preserve stable operation IDs.",
+      "title": "Add operation-family metadata to canonical registry",
+      "verification": "python3 tests/spec135_operation_registry_test.py && python3 tests/spec152f_operation_policy_metadata_test.py"
+    },
+    {
+      "code": "03.02",
+      "dependencies": [
+        "focusa-vbcqu.20.14.16",
+        "focusa-vbcqu.20.14.22"
+      ],
+      "done_condition": "All 31 baseline routes are source-backed and no mutation is classified as read merely to avoid entitlement.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.23-acceptance.txt",
+      "exact_surfaces": "route declaration sources for connect/context-cognition/pair/device/call-stack/agent; route-classification generator and output",
+      "id": "focusa-vbcqu.20.14.23",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "03",
+      "required_output": "Route metadata with zero unknown methods for the 31-entry set.",
+      "required_steps": "For each baseline unknown route, record exact HTTP methods and side-effect class from source. Assign read/recovery/base/premium. Do not infer from path names. Add negative method tests.",
+      "title": "Classify all 31 unknown-method REST routes",
+      "verification": "python3 tests/spec152f_unknown_route_method_test.py"
+    },
+    {
+      "code": "03.03",
+      "dependencies": [
+        "focusa-vbcqu.20.14.15",
+        "focusa-vbcqu.20.14.22",
+        "focusa-vbcqu.20.14.23"
+      ],
+      "done_condition": "199/199 routes resolve through canonical operations and no route owns pricing, tier, or caller-controlled grants.",
+      "estimate_minutes": 300,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.24-acceptance.txt",
+      "exact_surfaces": "route-classification generator/output; operation registry; API middleware; spec152f reconciliation manifest",
+      "id": "focusa-vbcqu.20.14.24",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "03",
+      "required_output": "REST entitlement coverage with zero unmatched entries.",
+      "required_steps": "Link each REST route to canonical operation policy. Split multi-operation routes explicitly. Mark recovery/read exceptions narrowly. Default remaining value mutations to BASE; premium only at approved family boundaries.",
+      "title": "Resolve all 199 REST inventory entries by inheritance",
+      "verification": "python3 tests/spec152f_rest_entitlement_inheritance_test.py && cargo test -p focusa-api route_entitlement_inheritance"
+    },
+    {
+      "code": "03.04",
+      "dependencies": [
+        "focusa-vbcqu.20.14.14",
+        "focusa-vbcqu.20.14.22"
+      ],
+      "done_condition": "86/86 top-level commands inherit policy; no command name is treated as a standalone SKU or bypass.",
+      "estimate_minutes": 300,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.25-acceptance.txt",
+      "exact_surfaces": "crates/focusa-cli/src/main.rs; command modules; docs/contracts/spec152f-cli-operation-map.v1.json",
+      "id": "focusa-vbcqu.20.14.25",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "03",
+      "required_output": "Generated/tested CLI-to-operation map.",
+      "required_steps": "Map top-level and protected subcommands to operation IDs. Mark local display/help, recovery, and destructive confirmation explicitly. Commands that call core directly must use the core guard.",
+      "title": "Map all 86 CLI commands to canonical operations",
+      "verification": "python3 tests/spec152f_cli_operation_map_test.py && cargo test -p focusa-cli --test command_hierarchy_e2e"
+    },
+    {
+      "code": "03.05",
+      "dependencies": [
+        "focusa-vbcqu.20.14.15",
+        "focusa-vbcqu.20.14.22"
+      ],
+      "done_condition": "83/83 baseline actions are mapped; buttons never mint or reinterpret entitlement and protected denial remains actionable.",
+      "estimate_minutes": 300,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.26-acceptance.txt",
+      "exact_surfaces": "apps/menubar/src/**/*.svelte; apps/menubar/src/lib/api.ts; docs/contracts/spec152f-menubar-action-map.v1.json",
+      "id": "focusa-vbcqu.20.14.26",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "03",
+      "required_output": "Generated/tested action map and thin presenters.",
+      "required_steps": "Classify click handlers as navigation/display, recovery/account, or an invoked canonical operation. Remove commercial decisions from components. For multi-action handlers identify each protected call and preserve accessibility.",
+      "title": "Map all 83 menubar actions to canonical operations",
+      "verification": "node tests/spec152f_menubar_action_map_test.mjs"
+    },
+    {
+      "code": "03.06",
+      "dependencies": [
+        "focusa-vbcqu.20.14.4"
+      ],
+      "done_condition": "No test fixture is counted as runtime policy and no production entrypoint is hidden by the exclusion.",
+      "estimate_minutes": 120,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.27-acceptance.txt",
+      "exact_surfaces": "scripts/generate-spec152-entitlement-coverage.py; seven baseline _test.rs/tests paths; tests/spec152f_surface_scanner_test.py",
+      "id": "focusa-vbcqu.20.14.27",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "03",
+      "required_output": "Scanner rules and deterministic exclusion receipt.",
+      "required_steps": "Exclude paths under test directories and recognized test modules without excluding production modules that contain test helpers. Assert the exact seven baseline false positives disappear.",
+      "title": "Exclude test-only files from runtime surface discovery",
+      "verification": "python3 tests/spec152f_surface_scanner_test.py"
+    },
+    {
+      "code": "03.07",
+      "dependencies": [
+        "focusa-vbcqu.20.14.18",
+        "focusa-vbcqu.20.14.19",
+        "focusa-vbcqu.20.14.22",
+        "focusa-vbcqu.20.14.27"
+      ],
+      "done_condition": "20/20 production files resolve by callable operation and none is licensed merely because its filename contains release/update/export/scheduler.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.28-acceptance.txt",
+      "exact_surfaces": "release/update/export/scheduler runtime files in reconciliation manifest; canonical operation metadata; core guard",
+      "id": "focusa-vbcqu.20.14.28",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "03",
+      "required_output": "20-entry runtime map and guarded call sites.",
+      "required_steps": "Replace filename-based policy with callable entrypoint metadata. Classify release modules as base/release_proof as appropriate, stable update/repair and basic export as allowances, premium update/package operations explicitly, schedulers by initiating operation.",
+      "title": "Classify the remaining 20 runtime file-derived entrypoints",
+      "verification": "python3 tests/spec152f_runtime_entrypoint_map_test.py && cargo test --workspace runtime_entrypoint_entitlement"
+    },
+    {
+      "code": "03.08",
+      "dependencies": [
+        "focusa-vbcqu.20.14.24",
+        "focusa-vbcqu.20.14.25",
+        "focusa-vbcqu.20.14.26",
+        "focusa-vbcqu.20.14.28"
+      ],
+      "done_condition": "Every current REST/CLI/menubar/runtime entry resolves through base, premium, allowance, or explicit denial with zero silent defaults.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.29-acceptance.txt",
+      "exact_surfaces": "scripts/generate-spec152-entitlement-coverage.py; docs/contracts/spec152-entitlement-coverage.v1.json; tests/spec152_entitlement_coverage_test.py",
+      "id": "focusa-vbcqu.20.14.29",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "03",
+      "required_output": "Deterministic current coverage ledger plus historical reconciliation.",
+      "required_steps": "Teach coverage generation to consume canonical operation maps and inheritance. Preserve the historical 395 baseline in the reconciliation contract. Current unmatched must be zero; unknown side effects remain explicit failures, not auto-covered.",
+      "title": "Regenerate entitlement coverage with zero unmatched surfaces",
+      "verification": "python3 scripts/generate-spec152-entitlement-coverage.py --check && python3 tests/spec152_entitlement_coverage_test.py && python3 tests/spec152f_surface_reconciliation_contract_test.py"
+    },
+    {
+      "code": "04.01",
+      "dependencies": [
+        "focusa-vbcqu.20.14.10",
+        "focusa-vbcqu.20.14.17",
+        "focusa-vbcqu.20.14.18",
+        "focusa-vbcqu.20.14.29"
+      ],
+      "done_condition": "Interactive base use is not accidentally premium; unattended/parallel work cannot run without exact grants and capacity.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.30-acceptance.txt",
+      "exact_surfaces": "silent-session, scheduled-work, subagent, provider-parallelism operation metadata and call sites",
+      "id": "focusa-vbcqu.20.14.30",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "04",
+      "required_output": "Automation family map, guards, and limits tests.",
+      "required_steps": "Keep ordinary interactive Work Loop/session operations in BASE. Require silent_sessions for autonomous silent work and parallelism for concurrent subagents/providers. Revalidate at dispatch and reserve limits before spawn.",
+      "title": "Enforce automation premium boundaries",
+      "verification": "cargo test --workspace spec152f_automation_entitlement"
+    },
+    {
+      "code": "04.02",
+      "dependencies": [
+        "focusa-vbcqu.20.14.10",
+        "focusa-vbcqu.20.14.17",
+        "focusa-vbcqu.20.14.21",
+        "focusa-vbcqu.20.14.29"
+      ],
+      "done_condition": "Activation is not paywalled; expansion beyond base allowance requires exact authority grants and cannot exceed limits.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.31-acceptance.txt",
+      "exact_surfaces": "connect/pair/device/sync/instances/tokens/session-transfer operations; node management; focusa.remote.stream",
+      "id": "focusa-vbcqu.20.14.31",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "04",
+      "required_output": "Team/remote family map and race/recovery tests.",
+      "required_steps": "Allow activation/recovery pairing and base-node management. Require team.multi_operator/remote.stream for additional peers/operators/remote collaboration. Keep revoke/deactivate/recovery available and enforce node/seat reservations.",
+      "title": "Enforce team and remote premium boundaries",
+      "verification": "cargo test --workspace spec152f_team_remote_entitlement"
+    },
+    {
+      "code": "04.03",
+      "dependencies": [
+        "focusa-vbcqu.20.14.10",
+        "focusa-vbcqu.20.14.28",
+        "focusa-vbcqu.20.14.29"
+      ],
+      "done_condition": "Only justified release orchestration/proof operations require the premium grant and all presenters agree.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.32-acceptance.txt",
+      "exact_surfaces": "release operation registry; crates/focusa-api/src/routes/release.rs; CLI release commands; core release modules",
+      "id": "focusa-vbcqu.20.14.32",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "04",
+      "required_output": "Release-proof operation map and guard tests.",
+      "required_steps": "Keep safe release status/read projection available as appropriate. Require release.proof only for advanced governed proof/orchestration operations. Do not gate unrelated base temporal/evidence capability by filename.",
+      "title": "Enforce release-proof premium boundary",
+      "verification": "cargo test --workspace spec152f_release_proof_entitlement"
+    },
+    {
+      "code": "04.04",
+      "dependencies": [
+        "focusa-vbcqu.20.14.10",
+        "focusa-vbcqu.20.14.21",
+        "focusa-vbcqu.20.14.28"
+      ],
+      "done_condition": "Expired/revoked users can become secure and recover; premium channels/unattended apply remain authority controlled.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.33-acceptance.txt",
+      "exact_surfaces": "crates/focusa-core/src/update.rs; API/CLI update modules; trust metadata; update/install-channel features",
+      "id": "focusa-vbcqu.20.14.33",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "04",
+      "required_output": "Update policy map and blocked-state tests.",
+      "required_steps": "Allow stable trust refresh, security update, repair, and rollback in blocked states. Require unattended for background apply and preview/nightly channel grants for those channels. Preserve signature/trust verification and confirmation.",
+      "title": "Split stable security maintenance from premium updates",
+      "verification": "cargo test --workspace spec152f_update_entitlement && python3 tests/spec152f_recovery_matrix_test.py"
+    },
+    {
+      "code": "04.05",
+      "dependencies": [
+        "focusa-vbcqu.20.14.10",
+        "focusa-vbcqu.20.14.21",
+        "focusa-vbcqu.20.14.28"
+      ],
+      "done_condition": "Basic export works in every blocked state and premium denial affects only clearly additive packaging.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.34-acceptance.txt",
+      "exact_surfaces": "API/CLI export operations; silent-session retention export; focusa.export.packaged feature",
+      "id": "focusa-vbcqu.20.14.34",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "04",
+      "required_output": "Export policy map, fixtures, and privacy/redaction tests.",
+      "required_steps": "Always permit authenticated export of customer-owned records in usable formats. Use export.packaged only for value-added hosted packaging/transformation/report formats. Never delete or mutate source data on entitlement denial.",
+      "title": "Separate basic customer-data export from premium packaging",
+      "verification": "cargo test --workspace spec152f_export_entitlement"
+    },
+    {
+      "code": "04.06",
+      "dependencies": [
+        "focusa-vbcqu.20.13.59",
+        "focusa-vbcqu.20.14.10",
+        "focusa-vbcqu.20.14.29"
+      ],
+      "done_condition": "UIAI/browser paths inherit parent decisions, reject stale/widened tokens, and remain independent from pairing/auth authority.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.35-acceptance.txt",
+      "exact_surfaces": "browser/proxy/MCP/UIAI operations; crates/focusa-license/src/uiai_child_token.rs; UIAI issue #5 integration",
+      "id": "focusa-vbcqu.20.14.35",
+      "owner": "Startempire-Wire/focusa + WPUIAI/uiai-engine",
+      "phase": "04",
+      "required_output": "Integration family map and shared golden vectors.",
+      "required_steps": "Classify local base integration versus remote/premium capability. Mint bounded child tokens only from usable parent entitlement with audience, operation scope, expiry, sequence, node, and feature subset. Child tokens cannot widen authority.",
+      "title": "Bind UIAI/browser integrations to parent policy and child tokens",
+      "verification": "python3 tests/spec152_uiai_child_token_broker_test.py && python3 tests/spec152f_uiai_policy_test.py"
+    },
+    {
+      "code": "04.07",
+      "dependencies": [
+        "focusa-vbcqu.20.14.30",
+        "focusa-vbcqu.20.14.31",
+        "focusa-vbcqu.20.14.32",
+        "focusa-vbcqu.20.14.33",
+        "focusa-vbcqu.20.14.34",
+        "focusa-vbcqu.20.14.35"
+      ],
+      "done_condition": "No family or limit can be widened by client metadata, presentation layer, replay, race, stale state, or another product/account.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.36-acceptance.txt",
+      "exact_surfaces": "all four premium-family tests; feature/limit registry; reservation service; product fixtures",
+      "id": "focusa-vbcqu.20.14.36",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "04",
+      "required_output": "One premium-family adversarial matrix.",
+      "required_steps": "Run wrong product, caller-supplied feature, stale lease, duplicate request, exhausted limit, concurrent reservation, Evaluation omission, Offline Grace expansion, cross-family, and cross-account cases.",
+      "title": "Prove premium limit, idempotency, and grant isolation",
+      "verification": "python3 tests/spec152f_premium_family_adversarial_test.py && cargo test --workspace spec152f_premium_adversarial"
+    },
+    {
+      "code": "05.01",
+      "dependencies": [
+        "focusa-vbcqu.20.14.12",
+        "focusa-vbcqu.20.14.25",
+        "focusa-vbcqu.20.14.36"
+      ],
+      "done_condition": "All 86 commands inherit policy and CLI never becomes an independent authority or blocks recovery commands.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.37-acceptance.txt",
+      "exact_surfaces": "crates/focusa-cli/src/commands/license.rs; command dispatcher/preflight; JSON output fixtures",
+      "id": "focusa-vbcqu.20.14.37",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "05",
+      "required_output": "CLI presenter parity and transcript fixtures.",
+      "required_steps": "Use the canonical decision for fast preflight and final execution. Render base/premium/recovery reason and next action. Preserve stable JSON, secret redaction, nonzero exit semantics, and no local grant fallback.",
+      "title": "Project canonical decisions through CLI",
+      "verification": "python3 tests/spec152_cli_entitlement_gate_test.py && python3 tests/spec152f_cli_presenter_test.py"
+    },
+    {
+      "code": "05.02",
+      "dependencies": [
+        "focusa-vbcqu.20.14.12",
+        "focusa-vbcqu.20.14.26",
+        "focusa-vbcqu.20.14.36"
+      ],
+      "done_condition": "Menubar/TUI show the same decision/recovery action and no disabled control traps the customer away from data or purchase.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.38-acceptance.txt",
+      "exact_surfaces": "apps/menubar entitlement components/API; crates/focusa-tui/src/api.rs and views; action map",
+      "id": "focusa-vbcqu.20.14.38",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "05",
+      "required_output": "Desktop/TUI presenter parity tests and accessibility fixtures.",
+      "required_steps": "Keep navigation, status, account, read, export, recovery, repair, update, and uninstall reachable. Disable only denied value actions with accessible explanation and Evaluation/purchase/recovery action. Remove component-local policy.",
+      "title": "Project canonical decisions through menubar and TUI",
+      "verification": "node apps/menubar/tests/entitlement-posture.mjs && python3 tests/spec152_tui_entitlement_gate_test.py && node tests/spec152f_presenter_accessibility_test.mjs"
+    },
+    {
+      "code": "05.03",
+      "dependencies": [
+        "focusa-vbcqu.20.14.12",
+        "focusa-vbcqu.20.14.22",
+        "focusa-vbcqu.20.14.36"
+      ],
+      "done_condition": "Every agent tool inherits its operation policy and licensing never grants operator/cognitive authority.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.39-acceptance.txt",
+      "exact_surfaces": "apps/pi-extension tool preflight/state/commands; Agent Capability Descriptor V2; agent JSON envelopes",
+      "id": "focusa-vbcqu.20.14.39",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "05",
+      "required_output": "Pi/agent policy adapter and parity tests.",
+      "required_steps": "Resolve operation policy before side effects, preserve operator permission/confirmation independently, return stable machine JSON, and expose recovery actions. Tool discovery/visibility must not itself grant entitlement.",
+      "title": "Project canonical decisions through Pi and agent tools",
+      "verification": "node apps/pi-extension/tests/pi-entitlement-gate.test.mjs && python3 tests/spec152f_agent_presenter_test.py"
+    },
+    {
+      "code": "05.04",
+      "dependencies": [
+        "focusa-vbcqu.20.13.42",
+        "focusa-vbcqu.20.13.44",
+        "focusa-vbcqu.20.14.12",
+        "focusa-vbcqu.20.14.21",
+        "focusa-vbcqu.20.14.36"
+      ],
+      "done_condition": "Official and source installs use the same policy; no installer creates Evaluation or duplicates commercial logic.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.40-acceptance.txt",
+      "exact_surfaces": "crates/focusa-core/src/install_lifecycle; Rust installer/CLI; scripts/install-focusa.sh; scripts/install-focusa.ps1; Spec150A receipts",
+      "id": "focusa-vbcqu.20.14.40",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "05",
+      "required_output": "Lifecycle policy binding and reconciled receipt tests.",
+      "required_steps": "Installer remains usable for install/preflight/activate/repair/update/uninstall. First useful value mutation requires authority-backed Evaluation/paid lease. Record policy digest, family, state, lease sequence, recovery posture, and no raw key.",
+      "title": "Bind installer and lifecycle receipts to simple policy",
+      "verification": "python3 tests/170_focusa_installer_entitlement_activation_gate_test.py && python3 tests/spec152f_lifecycle_policy_test.py"
+    },
+    {
+      "code": "05.05",
+      "dependencies": [
+        "focusa-vbcqu.20.13.31",
+        "focusa-vbcqu.20.14.12",
+        "focusa-vbcqu.20.14.36"
+      ],
+      "done_condition": "Every facade explains the same authority decision and cannot turn dormant/premium fields on or off.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.41-acceptance.txt",
+      "exact_surfaces": "registered facade descriptors/pages; authority denial/recovery envelopes; Focusa website presenters",
+      "id": "focusa-vbcqu.20.14.41",
+      "owner": "WPUIAI/wpuiai + facade owners",
+      "phase": "05",
+      "required_output": "Facade policy presenter contract and spoof tests.",
+      "required_steps": "Facades display base/premium family, Evaluation/purchase/recovery action, and safe masked status from authority. They cannot select grants, prices, feature activation, or runtime policy. Exact-origin/session/redirect rules remain Spec 152E-owned.",
+      "title": "Bind branded facades to policy explanation only",
+      "verification": "python3 tests/spec152f_facade_policy_presenter_test.py"
+    },
+    {
+      "code": "05.06",
+      "dependencies": [
+        "focusa-vbcqu.20.14.37",
+        "focusa-vbcqu.20.14.38",
+        "focusa-vbcqu.20.14.39",
+        "focusa-vbcqu.20.14.40",
+        "focusa-vbcqu.20.14.41"
+      ],
+      "done_condition": "Messages are semantically identical, accessible, redacted, and always preserve a route to purchase or recovery.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.42-acceptance.txt",
+      "exact_surfaces": "stable error registry; CLI/desktop/TUI/Pi/facade message fixtures; account/evaluation/checkout/recovery links",
+      "id": "focusa-vbcqu.20.14.42",
+      "owner": "Startempire-Wire/focusa + WPUIAI/wpuiai",
+      "phase": "05",
+      "required_output": "Cross-presenter message catalog and accessibility/privacy checks.",
+      "required_steps": "For each state/family, provide plain-language blocked action, reason, retained access, and one safe next action. Avoid internal route/lease details, false urgency, account enumeration, raw email/key/token, and dead-end paywalls.",
+      "title": "Standardize denial, purchase, and recovery UX",
+      "verification": "python3 tests/spec152f_denial_ux_parity_test.py"
+    },
+    {
+      "code": "06.01",
+      "dependencies": [
+        "focusa-vbcqu.20.14.21",
+        "focusa-vbcqu.20.14.36"
+      ],
+      "done_condition": "Every grid cell matches Spec 152F and API/core decisions are identical.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.43-acceptance.txt",
+      "exact_surfaces": "policy golden vectors; canonical resolver; API/core guards; recovery matrix",
+      "id": "focusa-vbcqu.20.14.43",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "06",
+      "required_output": "Replayable state-grid acceptance receipt.",
+      "required_steps": "Exercise all eight states against all nine families, positive/negative feature grants, base compatibility, limits, roles, node/product/audience, and unknown policy. Compare pure resolver, API, and core results.",
+      "title": "Run complete entitlement-state grid acceptance",
+      "verification": "cargo test -p focusa-license --test entitlement_policy_grid && cargo test --workspace spec152f_state_grid_acceptance"
+    },
+    {
+      "code": "06.02",
+      "dependencies": [
+        "focusa-vbcqu.20.14.42",
+        "focusa-vbcqu.20.14.43"
+      ],
+      "done_condition": "Every presenter agrees with canonical authority and contains no independent grant or dead-end recovery behavior.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.44-acceptance.txt",
+      "exact_surfaces": "CLI, menubar, TUI, Pi/agent, installer/lifecycle, facade fixtures; canonical decision vectors",
+      "id": "focusa-vbcqu.20.14.44",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "06",
+      "required_output": "Cross-presenter parity report with exact vector IDs.",
+      "required_steps": "Replay identical base/premium/recovery denials and allows through each presenter. Compare state, family, reason, error, recovery action, redaction, and side-effect counters.",
+      "title": "Run complete cross-presenter parity acceptance",
+      "verification": "python3 tests/spec152f_cross_presenter_parity_test.py"
+    },
+    {
+      "code": "06.03",
+      "dependencies": [
+        "focusa-vbcqu.20.13.58",
+        "focusa-vbcqu.20.14.40",
+        "focusa-vbcqu.20.14.44"
+      ],
+      "done_condition": "One verified Evaluation reaches first useful outcome with no local issuance, duplicate customer/key, or 395-step paywall friction.",
+      "estimate_minutes": 300,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.45-acceptance.txt",
+      "exact_surfaces": "verified-email Evaluation fixture; EDD-backed key/lease; installer/first-run; base Focusa project/Workpoint operation",
+      "id": "focusa-vbcqu.20.14.45",
+      "owner": "WPUIAI/wpuiai + Startempire-Wire/focusa",
+      "phase": "06",
+      "required_output": "Redacted Evaluation E2E receipt tied to exact commits and records.",
+      "required_steps": "Start without customer, verify mailbox, issue eligible EDD-backed Evaluation, activate node, receive signed lease, install/resume, and complete one base value loop without card. Assert no premium grant unless authority includes it.",
+      "title": "Prove verified Evaluation reaches first useful value",
+      "verification": "python3 tests/spec152f_evaluation_first_value_e2e_test.py"
+    },
+    {
+      "code": "06.04",
+      "dependencies": [
+        "focusa-vbcqu.20.13.56",
+        "focusa-vbcqu.20.13.61",
+        "focusa-vbcqu.20.14.45"
+      ],
+      "done_condition": "Payment enables base/purchased families and adverse states remove value capability without deleting customer data or rolling authority backward.",
+      "estimate_minutes": 300,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.46-acceptance.txt",
+      "exact_surfaces": "branded EDD purchase; canonical customer/order/key/node/lease; existing Evaluation/project data; refund/revoke/expiry transitions",
+      "id": "focusa-vbcqu.20.14.46",
+      "owner": "WPUIAI/wpuiai + Startempire-Wire/focusa",
+      "phase": "06",
+      "required_output": "Paid/adverse E2E receipts with before/after authority sequence.",
+      "required_steps": "Purchase continues the same account/project/node without reinstall. Then exercise expiry, refund, revoke, renewal, and node removal. Protected work stops; read/export/recovery/security update/uninstall remain.",
+      "title": "Prove paid continuation and adverse lifecycle",
+      "verification": "python3 tests/spec152f_paid_lifecycle_e2e_test.py"
+    },
+    {
+      "code": "06.05",
+      "dependencies": [
+        "focusa-vbcqu.20.14.43",
+        "focusa-vbcqu.20.14.44",
+        "focusa-vbcqu.20.14.46"
+      ],
+      "done_condition": "No outage, stale cache, alternate presenter, worker, or child token widens capability; recovery remains available.",
+      "estimate_minutes": 300,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.47-acceptance.txt",
+      "exact_surfaces": "cached lease fixtures; authority outage harness; stale sequence/refund/revoke set; direct core/API/CLI/worker/UIAI bypass attempts",
+      "id": "focusa-vbcqu.20.14.47",
+      "owner": "Startempire-Wire/focusa + WPUIAI/wpuiai",
+      "phase": "06",
+      "required_output": "Adversarial outage/bypass matrix.",
+      "required_steps": "Verify cached base/premium grants only within signed bounds; no new node/grant/limit expansion; higher refund/revoke sequence wins; outage preserves recovery; direct handler/core/worker/child-token bypass fails.",
+      "title": "Prove Offline Grace, outage, and bypass resistance",
+      "verification": "python3 tests/spec152f_offline_adversarial_test.py && cargo test --workspace spec152f_bypass_resistance"
+    },
+    {
+      "code": "06.06",
+      "dependencies": [
+        "focusa-vbcqu.20.14.18",
+        "focusa-vbcqu.20.14.43"
+      ],
+      "done_condition": "Resolver is deterministic, bounded, cache-safe by lease sequence/policy digest, and adds no unbounded I/O or sensitive telemetry.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.48-acceptance.txt",
+      "exact_surfaces": "focusa-license resolver benchmark; API middleware benchmark; policy registry load path; scheduler revalidation metrics",
+      "id": "focusa-vbcqu.20.14.48",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "06",
+      "required_output": "Performance budget and benchmark receipt.",
+      "required_steps": "Benchmark hot cached decision, cold validation, premium+limit decision, denial, and policy load. Add bounded counters by family/reason without customer secrets. Prevent per-request file parsing or network dependency.",
+      "title": "Measure resolver and middleware overhead",
+      "verification": "cargo bench -p focusa-license entitlement_policy --no-run && cargo test --workspace spec152f_observability"
+    },
+    {
+      "code": "06.07",
+      "dependencies": [
+        "focusa-vbcqu.20.14.29",
+        "focusa-vbcqu.20.14.42",
+        "focusa-vbcqu.20.14.44"
+      ],
+      "done_condition": "The gate exits zero, lists every constituent test, records exact SHA, and cannot pass with missing tools/tests or stale generated output.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.49-acceptance.txt",
+      "exact_surfaces": "all Spec152F contracts/generators/static tests; docs consistency; source scanners; presenter fixtures",
+      "id": "focusa-vbcqu.20.14.49",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "06",
+      "required_output": "Single build-independent gate script and immutable result.",
+      "required_steps": "Run every Python/Node/shell/static gate from a clean checkout. Verify generated files are current, no unmatched surfaces, no forbidden local Evaluation, no presenter-owned grants, and no test runtime false positives.",
+      "title": "Run complete build-independent Spec 152F gate",
+      "verification": "bash tests/spec152f_build_independent_gate.sh"
+    },
+    {
+      "code": "06.08",
+      "dependencies": [
+        "focusa-vbcqu.20.13.62",
+        "focusa-vbcqu.20.14.46",
+        "focusa-vbcqu.20.14.47",
+        "focusa-vbcqu.20.14.48",
+        "focusa-vbcqu.20.14.49"
+      ],
+      "done_condition": "Every required platform passes installed authority-backed acceptance twice where specified; unsigned/demo/candidate-only artifacts do not satisfy stable acceptance.",
+      "estimate_minutes": 480,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.50-acceptance.txt",
+      "exact_surfaces": "final candidate artifacts for macOS arm64/x64, Windows x64/arm64, Linux GNU/musl; installed CLI/desktop/agent flows; WPUIAI test authority",
+      "id": "focusa-vbcqu.20.14.50",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "06",
+      "required_output": "Platform receipts and artifact manifest bound to exact SHA.",
+      "required_steps": "Build/sign at one exact post-implementation SHA, install cleanly twice where required, run Evaluation/paid/expired/refunded/recovery/premium cases, restart, update/rollback, and verify policy/lease digests. No stable publication.",
+      "title": "Run installed exact-SHA cross-platform acceptance",
+      "verification": "python3 tests/spec152f_installed_acceptance_receipt_test.py"
+    },
+    {
+      "code": "06.09",
+      "dependencies": [
+        "focusa-vbcqu.20.14.50"
+      ],
+      "done_condition": "All child atoms are technically accepted, zero unmatched surfaces remain, recovery and simple commercial model are proven, and no false completion is recorded.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.51-acceptance.txt",
+      "exact_surfaces": "Spec152F tasks; policy/coverage ledgers; build-independent, E2E, performance, installed receipts; release governance ledger",
+      "id": "focusa-vbcqu.20.14.51",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "06",
+      "required_output": "Technical closure receipt and zero-invalid-closure governance result.",
+      "required_steps": "Audit every child against exact done condition and evidence. Regenerate governance. Refuse closure for partial/static-only/external evidence. Link exact SHAs and stable refs; preserve all release blockers outside Spec152F.",
+      "title": "Seal Spec 152F technical closure",
+      "verification": "python3 tests/spec152f_final_closure_test.py && python3 tests/165_focusa_locked_release_technical_closure_reducer_test.py"
+    },
+    {
+      "code": "06.10",
+      "dependencies": [
+        "focusa-vbcqu.20.14.51"
+      ],
+      "done_condition": "Spec152F cannot be bypassed by REL closure, graph has zero cycles, and stable publication still requires exact final release acceptance.",
+      "estimate_minutes": 120,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.52-acceptance.txt",
+      "exact_surfaces": "Spec152 document set/final audit/next-command/release blocker; Beads edges; REL.4-REL.7 governance",
+      "id": "focusa-vbcqu.20.14.52",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "06",
+      "required_output": "Final dependency/provenance audit with no cycles.",
+      "required_steps": "Make Spec152E final closure and final release milestones depend on accepted Spec152F closure. Update active docs from implementation_pending to accepted only with receipts. Keep publication forbidden until all independent blockers close.",
+      "title": "Wire Spec 152F closure into Spec 152E and release milestones",
+      "verification": "python3 tests/spec152f_release_dependency_test.py && python3 tests/164_focusa_locked_release_governance_reconciliation_test.py && bd dep cycles --json"
+    }
+  ],
+  "weaker_model_contract": {
+    "before_close": [
+      "write the exact evidence_path",
+      "record commit commands exit codes bounded outputs and rollback",
+      "confirm the done_condition literally",
+      "close only after technical acceptance evidence exists"
+    ],
+    "before_start": [
+      "read the task description and acceptance criteria",
+      "verify every dependency is technically accepted",
+      "inspect git status and preserve unrelated changes",
+      "open only exact surfaces named by the task"
+    ],
+    "during_work": [
+      "implement required steps only",
+      "run the exact verification command",
+      "do not install missing tools or mutate remote/deployed authority without authorization",
+      "preserve recovery and EDD authority invariants"
+    ]
+  }
+}

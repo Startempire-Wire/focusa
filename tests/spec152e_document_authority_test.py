@@ -76,7 +76,7 @@ def main() -> int:
         (
             "current_work_item: focusa-vbcqu.20.13.2",
             "Freeze the deployed WPUIAI.com EDD and install.focusa.dev authority/facade parity",
-            "publication: forbidden_until_focusa-vbcqu.20.13.63_closes",
+            "publication: forbidden_until_focusa-vbcqu.20.13.63_and_focusa-vbcqu.20.14.52_close",
         ),
     )
     require(
@@ -108,7 +108,7 @@ def main() -> int:
             "spec152e_registered: true",
             "spec152e_correction_status: in_progress",
             "distribution_status: blocked",
-            "publication_rule: forbidden until focusa-vbcqu.20.13.63 closes",
+            "publication_rule: forbidden until focusa-vbcqu.20.13.63 and focusa-vbcqu.20.14.52 close",
         ),
     )
     require(

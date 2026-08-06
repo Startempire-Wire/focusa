@@ -5,14 +5,21 @@ normative_authorities:
   lifecycle_overlay: docs/150a-spec152-entitlement-overlay-and-lifecycle-integration.md
   protected_distribution: docs/152a-protected-distribution-private-feature-capsules-and-anti-tamper-spec.md
   edd_centered_correction: docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md
+  simple_entitlement_policy: docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md
 release_rule: >-
   Historical implementation truth may remain documented, but no active guide, release claim,
   lifecycle receipt, installer path, pairing path, source-build path, facade path, or UIAI
   health/auth path may treat missing/local state as Evaluation, create a canonical customer or
   entitlement before mailbox verification, use split registries or direct install-site issuance,
   trust implicit EDD mappings or caller-controlled grants, or claim evaluator/customer readiness
-  without the combined Spec 150 + 150A + 152 + 152E + applicable 152A gates. Spec 158 remains excluded.
+  without the combined Spec 150 + 150A + 152 + 152E + 152F + applicable 152A gates. Spec 158 remains excluded.
 entries:
+  - path: docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md
+    classification: active_release_blocking_simplification_policy
+    conflicting_claim: exhaustive entitlement coverage requires independent commercial policy or feature purchase decisions at every route command button worker or source file
+    disposition: all surfaces inherit one base product gate four optional premium families permanent recovery/read/export/security-maintenance allowances and dormant future dimensions
+    required_change: complete focusa-vbcqu.20.14 through focusa-vbcqu.20.14.52 without weakening Spec 152E authority
+    status: registered_pending_implementation
   - path: docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md
     classification: active_release_blocking_correction
     conflicting_claim: prior Spec 152 documents do not fully consolidate EDD identity commerce human-key entitlement and facade authority
@@ -212,6 +219,8 @@ entries:
     required_change: none unless an evidence file falsely claims future/current entitlement completion
     status: retained
 combined_release_blockers:
+  - Spec 152F base gate premium-family recovery inheritance future-granularity implementation and acceptance
+  - reconciliation of the 395 baseline surfaces without independent paywalls or presenter-owned authority
   - Spec 152E correction registration implementation and acceptance
   - canonical WPUIAI.com EDD identity customer order refund human-key and entitlement authority
   - verified-mailbox pending registration and atomic customer promotion

@@ -1,9 +1,18 @@
 schema: focusa.spec152.release_blocker_summary.v1
 authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md
+simplification_authority: docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md
 work_item_root: focusa-vbcqu.20.13
+simplification_work_item_root: focusa-vbcqu.20.14
+simplification_final_work_item: focusa-vbcqu.20.14.52
 status: blocked_for_new_evaluator_customer_and_stable_distribution
 spec_158: excluded
 blockers:
+  - one canonical base entitlement gate for value-producing Focusa operations
+  - four optional premium family boundaries for automation team/remote release proof and premium updates
+  - permanent account read export recovery repair stable security update rollback and uninstall paths
+  - inherited REST CLI desktop TUI Pi agent installer worker scheduler UIAI and facade policy with no independent presenter paywalls
+  - all 395 baseline surfaces reconciled without converting the inventory into SKUs or route-local product policy
+  - dormant future-granularity dimensions that cannot alter runtime authorization without explicit activation
   - authority repository/live parity and rollback proof
   - verified mailbox pending-registration and atomic EDD customer promotion
   - verified-registration-gated EDD checkout and checkout-email integrity

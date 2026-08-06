@@ -1,6 +1,8 @@
 schema: focusa.spec152.next_command.v1
 authority: docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md
+simplification_authority: docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md
 current_work_item: focusa-vbcqu.20.13.2
+parallel_policy_work_item: focusa-vbcqu.20.14.1
 next_action: >-
   Freeze the deployed WPUIAI.com EDD and install.focusa.dev authority/facade parity
   inventory using bounded read-only evidence. Record repository-versus-deployment hashes,
@@ -8,5 +10,6 @@ next_action: >-
   installer aliases, bridge absence or presence, and rollback boundaries without secrets
   or customer data.
 after_inventory: implement verified-mailbox pending registration and atomic EDD customer promotion in WPUIAI/wpuiai
-publication: forbidden_until_focusa-vbcqu.20.13.63_closes
+after_policy_registration: freeze the machine-readable base premium recovery and dormant-granularity policy in focusa-vbcqu.20.14.2
+publication: forbidden_until_focusa-vbcqu.20.13.63_and_focusa-vbcqu.20.14.52_close
 spec_158: excluded
