@@ -18,6 +18,12 @@ spec152f_work_item_root: focusa-vbcqu.20.14
 spec152f_final_work_item: focusa-vbcqu.20.14.52
 spec152f_policy_status: implementation_open
 spec152f_task_count: 52
+spec172_registered: true
+spec172_authority: docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md
+spec172_work_item_root: focusa-vbcqu.20.15
+spec172_policy_status: implementation_open
+spec172_supersession_scope: Evaluation product-model Bundle-price and future-family-product-inheritance conflicts only
+spec172_preserved_authority: identity EDD key lease refund-revoke node sequence recovery privacy customer-data-preservation
 spec_158: excluded
 live_server_verified: false
 code_enforcement_implemented: false
@@ -26,5 +32,5 @@ edd_centered_identity_checkout_delivery_implemented: false
 migration_cutover_accepted: false
 all_platform_final_candidate_verified: false
 distribution_status: blocked
-next_action: focusa-vbcqu.20.13.2 freeze deployed authority and facade parity inventory; parallel focusa-vbcqu.20.14.1 register Spec 152F authority
-publication_rule: forbidden until focusa-vbcqu.20.13.63 and focusa-vbcqu.20.14.52 close with linked acceptance evidence
+next_action: complete the ordered Spec 152E, Spec 152F, and Spec 172 release-blocking implementation graphs
+publication_rule: forbidden until focusa-vbcqu.20.13.63, focusa-vbcqu.20.14.52, and the Spec 172 final acceptance work item close with linked acceptance evidence

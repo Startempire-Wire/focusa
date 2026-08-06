@@ -8,6 +8,7 @@ canonical:
   - docs/152d-authority-client-implementation-entrypoints.md
   - docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md
   - docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md
+  - docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md
   - docs/contracts/spec152f-implementation-taskgraph.v1.json
   - docs/contracts/spec152-supersession-and-integration-matrix.v1.yaml
   - docs/contracts/spec152-current-head-audit-2026-08-01.md
@@ -39,10 +40,29 @@ simplification_authority:
     - permanent account read export recovery repair security update rollback and uninstall paths
     - surface inheritance instead of independent REST CLI desktop worker or facade paywalls
     - dormant future granularity until explicit operator-approved activation
+license_type_and_surface_governance_authority:
+  spec: docs/172-focusa-spec152-license-type-and-surface-entitlement-governance-addendum.md
+  work_item_root: focusa-vbcqu.20.15
+  status: release_blocking
+  registered_after:
+    - docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md
+    - docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md
+  spec_158: excluded
+  narrow_supersession_only:
+    - conflicting anonymous local or time-bounded Evaluation requirements
+    - conflicting initial product-model assumptions
+    - conflicting Bundle price of USD 1097.00
+    - conflicting automatic future-family or future-product inheritance
+  preserved_authority:
+    - verified mailbox identity and pre-access firewall
+    - WPUIAI.com EDD paid commerce and human key truth
+    - signed assertions leases device binding nodes and monotonic sequence
+    - refund revoke recovery privacy and customer-data preservation
 
 gates:
   - tests/spec152_documentation_consistency_gate.py
   - tests/spec152e_document_authority_test.py
   - tests/spec152f_document_authority_test.py
+  - tests/spec172_document_authority_test.py
   - tests/spec152f_taskgraph_contract_test.py
   - .github/workflows/spec152-documentation-consistency.yml

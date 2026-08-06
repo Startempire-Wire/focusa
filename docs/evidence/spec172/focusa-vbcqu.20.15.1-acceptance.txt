@@ -1,0 +1,43 @@
+Spec 172 authority registration acceptance
+Work item: focusa-vbcqu.20.15.1
+Recorded: 2026-08-06
+
+Repository state
+- Canonical project root: /tmp/focusa-rel3-candidate
+- Base commit tested: c20dc0678c80e6b50800cbff65cd5cd2bb6880c9
+- Scope: working-tree authority-contract and static-test changes for this atom
+- Unrelated pre-existing working-tree changes were preserved and were not included in this atom.
+
+Required verification
+1. Command: python3 tests/spec172_document_authority_test.py
+   Exit code: 0
+   Bounded result:
+     Spec 172 document authority test passed
+     authority_contracts=3
+     supersession_scope=narrow
+
+2. Command: python3 tests/spec152_documentation_consistency_gate.py
+   Exit code: 0
+   Bounded result:
+     Spec 152 documentation consistency gate passed
+     active_files=17
+     documentation_digest=sha256:1d68a79152cf8dead3cffec7dfb49ea23269dc57748725fbad69342a03c23887
+
+Additional check
+- Command: git diff --check
+- Exit code: 0
+- Result: no whitespace errors.
+
+Acceptance summary
+- Spec 172 is registered after Specs 152E and 152F in all three existing authority contracts.
+- Supersession is limited to conflicting Evaluation, initial product-model, Bundle-price, and future-family/product-inheritance clauses.
+- Verified identity, WPUIAI.com EDD authority, keys, signed assertions/leases, refund/revoke, nodes, monotonic sequence, recovery, privacy, customer-data preservation, and the Spec 158 exclusion remain binding.
+- Distribution remains release-blocked while the ordered Spec 152E, Spec 152F, and Spec 172 implementation/acceptance graphs remain open.
+
+Remaining blockers
+- This registration atom does not implement or accept downstream Spec 172 runtime, authority-server, commerce, presenter, lifecycle, cutover, or end-to-end work.
+- No bead was closed and no remote was touched.
+
+Rollback
+- Revert only the three Spec 152 authority-contract edits, tests/spec172_document_authority_test.py, and this evidence file.
+- Preserve verified identities, customers, orders, refunds, License Types, keys, nodes, sequences, customer data, migration journals, evidence, and unrelated working-tree changes.
