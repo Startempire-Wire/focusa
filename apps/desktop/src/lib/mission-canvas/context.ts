@@ -133,8 +133,8 @@ export class DesktopContext {
 
 /**
  * Read identity only from one of the generated packet shapes.  This is an
- * explicit DTO adaptation, not a resolver: there is no candidate search,
- * repair, or fallback source.
+ * explicit DTO adaptation: there is no candidate search, repair, or fallback
+ * source.
  */
 function canonicalContext(packet: unknown): WorkstreamAuthorityContext | undefined {
   if (validGeneratedPacket('WorkstreamKey', packet)) {
