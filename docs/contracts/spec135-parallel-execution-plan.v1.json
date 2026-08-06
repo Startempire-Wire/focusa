@@ -1,0 +1,2987 @@
+{
+  "schema": "focusa.spec135.parallel_execution_plan.v1",
+  "status": "prepared_not_activated",
+  "translation_contract_ref": "CARDINAL-135-SVELTE-001",
+  "source_graph": "docs/transitions/FOCUSA-TRANSITION-001-mission-canvas-executable-callgraph.yaml",
+  "source_task_count": 133,
+  "complete_task_count": 27,
+  "remaining_task_count": 106,
+  "activation_gate": {
+    "issue_ref": "https://github.com/Startempire-Wire/focusa/issues/132",
+    "required_state": "fix merged and canary orchestration receipt verified",
+    "launch_enabled": false
+  },
+  "scheduler_policy": {
+    "dependency_rule": "A wave starts only after every dependency task is integrated and complete.",
+    "collision_rule": "At most one task per ownership lane and no shared concrete target in one batch.",
+    "worker_rule": "One bounded task packet, branch, worktree, commit, and evidence artifact per worker.",
+    "integration_rule": "Workers never edit central task status; the integration writer regenerates it after verification.",
+    "failure_rule": "Failed or blocked work checkpoints and exits without selecting a speculative dependent task.",
+    "release_rule": "Release remains blocked until all checks, Cargo gates, UIAI evidence, acceptance tasks, and receipts pass."
+  },
+  "waves": [
+    {
+      "wave": 1,
+      "dependency_ready_after_wave": 0,
+      "task_count": 1,
+      "max_safe_concurrency": 1,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "ID-001",
+              "title": "Add ScopeRef and ProjectRootKey target types",
+              "source_status": "implemented_partial",
+              "lane": "identity-migration",
+              "depends_on": [],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/ID-001.json",
+              "targets": [
+                "crates/focusa-core/src/workstream_identity.rs",
+                "crates/focusa-core/src/lib.rs",
+                "tests/spec158_workstream_identity_source_test.py"
+              ],
+              "concrete_targets": [
+                "crates/focusa-core/src/lib.rs",
+                "crates/focusa-core/src/workstream_identity.rs",
+                "tests/spec158_workstream_identity_source_test.py"
+              ],
+              "check": "cargo test -p focusa-core scope_ref --lib",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/ID-001.json",
+              "branch": "agents/spec135-id-001",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-id-001",
+              "wave": 1,
+              "batch": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 2,
+      "dependency_ready_after_wave": 1,
+      "task_count": 1,
+      "max_safe_concurrency": 1,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "ID-002",
+              "title": "Add stable WorkstreamId and WorkstreamKey",
+              "source_status": "implemented_partial",
+              "lane": "identity-migration",
+              "depends_on": [
+                "ID-001"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/ID-002.json",
+              "targets": [
+                "crates/focusa-core/src/workstream_identity.rs",
+                "tests/spec158_workstream_identity_source_test.py"
+              ],
+              "concrete_targets": [
+                "crates/focusa-core/src/workstream_identity.rs",
+                "tests/spec158_workstream_identity_source_test.py"
+              ],
+              "check": "cargo test -p focusa-core workstream_key --lib",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/ID-002.json",
+              "branch": "agents/spec135-id-002",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-id-002",
+              "wave": 2,
+              "batch": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 3,
+      "dependency_ready_after_wave": 2,
+      "task_count": 3,
+      "max_safe_concurrency": 2,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "ID-003",
+              "title": "Add AttachmentKey ownership type",
+              "source_status": "implemented_partial",
+              "lane": "attachment-identity",
+              "depends_on": [
+                "ID-002"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/ID-003.json",
+              "targets": [
+                "crates/focusa-core/src/workstream_identity.rs",
+                "tests/spec158_workstream_identity_source_test.py"
+              ],
+              "concrete_targets": [
+                "crates/focusa-core/src/workstream_identity.rs",
+                "tests/spec158_workstream_identity_source_test.py"
+              ],
+              "check": "cargo test -p focusa-core attachment_key --lib",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/ID-003.json",
+              "branch": "agents/spec135-id-003",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-id-003",
+              "wave": 3,
+              "batch": 1
+            },
+            {
+              "task_id": "ID-004",
+              "title": "Partition ProjectState by WorkstreamId",
+              "source_status": "implemented_partial",
+              "lane": "project-state-partition",
+              "depends_on": [
+                "ID-002"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/ID-004.json",
+              "targets": [
+                "crates/focusa-core/src/workstream_state.rs",
+                "crates/focusa-core/src/lib.rs",
+                "tests/spec158_workstream_state_source_test.py"
+              ],
+              "concrete_targets": [
+                "crates/focusa-core/src/lib.rs",
+                "crates/focusa-core/src/workstream_state.rs",
+                "tests/spec158_workstream_state_source_test.py"
+              ],
+              "check": "cargo test -p focusa-core reducer_workstream_partition --lib",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/ID-004.json",
+              "branch": "agents/spec135-id-004",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-id-004",
+              "wave": 3,
+              "batch": 1
+            }
+          ]
+        },
+        {
+          "batch": 2,
+          "tasks": [
+            {
+              "task_id": "ID-006",
+              "title": "Define Workstream creation and migration mapping",
+              "source_status": "implemented_partial",
+              "lane": "migration-mapping",
+              "depends_on": [
+                "ID-002"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/ID-006.json",
+              "targets": [
+                "crates/focusa-core/src/workstream_migration.rs",
+                "crates/focusa-core/src/lib.rs",
+                "tests/spec158_workstream_migration_source_test.py"
+              ],
+              "concrete_targets": [
+                "crates/focusa-core/src/lib.rs",
+                "crates/focusa-core/src/workstream_migration.rs",
+                "tests/spec158_workstream_migration_source_test.py"
+              ],
+              "check": "cargo test -p focusa-core workstream_migration_mapping --lib",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/ID-006.json",
+              "branch": "agents/spec135-id-006",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-id-006",
+              "wave": 3,
+              "batch": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 4,
+      "dependency_ready_after_wave": 3,
+      "task_count": 2,
+      "max_safe_concurrency": 1,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "ID-005",
+              "title": "Implement WorkstreamContext extraction",
+              "source_status": "implemented_partial",
+              "lane": "request-context",
+              "depends_on": [
+                "ID-002",
+                "ID-003"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/ID-005.json",
+              "targets": [
+                "crates/focusa-core/src/workstream_context.rs",
+                "crates/focusa-core/src/lib.rs",
+                "tests/spec158_workstream_context_source_test.py"
+              ],
+              "concrete_targets": [
+                "crates/focusa-core/src/lib.rs",
+                "crates/focusa-core/src/workstream_context.rs",
+                "tests/spec158_workstream_context_source_test.py"
+              ],
+              "check": "cargo test -p focusa-core workstream_context --lib",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/ID-005.json",
+              "branch": "agents/spec135-id-005",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-id-005",
+              "wave": 4,
+              "batch": 1
+            }
+          ]
+        },
+        {
+          "batch": 2,
+          "tasks": [
+            {
+              "task_id": "ID-007",
+              "title": "Quarantine ambiguous legacy ownership",
+              "source_status": "implemented_partial",
+              "lane": "legacy-quarantine",
+              "depends_on": [
+                "ID-006"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/ID-007.json",
+              "targets": [
+                "crates/focusa-core/src/workstream_quarantine.rs",
+                "crates/focusa-core/src/lib.rs",
+                "tests/spec158_workstream_quarantine_source_test.py"
+              ],
+              "concrete_targets": [
+                "crates/focusa-core/src/lib.rs",
+                "crates/focusa-core/src/workstream_quarantine.rs",
+                "tests/spec158_workstream_quarantine_source_test.py"
+              ],
+              "check": "cargo test -p focusa-core legacy_quarantine --lib",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/ID-007.json",
+              "branch": "agents/spec135-id-007",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-id-007",
+              "wave": 4,
+              "batch": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 5,
+      "dependency_ready_after_wave": 4,
+      "task_count": 1,
+      "max_safe_concurrency": 1,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "ID-008",
+              "title": "Materialize shadow Workstream persistence",
+              "source_status": "blocked",
+              "lane": "identity-migration",
+              "depends_on": [
+                "ID-004",
+                "ID-006",
+                "ID-007"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/ID-008.json",
+              "targets": [
+                "Spec 158 persistence and migration owner"
+              ],
+              "concrete_targets": [],
+              "check": "cargo test -p focusa-core workstream_shadow_materialization --lib",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/ID-008.json",
+              "branch": "agents/spec135-id-008",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-id-008",
+              "wave": 5,
+              "batch": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 6,
+      "dependency_ready_after_wave": 5,
+      "task_count": 1,
+      "max_safe_concurrency": 1,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "ID-009",
+              "title": "Cut active Workstream selection into canonical reducer state",
+              "source_status": "blocked",
+              "lane": "identity-migration",
+              "depends_on": [
+                "ID-004",
+                "ID-008"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/ID-009.json",
+              "targets": [
+                "Spec 158 active-state reducer and API owner"
+              ],
+              "concrete_targets": [],
+              "check": "cargo test -p focusa-core active_workstream_state --lib",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/ID-009.json",
+              "branch": "agents/spec135-id-009",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-id-009",
+              "wave": 6,
+              "batch": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 7,
+      "dependency_ready_after_wave": 6,
+      "task_count": 1,
+      "max_safe_concurrency": 1,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "ID-010",
+              "title": "Cut Workstream identity APIs and generated schemas",
+              "source_status": "blocked",
+              "lane": "identity-migration",
+              "depends_on": [
+                "ID-005",
+                "ID-009"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/ID-010.json",
+              "targets": [
+                "Spec 158 OpenAPI",
+                "generated-client",
+                "CLI",
+                "MCP",
+                "and Pi-tool owners"
+              ],
+              "concrete_targets": [],
+              "check": "python3 tests/spec158_mission_canvas_identity_contract_test.py",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/ID-010.json",
+              "branch": "agents/spec135-id-010",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-id-010",
+              "wave": 7,
+              "batch": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 8,
+      "dependency_ready_after_wave": 7,
+      "task_count": 5,
+      "max_safe_concurrency": 3,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "CORE-001",
+              "title": "Replace MissionCanvasScope legacy fields with WorkstreamKey",
+              "source_status": "blocked",
+              "lane": "core-reducer",
+              "depends_on": [
+                "ID-010"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/CORE-001.json",
+              "targets": [
+                "crates/focusa-core/src/mission_canvas/model.rs"
+              ],
+              "concrete_targets": [
+                "crates/focusa-core/src/mission_canvas/model.rs"
+              ],
+              "check": "cargo test -p focusa-core mission_canvas_scope --lib",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/CORE-001.json",
+              "branch": "agents/spec135-core-001",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-core-001",
+              "wave": 8,
+              "batch": 1
+            },
+            {
+              "task_id": "OPS-008",
+              "title": "OPS-008",
+              "source_status": "blocked_until_dependencies_complete",
+              "lane": "api-operations",
+              "depends_on": [
+                "ID-010"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/OPS-008.json",
+              "targets": [],
+              "concrete_targets": [],
+              "check": null,
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-008.json",
+              "branch": "agents/spec135-ops-008",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ops-008",
+              "wave": 8,
+              "batch": 1
+            },
+            {
+              "task_id": "UI-002",
+              "title": "Add exact Desktop Workstream context store",
+              "source_status": "blocked",
+              "lane": "desktop-svelte",
+              "depends_on": [
+                "ID-010"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/UI-002.json",
+              "targets": [
+                "apps/desktop/src/lib/mission-canvas/context.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/mission-canvas/context.ts"
+              ],
+              "check": "npm --prefix apps/desktop test",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/UI-002.json",
+              "branch": "agents/spec135-ui-002",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ui-002",
+              "wave": 8,
+              "batch": 1
+            }
+          ]
+        },
+        {
+          "batch": 2,
+          "tasks": [
+            {
+              "task_id": "OPS-013",
+              "title": "OPS-013",
+              "source_status": "blocked_until_dependencies_complete",
+              "lane": "api-operations",
+              "depends_on": [
+                "ID-010"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/OPS-013.json",
+              "targets": [],
+              "concrete_targets": [],
+              "check": null,
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-013.json",
+              "branch": "agents/spec135-ops-013",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ops-013",
+              "wave": 8,
+              "batch": 2
+            }
+          ]
+        },
+        {
+          "batch": 3,
+          "tasks": [
+            {
+              "task_id": "OPS-025",
+              "title": "OPS-025",
+              "source_status": "blocked_until_dependencies_complete",
+              "lane": "api-operations",
+              "depends_on": [
+                "ID-010"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/OPS-025.json",
+              "targets": [],
+              "concrete_targets": [],
+              "check": null,
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-025.json",
+              "branch": "agents/spec135-ops-025",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ops-025",
+              "wave": 8,
+              "batch": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 9,
+      "dependency_ready_after_wave": 8,
+      "task_count": 9,
+      "max_safe_concurrency": 3,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "CORE-002",
+              "title": "Bind CandidateContribution to exact scope revision",
+              "source_status": "blocked",
+              "lane": "core-reducer",
+              "depends_on": [
+                "CORE-001"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/CORE-002.json",
+              "targets": [
+                "crates/focusa-core/src/mission_canvas/model.rs",
+                "crates/focusa-core/src/mission_canvas/resolver.rs"
+              ],
+              "concrete_targets": [
+                "crates/focusa-core/src/mission_canvas/model.rs",
+                "crates/focusa-core/src/mission_canvas/resolver.rs"
+              ],
+              "check": "cargo test -p focusa-core mission_canvas_candidate_scope --lib",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/CORE-002.json",
+              "branch": "agents/spec135-core-002",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-core-002",
+              "wave": 9,
+              "batch": 1
+            },
+            {
+              "task_id": "LIVE-001",
+              "title": "Implement Workstream-scoped event client",
+              "source_status": "implemented_partial",
+              "lane": "desktop-runtime",
+              "depends_on": [
+                "OPS-025",
+                "UI-002"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/LIVE-001.json",
+              "targets": [
+                "apps/desktop/src/lib/mission-canvas/event-client.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/mission-canvas/event-client.ts"
+              ],
+              "check": "npm --prefix apps/desktop test",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/LIVE-001.json",
+              "branch": "agents/spec135-live-001",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-live-001",
+              "wave": 9,
+              "batch": 1
+            },
+            {
+              "task_id": "OPS-001",
+              "title": "OPS-001",
+              "source_status": "blocked_until_dependencies_complete",
+              "lane": "api-operations",
+              "depends_on": [
+                "UI-001",
+                "UI-002"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/OPS-001.json",
+              "targets": [],
+              "concrete_targets": [],
+              "check": null,
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-001.json",
+              "branch": "agents/spec135-ops-001",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ops-001",
+              "wave": 9,
+              "batch": 1
+            }
+          ]
+        },
+        {
+          "batch": 2,
+          "tasks": [
+            {
+              "task_id": "OPS-003",
+              "title": "OPS-003",
+              "source_status": "blocked_until_dependencies_complete",
+              "lane": "api-operations",
+              "depends_on": [
+                "UI-001",
+                "UI-002"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/OPS-003.json",
+              "targets": [],
+              "concrete_targets": [],
+              "check": null,
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-003.json",
+              "branch": "agents/spec135-ops-003",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ops-003",
+              "wave": 9,
+              "batch": 2
+            }
+          ]
+        },
+        {
+          "batch": 3,
+          "tasks": [
+            {
+              "task_id": "OPS-006",
+              "title": "OPS-006",
+              "source_status": "blocked_until_dependencies_complete",
+              "lane": "api-operations",
+              "depends_on": [
+                "UI-001",
+                "UI-002"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/OPS-006.json",
+              "targets": [],
+              "concrete_targets": [],
+              "check": null,
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-006.json",
+              "branch": "agents/spec135-ops-006",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ops-006",
+              "wave": 9,
+              "batch": 3
+            }
+          ]
+        },
+        {
+          "batch": 4,
+          "tasks": [
+            {
+              "task_id": "OPS-009",
+              "title": "OPS-009",
+              "source_status": "blocked_until_dependencies_complete",
+              "lane": "api-operations",
+              "depends_on": [
+                "UI-001",
+                "UI-002"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/OPS-009.json",
+              "targets": [],
+              "concrete_targets": [],
+              "check": null,
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-009.json",
+              "branch": "agents/spec135-ops-009",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ops-009",
+              "wave": 9,
+              "batch": 4
+            }
+          ]
+        },
+        {
+          "batch": 5,
+          "tasks": [
+            {
+              "task_id": "OPS-012",
+              "title": "OPS-012",
+              "source_status": "blocked_until_dependencies_complete",
+              "lane": "api-operations",
+              "depends_on": [
+                "UI-001",
+                "UI-002"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/OPS-012.json",
+              "targets": [],
+              "concrete_targets": [],
+              "check": null,
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-012.json",
+              "branch": "agents/spec135-ops-012",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ops-012",
+              "wave": 9,
+              "batch": 5
+            }
+          ]
+        },
+        {
+          "batch": 6,
+          "tasks": [
+            {
+              "task_id": "OPS-014",
+              "title": "OPS-014",
+              "source_status": "blocked_until_dependencies_complete",
+              "lane": "api-operations",
+              "depends_on": [
+                "OPS-013"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/OPS-014.json",
+              "targets": [],
+              "concrete_targets": [],
+              "check": null,
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-014.json",
+              "branch": "agents/spec135-ops-014",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ops-014",
+              "wave": 9,
+              "batch": 6
+            }
+          ]
+        },
+        {
+          "batch": 7,
+          "tasks": [
+            {
+              "task_id": "OPS-018",
+              "title": "OPS-018",
+              "source_status": "blocked_until_dependencies_complete",
+              "lane": "api-operations",
+              "depends_on": [
+                "UI-001",
+                "UI-002"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/OPS-018.json",
+              "targets": [],
+              "concrete_targets": [],
+              "check": null,
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-018.json",
+              "branch": "agents/spec135-ops-018",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ops-018",
+              "wave": 9,
+              "batch": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 10,
+      "dependency_ready_after_wave": 9,
+      "task_count": 8,
+      "max_safe_concurrency": 3,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "CORE-003",
+              "title": "Bind ResolvedWorkspaceProjection to exact WorkstreamKey",
+              "source_status": "blocked",
+              "lane": "core-reducer",
+              "depends_on": [
+                "CORE-001",
+                "CORE-002"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/CORE-003.json",
+              "targets": [
+                "crates/focusa-core/src/mission_canvas/model.rs"
+              ],
+              "concrete_targets": [
+                "crates/focusa-core/src/mission_canvas/model.rs"
+              ],
+              "check": "cargo test -p focusa-core resolved_workspace_projection_scope --lib",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/CORE-003.json",
+              "branch": "agents/spec135-core-003",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-core-003",
+              "wave": 10,
+              "batch": 1
+            },
+            {
+              "task_id": "DOMAIN-011",
+              "title": "Bind History activity renderer",
+              "source_status": "blocked",
+              "lane": "domain-renderers/domain-011",
+              "depends_on": [
+                "UI-005",
+                "LIVE-001"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/DOMAIN-011.json",
+              "targets": [
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "check": "npm --prefix apps/desktop test",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/DOMAIN-011.json",
+              "branch": "agents/spec135-domain-011",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-domain-011",
+              "wave": 10,
+              "batch": 1
+            },
+            {
+              "task_id": "OPS-005",
+              "title": "OPS-005",
+              "source_status": "blocked_until_dependencies_complete",
+              "lane": "api-operations",
+              "depends_on": [
+                "OPS-003"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/OPS-005.json",
+              "targets": [],
+              "concrete_targets": [],
+              "check": null,
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-005.json",
+              "branch": "agents/spec135-ops-005",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ops-005",
+              "wave": 10,
+              "batch": 1
+            }
+          ]
+        },
+        {
+          "batch": 2,
+          "tasks": [
+            {
+              "task_id": "OPS-010",
+              "title": "OPS-010",
+              "source_status": "blocked_until_dependencies_complete",
+              "lane": "api-operations",
+              "depends_on": [
+                "OPS-009"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/OPS-010.json",
+              "targets": [],
+              "concrete_targets": [],
+              "check": null,
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-010.json",
+              "branch": "agents/spec135-ops-010",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ops-010",
+              "wave": 10,
+              "batch": 2
+            }
+          ]
+        },
+        {
+          "batch": 3,
+          "tasks": [
+            {
+              "task_id": "OPS-015",
+              "title": "OPS-015",
+              "source_status": "blocked_until_dependencies_complete",
+              "lane": "api-operations",
+              "depends_on": [
+                "OPS-014"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/OPS-015.json",
+              "targets": [],
+              "concrete_targets": [],
+              "check": null,
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-015.json",
+              "branch": "agents/spec135-ops-015",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ops-015",
+              "wave": 10,
+              "batch": 3
+            }
+          ]
+        },
+        {
+          "batch": 4,
+          "tasks": [
+            {
+              "task_id": "OPS-016",
+              "title": "OPS-016",
+              "source_status": "blocked_until_dependencies_complete",
+              "lane": "api-operations",
+              "depends_on": [
+                "OPS-014"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/OPS-016.json",
+              "targets": [],
+              "concrete_targets": [],
+              "check": null,
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-016.json",
+              "branch": "agents/spec135-ops-016",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ops-016",
+              "wave": 10,
+              "batch": 4
+            }
+          ]
+        },
+        {
+          "batch": 5,
+          "tasks": [
+            {
+              "task_id": "OPS-017",
+              "title": "OPS-017",
+              "source_status": "blocked_until_dependencies_complete",
+              "lane": "api-operations",
+              "depends_on": [
+                "OPS-014"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/OPS-017.json",
+              "targets": [],
+              "concrete_targets": [],
+              "check": null,
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-017.json",
+              "branch": "agents/spec135-ops-017",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ops-017",
+              "wave": 10,
+              "batch": 5
+            }
+          ]
+        },
+        {
+          "batch": 6,
+          "tasks": [
+            {
+              "task_id": "OPS-019",
+              "title": "OPS-019",
+              "source_status": "blocked_until_dependencies_complete",
+              "lane": "api-operations",
+              "depends_on": [
+                "OPS-018"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/OPS-019.json",
+              "targets": [],
+              "concrete_targets": [],
+              "check": null,
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-019.json",
+              "branch": "agents/spec135-ops-019",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ops-019",
+              "wave": 10,
+              "batch": 6
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 11,
+      "dependency_ready_after_wave": 10,
+      "task_count": 3,
+      "max_safe_concurrency": 2,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "CORE-004",
+              "title": "Update projection digest for Workstream identity",
+              "source_status": "blocked",
+              "lane": "core-reducer",
+              "depends_on": [
+                "CORE-003"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/CORE-004.json",
+              "targets": [
+                "crates/focusa-core/src/mission_canvas/reducer.rs"
+              ],
+              "concrete_targets": [
+                "crates/focusa-core/src/mission_canvas/reducer.rs"
+              ],
+              "check": "cargo test -p focusa-core mission_canvas_projection_digest --lib",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/CORE-004.json",
+              "branch": "agents/spec135-core-004",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-core-004",
+              "wave": 11,
+              "batch": 1
+            },
+            {
+              "task_id": "PROFILE-002",
+              "title": "Preserve profile layout memory",
+              "source_status": "implemented_partial",
+              "lane": "desktop-svelte",
+              "depends_on": [
+                "PROFILE-001",
+                "OPS-009",
+                "OPS-010"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/PROFILE-002.json",
+              "targets": [
+                "apps/desktop/src/lib/mission-canvas/profile-memory-controller.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/mission-canvas/profile-memory-controller.ts"
+              ],
+              "check": "npm --prefix apps/desktop test",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/PROFILE-002.json",
+              "branch": "agents/spec135-profile-002",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-profile-002",
+              "wave": 11,
+              "batch": 1
+            }
+          ]
+        },
+        {
+          "batch": 2,
+          "tasks": [
+            {
+              "task_id": "CORE-007",
+              "title": "Translate Pi WorkSurfaceProjection identity into the Desktop projection model",
+              "source_status": "blocked",
+              "lane": "core-reducer",
+              "depends_on": [
+                "CORE-003"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/CORE-007.json",
+              "targets": [
+                "apps/desktop/src/lib/mission-canvas/types.ts",
+                "apps/desktop/src/lib/mission-canvas/exact-scope.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/mission-canvas/exact-scope.ts",
+                "apps/desktop/src/lib/mission-canvas/types.ts"
+              ],
+              "check": "npm --prefix apps/desktop test",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/CORE-007.json",
+              "branch": "agents/spec135-core-007",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-core-007",
+              "wave": 11,
+              "batch": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 12,
+      "dependency_ready_after_wave": 11,
+      "task_count": 4,
+      "max_safe_concurrency": 3,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "CORE-005",
+              "title": "Re-key MissionCanvasStore by WorkstreamKey",
+              "source_status": "blocked",
+              "lane": "core-reducer",
+              "depends_on": [
+                "CORE-003",
+                "CORE-004",
+                "ID-008"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/CORE-005.json",
+              "targets": [
+                "crates/focusa-core/src/mission_canvas/persistence.rs"
+              ],
+              "concrete_targets": [
+                "crates/focusa-core/src/mission_canvas/persistence.rs"
+              ],
+              "check": "cargo test -p focusa-core mission_canvas_store_workstream_isolation --lib",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/CORE-005.json",
+              "branch": "agents/spec135-core-005",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-core-005",
+              "wave": 12,
+              "batch": 1
+            },
+            {
+              "task_id": "OPS-020",
+              "title": "OPS-020",
+              "source_status": "blocked_until_dependencies_complete",
+              "lane": "api-operations",
+              "depends_on": [
+                "UI-002",
+                "CORE-007"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/OPS-020.json",
+              "targets": [],
+              "concrete_targets": [],
+              "check": null,
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-020.json",
+              "branch": "agents/spec135-ops-020",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ops-020",
+              "wave": 12,
+              "batch": 1
+            },
+            {
+              "task_id": "UI-013",
+              "title": "Render actual Work Surface strip",
+              "source_status": "implemented_partial",
+              "lane": "desktop-svelte",
+              "depends_on": [
+                "UI-004",
+                "CORE-007"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/UI-013.json",
+              "targets": [
+                "apps/desktop/src/lib/mission-canvas/ActualWorkSurfaceStrip.svelte"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/mission-canvas/ActualWorkSurfaceStrip.svelte"
+              ],
+              "check": "npm --prefix apps/desktop test",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/UI-013.json",
+              "branch": "agents/spec135-ui-013",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ui-013",
+              "wave": 12,
+              "batch": 1
+            }
+          ]
+        },
+        {
+          "batch": 2,
+          "tasks": [
+            {
+              "task_id": "CORE-008",
+              "title": "Translate Pi session inventory into an exact-identity Desktop contribution",
+              "source_status": "blocked",
+              "lane": "core-reducer",
+              "depends_on": [
+                "CORE-007"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/CORE-008.json",
+              "targets": [
+                "apps/desktop/src/lib/mission-canvas/contributions/SessionInventoryContribution.svelte",
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/mission-canvas/contributions/SessionInventoryContribution.svelte",
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "check": "npm --prefix apps/desktop test",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/CORE-008.json",
+              "branch": "agents/spec135-core-008",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-core-008",
+              "wave": 12,
+              "batch": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 13,
+      "dependency_ready_after_wave": 12,
+      "task_count": 4,
+      "max_safe_concurrency": 3,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "BROWSER-001",
+              "title": "Render exact UIAI browser artifact Work Surface",
+              "source_status": "blocked",
+              "lane": "browser-artifacts",
+              "depends_on": [
+                "UI-013",
+                "OPS-025"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/BROWSER-001.json",
+              "targets": [
+                "apps/desktop browser Work Surface adapter"
+              ],
+              "concrete_targets": [],
+              "check": "node apps/desktop/tests/generated-browser-acceptance.mjs --case uiai-artifact",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/BROWSER-001.json",
+              "branch": "agents/spec135-browser-001",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-browser-001",
+              "wave": 13,
+              "batch": 1
+            },
+            {
+              "task_id": "CORE-006",
+              "title": "Update resolve_projection scope validation",
+              "source_status": "blocked",
+              "lane": "core-reducer",
+              "depends_on": [
+                "CORE-002",
+                "CORE-003",
+                "CORE-005"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/CORE-006.json",
+              "targets": [
+                "crates/focusa-core/src/mission_canvas/reducer.rs"
+              ],
+              "concrete_targets": [
+                "crates/focusa-core/src/mission_canvas/reducer.rs"
+              ],
+              "check": "cargo test -p focusa-core resolve_projection_workstream --lib",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/CORE-006.json",
+              "branch": "agents/spec135-core-006",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-core-006",
+              "wave": 13,
+              "batch": 1
+            },
+            {
+              "task_id": "DOMAIN-007",
+              "title": "Bind Sessions activity renderer",
+              "source_status": "blocked",
+              "lane": "domain-renderers/domain-007",
+              "depends_on": [
+                "UI-005",
+                "UI-013",
+                "CORE-008"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/DOMAIN-007.json",
+              "targets": [
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "check": "npm --prefix apps/desktop test",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/DOMAIN-007.json",
+              "branch": "agents/spec135-domain-007",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-domain-007",
+              "wave": 13,
+              "batch": 1
+            }
+          ]
+        },
+        {
+          "batch": 2,
+          "tasks": [
+            {
+              "task_id": "CORE-009",
+              "title": "Add Mission Canvas identity migration fixtures",
+              "source_status": "blocked",
+              "lane": "core-reducer",
+              "depends_on": [
+                "CORE-005",
+                "CORE-008"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/CORE-009.json",
+              "targets": [
+                "tests/fixtures/spec158-mission-canvas-identity/",
+                "tests/spec158_mission_canvas_identity_contract_test.py"
+              ],
+              "concrete_targets": [
+                "tests/fixtures/spec158-mission-canvas-identity/",
+                "tests/spec158_mission_canvas_identity_contract_test.py"
+              ],
+              "check": "python3 tests/spec135_resolved_projection_contract_test.py",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/CORE-009.json",
+              "branch": "agents/spec135-core-009",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-core-009",
+              "wave": 13,
+              "batch": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 14,
+      "dependency_ready_after_wave": 13,
+      "task_count": 2,
+      "max_safe_concurrency": 2,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "CONTRACT-001",
+              "title": "Regenerate Mission Canvas JSON Schema",
+              "source_status": "blocked",
+              "lane": "generated-contracts",
+              "depends_on": [
+                "CORE-009"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/CONTRACT-001.json",
+              "targets": [
+                "docs/contracts/spec135/mission-canvas-v1/schema/"
+              ],
+              "concrete_targets": [
+                "docs/contracts/spec135/mission-canvas-v1/schema/"
+              ],
+              "check": "python3 tests/spec135_resolved_projection_contract_test.py",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/CONTRACT-001.json",
+              "branch": "agents/spec135-contract-001",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-contract-001",
+              "wave": 14,
+              "batch": 1
+            },
+            {
+              "task_id": "OPS-002",
+              "title": "OPS-002",
+              "source_status": "blocked_until_dependencies_complete",
+              "lane": "api-operations",
+              "depends_on": [
+                "OPS-001",
+                "CORE-006"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/OPS-002.json",
+              "targets": [],
+              "concrete_targets": [],
+              "check": null,
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-002.json",
+              "branch": "agents/spec135-ops-002",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ops-002",
+              "wave": 14,
+              "batch": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 15,
+      "dependency_ready_after_wave": 14,
+      "task_count": 7,
+      "max_safe_concurrency": 2,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "CONTRACT-002",
+              "title": "Regenerate Mission Canvas OpenAPI",
+              "source_status": "blocked",
+              "lane": "generated-contracts",
+              "depends_on": [
+                "CONTRACT-001"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/CONTRACT-002.json",
+              "targets": [
+                "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json"
+              ],
+              "concrete_targets": [
+                "docs/contracts/spec135/mission-canvas-v1/openapi-3.0.3.json"
+              ],
+              "check": "python3 tests/spec135_mission_canvas_generated_parity_test.py",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/CONTRACT-002.json",
+              "branch": "agents/spec135-contract-002",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-contract-002",
+              "wave": 15,
+              "batch": 1
+            },
+            {
+              "task_id": "OPS-004",
+              "title": "OPS-004",
+              "source_status": "blocked_until_dependencies_complete",
+              "lane": "api-operations",
+              "depends_on": [
+                "OPS-002",
+                "OPS-003"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/OPS-004.json",
+              "targets": [],
+              "concrete_targets": [],
+              "check": null,
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-004.json",
+              "branch": "agents/spec135-ops-004",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ops-004",
+              "wave": 15,
+              "batch": 1
+            }
+          ]
+        },
+        {
+          "batch": 2,
+          "tasks": [
+            {
+              "task_id": "OPS-007",
+              "title": "OPS-007",
+              "source_status": "blocked_until_dependencies_complete",
+              "lane": "api-operations",
+              "depends_on": [
+                "OPS-002",
+                "OPS-006"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/OPS-007.json",
+              "targets": [],
+              "concrete_targets": [],
+              "check": null,
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-007.json",
+              "branch": "agents/spec135-ops-007",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ops-007",
+              "wave": 15,
+              "batch": 2
+            }
+          ]
+        },
+        {
+          "batch": 3,
+          "tasks": [
+            {
+              "task_id": "OPS-011",
+              "title": "OPS-011",
+              "source_status": "blocked_until_dependencies_complete",
+              "lane": "api-operations",
+              "depends_on": [
+                "OPS-002"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/OPS-011.json",
+              "targets": [],
+              "concrete_targets": [],
+              "check": null,
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-011.json",
+              "branch": "agents/spec135-ops-011",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ops-011",
+              "wave": 15,
+              "batch": 3
+            }
+          ]
+        },
+        {
+          "batch": 4,
+          "tasks": [
+            {
+              "task_id": "OPS-021",
+              "title": "OPS-021",
+              "source_status": "blocked_until_dependencies_complete",
+              "lane": "api-operations",
+              "depends_on": [
+                "OPS-002"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/OPS-021.json",
+              "targets": [],
+              "concrete_targets": [],
+              "check": null,
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-021.json",
+              "branch": "agents/spec135-ops-021",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ops-021",
+              "wave": 15,
+              "batch": 4
+            }
+          ]
+        },
+        {
+          "batch": 5,
+          "tasks": [
+            {
+              "task_id": "OPS-022",
+              "title": "OPS-022",
+              "source_status": "blocked_until_dependencies_complete",
+              "lane": "api-operations",
+              "depends_on": [
+                "OPS-002"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/OPS-022.json",
+              "targets": [],
+              "concrete_targets": [],
+              "check": null,
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-022.json",
+              "branch": "agents/spec135-ops-022",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ops-022",
+              "wave": 15,
+              "batch": 5
+            }
+          ]
+        },
+        {
+          "batch": 6,
+          "tasks": [
+            {
+              "task_id": "OPS-023",
+              "title": "OPS-023",
+              "source_status": "blocked_until_dependencies_complete",
+              "lane": "api-operations",
+              "depends_on": [
+                "OPS-002"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/OPS-023.json",
+              "targets": [],
+              "concrete_targets": [],
+              "check": null,
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-023.json",
+              "branch": "agents/spec135-ops-023",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ops-023",
+              "wave": 15,
+              "batch": 6
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 16,
+      "dependency_ready_after_wave": 15,
+      "task_count": 2,
+      "max_safe_concurrency": 1,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "CONTRACT-003",
+              "title": "Regenerate Operation Registry and action bindings",
+              "source_status": "blocked",
+              "lane": "generated-contracts",
+              "depends_on": [
+                "CONTRACT-002"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/CONTRACT-003.json",
+              "targets": [
+                "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+                "docs/contracts/spec135/mission-canvas-v1/ui-action-bindings.json"
+              ],
+              "concrete_targets": [
+                "docs/contracts/spec135/mission-canvas-v1/operation-registry.json",
+                "docs/contracts/spec135/mission-canvas-v1/ui-action-bindings.json"
+              ],
+              "check": "python3 tests/spec135_mission_canvas_generated_parity_test.py",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/CONTRACT-003.json",
+              "branch": "agents/spec135-contract-003",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-contract-003",
+              "wave": 16,
+              "batch": 1
+            }
+          ]
+        },
+        {
+          "batch": 2,
+          "tasks": [
+            {
+              "task_id": "CONTRACT-004",
+              "title": "Regenerate TypeScript types",
+              "source_status": "blocked",
+              "lane": "generated-contracts",
+              "depends_on": [
+                "CONTRACT-002"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/CONTRACT-004.json",
+              "targets": [
+                "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts"
+              ],
+              "concrete_targets": [
+                "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts"
+              ],
+              "check": "python3 tests/spec135_mission_canvas_generated_parity_test.py",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/CONTRACT-004.json",
+              "branch": "agents/spec135-contract-004",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-contract-004",
+              "wave": 16,
+              "batch": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 17,
+      "dependency_ready_after_wave": 16,
+      "task_count": 3,
+      "max_safe_concurrency": 2,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "CONTRACT-005",
+              "title": "Regenerate TypeScript client",
+              "source_status": "blocked",
+              "lane": "generated-contracts",
+              "depends_on": [
+                "CONTRACT-003",
+                "CONTRACT-004"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/CONTRACT-005.json",
+              "targets": [
+                "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts"
+              ],
+              "concrete_targets": [
+                "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated.ts"
+              ],
+              "check": "python3 tests/spec135_mission_canvas_generated_parity_test.py",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/CONTRACT-005.json",
+              "branch": "agents/spec135-contract-005",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-contract-005",
+              "wave": 17,
+              "batch": 1
+            },
+            {
+              "task_id": "PTY-001",
+              "title": "Replace frontend Pi identity DTO with generated Attachment types",
+              "source_status": "blocked",
+              "lane": "pty-runtime",
+              "depends_on": [
+                "CORE-007",
+                "CONTRACT-004"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/PTY-001.json",
+              "targets": [
+                "apps/desktop/src/lib/shell/pi-attachment-contract.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/shell/pi-attachment-contract.ts"
+              ],
+              "check": "npm --prefix apps/desktop test",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/PTY-001.json",
+              "branch": "agents/spec135-pty-001",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-pty-001",
+              "wave": 17,
+              "batch": 1
+            }
+          ]
+        },
+        {
+          "batch": 2,
+          "tasks": [
+            {
+              "task_id": "CONTRACT-006",
+              "title": "Regenerate runtime validators",
+              "source_status": "blocked",
+              "lane": "generated-contracts",
+              "depends_on": [
+                "CONTRACT-004"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/CONTRACT-006.json",
+              "targets": [
+                "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts"
+              ],
+              "concrete_targets": [
+                "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts"
+              ],
+              "check": "python3 tests/spec135_mission_canvas_generated_parity_test.py",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/CONTRACT-006.json",
+              "branch": "agents/spec135-contract-006",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-contract-006",
+              "wave": 17,
+              "batch": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 18,
+      "dependency_ready_after_wave": 17,
+      "task_count": 3,
+      "max_safe_concurrency": 3,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "CONTRACT-007",
+              "title": "Create shared Mission Canvas contracts package entrypoint",
+              "source_status": "blocked",
+              "lane": "generated-contracts",
+              "depends_on": [
+                "CONTRACT-005",
+                "CONTRACT-006"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/CONTRACT-007.json",
+              "targets": [
+                "packages/mission-canvas-core/package.json",
+                "packages/mission-canvas-core/src/index.ts"
+              ],
+              "concrete_targets": [
+                "packages/mission-canvas-core/package.json",
+                "packages/mission-canvas-core/src/index.ts"
+              ],
+              "check": "npm --prefix apps/desktop run check",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/CONTRACT-007.json",
+              "branch": "agents/spec135-contract-007",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-contract-007",
+              "wave": 18,
+              "batch": 1
+            },
+            {
+              "task_id": "PTY-002",
+              "title": "Define Tauri PTY command and event envelopes",
+              "source_status": "implemented_partial",
+              "lane": "pty-runtime",
+              "depends_on": [
+                "PTY-001"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/PTY-002.json",
+              "targets": [
+                "apps/desktop/src-tauri/src/pty/model.rs",
+                "apps/desktop/src/lib/shell/pi-attachment-contract.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src-tauri/src/pty/model.rs",
+                "apps/desktop/src/lib/shell/pi-attachment-contract.ts"
+              ],
+              "check": "cargo test -p focusa-desktop pty_model",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/PTY-002.json",
+              "branch": "agents/spec135-pty-002",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-pty-002",
+              "wave": 18,
+              "batch": 1
+            },
+            {
+              "task_id": "UI-003",
+              "title": "Add projection state machine",
+              "source_status": "implemented_partial",
+              "lane": "desktop-svelte",
+              "depends_on": [
+                "UI-001",
+                "UI-002",
+                "CONTRACT-006"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/UI-003.json",
+              "targets": [
+                "apps/desktop/src/lib/mission-canvas/projection-controller.svelte.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/mission-canvas/projection-controller.svelte.ts"
+              ],
+              "check": "npm --prefix apps/desktop test",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/UI-003.json",
+              "branch": "agents/spec135-ui-003",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ui-003",
+              "wave": 18,
+              "batch": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 19,
+      "dependency_ready_after_wave": 18,
+      "task_count": 14,
+      "max_safe_concurrency": 5,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "CONTRACT-008",
+              "title": "Add shared layout traversal helpers",
+              "source_status": "blocked",
+              "lane": "generated-contracts",
+              "depends_on": [
+                "CONTRACT-007"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/CONTRACT-008.json",
+              "targets": [
+                "packages/mission-canvas-core/src/layout.ts"
+              ],
+              "concrete_targets": [
+                "packages/mission-canvas-core/src/layout.ts"
+              ],
+              "check": "node apps/desktop/tests/layout-renderer-runtime.mjs",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/CONTRACT-008.json",
+              "branch": "agents/spec135-contract-008",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-contract-008",
+              "wave": 19,
+              "batch": 1
+            },
+            {
+              "task_id": "CUT-001",
+              "title": "Wire production MissionCanvasShell to projection controller",
+              "source_status": "implemented_partial",
+              "lane": "integration-cutover",
+              "depends_on": [
+                "UI-003",
+                "UI-021",
+                "LIVE-003"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/CUT-001.json",
+              "targets": [
+                "apps/desktop/src/lib/shell/MissionCanvasShell.svelte"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/shell/MissionCanvasShell.svelte"
+              ],
+              "check": "npm --prefix apps/desktop run check && npm --prefix apps/desktop test",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/CUT-001.json",
+              "branch": "agents/spec135-cut-001",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-cut-001",
+              "wave": 19,
+              "batch": 1
+            },
+            {
+              "task_id": "DOMAIN-001",
+              "title": "Bind Overview activity renderer",
+              "source_status": "blocked",
+              "lane": "domain-renderers/domain-001",
+              "depends_on": [
+                "UI-005",
+                "CONTRACT-007"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/DOMAIN-001.json",
+              "targets": [
+                "apps/desktop/src/lib/mission-canvas/activity-renderers.ts",
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/mission-canvas/activity-renderers.ts",
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "check": "npm --prefix apps/desktop test",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/DOMAIN-001.json",
+              "branch": "agents/spec135-domain-001",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-domain-001",
+              "wave": 19,
+              "batch": 1
+            },
+            {
+              "task_id": "PTY-003",
+              "title": "Add cross-platform PTY dependency and adapter trait",
+              "source_status": "blocked",
+              "lane": "pty-runtime",
+              "depends_on": [
+                "PTY-002"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/PTY-003.json",
+              "targets": [
+                "apps/desktop/src-tauri/Cargo.toml",
+                "apps/desktop/src-tauri/src/pty/adapter.rs"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src-tauri/Cargo.toml",
+                "apps/desktop/src-tauri/src/pty/adapter.rs"
+              ],
+              "check": "cargo check -p focusa-desktop",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/PTY-003.json",
+              "branch": "agents/spec135-pty-003",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-pty-003",
+              "wave": 19,
+              "batch": 1
+            },
+            {
+              "task_id": "UI-019",
+              "title": "Implement draft controller",
+              "source_status": "implemented_partial",
+              "lane": "desktop-svelte",
+              "depends_on": [
+                "UI-003",
+                "OPS-018",
+                "OPS-019"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/UI-019.json",
+              "targets": [
+                "apps/desktop/src/lib/mission-canvas/draft-controller.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/mission-canvas/draft-controller.ts"
+              ],
+              "check": "npm --prefix apps/desktop test",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/UI-019.json",
+              "branch": "agents/spec135-ui-019",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ui-019",
+              "wave": 19,
+              "batch": 1
+            }
+          ]
+        },
+        {
+          "batch": 2,
+          "tasks": [
+            {
+              "task_id": "DOMAIN-002",
+              "title": "Bind Context activity renderer",
+              "source_status": "blocked",
+              "lane": "domain-renderers/domain-002",
+              "depends_on": [
+                "UI-005",
+                "CONTRACT-007"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/DOMAIN-002.json",
+              "targets": [
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "check": "npm --prefix apps/desktop test",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/DOMAIN-002.json",
+              "branch": "agents/spec135-domain-002",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-domain-002",
+              "wave": 19,
+              "batch": 2
+            }
+          ]
+        },
+        {
+          "batch": 3,
+          "tasks": [
+            {
+              "task_id": "DOMAIN-003",
+              "title": "Bind Role activity renderer",
+              "source_status": "blocked",
+              "lane": "domain-renderers/domain-003",
+              "depends_on": [
+                "UI-005",
+                "CONTRACT-007"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/DOMAIN-003.json",
+              "targets": [
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "check": "npm --prefix apps/desktop test",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/DOMAIN-003.json",
+              "branch": "agents/spec135-domain-003",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-domain-003",
+              "wave": 19,
+              "batch": 3
+            }
+          ]
+        },
+        {
+          "batch": 4,
+          "tasks": [
+            {
+              "task_id": "DOMAIN-004",
+              "title": "Bind Interview activity renderer",
+              "source_status": "blocked",
+              "lane": "domain-renderers/domain-004",
+              "depends_on": [
+                "UI-005",
+                "CONTRACT-007"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/DOMAIN-004.json",
+              "targets": [
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "check": "npm --prefix apps/desktop test",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/DOMAIN-004.json",
+              "branch": "agents/spec135-domain-004",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-domain-004",
+              "wave": 19,
+              "batch": 4
+            }
+          ]
+        },
+        {
+          "batch": 5,
+          "tasks": [
+            {
+              "task_id": "DOMAIN-005",
+              "title": "Bind Spec activity renderer",
+              "source_status": "blocked",
+              "lane": "domain-renderers/domain-005",
+              "depends_on": [
+                "UI-005",
+                "CONTRACT-007"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/DOMAIN-005.json",
+              "targets": [
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "check": "npm --prefix apps/desktop test",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/DOMAIN-005.json",
+              "branch": "agents/spec135-domain-005",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-domain-005",
+              "wave": 19,
+              "batch": 5
+            }
+          ]
+        },
+        {
+          "batch": 6,
+          "tasks": [
+            {
+              "task_id": "DOMAIN-006",
+              "title": "Bind Tasks and Work activity renderer",
+              "source_status": "blocked",
+              "lane": "domain-renderers/domain-006",
+              "depends_on": [
+                "UI-005",
+                "UI-015",
+                "CONTRACT-007"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/DOMAIN-006.json",
+              "targets": [
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "check": "npm --prefix apps/desktop test",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/DOMAIN-006.json",
+              "branch": "agents/spec135-domain-006",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-domain-006",
+              "wave": 19,
+              "batch": 6
+            }
+          ]
+        },
+        {
+          "batch": 7,
+          "tasks": [
+            {
+              "task_id": "DOMAIN-008",
+              "title": "Bind Documents activity renderer",
+              "source_status": "blocked",
+              "lane": "domain-renderers/domain-008",
+              "depends_on": [
+                "UI-005",
+                "CONTRACT-007"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/DOMAIN-008.json",
+              "targets": [
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "check": "npm --prefix apps/desktop test",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/DOMAIN-008.json",
+              "branch": "agents/spec135-domain-008",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-domain-008",
+              "wave": 19,
+              "batch": 7
+            }
+          ]
+        },
+        {
+          "batch": 8,
+          "tasks": [
+            {
+              "task_id": "DOMAIN-009",
+              "title": "Bind Research activity renderer",
+              "source_status": "blocked",
+              "lane": "domain-renderers/domain-009",
+              "depends_on": [
+                "UI-005",
+                "CONTRACT-007"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/DOMAIN-009.json",
+              "targets": [
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "check": "npm --prefix apps/desktop test",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/DOMAIN-009.json",
+              "branch": "agents/spec135-domain-009",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-domain-009",
+              "wave": 19,
+              "batch": 8
+            }
+          ]
+        },
+        {
+          "batch": 9,
+          "tasks": [
+            {
+              "task_id": "DOMAIN-010",
+              "title": "Bind Evidence activity renderer",
+              "source_status": "blocked",
+              "lane": "domain-renderers/domain-010",
+              "depends_on": [
+                "UI-005",
+                "CONTRACT-007"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/DOMAIN-010.json",
+              "targets": [
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "check": "npm --prefix apps/desktop test",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/DOMAIN-010.json",
+              "branch": "agents/spec135-domain-010",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-domain-010",
+              "wave": 19,
+              "batch": 9
+            }
+          ]
+        },
+        {
+          "batch": 10,
+          "tasks": [
+            {
+              "task_id": "DOMAIN-012",
+              "title": "Bind Controls activity renderer",
+              "source_status": "blocked",
+              "lane": "domain-renderers/domain-012",
+              "depends_on": [
+                "UI-005",
+                "CONTRACT-007"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/DOMAIN-012.json",
+              "targets": [
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "check": "npm --prefix apps/desktop test",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/DOMAIN-012.json",
+              "branch": "agents/spec135-domain-012",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-domain-012",
+              "wave": 19,
+              "batch": 10
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 20,
+      "dependency_ready_after_wave": 19,
+      "task_count": 10,
+      "max_safe_concurrency": 4,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "CUT-004",
+              "title": "Route Pi mission-canvas command to Desktop present operation",
+              "source_status": "blocked",
+              "lane": "integration-cutover",
+              "depends_on": [
+                "OPS-014",
+                "OPS-015",
+                "CUT-001"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/CUT-004.json",
+              "targets": [
+                "apps/pi-extension Mission Canvas command adapter"
+              ],
+              "concrete_targets": [],
+              "check": "npm --prefix apps/pi-extension test -- mission-canvas-desktop-present",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/CUT-004.json",
+              "branch": "agents/spec135-cut-004",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-cut-004",
+              "wave": 20,
+              "batch": 1
+            },
+            {
+              "task_id": "GEN-001",
+              "title": "Host GeneratedSurface contribution with existing A2UI/Lit renderer",
+              "source_status": "blocked",
+              "lane": "generated-ui",
+              "depends_on": [
+                "UI-005",
+                "DOMAIN-002",
+                "CONTRACT-007"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/GEN-001.json",
+              "targets": [
+                "apps/desktop generated-surface host adapter"
+              ],
+              "concrete_targets": [],
+              "check": "node apps/desktop/tests/generated-surface-runtime.mjs --case snapshot",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/GEN-001.json",
+              "branch": "agents/spec135-gen-001",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-gen-001",
+              "wave": 20,
+              "batch": 1
+            },
+            {
+              "task_id": "PROFILE-003",
+              "title": "Verify General profile recomposition",
+              "source_status": "blocked",
+              "lane": "desktop-svelte",
+              "depends_on": [
+                "DOMAIN-001",
+                "PROFILE-002"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/PROFILE-003.json",
+              "targets": [
+                "apps/desktop/tests/profile-activity-recomposition-runtime.mjs"
+              ],
+              "concrete_targets": [
+                "apps/desktop/tests/profile-activity-recomposition-runtime.mjs"
+              ],
+              "check": "node apps/desktop/tests/profile-activity-recomposition-runtime.mjs --profile general",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/PROFILE-003.json",
+              "branch": "agents/spec135-profile-003",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-profile-003",
+              "wave": 20,
+              "batch": 1
+            },
+            {
+              "task_id": "PTY-004",
+              "title": "Implement PTY process registry",
+              "source_status": "blocked",
+              "lane": "pty-runtime",
+              "depends_on": [
+                "PTY-003",
+                "ID-010"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/PTY-004.json",
+              "targets": [
+                "apps/desktop/src-tauri/src/pty/registry.rs"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src-tauri/src/pty/registry.rs"
+              ],
+              "check": "cargo test -p focusa-desktop pty_registry",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/PTY-004.json",
+              "branch": "agents/spec135-pty-004",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-pty-004",
+              "wave": 20,
+              "batch": 1
+            }
+          ]
+        },
+        {
+          "batch": 2,
+          "tasks": [
+            {
+              "task_id": "PROFILE-004",
+              "title": "Verify Software profile recomposition",
+              "source_status": "blocked",
+              "lane": "desktop-svelte",
+              "depends_on": [
+                "DOMAIN-002",
+                "DOMAIN-005",
+                "DOMAIN-006",
+                "PROFILE-002"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/PROFILE-004.json",
+              "targets": [
+                "apps/desktop/tests/profile-activity-recomposition-runtime.mjs"
+              ],
+              "concrete_targets": [
+                "apps/desktop/tests/profile-activity-recomposition-runtime.mjs"
+              ],
+              "check": "node apps/desktop/tests/profile-activity-recomposition-runtime.mjs --profile software",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/PROFILE-004.json",
+              "branch": "agents/spec135-profile-004",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-profile-004",
+              "wave": 20,
+              "batch": 2
+            }
+          ]
+        },
+        {
+          "batch": 3,
+          "tasks": [
+            {
+              "task_id": "PROFILE-005",
+              "title": "Verify Legal profile recomposition",
+              "source_status": "blocked",
+              "lane": "desktop-svelte",
+              "depends_on": [
+                "DOMAIN-008",
+                "DOMAIN-011",
+                "PROFILE-002"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/PROFILE-005.json",
+              "targets": [
+                "apps/desktop/tests/profile-activity-recomposition-runtime.mjs"
+              ],
+              "concrete_targets": [
+                "apps/desktop/tests/profile-activity-recomposition-runtime.mjs"
+              ],
+              "check": "node apps/desktop/tests/profile-activity-recomposition-runtime.mjs --profile legal",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/PROFILE-005.json",
+              "branch": "agents/spec135-profile-005",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-profile-005",
+              "wave": 20,
+              "batch": 3
+            }
+          ]
+        },
+        {
+          "batch": 4,
+          "tasks": [
+            {
+              "task_id": "PROFILE-006",
+              "title": "Verify Markets profile recomposition",
+              "source_status": "blocked",
+              "lane": "desktop-svelte",
+              "depends_on": [
+                "DOMAIN-010",
+                "PROFILE-002"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/PROFILE-006.json",
+              "targets": [
+                "apps/desktop/tests/profile-activity-recomposition-runtime.mjs"
+              ],
+              "concrete_targets": [
+                "apps/desktop/tests/profile-activity-recomposition-runtime.mjs"
+              ],
+              "check": "node apps/desktop/tests/profile-activity-recomposition-runtime.mjs --profile markets",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/PROFILE-006.json",
+              "branch": "agents/spec135-profile-006",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-profile-006",
+              "wave": 20,
+              "batch": 4
+            }
+          ]
+        },
+        {
+          "batch": 5,
+          "tasks": [
+            {
+              "task_id": "PROFILE-007",
+              "title": "Verify Research profile recomposition",
+              "source_status": "blocked",
+              "lane": "desktop-svelte",
+              "depends_on": [
+                "DOMAIN-009",
+                "DOMAIN-010",
+                "PROFILE-002"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/PROFILE-007.json",
+              "targets": [
+                "apps/desktop/tests/profile-activity-recomposition-runtime.mjs"
+              ],
+              "concrete_targets": [
+                "apps/desktop/tests/profile-activity-recomposition-runtime.mjs"
+              ],
+              "check": "node apps/desktop/tests/profile-activity-recomposition-runtime.mjs --profile research",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/PROFILE-007.json",
+              "branch": "agents/spec135-profile-007",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-profile-007",
+              "wave": 20,
+              "batch": 5
+            }
+          ]
+        },
+        {
+          "batch": 6,
+          "tasks": [
+            {
+              "task_id": "PROFILE-008",
+              "title": "Verify Custom profile recomposition",
+              "source_status": "blocked",
+              "lane": "desktop-svelte",
+              "depends_on": [
+                "DOMAIN-012",
+                "PROFILE-002"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/PROFILE-008.json",
+              "targets": [
+                "apps/desktop/tests/profile-activity-recomposition-runtime.mjs"
+              ],
+              "concrete_targets": [
+                "apps/desktop/tests/profile-activity-recomposition-runtime.mjs"
+              ],
+              "check": "node apps/desktop/tests/profile-activity-recomposition-runtime.mjs --profile custom",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/PROFILE-008.json",
+              "branch": "agents/spec135-profile-008",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-profile-008",
+              "wave": 20,
+              "batch": 6
+            }
+          ]
+        },
+        {
+          "batch": 7,
+          "tasks": [
+            {
+              "task_id": "UI-020",
+              "title": "Render canonical Prompt Editor contribution",
+              "source_status": "implemented_partial",
+              "lane": "desktop-svelte",
+              "depends_on": [
+                "UI-019",
+                "OPS-020"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/UI-020.json",
+              "targets": [
+                "apps/desktop/src/lib/mission-canvas/contributions/PromptEditorContribution.svelte"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/mission-canvas/contributions/PromptEditorContribution.svelte"
+              ],
+              "check": "npm --prefix apps/desktop test",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/UI-020.json",
+              "branch": "agents/spec135-ui-020",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ui-020",
+              "wave": 20,
+              "batch": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 21,
+      "dependency_ready_after_wave": 20,
+      "task_count": 7,
+      "max_safe_concurrency": 6,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "ACCEPT-001",
+              "title": "Verify all thirteen no-dead-chrome scenarios functionally",
+              "source_status": "blocked",
+              "lane": "acceptance/accept-001",
+              "depends_on": [
+                "CUT-003",
+                "PROFILE-008",
+                "LIVE-005"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/ACCEPT-001.json",
+              "targets": [
+                "apps/desktop/tests/mission-canvas-functional-acceptance.mjs"
+              ],
+              "concrete_targets": [
+                "apps/desktop/tests/mission-canvas-functional-acceptance.mjs"
+              ],
+              "check": "node apps/desktop/tests/mission-canvas-functional-acceptance.mjs",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/ACCEPT-001.json",
+              "branch": "agents/spec135-accept-001",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-accept-001",
+              "wave": 21,
+              "batch": 1
+            },
+            {
+              "task_id": "ACCEPT-002",
+              "title": "Verify all twelve activities and six profiles",
+              "source_status": "blocked",
+              "lane": "acceptance/accept-002",
+              "depends_on": [
+                "DOMAIN-012",
+                "PROFILE-008",
+                "CUT-003"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/ACCEPT-002.json",
+              "targets": [
+                "apps/desktop/tests/profile-activity-recomposition-runtime.mjs"
+              ],
+              "concrete_targets": [
+                "apps/desktop/tests/profile-activity-recomposition-runtime.mjs"
+              ],
+              "check": "node apps/desktop/tests/profile-activity-recomposition-runtime.mjs",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/ACCEPT-002.json",
+              "branch": "agents/spec135-accept-002",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-accept-002",
+              "wave": 21,
+              "batch": 1
+            },
+            {
+              "task_id": "ACCEPT-005",
+              "title": "Verify narrow stacked and desktop projection modes",
+              "source_status": "blocked",
+              "lane": "acceptance/accept-005",
+              "depends_on": [
+                "UI-012",
+                "PROFILE-008",
+                "CUT-003"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/ACCEPT-005.json",
+              "targets": [
+                "apps/desktop/tests/responsive-recomposition-acceptance.mjs"
+              ],
+              "concrete_targets": [
+                "apps/desktop/tests/responsive-recomposition-acceptance.mjs"
+              ],
+              "check": "node apps/desktop/tests/responsive-recomposition-acceptance.mjs --uiai-required",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/ACCEPT-005.json",
+              "branch": "agents/spec135-accept-005",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-accept-005",
+              "wave": 21,
+              "batch": 1
+            },
+            {
+              "task_id": "CUT-005",
+              "title": "Reduce menubar to bounded Desktop handoff",
+              "source_status": "blocked",
+              "lane": "integration-cutover",
+              "depends_on": [
+                "CUT-001",
+                "CUT-004"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/CUT-005.json",
+              "targets": [
+                "apps/menubar bounded status/handoff surfaces"
+              ],
+              "concrete_targets": [],
+              "check": "npm --prefix apps/menubar test -- desktop-handoff",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/CUT-005.json",
+              "branch": "agents/spec135-cut-005",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-cut-005",
+              "wave": 21,
+              "batch": 1
+            },
+            {
+              "task_id": "GEN-002",
+              "title": "Bind Focusa Custom Element actions",
+              "source_status": "blocked",
+              "lane": "generated-ui",
+              "depends_on": [
+                "GEN-001",
+                "CONTRACT-003"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/GEN-002.json",
+              "targets": [
+                "apps/desktop/src/lib/mission-canvas/generated-surface-renderer.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/mission-canvas/generated-surface-renderer.ts"
+              ],
+              "check": "node apps/desktop/tests/generated-surface-runtime.mjs --case action-binding",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/GEN-002.json",
+              "branch": "agents/spec135-gen-002",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-gen-002",
+              "wave": 21,
+              "batch": 1
+            },
+            {
+              "task_id": "PTY-005",
+              "title": "Implement PTY spawn with exact Workstream environment",
+              "source_status": "blocked",
+              "lane": "pty-runtime",
+              "depends_on": [
+                "PTY-004"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/PTY-005.json",
+              "targets": [
+                "apps/desktop/src-tauri/src/pty/process.rs"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src-tauri/src/pty/process.rs"
+              ],
+              "check": "cargo test -p focusa-desktop pty_spawn",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/PTY-005.json",
+              "branch": "agents/spec135-pty-005",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-pty-005",
+              "wave": 21,
+              "batch": 1
+            }
+          ]
+        },
+        {
+          "batch": 2,
+          "tasks": [
+            {
+              "task_id": "PTY-010",
+              "title": "Implement detach without runtime destruction",
+              "source_status": "implemented_partial",
+              "lane": "pty-runtime",
+              "depends_on": [
+                "PTY-004"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/PTY-010.json",
+              "targets": [
+                "apps/desktop/src-tauri/src/pty/lifecycle.rs"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src-tauri/src/pty/lifecycle.rs"
+              ],
+              "check": "cargo test -p focusa-desktop pty_detach",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/PTY-010.json",
+              "branch": "agents/spec135-pty-010",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-pty-010",
+              "wave": 21,
+              "batch": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 22,
+      "dependency_ready_after_wave": 21,
+      "task_count": 6,
+      "max_safe_concurrency": 3,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "GEN-003",
+              "title": "Bind Context Role Interview Spec and Tasks generated surfaces",
+              "source_status": "blocked",
+              "lane": "generated-ui",
+              "depends_on": [
+                "GEN-002",
+                "DOMAIN-002",
+                "DOMAIN-003",
+                "DOMAIN-004",
+                "DOMAIN-005",
+                "DOMAIN-006"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/GEN-003.json",
+              "targets": [
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+              ],
+              "check": "node apps/desktop/tests/generated-surface-runtime.mjs --case crist-stages",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/GEN-003.json",
+              "branch": "agents/spec135-gen-003",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-gen-003",
+              "wave": 22,
+              "batch": 1
+            },
+            {
+              "task_id": "LIVE-004",
+              "title": "Restore projection after Desktop restart",
+              "source_status": "implemented_partial",
+              "lane": "desktop-runtime",
+              "depends_on": [
+                "LIVE-001",
+                "LIVE-003",
+                "PROFILE-002",
+                "PTY-010"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/LIVE-004.json",
+              "targets": [
+                "apps/desktop/src/lib/mission-canvas/restoration-controller.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/mission-canvas/restoration-controller.ts"
+              ],
+              "check": "node apps/desktop/tests/restoration-runtime.mjs",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/LIVE-004.json",
+              "branch": "agents/spec135-live-004",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-live-004",
+              "wave": 22,
+              "batch": 1
+            },
+            {
+              "task_id": "PTY-006",
+              "title": "Stream PTY output to Tauri events",
+              "source_status": "implemented_partial",
+              "lane": "pty-runtime",
+              "depends_on": [
+                "PTY-005"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/PTY-006.json",
+              "targets": [
+                "apps/desktop/src-tauri/src/pty/output.rs"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src-tauri/src/pty/output.rs"
+              ],
+              "check": "cargo test -p focusa-desktop pty_output",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/PTY-006.json",
+              "branch": "agents/spec135-pty-006",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-pty-006",
+              "wave": 22,
+              "batch": 1
+            }
+          ]
+        },
+        {
+          "batch": 2,
+          "tasks": [
+            {
+              "task_id": "PTY-007",
+              "title": "Route terminal input to exact PTY",
+              "source_status": "implemented_partial",
+              "lane": "pty-runtime",
+              "depends_on": [
+                "PTY-005"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/PTY-007.json",
+              "targets": [
+                "apps/desktop/src-tauri/src/pty/input.rs"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src-tauri/src/pty/input.rs"
+              ],
+              "check": "cargo test -p focusa-desktop pty_input",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/PTY-007.json",
+              "branch": "agents/spec135-pty-007",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-pty-007",
+              "wave": 22,
+              "batch": 2
+            }
+          ]
+        },
+        {
+          "batch": 3,
+          "tasks": [
+            {
+              "task_id": "PTY-008",
+              "title": "Propagate terminal resize",
+              "source_status": "implemented_partial",
+              "lane": "pty-runtime",
+              "depends_on": [
+                "PTY-005"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/PTY-008.json",
+              "targets": [
+                "apps/desktop/src-tauri/src/pty/resize.rs"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src-tauri/src/pty/resize.rs"
+              ],
+              "check": "cargo test -p focusa-desktop pty_resize",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/PTY-008.json",
+              "branch": "agents/spec135-pty-008",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-pty-008",
+              "wave": 22,
+              "batch": 3
+            }
+          ]
+        },
+        {
+          "batch": 4,
+          "tasks": [
+            {
+              "task_id": "PTY-009",
+              "title": "Implement interrupt semantics",
+              "source_status": "implemented_partial",
+              "lane": "pty-runtime",
+              "depends_on": [
+                "PTY-005"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/PTY-009.json",
+              "targets": [
+                "apps/desktop/src-tauri/src/pty/lifecycle.rs"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src-tauri/src/pty/lifecycle.rs"
+              ],
+              "check": "cargo test -p focusa-desktop pty_interrupt",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/PTY-009.json",
+              "branch": "agents/spec135-pty-009",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-pty-009",
+              "wave": 22,
+              "batch": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 23,
+      "dependency_ready_after_wave": 22,
+      "task_count": 3,
+      "max_safe_concurrency": 3,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "ACCEPT-004",
+              "title": "Verify generated and browser Work Surfaces",
+              "source_status": "blocked",
+              "lane": "acceptance/accept-004",
+              "depends_on": [
+                "GEN-003",
+                "BROWSER-001",
+                "LIVE-002"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/ACCEPT-004.json",
+              "targets": [
+                "apps/desktop/tests/generated-browser-acceptance.mjs"
+              ],
+              "concrete_targets": [
+                "apps/desktop/tests/generated-browser-acceptance.mjs"
+              ],
+              "check": "node apps/desktop/tests/generated-browser-acceptance.mjs --uiai-required",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/ACCEPT-004.json",
+              "branch": "agents/spec135-accept-004",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-accept-004",
+              "wave": 23,
+              "batch": 1
+            },
+            {
+              "task_id": "OPS-024",
+              "title": "OPS-024",
+              "source_status": "blocked_until_dependencies_complete",
+              "lane": "api-operations",
+              "depends_on": [
+                "PTY-008",
+                "ID-010"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/OPS-024.json",
+              "targets": [],
+              "concrete_targets": [],
+              "check": null,
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/OPS-024.json",
+              "branch": "agents/spec135-ops-024",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-ops-024",
+              "wave": 23,
+              "batch": 1
+            },
+            {
+              "task_id": "PTY-011",
+              "title": "Implement explicit close and shutdown semantics",
+              "source_status": "blocked",
+              "lane": "pty-runtime",
+              "depends_on": [
+                "PTY-009",
+                "PTY-010"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/PTY-011.json",
+              "targets": [
+                "apps/desktop/src-tauri/src/pty/lifecycle.rs"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src-tauri/src/pty/lifecycle.rs"
+              ],
+              "check": "cargo test -p focusa-desktop pty_close",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/PTY-011.json",
+              "branch": "agents/spec135-pty-011",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-pty-011",
+              "wave": 23,
+              "batch": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 24,
+      "dependency_ready_after_wave": 23,
+      "task_count": 1,
+      "max_safe_concurrency": 1,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "PTY-012",
+              "title": "Register Tauri PTY commands",
+              "source_status": "blocked",
+              "lane": "pty-runtime",
+              "depends_on": [
+                "PTY-006",
+                "PTY-007",
+                "PTY-008",
+                "PTY-009",
+                "PTY-010",
+                "PTY-011"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/PTY-012.json",
+              "targets": [
+                "apps/desktop/src-tauri/src/main.rs",
+                "apps/desktop/src-tauri/src/pty/mod.rs"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src-tauri/src/main.rs",
+                "apps/desktop/src-tauri/src/pty/mod.rs"
+              ],
+              "check": "cargo check -p focusa-desktop",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/PTY-012.json",
+              "branch": "agents/spec135-pty-012",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-pty-012",
+              "wave": 24,
+              "batch": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 25,
+      "dependency_ready_after_wave": 24,
+      "task_count": 1,
+      "max_safe_concurrency": 1,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "PTY-013",
+              "title": "Connect AgentTuiSurface to native PTY bridge",
+              "source_status": "implemented_partial",
+              "lane": "pty-runtime",
+              "depends_on": [
+                "PTY-012",
+                "PTY-001"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/PTY-013.json",
+              "targets": [
+                "apps/desktop/src/lib/shell/AgentTuiSurface.svelte",
+                "apps/desktop/src/lib/pty/native-bridge.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/pty/native-bridge.ts",
+                "apps/desktop/src/lib/shell/AgentTuiSurface.svelte"
+              ],
+              "check": "npm --prefix apps/desktop run check && npm --prefix apps/desktop test",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/PTY-013.json",
+              "branch": "agents/spec135-pty-013",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-pty-013",
+              "wave": 25,
+              "batch": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 26,
+      "dependency_ready_after_wave": 25,
+      "task_count": 1,
+      "max_safe_concurrency": 1,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "PTY-014",
+              "title": "Reject stale PTY output in frontend",
+              "source_status": "implemented_partial",
+              "lane": "pty-runtime",
+              "depends_on": [
+                "PTY-013"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/PTY-014.json",
+              "targets": [
+                "apps/desktop/src/lib/pty/native-bridge.ts"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/pty/native-bridge.ts"
+              ],
+              "check": "npm --prefix apps/desktop test",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/PTY-014.json",
+              "branch": "agents/spec135-pty-014",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-pty-014",
+              "wave": 26,
+              "batch": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 27,
+      "dependency_ready_after_wave": 26,
+      "task_count": 1,
+      "max_safe_concurrency": 1,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "PTY-015",
+              "title": "Preserve Pi process across Canvas and Agent TUI switching",
+              "source_status": "implemented_partial",
+              "lane": "pty-runtime",
+              "depends_on": [
+                "PTY-013",
+                "PTY-014",
+                "UI-013"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/PTY-015.json",
+              "targets": [
+                "apps/desktop/src/routes/+page.svelte",
+                "apps/desktop/src/lib/shell/AgentTuiSurface.svelte"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/shell/AgentTuiSurface.svelte",
+                "apps/desktop/src/routes/+page.svelte"
+              ],
+              "check": "node apps/desktop/tests/agent-tui-runtime.mjs --case stale-output",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/PTY-015.json",
+              "branch": "agents/spec135-pty-015",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-pty-015",
+              "wave": 27,
+              "batch": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 28,
+      "dependency_ready_after_wave": 27,
+      "task_count": 1,
+      "max_safe_concurrency": 1,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "ACCEPT-003",
+              "title": "Verify same-session Canvas and Agent TUI continuity",
+              "source_status": "blocked",
+              "lane": "acceptance/accept-003",
+              "depends_on": [
+                "PTY-015",
+                "LIVE-004"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/ACCEPT-003.json",
+              "targets": [
+                "apps/desktop/tests/native-integration-acceptance.mjs"
+              ],
+              "concrete_targets": [
+                "apps/desktop/tests/native-integration-acceptance.mjs"
+              ],
+              "check": "node apps/desktop/tests/native-integration-acceptance.mjs",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/ACCEPT-003.json",
+              "branch": "agents/spec135-accept-003",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-accept-003",
+              "wave": 28,
+              "batch": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "wave": 29,
+      "dependency_ready_after_wave": 28,
+      "task_count": 1,
+      "max_safe_concurrency": 1,
+      "batches": [
+        {
+          "batch": 1,
+          "tasks": [
+            {
+              "task_id": "POLISH-001",
+              "title": "Apply finishing visual handoff after functional acceptance",
+              "source_status": "blocked",
+              "lane": "release-polish",
+              "depends_on": [
+                "ACCEPT-001",
+                "ACCEPT-002",
+                "ACCEPT-003",
+                "ACCEPT-004",
+                "ACCEPT-005"
+              ],
+              "task_packet_ref": "docs/contracts/spec135-svelte-task-packets/POLISH-001.json",
+              "targets": [
+                "apps/desktop/src/lib/mission-canvas/"
+              ],
+              "concrete_targets": [
+                "apps/desktop/src/lib/mission-canvas/"
+              ],
+              "check": "node apps/desktop/tests/visual-acceptance-gate.mjs --uiai-required",
+              "evidence_ref": "docs/contracts/evidence/spec135-svelte-tasks/POLISH-001.json",
+              "branch": "agents/spec135-polish-001",
+              "worktree_slot": "$FOCUSA_WORKTREE_ROOT/spec135-polish-001",
+              "wave": 29,
+              "batch": 1
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
