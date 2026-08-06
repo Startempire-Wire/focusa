@@ -103,11 +103,11 @@ atomic_tasks:
     execution_packet_ref: docs/contracts/spec135-svelte-task-packets/ID-001.json
     parent: MC-010
     title: Add ScopeRef and ProjectRootKey target types
-    status: blocked_external
+    status: implemented_partial
     depends_on: []
-    read: [/tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md, crates/focusa-core/src/types.rs]
-    targets: [canonical Spec 158 identity owner in focusa-core]
-    calls: [ProjectRootKey.parse, ScopeRef.Project]
+    read: [docs/spec158/01-identity-ownership-and-reducer.md, crates/focusa-core/src/scoped_state.rs]
+    targets: [crates/focusa-core/src/workstream_identity.rs, crates/focusa-core/src/lib.rs, tests/spec158_workstream_identity_source_test.py]
+    calls: [ProjectRootKey.new, ScopeRef.project, ScopeRef.host]
     input: verified project identity
     output: serializable ScopeRef and ProjectRootKey
     check: cargo test -p focusa-core scope_ref --lib

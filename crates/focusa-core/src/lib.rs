@@ -111,6 +111,7 @@ pub mod rfm;
 pub mod runtime;
 pub mod scope_safety;
 pub mod scoped_state;
+pub mod workstream_identity;
 pub mod semantic_integrity;
 pub mod semantic_migration;
 #[cfg(test)]
