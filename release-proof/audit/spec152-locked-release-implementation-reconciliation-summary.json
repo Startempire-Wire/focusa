@@ -2,6 +2,17 @@
   "build_independent_gates": {
     "governance_inventory": "passed",
     "governance_reconciliation": "passed_truthfully_blocked",
+    "prelicensing_python": {
+      "evidence": "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt",
+      "failed": 3,
+      "failures": [
+        "tests/spec137a_applicability_decision_gate.py",
+        "tests/spec137_full_conformance_gate.py",
+        "tests/spec150_lifecycle_runtime_gate.py"
+      ],
+      "passed": 20,
+      "total": 23
+    },
     "spec152_python": {
       "evidence": "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt",
       "passed": 19,
@@ -27,7 +38,7 @@
     "shellcheck is unavailable; no installation was authorized",
     "WPUIAI/uiai-engine shared-vector acceptance remains external"
   ],
-  "generated_at": "2026-08-06T03:20:38.844450Z",
+  "generated_at": "2026-08-06T03:27:25.766224Z",
   "governance": {
     "admitted_mapping_count": 412,
     "evidence_state_counts": {
@@ -120,11 +131,106 @@
     "Task-description paths no longer count as evidence; only explicit notes, closure receipts, frozen evidence refs, or evidence-link records do.",
     "All previously closed admitted nodes now have valid technical evidence; invalid_closed_count is zero.",
     "No bulk closure was performed: passing static tests do not override unmet Cargo, external, installed, migration, or final-SHA criteria.",
-    "Entitlement coverage remains incomplete: the static ledger reports 395 explicitly unmatched surfaces."
+    "Entitlement coverage remains incomplete: the static ledger reports 395 explicitly unmatched surfaces.",
+    "Spec 137 applicability remains pre-activation and its full-conformance source digest is stale.",
+    "Spec 150 lifecycle runtime gate fails the repository file-size policy: contract_tests.rs is 615 lines and transactions.rs is 520 lines."
+  ],
+  "prelicensing_graph": [
+    {
+      "name": "spec137_core",
+      "node_count": 7,
+      "provider_status": {
+        "in_progress": 7
+      },
+      "reconciliation_classification": {
+        "partial_with_commit_or_test_evidence": 7
+      }
+    },
+    {
+      "name": "spec137a",
+      "node_count": 6,
+      "provider_status": {
+        "in_progress": 6
+      },
+      "reconciliation_classification": {
+        "partial_with_commit_or_test_evidence": 6
+      }
+    },
+    {
+      "name": "spec138",
+      "node_count": 7,
+      "provider_status": {
+        "in_progress": 7
+      },
+      "reconciliation_classification": {
+        "partial_with_commit_or_test_evidence": 7
+      }
+    },
+    {
+      "name": "spec138a",
+      "node_count": 9,
+      "provider_status": {
+        "in_progress": 9
+      },
+      "reconciliation_classification": {
+        "partial_with_commit_or_test_evidence": 9
+      }
+    },
+    {
+      "name": "spec140",
+      "node_count": 7,
+      "provider_status": {
+        "in_progress": 7
+      },
+      "reconciliation_classification": {
+        "partial_with_commit_or_test_evidence": 7
+      }
+    },
+    {
+      "name": "spec144",
+      "node_count": 8,
+      "provider_status": {
+        "in_progress": 2,
+        "open": 6
+      },
+      "reconciliation_classification": {
+        "partial_with_commit_or_test_evidence": 8
+      }
+    },
+    {
+      "name": "spec150",
+      "node_count": 6,
+      "provider_status": {
+        "open": 6
+      },
+      "reconciliation_classification": {
+        "partial_with_commit_or_test_evidence": 6
+      }
+    },
+    {
+      "name": "platform_final_acceptance",
+      "node_count": 6,
+      "provider_status": {
+        "open": 6
+      },
+      "reconciliation_classification": {
+        "linked_evidence_pending_acceptance": 6
+      }
+    },
+    {
+      "name": "dogfood_and_truthful_decision",
+      "node_count": 3,
+      "provider_status": {
+        "open": 3
+      },
+      "reconciliation_classification": {
+        "no_current_acceptance_evidence": 3
+      }
+    }
   ],
   "provider_snapshot": {
     "record_count": 2766,
-    "sha256": "sha256:7b1a635fdeb1eb1b7ac269db3945902fd883c0f730e24594df4344f38c42d6ec",
+    "sha256": "sha256:d5afc866b67c2da83983c0b4b76461ab29a97753e0985412e0c64bc58151af3c",
     "source": "canonical:.beads/issues.jsonl"
   },
   "schema": "focusa.spec152_locked_release_implementation_reconciliation_summary.v1"

@@ -5334,7 +5334,10 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:61f90984",
+        "git:b7dae19a"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -5344,10 +5347,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.2.2",
       "projection_drift": true,
-      "provider_record_digest": "sha256:a0a81e98817cd32a5b6360cd70e0763e5e0f72827a4d875d310d53863a38917e",
+      "provider_record_digest": "sha256:ce51e07cbd38ee45860d6506c4c14605766f506c69aac01c34e8579d43302150",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T02:18:38.251528886Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:13.824206840Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec137 temporal clock authority and append-only revision ledger"
@@ -5362,7 +5367,9 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:d4eb3f17"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -5372,10 +5379,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.2.2",
       "projection_drift": true,
-      "provider_record_digest": "sha256:eb409a50f2bba5e43638c9768142abd29b3bbbbc0360f9f85da57f50beca3317",
+      "provider_record_digest": "sha256:44868521d44d1e57fcf2c37dd7639df2f7c51a9353a06dcdc88ba578dc38c1f6",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T02:18:38.189442551Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:14.722321566Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec137 temporal claims, commitments, urgency, and preflight"
@@ -5391,7 +5400,9 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:61033f4a"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -5401,10 +5412,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.2.2",
       "projection_drift": true,
-      "provider_record_digest": "sha256:8d4954d6d00cb227957a232a7f85871e28b8d8579bd56556e3dc4efb6cc76b6e",
+      "provider_record_digest": "sha256:4eb836761f4ea6729924eeac4795edd2889e577a70fbea6ee775c6c79d747a4a",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T02:18:38.120408533Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:15.572250293Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec137 calibrated forecasting and release-cycle timing"
@@ -5421,7 +5434,10 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:954248d6",
+        "git:b6adda38"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -5431,10 +5447,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.2.2",
       "projection_drift": true,
-      "provider_record_digest": "sha256:0daf648ea310a1ef816f3078e382e47fe5eea70caf4b44b32e2caad4e8c1349c",
+      "provider_record_digest": "sha256:a0e397537cef2da66f22048db0636fb55c31b52e877cf5eb89bf0eee3f81beac",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T02:18:38.054516176Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:16.462000409Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec137 API CLI Pi Canvas persistence and acceptance proof"
@@ -5449,7 +5467,9 @@
       "github_issue_refs": [
         15
       ],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:6eb994d8"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -5458,10 +5478,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.2",
       "projection_drift": true,
-      "provider_record_digest": "sha256:00360ddbb3d2ff7f4404602c3a66259bc043fc5ce310614d291934ae939f2f17",
+      "provider_record_digest": "sha256:4262db8e4cd48894031787045723adabd2bcbccca0485a096f17376c9d3639d0",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T02:18:38.315468679Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:17.286075101Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "GitHub #15 \u2014 Implement Spec 138 prediction and metacognitive authority foundation"
@@ -6783,7 +6805,9 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:e0d1b0d7"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -6793,10 +6817,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.8.4",
       "projection_drift": true,
-      "provider_record_digest": "sha256:0753ad4f29af756e6ec56b01846a7f1ab25c3c6798839e660de100c051f9241d",
+      "provider_record_digest": "sha256:6b18dba562ff6a45c6e2d991fc59ad7702635291e975719ccd9e7d2748c41819",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T02:18:35.118374620Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:43.113939487Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:7",
       "technical_acceptance_claim": false,
       "title": "Spec 144 closure system: source coverage, applicability, ledger, DAG, and ownership"
@@ -6811,7 +6837,9 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:c4683f01"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -6821,10 +6849,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.8.4",
       "projection_drift": true,
-      "provider_record_digest": "sha256:0a29fdae6150a0b79a8b314da7eb860e16776106f33229de41d4e16c2286825f",
+      "provider_record_digest": "sha256:f58035dd82b18666a563e1099c3e321adc92c2ff3377c08b106ac76f4da9cf07",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-01T02:58:45.853413099Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:43.884984826Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:7",
       "technical_acceptance_claim": false,
       "title": "Spec 144 semantic artifacts: ontology, SHACL profiles, registries, and canonicalization"
@@ -6839,7 +6869,9 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:71593d44"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -6849,10 +6881,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.8.4",
       "projection_drift": true,
-      "provider_record_digest": "sha256:a7b03ee405d20f075df17cfcb42a4cc7c99ae5774def6fb96dc11e90a9b61942",
+      "provider_record_digest": "sha256:c4310f8f00f4185d4327893c224621bc4369f4942b34524610a99624cd36a119",
       "provider_state": "open",
-      "provider_updated_at": "2026-08-01T01:48:40.976036100Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:44.591228529Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:7",
       "technical_acceptance_claim": false,
       "title": "Spec 144 verification runtime: contracts, plans, independent assignments, responses, and settlement"
@@ -6867,7 +6901,9 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:b0e1c621"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -6877,10 +6913,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.8.4",
       "projection_drift": true,
-      "provider_record_digest": "sha256:360858f99b0e738290bc4c69d07cde5e76b86a1ffa15e1a5ee42984b306478ea",
+      "provider_record_digest": "sha256:1790719f046817c2d6d4edb51006453fd582663fb22e9c9d0c41afce0d1bb37d",
       "provider_state": "open",
-      "provider_updated_at": "2026-08-01T01:48:41.400228632Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:45.281665493Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:7",
       "technical_acceptance_claim": false,
       "title": "Spec 144 calibration, vertical intelligence, and learning governance"
@@ -6895,7 +6933,9 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:c312d6e7"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -6905,10 +6945,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.8.4",
       "projection_drift": true,
-      "provider_record_digest": "sha256:3f1337a375ef74496edccdd8b3f56d9df0536112c689a031bbb3ab710bcbde9e",
+      "provider_record_digest": "sha256:e7984c34127e8e53d8eb09eb01e7788c1ccae78674adf8ed06404828e9780215",
       "provider_state": "open",
-      "provider_updated_at": "2026-08-01T01:48:41.877557528Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:46.062434567Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:7",
       "technical_acceptance_claim": false,
       "title": "Spec 144 persistence, replay, API, CLI, Pi, Canvas, clients, and migrations"
@@ -6923,7 +6965,9 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:9f848f54"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -6933,10 +6977,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.8.4",
       "projection_drift": true,
-      "provider_record_digest": "sha256:8a56f0b3950a3b8eca6c054990d22b39d75f8ec89e9e31f09a0058d63840850b",
+      "provider_record_digest": "sha256:e43a61de7f2875ec8cfc278a285ea0192f5a5a022f895fcab3dd7962547f607b",
       "provider_state": "open",
-      "provider_updated_at": "2026-08-01T01:48:42.324364347Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:46.824544043Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:7",
       "technical_acceptance_claim": false,
       "title": "Spec 144 security, adversarial verification, operations, and performance"
@@ -6952,7 +6998,9 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:978b2477"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -6962,10 +7010,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.8.4",
       "projection_drift": true,
-      "provider_record_digest": "sha256:0efbec3451e722d0575509e944746b514ac4e2cc4037584b6760d6c9f0717e63",
+      "provider_record_digest": "sha256:40e769036da9cc92b9ce726267425074bf882a4b4e3fcded122aad806fad6c6d",
       "provider_state": "open",
-      "provider_updated_at": "2026-08-01T01:48:42.796016758Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:47.532580158Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:7",
       "technical_acceptance_claim": false,
       "title": "Spec 144 zero-omission live-effect conformance gate"
@@ -6985,7 +7035,9 @@
       "github_issue_refs": [
         122
       ],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:86fc5cfe"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -6995,10 +7047,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.8.4",
       "projection_drift": true,
-      "provider_record_digest": "sha256:ab864c53fbf2b7dca5788ee33eea9ef8b76f7158c4a6c6bc83237649334203ed",
+      "provider_record_digest": "sha256:21924e4eba0813b344066c4df100790ccb421d940e7fcbb06eecceb0b49656d7",
       "provider_state": "open",
-      "provider_updated_at": "2026-08-02T03:47:33.922389644Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:48.278624620Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:7",
       "technical_acceptance_claim": false,
       "title": "Spec 137/138/144/150 exhaustive Focusa tool-family grounding integration"
@@ -7158,7 +7212,9 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:d48fb9d7"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7168,10 +7224,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.2",
       "projection_drift": true,
-      "provider_record_digest": "sha256:773ea9c2cefca78aab9301eec3a7bafed3cfd12075e47156969ab7e5e5ef5c8f",
+      "provider_record_digest": "sha256:f468e4e5cbd148e7bb523ca30b6905484574cd2e322869bcd70fcf4abc3c4699",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T03:47:16.479104973Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:18.120762001Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec137 runtime: Work Loop, Silent Sessions, compaction, closure settlement"
@@ -7186,7 +7244,10 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:954248d6",
+        "git:a46549bf"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7196,10 +7257,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.2",
       "projection_drift": true,
-      "provider_record_digest": "sha256:689f47e6719fb7dafcb6e44bd4aa95109299227e186f9ae639e7d8dec526541c",
+      "provider_record_digest": "sha256:1bce9423decc0cb5fa9f4c65d323e9aeb5751f6460112d1dd75c52853826756c",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T03:47:16.957455291Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:19.159633703Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec137 surfaces: API, registry, clients, CLI, Pi, UI, notifications"
@@ -7213,7 +7276,9 @@
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [
-        "git:3df0c4a6"
+        "git:3df0c4a6",
+        "git:81015049",
+        "git:d48fb9d7"
       ],
       "ordered_task_key": [
         "focusa",
@@ -7224,10 +7289,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.2",
       "projection_drift": true,
-      "provider_record_digest": "sha256:14f7fce6bda4a7f950d23a866005f374b6532c70bd4cb18ae020bf2a5163e298",
+      "provider_record_digest": "sha256:8c63e5319956c8e4ca672cebd974a55e6a304ce6dc9e8f33385e02dc6902537a",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T05:34:37.882222613Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:20.079070229Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec137 closure: migration, security, benchmarks, zero-deferral receipts"
@@ -7269,7 +7336,10 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:38a68112",
+        "git:b7d26045"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7279,10 +7349,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.3",
       "projection_drift": true,
-      "provider_record_digest": "sha256:5d3b6042d1d0be349556f3ab0e4edf0d68780e523f82187b4e7a45f730b5287a",
+      "provider_record_digest": "sha256:17cd9bb3717dcbf02b75e65f16bfde5a3239fd3e749b2427b3b5c8d7aa808c03",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T03:47:18.317095768Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:21.047250421Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec137a source coverage and applicability decisions"
@@ -7297,7 +7369,10 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:38a68112",
+        "git:b7d26045"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7307,10 +7382,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.3",
       "projection_drift": true,
-      "provider_record_digest": "sha256:bbb99cfa5cc907c6e97fb9af5cbd5c5ae28928b07ad50b2db0a372b1dbd718f3",
+      "provider_record_digest": "sha256:52bab2310e0b059b75a5c333f03c162a9c2ca0662ac1fddc698649702d82979b",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T02:18:36.158527623Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:21.972501560Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec137a ledger statuses and root delivery DAG"
@@ -7325,7 +7402,10 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:38a68112",
+        "git:b7d26045"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7335,10 +7415,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.3",
       "projection_drift": true,
-      "provider_record_digest": "sha256:823c73c2af553264904b7f7a81d8aaa4b7533207de0761d2d966cec36ca4cae8",
+      "provider_record_digest": "sha256:e5ba9f2de7f8333d5204ba9862814b2bd9ac8649f4490e3b24b7813d3f60fbb6",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T02:18:36.093448973Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:22.757072007Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec137a omission and variance firewall"
@@ -7353,7 +7435,10 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:38a68112",
+        "git:b7d26045"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7363,10 +7448,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.3",
       "projection_drift": true,
-      "provider_record_digest": "sha256:c8f7c926178d4876e22e3144e96a2fa478b880ec834104686730b190a9d998b7",
+      "provider_record_digest": "sha256:5434ea8bf25fda072199654a038893edce354df4ccefeb1573c250c7928378f6",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T02:18:36.031139416Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:23.572978068Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec137a surface platform and degraded-mode parity"
@@ -7382,7 +7469,10 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:38a68112",
+        "git:b7d26045"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7392,10 +7482,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.3",
       "projection_drift": true,
-      "provider_record_digest": "sha256:37df18bb41f8580d00d1d5228da51b384248252bf212b8cbc28e1583336ba534",
+      "provider_record_digest": "sha256:81415cafb87ea1d3cbfcc723f423c37edc920ec17b7613e33110b9019ead1368",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T02:18:35.962832902Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:24.342510408Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec137a tranche merge settlement and release gates"
@@ -7410,7 +7502,10 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:38a68112",
+        "git:b7d26045"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7420,10 +7515,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.3",
       "projection_drift": true,
-      "provider_record_digest": "sha256:cee956892a37435b04bbe707828d868a5c6e701ac890049c83269849675c33f2",
+      "provider_record_digest": "sha256:a259dcf5282fd051c0e4e668feafd7447732405a3b610958bb6ce76f4cda2322",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T02:18:35.897804434Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:25.232460986Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec137a machine-readable closure and acceptance proof"
@@ -7461,7 +7558,10 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:6eb994d8",
+        "git:c38a4497"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7471,10 +7571,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.4",
       "projection_drift": true,
-      "provider_record_digest": "sha256:a2a76a8891d7e3a3ae36fdf585a2235f363c21fa09ce0b9d935870a04cb6407e",
+      "provider_record_digest": "sha256:4552a25d70fecdfccf8b8ce9ae67f662a06ba24d41cef79ae33248b2a3b87c42",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T02:18:37.197085074Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:26.256842032Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec138 foundation: canonical epistemic types and append-only event storage"
@@ -7489,7 +7591,10 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:6eb994d8",
+        "git:c38a4497"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7499,10 +7604,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.4",
       "projection_drift": true,
-      "provider_record_digest": "sha256:9b8fc8552ff757edb7eb6eea19b818a3cb94ef089f712ea45e20b17f55222a9f",
+      "provider_record_digest": "sha256:3ea192f48df65171ab1d1976d0dc185a25b66c612c1f97e325025db1bc174d30",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T03:47:18.735262034Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:27.199582257Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec138 scoring: scorer registry, proper scores, calibration, authority"
@@ -7517,7 +7624,10 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:6eb994d8",
+        "git:c38a4497"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7527,10 +7637,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.4",
       "projection_drift": true,
-      "provider_record_digest": "sha256:48c98e77854559498f0abcb72bb281faa721988cb15d8f582d2732a8c0ed000d",
+      "provider_record_digest": "sha256:1d04bd2a150a940ba348cdb657638d718cc0198e8afd05024ad4f7424d6f6157",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T03:47:19.168330757Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:27.969575848Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec138 learning: metacognitive authority, promotion, rollback, outcomes"
@@ -7545,7 +7657,10 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:6eb994d8",
+        "git:c38a4497"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7555,10 +7670,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.4",
       "projection_drift": true,
-      "provider_record_digest": "sha256:3e5f455fe79008a500f82d97bbb878b8943694922d070940539b3dc926979e6a",
+      "provider_record_digest": "sha256:abf1493b41d46dd03147f7628fe86067650d2a225d0e359eefa2989211ea18e9",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T03:47:19.666493971Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:28.710288447Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec138 advanced: transfer, self-model, source fusion, scenarios"
@@ -7573,7 +7690,10 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:6eb994d8",
+        "git:c38a4497"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7583,10 +7703,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.4",
       "projection_drift": true,
-      "provider_record_digest": "sha256:5199cd7b5fc86dffd10185b3ba8df7758e4e8a6cd3280321182817b39eff8ef5",
+      "provider_record_digest": "sha256:6a4de43bce7d928a81653e8edd555524bbad82846b409c9d769aaf861c1de93d",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T03:47:20.129335483Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:29.572069503Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec138 lifecycle: consolidation, forgetting, reactivation, security"
@@ -7601,7 +7723,10 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:6eb994d8",
+        "git:c38a4497"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7611,10 +7736,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.4",
       "projection_drift": true,
-      "provider_record_digest": "sha256:41a3975a94a042ee87978ba76d67c615e25ece7022aba17eaade0489cfc28714",
+      "provider_record_digest": "sha256:16caa51b9a8d1d8bfa8e220c40ba176a18044e896c559dadc4f81bdf732711a3",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T03:47:20.595007691Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:30.456319387Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec138 surfaces: API, CLI, Pi, UI, migration, full profile conformance"
@@ -7654,7 +7781,10 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:38a68112",
+        "git:b7d26045"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7664,10 +7794,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.5",
       "projection_drift": true,
-      "provider_record_digest": "sha256:fb441e2aec1a2244de715c6c99be834671ae9f4753b8b611d8be7b51a569ba30",
+      "provider_record_digest": "sha256:b0bf3dd838b7d789a4159f4270e046a92554569cb55a7e92e5e4b3651a109b22",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T03:47:21.557594823Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:31.218677563Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec138a combined source coverage and applicability"
@@ -7682,7 +7814,10 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:38a68112",
+        "git:b7d26045"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7692,10 +7827,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.5",
       "projection_drift": true,
-      "provider_record_digest": "sha256:2284086a3d14680f81f0e8bf06aae6dd040b6d7200dde57556530fbaca788659",
+      "provider_record_digest": "sha256:edfea014524813e6545bade7a3ca97945cec33f24e09c9aed72497b090aa61f2",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T02:18:35.713718022Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:31.946955453Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec138a scorer registry proper scores and calibration"
@@ -7710,7 +7847,10 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:38a68112",
+        "git:b7d26045"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7720,10 +7860,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.5",
       "projection_drift": true,
-      "provider_record_digest": "sha256:bc512c9f94eafc170500739d0dc9978aca54ef235f1074a5e1c3439e7c8752d0",
+      "provider_record_digest": "sha256:3078681552a355dca083cd394fe248880238f0355249ccd1dd785fad889493df",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T02:18:35.650349829Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:32.709018767Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec138a append-only epistemic history and operations"
@@ -7739,7 +7881,10 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:38a68112",
+        "git:b7d26045"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7749,10 +7894,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.5",
       "projection_drift": true,
-      "provider_record_digest": "sha256:93e107638358861eb5f99a09b3ac28396f9544c8a157c982349520e0c2e5b8e4",
+      "provider_record_digest": "sha256:c1d9f587116d0ec081898db0261ccdb62e6ec98e2aa04364fbd1ca7105ac19cc",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T02:18:35.587402420Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:33.426722214Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec138a API CLI Pi client UI and Focus Slice parity"
@@ -7767,7 +7914,10 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:38a68112",
+        "git:b7d26045"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7777,10 +7927,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.5",
       "projection_drift": true,
-      "provider_record_digest": "sha256:2e3e3e1b8ed95924f5d8cb777fea2653d423c58bf85cf98c9437de0e93fb10fa",
+      "provider_record_digest": "sha256:11dad9c8c68322d027fd59c34e4280b82564e02dc59fbe351a9448f585cf79cf",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T02:18:35.522143377Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:34.143011755Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec138a migration transfer self-model and longitudinal learning"
@@ -7795,7 +7947,10 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:38a68112",
+        "git:b7d26045"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7805,10 +7960,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.5",
       "projection_drift": true,
-      "provider_record_digest": "sha256:7c473b33231551a66c8494ee49a20df03fdf7ecaa3d6ee874dee8f001ea4b81b",
+      "provider_record_digest": "sha256:2ba841fd0760a17a4ff6631ba7401c4d24e4baacd1563e75b320fb36e07d0dc6",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T02:18:35.457732481Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:34.880851811Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec138a profiles A through D completeness"
@@ -7824,7 +7981,10 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:38a68112",
+        "git:b7d26045"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7834,10 +7994,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.5",
       "projection_drift": true,
-      "provider_record_digest": "sha256:815459c0f739246066a20fd05c882cd498d7039450e7fc279a3bb601fe23f62e",
+      "provider_record_digest": "sha256:ceb05092624c15629053b7c9155c5e8c8c4ca1a0d876d26f9494b1ff7812fd93",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T02:18:35.392141550Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:35.606393119Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec138a profiles E through H completeness"
@@ -7853,7 +8015,10 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:38a68112",
+        "git:b7d26045"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7863,10 +8028,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.5",
       "projection_drift": true,
-      "provider_record_digest": "sha256:9f73aafbec5a9c9cf50ec16e70fe89be3df34d1c47c226018ecb004993ed0627",
+      "provider_record_digest": "sha256:04e55615ab763f830bcfed134d62e4add7608e076a76a3e24bb58f60313e58f2",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T02:18:35.322079997Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:36.387871102Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec138a delivery DAG omission firewall and release gates"
@@ -7881,7 +8048,10 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:38a68112",
+        "git:b7d26045"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7891,10 +8061,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.5",
       "projection_drift": true,
-      "provider_record_digest": "sha256:d06924966ab92c1eb94f36934b998774baf52b18fd91583547828c8b9772d486",
+      "provider_record_digest": "sha256:4ac2aed80972795967496f9ce7507929254d0a44805259a9dd2c8247e73e7cbe",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T02:18:35.234541515Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:37.097613299Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:1",
       "technical_acceptance_claim": false,
       "title": "Spec138a machine-readable closure and acceptance proof"
@@ -7932,7 +8104,9 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:0b8b1629"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -7942,10 +8116,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.6",
       "projection_drift": true,
-      "provider_record_digest": "sha256:d40c7cf0319cd71db8e367acb2eb13ac57838dad0a1c499bd58cf1ffb0ec0537",
+      "provider_record_digest": "sha256:3e8def15c22279ecbc6a3d78a88ada441980e99ded4d51918d0429d199d333bd",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T02:18:36.779703700Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:37.878154975Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:2",
       "technical_acceptance_claim": false,
       "title": "Spec140 foundation: runtime constitution contracts and persistence"
@@ -7961,7 +8137,8 @@
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [
-        "git:0ebad94a"
+        "git:0ebad94a",
+        "git:12d08244"
       ],
       "ordered_task_key": [
         "focusa",
@@ -7972,10 +8149,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.6",
       "projection_drift": true,
-      "provider_record_digest": "sha256:ee5693aeeb69fd2a60f17b501b73b420a7e8a41e7c32d93752daae1e1bda583e",
+      "provider_record_digest": "sha256:595951fd78280bc336f684b1bfd7076d3b9ae180294c1b9a7e7f8723ae314270",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T05:34:38.227156695Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:38.598776582Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:2",
       "technical_acceptance_claim": false,
       "title": "Spec140 authority: source discovery, precedence, conflicts, injection defense"
@@ -7990,7 +8169,9 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:41939528"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -8000,10 +8181,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.6",
       "projection_drift": true,
-      "provider_record_digest": "sha256:72443c2b762a5df9acb5abd994abebb54a83b86aebf9fd26dd40555a358a46ce",
+      "provider_record_digest": "sha256:b90769e82824ac92f61d5078461d8d111d49957702e0ebdf4090a16ce4138ddc",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T03:47:22.497907377Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:39.323062291Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:2",
       "technical_acceptance_claim": false,
       "title": "Spec140 compiler: deterministic target-specific prompt and harness outputs"
@@ -8018,7 +8201,9 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:0964b3d8"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -8028,10 +8213,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.6",
       "projection_drift": true,
-      "provider_record_digest": "sha256:caf57a388c0304fbd16c298913ebffc4af9059c48e7692048b26b94941ca4041",
+      "provider_record_digest": "sha256:c629446d3b9bd51abd28836837c69f2298622d4bb89b11b2f7c908870fc80643",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T03:47:23.142574838Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:40.128835065Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:2",
       "technical_acceptance_claim": false,
       "title": "Spec140 enforcement: skills, tools, permissions, boundaries, execution routes"
@@ -8046,7 +8233,9 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:6a8adab7"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -8056,10 +8245,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.6",
       "projection_drift": true,
-      "provider_record_digest": "sha256:9593e9933df676f138cfbe76296a357476fff2c9ee365b4ca6a395ce38f2ac95",
+      "provider_record_digest": "sha256:afe3ea6be377921b88ad8d1b8332ff78758d53f854174640077156d6c5f925b6",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T03:47:23.705795049Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:40.903605697Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:2",
       "technical_acceptance_claim": false,
       "title": "Spec140 CRIST and Runtime Studio integration"
@@ -8074,7 +8265,9 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:ae5470b3"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -8084,10 +8277,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.6",
       "projection_drift": true,
-      "provider_record_digest": "sha256:c84403c85beb538191b4654737097e4421e9054d7eabed741d919c2b1abef9f7",
+      "provider_record_digest": "sha256:70e3990a10a2a13c0c3dae60fb479b1fa8b5acf1b0cff1cf5d56196da235aee4",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T03:47:24.343298002Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:41.665188121Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:2",
       "technical_acceptance_claim": false,
       "title": "Spec140 evaluation: versions, activation, pinning, rollback, champion/challenger"
@@ -8103,7 +8298,8 @@
       "frozen_projection": "closed",
       "github_issue_refs": [],
       "implementation_commit_refs": [
-        "git:4300fa77"
+        "git:4300fa77",
+        "git:99711cb7"
       ],
       "ordered_task_key": [
         "focusa",
@@ -8114,10 +8310,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.6",
       "projection_drift": true,
-      "provider_record_digest": "sha256:12438cd4e8915a3817eeb955e3fdce76fe741be032a8a210fca9f9d5d41e1be0",
+      "provider_record_digest": "sha256:7563d9001ad12756446f10289b0c696b21c209264e9021709a0e99a9fb3df4b7",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-02T05:34:38.535315494Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:42.415041046Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:2",
       "technical_acceptance_claim": false,
       "title": "Spec140 surfaces and closure: API, CLI, Pi, TUI, migration, security evidence"
@@ -8188,7 +8386,9 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:031580a4"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -8198,10 +8398,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.9",
       "projection_drift": true,
-      "provider_record_digest": "sha256:dd8934d6cf5948b187565cbc0fb93e5cbf900d898928458075f97bcd5c40c93f",
+      "provider_record_digest": "sha256:1ac9c5b9a494a781cb066ab6efb5048c7c95fecebeb2550d2a0d2178bf7f324c",
       "provider_state": "open",
-      "provider_updated_at": "2026-08-01T01:49:04.718235684Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:49.048853859Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:7",
       "technical_acceptance_claim": false,
       "title": "Spec 150 phase 1: freeze schemas, states, receipts, and resume semantics"
@@ -8216,7 +8418,9 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:9306f8e3"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -8226,10 +8430,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.9",
       "projection_drift": true,
-      "provider_record_digest": "sha256:da465103866f837f697eed41208f96677f9a358a6f6675aca03fb741186c9708",
+      "provider_record_digest": "sha256:ffe91d0ded4c7996a92e44cb99eadaa2b9c00d3005b6f0c3672590cc45e185f2",
       "provider_state": "open",
-      "provider_updated_at": "2026-08-01T01:48:44.080063634Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:49.798538532Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:7",
       "technical_acceptance_claim": false,
       "title": "Spec 150 phase 2: integration adapters and capability discovery"
@@ -8244,7 +8450,9 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:1a00177c"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -8254,10 +8462,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.9",
       "projection_drift": true,
-      "provider_record_digest": "sha256:3a991b2cac797f36fb1982692cdf1be12639fc4f819a9f5bb09dc260ac4e0055",
+      "provider_record_digest": "sha256:7c7470f5c48abd1cffdaa9f74f0121414a22f4ae964e1a991c76de2fbc13082d",
       "provider_state": "open",
-      "provider_updated_at": "2026-08-01T01:48:44.529207096Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:50.592056795Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:7",
       "technical_acceptance_claim": false,
       "title": "Spec 150 phase 3: transactional install, onboarding, maintenance, and recovery runtime"
@@ -8272,7 +8482,9 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:a8196df4"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -8282,10 +8494,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.9",
       "projection_drift": true,
-      "provider_record_digest": "sha256:a0609eebb2b20967f9b9e7bfc8d6657493036821929108a2dd8862949bf286d0",
+      "provider_record_digest": "sha256:6312982a1eec85cf7580cae1d207b62932ae4000626f8834a376135df9f9a8af",
       "provider_state": "open",
-      "provider_updated_at": "2026-08-01T01:48:44.929033272Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:51.398986067Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:7",
       "technical_acceptance_claim": false,
       "title": "Spec 150 phase 4: guided CLI, Canvas, and documentation UX"
@@ -8300,7 +8514,9 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:556bbe77"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -8310,10 +8526,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.9",
       "projection_drift": true,
-      "provider_record_digest": "sha256:5c470dce30e4a3f01ce6e3b5e4a55d1419cd28cf5db3d79ab081607baee7f2bd",
+      "provider_record_digest": "sha256:bdd3748a93b80b12151084c43c9ac8afdd142ffe4e4095ba3a88b372a892062f",
       "provider_state": "open",
-      "provider_updated_at": "2026-08-02T05:11:27.171216995Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:52.206658934Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:7",
       "technical_acceptance_claim": false,
       "title": "Spec 150 phase 5: exhaustive conformance and platform evidence"
@@ -8328,7 +8546,9 @@
       "evidence_state": "pending_technical_acceptance",
       "frozen_projection": "closed",
       "github_issue_refs": [],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:86fc5cfe"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -8338,10 +8558,12 @@
       ],
       "parent_bead_id": "focusa-vbcqu.9.9",
       "projection_drift": true,
-      "provider_record_digest": "sha256:7b5a9c9291298af557b446455249613f2f2288e5afaaee022c9f2293a3144e07",
+      "provider_record_digest": "sha256:56a122b5514c29f66f2cd3bab0dd509c1b1c742bd0a409d41c58a7921b3a2ab4",
       "provider_state": "open",
-      "provider_updated_at": "2026-08-01T01:48:45.832377714Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:26:52.909814349Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt"
+      ],
       "task_plan_ref": "execution-phase:7",
       "technical_acceptance_claim": false,
       "title": "Spec 150 zero-omission double E2E release gate"
@@ -12837,7 +13059,7 @@
   ],
   "provider_snapshot": {
     "record_count": 2766,
-    "sha256": "sha256:7b1a635fdeb1eb1b7ac269db3945902fd883c0f730e24594df4344f38c42d6ec",
+    "sha256": "sha256:d5afc866b67c2da83983c0b4b76461ab29a97753e0985412e0c64bc58151af3c",
     "source": "canonical:.beads/issues.jsonl"
   },
   "provider_state_counts": {
@@ -12845,7 +13067,7 @@
     "in_progress": 52,
     "open": 151
   },
-  "reconciliation_digest": "sha256:66aeb79cdd6607b0ec8198657eff321742909184f90bca3eba6359ed643e0eee",
+  "reconciliation_digest": "sha256:26318a60047a6d70e13854889bebb7aa8b1429bc3c41f0bac95c7232b251e2ae",
   "repair_overlay_mapping_count": 137,
   "schema": "focusa.locked_release_governance_reconciliation.v1",
   "status": "blocked",

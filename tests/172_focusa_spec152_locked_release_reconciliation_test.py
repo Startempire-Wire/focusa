@@ -47,10 +47,26 @@ assert SUMMARY["build_independent_gates"]["spec152_python"] == {
     "passed": 19,
     "total": 19,
 }
+prelicensing = {row["name"]: row for row in SUMMARY["prelicensing_graph"]}
+assert prelicensing["spec137_core"]["node_count"] == 7
+assert prelicensing["spec138a"]["node_count"] == 9
+assert prelicensing["spec140"]["node_count"] == 7
+assert prelicensing["spec144"]["node_count"] == 8
+assert prelicensing["spec150"]["reconciliation_classification"] == {
+    "partial_with_commit_or_test_evidence": 6
+}
+assert prelicensing["platform_final_acceptance"]["reconciliation_classification"] == {
+    "linked_evidence_pending_acceptance": 6
+}
+assert SUMMARY["build_independent_gates"]["prelicensing_python"]["passed"] == 20
+assert SUMMARY["build_independent_gates"]["prelicensing_python"]["failed"] == 3
+assert SUMMARY["build_independent_gates"]["prelicensing_python"]["total"] == 23
 assert SUMMARY["current_frontier"]["work_item"] == "focusa-vbcqu.20.13.2"
 assert SUMMARY["current_frontier"]["publication"] == "forbidden"
 assert any("395" in finding for finding in SUMMARY["material_findings"])
 assert any("stale-excluded" in finding for finding in SUMMARY["material_findings"])
+assert any("Spec 137 applicability" in finding for finding in SUMMARY["material_findings"])
+assert any("615 lines" in finding for finding in SUMMARY["material_findings"])
 
 print("Spec 152 expanded locked-release reconciliation: PASS")
 print(f"admitted={GATE['mapping_count']} accepted={GATE['technically_accepted_count']} pending={GATE['technically_pending_count']}")

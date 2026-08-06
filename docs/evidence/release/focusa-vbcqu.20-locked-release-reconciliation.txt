@@ -30,6 +30,12 @@ PASS tests/164_focusa_locked_release_governance_reconciliation_test.py (truthful
 PASS tests/165_focusa_locked_release_technical_closure_reducer_test.py
 PASS tests/172_focusa_spec152_locked_release_reconciliation_test.py
 
+PRE-LICENSING LOCKED-SCOPE PYTHON GATES
+PASS 20/23 Spec 137/137A/138/138A/140A/144/150 gates
+FAIL tests/spec137a_applicability_decision_gate.py — applicability matrix remains pre-activation
+FAIL tests/spec137_full_conformance_gate.py — Spec 137 source digest is stale
+FAIL tests/spec150_lifecycle_runtime_gate.py — contract_tests.rs and transactions.rs exceed 500 lines
+
 TRUTHFUL BLOCKERS
 - 395 entitlement surfaces remain explicitly unmatched.
 - Cargo fmt/clippy/test gates deferred by operator no-Cargo-before-50-percent constraint.
