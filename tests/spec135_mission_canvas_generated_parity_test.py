@@ -48,6 +48,11 @@ capability_ids = {entry["operation_id"] for entry in capabilities["operations"]}
 binding_ids = {entry["operation_id"] for entry in bindings["bindings"]}
 assert registry_ids == openapi_ids == capability_ids == binding_ids
 assert openapi["openapi"] == "3.0.3"
+for capability in capabilities["operations"]:
+    operation = next(item for item in registry["operations"] if item["operation_id"] == capability["operation_id"])
+    assert capability["scope_required"] == ["workstream"]
+    assert capability["scope_optional"] == operation["scope_optional"]
+    assert capability["authority_chain"] == operation["authority_chain"]
 identity_defs = {
     "ProjectRootKey",
     "ScopeRef",

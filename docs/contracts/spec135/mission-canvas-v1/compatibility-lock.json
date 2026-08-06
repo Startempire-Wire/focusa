@@ -1,6 +1,6 @@
 {
   "derived_artifacts": {
-    "capability-snapshot.json": "sha256:fe1dd2d2e910e6df06730d999e6f9ca3f43f213819242f0bd11ed7d16037fb28",
+    "capability-snapshot.json": "sha256:799ccf1e2e48e7c58727b7b0ae72396bc4196a528edcb765ad1df12aba128259",
     "client-parity-matrix.json": "sha256:07a386355d6b817fdefa78b4e560eda93a0ccfb4796c9d652b58656209163562",
     "implementation-proof-matrix.json": "sha256:80c47cc0fc12f61768aff981730d4cf427ff5a51c015c9b478af21e354e9ca83",
     "openapi-3.0.3.json": "sha256:f015fb8358461b2abe10b55939d046a45ee38b28d55d1f2ccc21e95274582c82",

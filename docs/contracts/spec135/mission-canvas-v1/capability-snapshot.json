@@ -3,202 +3,752 @@
   "contract_version": "1.0.0",
   "operations": [
     {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "operation_id": "focusa.mission_canvas.projection.get",
       "reason": "P03 runtime handler promoted",
       "required_permissions": [
         "mission_canvas:read"
       ],
+      "scope_optional": [
+        "continuity_id",
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
+      ],
       "status": "available"
     },
     {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "operation_id": "focusa.mission_canvas.projection.resolve",
       "reason": "P03 runtime handler promoted",
       "required_permissions": [
         "mission_canvas:write"
       ],
+      "scope_optional": [
+        "continuity_id",
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
+      ],
       "status": "available"
     },
     {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "operation_id": "focusa.mission_canvas.profile.list",
       "reason": "P03 runtime handler promoted",
       "required_permissions": [
         "mission_canvas:read"
       ],
+      "scope_optional": [
+        "continuity_id",
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
+      ],
       "status": "available"
     },
     {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "operation_id": "focusa.mission_canvas.profile.select",
       "reason": "P03 runtime handler promoted",
       "required_permissions": [
         "mission_canvas:write"
       ],
+      "scope_optional": [
+        "continuity_id",
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
+      ],
       "status": "available"
     },
     {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "operation_id": "focusa.mission_canvas.profile.get",
       "reason": "P03 runtime handler promoted",
       "required_permissions": [
         "mission_canvas:read"
       ],
+      "scope_optional": [
+        "continuity_id",
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
+      ],
       "status": "available"
     },
     {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "operation_id": "focusa.mission_canvas.activity.list",
       "reason": "P03 runtime handler promoted",
       "required_permissions": [
         "mission_canvas:read"
       ],
+      "scope_optional": [
+        "continuity_id",
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
+      ],
       "status": "available"
     },
     {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "operation_id": "focusa.mission_canvas.activity.select",
       "reason": "P03 runtime handler promoted",
       "required_permissions": [
         "mission_canvas:write"
       ],
+      "scope_optional": [
+        "continuity_id",
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
+      ],
       "status": "available"
     },
     {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "operation_id": "focusa.mission_canvas.domain_pack.install",
       "reason": "P03 runtime handler promoted",
       "required_permissions": [
         "mission_canvas:write"
       ],
+      "scope_optional": [
+        "continuity_id",
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
+      ],
       "status": "available"
     },
     {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "operation_id": "focusa.mission_canvas.registry.list",
       "reason": "P03 runtime handler promoted",
       "required_permissions": [
         "mission_canvas:read"
       ],
+      "scope_optional": [
+        "continuity_id",
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
+      ],
       "status": "available"
     },
     {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "operation_id": "focusa.mission_canvas.layout_memory.get",
       "reason": "P03 runtime handler promoted",
       "required_permissions": [
         "mission_canvas:read"
       ],
+      "scope_optional": [
+        "continuity_id",
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
+      ],
       "status": "available"
     },
     {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "operation_id": "focusa.mission_canvas.layout_memory.update",
       "reason": "P03 runtime handler promoted",
       "required_permissions": [
         "mission_canvas:write"
       ],
+      "scope_optional": [
+        "continuity_id",
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
+      ],
       "status": "available"
     },
     {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "operation_id": "focusa.mission_canvas.layout.mutate",
       "reason": "P03 runtime handler promoted",
       "required_permissions": [
         "mission_canvas:write"
       ],
+      "scope_optional": [
+        "continuity_id",
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
+      ],
       "status": "available"
     },
     {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "operation_id": "focusa.mission_canvas.rich_host.resolve",
       "reason": "P03 runtime handler promoted",
       "required_permissions": [
         "mission_canvas:host"
       ],
+      "scope_optional": [
+        "continuity_id",
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
+      ],
       "status": "available"
     },
     {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "operation_id": "focusa.mission_canvas.rich_host.launch",
       "reason": "P03 runtime handler promoted",
       "required_permissions": [
         "mission_canvas:host"
       ],
+      "scope_optional": [
+        "continuity_id",
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
+      ],
       "status": "available"
     },
     {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "operation_id": "focusa.mission_canvas.rich_host.focus",
       "reason": "P03 runtime handler promoted",
       "required_permissions": [
         "mission_canvas:host"
       ],
+      "scope_optional": [
+        "continuity_id",
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
+      ],
       "status": "available"
     },
     {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "operation_id": "focusa.mission_canvas.rich_host.hide",
       "reason": "P03 runtime handler promoted",
       "required_permissions": [
         "mission_canvas:host"
       ],
+      "scope_optional": [
+        "continuity_id",
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
+      ],
       "status": "available"
     },
     {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "operation_id": "focusa.mission_canvas.rich_host.close",
       "reason": "P03 runtime handler promoted",
       "required_permissions": [
         "mission_canvas:host"
       ],
+      "scope_optional": [
+        "continuity_id",
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
+      ],
       "status": "available"
     },
     {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "operation_id": "focusa.mission_canvas.draft.get",
       "reason": "P03 runtime handler promoted",
       "required_permissions": [
         "mission_canvas:draft"
       ],
+      "scope_optional": [
+        "continuity_id",
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
+      ],
       "status": "available"
     },
     {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "operation_id": "focusa.mission_canvas.draft.sync",
       "reason": "P03 runtime handler promoted",
       "required_permissions": [
         "mission_canvas:draft"
       ],
+      "scope_optional": [
+        "continuity_id",
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
+      ],
       "status": "available"
     },
     {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "operation_id": "focusa.mission_canvas.recipient.resolve",
       "reason": "P03 runtime handler promoted",
       "required_permissions": [
         "mission_canvas:draft"
       ],
+      "scope_optional": [
+        "continuity_id",
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
+      ],
       "status": "available"
     },
     {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "operation_id": "focusa.mission_canvas.recomposition.evidence.get",
       "reason": "P03 runtime handler promoted",
       "required_permissions": [
         "mission_canvas:read"
       ],
+      "scope_optional": [
+        "continuity_id",
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
+      ],
       "status": "available"
     },
     {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "operation_id": "focusa.mission_canvas.recomposition.receipt.get",
       "reason": "P03 runtime handler promoted",
       "required_permissions": [
         "mission_canvas:read"
       ],
+      "scope_optional": [
+        "continuity_id",
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
+      ],
       "status": "available"
     },
     {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "operation_id": "focusa.mission_canvas.recomposition.diagnostics.list",
       "reason": "P03 runtime handler promoted",
       "required_permissions": [
         "mission_canvas:read"
       ],
+      "scope_optional": [
+        "continuity_id",
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
+      ],
       "status": "available"
     },
     {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "operation_id": "focusa.mission_canvas.pi_session.event.append",
       "reason": "P03 runtime handler promoted",
       "required_permissions": [
         "mission_canvas:write"
       ],
+      "scope_optional": [
+        "continuity_id",
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
+      ],
       "status": "available"
     },
     {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "operation_id": "focusa.mission_canvas.events.stream",
       "reason": "P03 runtime handler promoted",
       "required_permissions": [
         "mission_canvas:read"
+      ],
+      "scope_optional": [
+        "continuity_id",
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
       ],
       "status": "available"
     }

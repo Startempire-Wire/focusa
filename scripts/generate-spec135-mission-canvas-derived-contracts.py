@@ -297,6 +297,9 @@ def capability_snapshot(registry: dict[str, Any]) -> dict[str, Any]:
                     else "Contract defined; runtime handler not yet promoted"
                 ),
                 "required_permissions": entry["permissions_required"],
+                "scope_required": entry["scope_required"],
+                "scope_optional": entry["scope_optional"],
+                "authority_chain": entry["authority_chain"],
             }
             for entry in registry["operations"]
         ],
