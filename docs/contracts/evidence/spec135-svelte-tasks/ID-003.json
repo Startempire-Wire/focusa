@@ -1,23 +1,31 @@
 {
   "schema": "focusa.spec135.svelte_task_evidence.v1",
   "task_id": "ID-003",
-  "result": "Added canonical AttachmentKey with the complete Workstream, optional Continuity, instance, session, attachment, and workspace-binding chain. Ownership validation rejects reuse against a different WorkstreamKey.",
+  "result": "The exact target paths already contain the bounded AttachmentKey implementation at base commit 2b1cac3aea367f3b3bd44da45a7d446d439490b1; no additional source edit was safe in this staging pass. AttachmentKey carries the WorkstreamKey owner plus optional ContinuityId, InstanceId, SessionId, AttachmentId, and WorkspaceBindingId, and validate_owner rejects a foreign WorkstreamKey with ScopeMismatch.",
   "targets": [
     "crates/focusa-core/src/workstream_identity.rs",
     "tests/spec158_workstream_identity_source_test.py"
   ],
   "checks": [
-    "rustfmt --edition 2021 crates/focusa-core/src/workstream_identity.rs",
-    "python3 tests/spec158_workstream_identity_source_test.py"
+    "rustfmt --edition 2021 --check crates/focusa-core/src/workstream_identity.rs (exit 0)",
+    "python3 tests/spec158_workstream_identity_source_test.py (exit 0; Spec 158 Workstream identity source contract: PASS)",
+    "git diff --quiet 2b1cac3aea367f3b3bd44da45a7d446d439490b1 -- crates/focusa-core/src/workstream_identity.rs tests/spec158_workstream_identity_source_test.py (exit 0; no additional source change required)"
   ],
   "remaining_checks": [
     "cargo test -p focusa-core attachment_key --lib"
   ],
   "blockers": [
-    "Predecessor Rust checks and Cargo validation remain deferred under the operator's pre-50-percent build prohibition"
+    "The required cargo test -p focusa-core attachment_key --lib check was not run because the operator's pre-50-percent Cargo prohibition is binding; no deferred Cargo result is claimed.",
+    "The packet-required authority paths /tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md and /tmp/focusa-spec158-transition/docs__spec158__02-persistence-migration-and-quarantine.md are absent; the checked-in docs/spec158/01-identity-ownership-and-reducer.md and docs/spec158/02-persistence-migration-and-quarantine.md counterparts were read, but the missing absolute references remain unresolved.",
+    "Dependency ID-002 evidence remains implemented_partial; its exact WorkstreamKey type and source are present and were used for this bounded staging pass, but dependency completion is not claimed."
   ],
   "evidence_refs": [
-    "docs/spec158/01-identity-ownership-and-reducer.md"
+    "docs/spec158/01-identity-ownership-and-reducer.md",
+    "docs/spec158/02-persistence-migration-and-quarantine.md",
+    "tests/spec158_workstream_identity_source_test.py"
+  ],
+  "acceptance": [
+    "AttachmentKey::validate_owner rejects Cross-Workstream Attachment reuse with ScopeKeyError::ScopeMismatch at the implemented source seam; Cargo runtime execution remains deferred."
   ],
   "status": "implemented_partial"
 }
