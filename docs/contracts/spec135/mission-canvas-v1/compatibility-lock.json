@@ -1,16 +1,16 @@
 {
   "derived_artifacts": {
     "capability-snapshot.json": "sha256:fe1dd2d2e910e6df06730d999e6f9ca3f43f213819242f0bd11ed7d16037fb28",
-    "client-parity-matrix.json": "sha256:57d977a76234a13041e3f9697e7fb0fa4c549387d880ad820a847fed8c5585f8",
-    "implementation-proof-matrix.json": "sha256:3ca5dd732d0e5e0f99eb3e75a1b4f794321596ef0a4ed69595084785481301e5",
-    "openapi-3.0.3.json": "sha256:52ba3b95cc5599a77698f20f15562ff5b2e1a40f476774afbef7eee9b886d82a",
-    "typescript/mission-canvas-client.generated.ts": "sha256:578ac10bb1ef3371a8f1dd9f79f8421d90265269c9b5f92e61f77162a14dfd37",
-    "typescript/mission-canvas-types.generated.ts": "sha256:d7defc07f2018d210eb990ca53c0ba7b147a779fb428084cf31ea639ce6c1435",
-    "typescript/mission-canvas-validators.generated.ts": "sha256:d36dba30c62647e5c86281956921447878561978a04adb290db866450ef1c8c3",
+    "client-parity-matrix.json": "sha256:07a386355d6b817fdefa78b4e560eda93a0ccfb4796c9d652b58656209163562",
+    "implementation-proof-matrix.json": "sha256:80c47cc0fc12f61768aff981730d4cf427ff5a51c015c9b478af21e354e9ca83",
+    "openapi-3.0.3.json": "sha256:f015fb8358461b2abe10b55939d046a45ee38b28d55d1f2ccc21e95274582c82",
+    "typescript/mission-canvas-client.generated.ts": "sha256:2645b95c82804d3342df2366cf1364d6a52d64bfa577d0d3b8e2d4cea8620af3",
+    "typescript/mission-canvas-types.generated.ts": "sha256:db9c4f796193b06d36129684bc52d112db66f65dac4c0c55ca698637d74fb2a6",
+    "typescript/mission-canvas-validators.generated.ts": "sha256:a6e6ec4a6ff4dee0865c693151dd67fef51dc26a1cf38c0ff80c3310b2f2a3b1",
     "ui-action-bindings.json": "sha256:daea98c615f5f37e18c6bb9be69c2f805b231c24baa0b07bf69f27ac88e99927"
   },
-  "operation_registry_sha256": "3102b9ced96652f6a4d626709c9129fcce8acd3e39c31cf105f7c1df2ce68ffc",
+  "operation_registry_sha256": "b77178a72f2df1e6c71cbd875b89056d478c17cbc75635cc7f00d034f02898ee",
   "protocol_version": "1.0.0",
   "schema": "focusa.mission_canvas.compatibility_lock.v1",
-  "schema_bundle_sha256": "16991bc916560208b08a521adf42b387fe63ca9954f88011fcf7b51d3ccec8ef"
+  "schema_bundle_sha256": "1bfc6780ccaae08ba93d0e913308f3fc3de7733f139310f74e11eba6520b95f0"
 }

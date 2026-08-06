@@ -1,10 +1,10 @@
 import type { MissionCanvasClient } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated';
-import { exactScopeStorageKey, sameExactScope as sameScope } from './exact-scope';
-import type { ExactScope, ProjectionLifecycleEvent } from './types';
+import { authorityFromEvent, sameWorkstreamAuthority as sameScope, workstreamAuthorityStorageKey } from './exact-scope';
+import type { ProjectionLifecycleEvent, WorkstreamAuthorityContext } from './types';
 
 export interface EventCursorStore {
-  load(scope: ExactScope): string | undefined;
-  persist(scope: ExactScope, cursor: string): void;
+  load(scope: WorkstreamAuthorityContext): string | undefined;
+  persist(scope: WorkstreamAuthorityContext, cursor: string): void;
 }
 
 export interface EventBatch {
@@ -25,7 +25,7 @@ export class MissionCanvasEventClient {
 
   constructor(
     private readonly client: MissionCanvasClient,
-    private readonly scope: ExactScope,
+    private readonly scope: WorkstreamAuthorityContext,
     private readonly cursorStore: EventCursorStore
   ) {
     this.#cursor = cursorStore.load(scope);
@@ -37,7 +37,7 @@ export class MissionCanvasEventClient {
   }
 
   async poll(): Promise<EventBatch> {
-    const events = await this.client.eventsStream({ scope: this.scope, after_cursor: this.#cursor });
+    const events = await this.client.eventsStream({ ...this.scope, after_cursor: this.#cursor });
     const accepted: ProjectionLifecycleEvent[] = [];
     const rejected: EventBatch['rejected'] = [];
 
@@ -87,7 +87,7 @@ export class MissionCanvasEventClient {
   }
 
   private rejectionReason(event: ProjectionLifecycleEvent): string | undefined {
-    if (!sameScope(event.scope, this.scope)) return 'foreign_event_scope';
+    if (!sameScope(authorityFromEvent(event), this.scope)) return 'foreign_event_scope';
     if (this.#seenEventIds.has(event.event_id)) return 'duplicate_event';
     if (event.event_cursor === this.#cursor) return 'duplicate_cursor';
     if (event.projection_revision < this.#lastProjectionRevision) return 'projection_revision_regressed';
@@ -99,7 +99,7 @@ export class MissionCanvasEventClient {
 export class LocalEventCursorStore implements EventCursorStore {
   readonly #prefix = 'focusa:mission-canvas:event-cursor:';
 
-  load(scope: ExactScope): string | undefined {
+  load(scope: WorkstreamAuthorityContext): string | undefined {
     try {
       return globalThis.localStorage?.getItem(this.key(scope)) ?? undefined;
     } catch {
@@ -107,7 +107,7 @@ export class LocalEventCursorStore implements EventCursorStore {
     }
   }
 
-  persist(scope: ExactScope, cursor: string): void {
+  persist(scope: WorkstreamAuthorityContext, cursor: string): void {
     try {
       globalThis.localStorage?.setItem(this.key(scope), cursor);
     } catch {
@@ -115,7 +115,7 @@ export class LocalEventCursorStore implements EventCursorStore {
     }
   }
 
-  private key(scope: ExactScope): string {
-    return `${this.#prefix}${exactScopeStorageKey(scope)}`;
+  private key(scope: WorkstreamAuthorityContext): string {
+    return `${this.#prefix}${workstreamAuthorityStorageKey(scope)}`;
   }
 }

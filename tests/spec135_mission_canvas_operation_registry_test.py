@@ -40,7 +40,12 @@ for prefix in required_prefixes:
     assert any(operation_id.startswith(prefix) for operation_id in ids), prefix
 
 for entry in operations:
-    assert entry["scope_required"] == ["project_root", "continuity_id", "session_id", "attachment_id"]
+    assert entry["scope_required"] == ["workstream"]
+    assert entry["authority_chain"] == [
+        "scope_ref", "project_root_key", "workstream_id", "continuity_id",
+        "attachment_key", "session_id", "instance_id", "workspace_binding_id",
+        "runtime_object", "work_surface_id",
+    ]
     assert entry["permissions_required"]
     if entry["mode"] == "mutation":
         assert entry["requires_idempotency_key"]

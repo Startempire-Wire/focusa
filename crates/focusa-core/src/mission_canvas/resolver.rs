@@ -8,6 +8,7 @@ pub const RESOLVER_RULE_REVISION: &str = "adaptive-composition:v1";
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EligibilityContext {
+    #[serde(flatten)]
     pub scope: MissionCanvasScope,
     pub profile_id: String,
     pub activity_mode_id: String,
@@ -197,6 +198,11 @@ mod tests {
 
     use super::*;
     use crate::mission_canvas::model::ContributionKind;
+    use crate::scoped_state::ScopeRef as LegacyScopeRef;
+    use crate::workstream_identity::{
+        AttachmentId, ContinuityId, InstanceId, ScopeRef, SessionId, WorkspaceBindingId,
+        WorkstreamId, WorkstreamKey,
+    };
 
     fn candidate(id: &str, priority: i64) -> CandidateContribution {
         CandidateContribution {
@@ -215,16 +221,41 @@ mod tests {
         }
     }
 
+    fn scope() -> MissionCanvasScope {
+        let legacy = LegacyScopeRef::project(
+            "project:focusa",
+            "/workspace/focusa",
+            "Focusa",
+            "host-a:worktree-main",
+        )
+        .unwrap();
+        let workstream = WorkstreamKey::new(
+            ScopeRef::project(legacy).unwrap(),
+            WorkstreamId::parse("ws:mission-canvas").unwrap(),
+        );
+        let continuity = ContinuityId::parse("continuity:mission-canvas").unwrap();
+        MissionCanvasScope {
+            workstream: workstream.clone(),
+            continuity_id: Some(continuity.clone()),
+            attachment: Some(crate::workstream_identity::AttachmentKey::new(
+                workstream,
+                Some(continuity),
+                InstanceId::parse("instance:pi").unwrap(),
+                SessionId::parse("session:1").unwrap(),
+                AttachmentId::parse("attachment:1").unwrap(),
+                WorkspaceBindingId::parse("workspace:mission-canvas").unwrap(),
+            )),
+            workspace_binding_id: Some(
+                WorkspaceBindingId::parse("workspace:mission-canvas").unwrap(),
+            ),
+            runtime_object: None,
+            work_surface_id: None,
+        }
+    }
+
     fn context() -> EligibilityContext {
         EligibilityContext {
-            scope: MissionCanvasScope {
-                project_root: "/tmp/focusa".into(),
-                continuity_id: "mission-canvas".into(),
-                instance_id: None,
-                session_id: "session:1".into(),
-                attachment_id: "attachment:1".into(),
-                working_subpath_id: None,
-            },
+            scope: scope(),
             profile_id: "software".into(),
             activity_mode_id: "overview".into(),
             projection_revision: 1,

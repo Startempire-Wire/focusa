@@ -11,7 +11,10 @@ use focusa_core::mission_canvas::{
     CompositionEvent, MissionCanvasScope, MissionCanvasStore, ResolveProjectionInput,
     StoredDocument, resolve_projection,
 };
-use serde::Deserialize;
+use focusa_core::workstream_identity::{
+    AttachmentKey, RuntimeObjectRef, WorkSurfaceId, WorkstreamKey,
+};
+use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::{Value, json};
 
 use crate::server::AppState;
@@ -20,44 +23,118 @@ type ApiResult = Result<Json<Value>, (StatusCode, Json<Value>)>;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct ScopeQuery {
-    pub project_root: String,
-    pub continuity_id: String,
-    pub session_id: String,
-    pub attachment_id: String,
-    pub instance_id: Option<String>,
-    pub working_subpath_id: Option<String>,
+    /// Query transport encodes the generated WorkstreamKey as one JSON value.
+    pub workstream: String,
+    pub continuity_id: Option<String>,
+    pub attachment: Option<String>,
+    pub workspace_binding_id: Option<String>,
+    pub runtime_object: Option<String>,
+    pub work_surface_id: Option<String>,
 }
 
 impl ScopeQuery {
     fn scope(&self) -> Result<MissionCanvasScope, (StatusCode, Json<Value>)> {
-        if [
-            &self.project_root,
-            &self.continuity_id,
-            &self.session_id,
-            &self.attachment_id,
-        ]
-        .iter()
-        .any(|value| value.trim().is_empty())
-        {
-            return Err(error(
-                StatusCode::UNPROCESSABLE_ENTITY,
-                "scope_incomplete",
-                "project_root, continuity_id, session_id, and attachment_id are required",
-            ));
-        }
-        Ok(MissionCanvasScope {
-            project_root: self.project_root.clone(),
-            continuity_id: self.continuity_id.clone(),
-            instance_id: self.instance_id.clone(),
-            session_id: self.session_id.clone(),
-            attachment_id: self.attachment_id.clone(),
-            working_subpath_id: self.working_subpath_id.clone(),
-        })
+        let workstream = parse_query_json::<WorkstreamKey>(&self.workstream, "workstream")?;
+        let attachment =
+            parse_optional_query_json::<AttachmentKey>(&self.attachment, "attachment")?;
+        let runtime_object =
+            parse_optional_query_json::<RuntimeObjectRef>(&self.runtime_object, "runtime_object")?;
+        let work_surface_id = self
+            .work_surface_id
+            .as_deref()
+            .filter(|value| !value.trim().is_empty())
+            .map(|value| WorkSurfaceId::parse(value.to_owned()))
+            .transpose()
+            .map_err(|_| {
+                error(
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                    "work_surface_invalid",
+                    "work_surface_id must be non-empty",
+                )
+            })?;
+        let scope = MissionCanvasScope {
+            workstream,
+            continuity_id: self
+                .continuity_id
+                .as_deref()
+                .filter(|value| !value.trim().is_empty())
+                .map(|value| {
+                    focusa_core::workstream_identity::ContinuityId::parse(value.to_owned())
+                })
+                .transpose()
+                .map_err(|_| {
+                    error(
+                        StatusCode::UNPROCESSABLE_ENTITY,
+                        "continuity_invalid",
+                        "continuity_id must be non-empty when provided",
+                    )
+                })?,
+            attachment,
+            workspace_binding_id: self
+                .workspace_binding_id
+                .as_deref()
+                .filter(|value| !value.trim().is_empty())
+                .map(|value| {
+                    focusa_core::workstream_identity::WorkspaceBindingId::parse(value.to_owned())
+                })
+                .transpose()
+                .map_err(|_| {
+                    error(
+                        StatusCode::UNPROCESSABLE_ENTITY,
+                        "workspace_binding_invalid",
+                        "workspace_binding_id must be non-empty when provided",
+                    )
+                })?,
+            runtime_object,
+            work_surface_id,
+        };
+        scope.validate().map_err(|reason| {
+            error(StatusCode::UNPROCESSABLE_ENTITY, "scope_incomplete", reason)
+        })?;
+        Ok(scope)
     }
+}
+
+fn parse_query_json<T: DeserializeOwned>(
+    value: &str,
+    field: &str,
+) -> Result<T, (StatusCode, Json<Value>)> {
+    if value.trim().is_empty() {
+        return Err(error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "workstream_missing",
+            &format!("{field} is required"),
+        ));
+    }
+    serde_json::from_str(value).map_err(|_| {
+        error(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "identity_invalid",
+            &format!("{field} must be generated identity JSON"),
+        )
+    })
+}
+
+fn parse_optional_query_json<T: DeserializeOwned>(
+    value: &Option<String>,
+    field: &str,
+) -> Result<Option<T>, (StatusCode, Json<Value>)> {
+    value
+        .as_deref()
+        .filter(|value| !value.trim().is_empty())
+        .map(|value| parse_query_json(value, field))
+        .transpose()
+}
+
+fn validate_authority(scope: &MissionCanvasScope) -> Result<(), (StatusCode, Json<Value>)> {
+    scope
+        .validate()
+        .map_err(|reason| error(StatusCode::CONFLICT, "workstream_identity_mismatch", reason))
 }
 
 #[derive(Debug, Deserialize)]
 struct DocumentWriteRequest {
+    #[serde(flatten)]
     scope: MissionCanvasScope,
     document_id: String,
     revision: u64,
@@ -68,12 +145,14 @@ struct DocumentWriteRequest {
 
 #[derive(Debug, Deserialize)]
 struct RecipientResolveRequest {
+    #[serde(flatten)]
     scope: MissionCanvasScope,
     recipient_ref: String,
 }
 
 #[derive(Debug, Deserialize)]
 struct CompositionSelectionRequest {
+    #[serde(flatten)]
     scope: MissionCanvasScope,
     selection_id: String,
     expected_projection_revision: u64,
@@ -82,6 +161,7 @@ struct CompositionSelectionRequest {
 
 #[derive(Debug, Deserialize)]
 struct DomainPackInstallRequest {
+    #[serde(flatten)]
     scope: MissionCanvasScope,
     pack: focusa_core::mission_canvas::DomainPack,
     idempotency_key: String,
@@ -89,6 +169,7 @@ struct DomainPackInstallRequest {
 
 #[derive(Debug, Deserialize)]
 struct PiSessionEventRequest {
+    #[serde(flatten)]
     scope: MissionCanvasScope,
     event_id: String,
     event_kind: String,
@@ -101,9 +182,9 @@ struct PiSessionEventRequest {
 #[derive(Debug, Deserialize)]
 struct LayoutMutationRequest {
     command_id: String,
+    #[serde(flatten)]
     scope: MissionCanvasScope,
     action: String,
-    attachment_id: String,
     target_contribution_id: Option<String>,
     secondary_work_surface_id: Option<String>,
     target_layout_node_id: Option<String>,
@@ -187,6 +268,7 @@ async fn resolve(
     Json(input): Json<ResolveProjectionInput>,
 ) -> ApiResult {
     require_permission(&headers, "mission_canvas:write")?;
+    validate_authority(&input.eligibility.scope)?;
     let store = store(&state)?;
     let previous = store
         .get_projection(&input.eligibility.scope)
@@ -473,6 +555,7 @@ fn switch_composition(
     profile_selection: bool,
 ) -> ApiResult {
     require_permission(headers, "mission_canvas:write")?;
+    validate_authority(&request.scope)?;
     let store = store(state)?;
     let mut projection = store
         .get_projection(&request.scope)
@@ -622,6 +705,7 @@ async fn install_domain_pack(
     Json(request): Json<DomainPackInstallRequest>,
 ) -> ApiResult {
     require_permission(&headers, "mission_canvas:write")?;
+    validate_authority(&request.scope)?;
     let mut registry = focusa_core::mission_canvas::CompositionRegistry::builtin();
     registry
         .install_domain_pack(request.pack.clone())
@@ -682,9 +766,13 @@ async fn install_domain_pack(
             .put_document(table, &document, None, &event)
             .map_err(store_error)?;
     }
-    Ok(Json(
-        json!({"schema":"focusa.mission_canvas.domain_pack_install_receipt.v1","installed":true,"pack_id":request.pack.pack_id,"receipt_ref":format!("receipt:domain-pack:{}",request.pack.pack_id)}),
-    ))
+    Ok(Json(json!({
+        "schema": "focusa.mission_canvas.domain_pack_install_receipt.v1",
+        "workstream": request.scope.workstream,
+        "installed": true,
+        "pack_id": request.pack.pack_id,
+        "receipt_ref": format!("receipt:domain-pack:{}", request.pack.pack_id)
+    })))
 }
 
 async fn list_profiles(
@@ -740,12 +828,18 @@ async fn get_layout_memory(
     headers: HeaderMap,
     Query(query): Query<ScopeQuery>,
 ) -> ApiResult {
+    let scope = query.scope()?;
+    let document_id = scope
+        .attachment
+        .as_ref()
+        .map(|attachment| format!("layout-memory:{}", attachment.attachment_id))
+        .unwrap_or_else(|| format!("layout-memory:{}", scope.workstream.workstream_id));
     get_document(
         &state,
         &headers,
-        query.clone(),
+        query,
         "mission_canvas_layout_memory",
-        &format!("layout-memory:{}", query.attachment_id),
+        &document_id,
     )
 }
 
@@ -777,11 +871,15 @@ async fn mutate_layout(
             "command_id and idempotency_key are required",
         ));
     }
-    if request.attachment_id != request.scope.attachment_id {
+    request
+        .scope
+        .validate()
+        .map_err(|reason| error(StatusCode::CONFLICT, "attachment_scope_mismatch", reason))?;
+    if request.scope.attachment.is_none() {
         return Err(error(
-            StatusCode::CONFLICT,
-            "attachment_scope_mismatch",
-            "Layout command attachment does not match exact scope",
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "attachment_missing",
+            "Layout mutation requires an exact generated AttachmentKey",
         ));
     }
     let store = store(&state)?;
@@ -864,6 +962,12 @@ async fn mutate_layout(
         )
         .map_err(store_error)?;
     Ok(Json(json!({
+        "workstream": projection.scope.workstream,
+        "continuity_id": projection.scope.continuity_id,
+        "attachment": projection.scope.attachment,
+        "workspace_binding_id": projection.scope.workspace_binding_id,
+        "runtime_object": projection.scope.runtime_object,
+        "work_surface_id": projection.scope.work_surface_id,
         "command_id": request.command_id,
         "accepted": true,
         "projection_revision": projection.projection_revision,
@@ -1131,6 +1235,7 @@ async fn resolve_recipient(
     Json(request): Json<RecipientResolveRequest>,
 ) -> ApiResult {
     require_permission(&headers, "mission_canvas:draft")?;
+    validate_authority(&request.scope)?;
     if request.recipient_ref.trim().is_empty() {
         return Err(error(
             StatusCode::UNPROCESSABLE_ENTITY,
@@ -1138,9 +1243,18 @@ async fn resolve_recipient(
             "recipient_ref is required",
         ));
     }
-    Ok(Json(
-        json!({"schema":"focusa.mission_canvas.recipient_resolution.v1","scope":request.scope,"recipient_ref":request.recipient_ref,"routable":true}),
-    ))
+    let scope = request.scope;
+    Ok(Json(json!({
+        "schema": "focusa.mission_canvas.recipient_resolution.v1",
+        "workstream": scope.workstream,
+        "continuity_id": scope.continuity_id,
+        "attachment": scope.attachment,
+        "workspace_binding_id": scope.workspace_binding_id,
+        "runtime_object": scope.runtime_object,
+        "work_surface_id": scope.work_surface_id,
+        "recipient_ref": request.recipient_ref,
+        "routable": true
+    })))
 }
 
 async fn get_recomposition_proof(
@@ -1188,6 +1302,7 @@ async fn append_pi_session_event(
     Json(request): Json<PiSessionEventRequest>,
 ) -> ApiResult {
     require_permission(&headers, "mission_canvas:write")?;
+    validate_authority(&request.scope)?;
     if !matches!(
         request.event_kind.as_str(),
         "pi_turn_started"
@@ -1216,9 +1331,13 @@ async fn append_pi_session_event(
         receipt_refs: vec![],
     };
     let sequence = store(&state)?.append_event(&event).map_err(store_error)?;
-    Ok(Json(
-        json!({"schema":"focusa.mission_canvas.pi_session_event_receipt.v1","accepted":true,"sequence":sequence,"event_id":event.event_id}),
-    ))
+    Ok(Json(json!({
+        "schema": "focusa.mission_canvas.pi_session_event_receipt.v1",
+        "workstream": event.scope.workstream,
+        "event_id": event.event_id,
+        "accepted": true,
+        "receipt_ref": format!("receipt:pi-session:{}", sequence)
+    })))
 }
 
 async fn list_events(
@@ -1325,6 +1444,7 @@ fn write_document(
     permission: &str,
 ) -> ApiResult {
     require_permission(headers, permission)?;
+    validate_authority(&request.scope)?;
     if request.idempotency_key.trim().is_empty() {
         return Err(error(
             StatusCode::UNPROCESSABLE_ENTITY,
@@ -1423,20 +1543,43 @@ mod tests {
     use axum::http::HeaderValue;
 
     fn complete_scope() -> ScopeQuery {
+        let legacy = focusa_core::scoped_state::ScopeRef::project(
+            "project:focusa",
+            "/workspace/focusa",
+            "Focusa",
+            "host-a:worktree-main",
+        )
+        .unwrap();
+        let workstream = focusa_core::workstream_identity::WorkstreamKey::new(
+            focusa_core::workstream_identity::ScopeRef::project(legacy).unwrap(),
+            focusa_core::workstream_identity::WorkstreamId::parse("ws:mission-canvas").unwrap(),
+        );
+        let continuity =
+            focusa_core::workstream_identity::ContinuityId::parse("continuity:mission-canvas")
+                .unwrap();
+        let attachment = focusa_core::workstream_identity::AttachmentKey::new(
+            workstream.clone(),
+            Some(continuity.clone()),
+            focusa_core::workstream_identity::InstanceId::parse("instance:pi").unwrap(),
+            focusa_core::workstream_identity::SessionId::parse("session:1").unwrap(),
+            focusa_core::workstream_identity::AttachmentId::parse("attachment:1").unwrap(),
+            focusa_core::workstream_identity::WorkspaceBindingId::parse("workspace:mission-canvas")
+                .unwrap(),
+        );
         ScopeQuery {
-            project_root: "/tmp/focusa".into(),
-            continuity_id: "mission-canvas".into(),
-            session_id: "session:1".into(),
-            attachment_id: "attachment:1".into(),
-            instance_id: None,
-            working_subpath_id: None,
+            workstream: serde_json::to_string(&workstream).unwrap(),
+            continuity_id: Some(continuity.to_string()),
+            attachment: Some(serde_json::to_string(&attachment).unwrap()),
+            workspace_binding_id: Some("workspace:mission-canvas".into()),
+            runtime_object: None,
+            work_surface_id: Some("surface:pi".into()),
         }
     }
 
     #[test]
-    fn exact_scope_rejects_missing_authority_key() {
+    fn exact_scope_rejects_missing_workstream_authority() {
         let mut query = complete_scope();
-        query.attachment_id.clear();
+        query.workstream.clear();
         assert!(query.scope().is_err());
         assert!(complete_scope().scope().is_ok());
     }

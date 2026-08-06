@@ -1,17 +1,17 @@
 import { validateMissionCanvasContract } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated';
-import { sameExactScope as sameScope } from './exact-scope';
-import type { ExactScope, ResolvedWorkspaceProjection } from './types';
+import { authorityFromProjection, sameWorkstreamAuthority as sameScope } from './exact-scope';
+import type { ResolvedWorkspaceProjection, WorkstreamAuthorityContext } from './types';
 
 export type ProjectionState =
   | { kind: 'unbound' }
-  | { kind: 'loading'; scope: ExactScope }
-  | { kind: 'refreshing'; scope: ExactScope; projection: ResolvedWorkspaceProjection }
-  | { kind: 'ready'; scope: ExactScope; projection: ResolvedWorkspaceProjection }
-  | { kind: 'stale'; scope: ExactScope; projection: ResolvedWorkspaceProjection; reason: string }
-  | { kind: 'blocked'; scope?: ExactScope; reason: string }
-  | { kind: 'error'; scope?: ExactScope; reason: string };
+  | { kind: 'loading'; scope: WorkstreamAuthorityContext }
+  | { kind: 'refreshing'; scope: WorkstreamAuthorityContext; projection: ResolvedWorkspaceProjection }
+  | { kind: 'ready'; scope: WorkstreamAuthorityContext; projection: ResolvedWorkspaceProjection }
+  | { kind: 'stale'; scope: WorkstreamAuthorityContext; projection: ResolvedWorkspaceProjection; reason: string }
+  | { kind: 'blocked'; scope?: WorkstreamAuthorityContext; reason: string }
+  | { kind: 'error'; scope?: WorkstreamAuthorityContext; reason: string };
 
-export type ProjectionLoader = (scope: ExactScope) => Promise<unknown>;
+export type ProjectionLoader = (scope: WorkstreamAuthorityContext) => Promise<unknown>;
 
 export class MissionCanvasProjectionController {
   state = $state<ProjectionState>({ kind: 'unbound' });
@@ -19,10 +19,10 @@ export class MissionCanvasProjectionController {
 
   constructor(private readonly loader: ProjectionLoader) {}
 
-  async load(scope: ExactScope): Promise<void> {
+  async load(scope: WorkstreamAuthorityContext): Promise<void> {
     const generation = ++this.#requestGeneration;
     const prior = this.currentProjection();
-    this.state = prior && sameScope(prior.scope, scope)
+    this.state = prior && sameScope(authorityFromProjection(prior), scope)
       ? { kind: 'refreshing', scope, projection: prior }
       : { kind: 'loading', scope };
 
@@ -40,11 +40,11 @@ export class MissionCanvasProjectionController {
       }
 
       const projection = value as ResolvedWorkspaceProjection;
-      if (!sameScope(scope, projection.scope)) {
+      if (!sameScope(scope, authorityFromProjection(projection))) {
         this.state = { kind: 'blocked', scope, reason: 'projection_scope_mismatch' };
         return;
       }
-      if (prior && sameScope(prior.scope, scope) && projection.projection_revision < prior.projection_revision) {
+      if (prior && sameScope(authorityFromProjection(prior), scope) && projection.projection_revision < prior.projection_revision) {
         this.state = { kind: 'stale', scope, projection: prior, reason: 'projection_revision_regressed' };
         return;
       }
@@ -59,7 +59,7 @@ export class MissionCanvasProjectionController {
     }
   }
 
-  accept(scope: ExactScope, value: unknown): boolean {
+  accept(scope: WorkstreamAuthorityContext, value: unknown): boolean {
     this.#requestGeneration += 1;
     const prior = this.currentProjection();
     const validation = validateMissionCanvasContract('ResolvedWorkspaceProjection', value);
@@ -72,11 +72,11 @@ export class MissionCanvasProjectionController {
     }
 
     const projection = value as ResolvedWorkspaceProjection;
-    if (!sameScope(scope, projection.scope)) {
+    if (!sameScope(scope, authorityFromProjection(projection))) {
       this.state = { kind: 'blocked', scope, reason: 'projection_scope_mismatch' };
       return false;
     }
-    if (prior && sameScope(prior.scope, scope) && projection.projection_revision < prior.projection_revision) {
+    if (prior && sameScope(authorityFromProjection(prior), scope) && projection.projection_revision < prior.projection_revision) {
       this.state = { kind: 'stale', scope, projection: prior, reason: 'projection_revision_regressed' };
       return false;
     }
@@ -86,7 +86,9 @@ export class MissionCanvasProjectionController {
 
   markStale(reason: string): void {
     const projection = this.currentProjection();
-    if (projection) this.state = { kind: 'stale', scope: projection.scope, projection, reason };
+    if (projection && (this.state.kind === 'ready' || this.state.kind === 'refreshing' || this.state.kind === 'stale')) {
+      this.state = { kind: 'stale', scope: this.state.scope, projection, reason };
+    }
   }
 
   clear(): void {

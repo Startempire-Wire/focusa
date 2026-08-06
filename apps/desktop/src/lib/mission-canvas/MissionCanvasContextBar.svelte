@@ -4,10 +4,14 @@
   let { projection }: { projection: ResolvedWorkspaceProjection } = $props();
 
   const contextItems = $derived([
-    { label: 'Project', value: projection.scope.project_root },
+    { label: 'Project', value: projection.workstream.scope.scope_key.root_path },
+    { label: 'Workstream', value: projection.workstream.workstream_id },
     { label: 'Profile', value: projection.workspace_profile_id },
-    { label: 'Session', value: projection.scope.session_id },
-    { label: 'Attachment', value: projection.scope.attachment_id },
+    { label: 'Instance', value: projection.attachment?.instance_id },
+    { label: 'Session', value: projection.attachment?.session_id },
+    { label: 'Attachment', value: projection.attachment?.attachment_id },
+    { label: 'Workspace Binding', value: projection.workspace_binding_id ?? projection.attachment?.workspace_binding_id },
+    { label: 'Work Surface', value: projection.work_surface_id ?? projection.focused_work_surface_id },
     { label: 'Focus', value: projection.focused_semantic_target },
     { label: 'Activity', value: projection.activity_mode_id }
   ].filter(({ value }) => Boolean(value)));

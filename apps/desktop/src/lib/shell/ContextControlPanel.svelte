@@ -6,12 +6,14 @@
 
   let { open = $bindable(false), daemon }: { open?: boolean; daemon: DaemonReadStatus } = $props();
   const identitySteps = [
-    ['ScopeRef', 'No verified project scope'],
-    ['WorkstreamId', 'No Workstream selected'],
-    ['ContinuityId', 'No continuity authority'],
-    ['AttachmentKey', 'No runtime Attachment'],
-    ['Session / Instance', 'No temporal runtime'],
-    ['WorkSurfaceId', 'No active surface binding']
+    ['ScopeRef / ProjectRootKey', 'No verified project scope'],
+    ['WorkstreamId', 'No canonical Workstream selected'],
+    ['ContinuityId (optional)', 'Lineage inside the Workstream'],
+    ['AttachmentKey', 'No exact runtime Attachment'],
+    ['SessionId / InstanceId', 'No temporal runtime identity'],
+    ['WorkspaceBindingId', 'No Desktop workspace binding'],
+    ['RuntimeObject', 'No bound runtime object'],
+    ['WorkSurfaceId', 'No presentation surface binding']
   ] as const;
 </script>
 
@@ -25,7 +27,7 @@
       {/each}
     </div>
     <StatePanel state="blocked" title="Exact authority required" description="Desktop cannot infer authority from the current tab, CWD, latest record, remembered selection, or daemon-global state."/>
-    <footer><button type="button" disabled><Icon name="scope" size={16}/>Connect verified Workstream</button><small>Unavailable until the typed identity and reducer contracts land.</small></footer>
+    <footer><button type="button" disabled><Icon name="scope" size={16}/>Connect verified Workstream</button><small>Unavailable until an exact generated identity binding is supplied.</small></footer>
   </div>
 {/if}
 

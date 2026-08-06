@@ -14,7 +14,7 @@
 
   async function interrupt(): Promise<void> {
     if (!bridge || !attachment.canInterrupt || !hasExactPiAttachment(attachment)) return;
-    await bridge.send({ kind: 'interrupt', attachmentKey: attachment.identity.attachmentKey });
+    await bridge.send({ kind: 'interrupt', attachment_id: attachment.identity.attachment_id });
   }
 </script>
 

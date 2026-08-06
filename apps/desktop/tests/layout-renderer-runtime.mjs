@@ -65,6 +65,15 @@ try {
   assert.deepEqual(generatedEntry.contributionKinds, ['generated_surface']);
 
   const fixture = JSON.parse(await readFile(new URL('./fixtures/mission-canvas/populated-projection.json', import.meta.url), 'utf8'));
+  const authorityOf = (value) => ({
+    workstream: structuredClone(value.workstream),
+    continuity_id: value.continuity_id ?? null,
+    attachment: structuredClone(value.attachment ?? null),
+    workspace_binding_id: value.workspace_binding_id ?? null,
+    runtime_object: structuredClone(value.runtime_object ?? null),
+    work_surface_id: value.work_surface_id ?? value.focused_work_surface_id ?? null
+  });
+  const fixtureAuthority = authorityOf(fixture);
   const { validateLayoutIntegrity } = await server.ssrLoadModule('/src/lib/mission-canvas/layout-references.ts');
   assert.deepEqual(validateLayoutIntegrity({
     kind: 'tabs',
@@ -162,41 +171,41 @@ try {
     requestedUrls.push(String(url));
     return new Response(JSON.stringify(fixture), { status: 200, headers: { 'Content-Type': 'application/json' } });
   });
-  const transported = await transport.request('focusa.mission_canvas.projection.get', { scope: fixture.scope });
+  const transported = await transport.request('focusa.mission_canvas.projection.get', { ...fixtureAuthority });
   assert.equal(transported.projection_digest, fixture.projection_digest);
-  assert.match(requestedUrls[0], /^http:\/\/127\.0\.0\.1:8787\/v1\/mission-canvas\/projection\?project_root=/);
-  assert.match(requestedUrls[0], /attachment_id=/);
+  assert.match(requestedUrls[0], /^http:\/\/127\.0\.0\.1:8787\/v1\/mission-canvas\/projection\?workstream=/);
+  assert.match(requestedUrls[0], /attachment=/);
   await assert.rejects(
     () => transport.request('focusa.mission_canvas.not-generated'),
     (error) => error instanceof MissionCanvasTransportError && error.message === 'operation_unavailable'
   );
   await assert.rejects(
-    () => transport.request('focusa.mission_canvas.profile.get', { profile_id: 'software', scope: fixture.scope }),
+    () => transport.request('focusa.mission_canvas.profile.get', { profile_id: 'software', ...fixtureAuthority }),
     (error) => error instanceof MissionCanvasTransportError && error.message.startsWith('invalid_response:')
   );
-  assert.match(requestedUrls.at(-1), /\/v1\/mission-canvas\/profiles\/software\?project_root=/);
+  assert.match(requestedUrls.at(-1), /\/v1\/mission-canvas\/profiles\/software\?workstream=/);
   assert.doesNotMatch(requestedUrls.at(-1), /profile_id=/);
   const arrayTransport = new MissionCanvasHttpTransport('http://127.0.0.1:8787', async () =>
     new Response('[]', { status: 200, headers: { 'Content-Type': 'application/json' } })
   );
-  assert.deepEqual(await arrayTransport.request('focusa.mission_canvas.activity.list', { scope: fixture.scope }), []);
+  assert.deepEqual(await arrayTransport.request('focusa.mission_canvas.activity.list', { ...fixtureAuthority }), []);
 
   const { MissionCanvasProjectionController } = await server.ssrLoadModule('/src/lib/mission-canvas/projection-controller.svelte.ts');
   let response = structuredClone(fixture);
   const controller = new MissionCanvasProjectionController(async () => structuredClone(response));
-  await controller.load(fixture.scope);
+  await controller.load(fixtureAuthority);
   assert.equal(controller.state.kind, 'ready');
 
   response = structuredClone(fixture);
-  response.scope.session_id = 'foreign-session';
-  await controller.load(fixture.scope);
+  response.attachment.session_id = 'foreign-session';
+  await controller.load(fixtureAuthority);
   assert.equal(controller.state.kind, 'blocked');
   assert.equal(controller.state.reason, 'projection_scope_mismatch');
 
   response = structuredClone(fixture);
-  await controller.load(fixture.scope);
+  await controller.load(fixtureAuthority);
   response.projection_revision -= 1;
-  await controller.load(fixture.scope);
+  await controller.load(fixtureAuthority);
   assert.equal(controller.state.kind, 'stale');
   assert.equal(controller.state.reason, 'projection_revision_regressed');
 
@@ -206,9 +215,9 @@ try {
     if (!refreshResolver) return structuredClone(refreshResponse);
     return new Promise((resolve) => { refreshResolver = resolve; });
   });
-  await preservingController.load(fixture.scope);
+  await preservingController.load(fixtureAuthority);
   refreshResolver = () => {};
-  const refreshing = preservingController.load(fixture.scope);
+  const refreshing = preservingController.load(fixtureAuthority);
   assert.equal(preservingController.state.kind, 'refreshing');
   assert.equal(preservingController.state.projection.projection_digest, fixture.projection_digest);
   refreshResolver(structuredClone({ ...fixture, projection_revision: fixture.projection_revision + 1 }));
@@ -216,7 +225,7 @@ try {
   assert.equal(preservingController.state.kind, 'ready');
 
   const draftFixture = {
-    attachment_id: fixture.scope.attachment_id,
+    ...structuredClone(fixtureAuthority),
     content: 'canonical draft',
     content_sha256: `sha256:${'0'.repeat(64)}`,
     draft_id: 'draft:fixture',
@@ -224,11 +233,10 @@ try {
     idempotency_key: 'fixture-draft-v4',
     owner: 'canvas_prompt_editor',
     recipient_ref: 'recipient:pi',
-    scope: structuredClone(fixture.scope),
     sync_state: 'synchronized',
     updated_at: '2026-08-04T00:00:00Z'
   };
-  const binding = { scope: fixture.scope, attachmentId: fixture.scope.attachment_id, draftId: draftFixture.draft_id, recipientRef: 'recipient:pi' };
+  const binding = { ...structuredClone(fixtureAuthority), draftId: draftFixture.draft_id, recipientRef: 'recipient:pi' };
   let draftResponse = structuredClone(draftFixture);
   const { MissionCanvasDraftController } = await server.ssrLoadModule('/src/lib/mission-canvas/draft-controller.svelte.ts');
   const draftController = new MissionCanvasDraftController({
@@ -237,7 +245,7 @@ try {
   });
   await draftController.load(binding);
   assert.equal(draftController.state.kind, 'ready');
-  draftResponse.scope.session_id = 'foreign-session';
+  draftResponse.attachment.session_id = 'foreign-session';
   await draftController.sync('preserve this local edit');
   assert.equal(draftController.state.kind, 'conflict');
   assert.equal(draftController.state.reason, 'foreign_draft_binding');
@@ -245,15 +253,15 @@ try {
 
   let synchronizedBody;
   const generatedClient = {
-    draftGet: async ({ params }) => {
-      assert.equal(params.path.draft_id, draftFixture.draft_id);
+    draftGet: async (input) => {
+      assert.equal(input.draft_id, draftFixture.draft_id);
       return structuredClone(draftFixture);
     },
-    draftSync: async ({ body }) => {
+    draftSync: async (body) => {
       synchronizedBody = structuredClone(body);
       return { ...structuredClone(body), draft_revision: body.draft_revision + 1, sync_state: 'synchronized' };
     },
-    recipientResolve: async ({ body }) => ({ schema: 'focusa.mission_canvas.recipient_resolution.v1', ...structuredClone(body), routable: true })
+    recipientResolve: async (input) => ({ schema: 'focusa.mission_canvas.recipient_resolution.v1', ...structuredClone(input), routable: true })
   };
   const { GeneratedDraftTransport, resolveRecipient } = await server.ssrLoadModule('/src/lib/mission-canvas/generated-draft-transport.ts');
   const generatedDraftTransport = new GeneratedDraftTransport(generatedClient);
@@ -268,7 +276,7 @@ try {
   assert.equal(synchronizedBody.owner, 'canvas_prompt_editor');
   assert.equal(synchronizedBody.idempotency_key, 'idempotency:prompt-sync');
   assert.match(synchronizedBody.content_sha256, /^[a-f0-9]{64}$/);
-  assert.equal((await resolveRecipient(generatedClient, fixture.scope, 'recipient:pi')).recipient_ref, 'recipient:pi');
+  assert.equal((await resolveRecipient(generatedClient, fixtureAuthority, 'recipient:pi')).recipient_ref, 'recipient:pi');
 
   const eventFixture = {
     event_cursor: 'cursor:1',
@@ -280,20 +288,25 @@ try {
     payload_ref: 'fixture:event:1',
     projection_revision: fixture.projection_revision + 1,
     receipt_refs: [],
-    scope: structuredClone(fixture.scope)
+    ...structuredClone(fixtureAuthority)
   };
   let eventResponse = [eventFixture];
   let persistedCursor;
   const { MissionCanvasEventClient } = await server.ssrLoadModule('/src/lib/mission-canvas/event-client.ts');
   const eventClient = new MissionCanvasEventClient(
     { eventsStream: async () => structuredClone(eventResponse) },
-    fixture.scope,
-    { load: () => persistedCursor, persist: (_scope, cursor) => { persistedCursor = cursor; } }
+    fixtureAuthority,
+    { load: () => persistedCursor, persist: (_authority, cursor) => { persistedCursor = cursor; } }
   );
   const acceptedEvents = await eventClient.poll();
   assert.equal(acceptedEvents.accepted.length, 1);
   assert.equal(persistedCursor, 'cursor:1');
-  eventResponse = [{ ...eventFixture, event_id: 'event:foreign', event_cursor: 'cursor:2', scope: { ...fixture.scope, session_id: 'foreign' } }];
+  const foreignEvent = structuredClone(eventFixture);
+  foreignEvent.event_id = 'event:foreign';
+  foreignEvent.event_cursor = 'cursor:2';
+  foreignEvent.workstream.workstream_id = 'ws:foreign';
+  foreignEvent.attachment.workstream.workstream_id = 'ws:foreign';
+  eventResponse = [foreignEvent];
   const rejectedEvents = await eventClient.poll();
   assert.equal(rejectedEvents.rejected[0].reason, 'foreign_event_scope');
   assert.equal(persistedCursor, 'cursor:1');

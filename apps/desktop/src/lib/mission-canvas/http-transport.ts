@@ -1,5 +1,6 @@
-import type { MissionCanvasTransport } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated';
+import type { MissionCanvasOperationInput, MissionCanvasTransport } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated';
 import { validateMissionCanvasContract } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated';
+import type { WorkstreamAuthorityContext } from './types';
 import registry from '../../../../../docs/contracts/spec135/mission-canvas-v1/operation-registry.json';
 
 interface OperationDescriptor {
@@ -41,10 +42,18 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
     this.#fetch = fetchImplementation;
   }
 
-  async request<T>(operationId: string, input?: unknown): Promise<T> {
+  async request<T>(operationId: string, input: MissionCanvasOperationInput): Promise<T> {
     const operation = operations.get(operationId);
     if (!operation || operation.availability !== 'available') {
       throw new MissionCanvasTransportError('operation_unavailable', operationId);
+    }
+    const authority = authorityFromInput(input);
+    const authorityValidation = validateMissionCanvasContract('WorkstreamAuthorityContext', authority);
+    if (!authorityValidation.valid) {
+      throw new MissionCanvasTransportError(
+        `invalid_workstream_identity:${authorityValidation.errors.join(',')}`,
+        operationId
+      );
     }
     if (operation.requires_idempotency_key && !hasIdempotencyKey(input)) {
       throw new MissionCanvasTransportError('idempotency_key_required', operationId);
@@ -130,14 +139,23 @@ function appendQuery(url: URL, input: unknown): void {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return;
   for (const [key, value] of Object.entries(input)) {
     if (value === undefined || value === null) continue;
-    if (key === 'scope' && typeof value === 'object' && !Array.isArray(value)) {
-      for (const [scopeKey, scopeValue] of Object.entries(value)) {
-        if (scopeValue !== undefined && scopeValue !== null) url.searchParams.set(scopeKey, String(scopeValue));
-      }
-      continue;
-    }
     url.searchParams.set(key, typeof value === 'object' ? JSON.stringify(value) : String(value));
   }
+}
+
+function authorityFromInput(input: unknown): WorkstreamAuthorityContext {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    return { workstream: undefined as never };
+  }
+  const value = input as Record<string, unknown>;
+  return {
+    workstream: value.workstream as WorkstreamAuthorityContext['workstream'],
+    continuity_id: (value.continuity_id as WorkstreamAuthorityContext['continuity_id']) ?? null,
+    attachment: (value.attachment as WorkstreamAuthorityContext['attachment']) ?? null,
+    workspace_binding_id: (value.workspace_binding_id as WorkstreamAuthorityContext['workspace_binding_id']) ?? null,
+    runtime_object: (value.runtime_object as WorkstreamAuthorityContext['runtime_object']) ?? null,
+    work_surface_id: (value.work_surface_id as WorkstreamAuthorityContext['work_surface_id']) ?? null
+  };
 }
 
 function hasIdempotencyKey(input: unknown): boolean {

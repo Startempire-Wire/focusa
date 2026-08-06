@@ -17,14 +17,30 @@ def validate(name: str, value: object) -> None:
     ).validate(value)
 
 
-def scope() -> dict:
-    return {
-        "project_root": "/example/focusa",
-        "continuity_id": "mission-canvas",
+def authority() -> dict:
+    project_root_key = {
+        "scope_kind": "project",
+        "scope_id": "project:focusa",
+        "root_path": "/example/focusa",
+        "canonical_name": "Focusa",
+        "fingerprint": "host-a:worktree-main",
+    }
+    workstream = {"scope": {"scope_kind": "project", "scope_key": project_root_key}, "workstream_id": "ws:mission-canvas"}
+    attachment = {
+        "workstream": workstream,
+        "continuity_id": "continuity:mission-canvas",
         "instance_id": "instance:pi",
         "session_id": "session:pi",
         "attachment_id": "attachment:pi",
-        "working_subpath_id": "working-subpath:primary",
+        "workspace_binding_id": "workspace:mission-canvas",
+    }
+    return {
+        "workstream": workstream,
+        "continuity_id": "continuity:mission-canvas",
+        "attachment": attachment,
+        "workspace_binding_id": "workspace:mission-canvas",
+        "runtime_object": {"runtime_kind": "pi_session", "runtime_id": "session:pi"},
+        "work_surface_id": "surface:pi",
     }
 
 
@@ -33,7 +49,7 @@ digest_after = "sha256:" + "2" * 64
 event = {
     "event_id": "projection-event:42",
     "event_kind": "projection_resolved",
-    "scope": scope(),
+    **authority(),
     "contribution_id": None,
     "host_instance_id": "rich-host:pi:1",
     "projection_revision": 13,
@@ -59,7 +75,7 @@ decision = {
 }
 evidence = {
     "evidence_id": "recomposition-evidence:13",
-    "scope": scope(),
+    **authority(),
     "trigger": "viewport_change",
     "input_projection_digest": digest_before,
     "output_projection_digest": digest_after,
@@ -73,7 +89,7 @@ evidence = {
 validate("RecompositionEvidence", evidence)
 receipt = {
     "receipt_id": "recomposition-receipt:13",
-    "scope": scope(),
+    **authority(),
     "accepted": True,
     "projection_revision": 13,
     "layout_revision": 6,
@@ -101,7 +117,7 @@ for fixture in fixtures:
 
 migration = {
     "migration_id": "layout-migration:terminal:1",
-    "scope": scope(),
+    **authority(),
     "source_kind": "terminal_local",
     "source_revision": 7,
     "source_digest": digest_before,

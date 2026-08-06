@@ -300,42 +300,42 @@
       "client": "core_api",
       "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
       "operation_id": "focusa.mission_canvas.domain_pack.install",
-      "schema_ref": "focusa.mission_canvas.domain_pack_install_receipt.v1",
+      "schema_ref": "DomainPackInstallReceipt",
       "support": "full"
     },
     {
       "client": "pi_extension",
       "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
       "operation_id": "focusa.mission_canvas.domain_pack.install",
-      "schema_ref": "focusa.mission_canvas.domain_pack_install_receipt.v1",
+      "schema_ref": "DomainPackInstallReceipt",
       "support": "full"
     },
     {
       "client": "rich_host_typescript",
       "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
       "operation_id": "focusa.mission_canvas.domain_pack.install",
-      "schema_ref": "focusa.mission_canvas.domain_pack_install_receipt.v1",
+      "schema_ref": "DomainPackInstallReceipt",
       "support": "full"
     },
     {
       "client": "cli",
       "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
       "operation_id": "focusa.mission_canvas.domain_pack.install",
-      "schema_ref": "focusa.mission_canvas.domain_pack_install_receipt.v1",
+      "schema_ref": "DomainPackInstallReceipt",
       "support": "unsupported"
     },
     {
       "client": "uiai_engine_cockpit",
       "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
       "operation_id": "focusa.mission_canvas.domain_pack.install",
-      "schema_ref": "focusa.mission_canvas.domain_pack_install_receipt.v1",
+      "schema_ref": "DomainPackInstallReceipt",
       "support": "unsupported"
     },
     {
       "client": "menubar",
       "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
       "operation_id": "focusa.mission_canvas.domain_pack.install",
-      "schema_ref": "focusa.mission_canvas.domain_pack_install_receipt.v1",
+      "schema_ref": "DomainPackInstallReceipt",
       "support": "unsupported"
     },
     {
@@ -804,42 +804,42 @@
       "client": "core_api",
       "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
       "operation_id": "focusa.mission_canvas.recipient.resolve",
-      "schema_ref": "focusa.mission_canvas.recipient_resolution.v1",
+      "schema_ref": "RecipientResolution",
       "support": "full"
     },
     {
       "client": "pi_extension",
       "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
       "operation_id": "focusa.mission_canvas.recipient.resolve",
-      "schema_ref": "focusa.mission_canvas.recipient_resolution.v1",
+      "schema_ref": "RecipientResolution",
       "support": "full"
     },
     {
       "client": "rich_host_typescript",
       "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
       "operation_id": "focusa.mission_canvas.recipient.resolve",
-      "schema_ref": "focusa.mission_canvas.recipient_resolution.v1",
+      "schema_ref": "RecipientResolution",
       "support": "full"
     },
     {
       "client": "cli",
       "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
       "operation_id": "focusa.mission_canvas.recipient.resolve",
-      "schema_ref": "focusa.mission_canvas.recipient_resolution.v1",
+      "schema_ref": "RecipientResolution",
       "support": "unsupported"
     },
     {
       "client": "uiai_engine_cockpit",
       "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
       "operation_id": "focusa.mission_canvas.recipient.resolve",
-      "schema_ref": "focusa.mission_canvas.recipient_resolution.v1",
+      "schema_ref": "RecipientResolution",
       "support": "read_only"
     },
     {
       "client": "menubar",
       "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
       "operation_id": "focusa.mission_canvas.recipient.resolve",
-      "schema_ref": "focusa.mission_canvas.recipient_resolution.v1",
+      "schema_ref": "RecipientResolution",
       "support": "unsupported"
     },
     {
@@ -972,42 +972,42 @@
       "client": "core_api",
       "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
       "operation_id": "focusa.mission_canvas.pi_session.event.append",
-      "schema_ref": "focusa.mission_canvas.pi_session_event_receipt.v1",
+      "schema_ref": "PiSessionEventReceipt",
       "support": "full"
     },
     {
       "client": "pi_extension",
       "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
       "operation_id": "focusa.mission_canvas.pi_session.event.append",
-      "schema_ref": "focusa.mission_canvas.pi_session_event_receipt.v1",
+      "schema_ref": "PiSessionEventReceipt",
       "support": "full"
     },
     {
       "client": "rich_host_typescript",
       "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
       "operation_id": "focusa.mission_canvas.pi_session.event.append",
-      "schema_ref": "focusa.mission_canvas.pi_session_event_receipt.v1",
+      "schema_ref": "PiSessionEventReceipt",
       "support": "full"
     },
     {
       "client": "cli",
       "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
       "operation_id": "focusa.mission_canvas.pi_session.event.append",
-      "schema_ref": "focusa.mission_canvas.pi_session_event_receipt.v1",
+      "schema_ref": "PiSessionEventReceipt",
       "support": "unsupported"
     },
     {
       "client": "uiai_engine_cockpit",
       "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
       "operation_id": "focusa.mission_canvas.pi_session.event.append",
-      "schema_ref": "focusa.mission_canvas.pi_session_event_receipt.v1",
+      "schema_ref": "PiSessionEventReceipt",
       "support": "unsupported"
     },
     {
       "client": "menubar",
       "evidence_ref": "tests/spec135_mission_canvas_generated_parity_test.py",
       "operation_id": "focusa.mission_canvas.pi_session.event.append",
-      "schema_ref": "focusa.mission_canvas.pi_session_event_receipt.v1",
+      "schema_ref": "PiSessionEventReceipt",
       "support": "unsupported"
     },
     {

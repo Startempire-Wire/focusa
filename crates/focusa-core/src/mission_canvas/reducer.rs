@@ -2,16 +2,16 @@ use std::collections::BTreeSet;
 
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use thiserror::Error;
 
 use super::{
-    layout::{resolve_layout, InspectorSide, LayoutConstraints, LayoutError},
+    layout::{InspectorSide, LayoutConstraints, LayoutError, resolve_layout},
     model::{
         CandidateContribution, CompositionEvent, ResolvedContribution, ResolvedWorkspaceProjection,
     },
-    resolver::{resolve_eligibility, EligibilityContext, EligibilityDecision},
+    resolver::{EligibilityContext, EligibilityDecision, resolve_eligibility},
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -36,6 +36,8 @@ pub struct ResolveProjectionInput {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RecompositionEvidence {
     pub evidence_id: String,
+    #[serde(flatten)]
+    pub scope: super::model::MissionCanvasScope,
     pub trigger: String,
     pub input_projection_digest: Option<String>,
     pub output_projection_digest: String,
@@ -48,6 +50,8 @@ pub struct RecompositionEvidence {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RecompositionReceipt {
     pub receipt_id: String,
+    #[serde(flatten)]
+    pub scope: super::model::MissionCanvasScope,
     pub accepted: bool,
     pub projection_revision: u64,
     pub layout_revision: u64,
@@ -72,12 +76,19 @@ pub enum RecompositionError {
     Layout(#[from] LayoutError),
     #[error("projection serialization failed: {0}")]
     Serialization(#[from] serde_json::Error),
+    #[error("invalid Workstream authority: {0}")]
+    Identity(&'static str),
 }
 
 pub fn resolve_projection(
     input: ResolveProjectionInput,
     previous_projection_digest: Option<String>,
 ) -> Result<RecompositionResult, RecompositionError> {
+    input
+        .eligibility
+        .scope
+        .validate()
+        .map_err(RecompositionError::Identity)?;
     let now = Utc::now().to_rfc3339();
     let candidate_ids = input
         .candidates
@@ -150,6 +161,7 @@ pub fn resolve_projection(
     projection.receipt_refs.push(receipt_id.clone());
     let evidence = RecompositionEvidence {
         evidence_id: evidence_id.clone(),
+        scope: input.eligibility.scope.clone(),
         trigger: "explicit_resolve".into(),
         input_projection_digest: previous_projection_digest,
         output_projection_digest: projection.projection_digest.clone(),
@@ -160,6 +172,7 @@ pub fn resolve_projection(
     };
     let receipt = RecompositionReceipt {
         receipt_id: receipt_id.clone(),
+        scope: input.eligibility.scope.clone(),
         accepted: true,
         projection_revision,
         layout_revision,
@@ -237,7 +250,17 @@ fn resolve_contribution(
         renderer_binding_id: candidate.renderer_binding_id.clone(),
         data_ref,
         operation_ids: candidate.required_operations.clone(),
-        authority: json!({"canonical_owner": "Focusa Core", "mutation_owner": "Focusa Core", "scope": scope, "read_only": false}),
+        authority: json!({
+            "canonical_owner": "Focusa Core",
+            "mutation_owner": "Focusa Core",
+            "workstream": scope.workstream,
+            "continuity_id": scope.continuity_id,
+            "attachment": scope.attachment,
+            "workspace_binding_id": scope.workspace_binding_id,
+            "runtime_object": scope.runtime_object,
+            "work_surface_id": scope.work_surface_id,
+            "read_only": false
+        }),
         freshness: json!({"status": "current", "observed_at": observed_at}),
         resolved_geometry: candidate.geometry.clone(),
         accessibility: json!({"label": candidate.contribution_id, "landmark_role": "region", "focus_semantic_id": candidate.semantic_binding_id}),

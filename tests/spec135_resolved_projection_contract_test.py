@@ -38,14 +38,33 @@ def valid_geometry() -> dict:
     }
 
 
-def valid_scope() -> dict:
-    return {
-        "project_root": "/example/focusa",
-        "continuity_id": "mission-canvas",
+def valid_authority() -> dict:
+    project_root_key = {
+        "scope_kind": "project",
+        "scope_id": "project:focusa",
+        "root_path": "/example/focusa",
+        "canonical_name": "Focusa",
+        "fingerprint": "host-a:worktree-main",
+    }
+    workstream = {
+        "scope": {"scope_kind": "project", "scope_key": project_root_key},
+        "workstream_id": "ws:mission-canvas",
+    }
+    attachment = {
+        "workstream": workstream,
+        "continuity_id": "continuity:mission-canvas",
         "instance_id": "instance:pi",
         "session_id": "session:pi",
         "attachment_id": "attachment:pi",
-        "working_subpath_id": "working-subpath:primary",
+        "workspace_binding_id": "workspace:mission-canvas",
+    }
+    return {
+        "workstream": workstream,
+        "continuity_id": "continuity:mission-canvas",
+        "attachment": attachment,
+        "workspace_binding_id": "workspace:mission-canvas",
+        "runtime_object": {"runtime_kind": "pi_session", "runtime_id": "session:pi"},
+        "work_surface_id": "surface:pi",
     }
 
 
@@ -76,7 +95,7 @@ def valid_candidate() -> dict:
 
 def valid_context() -> dict:
     return {
-        "scope": valid_scope(),
+        **valid_authority(),
         "workspace_profile_id": "software",
         "workspace_profile_revision": 2,
         "activity_mode_id": "overview",
@@ -130,7 +149,7 @@ def valid_resolved() -> dict:
         "authority": {
             "canonical_owner": "Focusa Core",
             "mutation_owner": "Pi AgentExecutionAdapter",
-            "scope": valid_scope(),
+            **valid_authority(),
             "read_only": False,
             "approval_required": False,
             "contention_ref": None,
@@ -305,7 +324,7 @@ inspector.update(
 )
 projection = {
     "schema": "focusa.resolved_workspace_projection.v1",
-    "scope": valid_scope(),
+    **valid_authority(),
     "workspace_profile_id": "software",
     "workspace_profile_revision": 2,
     "activity_mode_id": "overview",

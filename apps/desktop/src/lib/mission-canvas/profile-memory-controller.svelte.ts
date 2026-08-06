@@ -1,8 +1,8 @@
-import { sameExactScope as sameScope } from './exact-scope';
-import type { ExactScope, ProfileLayoutMemory } from './types';
+import { sameWorkstreamAuthority as sameScope } from './exact-scope';
+import type { ProfileLayoutMemory, WorkstreamAuthorityContext } from './types';
 
 export interface ProfileMemoryBinding {
-  scope: ExactScope;
+  scope: WorkstreamAuthorityContext;
   profileId: string;
   activityModeId: string;
   viewportClass: ProfileLayoutMemory['viewport_class'];
@@ -22,7 +22,7 @@ export type ProfileMemoryState =
   | { kind: 'error'; binding?: ProfileMemoryBinding; reason: string };
 
 function matches(memory: ProfileLayoutMemory, binding: ProfileMemoryBinding): boolean {
-  return sameScope(memory.scope, binding.scope)
+  return sameScope(memory, binding.scope)
     && memory.profile_id === binding.profileId
     && memory.activity_mode_id === binding.activityModeId
     && memory.viewport_class === binding.viewportClass;

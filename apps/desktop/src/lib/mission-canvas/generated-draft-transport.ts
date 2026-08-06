@@ -1,5 +1,5 @@
 import type { MissionCanvasClient } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated';
-import type { CanvasDraftState, ExactScope } from './types';
+import type { AttachmentKey, CanvasDraftState, RecipientResolution, WorkstreamAuthorityContext } from './types';
 import { validateMissionCanvasContract } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated';
 import type { DraftBinding, DraftSyncInput, DraftTransport } from './draft-controller.svelte';
 
@@ -19,17 +19,22 @@ export class GeneratedDraftTransport implements DraftTransport {
   constructor(private readonly client: MissionCanvasClient) {}
 
   async get(binding: DraftBinding): Promise<CanvasDraftState> {
-    return requireDraft(await this.client.draftGet({ params: { path: { draft_id: binding.draftId } } }));
+    return requireDraft(await this.client.draftGet({ ...binding, draft_id: binding.draftId }));
   }
 
   async sync(input: DraftSyncInput): Promise<CanvasDraftState> {
     if (input.baseDraft.draft_revision !== input.expectedDraftRevision) {
       throw new Error('Draft revision changed before synchronization.');
     }
+    const attachment: AttachmentKey = input.attachment;
     const body: CanvasDraftState = {
       ...input.baseDraft,
-      scope: input.scope,
-      attachment_id: input.attachmentId,
+      workstream: input.workstream,
+      continuity_id: input.continuity_id ?? attachment.continuity_id ?? null,
+      attachment,
+      workspace_binding_id: input.workspace_binding_id ?? attachment.workspace_binding_id,
+      runtime_object: input.runtime_object ?? null,
+      work_surface_id: input.work_surface_id ?? null,
       draft_id: input.draftId,
       recipient_ref: input.recipientRef,
       owner: 'canvas_prompt_editor',
@@ -42,29 +47,20 @@ export class GeneratedDraftTransport implements DraftTransport {
       sync_state: 'canvas_newer',
       updated_at: new Date().toISOString()
     };
-    return requireDraft(await this.client.draftSync({ body }));
+    return requireDraft(await this.client.draftSync(body));
   }
-}
-
-export interface RecipientResolution {
-  schema: 'focusa.mission_canvas.recipient_resolution.v1';
-  scope: ExactScope;
-  recipient_ref: string;
-  routable: boolean;
 }
 
 export async function resolveRecipient(
   client: MissionCanvasClient,
-  scope: ExactScope,
+  authority: WorkstreamAuthorityContext,
   recipientRef: string
 ): Promise<RecipientResolution> {
-  const value = await client.recipientResolve({ body: { scope, recipient_ref: recipientRef } });
-  if (!value || typeof value !== 'object') throw new Error('Invalid recipient resolution response.');
-  const candidate = value as Partial<RecipientResolution>;
-  if (candidate.schema !== 'focusa.mission_canvas.recipient_resolution.v1'
-    || candidate.recipient_ref !== recipientRef
-    || candidate.routable !== true) {
-    throw new Error('Recipient is not routable for this exact scope.');
+  const value = await client.recipientResolve({ ...authority, recipient_ref: recipientRef });
+  if (value.schema !== 'focusa.mission_canvas.recipient_resolution.v1'
+    || value.recipient_ref !== recipientRef
+    || value.routable !== true) {
+    throw new Error('Recipient is not routable for this exact Workstream.');
   }
-  return candidate as RecipientResolution;
+  return value;
 }

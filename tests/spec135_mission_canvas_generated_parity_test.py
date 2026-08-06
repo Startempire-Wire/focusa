@@ -25,6 +25,7 @@ for command in commands:
 
 registry_path = OUT / "operation-registry.json"
 bundle_path = ROOT / "schemas/spec135/mission-canvas/composition-bundle.v1.schema.json"
+bundle_defs = json.loads(bundle_path.read_text())["$defs"]
 openapi_path = OUT / "openapi-3.0.3.json"
 registry = json.loads(registry_path.read_text())
 openapi = json.loads(openapi_path.read_text())
@@ -47,6 +48,49 @@ capability_ids = {entry["operation_id"] for entry in capabilities["operations"]}
 binding_ids = {entry["operation_id"] for entry in bindings["bindings"]}
 assert registry_ids == openapi_ids == capability_ids == binding_ids
 assert openapi["openapi"] == "3.0.3"
+identity_defs = {
+    "ProjectRootKey",
+    "ScopeRef",
+    "WorkstreamId",
+    "WorkstreamKey",
+    "ContinuityId",
+    "AttachmentKey",
+    "SessionId",
+    "InstanceId",
+    "WorkspaceBindingId",
+    "RuntimeObjectRef",
+    "WorkSurfaceId",
+    "WorkstreamAuthorityContext",
+}
+assert identity_defs.issubset(openapi["components"]["schemas"])
+assert "ExactScope" not in openapi["components"]["schemas"]
+assert "export type WorkstreamKey" in types
+assert "export type AttachmentKey" in types
+assert "export type WorkSurfaceId" in types
+assert "sameWorkstreamAuthorityContext" in validators
+assert "MissionCanvasOperationInput" in client
+assert "WorkstreamAuthorityContext" in client
+for entry in registry["operations"]:
+    assert entry["scope_required"] == ["workstream"]
+    assert "project_root" not in entry["scope_required"]
+    assert entry["authority_chain"] == [
+        "scope_ref", "project_root_key", "workstream_id", "continuity_id",
+        "attachment_key", "session_id", "instance_id", "workspace_binding_id",
+        "runtime_object", "work_surface_id",
+    ]
+for path_item in openapi["paths"].values():
+    for operation in path_item.values():
+        if isinstance(operation, dict) and "operationId" in operation:
+            assert operation["x-focusa-scope-required"] == ["workstream"]
+            assert "project_root" not in operation["x-focusa-scope-required"]
+            if "requestBody" in operation:
+                request_schema = operation["requestBody"]["content"]["application/json"]["schema"]
+                if "required" in request_schema:
+                    assert "workstream" in request_schema["required"]
+                    assert request_schema["properties"]["workstream"]["$ref"] == "#/components/schemas/WorkstreamKey"
+                else:
+                    schema_name = request_schema["$ref"].rsplit("/", 1)[-1]
+                    assert "workstream" in bundle_defs[schema_name]["required"]
 assert capabilities["runtime_promoted"]
 assert capabilities["all_operations_promoted"]
 assert all(entry["status"] == "available" for entry in capabilities["operations"])
@@ -62,6 +106,12 @@ for relative, expected in lock["derived_artifacts"].items():
     assert expected == "sha256:" + digest(OUT / relative), relative
 assert handshake["schema_bundle_digest"] == "sha256:" + lock["schema_bundle_sha256"]
 assert handshake["operation_registry_digest"] == "sha256:" + lock["operation_registry_sha256"]
+assert handshake["required_scope_keys"] == ["workstream"]
+assert handshake["authority_chain"] == [
+    "scope_ref", "project_root_key", "workstream_id", "continuity_id",
+    "attachment_key", "session_id", "instance_id", "workspace_binding_id",
+    "runtime_object", "work_surface_id",
+]
 assert handshake["runtime_promotion_required"] is False
 
 tracked = [bundle_path, registry_path, *[OUT / relative for relative in lock["derived_artifacts"]], OUT / "compatibility-lock.json", OUT / "protocol-handshake.json"]

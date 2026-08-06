@@ -18,13 +18,44 @@ export type ActivityMode = {
   "viability_rule_revision": string;
 };
 
+export type ActorRef = {
+  "actor_id": string;
+  "actor_type": "operator" | "agent" | "pi" | "desktop" | "web" | "service";
+};
+
+export type AttachmentId = string;
+
+export type AttachmentKey = {
+  "attachment_id": AttachmentId;
+  "continuity_id"?: ContinuityId | null;
+  "instance_id": InstanceId;
+  "session_id": SessionId;
+  "workspace_binding_id": WorkspaceBindingId;
+  "workstream": WorkstreamKey;
+};
+
+export type AuthorityContext = {
+  "authority_ref": string;
+  "envelope": AuthorityEnvelope;
+};
+
 export type AuthorityDescriptor = {
   "approval_required"?: boolean;
+  "attachment"?: AttachmentKey | null;
   "canonical_owner": string;
   "contention_ref"?: string | null;
+  "continuity_id"?: ContinuityId | null;
   "mutation_owner": string;
   "read_only": boolean;
-  "scope": ExactScope;
+  "runtime_object"?: RuntimeObjectRef | null;
+  "work_surface_id"?: WorkSurfaceId | null;
+  "workspace_binding_id"?: WorkspaceBindingId | null;
+  "workstream": WorkstreamKey;
+};
+
+export type AuthorityEnvelope = {
+  "status": "canonical" | "blocked" | "degraded" | "missing" | "stale";
+  "why": string;
 };
 
 export type CandidateContribution = {
@@ -54,50 +85,66 @@ export type CanonicalRef = {
 };
 
 export type CanvasDraftState = {
-  "attachment_id": string;
+  "attachment": AttachmentKey;
   "conflict_ref"?: string | null;
   "content": string;
   "content_sha256": string;
+  "continuity_id"?: ContinuityId | null;
   "draft_id": string;
   "draft_revision": number;
   "idempotency_key": string;
   "owner": "pi_editor" | "canvas_prompt_editor";
   "recipient_ref": string;
-  "scope": ExactScope;
+  "runtime_object"?: RuntimeObjectRef | null;
   "selection_end"?: number;
   "selection_start"?: number;
   "sync_state": "synchronized" | "pi_newer" | "canvas_newer" | "conflict" | "offline";
   "updated_at": string;
+  "work_surface_id"?: WorkSurfaceId | null;
+  "workspace_binding_id"?: WorkspaceBindingId | null;
+  "workstream": WorkstreamKey;
 };
 
 export type CapabilityProjection = {
+  "attachment"?: AttachmentKey | null;
   "available_operation_ids": Array<string>;
   "capabilities": Array<string>;
   "capability_revision": number;
+  "continuity_id"?: ContinuityId | null;
   "observed_at": string;
   "permissions": Array<string>;
-  "scope": ExactScope;
+  "runtime_object"?: RuntimeObjectRef | null;
   "unavailable_operations": Array<UnavailableOperationDiagnostic>;
+  "work_surface_id"?: WorkSurfaceId | null;
+  "workspace_binding_id"?: WorkspaceBindingId | null;
+  "workstream": WorkstreamKey;
 };
+
+export type ContinuityId = string;
 
 export type ContributionEligibilityContext = {
   "activity_mode_id": string;
   "activity_mode_revision": number;
+  "attachment"?: AttachmentKey | null;
   "available_operations": Array<string>;
   "canonical_read_model_revision": number;
   "capabilities": Array<string>;
-  "focused_work_surface_id": string | null;
+  "continuity_id"?: ContinuityId | null;
+  "focused_work_surface_id": WorkSurfaceId | null;
   "observed_at"?: string;
-  "open_work_surface_ids"?: Array<string>;
+  "open_work_surface_ids"?: Array<WorkSurfaceId>;
   "permissions": Array<string>;
-  "pinned_work_surface_ids"?: Array<string>;
+  "pinned_work_surface_ids"?: Array<WorkSurfaceId>;
   "project_constraint_refs": Array<string>;
   "resolver_rule_revision": string;
-  "scope": ExactScope;
+  "runtime_object"?: RuntimeObjectRef | null;
   "user_preference_ref": string | null;
   "viewport": ViewportDescriptor;
+  "work_surface_id"?: WorkSurfaceId | null;
+  "workspace_binding_id"?: WorkspaceBindingId | null;
   "workspace_profile_id": string;
   "workspace_profile_revision": number;
+  "workstream": WorkstreamKey;
 };
 
 export type ContributionId = string;
@@ -114,6 +161,14 @@ export type ContributionPlacementPreference = {
   "preferred_regions": Array<RegionKind>;
 };
 
+export type DomainPackInstallReceipt = {
+  "installed": boolean;
+  "pack_id": string;
+  "receipt_ref": string;
+  "schema": "focusa.mission_canvas.domain_pack_install_receipt.v1";
+  "workstream": WorkstreamKey;
+};
+
 export type EligibilityDecision = {
   "contribution_id": ContributionId;
   "evidence_refs"?: Array<string>;
@@ -122,15 +177,6 @@ export type EligibilityDecision = {
   "outcome": "eligible" | "omitted" | "merged" | "compacted" | "suspended";
   "projection_revision": number;
   "rule_revision": string;
-};
-
-export type ExactScope = {
-  "attachment_id": string;
-  "continuity_id": string;
-  "instance_id"?: string | null;
-  "project_root": string;
-  "session_id": string;
-  "working_subpath_id"?: string | null;
 };
 
 export type FreshnessDescriptor = {
@@ -160,7 +206,9 @@ export type GridLayoutNode = {
 };
 
 export type HostLifecycleState = {
+  "attachment"?: AttachmentKey | null;
   "canvas_draft_ref"?: string | null;
+  "continuity_id"?: ContinuityId | null;
   "durable_event_cursor": string;
   "focused": boolean;
   "host_instance_id": string;
@@ -169,10 +217,13 @@ export type HostLifecycleState = {
   "pi_draft_ref"?: string | null;
   "process_id"?: number | null;
   "renderer_resolution": HostRendererResolution;
-  "scope": ExactScope;
+  "runtime_object"?: RuntimeObjectRef | null;
   "state": "absent" | "launching" | "visible" | "focused" | "hidden" | "closing" | "reconnecting" | "failed";
   "updated_at": string;
   "window_id"?: string | null;
+  "work_surface_id"?: WorkSurfaceId | null;
+  "workspace_binding_id"?: WorkspaceBindingId | null;
+  "workstream": WorkstreamKey;
 };
 
 export type HostRendererResolution = {
@@ -187,6 +238,14 @@ export type HostRendererResolution = {
   "selected_renderer": "focusa_pi_rich_window" | "uiai_engine_cockpit" | "mission_deck_web" | "pi_terminal_projection" | "native_tui" | "menubar_peek" | "headless_none";
 };
 
+export type HostScopeKey = {
+  "canonical_name": string;
+  "fingerprint": string;
+  "root_path": string;
+  "scope_id": string;
+  "scope_kind": "host";
+};
+
 export type InspectorLayoutNode = {
   "inspector_contribution_ids": Array<ContributionId>;
   "kind": "inspector";
@@ -196,26 +255,34 @@ export type InspectorLayoutNode = {
   "span"?: number;
 };
 
+export type InstanceId = string;
+
 export type LayoutMutationCommand = {
   "action": "open" | "focus" | "pin" | "unpin" | "group" | "ungroup" | "reorder" | "split_horizontal" | "split_vertical" | "resize_split" | "compare" | "suspend_projection" | "rehydrate" | "close_projection" | "set_active_tab";
-  "attachment_id": string;
+  "attachment": AttachmentKey;
   "command_id": string;
+  "continuity_id"?: ContinuityId | null;
   "expected_layout_revision": number;
   "expected_projection_revision": number;
   "idempotency_key": string;
   "requested_at"?: string;
-  "scope": ExactScope;
-  "secondary_work_surface_id"?: string | null;
+  "runtime_object"?: RuntimeObjectRef | null;
+  "secondary_work_surface_id"?: WorkSurfaceId | null;
   "split_ratio"?: number | null;
   "target_contribution_id"?: ContributionId | null;
   "target_index"?: number | null;
   "target_layout_node_id"?: string | null;
-  "target_work_surface_id"?: string | null;
+  "target_work_surface_id"?: WorkSurfaceId | null;
+  "work_surface_id"?: WorkSurfaceId | null;
+  "workspace_binding_id"?: WorkspaceBindingId | null;
+  "workstream": WorkstreamKey;
 };
 
 export type LayoutMutationResult = {
   "accepted": boolean;
+  "attachment"?: AttachmentKey | null;
   "command_id": string;
+  "continuity_id"?: ContinuityId | null;
   "error_ref"?: string | null;
   "event_cursor": string;
   "evidence_ref"?: string | null;
@@ -223,9 +290,22 @@ export type LayoutMutationResult = {
   "projection_digest": ProjectionDigest;
   "projection_revision": number;
   "receipt_ref"?: string | null;
+  "runtime_object"?: RuntimeObjectRef | null;
+  "work_surface_id"?: WorkSurfaceId | null;
+  "workspace_binding_id"?: WorkspaceBindingId | null;
+  "workstream": WorkstreamKey;
 };
 
 export type LayoutNode = SingleLayoutNode | SplitLayoutNode | StackLayoutNode | GridLayoutNode | TabLayoutNode | InspectorLayoutNode;
+
+export type LegacyExactScopeCompatibilityInput = {
+  "attachment_id": string;
+  "continuity_id": string;
+  "instance_id"?: string | null;
+  "project_root": string;
+  "session_id": string;
+  "working_subpath_id"?: string | null;
+};
 
 export type LegacyLayoutMapping = {
   "diagnostic_ref"?: string | null;
@@ -235,13 +315,15 @@ export type LegacyLayoutMapping = {
 };
 
 export type LegacyLayoutMigrationEnvelope = {
+  "attachment"?: AttachmentKey | null;
+  "continuity_id"?: ContinuityId | null;
   "created_at": string;
   "error_ref"?: string | null;
   "idempotency_key": string;
   "mappings": Array<LegacyLayoutMapping>;
   "migration_id": string;
   "preserved_draft_ref": string | null;
-  "scope": ExactScope;
+  "runtime_object"?: RuntimeObjectRef | null;
   "source_digest": string;
   "source_kind": "terminal_local" | "process_local" | "legacy_canvas" | "imported_snapshot";
   "source_revision": number | string;
@@ -250,6 +332,9 @@ export type LegacyLayoutMigrationEnvelope = {
   "target_layout_memory_ref"?: string | null;
   "target_profile_id": string;
   "warning_refs"?: Array<string>;
+  "work_surface_id"?: WorkSurfaceId | null;
+  "workspace_binding_id"?: WorkspaceBindingId | null;
+  "workstream": WorkstreamKey;
 };
 
 export type OmissionDiagnostic = {
@@ -273,18 +358,39 @@ export type OperationBinding = {
   "target_contribution_id": ContributionId;
 };
 
+export type PiSessionEventReceipt = {
+  "accepted": boolean;
+  "event_id": string;
+  "receipt_ref": string;
+  "schema": "focusa.mission_canvas.pi_session_event_receipt.v1";
+  "workstream": WorkstreamKey;
+};
+
 export type ProfileLayoutMemory = {
   "absent_contribution_ids": Array<ContributionId>;
   "activity_mode_id": string;
+  "attachment"?: AttachmentKey | null;
+  "continuity_id"?: ContinuityId | null;
   "focused_semantic_target"?: string | null;
   "idempotency_key": string;
   "memory_id": string;
   "memory_revision": number;
   "placements": Array<ContributionPlacementPreference>;
   "profile_id": string;
-  "scope": ExactScope;
+  "runtime_object"?: RuntimeObjectRef | null;
   "updated_at": string;
   "viewport_class": "minimum" | "compact" | "standard" | "productive" | "wide" | "reference_capture";
+  "work_surface_id"?: WorkSurfaceId | null;
+  "workspace_binding_id"?: WorkspaceBindingId | null;
+  "workstream": WorkstreamKey;
+};
+
+export type ProjectRootKey = {
+  "canonical_name": string;
+  "fingerprint": string;
+  "root_path": string;
+  "scope_id": string;
+  "scope_kind": "project";
 };
 
 export type ProjectionDigest = string;
@@ -292,7 +398,9 @@ export type ProjectionDigest = string;
 export type ProjectionEventKind = "candidate_discovered" | "contribution_eligible" | "contribution_omitted" | "contribution_merged" | "projection_resolved" | "layout_changed" | "focus_changed" | "profile_changed" | "activity_mode_changed" | "capability_changed" | "host_launch_requested" | "host_visible" | "host_focused" | "host_hidden" | "host_closed" | "host_reconnected" | "host_failed" | "draft_synchronized" | "draft_conflict" | "projection_suspended" | "projection_rehydrated" | "migration_started" | "migration_completed" | "migration_failed" | "pi_turn_started" | "pi_turn_completed" | "pi_message_updated" | "pi_tool_started" | "pi_tool_completed";
 
 export type ProjectionLifecycleEvent = {
+  "attachment"?: AttachmentKey | null;
   "causation_id"?: string | null;
+  "continuity_id"?: ContinuityId | null;
   "contribution_id"?: ContributionId | null;
   "correlation_id"?: string | null;
   "event_cursor": string;
@@ -305,11 +413,28 @@ export type ProjectionLifecycleEvent = {
   "payload_ref": string;
   "projection_revision": number;
   "receipt_refs": Array<string>;
-  "scope": ExactScope;
+  "runtime_object"?: RuntimeObjectRef | null;
+  "work_surface_id"?: WorkSurfaceId | null;
+  "workspace_binding_id"?: WorkspaceBindingId | null;
+  "workstream": WorkstreamKey;
+};
+
+export type RecipientResolution = {
+  "attachment"?: AttachmentKey | null;
+  "continuity_id"?: ContinuityId | null;
+  "recipient_ref": string;
+  "routable": boolean;
+  "runtime_object"?: RuntimeObjectRef | null;
+  "schema": "focusa.mission_canvas.recipient_resolution.v1";
+  "work_surface_id"?: WorkSurfaceId | null;
+  "workspace_binding_id"?: WorkspaceBindingId | null;
+  "workstream": WorkstreamKey;
 };
 
 export type RecompositionEvidence = {
+  "attachment"?: AttachmentKey | null;
   "candidate_contribution_ids": Array<ContributionId>;
+  "continuity_id"?: ContinuityId | null;
   "diagnostic_refs"?: Array<string>;
   "eligibility_decisions": Array<EligibilityDecision>;
   "evidence_id": string;
@@ -318,12 +443,17 @@ export type RecompositionEvidence = {
   "observed_at": string;
   "output_projection_digest": ProjectionDigest;
   "rule_revision": string;
-  "scope": ExactScope;
+  "runtime_object"?: RuntimeObjectRef | null;
   "trigger": "canonical_read_change" | "profile_change" | "activity_mode_change" | "focus_change" | "viewport_change" | "capability_change" | "preference_change" | "migration" | "explicit_resolve";
+  "work_surface_id"?: WorkSurfaceId | null;
+  "workspace_binding_id"?: WorkspaceBindingId | null;
+  "workstream": WorkstreamKey;
 };
 
 export type RecompositionReceipt = {
   "accepted": boolean;
+  "attachment"?: AttachmentKey | null;
+  "continuity_id"?: ContinuityId | null;
   "error_ref"?: string | null;
   "event_cursor": string;
   "evidence_id": string;
@@ -333,7 +463,10 @@ export type RecompositionReceipt = {
   "projection_digest": ProjectionDigest;
   "projection_revision": number;
   "receipt_id": string;
-  "scope": ExactScope;
+  "runtime_object"?: RuntimeObjectRef | null;
+  "work_surface_id"?: WorkSurfaceId | null;
+  "workspace_binding_id"?: WorkspaceBindingId | null;
+  "workstream": WorkstreamKey;
 };
 
 export type RegionKind = "primary" | "secondary" | "inspector" | "rail" | "queue" | "composer" | "navigation" | "overlay";
@@ -370,13 +503,15 @@ export type ResolvedContribution = {
 export type ResolvedWorkspaceProjection = {
   "activity_mode_id": string;
   "activity_mode_revision": number;
+  "attachment"?: AttachmentKey | null;
   "candidate_contribution_ids": Array<ContributionId>;
   "canonical_read_model_revision": number;
+  "continuity_id"?: ContinuityId | null;
   "durable_event_cursor": string;
   "eligible_contributions": Array<ResolvedContribution>;
   "evidence_refs"?: Array<string>;
   "focused_semantic_target": string;
-  "focused_work_surface_id": string | null;
+  "focused_work_surface_id": WorkSurfaceId | null;
   "layout_revision": number;
   "layout_tree": LayoutNode;
   "omission_diagnostics": Array<OmissionDiagnostic>;
@@ -385,10 +520,13 @@ export type ResolvedWorkspaceProjection = {
   "projection_revision": number;
   "receipt_refs"?: Array<string>;
   "resolved_at"?: string;
+  "runtime_object"?: RuntimeObjectRef | null;
   "schema": "focusa.resolved_workspace_projection.v1";
-  "scope": ExactScope;
+  "work_surface_id"?: WorkSurfaceId | null;
+  "workspace_binding_id"?: WorkspaceBindingId | null;
   "workspace_profile_id": string;
   "workspace_profile_revision": number;
+  "workstream": WorkstreamKey;
 };
 
 export type ResponsiveEvaluationFixture = {
@@ -408,7 +546,22 @@ export type ResponsiveEvaluationFixture = {
   "viewport": ViewportDescriptor;
 };
 
+export type RuntimeObjectRef = {
+  "runtime_id": string;
+  "runtime_kind": string;
+};
+
+export type ScopeRef = {
+  "scope_key": ProjectRootKey;
+  "scope_kind": "project";
+} | {
+  "scope_key": HostScopeKey;
+  "scope_kind": "host";
+};
+
 export type SemanticBindingId = string;
+
+export type SessionId = string;
 
 export type SingleLayoutNode = {
   "contribution_id": ContributionId;
@@ -457,6 +610,18 @@ export type ViewportDescriptor = {
   "zoom_percent"?: 100 | 125 | 150 | 200;
 };
 
+export type WorkSurfaceId = string;
+
+export type WorkSurfaceIdentity = {
+  "attachment"?: AttachmentKey | null;
+  "continuity_id"?: ContinuityId | null;
+  "runtime_object"?: RuntimeObjectRef | null;
+  "work_surface_id": WorkSurfaceId;
+  "workstream": WorkstreamKey;
+};
+
+export type WorkspaceBindingId = string;
+
 export type WorkspaceProfile = {
   "candidate_contribution_ids": Array<ContributionId>;
   "density": "comfortable" | "standard" | "compact" | "dense";
@@ -468,4 +633,37 @@ export type WorkspaceProfile = {
   "revision": number;
   "terminology_registry_ref": string;
   "viability_rule_revision": string;
+};
+
+export type WorkstreamAuthorityContext = {
+  "attachment"?: AttachmentKey | null;
+  "continuity_id"?: ContinuityId | null;
+  "runtime_object"?: RuntimeObjectRef | null;
+  "work_surface_id"?: WorkSurfaceId | null;
+  "workspace_binding_id"?: WorkspaceBindingId | null;
+  "workstream": WorkstreamKey;
+};
+
+export type WorkstreamId = string;
+
+export type WorkstreamKey = {
+  "scope": ScopeRef;
+  "workstream_id": WorkstreamId;
+};
+
+export type WorkstreamOperationRequest = {
+  "actor": ActorRef;
+  "attachment"?: AttachmentKey | null;
+  "authority": AuthorityContext;
+  "command_id": string;
+  "continuity_id"?: ContinuityId | null;
+  "expected_fencing_token"?: number | null;
+  "expected_revision"?: number | null;
+  "idempotency_key"?: string | null;
+  "input": unknown;
+  "runtime_object"?: RuntimeObjectRef | null;
+  "schema": "focusa.workstream_operation_request.v1";
+  "work_surface_id"?: WorkSurfaceId | null;
+  "workspace_binding_id"?: WorkspaceBindingId | null;
+  "workstream": WorkstreamKey;
 };

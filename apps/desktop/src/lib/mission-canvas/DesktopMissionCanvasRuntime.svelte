@@ -7,16 +7,16 @@
   import MissionCanvasRenderer from './MissionCanvasRenderer.svelte';
   import OperationConfirmationDialog from './OperationConfirmationDialog.svelte';
   import { MissionCanvasProjectionController } from './projection-controller.svelte';
-  import type { ActivityMode, ExactScope, OperationBinding, ResolvedWorkspaceProjection, WorkspaceProfile } from './types';
+  import type { ActivityMode, OperationBinding, ResolvedWorkspaceProjection, WorkstreamAuthorityContext, WorkspaceProfile } from './types';
   import WorkspaceProfileSelector from './WorkspaceProfileSelector.svelte';
 
   let {
-    scope,
+    authority,
     client,
     registry,
     executeContributionOperation
   }: {
-    scope?: ExactScope;
+    authority?: WorkstreamAuthorityContext;
     client: MissionCanvasClient;
     registry: ContributionRendererRegistry;
     executeContributionOperation?: (binding: OperationBinding, projection: ResolvedWorkspaceProjection) => Promise<void>;
@@ -25,7 +25,7 @@
   const PROFILE_SELECT_OPERATION = 'focusa.mission_canvas.profile.select';
   const ACTIVITY_SELECT_OPERATION = 'focusa.mission_canvas.activity.select';
   const LAYOUT_MUTATE_OPERATION = 'focusa.mission_canvas.layout.mutate';
-  const controller = new MissionCanvasProjectionController((exactScope) => client.projectionGet({ scope: exactScope }));
+  const controller = new MissionCanvasProjectionController((boundAuthority) => client.projectionGet({ ...boundAuthority }));
   let activities = $state<ActivityMode[]>([]);
   let profiles = $state<WorkspaceProfile[]>([]);
   let mutationInFlight = $state(false);
@@ -34,18 +34,18 @@
 
   $effect(() => {
     pendingConfirmation = undefined;
-    if (!scope) {
+    if (!authority) {
       controller.clear();
       activities = [];
       profiles = [];
       return;
     }
-    const exactScope = scope;
+    const boundAuthority = authority;
     const generation = ++controlsGeneration;
-    void controller.load(exactScope);
+    void controller.load(boundAuthority);
     void Promise.all([
-      client.activityList({ scope: exactScope }),
-      client.profileList({ scope: exactScope })
+      client.activityList({ ...boundAuthority }),
+      client.profileList({ ...boundAuthority })
     ]).then(([nextActivities, nextProfiles]) => {
       if (generation !== controlsGeneration) return;
       activities = nextActivities;
@@ -92,7 +92,7 @@
       mutationInFlight = true;
       try {
         await executeContributionOperation(latest, latestState.projection);
-        if (scope) await controller.load(scope);
+        if (authority) await controller.load(authority);
       } catch (error) {
         controller.markStale(error instanceof Error ? error.message : 'contribution_operation_failed');
       } finally {
@@ -125,19 +125,19 @@
   }
 
   async function performActivitySelection(activity: ActivityMode): Promise<void> {
-    if (!scope || mutationInFlight) return;
+    if (!authority || mutationInFlight) return;
     const state = controller.state;
     if (state.kind !== 'ready' && state.kind !== 'stale') return;
     const idempotencyKey = crypto.randomUUID();
     mutationInFlight = true;
     try {
       const projection = await client.activitySelect({
-        scope,
+        ...authority,
         selection_id: activity.activity_mode_id,
         expected_projection_revision: state.projection.projection_revision,
         idempotency_key: idempotencyKey
       });
-      controller.accept(scope, projection);
+      controller.accept(authority, projection);
     } catch (error) {
       controller.markStale(error instanceof Error ? error.message : 'activity_selection_failed');
     } finally {
@@ -152,19 +152,19 @@
   }
 
   async function performProfileSelection(profile: WorkspaceProfile): Promise<void> {
-    if (!scope || mutationInFlight) return;
+    if (!authority || mutationInFlight) return;
     const state = controller.state;
     if (state.kind !== 'ready' && state.kind !== 'stale') return;
     const idempotencyKey = crypto.randomUUID();
     mutationInFlight = true;
     try {
       const projection = await client.profileSelect({
-        scope,
+        ...authority,
         selection_id: profile.profile_id,
         expected_projection_revision: state.projection.projection_revision,
         idempotency_key: idempotencyKey
       });
-      controller.accept(scope, projection);
+      controller.accept(authority, projection);
     } catch (error) {
       controller.markStale(error instanceof Error ? error.message : 'profile_selection_failed');
     } finally {
@@ -183,20 +183,20 @@
   }
 
   async function performTabSelection(contributionId: string): Promise<void> {
-    if (!scope || mutationInFlight) return;
+    if (!authority || !authority.attachment || mutationInFlight) return;
     const state = controller.state;
     if (state.kind !== 'ready' && state.kind !== 'stale') return;
     const commandId = crypto.randomUUID();
     mutationInFlight = true;
     try {
       const result = await client.layoutMutate({
+        ...authority,
         action: 'set_active_tab',
-        attachment_id: scope.attachment_id,
+        attachment: authority.attachment,
         command_id: commandId,
         expected_layout_revision: state.projection.layout_revision,
         expected_projection_revision: state.projection.projection_revision,
         idempotency_key: commandId,
-        scope,
         target_contribution_id: contributionId
       });
       if (!result.accepted) {
@@ -207,7 +207,7 @@
         controller.markStale('layout_mutation_revision_regressed');
         return;
       }
-      await controller.load(scope);
+      await controller.load(authority);
     } catch (error) {
       controller.markStale(error instanceof Error ? error.message : 'tab_selection_failed');
     } finally {
@@ -216,10 +216,10 @@
   }
 
   $effect(() => {
-    if (!scope) return;
-    const boundScope = scope;
-    const events = new MissionCanvasEventClient(client, boundScope, new LocalEventCursorStore());
-    const invalidations = new MissionCanvasInvalidationController(() => controller.load(boundScope));
+    if (!authority) return;
+    const boundAuthority = authority;
+    const events = new MissionCanvasEventClient(client, boundAuthority, new LocalEventCursorStore());
+    const invalidations = new MissionCanvasInvalidationController(() => controller.load(boundAuthority));
     const unsubscribe = events.subscribe((batch) => {
       const state = controller.state;
       if (state.kind !== 'ready' && state.kind !== 'refreshing' && state.kind !== 'stale') return;

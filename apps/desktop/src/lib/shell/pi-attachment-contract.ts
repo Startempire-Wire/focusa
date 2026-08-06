@@ -1,14 +1,12 @@
+import type { AttachmentKey, RuntimeObjectRef, WorkSurfaceId } from '$lib/mission-canvas/types';
+
 export type PiAttachmentState = 'unbound' | 'binding' | 'attached' | 'disconnected' | 'error';
 
-export interface PiAttachmentIdentity {
-  scopeRef: string;
-  workstreamId: string;
-  continuityId: string;
-  attachmentKey: string;
-  sessionId: string;
-  instanceId: string;
-  workSurfaceId: string;
-}
+/** Generated AttachmentKey owns Workstream, continuity, runtime and workspace identity. */
+export type PiAttachmentIdentity = AttachmentKey & {
+  work_surface_id: WorkSurfaceId;
+  runtime_object?: RuntimeObjectRef | null;
+};
 
 export interface PiTerminalGeometry {
   columns: number;
@@ -29,10 +27,10 @@ export interface PiAttachmentProjection {
 
 export type PiNativeCommand =
   | { kind: 'attach'; identity: PiAttachmentIdentity; geometry: PiTerminalGeometry }
-  | { kind: 'input'; attachmentKey: string; data: string }
-  | { kind: 'resize'; attachmentKey: string; geometry: PiTerminalGeometry }
-  | { kind: 'interrupt'; attachmentKey: string }
-  | { kind: 'detach'; attachmentKey: string };
+  | { kind: 'input'; attachment_id: PiAttachmentIdentity['attachment_id']; data: string }
+  | { kind: 'resize'; attachment_id: PiAttachmentIdentity['attachment_id']; geometry: PiTerminalGeometry }
+  | { kind: 'interrupt'; attachment_id: PiAttachmentIdentity['attachment_id'] }
+  | { kind: 'detach'; attachment_id: PiAttachmentIdentity['attachment_id'] };
 
 export const UNBOUND_PI_ATTACHMENT: PiAttachmentProjection = {
   state: 'unbound',
@@ -45,5 +43,13 @@ export const UNBOUND_PI_ATTACHMENT: PiAttachmentProjection = {
 
 export function hasExactPiAttachment(projection: PiAttachmentProjection): projection is PiAttachmentProjection & { identity: PiAttachmentIdentity } {
   const identity = projection.identity;
-  return projection.state === 'attached' && Boolean(identity?.scopeRef && identity.workstreamId && identity.continuityId && identity.attachmentKey && identity.sessionId && identity.instanceId && identity.workSurfaceId);
+  return projection.state === 'attached' && Boolean(
+    identity?.workstream.scope
+    && identity.workstream.workstream_id
+    && identity.instance_id
+    && identity.session_id
+    && identity.attachment_id
+    && identity.workspace_binding_id
+    && identity.work_surface_id
+  );
 }
