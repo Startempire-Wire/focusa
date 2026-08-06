@@ -1,0 +1,220 @@
+schema: focusa.spec152f.entitlement_call_stack.v1
+contract_version: 1
+authority:
+  policy: docs/contracts/spec152f-entitlement-policy.v1.yaml
+  signed_lease: crates/focusa-license/src/authority.rs
+  runtime_guard: crates/focusa-license/src/lib.rs
+  stable_errors: docs/contracts/spec152f-entitlement-errors.v1.json
+  customer_commerce_human_key_entitlement: WPUIAI.com EDD
+rules:
+  - classify_before_entitlement_decision
+  - security_authorization_before_commercial_allow
+  - recovery_and_safe_read_before_base_or_premium_gate
+  - signed_lease_before_base_or_premium_allow
+  - base_before_premium_feature
+  - idempotency_and_limit_reservation_before_side_effect
+  - execution_before_reservation_settlement
+  - one_canonical_decision_projected_to_all_presenters
+  - unknown_side_effect_policy_family_or_activation_fails_closed
+  - licensing_never_grants_operator_role_or_cognitive_authority
+canonical_inputs:
+  operation_id: stable operation registry identifier
+  operation_class: read | recovery | value_mutation | internal_maintenance | unknown
+  capability_family: registered Spec 152F family identifier
+  entitlement_snapshot: verified immutable authority snapshot or explicit absence
+  security_context: independently verified identity role permission device confirmation and scope
+  request_context: request id idempotency key presenter and bounded operation inputs
+canonical_output:
+  type: EntitlementDecision
+  fields:
+    - status
+    - entitlement_state
+    - operation_id
+    - operation_class
+    - capability_family
+    - commercial_treatment
+    - required_feature
+    - limit_bucket
+    - reason_code
+    - recovery_action
+    - policy_digest
+    - lease_sequence
+  forbidden_fields: [raw_key, refresh_token, node_secret, customer_email, payment_data]
+stages:
+  - order: 1
+    id: entrypoint_binding
+    owner: surface_adapter
+    responsibility: Bind the presenter request to one canonical operation identifier and bounded request context without deciding entitlement.
+    current_surfaces:
+      - crates/focusa-api/src/middleware/entitlement.rs
+      - crates/focusa-cli/src/main.rs
+      - apps/menubar/src/lib/api.ts
+      - apps/pi-extension/src/tools.ts
+    input: presenter request
+    output: operation_id plus request_context
+    failure_codes: []
+  - order: 2
+    id: operation_classification
+    owner: operation_policy_registry
+    responsibility: Resolve method side effects operation class capability family recovery posture and limit metadata; unknown values fail before execution.
+    current_surfaces:
+      - docs/contracts/spec135/generated-contract-v1/operation-registry.json
+      - docs/contracts/spec141/generated-capability-v2/route-classification.json
+      - crates/focusa-api/src/middleware/entitlement_routes.rs
+    input: operation_id plus method and route metadata
+    output: typed operation policy
+    failure_codes: [ENTITLEMENT_ROUTE_UNCLASSIFIED, ENTITLEMENT_POLICY_UNKNOWN, ENTITLEMENT_FAMILY_UNKNOWN]
+  - order: 3
+    id: identity_permission_confirmation
+    owner: security_authorization
+    responsibility: Enforce identity role permission device confirmation and scope independently; licensing cannot satisfy this stage.
+    current_surfaces:
+      - crates/focusa-api/src/middleware/auth.rs
+      - crates/focusa-api/src/middleware/route_scope.rs
+      - crates/focusa-core/src/daemon_auth.rs
+    input: security_context plus typed operation policy
+    output: authorized security context
+    failure_codes: []
+  - order: 4
+    id: recovery_read_resolution
+    owner: entitlement_policy_resolver
+    responsibility: Allow registered recovery customer-control safe-read basic-export stable-security-update repair rollback and uninstall paths subject to stage 3 security.
+    current_surfaces:
+      - docs/contracts/spec152f-entitlement-policy.v1.yaml
+      - crates/focusa-api/src/middleware/entitlement.rs
+    input: operation policy plus entitlement state
+    output: allowance decision or continue_to_lease
+    failure_codes: [ENTITLEMENT_POLICY_UNKNOWN, ENTITLEMENT_FAMILY_UNKNOWN]
+  - order: 5
+    id: signed_lease_verification
+    owner: authority_lease_verifier
+    responsibility: Verify trust root signature product audience node time sequence chain and refund or revoke precedence; legacy local state cannot grant capability.
+    current_surfaces:
+      - crates/focusa-license/src/authority.rs
+      - crates/focusa-license/src/authority_store.rs
+      - crates/focusa-license/src/lib.rs
+    input: persisted authority state plus verification context
+    output: verified entitlement snapshot
+    failure_codes: [ENTITLEMENT_REQUIRED, ENTITLEMENT_SNAPSHOT_MISSING]
+  - order: 6
+    id: state_base_resolution
+    owner: entitlement_policy_resolver
+    responsibility: Apply the eight-state grid and require one usable Focusa base entitlement for value-producing base operations.
+    current_surfaces:
+      - docs/contracts/spec152f-entitlement-policy.v1.yaml
+      - crates/focusa-license/src/feature_decision.rs
+      - crates/focusa-license/src/lib.rs
+    input: typed operation policy plus verified entitlement snapshot
+    output: base decision or continue_to_premium
+    failure_codes: [ENTITLEMENT_REQUIRED, ENTITLEMENT_POLICY_UNKNOWN, ENTITLEMENT_FAMILY_UNKNOWN]
+  - order: 7
+    id: premium_feature_resolution
+    owner: entitlement_policy_resolver
+    responsibility: Resolve only automation team_remote release_proof and premium_updates operation-bound features after base; Offline Grace cannot expand grants.
+    current_surfaces:
+      - docs/contracts/spec152-feature-registry.v1.yaml
+      - docs/contracts/spec152f-entitlement-policy.v1.yaml
+      - crates/focusa-license/src/feature_decision.rs
+    input: base-approved snapshot plus operation policy
+    output: feature-approved decision or denial
+    failure_codes: [ENTITLEMENT_FEATURE_REQUIRED, ENTITLEMENT_POLICY_ACTIVATION_FORBIDDEN]
+  - order: 8
+    id: idempotency_limit_reservation
+    owner: entitlement_limit_reservation
+    responsibility: Require stable idempotency when a signed limit applies and reserve capacity atomically before side effects.
+    current_surfaces:
+      - crates/focusa-api/src/middleware/entitlement.rs
+      - crates/focusa-core/src/runtime/persistence_sqlite.rs
+    input: approved decision plus request_context plus signed limit
+    output: optional durable reservation identifier
+    failure_codes: [ENTITLEMENT_IDEMPOTENCY_REQUIRED, ENTITLEMENT_LIMIT_EXHAUSTED, ENTITLEMENT_RESERVATION_FAILED]
+  - order: 9
+    id: protected_execution
+    owner: operation_handler
+    responsibility: Execute the authorized operation exactly once; presenters workers and helpers cannot bypass stages 1 through 8.
+    current_surfaces:
+      - crates/focusa-api/src/routes
+      - crates/focusa-core/src
+    input: approved decision plus optional reservation plus bounded operation input
+    output: operation result
+    failure_codes: []
+  - order: 10
+    id: reservation_settlement
+    owner: entitlement_limit_reservation
+    responsibility: Commit or release the exact reservation according to operation result without changing authority grants.
+    current_surfaces:
+      - crates/focusa-api/src/middleware/entitlement.rs
+      - crates/focusa-core/src/runtime/persistence_sqlite.rs
+    input: reservation identifier plus operation result
+    output: settlement receipt
+    failure_codes: [ENTITLEMENT_RESERVATION_FAILED]
+  - order: 11
+    id: decision_projection
+    owner: entitlement_decision_projection
+    responsibility: Return one redacted stable decision and recovery action; no presenter recomputes commercial policy.
+    current_surfaces:
+      - crates/focusa-license/src/lib.rs
+      - crates/focusa-api/src/routes/license.rs
+      - crates/focusa-cli/src/commands/license.rs
+    input: canonical decision plus operation result or denial
+    output: redacted presenter-neutral envelope
+    failure_codes: []
+execution_paths:
+  http:
+    entrypoints: [REST route]
+    stage_order: [entrypoint_binding, operation_classification, identity_permission_confirmation, recovery_read_resolution, signed_lease_verification, state_base_resolution, premium_feature_resolution, idempotency_limit_reservation, protected_execution, reservation_settlement, decision_projection]
+    mandatory_chokepoint: crates/focusa-api/src/middleware/entitlement.rs
+  non_http:
+    entrypoints: [CLI direct core call, Pi tool, embedded client]
+    stage_order: [entrypoint_binding, operation_classification, identity_permission_confirmation, recovery_read_resolution, signed_lease_verification, state_base_resolution, premium_feature_resolution, idempotency_limit_reservation, protected_execution, reservation_settlement, decision_projection]
+    mandatory_chokepoint: planned:crates/focusa-core/src/entitlement_execution_guard.rs
+  delayed_dispatch:
+    entrypoints: [worker, scheduler, queued agent operation]
+    stage_order: [entrypoint_binding, operation_classification, identity_permission_confirmation, recovery_read_resolution, signed_lease_verification, state_base_resolution, premium_feature_resolution, idempotency_limit_reservation, protected_execution, reservation_settlement, decision_projection]
+    mandatory_chokepoint: planned:crates/focusa-core/src/entitlement_execution_guard.rs
+    additional_rule: reverify current authority and policy at dispatch; queue time never extends Offline Grace
+presenter_boundaries:
+  - presenter: REST
+    owns: request binding and rendering only
+    commercial_decision: forbidden
+  - presenter: CLI
+    owns: preflight display JSON and exit semantics only
+    commercial_decision: forbidden
+  - presenter: menubar_TUI
+    owns: accessible display navigation and recovery action only
+    commercial_decision: forbidden
+  - presenter: Pi_agent
+    owns: tool binding preflight display and independent permission confirmation only
+    commercial_decision: forbidden
+  - presenter: installer_lifecycle
+    owns: activation handoff receipt display repair update rollback and uninstall UX only
+    commercial_decision: forbidden
+  - presenter: branded_facade
+    owns: registered brand rendering and bounded authority proxy only
+    commercial_decision: forbidden
+  - presenter: UIAI_child
+    owns: bounded parent-derived child-token enforcement only
+    commercial_decision: forbidden
+legacy_boundaries:
+  crates/focusa-core/src/license.rs: compatibility parsing and status projection only; must delegate runtime commercial decisions
+  crates/focusa-license/src/lib.rs: canonical signed-authority and policy decision owner
+  local_license_json_or_toml: migration input only; never a runtime grant
+  installer_eval_flag: forbidden as entitlement authority
+implementation_sequence:
+  - focusa-vbcqu.20.14.5
+  - focusa-vbcqu.20.14.6
+  - focusa-vbcqu.20.14.7
+  - focusa-vbcqu.20.14.8
+  - focusa-vbcqu.20.14.9
+  - focusa-vbcqu.20.14.10
+  - focusa-vbcqu.20.14.11
+  - focusa-vbcqu.20.14.12
+  - focusa-vbcqu.20.14.13
+  - focusa-vbcqu.20.14.14
+  - focusa-vbcqu.20.14.15
+  - focusa-vbcqu.20.14.16
+  - focusa-vbcqu.20.14.17
+  - focusa-vbcqu.20.14.18
+  - focusa-vbcqu.20.14.19
+  - focusa-vbcqu.20.14.20
+  - focusa-vbcqu.20.14.21

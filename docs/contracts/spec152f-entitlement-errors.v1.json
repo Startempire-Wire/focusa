@@ -1,0 +1,137 @@
+{
+  "schema": "focusa.spec152f.entitlement_errors.v1",
+  "contract_version": 1,
+  "rules": {
+    "before_side_effect": true,
+    "public_messages_are_redacted": true,
+    "presenters_must_not_rewrite_codes": true,
+    "unknown_codes_fail_closed": true,
+    "licensing_denial_does_not_bypass_security": true
+  },
+  "errors": [
+    {
+      "category": "feature",
+      "code": "ENTITLEMENT_FEATURE_REQUIRED",
+      "http_status": 403,
+      "public_message": "This operation requires an additional authority-granted Focusa feature.",
+      "recovery_action": "review_offer_or_manage_entitlement",
+      "required_context": ["capability_family", "operation_id", "required_feature"],
+      "retryable": false,
+      "source_status": "existing"
+    },
+    {
+      "category": "idempotency",
+      "code": "ENTITLEMENT_IDEMPOTENCY_REQUIRED",
+      "http_status": 428,
+      "public_message": "A stable idempotency key is required before reserving licensed capacity.",
+      "recovery_action": "retry_with_stable_idempotency_key",
+      "required_context": ["capability_family", "operation_id", "limit_bucket"],
+      "retryable": true,
+      "source_status": "existing"
+    },
+    {
+      "category": "limit",
+      "code": "ENTITLEMENT_LIMIT_EXHAUSTED",
+      "http_status": 429,
+      "public_message": "The authority-granted capacity for this operation is unavailable or exhausted.",
+      "recovery_action": "manage_capacity_or_retry_after_settlement",
+      "required_context": ["capability_family", "operation_id", "limit_bucket"],
+      "retryable": false,
+      "source_status": "existing"
+    },
+    {
+      "category": "policy",
+      "code": "ENTITLEMENT_FAMILY_UNKNOWN",
+      "http_status": 403,
+      "public_message": "This operation has no registered entitlement family and is blocked before execution.",
+      "recovery_action": "run_diagnostics_or_update_policy",
+      "required_context": ["operation_id", "policy_digest"],
+      "retryable": false,
+      "source_status": "spec152f_new"
+    },
+    {
+      "category": "policy",
+      "code": "ENTITLEMENT_POLICY_ACTIVATION_FORBIDDEN",
+      "http_status": 403,
+      "public_message": "This granular entitlement control is not approved for runtime activation.",
+      "recovery_action": "use_registered_base_or_premium_policy",
+      "required_context": ["capability_family", "operation_id", "policy_digest"],
+      "retryable": false,
+      "source_status": "spec152f_new"
+    },
+    {
+      "category": "policy",
+      "code": "ENTITLEMENT_POLICY_UNKNOWN",
+      "http_status": 403,
+      "public_message": "The entitlement policy is unavailable or unrecognized and this operation is blocked.",
+      "recovery_action": "run_diagnostics_or_update_policy",
+      "required_context": ["operation_id", "policy_digest"],
+      "retryable": false,
+      "source_status": "spec152f_new"
+    },
+    {
+      "category": "authority",
+      "code": "ENTITLEMENT_REQUIRED",
+      "http_status": 403,
+      "public_message": "A usable authority-issued Focusa entitlement is required for this operation.",
+      "recovery_action": "activate_evaluation_purchase_or_manage_entitlement",
+      "required_context": ["capability_family", "entitlement_state", "operation_id"],
+      "retryable": false,
+      "source_status": "existing"
+    },
+    {
+      "category": "reservation",
+      "code": "ENTITLEMENT_RESERVATION_FAILED",
+      "http_status": 503,
+      "public_message": "Licensed capacity could not be reserved safely before execution.",
+      "recovery_action": "retry_with_same_idempotency_key_or_run_diagnostics",
+      "required_context": ["capability_family", "operation_id", "limit_bucket"],
+      "retryable": true,
+      "source_status": "existing"
+    },
+    {
+      "category": "classification",
+      "code": "ENTITLEMENT_ROUTE_UNCLASSIFIED",
+      "http_status": 403,
+      "public_message": "This operation has no exact entitlement descriptor and is blocked before execution.",
+      "recovery_action": "run_diagnostics_or_update_policy",
+      "required_context": ["operation_id"],
+      "retryable": false,
+      "source_status": "existing"
+    },
+    {
+      "category": "authority",
+      "code": "ENTITLEMENT_SNAPSHOT_MISSING",
+      "http_status": 403,
+      "public_message": "A verified authority entitlement snapshot is unavailable.",
+      "recovery_action": "activate_refresh_or_run_diagnostics",
+      "required_context": ["entitlement_state"],
+      "retryable": false,
+      "source_status": "existing"
+    }
+  ],
+  "recovery_paths": {
+    "always_reachable_subject_to_security": [
+      "account_management",
+      "activation",
+      "basic_customer_data_export",
+      "diagnostics",
+      "license_status",
+      "node_deactivation",
+      "purchase",
+      "registration",
+      "repair",
+      "rollback",
+      "stable_security_update",
+      "uninstall",
+      "verification"
+    ],
+    "never_implied_by_error": [
+      "anonymous_access",
+      "commercial_grant",
+      "cognitive_authority",
+      "operator_permission",
+      "role_permission"
+    ]
+  }
+}
