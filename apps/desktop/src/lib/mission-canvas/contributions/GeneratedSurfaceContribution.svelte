@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { GeneratedSurfaceSnapshotResolver } from '../generated-surface-types';
+  import type { GeneratedSurfaceSnapshotResolver, GeneratedSurfaceSource } from '../generated-surface-types';
   import type { OperationBinding, ResolvedContribution, ResolvedWorkspaceProjection } from '../types';
 
   interface FocusaGeneratedSurfaceElement extends HTMLElement {
@@ -21,7 +21,7 @@
   } = $props();
 
   let host = $state<HTMLDivElement>();
-  let state = $state<'loading' | 'ready' | 'error'>('loading');
+  let renderState = $state<'loading' | 'ready' | 'error'>('loading');
   let errorMessage = $state('');
   let generation = 0;
 
@@ -42,7 +42,7 @@
     let disposed = false;
     let element: FocusaGeneratedSurfaceElement | undefined;
     let unsubscribeDelta: (() => void) | undefined;
-    state = 'loading';
+    renderState = 'loading';
     errorMessage = '';
 
     function handleOperation(event: CustomEvent<{ name?: string }>): void {
@@ -58,7 +58,9 @@
         await import('@focusa/a2ui-renderer/rich-host');
         const resolved = await snapshotResolver(currentContribution, currentProjection);
         if (disposed || requestGeneration !== generation) return;
-        const source = Array.isArray(resolved) ? { snapshot: resolved } : resolved;
+        const source: GeneratedSurfaceSource = Array.isArray(resolved)
+          ? { snapshot: resolved }
+          : resolved as GeneratedSurfaceSource;
         element = document.createElement('focusa-generated-surface') as FocusaGeneratedSurfaceElement;
         element.setAttribute('aria-label', currentContribution.accessibility.label);
         element.allowedActions = currentBindings.map((binding) => binding.operation_id);
@@ -72,10 +74,10 @@
           if (disposed || requestGeneration !== generation) stop();
           else unsubscribeDelta = stop;
         }
-        state = 'ready';
+        renderState = 'ready';
       } catch (error) {
         if (disposed || requestGeneration !== generation) return;
-        state = 'error';
+        renderState = 'error';
         errorMessage = error instanceof Error ? error.message : 'Generated surface unavailable.';
       }
     })();
@@ -90,11 +92,11 @@
   });
 </script>
 
-<section class="generated-surface" aria-label={contribution.accessibility.label} aria-busy={state === 'loading'}>
+<section class="generated-surface" aria-label={contribution.accessibility.label} aria-busy={renderState === 'loading'}>
   <div bind:this={host} class="generated-host"></div>
-  {#if state === 'loading'}
+  {#if renderState === 'loading'}
     <div class="surface-state" role="status">Loading {contribution.accessibility.label}…</div>
-  {:else if state === 'error'}
+  {:else if renderState === 'error'}
     <div class="surface-state error" role="alert">
       <strong>Generated surface unavailable</strong>
       <span>{errorMessage}</span>

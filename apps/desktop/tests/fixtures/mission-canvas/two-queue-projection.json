@@ -1,0 +1,416 @@
+{
+  "schema": "focusa.resolved_workspace_projection.v1",
+  "scope": {
+    "project_root": "/example/focusa",
+    "continuity_id": "mission-canvas",
+    "instance_id": "instance:pi",
+    "session_id": "session:pi",
+    "attachment_id": "attachment:pi",
+    "working_subpath_id": "working-subpath:primary"
+  },
+  "workspace_profile_id": "software",
+  "workspace_profile_revision": 2,
+  "activity_mode_id": "overview",
+  "activity_mode_revision": 1,
+  "focused_work_surface_id": "surface:pi",
+  "canonical_read_model_revision": 41,
+  "candidate_contribution_ids": [
+    "contribution:pi-session",
+    "contribution:focusa-inspector",
+    "contribution:steering-queue",
+    "contribution:follow-up-queue",
+    "contribution:prompt-editor"
+  ],
+  "eligible_contributions": [
+    {
+      "contribution_id": "contribution:pi-session",
+      "kind": "focused_work_surface",
+      "semantic_binding_id": "semantic:pi-session",
+      "renderer_binding_id": "renderer:pi-session@v1",
+      "data_ref": {
+        "kind": "work_surface",
+        "ref": "surface:pi",
+        "revision": 7,
+        "freshness": "current"
+      },
+      "operation_ids": [
+        "focusa.agent_execution.prompt"
+      ],
+      "authority": {
+        "canonical_owner": "Focusa Core",
+        "mutation_owner": "Pi AgentExecutionAdapter",
+        "scope": {
+          "project_root": "/example/focusa",
+          "continuity_id": "mission-canvas",
+          "instance_id": "instance:pi",
+          "session_id": "session:pi",
+          "attachment_id": "attachment:pi",
+          "working_subpath_id": "working-subpath:primary"
+        },
+        "read_only": false,
+        "approval_required": false,
+        "contention_ref": null
+      },
+      "freshness": {
+        "status": "current",
+        "observed_at": "2026-07-30T12:00:00Z",
+        "stale_reason": null,
+        "refresh_operation_id": null
+      },
+      "resolved_geometry": {
+        "preferred_regions": [
+          "primary",
+          "inspector"
+        ],
+        "preferred_adjacency": [
+          "contribution:pi-session"
+        ],
+        "minimum_span": 3,
+        "maximum_span": 8,
+        "preferred_order": 10,
+        "merge_policy": "compatible",
+        "tab_policy": "preferred",
+        "inspector_side": "profile_default"
+      },
+      "accessibility": {
+        "label": "Pi Session",
+        "description": "Live transcript and governed prompt controls",
+        "landmark_role": "region",
+        "focus_semantic_id": "focus:pi-session",
+        "live_region": "off",
+        "keyboard_operation_ids": [
+          "focusa.agent_execution.prompt"
+        ]
+      },
+      "contribution_revision": 9,
+      "evidence_refs": [
+        "evidence:pi-session-binding"
+      ]
+    },
+    {
+      "contribution_id": "contribution:focusa-inspector",
+      "kind": "inspector",
+      "semantic_binding_id": "semantic:focusa-inspector",
+      "renderer_binding_id": "renderer:focusa-inspector@v1",
+      "data_ref": {
+        "kind": "work_surface",
+        "ref": "surface:pi",
+        "revision": 7,
+        "freshness": "current"
+      },
+      "operation_ids": [
+        "focusa.agent_execution.prompt"
+      ],
+      "authority": {
+        "canonical_owner": "Focusa Core",
+        "mutation_owner": "Pi AgentExecutionAdapter",
+        "scope": {
+          "project_root": "/example/focusa",
+          "continuity_id": "mission-canvas",
+          "instance_id": "instance:pi",
+          "session_id": "session:pi",
+          "attachment_id": "attachment:pi",
+          "working_subpath_id": "working-subpath:primary"
+        },
+        "read_only": false,
+        "approval_required": false,
+        "contention_ref": null
+      },
+      "freshness": {
+        "status": "current",
+        "observed_at": "2026-07-30T12:00:00Z",
+        "stale_reason": null,
+        "refresh_operation_id": null
+      },
+      "resolved_geometry": {
+        "preferred_regions": [
+          "primary",
+          "inspector"
+        ],
+        "preferred_adjacency": [
+          "contribution:pi-session"
+        ],
+        "minimum_span": 3,
+        "maximum_span": 8,
+        "preferred_order": 10,
+        "merge_policy": "compatible",
+        "tab_policy": "preferred",
+        "inspector_side": "profile_default"
+      },
+      "accessibility": {
+        "label": "Focusa Inspector",
+        "description": "Live transcript and governed prompt controls",
+        "landmark_role": "region",
+        "focus_semantic_id": "focus:pi-session",
+        "live_region": "off",
+        "keyboard_operation_ids": [
+          "focusa.agent_execution.prompt"
+        ]
+      },
+      "contribution_revision": 9,
+      "evidence_refs": [
+        "evidence:pi-session-binding"
+      ]
+    },
+    {
+      "contribution_id": "contribution:steering-queue",
+      "kind": "steering_queue",
+      "semantic_binding_id": "semantic:steering-queue",
+      "renderer_binding_id": "renderer:steering-queue@v1",
+      "data_ref": {
+        "kind": "steering_queue",
+        "ref": "queue:steering",
+        "revision": 1,
+        "freshness": "current"
+      },
+      "operation_ids": [],
+      "authority": {
+        "canonical_owner": "Focusa Core",
+        "mutation_owner": "Pi AgentExecutionAdapter",
+        "scope": {
+          "project_root": "/example/focusa",
+          "continuity_id": "mission-canvas",
+          "instance_id": "instance:pi",
+          "session_id": "session:pi",
+          "attachment_id": "attachment:pi",
+          "working_subpath_id": "working-subpath:primary"
+        },
+        "read_only": false,
+        "approval_required": false,
+        "contention_ref": null
+      },
+      "freshness": {
+        "status": "current",
+        "observed_at": "2026-07-30T12:00:00Z",
+        "stale_reason": null,
+        "refresh_operation_id": null
+      },
+      "resolved_geometry": {
+        "preferred_regions": [
+          "primary",
+          "inspector"
+        ],
+        "preferred_adjacency": [
+          "contribution:pi-session"
+        ],
+        "minimum_span": 3,
+        "maximum_span": 8,
+        "preferred_order": 10,
+        "merge_policy": "compatible",
+        "tab_policy": "preferred",
+        "inspector_side": "profile_default"
+      },
+      "accessibility": {
+        "label": "Steering Queue",
+        "description": "Pending steering requests for the focused Work Surface",
+        "landmark_role": "region",
+        "focus_semantic_id": "focus:pi-session",
+        "live_region": "off",
+        "keyboard_operation_ids": [
+          "focusa.agent_execution.prompt"
+        ]
+      },
+      "contribution_revision": 9,
+      "evidence_refs": [
+        "evidence:pi-session-binding"
+      ]
+    },
+    {
+      "contribution_id": "contribution:follow-up-queue",
+      "kind": "follow_up_queue",
+      "semantic_binding_id": "semantic:follow-up-queue",
+      "renderer_binding_id": "renderer:follow-up-queue@v1",
+      "data_ref": {
+        "kind": "follow_up_queue",
+        "ref": "queue:follow-up",
+        "revision": 1,
+        "freshness": "current"
+      },
+      "operation_ids": [],
+      "authority": {
+        "canonical_owner": "Focusa Core",
+        "mutation_owner": "Pi AgentExecutionAdapter",
+        "scope": {
+          "project_root": "/example/focusa",
+          "continuity_id": "mission-canvas",
+          "instance_id": "instance:pi",
+          "session_id": "session:pi",
+          "attachment_id": "attachment:pi",
+          "working_subpath_id": "working-subpath:primary"
+        },
+        "read_only": false,
+        "approval_required": false,
+        "contention_ref": null
+      },
+      "freshness": {
+        "status": "current",
+        "observed_at": "2026-07-30T12:00:00Z",
+        "stale_reason": null,
+        "refresh_operation_id": null
+      },
+      "resolved_geometry": {
+        "preferred_regions": [
+          "primary",
+          "inspector"
+        ],
+        "preferred_adjacency": [
+          "contribution:pi-session"
+        ],
+        "minimum_span": 3,
+        "maximum_span": 8,
+        "preferred_order": 10,
+        "merge_policy": "compatible",
+        "tab_policy": "preferred",
+        "inspector_side": "profile_default"
+      },
+      "accessibility": {
+        "label": "Follow-up Queue",
+        "description": "Accepted follow-up work routed to an exact recipient",
+        "landmark_role": "region",
+        "focus_semantic_id": "focus:pi-session",
+        "live_region": "off",
+        "keyboard_operation_ids": [
+          "focusa.agent_execution.prompt"
+        ]
+      },
+      "contribution_revision": 9,
+      "evidence_refs": [
+        "evidence:pi-session-binding"
+      ]
+    },
+    {
+      "contribution_id": "contribution:prompt-editor",
+      "kind": "prompt_editor",
+      "semantic_binding_id": "semantic:prompt-editor",
+      "renderer_binding_id": "renderer:prompt-editor@v1",
+      "data_ref": {
+        "kind": "canvas_draft",
+        "ref": "draft:prompt-preview",
+        "revision": 1,
+        "freshness": "current"
+      },
+      "operation_ids": [
+        "focusa.agent_execution.prompt"
+      ],
+      "authority": {
+        "canonical_owner": "Focusa Core",
+        "mutation_owner": "Pi AgentExecutionAdapter",
+        "scope": {
+          "project_root": "/example/focusa",
+          "continuity_id": "mission-canvas",
+          "instance_id": "instance:pi",
+          "session_id": "session:pi",
+          "attachment_id": "attachment:pi",
+          "working_subpath_id": "working-subpath:primary"
+        },
+        "read_only": false,
+        "approval_required": false,
+        "contention_ref": null
+      },
+      "freshness": {
+        "status": "current",
+        "observed_at": "2026-07-30T12:00:00Z",
+        "stale_reason": null,
+        "refresh_operation_id": null
+      },
+      "resolved_geometry": {
+        "preferred_regions": [
+          "primary",
+          "inspector"
+        ],
+        "preferred_adjacency": [
+          "contribution:pi-session"
+        ],
+        "minimum_span": 3,
+        "maximum_span": 8,
+        "preferred_order": 10,
+        "merge_policy": "compatible",
+        "tab_policy": "preferred",
+        "inspector_side": "profile_default"
+      },
+      "accessibility": {
+        "label": "Prompt Editor",
+        "description": "Governed draft and prompt routing for the focused Work Surface",
+        "landmark_role": "region",
+        "focus_semantic_id": "focus:pi-session",
+        "live_region": "off",
+        "keyboard_operation_ids": [
+          "focusa.agent_execution.prompt"
+        ]
+      },
+      "contribution_revision": 9,
+      "evidence_refs": [
+        "evidence:pi-session-binding"
+      ]
+    }
+  ],
+  "omission_diagnostics": [],
+  "layout_tree": {
+    "node_id": "layout:two-queue",
+    "kind": "stack",
+    "gap_token": "cluster",
+    "children": [
+      {
+        "node_id": "layout:work-region",
+        "kind": "split",
+        "orientation": "horizontal",
+        "ratio": 0.68,
+        "children": [
+          {
+            "node_id": "layout:primary",
+            "kind": "single",
+            "contribution_id": "contribution:pi-session"
+          },
+          {
+            "node_id": "layout:inspector",
+            "kind": "single",
+            "contribution_id": "contribution:focusa-inspector"
+          }
+        ]
+      },
+      {
+        "node_id": "layout:queue-region",
+        "kind": "split",
+        "orientation": "horizontal",
+        "ratio": 0.5,
+        "children": [
+          {
+            "node_id": "layout:steering",
+            "kind": "single",
+            "contribution_id": "contribution:steering-queue"
+          },
+          {
+            "node_id": "layout:follow-up",
+            "kind": "single",
+            "contribution_id": "contribution:follow-up-queue"
+          }
+        ]
+      },
+      {
+        "node_id": "layout:prompt",
+        "kind": "single",
+        "contribution_id": "contribution:prompt-editor"
+      }
+    ]
+  },
+  "operation_bindings": [
+    {
+      "operation_id": "focusa.agent_execution.prompt",
+      "target_contribution_id": "contribution:prompt-editor",
+      "enabled": true,
+      "disabled_reason_ref": null,
+      "confirmation": "none",
+      "authority_ref": "authority:fixture:prompt-preview"
+    }
+  ],
+  "focused_semantic_target": "focus:pi-session",
+  "projection_revision": 12,
+  "layout_revision": 5,
+  "durable_event_cursor": "event:41",
+  "projection_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "resolved_at": "2026-07-30T12:00:00Z",
+  "evidence_refs": [
+    "fixture:two-queue"
+  ],
+  "receipt_refs": []
+}

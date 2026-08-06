@@ -191,7 +191,7 @@
       },
       {
         "contribution_id": "contribution:focusa-inspector",
-        "kind": "inspector_section",
+        "kind": "inspector",
         "semantic_binding_id": "semantic:focusa-inspector",
         "renderer_binding_id": "renderer:focusa-inspector@v1",
         "data_ref": {
@@ -374,7 +374,7 @@
       },
       {
         "contribution_id": "contribution:focusa-inspector",
-        "kind": "inspector_section",
+        "kind": "inspector",
         "semantic_binding_id": "semantic:focusa-inspector",
         "renderer_binding_id": "renderer:focusa-inspector@v1",
         "data_ref": {
@@ -556,7 +556,7 @@
       },
       {
         "contribution_id": "contribution:focusa-inspector",
-        "kind": "inspector_section",
+        "kind": "inspector",
         "semantic_binding_id": "semantic:focusa-inspector",
         "renderer_binding_id": "renderer:focusa-inspector@v1",
         "data_ref": {
@@ -739,7 +739,7 @@
       },
       {
         "contribution_id": "contribution:focusa-inspector",
-        "kind": "inspector_section",
+        "kind": "inspector",
         "semantic_binding_id": "semantic:focusa-inspector",
         "renderer_binding_id": "renderer:focusa-inspector@v1",
         "data_ref": {
@@ -913,7 +913,7 @@
       },
       {
         "contribution_id": "contribution:focusa-inspector",
-        "kind": "inspector_section",
+        "kind": "inspector",
         "semantic_binding_id": "semantic:focusa-inspector",
         "renderer_binding_id": "renderer:focusa-inspector@v1",
         "data_ref": {

@@ -48,12 +48,18 @@ def single(node_id: str, identifier: str) -> dict:
 
 
 primary = contribution("contribution:pi-session")
-secondary = contribution("contribution:focusa-inspector", "inspector_section")
+secondary = contribution("contribution:focusa-inspector", "inspector")
 queue = contribution("contribution:steering-queue", "steering_queue")
 queue["data_ref"] = {"kind": "steering_queue", "ref": "queue:steering", "revision": 1, "freshness": "current"}
 queue["operation_ids"] = []
 queue["accessibility"]["label"] = "Steering Queue"
 queue["accessibility"]["description"] = "Pending steering requests for the focused Work Surface"
+
+follow_up = contribution("contribution:follow-up-queue", "follow_up_queue")
+follow_up["data_ref"] = {"kind": "follow_up_queue", "ref": "queue:follow-up", "revision": 1, "freshness": "current"}
+follow_up["operation_ids"] = []
+follow_up["accessibility"]["label"] = "Follow-up Queue"
+follow_up["accessibility"]["description"] = "Accepted follow-up work routed to an exact recipient"
 
 prompt = contribution("contribution:prompt-editor", "prompt_editor")
 prompt["data_ref"] = {"kind": "canvas_draft", "ref": "draft:prompt-preview", "revision": 1, "freshness": "current"}
@@ -98,6 +104,41 @@ one_queue["operation_bindings"] = [{
     "authority_ref": "authority:fixture:prompt-preview",
 }]
 validate(one_queue)
+
+two_queue = projection(
+    "two-queue",
+    [primary, secondary, queue, follow_up, prompt],
+    {
+        "node_id": "layout:two-queue",
+        "kind": "stack",
+        "gap_token": "cluster",
+        "children": [
+            {
+                "node_id": "layout:work-region",
+                "kind": "split",
+                "orientation": "horizontal",
+                "ratio": 0.68,
+                "children": [
+                    single("layout:primary", primary["contribution_id"]),
+                    single("layout:inspector", secondary["contribution_id"]),
+                ],
+            },
+            {
+                "node_id": "layout:queue-region",
+                "kind": "split",
+                "orientation": "horizontal",
+                "ratio": 0.5,
+                "children": [
+                    single("layout:steering", queue["contribution_id"]),
+                    single("layout:follow-up", follow_up["contribution_id"]),
+                ],
+            },
+            single("layout:prompt", prompt["contribution_id"]),
+        ],
+    },
+)
+two_queue["operation_bindings"] = copy.deepcopy(one_queue["operation_bindings"])
+validate(two_queue)
 
 zero_queue = projection(
     "zero-queue",
@@ -187,6 +228,7 @@ outputs = {
     "populated-projection.json": populated,
     "empty-optionals-projection.json": empty_optionals,
     "one-queue-projection.json": one_queue,
+    "two-queue-projection.json": two_queue,
     "zero-queue-projection.json": zero_queue,
     "layout-variants.json": variants,
 }

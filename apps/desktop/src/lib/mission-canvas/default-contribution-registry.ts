@@ -1,5 +1,7 @@
 import CanonicalReferenceContribution from './contributions/CanonicalReferenceContribution.svelte';
 import PromptEditorContribution from './contributions/PromptEditorContribution.svelte';
+import SteeringQueueContribution from './contributions/SteeringQueueContribution.svelte';
+import FollowUpQueueContribution from './contributions/FollowUpQueueContribution.svelte';
 import WorkSurfaceContribution from './contributions/WorkSurfaceContribution.svelte';
 import { ContributionRendererRegistry, type TrustedContributionRenderer } from './contribution-renderers';
 
@@ -45,7 +47,13 @@ export const DEFAULT_CONTRIBUTION_RENDERERS = [
     rendererBindingId: 'renderer:steering-queue@v1',
     semanticBindingIds: ['semantic:steering-queue'],
     contributionKinds: ['steering_queue'],
-    component: CanonicalReferenceContribution
+    component: SteeringQueueContribution
+  },
+  {
+    rendererBindingId: 'renderer:follow-up-queue@v1',
+    semanticBindingIds: ['semantic:follow-up-queue'],
+    contributionKinds: ['follow_up_queue'],
+    component: FollowUpQueueContribution
   },
   {
     rendererBindingId: 'renderer:prompt-editor@v1',

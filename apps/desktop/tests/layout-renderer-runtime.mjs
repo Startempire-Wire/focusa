@@ -98,6 +98,23 @@ try {
   const { body: productionProjection } = render(MissionCanvasRenderer, { props: { projection: fixture, registry: DEFAULT_CONTRIBUTION_REGISTRY } });
   assert.match(productionProjection, /data-work-surface-ref="surface:pi"/);
   assert.doesNotMatch(productionProjection, /Renderer unavailable/);
+
+  const twoQueueFixture = JSON.parse(await readFile(new URL('./fixtures/mission-canvas/two-queue-projection.json', import.meta.url), 'utf8'));
+  assert.deepEqual(
+    twoQueueFixture.eligible_contributions.filter(({ kind }) => kind.endsWith('_queue')).map(({ kind }) => kind),
+    ['steering_queue', 'follow_up_queue']
+  );
+  assert.deepEqual(validateLayoutIntegrity(twoQueueFixture.layout_tree), []);
+  for (const contribution of twoQueueFixture.eligible_contributions) {
+    assert.ok(DEFAULT_CONTRIBUTION_REGISTRY.resolve(contribution), `two-queue registry missing ${contribution.renderer_binding_id}`);
+  }
+  const { body: twoQueueProjection } = render(MissionCanvasRenderer, { props: { projection: twoQueueFixture, registry: DEFAULT_CONTRIBUTION_REGISTRY } });
+  assert.match(twoQueueProjection, /data-queue-kind="steering_queue"/);
+  assert.match(twoQueueProjection, /data-queue-kind="follow_up_queue"/);
+  assert.match(twoQueueProjection, />Steering Queue</);
+  assert.match(twoQueueProjection, />Follow-up Queue</);
+  assert.match(twoQueueProjection, /queue-region/);
+  assert.doesNotMatch(twoQueueProjection, /Renderer unavailable/);
   const requestedUrls = [];
   const { MissionCanvasHttpTransport, MissionCanvasTransportError } = await server.ssrLoadModule('/src/lib/mission-canvas/http-transport.ts');
   const transport = new MissionCanvasHttpTransport('http://127.0.0.1:8787/', async (url) => {

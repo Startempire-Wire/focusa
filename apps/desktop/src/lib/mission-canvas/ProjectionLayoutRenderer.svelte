@@ -23,6 +23,19 @@
     return ids.includes(canonicalActive) ? canonicalActive : undefined;
   }
 
+  function stackRole(child: LayoutNode): 'queue' | 'composer' | 'content' {
+    const ids = child.kind === 'single'
+      ? [child.contribution_id]
+      : child.kind === 'tabs'
+        ? child.contribution_ids
+        : [];
+    const kinds = ids.map((id) => contribution(id)?.kind).filter(Boolean);
+    if (kinds.length > 0 && kinds.every((kind) => kind === 'steering_queue' || kind === 'follow_up_queue')) return 'queue';
+    if (kinds.includes('prompt_editor')) return 'composer';
+    if (child.kind === 'split' && child.children.map(stackRole).every((role) => role === 'queue')) return 'queue';
+    return 'content';
+  }
+
   function navigateTabs(event: KeyboardEvent, ids: string[], selectedId: string): void {
     if (!onSelectTab || ids.length < 2) return;
     const current = ids.indexOf(selectedId);
@@ -60,7 +73,9 @@
 {:else if node.kind === 'stack'}
   <div class="layout-stack" data-layout-node={node.node_id} data-gap-token={node.gap_token ?? 'default'}>
     {#each node.children as child (`${child.node_id}`)}
-      <ProjectionLayoutRenderer node={child} {contributions} {renderContribution} {onSelectTab}/>
+      <div class="stack-child" class:queue-region={stackRole(child) === 'queue'} class:composer-region={stackRole(child) === 'composer'}>
+        <ProjectionLayoutRenderer node={child} {contributions} {renderContribution} {onSelectTab}/>
+      </div>
     {/each}
   </div>
 {:else if node.kind === 'grid'}
@@ -123,10 +138,11 @@
 
 <style>
   .layout-single{min-width:0;min-height:0;height:100%}
-  .layout-split{min-width:0;min-height:0;display:grid;grid-template-columns:minmax(0,calc(var(--split-ratio) * 100%)) repeat(var(--split-tail-count),minmax(0,1fr));gap:var(--layout-cluster-gap)}
+  .layout-split{min-width:0;min-height:0;height:100%;display:grid;grid-template-columns:minmax(0,calc(var(--split-ratio) * 100%)) repeat(var(--split-tail-count),minmax(0,1fr));gap:var(--layout-cluster-gap)}
   .layout-split.vertical{grid-template-columns:1fr;grid-template-rows:minmax(0,calc(var(--split-ratio) * 100%)) repeat(var(--split-tail-count),minmax(0,1fr))}
   .split-child{min-width:0;min-height:0}
-  .layout-stack{min-width:0;min-height:0;display:grid;gap:var(--layout-cluster-gap)}
+  .layout-stack{min-width:0;min-height:0;height:100%;display:flex;flex-direction:column;gap:var(--layout-cluster-gap)}
+  .stack-child{min-width:0;min-height:0;flex:1 1 auto}.stack-child.queue-region{flex:0 0 auto}.stack-child.composer-region{flex:0 1 30%;min-height:140px}
   .layout-grid{min-width:0;min-height:0;display:grid;grid-template-columns:repeat(var(--layout-columns),minmax(0,1fr));gap:var(--layout-cluster-gap)}
   .layout-tabs{min-width:0;min-height:0;display:grid;grid-template-rows:minmax(0,1fr)}
   .layout-tabs.with-strip{grid-template-rows:auto minmax(0,1fr);gap:var(--space-2)}

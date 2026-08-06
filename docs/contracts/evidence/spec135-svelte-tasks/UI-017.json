@@ -1,0 +1,19 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "UI-017",
+  "result": "Follow-up Queue renders only from an eligible follow_up_queue contribution through its trusted renderer binding and remains distinct from Steering Queue semantics.",
+  "targets": [
+    "apps/desktop/src/lib/mission-canvas/contributions/FollowUpQueueContribution.svelte",
+    "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts"
+  ],
+  "checks": [
+    "npm --prefix apps/desktop test",
+    "svelte-check --tsconfig apps/desktop/tsconfig.json"
+  ],
+  "evidence_refs": [
+    "apps/desktop/tests/layout-renderer-runtime.mjs",
+    "uiai-diagnostics:session=zZ-8Xw09:seq=146",
+    "/tmp/uiai-engine-shares/session-screenshots/zZ-8Xw09-1785987520820693000.png"
+  ],
+  "status": "verified"
+}

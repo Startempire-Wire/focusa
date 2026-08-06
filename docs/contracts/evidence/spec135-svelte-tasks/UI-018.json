@@ -1,0 +1,22 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "UI-018",
+  "result": "Canonical zero-, one-, and two-queue layouts recompose without reserved queue chrome; the two-queue projection places both queues in a compact split above the bottom Prompt Editor.",
+  "targets": [
+    "apps/desktop/src/lib/mission-canvas/ProjectionLayoutRenderer.svelte",
+    "apps/desktop/tests/fixtures/mission-canvas/two-queue-projection.json",
+    "apps/desktop/tests/layout-renderer-runtime.mjs"
+  ],
+  "checks": [
+    "python3 apps/desktop/tests/generate-mission-canvas-fixtures.py",
+    "npm --prefix apps/desktop test",
+    "svelte-check --tsconfig apps/desktop/tsconfig.json"
+  ],
+  "evidence_refs": [
+    "apps/desktop/tests/fixtures/mission-canvas/zero-queue-projection.json",
+    "apps/desktop/tests/fixtures/mission-canvas/one-queue-projection.json",
+    "apps/desktop/tests/fixtures/mission-canvas/two-queue-projection.json",
+    "/tmp/uiai-engine-shares/session-screenshots/zZ-8Xw09-1785987520820693000.png"
+  ],
+  "status": "verified"
+}
