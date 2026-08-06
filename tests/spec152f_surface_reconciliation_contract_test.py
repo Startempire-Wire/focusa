@@ -17,7 +17,8 @@ module = importlib.util.module_from_spec(spec)
 assert spec.loader
 spec.loader.exec_module(module)
 
-coverage = json.loads(COVERAGE_PATH.read_text(encoding="utf-8"))
+runtime_coverage = json.loads(COVERAGE_PATH.read_text(encoding="utf-8"))
+baseline_coverage = module.build(include_test_files=True)
 index = json.loads(INDEX_PATH.read_text(encoding="utf-8"))
 expected_index, expected_shards = module.build_reconciliation()
 assert index == expected_index, "Spec 152F reconciliation index is stale or nondeterministic"
@@ -50,12 +51,14 @@ assert index["test_only_scanner_exclusions"] == 7
 assert index["runtime_file_entries"] == 27
 assert index["runtime_file_entries_after_test_exclusion"] == 20
 assert index["coverage_canonical_sha256"] == hashlib.sha256(
-    json.dumps(coverage, sort_keys=True, separators=(",", ":")).encode()
+    json.dumps(baseline_coverage, sort_keys=True, separators=(",", ":")).encode()
 ).hexdigest()
 assert index["policy_file_sha256"] == hashlib.sha256(
     (ROOT / index["policy"]).read_bytes()
 ).hexdigest()
-assert index["source_digests"] == coverage["source_digests"]
+assert index["source_digests"] == baseline_coverage["source_digests"]
+assert runtime_coverage["counts"]["unmatched"] == 388
+assert runtime_coverage["scanner_exclusions"]["count"] == 7
 
 assert set(index["shards"]) == {"rest", "cli", "menubar", "runtime_files"}
 rows = []
@@ -103,7 +106,7 @@ def source_key(row):
         json.dumps(row["source"], sort_keys=True),
     )
 
-assert Counter(source_key(row) for row in coverage["unmatched_surfaces"]) == Counter(
+assert Counter(source_key(row) for row in baseline_coverage["unmatched_surfaces"]) == Counter(
     source_key(row) for row in rows
 )
 assert Counter(row["surface"] for row in rows) == Counter(index["surface_counts"])

@@ -1,8 +1,8 @@
 {
   "counts": {
     "covered": 569,
-    "total": 964,
-    "unmatched": 395
+    "total": 957,
+    "unmatched": 388
   },
   "coverage": [
     {
@@ -7489,6 +7489,47 @@
       "symbol_or_route": "/v1/workspace/artifacts/intake"
     }
   ],
+  "scanner_exclusions": {
+    "count": 7,
+    "entries": [
+      {
+        "path": "crates/focusa-cli/tests/silent_proof_export_parity_e2e.rs",
+        "rule": "tests_directory",
+        "surface": "export"
+      },
+      {
+        "path": "crates/focusa-core/src/release_adapters_test.rs",
+        "rule": "recognized_test_module",
+        "surface": "release"
+      },
+      {
+        "path": "crates/focusa-core/src/release_calibration_test.rs",
+        "rule": "recognized_test_module",
+        "surface": "release"
+      },
+      {
+        "path": "crates/focusa-core/src/release_cycle_test.rs",
+        "rule": "recognized_test_module",
+        "surface": "release"
+      },
+      {
+        "path": "crates/focusa-core/src/release_ledger_test.rs",
+        "rule": "recognized_test_module",
+        "surface": "release"
+      },
+      {
+        "path": "crates/focusa-core/src/release_orchestrator_test.rs",
+        "rule": "recognized_test_module",
+        "surface": "release"
+      },
+      {
+        "path": "crates/focusa-cli/tests/spec128_update_runtime_e2e.rs",
+        "rule": "tests_directory",
+        "surface": "update"
+      }
+    ],
+    "schema": "focusa.spec152f.surface_scanner_exclusions.v1"
+  },
   "schema": "focusa.entitlement_coverage.v1",
   "source_digests": {
     "docs/contracts/spec135/generated-contract-v1/operation-registry.json": "dbc025c7f77d0565a5d10de500d5f068ba0c317c4daf401acc09b831db95c449",
@@ -8560,18 +8601,6 @@
       "pre_side_effect_test": null,
       "product": "focusa",
       "recovery_allowance": false,
-      "source": "crates/focusa-cli/tests/silent_proof_export_parity_e2e.rs",
-      "surface": "export",
-      "symbol_or_route": "crates/focusa-cli/tests/silent_proof_export_parity_e2e.rs"
-    },
-    {
-      "feature": null,
-      "gate_location": null,
-      "limit_bucket": null,
-      "mutation_class": "unknown",
-      "pre_side_effect_test": null,
-      "product": "focusa",
-      "recovery_allowance": false,
       "source": "apps/menubar/src/lib/canvas/FocusCanvas.svelte",
       "surface": "menubar",
       "symbol_or_route": "apps/menubar/src/lib/canvas/FocusCanvas.svelte:192"
@@ -9616,18 +9645,6 @@
       "pre_side_effect_test": null,
       "product": "focusa",
       "recovery_allowance": false,
-      "source": "crates/focusa-core/src/release_adapters_test.rs",
-      "surface": "release",
-      "symbol_or_route": "crates/focusa-core/src/release_adapters_test.rs"
-    },
-    {
-      "feature": null,
-      "gate_location": null,
-      "limit_bucket": null,
-      "mutation_class": "unknown",
-      "pre_side_effect_test": null,
-      "product": "focusa",
-      "recovery_allowance": false,
       "source": "crates/focusa-core/src/release_calibration.rs",
       "surface": "release",
       "symbol_or_route": "crates/focusa-core/src/release_calibration.rs"
@@ -9640,33 +9657,9 @@
       "pre_side_effect_test": null,
       "product": "focusa",
       "recovery_allowance": false,
-      "source": "crates/focusa-core/src/release_calibration_test.rs",
-      "surface": "release",
-      "symbol_or_route": "crates/focusa-core/src/release_calibration_test.rs"
-    },
-    {
-      "feature": null,
-      "gate_location": null,
-      "limit_bucket": null,
-      "mutation_class": "unknown",
-      "pre_side_effect_test": null,
-      "product": "focusa",
-      "recovery_allowance": false,
       "source": "crates/focusa-core/src/release_cycle.rs",
       "surface": "release",
       "symbol_or_route": "crates/focusa-core/src/release_cycle.rs"
-    },
-    {
-      "feature": null,
-      "gate_location": null,
-      "limit_bucket": null,
-      "mutation_class": "unknown",
-      "pre_side_effect_test": null,
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": "crates/focusa-core/src/release_cycle_test.rs",
-      "surface": "release",
-      "symbol_or_route": "crates/focusa-core/src/release_cycle_test.rs"
     },
     {
       "feature": null,
@@ -9700,33 +9693,9 @@
       "pre_side_effect_test": null,
       "product": "focusa",
       "recovery_allowance": false,
-      "source": "crates/focusa-core/src/release_ledger_test.rs",
-      "surface": "release",
-      "symbol_or_route": "crates/focusa-core/src/release_ledger_test.rs"
-    },
-    {
-      "feature": null,
-      "gate_location": null,
-      "limit_bucket": null,
-      "mutation_class": "unknown",
-      "pre_side_effect_test": null,
-      "product": "focusa",
-      "recovery_allowance": false,
       "source": "crates/focusa-core/src/release_orchestrator.rs",
       "surface": "release",
       "symbol_or_route": "crates/focusa-core/src/release_orchestrator.rs"
-    },
-    {
-      "feature": null,
-      "gate_location": null,
-      "limit_bucket": null,
-      "mutation_class": "unknown",
-      "pre_side_effect_test": null,
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": "crates/focusa-core/src/release_orchestrator_test.rs",
-      "surface": "release",
-      "symbol_or_route": "crates/focusa-core/src/release_orchestrator_test.rs"
     },
     {
       "feature": null,
@@ -12609,18 +12578,6 @@
       "source": "crates/focusa-cli/src/commands/update_trust.rs",
       "surface": "update",
       "symbol_or_route": "crates/focusa-cli/src/commands/update_trust.rs"
-    },
-    {
-      "feature": null,
-      "gate_location": null,
-      "limit_bucket": null,
-      "mutation_class": "unknown",
-      "pre_side_effect_test": null,
-      "product": "focusa",
-      "recovery_allowance": false,
-      "source": "crates/focusa-cli/tests/spec128_update_runtime_e2e.rs",
-      "surface": "update",
-      "symbol_or_route": "crates/focusa-cli/tests/spec128_update_runtime_e2e.rs"
     },
     {
       "feature": null,

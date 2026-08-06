@@ -117,11 +117,11 @@ def discover_ui_actions(base):
     return actions
 
 
-def build():
+def build(include_test_files=False):
     routes = json.loads(ROUTES.read_text())["routes"]
     operations = json.loads(OPERATIONS.read_text())["operations"]
     capabilities = json.loads(CAPABILITIES.read_text())["descriptors"]
-    coverage, unmatched = [], []
+    coverage, unmatched, scanner_exclusions = [], [], []
 
     operation_by_id = {item["operation_id"]: item for item in operations}
     for item in operations:
@@ -177,8 +177,18 @@ def build():
             unmatched.append(entry(surface, action, "unknown", source=action.split(":")[0]))
     for kind in ["worker", "scheduler", "export", "update", "release"]:
         for path in sorted(ROOT.rglob(f"*{kind}*.rs")):
-            if "target" not in path.parts:
-                unmatched.append(entry(kind, str(path.relative_to(ROOT)), "unknown", source=str(path.relative_to(ROOT))))
+            if "target" in path.parts:
+                continue
+            relative = str(path.relative_to(ROOT))
+            if _is_test_path(relative):
+                scanner_exclusions.append({
+                    "surface": kind,
+                    "path": relative,
+                    "rule": "tests_directory" if "tests" in Path(relative).parts else "recognized_test_module",
+                })
+                if not include_test_files:
+                    continue
+            unmatched.append(entry(kind, relative, "unknown", source=relative))
 
     key = lambda item: (item["surface"], item["symbol_or_route"], json.dumps(item, sort_keys=True))
     coverage.sort(key=key); unmatched.sort(key=key)
@@ -192,6 +202,13 @@ def build():
         "unmatched_surfaces": unmatched,
         "counts": {"covered": len(coverage), "unmatched": len(unmatched), "total": len(coverage) + len(unmatched)},
     }
+    if not include_test_files:
+        scanner_exclusions.sort(key=lambda item: (item["surface"], item["path"]))
+        payload["scanner_exclusions"] = {
+            "schema": "focusa.spec152f.surface_scanner_exclusions.v1",
+            "count": len(scanner_exclusions),
+            "entries": scanner_exclusions,
+        }
     return payload
 
 
@@ -250,7 +267,9 @@ def _render_shard(payload):
 
 
 def build_reconciliation():
-    coverage = build()
+    # Spec 152F.00.04 freezes the original 395-row baseline, including the seven
+    # now-proven scanner false positives. Runtime coverage excludes them.
+    coverage = build(include_test_files=True)
     rows = []
     for source_row in coverage["unmatched_surfaces"]:
         resolution, family, owner_task, rationale = _resolution(source_row)
