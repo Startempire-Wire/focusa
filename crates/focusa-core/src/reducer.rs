@@ -1922,6 +1922,11 @@ pub fn reduce_with_meta(
             state.work_loop.execution_workpoint_id = workpoint_id;
             state.work_loop.enabled = true;
             state.work_loop.status = WorkLoopStatus::Idle;
+            state.work_loop.current_task = None;
+            state.work_loop.deferred_items.clear();
+            state.work_loop.run.task_run_id = None;
+            state.work_loop.run.tranche_run_id = None;
+            state.work_loop.run.worker_session_id = None;
             state.work_loop.policy = policy;
             state.work_loop.run.project_run_id = project_run_id;
             state.work_loop.last_blocker_class = None;
@@ -1958,6 +1963,10 @@ pub fn reduce_with_meta(
             state.work_loop.enabled = false;
             state.work_loop.status = WorkLoopStatus::Idle;
             state.work_loop.current_task = None;
+            state.work_loop.deferred_items.clear();
+            state.work_loop.run.task_run_id = None;
+            state.work_loop.run.tranche_run_id = None;
+            state.work_loop.run.worker_session_id = None;
             state.work_loop.last_continue_reason = Some(reason);
             state.work_loop.enabled_at = None;
             state.work_loop.budget_epoch_id = None;
@@ -6681,8 +6690,19 @@ mod tests {
         );
         assert_eq!(enabled.work_loop.execution_workpoint_id, Some(workpoint_id));
 
-        let stopped = reduce(
+        let deferred = reduce(
             enabled,
+            FocusaEvent::ContinuousWorkItemDeferred {
+                work_item_id: "focusa-workloop-completion.2.1".to_string(),
+                reason: "temporary external dependency".to_string(),
+            },
+        )
+        .unwrap()
+        .new_state;
+        assert_eq!(deferred.work_loop.deferred_items.len(), 1);
+
+        let stopped = reduce(
+            deferred,
             FocusaEvent::ContinuousWorkModeDisabled {
                 reason: "operator stop".to_string(),
             },
@@ -6692,6 +6712,55 @@ mod tests {
         assert_eq!(stopped.work_loop.execution_scope, None);
         assert_eq!(stopped.work_loop.execution_work_item_id, None);
         assert_eq!(stopped.work_loop.execution_workpoint_id, None);
+        assert!(stopped.work_loop.deferred_items.is_empty());
+        assert!(stopped.work_loop.run.task_run_id.is_none());
+        assert!(stopped.work_loop.run.tranche_run_id.is_none());
+        assert!(stopped.work_loop.run.worker_session_id.is_none());
+    }
+
+    #[test]
+    fn reenable_clears_stale_deferred_frontier_and_prior_run_selection() {
+        let project = crate::scoped_state::ScopeRef::project(
+            "project:focusa",
+            "/repo/focusa",
+            "Focusa",
+            "sha256:focusa",
+        )
+        .unwrap();
+        let scope = crate::scoped_state::WorkstreamKey::new(project, "cont-focusa").unwrap();
+        let mut state = fresh_state();
+        state.work_loop.deferred_items.push(WorkLoopDeferredItem {
+            work_item_id: "settled-atom".to_string(),
+            reason: "prior blocked frontier".to_string(),
+            deferred_at: Utc::now(),
+        });
+        state.work_loop.current_task = Some(SpecLinkedTaskPacket {
+            work_item_id: "settled-atom".to_string(),
+            ..SpecLinkedTaskPacket::default()
+        });
+        state.work_loop.run.task_run_id = Some(Uuid::now_v7());
+        state.work_loop.run.tranche_run_id = Some(Uuid::now_v7());
+        state.work_loop.run.worker_session_id = Some("stale-worker".to_string());
+
+        let rebound = reduce(
+            state,
+            FocusaEvent::ContinuousWorkModeEnabled {
+                project_run_id: Uuid::now_v7(),
+                policy: WorkLoopPolicy::default(),
+                scope: Some(scope),
+                work_item_id: Some("focusa-vbcqu.20.15".to_string()),
+                workpoint_id: Some(Uuid::now_v7()),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        assert!(rebound.work_loop.deferred_items.is_empty());
+        assert!(rebound.work_loop.current_task.is_none());
+        assert!(rebound.work_loop.run.task_run_id.is_none());
+        assert!(rebound.work_loop.run.tranche_run_id.is_none());
+        assert!(rebound.work_loop.run.worker_session_id.is_none());
+        assert_eq!(rebound.work_loop.status, WorkLoopStatus::Idle);
     }
 
     #[test]

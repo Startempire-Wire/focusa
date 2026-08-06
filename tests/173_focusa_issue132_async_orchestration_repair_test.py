@@ -79,6 +79,10 @@ assert "active.expires_at =" in api_server
 assert "writer_lease_expiry(now)" in api_server
 assert 'std::env::var("FOCUSA_WORK_LOOP_DRIVER_CWD")' in api_server
 assert '"cwd": &driver_cwd' in api_server
+assert 'header("x-scope-project-root", &project_root)' in api_server
+assert 'header("x-scope-continuity-id", &continuity_id)' in api_server
+assert 'header("x-focusa-project-root", &project_root)' not in api_server
+assert 'header("x-focusa-continuity-id", &continuity_id)' not in api_server
 assert "stale_driver" in api_loop
 assert "existing.child.try_wait()" in api_loop
 for header in (
