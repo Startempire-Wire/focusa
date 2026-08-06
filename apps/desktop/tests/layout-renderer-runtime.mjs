@@ -109,6 +109,7 @@ try {
     assert.ok(DEFAULT_CONTRIBUTION_REGISTRY.resolve(contribution), `two-queue registry missing ${contribution.renderer_binding_id}`);
   }
   const { body: twoQueueProjection } = render(MissionCanvasRenderer, { props: { projection: twoQueueFixture, registry: DEFAULT_CONTRIBUTION_REGISTRY } });
+  assert.match(twoQueueProjection, /data-work-rail-ref="work-rail:project"/);
   assert.match(twoQueueProjection, /data-queue-kind="steering_queue"/);
   assert.match(twoQueueProjection, /data-queue-kind="follow_up_queue"/);
   assert.match(twoQueueProjection, />Steering Queue</);

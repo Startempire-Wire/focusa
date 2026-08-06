@@ -3,6 +3,7 @@ import PromptEditorContribution from './contributions/PromptEditorContribution.s
 import SteeringQueueContribution from './contributions/SteeringQueueContribution.svelte';
 import FollowUpQueueContribution from './contributions/FollowUpQueueContribution.svelte';
 import WorkSurfaceContribution from './contributions/WorkSurfaceContribution.svelte';
+import WorkRailContribution from './contributions/WorkRailContribution.svelte';
 import { ContributionRendererRegistry, type TrustedContributionRenderer } from './contribution-renderers';
 
 export const DEFAULT_CONTRIBUTION_RENDERERS = [
@@ -42,6 +43,12 @@ export const DEFAULT_CONTRIBUTION_RENDERERS = [
     semanticBindingIds: ['semantic:focusa-inspector'],
     contributionKinds: ['inspector'],
     component: CanonicalReferenceContribution
+  },
+  {
+    rendererBindingId: 'renderer:work-rail@v1',
+    semanticBindingIds: ['semantic:work-rail'],
+    contributionKinds: ['work_rail'],
+    component: WorkRailContribution
   },
   {
     rendererBindingId: 'renderer:steering-queue@v1',

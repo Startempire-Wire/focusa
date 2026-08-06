@@ -4,8 +4,8 @@
   "task_class": "atomic",
   "title": "Render conditional Work Rail contribution",
   "cardinal_translation_ref": "CARDINAL-135-SVELTE-001",
-  "current_status": "implemented_partial",
-  "execution_mode": "execute_only_after_dependencies_complete",
+  "current_status": "complete",
+  "execution_mode": "verify_existing_before_any_edit",
   "depends_on": [
     "UI-005",
     "UI-012"

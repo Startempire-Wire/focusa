@@ -49,6 +49,12 @@ def single(node_id: str, identifier: str) -> dict:
 
 primary = contribution("contribution:pi-session")
 secondary = contribution("contribution:focusa-inspector", "inspector")
+work_rail = contribution("contribution:work-rail", "work_rail")
+work_rail["data_ref"] = {"kind": "work_rail", "ref": "work-rail:project", "revision": 4, "freshness": "current"}
+work_rail["operation_ids"] = []
+work_rail["accessibility"]["label"] = "Focusa Work Rail"
+work_rail["accessibility"]["description"] = "Canonical project work for the focused Work Surface"
+
 queue = contribution("contribution:steering-queue", "steering_queue")
 queue["data_ref"] = {"kind": "steering_queue", "ref": "queue:steering", "revision": 1, "freshness": "current"}
 queue["operation_ids"] = []
@@ -107,7 +113,7 @@ validate(one_queue)
 
 two_queue = projection(
     "two-queue",
-    [primary, secondary, queue, follow_up, prompt],
+    [primary, secondary, work_rail, queue, follow_up, prompt],
     {
         "node_id": "layout:two-queue",
         "kind": "stack",
@@ -123,6 +129,7 @@ two_queue = projection(
                     single("layout:inspector", secondary["contribution_id"]),
                 ],
             },
+            single("layout:work-rail", work_rail["contribution_id"]),
             {
                 "node_id": "layout:queue-region",
                 "kind": "split",

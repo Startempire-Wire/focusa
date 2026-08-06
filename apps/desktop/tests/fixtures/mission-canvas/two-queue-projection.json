@@ -17,6 +17,7 @@
   "candidate_contribution_ids": [
     "contribution:pi-session",
     "contribution:focusa-inspector",
+    "contribution:work-rail",
     "contribution:steering-queue",
     "contribution:follow-up-queue",
     "contribution:prompt-editor"
@@ -140,6 +141,69 @@
       "accessibility": {
         "label": "Focusa Inspector",
         "description": "Live transcript and governed prompt controls",
+        "landmark_role": "region",
+        "focus_semantic_id": "focus:pi-session",
+        "live_region": "off",
+        "keyboard_operation_ids": [
+          "focusa.agent_execution.prompt"
+        ]
+      },
+      "contribution_revision": 9,
+      "evidence_refs": [
+        "evidence:pi-session-binding"
+      ]
+    },
+    {
+      "contribution_id": "contribution:work-rail",
+      "kind": "work_rail",
+      "semantic_binding_id": "semantic:work-rail",
+      "renderer_binding_id": "renderer:work-rail@v1",
+      "data_ref": {
+        "kind": "work_rail",
+        "ref": "work-rail:project",
+        "revision": 4,
+        "freshness": "current"
+      },
+      "operation_ids": [],
+      "authority": {
+        "canonical_owner": "Focusa Core",
+        "mutation_owner": "Pi AgentExecutionAdapter",
+        "scope": {
+          "project_root": "/example/focusa",
+          "continuity_id": "mission-canvas",
+          "instance_id": "instance:pi",
+          "session_id": "session:pi",
+          "attachment_id": "attachment:pi",
+          "working_subpath_id": "working-subpath:primary"
+        },
+        "read_only": false,
+        "approval_required": false,
+        "contention_ref": null
+      },
+      "freshness": {
+        "status": "current",
+        "observed_at": "2026-07-30T12:00:00Z",
+        "stale_reason": null,
+        "refresh_operation_id": null
+      },
+      "resolved_geometry": {
+        "preferred_regions": [
+          "primary",
+          "inspector"
+        ],
+        "preferred_adjacency": [
+          "contribution:pi-session"
+        ],
+        "minimum_span": 3,
+        "maximum_span": 8,
+        "preferred_order": 10,
+        "merge_policy": "compatible",
+        "tab_policy": "preferred",
+        "inspector_side": "profile_default"
+      },
+      "accessibility": {
+        "label": "Focusa Work Rail",
+        "description": "Canonical project work for the focused Work Surface",
         "landmark_role": "region",
         "focus_semantic_id": "focus:pi-session",
         "live_region": "off",
@@ -367,6 +431,11 @@
             "contribution_id": "contribution:focusa-inspector"
           }
         ]
+      },
+      {
+        "node_id": "layout:work-rail",
+        "kind": "single",
+        "contribution_id": "contribution:work-rail"
       },
       {
         "node_id": "layout:queue-region",

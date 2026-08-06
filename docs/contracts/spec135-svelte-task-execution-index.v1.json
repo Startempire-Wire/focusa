@@ -48,7 +48,7 @@
       "and Pi-tool owners"
     ]
   },
-  "digest_sha256": "693e022e659734349f9b45f018fd7d5f713bda25d2cbe44abe4abd22239a6852",
+  "digest_sha256": "0b91701c2fc33068707f6518ad6c76b31b07e378eaecdc32542d2576b9545d83",
   "packet_refs": {
     "EX-001": "docs/contracts/spec135-svelte-task-packets/EX-001.json",
     "ID-001": "docs/contracts/spec135-svelte-task-packets/ID-001.json",

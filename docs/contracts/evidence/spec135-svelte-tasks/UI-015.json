@@ -1,22 +1,27 @@
 {
   "schema": "focusa.spec135.svelte_task_evidence.v1",
   "task_id": "UI-015",
-  "result": "The conditional Svelte Work Rail renderer is implemented and tested against canonical contribution metadata and exact operation bindings. Production registry activation remains blocked because no authoritative renderer_binding_id or semantic_binding_id for contribution:work-rail exists in the generated contracts or Core registries.",
+  "result": "The canonical Work Rail renderer and semantic bindings are registered in Core and Desktop. The Work Rail renders only when an eligible work_rail contribution is placed by the canonical layout, remains compact in a stack, and exposes no invented provider actions.",
+  "bindings": {
+    "renderer_binding_id": "renderer:work-rail@v1",
+    "semantic_binding_id": "semantic:work-rail",
+    "contribution_kind": "work_rail"
+  },
   "targets": [
+    "crates/focusa-core/src/mission_canvas/profiles.rs",
     "apps/desktop/src/lib/mission-canvas/contributions/WorkRailContribution.svelte",
+    "apps/desktop/src/lib/mission-canvas/default-contribution-registry.ts",
+    "apps/desktop/src/lib/mission-canvas/ProjectionLayoutRenderer.svelte",
     "apps/desktop/tests/layout-renderer-runtime.mjs"
   ],
   "checks": [
+    "python3 apps/desktop/tests/generate-mission-canvas-fixtures.py",
     "npm --prefix apps/desktop test",
     "svelte-check --tsconfig apps/desktop/tsconfig.json"
   ],
-  "blockers": [
-    "Missing canonical Work Rail renderer binding ID",
-    "Missing canonical Work Rail semantic binding ID"
-  ],
   "evidence_refs": [
-    "crates/focusa-core/src/mission_canvas/profiles.rs:panel:work-rail",
-    "docs/contracts/spec135-adaptive-composition.v1.yaml:work_rail_composition"
+    "uiai-diagnostics:session=LueBWE1y:seq=148",
+    "/tmp/uiai-engine-shares/session-screenshots/LueBWE1y-1785988853487097000.png"
   ],
-  "status": "implemented_partial"
+  "status": "verified"
 }

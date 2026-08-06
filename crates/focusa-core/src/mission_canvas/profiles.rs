@@ -409,6 +409,11 @@ fn builtin_registry_entries() -> Vec<RegistryDefinition> {
         ),
         registry_entry(
             "WorkSurfaceRendererRegistry",
+            "renderer:work-rail@v1",
+            json!({"kind":"work_rail","semantic_binding_id":"semantic:work-rail"}),
+        ),
+        registry_entry(
+            "WorkSurfaceRendererRegistry",
             "renderer:document@v1",
             json!({"kind":"document"}),
         ),
@@ -446,6 +451,11 @@ fn builtin_registry_entries() -> Vec<RegistryDefinition> {
             "TerminologyRegistry",
             "terminology:markets",
             json!({"work_item":"Position","evidence":"Market evidence"}),
+        ),
+        registry_entry(
+            "DomainSemanticBindingRegistry",
+            "semantic:work-rail",
+            json!({"object":"work_rail","renderer_binding_id":"renderer:work-rail@v1"}),
         ),
         registry_entry(
             "DomainSemanticBindingRegistry",
