@@ -16,9 +16,11 @@ pub mod feature_decision;
 pub mod license_migration;
 
 pub use entitlement_policy::{
-    CapabilityFamily, CommercialTreatment, DecisionReason, EntitlementPolicyTypeError, LimitBucket,
-    OperationClass, PolicyActivation, PolicyEntitlementState, RecoveryAllowance, RequiredFeature,
-    ResolvedEntitlementPolicy,
+    AccessPosture, CapabilityFamily, CommercialTreatment, CompositeGrant, DecisionReason,
+    EntitlementPolicyTypeError, LicenseTypeCode, LicenseTypeGrant, LicenseTypeVersion, LimitBucket,
+    OperationClass, OperatorSeats, PolicyActivation, PolicyEntitlementState, ProductCode,
+    RecoveryAllowance, RequiredFeature, ResolvedEntitlementPolicy, ResourceRight, SaleStatus,
+    SharedNodeLimit,
 };
 pub mod uiai_child_token;
 
@@ -437,6 +439,36 @@ pub fn persist_eval_license(home: &Path) -> std::io::Result<LicenseGuard> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn spec172_policy_types_reject_noncanonical_grants_and_aliases() {
+        for alias in ["evaluation", "eval", "focusa_evaluation"] {
+            assert!(serde_json::from_str::<AccessPosture>(&format!("\"{alias}\"")).is_err());
+        }
+        assert!(serde_json::from_str::<LicenseTypeCode>("\"caller_created_v1\"").is_err());
+        assert!(serde_json::from_str::<ProductCode>("\"unknown_product\"").is_err());
+        assert!(serde_json::from_str::<OperatorSeats>("\"two\"").is_err());
+
+        let mut cross_product = LicenseTypeGrant::focusa_operator_v1();
+        cross_product.product = ProductCode::UiaiEngine;
+        assert_eq!(
+            cross_product.validate(),
+            Err(EntitlementPolicyTypeError::InvalidLicenseTypeGrant)
+        );
+
+        let focusa = LicenseTypeGrant::focusa_operator_v1();
+        let uiai = LicenseTypeGrant::uiai_operator_v1();
+        let bundle = CompositeGrant::operator_bundle_v1([focusa, uiai]).expect("canonical Bundle");
+        assert_eq!(bundle.grants(), &[focusa, uiai]);
+        assert_eq!(
+            CompositeGrant::operator_bundle_v1([focusa, focusa]),
+            Err(EntitlementPolicyTypeError::MalformedBundleUnion)
+        );
+        assert_eq!(
+            CompositeGrant::operator_bundle_v1([uiai, focusa]),
+            Err(EntitlementPolicyTypeError::MalformedBundleUnion)
+        );
+    }
 
     #[test]
     fn canonical_entitlement_projection_preserves_authority_fields() {

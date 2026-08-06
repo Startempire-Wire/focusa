@@ -1,0 +1,39 @@
+Spec 172 atom acceptance: focusa-vbcqu.20.15.18
+Date: 2026-08-06
+Repository state: working tree (no commit requested)
+
+Implemented surfaces:
+- crates/focusa-license/src/entitlement_policy.rs
+- crates/focusa-license/src/lib.rs
+
+Acceptance summary:
+- Added closed, serde-stable ProductCode, LicenseTypeCode, LicenseTypeVersion, SaleStatus, AccessPosture, ResourceRight, OperatorSeats, and SharedNodeLimit policy types.
+- Added frozen Focusa Operator v1 and UIAI Operator v1 grants and exact two-grant Bundle validation.
+- Active AccessPosture has no Evaluation variant; Evaluation aliases and unknown/caller-created enum values fail parsing.
+- Grant validation rejects cross-product pairings; Bundle construction rejects duplicate or reordered/malformed unions.
+- Public exports expose the canonical types without string-based constructors.
+
+Verification command (repository cargo wrapper):
+PATH="$PATH:/usr/sbin" cargo test -p focusa-license spec172_policy_types
+
+Exit code: 0
+Bounded output:
+running 1 test
+test tests::spec172_policy_types_reject_noncanonical_grants_and_aliases ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out
+authority_lease integration target: 0 selected; 11 filtered out; PASS
+
+Formatting command:
+PATH="$PATH:/usr/sbin" cargo fmt -- crates/focusa-license/src/entitlement_policy.rs crates/focusa-license/src/lib.rs
+Exit code: 0
+
+Additional check:
+git diff --check
+Exit code: 0
+
+Rollback:
+Revert only the two listed Rust-file changes and remove this evidence file. Preserve unrelated pre-existing changes in docs/contracts/spec172-entitlement-call-stack.v1.yaml and tests/spec172_call_stack_contract_test.py.
+
+Unresolved blockers: none for this atom.
+Remotes touched: no.
+Bead closed: no.

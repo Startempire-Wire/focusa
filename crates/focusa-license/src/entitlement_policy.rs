@@ -81,6 +81,121 @@ impl PolicyActivation {
     }
 }
 
+/// Closed Spec 172 product registry. Deserialization is intentionally closed so
+/// callers cannot manufacture commercial products.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProductCode {
+    Focusa,
+    UiaiEngine,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LicenseTypeCode {
+    FocusaOperatorLifetimeV1,
+    UiaiOperatorLifetimeV1,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LicenseTypeVersion {
+    V1,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SaleStatus {
+    ApprovedNotYetEnabled,
+}
+
+/// Runtime postures are not legacy tiers. In particular, Evaluation has no
+/// active-policy spelling and therefore fails serde parsing as an unknown value.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AccessPosture {
+    Unverified,
+    VerifiedNoLicense,
+    ActivePaidOperator,
+    OfflineGrace,
+    RecoveryOnly,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ResourceRight {
+    LocalIncluded,
+    HostedExcluded,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OperatorSeats {
+    One,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SharedNodeLimit {
+    OperatorSharedV1Three,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LicenseTypeGrant {
+    pub product: ProductCode,
+    pub license_type: LicenseTypeCode,
+    pub version: LicenseTypeVersion,
+    pub sale_status: SaleStatus,
+    pub operator_seats: OperatorSeats,
+    pub node_limit: SharedNodeLimit,
+    pub local_resource: ResourceRight,
+    pub hosted_resource: ResourceRight,
+}
+
+impl LicenseTypeGrant {
+    pub const fn focusa_operator_v1() -> Self {
+        Self::operator(ProductCode::Focusa, LicenseTypeCode::FocusaOperatorLifetimeV1)
+    }
+
+    pub const fn uiai_operator_v1() -> Self {
+        Self::operator(ProductCode::UiaiEngine, LicenseTypeCode::UiaiOperatorLifetimeV1)
+    }
+
+    const fn operator(product: ProductCode, license_type: LicenseTypeCode) -> Self {
+        Self {
+            product, license_type, version: LicenseTypeVersion::V1,
+            sale_status: SaleStatus::ApprovedNotYetEnabled,
+            operator_seats: OperatorSeats::One,
+            node_limit: SharedNodeLimit::OperatorSharedV1Three,
+            local_resource: ResourceRight::LocalIncluded,
+            hosted_resource: ResourceRight::HostedExcluded,
+        }
+    }
+
+    pub fn validate(&self) -> Result<(), EntitlementPolicyTypeError> {
+        let expected = match self.license_type {
+            LicenseTypeCode::FocusaOperatorLifetimeV1 => Self::focusa_operator_v1(),
+            LicenseTypeCode::UiaiOperatorLifetimeV1 => Self::uiai_operator_v1(),
+        };
+        if *self == expected { Ok(()) } else { Err(EntitlementPolicyTypeError::InvalidLicenseTypeGrant) }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CompositeGrant {
+    grants: [LicenseTypeGrant; 2],
+}
+
+impl CompositeGrant {
+    pub fn operator_bundle_v1(grants: [LicenseTypeGrant; 2]) -> Result<Self, EntitlementPolicyTypeError> {
+        let expected = [LicenseTypeGrant::focusa_operator_v1(), LicenseTypeGrant::uiai_operator_v1()];
+        if grants != expected { return Err(EntitlementPolicyTypeError::MalformedBundleUnion); }
+        Ok(Self { grants })
+    }
+
+    pub fn grants(&self) -> &[LicenseTypeGrant; 2] { &self.grants }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PolicyEntitlementState {
@@ -306,6 +421,10 @@ pub enum EntitlementPolicyTypeError {
     RecoveryAllowanceMismatch,
     #[error("limit bucket cannot affect a non-entitled decision")]
     InactiveLimitBucket,
+    #[error("license type grant does not exactly match the frozen Spec 172 registry")]
+    InvalidLicenseTypeGrant,
+    #[error("Bundle must be the ordered exact union of Focusa and UIAI Operator v1 grants")]
+    MalformedBundleUnion,
 }
 
 fn validate_operation_family(
