@@ -133,11 +133,11 @@ atomic_tasks:
     execution_packet_ref: docs/contracts/spec135-svelte-task-packets/ID-003.json
     parent: MC-010
     title: Add AttachmentKey ownership type
-    status: blocked
+    status: implemented_partial
     depends_on: [ID-002]
-    read: [/tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md]
-    targets: [canonical Spec 158 identity owner in focusa-core]
-    calls: [AttachmentKey.new, AttachmentKey.validate_owner]
+    read: [docs/spec158/01-identity-ownership-and-reducer.md]
+    targets: [crates/focusa-core/src/workstream_identity.rs, tests/spec158_workstream_identity_source_test.py]
+    calls: [AttachmentKey.new, AttachmentKey.validate_owner, AttachmentKey.storage_key]
     input: WorkstreamKey plus runtime attachment identifier
     output: AttachmentKey bound to one Workstream
     check: cargo test -p focusa-core attachment_key --lib

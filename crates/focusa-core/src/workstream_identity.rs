@@ -68,6 +68,40 @@ impl fmt::Display for WorkstreamId {
     }
 }
 
+macro_rules! subordinate_id {
+    ($name:ident, $field:literal) => {
+        #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        #[serde(transparent)]
+        pub struct $name(String);
+
+        impl $name {
+            pub fn parse(value: impl Into<String>) -> Result<Self, ScopeKeyError> {
+                let value = value.into().trim().to_string();
+                if value.is_empty() {
+                    return Err(ScopeKeyError::Missing($field));
+                }
+                Ok(Self(value))
+            }
+
+            pub fn as_str(&self) -> &str {
+                &self.0
+            }
+        }
+
+        impl fmt::Display for $name {
+            fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                formatter.write_str(&self.0)
+            }
+        }
+    };
+}
+
+subordinate_id!(ContinuityId, "continuity_id");
+subordinate_id!(InstanceId, "instance_id");
+subordinate_id!(SessionId, "session_id");
+subordinate_id!(AttachmentId, "attachment_id");
+subordinate_id!(WorkspaceBindingId, "workspace_binding_id");
+
 /// Canonical Workstream map key. Continuity and session identity are deliberately
 /// subordinate and therefore cannot participate in this key.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -82,6 +116,50 @@ impl WorkstreamKey {
             scope,
             workstream_id,
         }
+    }
+
+    pub fn storage_key(&self) -> String {
+        let bytes = serde_json::to_vec(self).unwrap_or_default();
+        hex::encode(Sha256::digest(bytes))
+    }
+}
+
+/// Exact runtime attachment ownership. Every runtime identifier is subordinate
+/// to one durable Workstream and one explicit Desktop workspace binding.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+pub struct AttachmentKey {
+    pub workstream: WorkstreamKey,
+    pub continuity_id: Option<ContinuityId>,
+    pub instance_id: InstanceId,
+    pub session_id: SessionId,
+    pub attachment_id: AttachmentId,
+    pub workspace_binding_id: WorkspaceBindingId,
+}
+
+impl AttachmentKey {
+    pub fn new(
+        workstream: WorkstreamKey,
+        continuity_id: Option<ContinuityId>,
+        instance_id: InstanceId,
+        session_id: SessionId,
+        attachment_id: AttachmentId,
+        workspace_binding_id: WorkspaceBindingId,
+    ) -> Self {
+        Self {
+            workstream,
+            continuity_id,
+            instance_id,
+            session_id,
+            attachment_id,
+            workspace_binding_id,
+        }
+    }
+
+    pub fn validate_owner(&self, expected: &WorkstreamKey) -> Result<(), ScopeKeyError> {
+        if &self.workstream != expected {
+            return Err(ScopeKeyError::ScopeMismatch);
+        }
+        Ok(())
     }
 
     pub fn storage_key(&self) -> String {
@@ -165,5 +243,42 @@ mod tests {
         assert_eq!(encoded["workstream_id"], "delivery");
         assert!(encoded.get("continuity_id").is_none());
         assert!(encoded.get("session_id").is_none());
+    }
+
+    fn attachment(workstream: WorkstreamKey) -> AttachmentKey {
+        AttachmentKey::new(
+            workstream,
+            Some(ContinuityId::parse("continuity-a").unwrap()),
+            InstanceId::parse("instance-a").unwrap(),
+            SessionId::parse("session-a").unwrap(),
+            AttachmentId::parse("attachment-a").unwrap(),
+            WorkspaceBindingId::parse("workspace-a").unwrap(),
+        )
+    }
+
+    #[test]
+    fn attachment_accepts_only_its_owning_workstream() {
+        let scope = ScopeRef::project(project("host-a:worktree-main")).unwrap();
+        let owner = WorkstreamKey::new(scope.clone(), WorkstreamId::parse("delivery").unwrap());
+        let other = WorkstreamKey::new(scope, WorkstreamId::parse("planning").unwrap());
+        let key = attachment(owner.clone());
+        assert_eq!(key.validate_owner(&owner), Ok(()));
+        assert_eq!(
+            key.validate_owner(&other),
+            Err(ScopeKeyError::ScopeMismatch)
+        );
+    }
+
+    #[test]
+    fn attachment_serializes_the_complete_owner_chain() {
+        let scope = ScopeRef::project(project("host-a:worktree-main")).unwrap();
+        let key = attachment(WorkstreamKey::new(
+            scope,
+            WorkstreamId::parse("delivery").unwrap(),
+        ));
+        let encoded = serde_json::to_value(key).unwrap();
+        assert_eq!(encoded["workstream"]["workstream_id"], "delivery");
+        assert_eq!(encoded["continuity_id"], "continuity-a");
+        assert_eq!(encoded["workspace_binding_id"], "workspace-a");
     }
 }

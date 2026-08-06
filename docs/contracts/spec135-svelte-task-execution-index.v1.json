@@ -11,11 +11,8 @@
     "Execute ordered_steps without skipping dependency, authority, negative-case, validation, or evidence gates.",
     "Never use the broad completion DAG as direct edit instructions; it is requirement and dependency provenance."
   ],
-  "unresolved_packet_count": 8,
+  "unresolved_packet_count": 7,
   "unresolved_packets": {
-    "ID-003": [
-      "canonical Spec 158 identity owner in focusa-core"
-    ],
     "ID-004": [
       "canonical Spec 158 reducer owner"
     ],
@@ -42,7 +39,7 @@
       "and Pi-tool owners"
     ]
   },
-  "digest_sha256": "2ea50b2370f1efbd078015b27ef6bf3787d71a00856f80c62cba74fa90f84b26",
+  "digest_sha256": "bdc1894c97ff038b078a33e9f1ec75fdba43623ac7a9d019fd6e86632c4f8428",
   "packet_refs": {
     "EX-001": "docs/contracts/spec135-svelte-task-packets/EX-001.json",
     "ID-001": "docs/contracts/spec135-svelte-task-packets/ID-001.json",
