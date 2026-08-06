@@ -84,7 +84,7 @@ async fn license_status(
         "issued_at": g.issued_at.to_rfc3339(),
         "expires_at": g.expires_at.map(|d| d.to_rfc3339()),
         "bsl_change_date": g.bsl_change_date.to_rfc3339(),
-        "masked_identity": mask_identity(&g.customer_email),
+        "masked_identity": g.customer_email.as_deref().and_then(mask_identity),
         "expired": g.is_expired(),
         "authority": authority,
         "capabilities": posture,
