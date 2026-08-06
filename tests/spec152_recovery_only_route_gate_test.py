@@ -17,13 +17,21 @@ for route in [
     assert route in gate
 
 for recovery in [
+    'path == "/health"',
     'path == "/v1/health"',
     'path == "/v1/version"',
+    'path == "/v1/update/check"',
+    'path == "/v1/update/plan"',
+    'path == "/v1/update/rollback"',
     'path.starts_with("/v1/license/")',
-    'path.starts_with("/v1/connect/")',
-    'path.starts_with("/v1/device/pair/")',
+    "is_recovery_export(path)",
 ]:
     assert recovery in gate
+
+# Pairing and connection are authentication conveniences, not entitlement or
+# recovery authority. Spec 152 requires entitlement before pairing/execution.
+assert 'path.starts_with("/v1/connect/")' not in gate
+assert 'path.starts_with("/v1/device/pair/")' not in gate
 
 assert "matches!(method, &Method::GET | &Method::HEAD | &Method::OPTIONS)" in gate
 assert "snapshot.expires_at.is_some_and" in gate

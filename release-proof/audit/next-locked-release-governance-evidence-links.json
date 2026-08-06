@@ -496,6 +496,39 @@
       "proof_scope": "complete GH#106 immutable inventory, reconciliation, reducer, ancestry, and signed replay-safe governance chain"
     },
     {
+      "bead_id": "focusa-8305",
+      "evidence_refs": [
+        "apps/pi-extension/tests/unbound-project-binding-guidance.test.mjs"
+      ],
+      "implementation_commit_refs": [
+        "git:be99f9a168f7f71e0b50c9d66959a54c7468174d"
+      ],
+      "proof_scope": "canonical existing-repository binding guidance, marker verification, and no contradictory deprecation warning"
+    },
+    {
+      "bead_id": "focusa-vbcqu.3.1",
+      "evidence_refs": [
+        "docs/evidence/v0.9.135/50-project-genesis-proof.txt",
+        "tests/spec143_project_genesis_release_gate_test.py"
+      ],
+      "implementation_commit_refs": [
+        "git:947164b3c9b2c2ade7238e803aaca4bfd2b6d504",
+        "git:b52d0c41765659fe86d53b3f9ae75f2295267869"
+      ],
+      "proof_scope": "atomic Project Genesis, first Workpoint, alternate provider, resume, coordination, and typed surface acceptance"
+    },
+    {
+      "bead_id": "focusa-vbcqu.4.2",
+      "evidence_refs": [
+        "docs/evidence/v0.9.135/52-onboarding-consolidation-proof.txt",
+        "tests/spec52_onboarding_consolidation_gate.py"
+      ],
+      "implementation_commit_refs": [
+        "git:481b1ca8040e910de89c1cba3df8e040ebcdf9ba"
+      ],
+      "proof_scope": "ten-seam onboarding consolidation and final gate proof"
+    },
+    {
       "bead_id": "focusa-vbcqu.14.3",
       "evidence_refs": [
         "release-proof/audit/next-locked-release-technical-closure-gate.json",

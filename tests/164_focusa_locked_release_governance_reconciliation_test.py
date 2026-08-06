@@ -68,7 +68,12 @@ ids = [row["bead_id"] for row in mappings]
 assert len(ids) == len(set(ids)) == LEDGER["admitted_mapping_count"]
 assert LEDGER["immutable_mapping_count"] == len(MEMBERS) == 275
 assert {row["member_id"] for row in MEMBERS}.issubset(ids)
-assert LEDGER["repair_overlay_mapping_count"] == 14
+overlay_mappings = [
+    row for row in mappings if row["authority"] == "authorized_release_repair_overlay"
+]
+assert LEDGER["repair_overlay_mapping_count"] == len(overlay_mappings)
+assert LEDGER["repair_overlay_mapping_count"] > 14
+assert {"focusa-vbcqu.14", "focusa-vbcqu.19", "focusa-vbcqu.20"}.issubset(ids)
 
 state_total = sum(LEDGER["provider_state_counts"].values())
 evidence_total = sum(LEDGER["evidence_state_counts"].values())
@@ -103,6 +108,20 @@ allowed_evidence_states = {
     "evidence_linked",
     "closed_without_proof",
 }
+by_id = {row["bead_id"]: row for row in mappings}
+# Detailed task descriptions name intended paths, but are never acceptance proof.
+pending_inventory = by_id["focusa-vbcqu.20.13.2"]
+assert pending_inventory["provider_state"] == "open"
+assert pending_inventory["implementation_commit_refs"] == []
+assert pending_inventory["runtime_or_acceptance_evidence_refs"] == []
+assert pending_inventory["evidence_state"] == "pending_technical_acceptance"
+# Explicit Bead notes do contribute bounded proof while incomplete status remains visible.
+decision_replay = by_id["focusa-vbcqu.20.1"]
+assert "git:70536860" in decision_replay["implementation_commit_refs"]
+assert decision_replay["provider_state"] == "in_progress"
+assert decision_replay["evidence_state"] == "pending_technical_acceptance"
+assert decision_replay["technical_acceptance_claim"] is False
+
 for row in mappings:
     assert row["authority"] in {
         "immutable_workset_r7",

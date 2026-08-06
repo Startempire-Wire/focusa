@@ -21,6 +21,8 @@ AUTHORITY_FILES = {
     "completion_contract": AUDIT / "next-locked-release-workset-completion-contract.json",
     "repair_graph": ROOT / "docs" / "153-focusa-locked-release-repair-task-graph.md",
     "callgraph_reconstruction": ROOT / "docs" / "156-focusa-mangled-release-delta-callgraph-reconstruction.md",
+    "spec152e_correction": ROOT / "docs" / "152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md",
+    "spec152_document_set": ROOT / "docs" / "contracts" / "spec152-document-set.v1.yaml",
 }
 
 EXCLUDED_EPICS = [
@@ -31,7 +33,6 @@ EXCLUDED_EPICS = [
     ("focusa-vbcqu.16", 112, "reconstructed_broad_adaptive_compaction_epic"),
     ("focusa-vbcqu.17", 114, "unsupported_external_uiai_solver_capability"),
     ("focusa-vbcqu.18", 52, "future_onboarding_and_dead_road_consolidation"),
-    ("focusa-vbcqu.20", 119, "future_private_authority_and_unified_onboarding"),
 ]
 
 REPAIR_OVERLAY = [
@@ -47,6 +48,21 @@ REPAIR_OVERLAY = [
         "purpose": "all_surface_artifact_install_ota_and_publication_repair",
         "authority": "operator_message:remaining_tranche_only_mangled_previous_release",
     },
+    {
+        "bead_id": "focusa-vbcqu.20",
+        "github_issue": 119,
+        "purpose": "mandatory_spec152_and_152e_edd_centered_licensing_correction",
+        "authority": "operator_trajectory:complete_truthful_locked_release_with_specs150a_152_152e",
+    },
+    *[
+        {
+            "bead_id": f"focusa-vbcqu.10.{phase}",
+            "github_issue": 119,
+            "purpose": "mandatory_spec152_granular_implementation_and_acceptance_decomposition",
+            "authority": "operator_trajectory:complete_truthful_locked_release_with_specs150a_152_152e",
+        }
+        for phase in range(7, 13)
+    ],
 ]
 
 RETAINED_INVARIANTS = [
@@ -58,6 +74,8 @@ RETAINED_INVARIANTS = [
     "pi_owns_native_compaction_execution",
     "windows_x64_and_arm64_assets_require_real_installed_ota_proof",
     "publication_requires_exact_sha_artifact_and_installed_acceptance",
+    "wpuiai_edd_is_the_sole_customer_commerce_human_key_and_entitlement_authority",
+    "unverified_email_never_creates_canonical_customer_or_entitlement_truth",
 ]
 
 
@@ -152,6 +170,7 @@ def build() -> dict:
         "terminal_release_path": [
             "workset:focusa-next-locked-release:r7",
             "bead:focusa-vbcqu.14",
+            "bead:focusa-vbcqu.20",
             "bead:focusa-vbcqu.19",
             "new_monotonic_stable_release",
         ],

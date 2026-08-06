@@ -38,6 +38,14 @@
     "scope": {
       "path": "release-proof/audit/next-locked-release-scope.json",
       "sha256": "sha256:2da6d632c0ee3e65d75d3ec50787f9ead16d6359b1b22b17cda979c67128c8b1"
+    },
+    "spec152_document_set": {
+      "path": "docs/contracts/spec152-document-set.v1.yaml",
+      "sha256": "sha256:2da6b73278bfa193d0a74f757ef085711f5fd2b7d82f784bf33a71bc70d2f51d"
+    },
+    "spec152e_correction": {
+      "path": "docs/152e-edd-centered-universal-multi-surface-licensing-and-branded-facade-addendum.md",
+      "sha256": "sha256:0fdaa55cd886bbdb84c3f7df1924f01a8350e8e5a8c3c0c83a46d4a342d1b945"
     }
   },
   "authorized_release_repair_overlay": [
@@ -52,6 +60,48 @@
       "bead_id": "focusa-vbcqu.19",
       "github_issue": null,
       "purpose": "all_surface_artifact_install_ota_and_publication_repair"
+    },
+    {
+      "authority": "operator_trajectory:complete_truthful_locked_release_with_specs150a_152_152e",
+      "bead_id": "focusa-vbcqu.20",
+      "github_issue": 119,
+      "purpose": "mandatory_spec152_and_152e_edd_centered_licensing_correction"
+    },
+    {
+      "authority": "operator_trajectory:complete_truthful_locked_release_with_specs150a_152_152e",
+      "bead_id": "focusa-vbcqu.10.7",
+      "github_issue": 119,
+      "purpose": "mandatory_spec152_granular_implementation_and_acceptance_decomposition"
+    },
+    {
+      "authority": "operator_trajectory:complete_truthful_locked_release_with_specs150a_152_152e",
+      "bead_id": "focusa-vbcqu.10.8",
+      "github_issue": 119,
+      "purpose": "mandatory_spec152_granular_implementation_and_acceptance_decomposition"
+    },
+    {
+      "authority": "operator_trajectory:complete_truthful_locked_release_with_specs150a_152_152e",
+      "bead_id": "focusa-vbcqu.10.9",
+      "github_issue": 119,
+      "purpose": "mandatory_spec152_granular_implementation_and_acceptance_decomposition"
+    },
+    {
+      "authority": "operator_trajectory:complete_truthful_locked_release_with_specs150a_152_152e",
+      "bead_id": "focusa-vbcqu.10.10",
+      "github_issue": 119,
+      "purpose": "mandatory_spec152_granular_implementation_and_acceptance_decomposition"
+    },
+    {
+      "authority": "operator_trajectory:complete_truthful_locked_release_with_specs150a_152_152e",
+      "bead_id": "focusa-vbcqu.10.11",
+      "github_issue": 119,
+      "purpose": "mandatory_spec152_granular_implementation_and_acceptance_decomposition"
+    },
+    {
+      "authority": "operator_trajectory:complete_truthful_locked_release_with_specs150a_152_152e",
+      "bead_id": "focusa-vbcqu.10.12",
+      "github_issue": 119,
+      "purpose": "mandatory_spec152_granular_implementation_and_acceptance_decomposition"
     }
   ],
   "excluded_reconstructed_epics": [
@@ -117,15 +167,6 @@
       "publication_blocking": false,
       "reason": "future_onboarding_and_dead_road_consolidation",
       "release_parent": null
-    },
-    {
-      "bead_id": "focusa-vbcqu.20",
-      "code_and_history": "retained",
-      "disposition": "future_or_repository_work_excluded_from_locked_release",
-      "github_issue": 119,
-      "publication_blocking": false,
-      "reason": "future_private_authority_and_unified_onboarding",
-      "release_parent": null
     }
   ],
   "further_additions_allowed": false,
@@ -133,7 +174,7 @@
   "immutable_edge_count": 706,
   "immutable_event_count": 7,
   "immutable_member_count": 275,
-  "inventory_digest": "sha256:9dad314492bc798205d7a64b89fc46e4bc8239b3394f1c4898b474720f1cb686",
+  "inventory_digest": "sha256:871bf230c436dc5e2b72eecd1fd8313f2f8dc06fe0a9bdfb158ca7cbcb2feb92",
   "membership_digest": "sha256:03e384bbf5728df135f36838451098413701f4ee09430fc31797fe2d5e1379f0",
   "operator_authorized_post_lock_additions": [
     {
@@ -180,7 +221,9 @@
     "ambiguous_or_foreign_scope_fails_closed_without_foreign_payload",
     "pi_owns_native_compaction_execution",
     "windows_x64_and_arm64_assets_require_real_installed_ota_proof",
-    "publication_requires_exact_sha_artifact_and_installed_acceptance"
+    "publication_requires_exact_sha_artifact_and_installed_acceptance",
+    "wpuiai_edd_is_the_sole_customer_commerce_human_key_and_entitlement_authority",
+    "unverified_email_never_creates_canonical_customer_or_entitlement_truth"
   ],
   "schema": "focusa.locked_release_governance_inventory.v1",
   "scope_additions_closed": true,
@@ -188,6 +231,7 @@
   "terminal_release_path": [
     "workset:focusa-next-locked-release:r7",
     "bead:focusa-vbcqu.14",
+    "bead:focusa-vbcqu.20",
     "bead:focusa-vbcqu.19",
     "new_monotonic_stable_release"
   ],

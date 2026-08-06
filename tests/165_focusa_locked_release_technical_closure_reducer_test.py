@@ -36,7 +36,9 @@ run("--check")
 gate = json.loads(GATE.read_text())
 assert gate["schema"] == "focusa.locked_release_technical_closure_gate.v1"
 assert gate["status"] == "verified"
-assert gate["mapping_count"] == 289
+ledger = json.loads(LEDGER.read_text())
+assert gate["mapping_count"] == len(ledger["mappings"])
+assert gate["mapping_count"] > 289
 assert gate["invalid_closed_count"] == 0
 assert gate["invalid_closed_ids"] == []
 assert gate["technically_pending_count"] > 0
@@ -59,6 +61,18 @@ blocked_receipt = json.loads(blocked.stdout)
 assert blocked_receipt["decision"] == "block"
 assert blocked_receipt["reason"] == "technical_acceptance_missing"
 
+spec152e_unproved = json.loads(
+    run(
+        "--bead-id",
+        "focusa-vbcqu.20.13.2",
+        "--request-state",
+        "closed",
+        expected=2,
+    ).stdout
+)
+assert spec152e_unproved["decision"] == "block"
+assert spec152e_unproved["reason"] == "technical_acceptance_missing"
+
 reopen = json.loads(
     run("--bead-id", "focusa-vbcqu.10", "--request-state", "open").stdout
 )
@@ -76,11 +90,13 @@ assert unknown["reason"] == "unknown_or_unadmitted_bead"
 # A replayed administrative close without technical proof makes the aggregate
 # gate fail closed, even if the provider claims the record is closed.
 tampered = json.loads(LEDGER.read_text())
-widget = next(
-    row for row in tampered["mappings"] if row["bead_id"] == "focusa-vbcqu.10"
+unproved = next(
+    row
+    for row in tampered["mappings"]
+    if row["bead_id"] == "focusa-vbcqu.20.13.2"
 )
-widget["provider_state"] = "closed"
-widget["closure_receipt"] = {
+unproved["provider_state"] = "closed"
+unproved["closure_receipt"] = {
     "closed_at": "administrative-replay",
     "close_reason": "administrative close only",
     "exact_duplicate_of": None,
@@ -93,6 +109,6 @@ try:
 finally:
     tampered_path.unlink(missing_ok=True)
 assert failed_gate["status"] == "blocked"
-assert failed_gate["invalid_closed_ids"] == ["focusa-vbcqu.10"]
+assert failed_gate["invalid_closed_ids"] == ["focusa-vbcqu.20.13.2"]
 
 print("GH#106.3 technical closure reducer: PASS")

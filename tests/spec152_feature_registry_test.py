@@ -29,7 +29,13 @@ keys = {feature["key"] for feature in registry["features"]}
 spec_files = list((ROOT / "docs").glob("152*.md")) + [ROOT / "docs/150a-spec152-entitlement-overlay-and-lifecycle-integration.md"]
 required = set()
 for path in spec_files:
-    required.update(re.findall(r"`(focusa\.[a-z0-9_.-]+)`", path.read_text()))
+    # Spec 152E names the branded domain `focusa.dev`; domain names are not
+    # entitlement feature keys even though they share the `focusa.` prefix.
+    required.update(
+        token
+        for token in re.findall(r"`(focusa\.[a-z0-9_.-]+)`", path.read_text())
+        if token != "focusa.dev"
+    )
 required.update({
     "focusa.install.channel.stable",
     "focusa.install.channel.preview",

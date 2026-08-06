@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import re
+import subprocess
 from collections import Counter
 from pathlib import Path
 
@@ -18,7 +19,7 @@ EVIDENCE_LINKS = AUDIT / "next-locked-release-governance-evidence-links.json"
 OUTPUT = AUDIT / "next-locked-release-governance-reconciliation.json"
 
 COMMIT_RE = re.compile(
-    r"(?i)(?:git:|commit(?:ted)?(?:\s+at)?\s+|\bat\s+)([0-9a-f]{8,40})\b"
+    r"(?i)(?:git:|commit(?:ted)?(?:\s+at)?\s+|candidate\s+|\bat\s+)([0-9a-f]{8,40})\b"
 )
 PATH_RE = re.compile(
     r"\b(?:apps|crates|docs|release-proof|scripts|tests)/[A-Za-z0-9_.@+/-]+"
@@ -51,29 +52,43 @@ def natural_key(value: str) -> list[object]:
 def evidence_from(
     member: dict, provider: dict
 ) -> tuple[list[str], list[str], list[str]]:
-    text = "\n".join(
+    authority_text = "\n".join(
         str(provider.get(field) or "")
-        for field in ("title", "description", "acceptance_criteria", "close_reason")
+        for field in ("title", "description", "acceptance_criteria", "notes", "close_reason")
+    )
+    # Only explicit operator notes and closure receipts may contribute provider
+    # proof. Paths in task descriptions/acceptance criteria name intended work;
+    # treating them as evidence would falsely accept every detailed open task.
+    evidence_text = "\n".join(
+        str(provider.get(field) or "") for field in ("notes", "close_reason")
     )
     commits = {
         ref.removeprefix("git:")
         for ref in member.get("evidence_refs", [])
         if ref.startswith("git:")
     }
-    commits.update(COMMIT_RE.findall(text))
+    commits.update(COMMIT_RE.findall(evidence_text))
     stable_refs = {
         ref
         for ref in member.get("evidence_refs", []) + member.get("receipt_refs", [])
         if not ref.startswith("git:")
     }
-    stable_refs.update(PATH_RE.findall(text))
-    stable_refs.update(URL_RE.findall(text))
+    stable_refs.update(PATH_RE.findall(evidence_text))
+    stable_refs.update(URL_RE.findall(evidence_text))
     issues = {
         int(ref.split(":", 1)[1])
         for ref in member.get("spec_refs", [])
         if ref.startswith("github:") and ref.split(":", 1)[1].isdigit()
     }
-    issues.update(int(value) for value in GITHUB_ISSUE_RE.findall(text))
+    issues.update(int(value) for value in GITHUB_ISSUE_RE.findall(authority_text))
+    for commit in commits:
+        result = subprocess.run(
+            ["git", "cat-file", "-e", f"{commit}^{{commit}}"],
+            cwd=ROOT,
+            capture_output=True,
+        )
+        if result.returncode != 0:
+            raise SystemExit(f"provider evidence commit is unavailable: {commit}")
     return sorted(commits), sorted(stable_refs), sorted(issues)
 
 
@@ -129,16 +144,22 @@ def build(provider_path: Path) -> dict:
     }
     overlay_ids = {
         issue_id
-        for issue_id in provider_by_id
-        if any(
+        for issue_id, provider in provider_by_id.items()
+        if provider.get("status") != "tombstone"
+        and any(
             issue_id == root or issue_id.startswith(root + ".")
             for root in overlay_roots
         )
     }
     immutable_ids = {row["member_id"] for row in immutable}
     admitted_ids = immutable_ids | overlay_ids
+    # DETAIL tombstones mirror parent work for decomposed UI display. They are
+    # not executable tasks and must not inflate scope or unresolved counts.
     locked_label_ids = {
-        row["id"] for row in provider_rows if "locked-release" in row.get("labels", [])
+        row["id"]
+        for row in provider_rows
+        if row.get("status") != "tombstone"
+        and "locked-release" in row.get("labels", [])
     }
 
     immutable_by_id = {row["member_id"]: row for row in immutable}
@@ -240,6 +261,12 @@ def build(provider_path: Path) -> dict:
         )
         has_proof = bool(commits or stable_refs)
         status = provider.get("status", "unknown")
+        technical_acceptance_claim = bool(
+            re.search(
+                r"(?im)^TECHNICAL_ACCEPTANCE:\s*VERIFIED\s*$",
+                provider.get("notes") or "",
+            )
+        )
         if status != "closed":
             evidence_state = "pending_technical_acceptance"
         elif duplicate_claim and not exact_duplicate_valid and has_proof:
@@ -280,6 +307,7 @@ def build(provider_path: Path) -> dict:
                 "title": provider.get("title"),
                 "provider_state": status,
                 "provider_updated_at": provider.get("updated_at"),
+                "technical_acceptance_claim": technical_acceptance_claim,
                 "provider_record_digest": digest_value(provider),
                 "frozen_projection": member.get("current_status_projection"),
                 "projection_drift": bool(

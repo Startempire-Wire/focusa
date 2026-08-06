@@ -41,13 +41,21 @@ def technical_readiness(ledger: dict) -> tuple[dict[str, bool], dict[str, list[s
             bases[bead_id] = ["dependency_cycle"]
             return False
         row = mappings[bead_id]
-        direct = bool(
+        has_direct_evidence = bool(
             row.get("implementation_commit_refs")
             or row.get("runtime_or_acceptance_evidence_refs")
         )
+        direct = has_direct_evidence and (
+            row.get("provider_state") == "closed"
+            or row.get("technical_acceptance_claim") is True
+        )
         if direct:
             memo[bead_id] = not row.get("active_blocker_refs")
-            bases[bead_id] = ["direct_evidence"]
+            bases[bead_id] = [
+                "direct_evidence"
+                if row.get("provider_state") == "closed"
+                else "explicit_verified_acceptance_claim"
+            ]
             return memo[bead_id]
 
         duplicate_of = (row.get("closure_receipt") or {}).get("exact_duplicate_of")
@@ -105,6 +113,7 @@ def build_gate(ledger: dict) -> dict:
             "provider_status_is_not_proof": True,
             "allowed_acceptance_bases": [
                 "direct_evidence",
+                "explicit_verified_acceptance_claim",
                 "exact_duplicate_of_technically_accepted_target",
                 "all_admitted_descendants_technically_accepted",
             ],
