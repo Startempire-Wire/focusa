@@ -49,6 +49,13 @@
     },
     "invalid_closed_count": 0,
     "locked_release_detail_tombstones_excluded": 75,
+    "pending_aggregate_parent_count": 28,
+    "pending_leaf_classification": {
+      "acceptance_verified_but_dependency_blocked": 1,
+      "no_current_evidence": 82,
+      "partial_or_linked_evidence": 92
+    },
+    "pending_leaf_count": 175,
     "provider_state_counts": {
       "closed": 209,
       "in_progress": 52,
@@ -56,6 +63,7 @@
     },
     "repair_overlay_mapping_count": 137,
     "status": "blocked",
+    "technical_completion_percent": 50.7,
     "technically_accepted_count": 209,
     "technically_pending_count": 203,
     "unresolved_gap_count": 203,
