@@ -1,0 +1,129 @@
+schema: focusa.spec152e.edd_product_registry.v1
+registry_version: 1
+product: focusa-authority
+owner: WPUIAI/wpuiai
+authority:
+  customer_commerce_human_key_refund_entitlement: WPUIAI.com EDD
+  runtime_grant: authority_issued_signed_lease
+  caller_controls_forbidden: [edd_download_id, edd_price_id, price, tier, products, features, limits, commercial_rights, evaluation_duration, node_limit]
+  unknown_product_code: PRODUCT_MAPPING_REQUIRED
+  unassigned_product_code: PRODUCT_MAPPING_REQUIRED
+  spec158: excluded
+protected_offers:
+  - public_code: focusa_operator
+    human_name: Focusa Operator
+    mapping_status: blocked_unassigned
+    checkout_enabled: false
+    edd_download_id: null
+    edd_price_id: null
+    price_authority: unassigned_operator_decision_required
+    license_duration: null
+    node_limit: null
+    products: [focusa]
+    features: []
+    commercial_rights: []
+    evaluation: false
+    evaluation_duration_days: null
+    supported_facades: []
+    refund_policy: unassigned_operator_decision_required
+    upgrade_policy: unassigned_operator_decision_required
+  - public_code: uiai_engine_operator
+    human_name: UIAI Engine Operator
+    mapping_status: blocked_unassigned
+    checkout_enabled: false
+    edd_download_id: null
+    edd_price_id: null
+    price_authority: unassigned_operator_decision_required
+    license_duration: null
+    node_limit: null
+    products: [uiai-engine]
+    features: []
+    commercial_rights: []
+    evaluation: false
+    evaluation_duration_days: null
+    supported_facades: []
+    refund_policy: unassigned_operator_decision_required
+    upgrade_policy: unassigned_operator_decision_required
+  - public_code: focusa_uiai_bundle
+    human_name: Focusa and UIAI Engine Bundle
+    mapping_status: blocked_unassigned
+    checkout_enabled: false
+    edd_download_id: null
+    edd_price_id: null
+    price_authority: unassigned_operator_decision_required
+    license_duration: null
+    node_limit: null
+    products: [focusa, uiai-engine]
+    features: []
+    commercial_rights: []
+    evaluation: false
+    evaluation_duration_days: null
+    supported_facades: []
+    refund_policy: unassigned_operator_decision_required
+    upgrade_policy: unassigned_operator_decision_required
+  - public_code: focusa_evaluation
+    human_name: Focusa Evaluation
+    mapping_status: blocked_unassigned
+    checkout_enabled: false
+    edd_download_id: null
+    edd_price_id: null
+    price_authority: no_charge_dedicated_edd_mapping_required
+    license_duration: null
+    node_limit: null
+    products: [focusa]
+    features: []
+    commercial_rights: []
+    evaluation: true
+    evaluation_duration_days: null
+    supported_facades: []
+    refund_policy: not_applicable
+    upgrade_policy: preserve_paid_posture_and_require_authority_eligibility
+current_edd_catalog:
+  observed_at: '2026-08-06T10:31:00Z'
+  entries:
+    - {download_id: 16, title: WPUIAI Pro, status: publish, price: '99.00', licensing_enabled: true, activation_limit: 5, license_length: 1, license_unit: years, entitlement_disposition: quarantine, reason: unrelated_legacy_product_not_explicitly_mapped}
+    - {download_id: 17, title: WPUIAI Agency, status: publish, price: '299.00', licensing_enabled: true, activation_limit: 25, license_length: 1, license_unit: years, entitlement_disposition: quarantine, reason: unrelated_legacy_product_not_explicitly_mapped}
+    - {download_id: 21, title: WPUIAI Screenshots - Free, status: publish, price: '0.00', licensing_enabled: true, activation_limit: null, license_length: null, license_unit: null, entitlement_disposition: quarantine, reason: screenshot_product_not_focusa_authority}
+    - {download_id: 22, title: WPUIAI Screenshots - Developer, status: publish, price: '0.00', licensing_enabled: true, activation_limit: null, license_length: null, license_unit: null, entitlement_disposition: quarantine, reason: screenshot_product_not_focusa_authority}
+    - {download_id: 23, title: WPUIAI Screenshots - Pro, status: publish, price: '0.00', licensing_enabled: true, activation_limit: null, license_length: null, license_unit: null, entitlement_disposition: quarantine, reason: screenshot_product_not_focusa_authority}
+    - {download_id: 24, title: WPUIAI Screenshots - Agency, status: publish, price: '0.00', licensing_enabled: true, activation_limit: null, license_length: null, license_unit: null, entitlement_disposition: quarantine, reason: screenshot_product_not_focusa_authority}
+    - {download_id: 25, title: WPUIAI Screenshots - Enterprise, status: publish, price: '0.00', licensing_enabled: true, activation_limit: null, license_length: null, license_unit: null, entitlement_disposition: quarantine, reason: screenshot_product_not_focusa_authority}
+    - {download_id: 66, title: WPUIAI Starter, status: publish, price: '29.00', licensing_enabled: true, activation_limit: 1, license_length: null, license_unit: null, entitlement_disposition: quarantine, reason: unrelated_legacy_product_not_explicitly_mapped}
+    - {download_id: 452, title: WPUIAI Starter Lifetime, status: publish, price: '59.00', licensing_enabled: true, activation_limit: 1, license_length: null, license_unit: null, entitlement_disposition: quarantine, reason: unrelated_legacy_product_not_explicitly_mapped}
+    - {download_id: 453, title: WPUIAI Pro Lifetime, status: publish, price: '149.00', licensing_enabled: true, activation_limit: 5, license_length: null, license_unit: null, entitlement_disposition: quarantine, reason: implicit_focusa_mapping_forbidden}
+    - {download_id: 454, title: WPUIAI Agency Lifetime, status: publish, price: '349.00', licensing_enabled: true, activation_limit: 25, license_length: null, license_unit: null, entitlement_disposition: quarantine, reason: unrelated_legacy_product_not_explicitly_mapped}
+    - {download_id: 455, title: Credit Pack — Boost (100), status: publish, price: '9.00', licensing_enabled: false, activation_limit: null, license_length: null, license_unit: null, entitlement_disposition: retire, reason: credit_pack_excluded_from_entitlement_registry}
+    - {download_id: 456, title: Credit Pack — Power (500), status: publish, price: '29.00', licensing_enabled: false, activation_limit: null, license_length: null, license_unit: null, entitlement_disposition: retire, reason: credit_pack_excluded_from_entitlement_registry}
+    - {download_id: 457, title: Credit Pack — Mega (2000), status: publish, price: '79.00', licensing_enabled: false, activation_limit: null, license_length: null, license_unit: null, entitlement_disposition: retire, reason: credit_pack_excluded_from_entitlement_registry}
+legacy_record_classes:
+  - {id: edd_standard_license_known_download, source: WPUIAI.com EDD Software Licensing, observed_count: 6, disposition: quarantine, requirement: verified_identity_plus_order_item_plus_explicit_product_mapping}
+  - {id: edd_focusa_live_synthetic, source: WPUIAI.com custom Focusa issuer, observed_count: 4, disposition: quarantine, requirement: verified_identity_plus_matching_order_item_or_operator_review}
+  - {id: edd_license_missing_download_103, source: WPUIAI.com EDD Software Licensing, observed_count: 1, disposition: quarantine, requirement: preserve_history_and_resolve_deleted_or_missing_product}
+  - {id: install_stripe_active_focusa, source: install.focusa.dev, observed_count: 29, disposition: migrate, requirement: verify_stripe_payment_refund_customer_and_product_evidence}
+  - {id: install_stripe_active_founders_forge, source: install.focusa.dev, observed_count: 9, disposition: migrate, requirement: verify_bundle_payment_and_map_to_explicit_bundle_offer}
+  - {id: install_stripe_active_uiai_engine, source: install.focusa.dev, observed_count: 4, disposition: migrate, requirement: verify_stripe_payment_and_map_to_explicit_uiai_offer}
+  - {id: install_api_active_focusa, source: install.focusa.dev, observed_count: 2, disposition: quarantine, requirement: operator_and_purchase_evidence_review}
+  - {id: install_api_active_founders_forge, source: install.focusa.dev, observed_count: 12, disposition: quarantine, requirement: operator_and_purchase_evidence_review}
+  - {id: install_refunded_focusa, source: install.focusa.dev, observed_count: 14, disposition: retire, requirement: preserve_refund_history_never_reactivate}
+  - {id: install_revoked_focusa, source: install.focusa.dev, observed_count: 13, disposition: retire, requirement: preserve_revocation_history_never_reactivate}
+activation_requirements:
+  - operator_approved_dedicated_edd_download_and_optional_price_id
+  - verified_registration_required_before_checkout_or_evaluation
+  - edd_software_licensing_enabled
+  - exact_product_and_price_relationship
+  - server_owned_products_features_limits_and_commercial_rights
+  - node_limit_and_duration_decision
+  - supported_facade_allowlist
+  - refund_upgrade_and_evaluation_policy
+  - migration_and_recovery_analysis
+  - acceptance_evidence
+invariants:
+  - no_protected_offer_is_currently_checkout_enabled
+  - download_453_is_not_focusa_authority
+  - credit_packs_never_grant_entitlement
+  - caller_metadata_never_selects_price_product_grant_limit_or_right
+  - evaluation_requires_verified_identity_and_dedicated_edd_mapping
+  - paid_records_are_never_downgraded_to_evaluation
+  - refunded_or_revoked_records_never_reactivate
+  - legacy_email_match_alone_never_transfers_ownership
+  - every_legacy_class_is_migrate_quarantine_or_retire

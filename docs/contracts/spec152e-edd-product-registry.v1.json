@@ -1,0 +1,390 @@
+{
+  "activation_requirements": [
+    "operator_approved_dedicated_edd_download_and_optional_price_id",
+    "verified_registration_required_before_checkout_or_evaluation",
+    "edd_software_licensing_enabled",
+    "exact_product_and_price_relationship",
+    "server_owned_products_features_limits_and_commercial_rights",
+    "node_limit_and_duration_decision",
+    "supported_facade_allowlist",
+    "refund_upgrade_and_evaluation_policy",
+    "migration_and_recovery_analysis",
+    "acceptance_evidence"
+  ],
+  "authority": {
+    "caller_controls_forbidden": [
+      "edd_download_id",
+      "edd_price_id",
+      "price",
+      "tier",
+      "products",
+      "features",
+      "limits",
+      "commercial_rights",
+      "evaluation_duration",
+      "node_limit"
+    ],
+    "customer_commerce_human_key_refund_entitlement": "WPUIAI.com EDD",
+    "runtime_grant": "authority_issued_signed_lease",
+    "spec158": "excluded",
+    "unassigned_product_code": "PRODUCT_MAPPING_REQUIRED",
+    "unknown_product_code": "PRODUCT_MAPPING_REQUIRED"
+  },
+  "counts": {
+    "assigned_edd_downloads": 0,
+    "catalog_entries": 14,
+    "checkout_enabled": 0,
+    "legacy_migrate": 3,
+    "legacy_quarantine": 5,
+    "legacy_record_classes": 10,
+    "legacy_retire": 2,
+    "protected_offers": 4
+  },
+  "current_edd_catalog": {
+    "entries": [
+      {
+        "activation_limit": 5,
+        "download_id": 16,
+        "entitlement_disposition": "quarantine",
+        "license_length": 1,
+        "license_unit": "years",
+        "licensing_enabled": true,
+        "price": "99.00",
+        "reason": "unrelated_legacy_product_not_explicitly_mapped",
+        "status": "publish",
+        "title": "WPUIAI Pro"
+      },
+      {
+        "activation_limit": 25,
+        "download_id": 17,
+        "entitlement_disposition": "quarantine",
+        "license_length": 1,
+        "license_unit": "years",
+        "licensing_enabled": true,
+        "price": "299.00",
+        "reason": "unrelated_legacy_product_not_explicitly_mapped",
+        "status": "publish",
+        "title": "WPUIAI Agency"
+      },
+      {
+        "activation_limit": null,
+        "download_id": 21,
+        "entitlement_disposition": "quarantine",
+        "license_length": null,
+        "license_unit": null,
+        "licensing_enabled": true,
+        "price": "0.00",
+        "reason": "screenshot_product_not_focusa_authority",
+        "status": "publish",
+        "title": "WPUIAI Screenshots - Free"
+      },
+      {
+        "activation_limit": null,
+        "download_id": 22,
+        "entitlement_disposition": "quarantine",
+        "license_length": null,
+        "license_unit": null,
+        "licensing_enabled": true,
+        "price": "0.00",
+        "reason": "screenshot_product_not_focusa_authority",
+        "status": "publish",
+        "title": "WPUIAI Screenshots - Developer"
+      },
+      {
+        "activation_limit": null,
+        "download_id": 23,
+        "entitlement_disposition": "quarantine",
+        "license_length": null,
+        "license_unit": null,
+        "licensing_enabled": true,
+        "price": "0.00",
+        "reason": "screenshot_product_not_focusa_authority",
+        "status": "publish",
+        "title": "WPUIAI Screenshots - Pro"
+      },
+      {
+        "activation_limit": null,
+        "download_id": 24,
+        "entitlement_disposition": "quarantine",
+        "license_length": null,
+        "license_unit": null,
+        "licensing_enabled": true,
+        "price": "0.00",
+        "reason": "screenshot_product_not_focusa_authority",
+        "status": "publish",
+        "title": "WPUIAI Screenshots - Agency"
+      },
+      {
+        "activation_limit": null,
+        "download_id": 25,
+        "entitlement_disposition": "quarantine",
+        "license_length": null,
+        "license_unit": null,
+        "licensing_enabled": true,
+        "price": "0.00",
+        "reason": "screenshot_product_not_focusa_authority",
+        "status": "publish",
+        "title": "WPUIAI Screenshots - Enterprise"
+      },
+      {
+        "activation_limit": 1,
+        "download_id": 66,
+        "entitlement_disposition": "quarantine",
+        "license_length": null,
+        "license_unit": null,
+        "licensing_enabled": true,
+        "price": "29.00",
+        "reason": "unrelated_legacy_product_not_explicitly_mapped",
+        "status": "publish",
+        "title": "WPUIAI Starter"
+      },
+      {
+        "activation_limit": 1,
+        "download_id": 452,
+        "entitlement_disposition": "quarantine",
+        "license_length": null,
+        "license_unit": null,
+        "licensing_enabled": true,
+        "price": "59.00",
+        "reason": "unrelated_legacy_product_not_explicitly_mapped",
+        "status": "publish",
+        "title": "WPUIAI Starter Lifetime"
+      },
+      {
+        "activation_limit": 5,
+        "download_id": 453,
+        "entitlement_disposition": "quarantine",
+        "license_length": null,
+        "license_unit": null,
+        "licensing_enabled": true,
+        "price": "149.00",
+        "reason": "implicit_focusa_mapping_forbidden",
+        "status": "publish",
+        "title": "WPUIAI Pro Lifetime"
+      },
+      {
+        "activation_limit": 25,
+        "download_id": 454,
+        "entitlement_disposition": "quarantine",
+        "license_length": null,
+        "license_unit": null,
+        "licensing_enabled": true,
+        "price": "349.00",
+        "reason": "unrelated_legacy_product_not_explicitly_mapped",
+        "status": "publish",
+        "title": "WPUIAI Agency Lifetime"
+      },
+      {
+        "activation_limit": null,
+        "download_id": 455,
+        "entitlement_disposition": "retire",
+        "license_length": null,
+        "license_unit": null,
+        "licensing_enabled": false,
+        "price": "9.00",
+        "reason": "credit_pack_excluded_from_entitlement_registry",
+        "status": "publish",
+        "title": "Credit Pack — Boost (100)"
+      },
+      {
+        "activation_limit": null,
+        "download_id": 456,
+        "entitlement_disposition": "retire",
+        "license_length": null,
+        "license_unit": null,
+        "licensing_enabled": false,
+        "price": "29.00",
+        "reason": "credit_pack_excluded_from_entitlement_registry",
+        "status": "publish",
+        "title": "Credit Pack — Power (500)"
+      },
+      {
+        "activation_limit": null,
+        "download_id": 457,
+        "entitlement_disposition": "retire",
+        "license_length": null,
+        "license_unit": null,
+        "licensing_enabled": false,
+        "price": "79.00",
+        "reason": "credit_pack_excluded_from_entitlement_registry",
+        "status": "publish",
+        "title": "Credit Pack — Mega (2000)"
+      }
+    ],
+    "observed_at": "2026-08-06T10:31:00Z"
+  },
+  "invariants": [
+    "no_protected_offer_is_currently_checkout_enabled",
+    "download_453_is_not_focusa_authority",
+    "credit_packs_never_grant_entitlement",
+    "caller_metadata_never_selects_price_product_grant_limit_or_right",
+    "evaluation_requires_verified_identity_and_dedicated_edd_mapping",
+    "paid_records_are_never_downgraded_to_evaluation",
+    "refunded_or_revoked_records_never_reactivate",
+    "legacy_email_match_alone_never_transfers_ownership",
+    "every_legacy_class_is_migrate_quarantine_or_retire"
+  ],
+  "legacy_record_classes": [
+    {
+      "disposition": "quarantine",
+      "id": "edd_standard_license_known_download",
+      "observed_count": 6,
+      "requirement": "verified_identity_plus_order_item_plus_explicit_product_mapping",
+      "source": "WPUIAI.com EDD Software Licensing"
+    },
+    {
+      "disposition": "quarantine",
+      "id": "edd_focusa_live_synthetic",
+      "observed_count": 4,
+      "requirement": "verified_identity_plus_matching_order_item_or_operator_review",
+      "source": "WPUIAI.com custom Focusa issuer"
+    },
+    {
+      "disposition": "quarantine",
+      "id": "edd_license_missing_download_103",
+      "observed_count": 1,
+      "requirement": "preserve_history_and_resolve_deleted_or_missing_product",
+      "source": "WPUIAI.com EDD Software Licensing"
+    },
+    {
+      "disposition": "migrate",
+      "id": "install_stripe_active_focusa",
+      "observed_count": 29,
+      "requirement": "verify_stripe_payment_refund_customer_and_product_evidence",
+      "source": "install.focusa.dev"
+    },
+    {
+      "disposition": "migrate",
+      "id": "install_stripe_active_founders_forge",
+      "observed_count": 9,
+      "requirement": "verify_bundle_payment_and_map_to_explicit_bundle_offer",
+      "source": "install.focusa.dev"
+    },
+    {
+      "disposition": "migrate",
+      "id": "install_stripe_active_uiai_engine",
+      "observed_count": 4,
+      "requirement": "verify_stripe_payment_and_map_to_explicit_uiai_offer",
+      "source": "install.focusa.dev"
+    },
+    {
+      "disposition": "quarantine",
+      "id": "install_api_active_focusa",
+      "observed_count": 2,
+      "requirement": "operator_and_purchase_evidence_review",
+      "source": "install.focusa.dev"
+    },
+    {
+      "disposition": "quarantine",
+      "id": "install_api_active_founders_forge",
+      "observed_count": 12,
+      "requirement": "operator_and_purchase_evidence_review",
+      "source": "install.focusa.dev"
+    },
+    {
+      "disposition": "retire",
+      "id": "install_refunded_focusa",
+      "observed_count": 14,
+      "requirement": "preserve_refund_history_never_reactivate",
+      "source": "install.focusa.dev"
+    },
+    {
+      "disposition": "retire",
+      "id": "install_revoked_focusa",
+      "observed_count": 13,
+      "requirement": "preserve_revocation_history_never_reactivate",
+      "source": "install.focusa.dev"
+    }
+  ],
+  "owner": "WPUIAI/wpuiai",
+  "product": "focusa-authority",
+  "protected_offers": [
+    {
+      "checkout_enabled": false,
+      "commercial_rights": [],
+      "edd_download_id": null,
+      "edd_price_id": null,
+      "evaluation": false,
+      "evaluation_duration_days": null,
+      "features": [],
+      "human_name": "Focusa Operator",
+      "license_duration": null,
+      "mapping_status": "blocked_unassigned",
+      "node_limit": null,
+      "price_authority": "unassigned_operator_decision_required",
+      "products": [
+        "focusa"
+      ],
+      "public_code": "focusa_operator",
+      "refund_policy": "unassigned_operator_decision_required",
+      "supported_facades": [],
+      "upgrade_policy": "unassigned_operator_decision_required"
+    },
+    {
+      "checkout_enabled": false,
+      "commercial_rights": [],
+      "edd_download_id": null,
+      "edd_price_id": null,
+      "evaluation": false,
+      "evaluation_duration_days": null,
+      "features": [],
+      "human_name": "UIAI Engine Operator",
+      "license_duration": null,
+      "mapping_status": "blocked_unassigned",
+      "node_limit": null,
+      "price_authority": "unassigned_operator_decision_required",
+      "products": [
+        "uiai-engine"
+      ],
+      "public_code": "uiai_engine_operator",
+      "refund_policy": "unassigned_operator_decision_required",
+      "supported_facades": [],
+      "upgrade_policy": "unassigned_operator_decision_required"
+    },
+    {
+      "checkout_enabled": false,
+      "commercial_rights": [],
+      "edd_download_id": null,
+      "edd_price_id": null,
+      "evaluation": false,
+      "evaluation_duration_days": null,
+      "features": [],
+      "human_name": "Focusa and UIAI Engine Bundle",
+      "license_duration": null,
+      "mapping_status": "blocked_unassigned",
+      "node_limit": null,
+      "price_authority": "unassigned_operator_decision_required",
+      "products": [
+        "focusa",
+        "uiai-engine"
+      ],
+      "public_code": "focusa_uiai_bundle",
+      "refund_policy": "unassigned_operator_decision_required",
+      "supported_facades": [],
+      "upgrade_policy": "unassigned_operator_decision_required"
+    },
+    {
+      "checkout_enabled": false,
+      "commercial_rights": [],
+      "edd_download_id": null,
+      "edd_price_id": null,
+      "evaluation": true,
+      "evaluation_duration_days": null,
+      "features": [],
+      "human_name": "Focusa Evaluation",
+      "license_duration": null,
+      "mapping_status": "blocked_unassigned",
+      "node_limit": null,
+      "price_authority": "no_charge_dedicated_edd_mapping_required",
+      "products": [
+        "focusa"
+      ],
+      "public_code": "focusa_evaluation",
+      "refund_policy": "not_applicable",
+      "supported_facades": [],
+      "upgrade_policy": "preserve_paid_posture_and_require_authority_eligibility"
+    }
+  ],
+  "registry_version": 1,
+  "schema": "focusa.spec152e.edd_product_registry.v1"
+}
