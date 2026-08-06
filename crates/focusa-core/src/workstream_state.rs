@@ -16,6 +16,9 @@ use crate::types::{
     FocusaEvent, FocusaState, OntologyState, ReactiveContextProjection, ReferenceIndex,
     TrajectoryState, WorkLoopState, WorkpointState,
 };
+use crate::workstream_context::{
+    WorkstreamContext, WorkstreamContextError, WorkstreamRequestEnvelope,
+};
 use crate::workstream_identity::{WorkstreamId, WorkstreamKey};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -157,14 +160,16 @@ impl WorkstreamState {
     }
 }
 
-/// An event envelope with exact Workstream authority.
+/// An event envelope with exact Workstream authority and the context resolved
+/// from the canonical request envelope.
 ///
-/// The legacy `FocusaEvent` remains the typed domain event.  This envelope adds
-/// the canonical Workstream owner before reduction; no reducer path may infer the
-/// owner from a continuity, session, current project, or latest record.
+/// The legacy `FocusaEvent` remains the typed domain event.  A reducer event can
+/// only be constructed through [`WorkstreamEvent::from_request`], so actor and
+/// authority are present before the Workstream partition is selected.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkstreamEvent {
     pub workstream: WorkstreamKey,
+    pub context: WorkstreamContext,
     pub event: FocusaEvent,
     /// Optional optimistic-concurrency cursor.  When present it must equal the
     /// selected Workstream reducer revision; a stale cursor fails closed.
@@ -173,24 +178,37 @@ pub struct WorkstreamEvent {
 }
 
 impl WorkstreamEvent {
-    pub fn new(workstream: WorkstreamKey, event: FocusaEvent) -> Self {
-        Self {
+    /// Resolve the canonical request envelope before constructing a reducer
+    /// event. No request-local fallback can bypass this path.
+    pub fn from_request(
+        request: WorkstreamRequestEnvelope,
+        event: FocusaEvent,
+    ) -> Result<Self, WorkstreamContextError> {
+        let expected_revision = request.expected_revision;
+        let context = WorkstreamContext::extract(request)?;
+        let workstream = context.workstream.clone();
+        Ok(Self {
             workstream,
+            context,
             event,
-            expected_revision: None,
-        }
+            expected_revision,
+        })
+    }
+
+    pub fn new(
+        request: WorkstreamRequestEnvelope,
+        event: FocusaEvent,
+    ) -> Result<Self, WorkstreamContextError> {
+        Self::from_request(request, event)
     }
 
     pub fn at_revision(
-        workstream: WorkstreamKey,
+        mut request: WorkstreamRequestEnvelope,
         expected_revision: u64,
         event: FocusaEvent,
-    ) -> Self {
-        Self {
-            workstream,
-            event,
-            expected_revision: Some(expected_revision),
-        }
+    ) -> Result<Self, WorkstreamContextError> {
+        request.expected_revision = Some(expected_revision);
+        Self::from_request(request, event)
     }
 
     pub fn workstream_id(&self) -> &WorkstreamId {

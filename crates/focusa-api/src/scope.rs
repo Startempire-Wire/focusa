@@ -15,6 +15,13 @@ use axum::{
 };
 use focusa_core::scoped_state::{ScopeRef, WorkstreamKey};
 use focusa_core::working_subpath::resolve_git_working_context;
+use focusa_core::workstream_context::{
+    ActorRef, AuthorityContext, WorkstreamContext, WorkstreamContextError,
+    WorkstreamRequestEnvelope,
+};
+use focusa_core::workstream_identity::{
+    AttachmentKey, ContinuityId, WorkstreamKey as CanonicalWorkstreamKey,
+};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{collections::HashMap, fmt};
@@ -45,6 +52,58 @@ pub enum ScopeSource {
 }
 
 impl ScopeContext {
+    /// Build the canonical request envelope from an exact WorkstreamKey.
+    ///
+    /// The legacy API scope is metadata only here: it may contribute a
+    /// continuity consistency claim, but it never selects a Workstream from a
+    /// path, session, or request-local presentation state.
+    pub fn canonical_request_envelope(
+        &self,
+        workstream: CanonicalWorkstreamKey,
+        actor: ActorRef,
+        authority: AuthorityContext,
+        attachment: Option<AttachmentKey>,
+    ) -> Result<WorkstreamRequestEnvelope, WorkstreamContextError> {
+        if self.project_root.as_deref().is_some_and(|requested_root| {
+            requested_root.trim_end_matches('/')
+                != workstream
+                    .scope
+                    .legacy_scope()
+                    .root_path
+                    .to_string_lossy()
+                    .trim_end_matches('/')
+        }) {
+            return Err(WorkstreamContextError::WorkstreamMismatch);
+        }
+
+        let mut request =
+            WorkstreamRequestEnvelope::new(Some(workstream), attachment, actor, authority);
+        request.continuity_id = self
+            .continuity_id
+            .as_deref()
+            .map(|value| ContinuityId::parse(value.to_string()))
+            .transpose()
+            .map_err(|_| WorkstreamContextError::ContinuityMismatch)?;
+        Ok(request)
+    }
+
+    /// Resolve the canonical Workstream context used by the reducer path.
+    ///
+    /// Callers must provide the exact typed WorkstreamKey. `ScopeContext` is
+    /// deliberately not a resolver and cannot manufacture one from CWD or
+    /// continuity alone.
+    pub fn resolve_workstream_context(
+        &self,
+        workstream: CanonicalWorkstreamKey,
+        actor: ActorRef,
+        authority: AuthorityContext,
+        attachment: Option<AttachmentKey>,
+    ) -> Result<WorkstreamContext, WorkstreamContextError> {
+        WorkstreamContext::extract(
+            self.canonical_request_envelope(workstream, actor, authority, attachment)?,
+        )
+    }
+
     /// Whether this request has an explicit scope.
     pub fn is_scoped(&self) -> bool {
         self.project_root.is_some() || self.continuity_id.is_some()
