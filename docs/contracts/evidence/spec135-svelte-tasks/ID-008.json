@@ -1,0 +1,76 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "ID-008",
+  "result": "Implemented typed advisory shadow Workstream persistence. LegacyState.read clones the typed legacy FocusaState through a shared reference, ShadowWorkstreamStore.write materializes only proven mappings under exact WorkstreamKey values, and ambiguous, unmapped, foreign, invalid, or conflicting inputs remain in append-only quarantine without an inferred owner. ParityComparator.compare is bounded and distinguishes equal mapped state, expected unsafe-fallback removal, migration mismatch, quarantined ambiguity, deprecated data, and serialization-only differences.",
+  "targets": [
+    "crates/focusa-core/src/workstream_shadow.rs",
+    "crates/focusa-core/src/workstream_quarantine.rs",
+    "crates/focusa-core/src/lib.rs",
+    "tests/spec158_workstream_shadow_source_test.py"
+  ],
+  "checks": [
+    "rustfmt --edition 2024 --check crates/focusa-core/src/workstream_shadow.rs (exit 0)",
+    "python3 tests/spec158_workstream_shadow_source_test.py (exit 0; positive and hostile source contract: PASS)",
+    "python3 tests/spec158_workstream_identity_source_test.py (exit 0; PASS)",
+    "python3 tests/spec158_workstream_state_source_test.py (exit 0; PASS)",
+    "python3 tests/spec158_workstream_context_source_test.py (exit 0; PASS)",
+    "python3 tests/spec158_workstream_migration_source_test.py (exit 0; PASS)",
+    "python3 tests/spec158_workstream_quarantine_source_test.py (exit 0; PASS)",
+    "python3 -m py_compile tests/spec158_workstream_shadow_source_test.py (exit 0)",
+    "git diff --check (exit 0)"
+  ],
+  "remaining_checks": [
+    "cargo test -p focusa-core workstream_shadow_materialization --lib (not run; Cargo is prohibited for this corrective pass)"
+  ],
+  "remaining_work": [
+    "Cargo runtime execution only; no unresolved source implementation work remains"
+  ],
+  "negative_cases": {
+    "ambiguous_mapping": "Two mappings for one legacy source produce zero shadow rows, retain both exact candidate WorkstreamKeys in quarantine, and compare as quarantined ambiguity.",
+    "unmapped_record": "A canonical legacy record without a proven mapping is quarantined as UnmappedLegacyRecord and never receives an implicit owner.",
+    "foreign_scope": "A declared legacy scope that disagrees with the mapping scope is quarantined as ConflictingProjectRoots.",
+    "conflicting_mapping": "Multiple mappings for one source are quarantined as MultipleCandidateWorkstreams or ConflictingWorkstreamMappings; no merge or default assignment occurs.",
+    "unsafe_fallback": "Unsafe fallback records are retained as immutable evidence and reported as ExpectedRemovalOfUnsafeFallback rather than materialized.",
+    "deprecated_data": "Deprecated records are retained as immutable evidence and reported as DeprecatedData rather than materialized.",
+    "shadow_authority": "The shadow store exposes shared row/quarantine access only, has no reducer or mutable state accessor, and reports itself advisory."
+  },
+  "acceptance": [
+    {
+      "statement": "Equal mapped state passes.",
+      "status": "implemented_source_verified_runtime_deferred",
+      "proof": "workstream_shadow_materialization::equal_mapped_state_passes_bounded_parity asserts one exact mapping materializes one row and ParityDisposition::EqualMappedState makes ParityReport::passes true; the required Cargo execution is deferred."
+    },
+    {
+      "statement": "Ambiguous state remains quarantined.",
+      "status": "implemented_source_verified_runtime_deferred",
+      "proof": "workstream_shadow_materialization::ambiguous_mapping_is_quarantined_without_default_assignment asserts zero rows, MultipleCandidateWorkstreams quarantine, both candidate WorkstreamKeys, and QuarantinedAmbiguity parity; the required Cargo execution is deferred."
+    },
+    {
+      "statement": "Shadow output is advisory and cannot become a second mutable canonical truth.",
+      "status": "implemented_source_verified",
+      "proof": "ShadowWorkstreamStore has private rows, quarantine, and omission storage, shared-only accessors, no reducer path, and is_advisory() returns true."
+    },
+    {
+      "statement": "Parity comparison distinguishes all Spec 158 §6 dispositions.",
+      "status": "implemented_source_verified",
+      "proof": "ParityDisposition defines EqualMappedState, ExpectedRemovalOfUnsafeFallback, MigrationMismatch, QuarantinedAmbiguity, DeprecatedData, and SerializationOnlyDifference; canonical_json separates semantic equality from raw serialization differences."
+    }
+  ],
+  "source_authority": {
+    "docs/spec158/01-identity-ownership-and-reducer.md": "read completely",
+    "docs/spec158/02-persistence-migration-and-quarantine.md": "read completely",
+    "crates/focusa-core/src/workstream_identity.rs": "read completely",
+    "crates/focusa-core/src/workstream_state.rs": "read completely",
+    "crates/focusa-core/src/workstream_context.rs": "read completely",
+    "crates/focusa-core/src/workstream_migration.rs": "read completely",
+    "crates/focusa-core/src/workstream_quarantine.rs": "read completely before extension"
+  },
+  "evidence_refs": [
+    "docs/spec158/01-identity-ownership-and-reducer.md",
+    "docs/spec158/02-persistence-migration-and-quarantine.md",
+    "crates/focusa-core/src/workstream_shadow.rs",
+    "crates/focusa-core/src/workstream_quarantine.rs",
+    "tests/spec158_workstream_shadow_source_test.py"
+  ],
+  "status": "implemented_partial"
+}
