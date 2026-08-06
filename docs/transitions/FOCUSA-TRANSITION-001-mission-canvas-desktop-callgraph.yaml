@@ -2,11 +2,30 @@ schema: focusa.mission_canvas_desktop_implementation_callgraph.v1
 status: implementation_guide
 executable_child: docs/transitions/FOCUSA-TRANSITION-001-mission-canvas-executable-callgraph.yaml
 purpose: >-
-  Source-grounded callgraph for transferring the fundamental Spec 135 Mission Canvas
-  into Focusa Desktop without inventing product structure, state, panels, authority, or actions.
+  Source-grounded callgraph for translating the complete unchanged Spec 135-series
+  Mission Canvas planned as a Pi TUI overlay into the Focusa Desktop Mission Canvas
+  Svelte GUI tab without omitting functionality or inventing product structure,
+  state, panels, authority, or actions.
+
+cardinal_translation_contract:
+  id: CARDINAL-135-SVELTE-001
+  source: unchanged Spec 135 master and 135A-135K Pi TUI-overlay requirements
+  destination: Focusa Desktop Mission Canvas Svelte GUI tab
+  separate_surface: Agent TUI remains the authentic PTY-backed Pi terminal tab
+  applies_to: every node in this callgraph and every task in its executable child
+  completion_rule: >-
+    Preserve and translate every cited overlay behavior into the dynamic Svelte-hosted
+    Mission Canvas; terminal-only, fixture-only, screenshot-only, or fixed-dashboard
+    implementations cannot complete a node.
+  dynamic_rule: >-
+    Core resolves eligible contributions and layout; vertical packs, activities,
+    profiles, capabilities, Work Surfaces, evidence, and events may recompose the GUI;
+    Svelte renders canonical projections and approved generated renderers without
+    becoming a second resolver.
 
 source_precedence:
   - operator_steering_in_this_transition
+  - docs/transitions/FOCUSA-TRANSITION-001-spec135-svelte-translation-matrix.md
   - /tmp/focusa-spec158-transition/docs__135-series-spec158-desktop-transition-overlay.md
   - /tmp/focusa-spec158-transition/docs__transitions__FOCUSA-TRANSITION-001-mission-canvas-to-desktop-handoff.md
   - /tmp/focusa-spec158-transition/docs__transitions__FOCUSA-TRANSITION-001-task-graph.yaml
@@ -206,6 +225,7 @@ execution_rules_for_agents:
 
 nodes:
   - id: MC-000
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Reconcile transition task graph with the existing Spec 135 semantic core
     status: complete
     depends_on: []
@@ -226,6 +246,7 @@ nodes:
       - No node directs an agent to hard-code the populated reference screenshots.
 
   - id: MC-010
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Land canonical Workstream identity primitives
     status: blocked_external
     transition_refs: [T021, T022, T023]
@@ -244,6 +265,7 @@ nodes:
       - Do not patch Desktop local state to simulate these identities.
 
   - id: MC-020
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Correct Mission Canvas scope and Work Surface identity
     status: blocked
     transition_refs: [T060]
@@ -255,9 +277,10 @@ nodes:
       - docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md
     targets:
       - crates/focusa-core/src/mission_canvas/model.rs
-      - apps/pi-extension/src/mission-canvas-model.ts
-      - apps/pi-extension/src/mission-canvas-session-inventory.ts
-      - related schemas and migrations
+      - apps/desktop/src/lib/mission-canvas/types.ts
+      - apps/desktop/src/lib/mission-canvas/exact-scope.ts
+      - apps/desktop/src/lib/mission-canvas/contributions/SessionInventoryContribution.svelte
+      - related generated schemas and migrations
     calls:
       - CanonicalWorkstreamKey.from_scope_ref_and_workstream_id
       - ExactAttachmentRef.from_attachment_key_and_session_instance
@@ -270,6 +293,7 @@ nodes:
       - ambiguous legacy rows are quarantined, not guessed.
 
   - id: MC-030
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Regenerate Mission Canvas transport contracts after identity correction
     status: blocked
     transition_refs: [T050, T061]
@@ -293,6 +317,7 @@ nodes:
       - Do not hand-edit generated DTO copies inside apps/desktop.
 
   - id: MC-040
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Extract a Pi-independent Mission Canvas consumer package
     status: blocked
     transition_refs: [T061]
@@ -318,6 +343,7 @@ nodes:
       - Do not make Svelte interpret arbitrary any payloads.
 
   - id: MC-050
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Build the Desktop Mission Canvas projection client
     status: blocked
     depends_on: [MC-040, MC-010]
@@ -339,6 +365,7 @@ nodes:
       - renderer receives no mock canonical content.
 
   - id: MC-060
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Replace the static Mission Canvas body with a projection-driven frame
     status: blocked
     transition_refs: [D020-03]
@@ -367,6 +394,7 @@ nodes:
       - No fixed panel exists without an eligible contribution.
 
   - id: MC-070
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Render actual Work Surfaces and focus state
     status: blocked
     depends_on: [MC-060, MC-020]
@@ -384,6 +412,7 @@ nodes:
       - Add Surface is the discovery path for absent surface kinds.
 
   - id: MC-080
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Render activity navigation from the canonical registry
     status: blocked
     depends_on: [MC-060]
@@ -411,6 +440,7 @@ nodes:
       - Do not define activity composition in the component.
 
   - id: MC-090
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Implement recursive LayoutNode rendering
     status: blocked
     depends_on: [MC-060, MC-100]
@@ -434,6 +464,7 @@ nodes:
       - Resize mutations call focusa.mission_canvas.layout.mutate rather than changing canonical layout locally.
 
   - id: MC-100
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Implement the contribution renderer registry
     status: blocked
     depends_on: [MC-040]
@@ -464,6 +495,7 @@ nodes:
       - Do not render unknown bindings as a generic status card.
 
   - id: MC-105
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Bind every canonical activity to its existing domain projection
     status: blocked
     depends_on: [MC-100, MC-030]
@@ -507,6 +539,7 @@ nodes:
       - Do not treat a stage transcript as its generated activity UI.
 
   - id: MC-110
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Implement conditional Work Rail composition
     status: blocked
     depends_on: [MC-090, MC-100]
@@ -524,6 +557,7 @@ nodes:
       - Row actions preserve Workpoint and provider capability truth.
 
   - id: MC-120
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Implement conditional Steering and Follow-up queue composition
     status: blocked
     depends_on: [MC-090, MC-100]
@@ -544,6 +578,7 @@ nodes:
       - Queue recipient is exact Attachment/WorkSurface identity.
 
   - id: MC-130
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Implement canonical Prompt Editor routing and draft preservation
     status: blocked
     depends_on: [MC-050, MC-090]
@@ -561,6 +596,7 @@ nodes:
       - Profile/activity/surface changes preserve drafts.
 
   - id: MC-140
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Implement profile resolution and vertical recomposition
     status: blocked
     transition_refs: [D020-04]
@@ -582,6 +618,7 @@ nodes:
       - Per-profile layout memory survives contribution disappearance and return.
 
   - id: MC-150
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Integrate generated C.R.I.S.T. Work Surfaces
     status: blocked
     depends_on: [MC-070, MC-100, MC-030]
@@ -603,6 +640,7 @@ nodes:
       - UXP/UFI may alter presentation but never authority, required proof, or safety.
 
   - id: MC-160
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Integrate UIAI browser Work Surfaces
     status: blocked
     depends_on: [MC-070, MC-050]
@@ -620,6 +658,7 @@ nodes:
       - Browser state is not duplicated in Desktop.
 
   - id: MC-170
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Implement authentic embedded Pi PTY Work Surface
     status: blocked
     transition_refs: [D023-02, D023-03, T080]
@@ -644,6 +683,7 @@ nodes:
       - ordinary child-process pipes are not used.
 
   - id: MC-180
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Implement Desktop live event and invalidation loop
     status: blocked
     transition_refs: [T072]
@@ -664,6 +704,7 @@ nodes:
       - events from another Workstream cannot update the active Canvas.
 
   - id: MC-190
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Implement Work Surface lifecycle commands and Desktop semantic control plane
     status: blocked
     transition_refs: [T072]
@@ -687,6 +728,7 @@ nodes:
       - Closing a view does not silently destroy canonical work.
 
   - id: MC-200
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Transfer Pi Mission Canvas command to Desktop presentation
     status: blocked
     depends_on: [MC-190, MC-170]
@@ -702,6 +744,7 @@ nodes:
       - Menubar retains only bounded status and handoff responsibilities.
 
   - id: MC-210
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Implement responsive projection rendering
     status: blocked
     depends_on: [MC-090, MC-140]
@@ -723,6 +766,7 @@ nodes:
       - Keyboard focus and active Work Surface survive recomposition.
 
   - id: MC-220
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Implement continuity, restoration, and capability-loss behavior
     status: blocked
     depends_on: [MC-130, MC-170, MC-180, MC-190]
@@ -749,6 +793,7 @@ nodes:
       - Canvas/TUI switching, hide/show, Desktop restart, daemon reconnect, and contribution recomposition retain the required invariants.
 
   - id: MC-230
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Remove the static Desktop Mission Canvas scaffold
     status: blocked
     depends_on: [MC-060, MC-070, MC-090, MC-110, MC-120, MC-130]
@@ -764,6 +809,7 @@ nodes:
       - No capability is lost during deletion.
 
   - id: MC-240
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Run functional acceptance for the core Mission Canvas
     status: blocked
     transition_refs: [D025-01]
@@ -785,6 +831,7 @@ nodes:
     output: Core functionality accepted before finishing visual refinement.
 
   - id: MC-250
+    translation_contract_ref: CARDINAL-135-SVELTE-001
     title: Apply final visual-system refinement
     status: blocked
     depends_on: [MC-240]

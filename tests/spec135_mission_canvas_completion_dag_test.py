@@ -25,10 +25,13 @@ assert graph["operator_confirmations"] == {
     "replacement_text_outranks_images_and_older_contracts_for_occupancy": True,
     "images_are_populated_examples_not_fixed_inventory": True,
     "quality_compromise_allowed": False,
-    "implementation_owner": "Pi extension",
+    "implementation_owner": "Focusa Desktop Mission Canvas Svelte GUI tab; Pi extension remains compatibility and Agent TUI integration only",
     "required_platforms": ["macOS", "Windows", "Linux"],
     "release_path": "canonical Git/GitHub release pipeline only",
 }
+assert graph["cardinal_translation_rule"]["id"] == "CARDINAL-135-SVELTE-001"
+assert graph["cardinal_translation_rule"]["destination"] == "apps/desktop Mission Canvas Svelte GUI tab"
+assert all(node["translation_contract_ref"] == "CARDINAL-135-SVELTE-001" for node in graph["nodes"])
 assert graph["trajectory_alignment"]["mlg"].startswith("Close all 30 remaining")
 assert graph["trajectory_alignment"]["ready_frontier"] == [
     "SPEC135-RI4",
@@ -98,8 +101,8 @@ for forbidden_completion in (
 finding_classes = {finding["classification"] for finding in graph["current_state_findings"]}
 assert {
     "closure_reconciled",
-    "authoritative_pi_native_foundation",
-    "pi_native_renderer_implemented",
+    "pi_overlay_source_inventory",
+    "desktop_svelte_renderer_partial",
     "provider_blocked",
     "baseline_failure",
     "proof_missing",

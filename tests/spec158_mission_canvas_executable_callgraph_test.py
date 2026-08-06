@@ -10,12 +10,16 @@ PARENT_PATH = ROOT / "docs/transitions/FOCUSA-TRANSITION-001-mission-canvas-desk
 DESKTOP_PATH = ROOT / "docs/transitions/FOCUSA-TRANSITION-001-desktop-implementation-task-graph.yaml"
 REGISTRY_PATH = ROOT / "docs/contracts/spec135/mission-canvas-v1/operation-registry.json"
 PROFILE_MATRIX_PATH = ROOT / "tests/fixtures/spec135-profile-activity-matrix.json"
+COMPLETION_DAG_PATH = ROOT / "docs/contracts/spec135-mission-canvas-completion-dag.v2.json"
+CARDINAL_TRANSLATION_REF = "CARDINAL-135-SVELTE-001"
+TRANSLATION_MATRIX = "docs/transitions/FOCUSA-TRANSITION-001-spec135-svelte-translation-matrix.md"
 
 G = yaml.safe_load(GRAPH_PATH.read_text())
 PARENT = yaml.safe_load(PARENT_PATH.read_text())
 DESKTOP = yaml.safe_load(DESKTOP_PATH.read_text())
 REGISTRY = json.loads(REGISTRY_PATH.read_text())
 MATRIX = json.loads(PROFILE_MATRIX_PATH.read_text())
+COMPLETION_DAG = json.loads(COMPLETION_DAG_PATH.read_text())
 
 tasks = G["atomic_tasks"] + G["operation_tasks"] + G["integration_tasks"]
 ids = [task["id"] for task in tasks]
@@ -47,6 +51,18 @@ assert next(task for task in tasks if task["id"] == "FIXTURE-001")["status"] == 
 
 assert PARENT["executable_child"] == str(GRAPH_PATH.relative_to(ROOT))
 assert DESKTOP["mission_canvas_executable_callgraph"] == str(GRAPH_PATH.relative_to(ROOT))
+
+assert (ROOT / TRANSLATION_MATRIX).is_file()
+assert G["shared_sources"]["cardinal_translation"] == TRANSLATION_MATRIX
+assert PARENT["source_precedence"][1] == TRANSLATION_MATRIX
+assert G["cardinal_translation_contract"]["id"] == CARDINAL_TRANSLATION_REF
+assert PARENT["cardinal_translation_contract"]["id"] == CARDINAL_TRANSLATION_REF
+assert DESKTOP["cardinal_translation_contract"]["id"] == CARDINAL_TRANSLATION_REF
+assert COMPLETION_DAG["cardinal_translation_rule"]["id"] == CARDINAL_TRANSLATION_REF
+assert all(task["translation_contract_ref"] == CARDINAL_TRANSLATION_REF for task in tasks)
+assert all(node["translation_contract_ref"] == CARDINAL_TRANSLATION_REF for node in PARENT["nodes"])
+assert all(node["translation_contract_ref"] == CARDINAL_TRANSLATION_REF for node in DESKTOP["nodes"])
+assert all(node["translation_contract_ref"] == CARDINAL_TRANSLATION_REF for node in COMPLETION_DAG["nodes"])
 
 expected_profiles = {"general", "software", "legal", "markets", "research", "custom"}
 expected_activities = {
