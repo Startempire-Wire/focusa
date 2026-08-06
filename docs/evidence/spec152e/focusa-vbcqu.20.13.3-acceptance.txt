@@ -1,0 +1,59 @@
+Spec 152E EDD product, grant, and legacy registry verification record
+Work item: focusa-vbcqu.20.13.3
+Implementation commit: d0615936ec8d6f683b8d88e3dbc3494de9b654ef
+
+OUTPUTS
+- Canonical source: docs/contracts/spec152e-edd-product-registry.v1.yaml
+  SHA256: 2c4d29898b17ae4a58bec7a12b6487a6d4a8a9531e2f239ef2f83e7f85dc9bc6
+- Generated JSON: docs/contracts/spec152e-edd-product-registry.v1.json
+  SHA256: 6aeb9e3c19b49c2094f08b697ac74d4153c2b15133f620caf9cb102f02d8acec
+- Generated PHP: docs/contracts/spec152e-edd-product-registry.v1.php
+  SHA256: 4b101a63aa4f1f77bdf5a832389940cc8e1acf5b54377e265fe66a1c1ea56716
+- Generator: scripts/generate-spec152e-product-registry.py
+  SHA256: 2c2f5d485410424e5e0ec7b061b3fb8ae183ace510dfd829140e84b3eecb5384
+- PHP validator: tests/spec152e_product_registry_test.php
+  SHA256: fff63173bf5c0b490670675aae3d849c0167ba93d1db525ab794b0e5e86dcdc6
+- Contract validator: tests/spec152e_product_registry_contract_test.py
+  SHA256: 8b2d407e5ec1cff9d3ebfdd99309e051a2d108cb71f84448e522d4dbb195bbad
+
+FROZEN FAIL-CLOSED REGISTRY
+- Four exact public codes exist once: focusa_operator, uiai_engine_operator, focusa_uiai_bundle, and focusa_evaluation.
+- All four are blocked_unassigned and checkout_enabled=false.
+- No EDD download ID, EDD price ID, duration, node limit, facade, refund policy, upgrade policy, commercial right, premium feature, or Evaluation duration was invented.
+- Product projection is bounded to Focusa, UIAI Engine, or the bundle; Evaluation is Focusa-only.
+- Ten caller-controlled commercial fields are rejected, including download/price IDs, prices, tiers, products, features, limits, rights, duration, and node limit.
+- Unknown and unassigned codes return PRODUCT_MAPPING_REQUIRED.
+
+CURRENT CATALOG
+- 14 deployed EDD Downloads and their public prices, Software Licensing flags, activation limits, and duration settings are frozen from read-only WPUIAI.com inspection.
+- Download 453 is WPUIAI Pro Lifetime, price 149.00, activation limit 5; it is quarantined and explicitly forbidden as implicit Focusa authority.
+- Credit Downloads 455–457 are retired from entitlement mapping and cannot grant capability.
+- No current EDD Download is silently promoted into a protected offer.
+
+LEGACY DISPOSITION
+- 10 disjoint record classes cover 11 EDD licenses and 83 install-site licenses.
+- Migrate: three evidence-backed active Stripe classes, 42 records pending exact payment/refund/product verification.
+- Quarantine: five synthetic, API-issued, missing-product, or not-yet-linked EDD classes, 25 records.
+- Retire from active entitlement: refunded and revoked classes, 27 records, with history preserved and reactivation forbidden.
+- Counts overlap only across different deployment totals: EDD classes sum to 11; install-site classes sum to 83.
+
+VERIFICATION
+PASS php tests/spec152e_product_registry_test.php
+  protected_offers=4 blocked_unassigned=4 forbidden_caller_fields=10 legacy_classes=10
+PASS python3 tests/spec152e_product_registry_contract_test.py
+  protected_offers=4 checkout_enabled=0 assigned_edd_downloads=0 catalog_entries=14 legacy_classes=10
+PASS python3 scripts/generate-spec152e-product-registry.py --check
+PASS php -l generated registry and PHP validator
+PASS python3 -m py_compile generator and contract validator
+PASS git diff --check
+PASS every source/generated/test file is below 500 lines
+
+BLOCKING OPERATOR DECISIONS
+The deployed EDD catalog contains no dedicated Focusa Operator, UIAI Engine Operator, Focusa/UIAI Bundle, or Evaluation Download. The task requires exact EDD Download/price IDs, durations, node limits, supported facades, refunds, and upgrade policies. No current written authority selects those values, and Spec 152E explicitly rejects implicit Download 453 authority. Therefore the registry cannot be activated or this atom truthfully closed until the operator approves dedicated mappings and commercial terms.
+
+ROLLBACK
+Revert implementation commit d0615936 and this verification-record commit only. Preserve EDD customers, orders, prices, refunds, licenses, install-site records, revocations, credentials, nodes, sequences, data, migration journals, Workpoints, and prior evidence. Rollback cannot authorize Download 453, caller metadata, local Evaluation, or install-site issuance.
+
+RESULT
+TECHNICAL_ACCEPTANCE: BLOCKED
+The deterministic registry, catalog, resolver contract, and complete legacy dispositions pass. Commercial activation remains safely blocked with zero mapped Downloads and zero enabled checkouts. This file is a verification record, not acceptance. Closure requires explicit operator-approved EDD product/price mappings and commercial policies, regeneration, both exact tests, and updated evidence.
