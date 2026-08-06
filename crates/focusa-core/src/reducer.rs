@@ -2062,7 +2062,7 @@ pub fn reduce_with_meta(
                 && state.work_loop.status == WorkLoopStatus::TransportDegraded
             {
                 state.work_loop.status = if state.work_loop.current_task.is_some() {
-                    WorkLoopStatus::PreparingTurn
+                    WorkLoopStatus::SelectingReadyWork
                 } else {
                     WorkLoopStatus::Idle
                 };
@@ -6943,7 +6943,10 @@ mod tests {
         .unwrap()
         .new_state;
 
-        assert_eq!(recovered.work_loop.status, WorkLoopStatus::PreparingTurn);
+        assert_eq!(
+            recovered.work_loop.status,
+            WorkLoopStatus::SelectingReadyWork
+        );
         assert!(recovered.work_loop.last_blocker_class.is_none());
         assert!(recovered.work_loop.last_blocker_reason.is_none());
         assert_eq!(
