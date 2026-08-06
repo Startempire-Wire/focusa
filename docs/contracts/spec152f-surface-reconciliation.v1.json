@@ -1,0 +1,68 @@
+{
+  "authority": "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md",
+  "baseline_counts": {
+    "covered": 569,
+    "total": 964,
+    "unmatched": 395
+  },
+  "baseline_coverage": "docs/contracts/spec152-entitlement-coverage.v1.json",
+  "coverage_canonical_sha256": "b42c1aab1296263e86ca3ded275b5682f5344df16266b8b79554c615f430edb4",
+  "policy": "docs/contracts/spec152f-entitlement-policy.v1.yaml",
+  "policy_file_sha256": "90402e748d4e6e218db700c865af092861d82c560c3f292a5ccb7073d5fdf938",
+  "resolution_counts": {
+    "base_entitlement_candidate": 138,
+    "inherit_canonical_operation": 175,
+    "metadata_repair_required": 31,
+    "premium_family_candidate": 41,
+    "recovery_or_read_allowance": 3,
+    "scanner_exclusion_test_only": 7
+  },
+  "rules": [
+    "inventory rows are not prices SKUs or independent paywalls",
+    "unknown methods require source-backed metadata repair",
+    "presenters inherit canonical operation policy",
+    "test-only files are excluded without hiding production entrypoints",
+    "recovery read export repair rollback and stable security paths remain available subject to security"
+  ],
+  "runtime_file_entries": 27,
+  "runtime_file_entries_after_test_exclusion": 20,
+  "schema": "focusa.spec152f.surface_reconciliation.v1",
+  "shards": {
+    "cli": {
+      "path": "docs/contracts/spec152f-surface-reconciliation/cli.v1.json",
+      "row_count": 86,
+      "sha256": "84f85683f2b2fc5040af3577c36af4151b513cfe141dc63e734fa1fc7b427fc7"
+    },
+    "menubar": {
+      "path": "docs/contracts/spec152f-surface-reconciliation/menubar.v1.json",
+      "row_count": 83,
+      "sha256": "37bb2c825f3f79275ef678b8889dd02697b67554d37f366c27fa7ba9a229d67d"
+    },
+    "rest": {
+      "path": "docs/contracts/spec152f-surface-reconciliation/rest.v1.json",
+      "row_count": 199,
+      "sha256": "16b2e822bd095e8e29392a73b1d52e8827a05d3ae5a6a3de4dc879592902f39e"
+    },
+    "runtime_files": {
+      "path": "docs/contracts/spec152f-surface-reconciliation/runtime_files.v1.json",
+      "row_count": 27,
+      "sha256": "16fe3ebc30571ac3892596a53cc4a0dfb487688ff010855d510a0be27216ea9e"
+    }
+  },
+  "source_digests": {
+    "docs/contracts/spec135/generated-contract-v1/operation-registry.json": "dbc025c7f77d0565a5d10de500d5f068ba0c317c4daf401acc09b831db95c449",
+    "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json": "39e957bb1aeb645fd31b10465b5244a24bf1c7eee4424450c1c045564ec42ed9",
+    "docs/contracts/spec141/generated-capability-v2/route-classification.json": "f0a4080284e42bc74cd36843d523343fdb71abfea3b797ec4e15d0014154d6c2"
+  },
+  "surface_counts": {
+    "cli": 86,
+    "export": 3,
+    "menubar": 83,
+    "release": 17,
+    "rest": 199,
+    "scheduler": 2,
+    "update": 5
+  },
+  "test_only_scanner_exclusions": 7,
+  "unknown_method_routes": 31
+}

@@ -12,6 +12,9 @@ OUTPUT = ROOT / "docs/contracts/spec152-entitlement-coverage.v1.json"
 ROUTES = ROOT / "docs/contracts/spec141/generated-capability-v2/route-classification.json"
 OPERATIONS = ROOT / "docs/contracts/spec135/generated-contract-v1/operation-registry.json"
 CAPABILITIES = ROOT / "docs/contracts/spec141/generated-capability-v2/agent-capability-descriptors.json"
+POLICY = ROOT / "docs/contracts/spec152f-entitlement-policy.v1.yaml"
+RECONCILIATION_OUTPUT = ROOT / "docs/contracts/spec152f-surface-reconciliation.v1.json"
+RECONCILIATION_DIR = ROOT / "docs/contracts/spec152f-surface-reconciliation"
 
 FAMILY_FEATURE = {
     "agent": "focusa.core.workpoint",
@@ -192,14 +195,139 @@ def build():
     return payload
 
 
+def _sha256(data):
+    if isinstance(data, str): data = data.encode()
+    return hashlib.sha256(data).hexdigest()
+
+
+def _is_test_path(value):
+    path = "/" + value.replace("\\", "/")
+    name = Path(value).name
+    return "/tests/" in path or name.endswith("_test.rs")
+
+
+def _rest_segment(path):
+    parts = path.strip("/").split("/")
+    return parts[1] if len(parts) > 1 and parts[0] == "v1" else parts[0]
+
+
+def _resolution(row):
+    surface, symbol = row["surface"], row["symbol_or_route"]
+    if surface == "rest":
+        if row["mutation_class"] == "unknown":
+            return "metadata_repair_required", None, "focusa-vbcqu.20.14.23", "HTTP method and side effects must be source-backed before policy."
+        segment = _rest_segment(symbol)
+        if symbol == "/v1/update/rollback":
+            return "recovery_or_read_allowance", "account_recovery", "focusa-vbcqu.20.14.24", "Rollback remains reachable subject to security and artifact trust."
+        premium = {
+            "silent-sessions": "automation",
+            "sync": "team_remote",
+            "instances": "team_remote",
+            "update": "premium_updates",
+        }.get(segment)
+        if premium:
+            return "premium_family_candidate", premium, "focusa-vbcqu.20.14.24", "Route requires operation-level premium or exception resolution."
+        return "base_entitlement_candidate", "base_focusa", "focusa-vbcqu.20.14.24", "Known mutation defaults to base until canonical operation metadata proves an exception."
+    if surface == "cli":
+        return "inherit_canonical_operation", None, "focusa-vbcqu.20.14.25", "Top-level command names are presenters, not SKUs."
+    if surface == "menubar":
+        return "inherit_canonical_operation", None, "focusa-vbcqu.20.14.26", "Click handlers inherit invoked operations; navigation and display are not paywalls."
+    if _is_test_path(symbol):
+        return "scanner_exclusion_test_only", None, "focusa-vbcqu.20.14.27", "Test-only source is not a runtime entitlement surface."
+    if surface == "export":
+        return "recovery_or_read_allowance", "customer_data_export", "focusa-vbcqu.20.14.28", "Basic customer-data export remains available; premium packaging is operation-bound."
+    if surface == "release":
+        return "premium_family_candidate", "release_proof", "focusa-vbcqu.20.14.28", "Filename is not policy; callable entrypoints must distinguish base read from premium proof."
+    return "inherit_canonical_operation", None, "focusa-vbcqu.20.14.28", "Runtime helper inherits its initiating operation and dispatch-time authority."
+
+
+def _render_shard(payload):
+    lines = ["{", f'  "schema": {json.dumps(payload["schema"])},', f'  "surface_group": {json.dumps(payload["surface_group"])},', f'  "row_count": {payload["row_count"]},', '  "rows": [']
+    for index, row in enumerate(payload["rows"]):
+        lines.append("    " + json.dumps(row, sort_keys=True, separators=(",", ":")) + ("," if index + 1 < len(payload["rows"]) else ""))
+    lines.extend(["  ]", "}"])
+    return "\n".join(lines) + "\n"
+
+
+def build_reconciliation():
+    coverage = build()
+    rows = []
+    for source_row in coverage["unmatched_surfaces"]:
+        resolution, family, owner_task, rationale = _resolution(source_row)
+        canonical = json.dumps(source_row, sort_keys=True, separators=(",", ":"))
+        rows.append({
+            "baseline_id": f'{source_row["surface"]}:{_sha256(canonical)[:16]}',
+            "surface": source_row["surface"],
+            "symbol_or_route": source_row["symbol_or_route"],
+            "mutation_class": source_row["mutation_class"],
+            "source": source_row["source"],
+            "resolution": resolution,
+            "candidate_family": family,
+            "owner_task": owner_task,
+            "rationale": rationale,
+        })
+    rows.sort(key=lambda row: (row["surface"], row["symbol_or_route"], row["baseline_id"]))
+    groups = {
+        "rest": [row for row in rows if row["surface"] == "rest"],
+        "cli": [row for row in rows if row["surface"] == "cli"],
+        "menubar": [row for row in rows if row["surface"] == "menubar"],
+        "runtime_files": [row for row in rows if row["surface"] not in {"rest", "cli", "menubar"}],
+    }
+    rendered_shards, shard_refs = {}, {}
+    for group, group_rows in groups.items():
+        relative = f"docs/contracts/spec152f-surface-reconciliation/{group}.v1.json"
+        rendered = _render_shard({"schema": "focusa.spec152f.surface_reconciliation_shard.v1", "surface_group": group, "row_count": len(group_rows), "rows": group_rows})
+        rendered_shards[relative] = rendered
+        shard_refs[group] = {"path": relative, "row_count": len(group_rows), "sha256": _sha256(rendered)}
+    resolution_counts = {}
+    for row in rows: resolution_counts[row["resolution"]] = resolution_counts.get(row["resolution"], 0) + 1
+    surface_counts = {}
+    for row in rows: surface_counts[row["surface"]] = surface_counts.get(row["surface"], 0) + 1
+    index = {
+        "schema": "focusa.spec152f.surface_reconciliation.v1",
+        "authority": "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md",
+        "policy": "docs/contracts/spec152f-entitlement-policy.v1.yaml",
+        "baseline_coverage": "docs/contracts/spec152-entitlement-coverage.v1.json",
+        "baseline_counts": coverage["counts"],
+        "surface_counts": dict(sorted(surface_counts.items())),
+        "resolution_counts": dict(sorted(resolution_counts.items())),
+        "unknown_method_routes": sum(row["surface"] == "rest" and row["mutation_class"] == "unknown" for row in rows),
+        "test_only_scanner_exclusions": sum(row["resolution"] == "scanner_exclusion_test_only" for row in rows),
+        "runtime_file_entries": len(groups["runtime_files"]),
+        "runtime_file_entries_after_test_exclusion": sum(row["surface"] not in {"rest", "cli", "menubar"} and row["resolution"] != "scanner_exclusion_test_only" for row in rows),
+        "coverage_canonical_sha256": _sha256(json.dumps(coverage, sort_keys=True, separators=(",", ":"))),
+        "policy_file_sha256": _sha256(POLICY.read_bytes()),
+        "source_digests": coverage["source_digests"],
+        "shards": shard_refs,
+        "rules": [
+            "inventory rows are not prices SKUs or independent paywalls",
+            "unknown methods require source-backed metadata repair",
+            "presenters inherit canonical operation policy",
+            "test-only files are excluded without hiding production entrypoints",
+            "recovery read export repair rollback and stable security paths remain available subject to security",
+        ],
+    }
+    return index, rendered_shards
+
+
 def main():
     parser = argparse.ArgumentParser(); parser.add_argument("--check", action="store_true")
     args = parser.parse_args(); payload = build()
     rendered = json.dumps(payload, indent=2, sort_keys=True) + "\n"
+    reconciliation, shards = build_reconciliation()
+    rendered_reconciliation = json.dumps(reconciliation, indent=2, sort_keys=True) + "\n"
     if args.check:
         if not OUTPUT.exists() or OUTPUT.read_text() != rendered: raise SystemExit("entitlement coverage is stale")
-    else: OUTPUT.write_text(rendered)
-    print(json.dumps(payload["counts"], sort_keys=True))
+        if not RECONCILIATION_OUTPUT.exists() or RECONCILIATION_OUTPUT.read_text() != rendered_reconciliation: raise SystemExit("Spec 152F reconciliation index is stale")
+        for relative, expected in shards.items():
+            path = ROOT / relative
+            if not path.exists() or path.read_text() != expected: raise SystemExit(f"Spec 152F reconciliation shard is stale: {relative}")
+    else:
+        OUTPUT.write_text(rendered)
+        RECONCILIATION_DIR.mkdir(parents=True, exist_ok=True)
+        RECONCILIATION_OUTPUT.write_text(rendered_reconciliation)
+        for relative, content in shards.items(): (ROOT / relative).write_text(content)
+    print(json.dumps({"coverage": payload["counts"], "reconciliation": reconciliation["resolution_counts"]}, sort_keys=True))
 
 
 if __name__ == "__main__": main()
