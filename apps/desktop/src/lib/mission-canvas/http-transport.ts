@@ -1,5 +1,5 @@
 import type { MissionCanvasOperationInput, MissionCanvasTransport } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-client.generated';
-import { validateMissionCanvasContract } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated';
+import { sameWorkstreamKey, validateMissionCanvasContract } from '../../../../../docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated';
 import type { WorkstreamAuthorityContext } from './types';
 import registry from '../../../../../docs/contracts/spec135/mission-canvas-v1/operation-registry.json';
 
@@ -10,6 +10,8 @@ interface OperationDescriptor {
   response_schema_ref: string;
   availability: string;
   requires_idempotency_key: boolean;
+  confirmation: string;
+  receipt_required: boolean;
 }
 
 export class MissionCanvasTransportError extends Error {
@@ -36,7 +38,11 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
     baseUrl: string,
     fetchImplementation: typeof fetch = fetch,
     private readonly accessToken?: string,
-    private readonly timeoutMs = 30_000
+    private readonly timeoutMs = 30_000,
+    private readonly permissionScopes: readonly string[] = [],
+    private readonly capabilityRefs: readonly string[] = [],
+    private readonly actorId?: string,
+    private readonly authorityRef?: string
   ) {
     this.#baseUrl = baseUrl.replace(/\/$/, '');
     this.#fetch = fetchImplementation;
@@ -58,6 +64,9 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
     if (operation.requires_idempotency_key && !hasIdempotencyKey(input)) {
       throw new MissionCanvasTransportError('idempotency_key_required', operationId);
     }
+    if (operation.confirmation === 'explicit' && !hasConfirmation(input)) {
+      throw new MissionCanvasTransportError('explicit_confirmation_required', operationId);
+    }
 
     const method = operation.method.toUpperCase();
     const resolved = resolvePath(operation.path, input, operationId);
@@ -66,7 +75,11 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
       method,
       headers: {
         Accept: 'application/json',
-        ...(this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {})
+        ...(this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {}),
+        ...(this.permissionScopes.length > 0 ? { 'X-Focusa-Permissions': this.permissionScopes.join(',') } : {}),
+        ...(this.capabilityRefs.length > 0 ? { 'X-Focusa-Capabilities': this.capabilityRefs.join(',') } : {}),
+        ...(this.actorId ? { 'X-Focusa-Actor-Id': this.actorId } : {}),
+        ...(this.authorityRef ? { 'X-Focusa-Authority-Ref': this.authorityRef } : {})
       }
     };
 
@@ -101,6 +114,15 @@ export class MissionCanvasHttpTransport implements MissionCanvasTransport {
     if (!validation.valid) {
       throw new MissionCanvasTransportError(
         `invalid_response:${validation.errors.join(',')}`,
+        operationId,
+        response.status,
+        value
+      );
+    }
+    if (operation.response_schema_ref === 'DomainPackInstallReceipt'
+      && !sameWorkstreamKey((value as { workstream?: unknown }).workstream, authority.workstream)) {
+      throw new MissionCanvasTransportError(
+        'foreign_receipt_scope',
         operationId,
         response.status,
         value
@@ -163,7 +185,13 @@ function hasIdempotencyKey(input: unknown): boolean {
     && typeof input === 'object'
     && !Array.isArray(input)
     && typeof (input as Record<string, unknown>).idempotency_key === 'string'
-    && (input as Record<string, string>).idempotency_key.length > 0;
+    && (input as Record<string, string>).idempotency_key.trim().length > 0;
+}
+
+function hasConfirmation(input: unknown): boolean {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return false;
+  const value = (input as Record<string, unknown>).confirmation;
+  return value === 'confirm';
 }
 
 async function readResponse(response: Response): Promise<unknown> {

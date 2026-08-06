@@ -3,6 +3,7 @@
 //! This module owns portable composition types, append-only events, deterministic
 //! projection reducers, and SQLite persistence. UI and HTTP layers remain adapters.
 
+pub mod domain_pack;
 pub mod layout;
 pub mod memory;
 pub mod model;
@@ -11,6 +12,11 @@ pub mod profiles;
 pub mod reducer;
 pub mod resolver;
 
+pub use domain_pack::{
+    DOMAIN_PACK_INSTALL_CAPABILITY, DOMAIN_PACK_INSTALL_OPERATION,
+    DOMAIN_PACK_INSTALL_PERMISSION, DomainPackInstallCommand, DomainPackInstallError,
+    DomainPackInstallService,
+};
 pub use layout::{
     resolve_layout, validate_no_dead_chrome, LayoutConstraints, LayoutError, LayoutNode,
 };

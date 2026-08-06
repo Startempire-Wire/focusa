@@ -4,6 +4,7 @@ export type {
   AttachmentKey,
   CanvasDraftState,
   ContributionKind,
+  DomainPackInstallReceipt,
   GridLayoutNode,
   InspectorLayoutNode,
   LayoutNode,
