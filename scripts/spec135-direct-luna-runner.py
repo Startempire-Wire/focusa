@@ -62,8 +62,8 @@ Do not edit the central executable graph, execution index, generated task packet
 Do not run Cargo commands: the operator's pre-50-percent Cargo prohibition remains binding.
 Do not merge, rebase, push, release, or modify another worktree.
 Run all permitted non-Cargo checks from the packet. Add or update only {task['evidence_ref']} with truthful partial/verified status.
-Commit bounded changes on your branch. If no safe change remains, write a concise result to DIRECT_LUNA_RESULT.md, commit it, and stop.
-If blocked by a dependency or authority boundary, record the exact blocker in DIRECT_LUNA_RESULT.md, commit it, and stop without selecting another task.
+Commit bounded changes on your branch. If no safe source change remains, record the concise result in {task['evidence_ref']}, commit it, and stop.
+If blocked by a dependency or authority boundary, record the exact blocker in {task['evidence_ref']}, commit it, and stop without selecting another task.
 """
 
 
