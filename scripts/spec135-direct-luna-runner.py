@@ -72,12 +72,33 @@ def create_worktree(task: dict[str, Any], base_commit: str) -> Path:
     branch = task["branch"]
     WORKTREE_ROOT.mkdir(parents=True, exist_ok=True)
     if worktree.exists():
-        return worktree
-    subprocess.run(
-        ["git", "worktree", "add", "-b", branch, str(worktree), base_commit],
-        cwd=ROOT,
-        check=True,
+        current_branch = subprocess.check_output(
+            ["git", "branch", "--show-current"], cwd=worktree, text=True
+        ).strip()
+        if current_branch != branch:
+            raise SystemExit(
+                f"Existing worktree branch mismatch for {task['task_id']}: {current_branch} != {branch}"
+            )
+    else:
+        subprocess.run(
+            ["git", "worktree", "add", "-b", branch, str(worktree), base_commit],
+            cwd=ROOT,
+            check=True,
+        )
+    status = subprocess.check_output(
+        ["git", "status", "--porcelain"], cwd=worktree, text=True
     )
+    if status.strip():
+        raise SystemExit(
+            f"Refusing to launch {task['task_id']} from an incomplete or dirty worktree: {worktree}"
+        )
+    actual_head = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=worktree, text=True
+    ).strip()
+    if actual_head != base_commit:
+        raise SystemExit(
+            f"Worktree base mismatch for {task['task_id']}: {actual_head} != {base_commit}"
+        )
     return worktree
 
 
