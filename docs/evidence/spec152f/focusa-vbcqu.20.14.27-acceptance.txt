@@ -1,0 +1,50 @@
+Spec 152F runtime surface scanner exclusion acceptance
+Work item: focusa-vbcqu.20.14.27
+Implementation commit: d77efc0a87b1d8fd08017ad047f9a22d13e0f52d
+
+OUTPUTS
+- Runtime coverage receipt: docs/contracts/spec152-entitlement-coverage.v1.json
+  SHA256: 9190c7b68c6d9b1dd2b291cf73d59ac661b379d5b8c418a8ea1b697e78f2dc57
+- Scanner generator: scripts/generate-spec152-entitlement-coverage.py
+  SHA256: 366cacd6ad554d72ffa7ff49266a0f2498d87af8eb012c19fda7aad3283cb7a7
+- Exact scanner validator: tests/spec152f_surface_scanner_test.py
+  SHA256: 197e91110d8a62814bc659b15edd6e859490a08ac40fb7307e2d47d028dd14bf
+- Frozen-baseline regression validator: tests/spec152f_surface_reconciliation_contract_test.py
+  SHA256: 2421553f05ce6aa6b136b80481422ea07e7542b6092d756739eccacd77d64164
+
+EXACT EXCLUSIONS
+- crates/focusa-cli/tests/silent_proof_export_parity_e2e.rs [tests_directory]
+- crates/focusa-cli/tests/spec128_update_runtime_e2e.rs [tests_directory]
+- crates/focusa-core/src/release_adapters_test.rs [recognized_test_module]
+- crates/focusa-core/src/release_calibration_test.rs [recognized_test_module]
+- crates/focusa-core/src/release_cycle_test.rs [recognized_test_module]
+- crates/focusa-core/src/release_ledger_test.rs [recognized_test_module]
+- crates/focusa-core/src/release_orchestrator_test.rs [recognized_test_module]
+
+SCANNER INVARIANTS
+- Only a `tests` path component or `_test.rs` filename triggers exclusion.
+- Production modules remain present even when they contain embedded `#[cfg(test)]` helpers.
+- All 14 production runtime modules containing test helpers remained inventoried.
+- The frozen Spec 152F.00.04 baseline remains exactly 395 rows and preserves its seven explicit historical scanner exclusions.
+- Current runtime coverage is 569 covered + 388 unmatched = 957 total after removing seven false positives.
+- Filename-derived inventory is 20 production runtime entrypoints, matching the frozen baseline after exclusion.
+- No pricing, SKU, grant, entitlement authority, recovery behavior, or presenter decision changed.
+
+VERIFICATION
+PASS python3 tests/spec152f_surface_scanner_test.py
+  baseline_file_matches=27 excluded_test_only=7 runtime_entrypoints=20 retained_production_modules_with_test_helpers=14
+PASS python3 tests/spec152f_surface_reconciliation_contract_test.py
+  frozen_rows=395 runtime_after_exclusion=20 test_exclusions=7
+PASS python3 tests/spec152_entitlement_coverage_test.py
+  covered=569 unmatched=388 total=957
+PASS python3 scripts/generate-spec152-entitlement-coverage.py --check
+PASS python3 -m py_compile generator and validators
+PASS git diff --check
+PASS generator and validators are each below 500 lines
+
+ROLLBACK
+Revert implementation commit d77efc0a and this evidence commit only. Preserve the frozen 395-row baseline, Spec 152F policy/call-stack contracts, Spec 152E authority, customers, orders, refunds, licenses, nodes, sequences, data, migration journals, and prior evidence. Rollback restores seven explicit unmatched false positives but cannot classify them as production policy or hide any production module.
+
+RESULT
+TECHNICAL_ACCEPTANCE: VERIFIED
+The exact seven baseline false positives disappear from current runtime discovery; the exact 20 production file-derived entrypoints remain. Test helpers inside production modules do not trigger exclusion. The deterministic runtime receipt and frozen-baseline compatibility checks pass.
