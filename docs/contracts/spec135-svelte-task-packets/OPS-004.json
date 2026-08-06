@@ -49,6 +49,18 @@
       "runtime validation in Desktop"
     ],
     "generated_operation": {
+      "authority_chain": [
+        "scope_ref",
+        "project_root_key",
+        "workstream_id",
+        "continuity_id",
+        "attachment_key",
+        "session_id",
+        "instance_id",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
       "availability": "available",
       "confirmation": "none",
       "docs_ref": "docs/135k-adaptive-mission-canvas-rich-session-host-and-portable-runtime-spec.md",
@@ -70,16 +82,20 @@
       "requires_if_match_revision": true,
       "response_schema_ref": "ResolvedWorkspaceProjection",
       "schema": "focusa.mission_canvas.operation_descriptor.v1",
-      "scope_required": [
-        "project_root",
+      "scope_optional": [
         "continuity_id",
-        "session_id",
-        "attachment_id"
+        "attachment",
+        "workspace_binding_id",
+        "runtime_object",
+        "work_surface_id"
+      ],
+      "scope_required": [
+        "workstream"
       ]
     },
     "agent_tui_boundary": "Agent TUI remains the separate authentic PTY-backed Pi terminal; it is never the Mission Canvas renderer."
   },
-  "typed_input": "Generated request schema focusa.mission_canvas.composition_selection.request.v1 with exact scope ['project_root', 'continuity_id', 'session_id', 'attachment_id'].",
+  "typed_input": "Generated request schema focusa.mission_canvas.composition_selection.request.v1 with exact scope ['workstream'].",
   "required_output": "Validated ResolvedWorkspaceProjection returned through generated method profileSelect.",
   "ordered_steps": [
     {
@@ -100,7 +116,7 @@
     {
       "step": 4,
       "action": "implement",
-      "instruction": "Transform the typed input into the required output: INPUT=Generated request schema focusa.mission_canvas.composition_selection.request.v1 with exact scope ['project_root', 'continuity_id', 'session_id', 'attachment_id'].; OUTPUT=Validated ResolvedWorkspaceProjection returned through generated method profileSelect.. Preserve every source behavior and use generated DTOs/operation metadata."
+      "instruction": "Transform the typed input into the required output: INPUT=Generated request schema focusa.mission_canvas.composition_selection.request.v1 with exact scope ['workstream'].; OUTPUT=Validated ResolvedWorkspaceProjection returned through generated method profileSelect.. Preserve every source behavior and use generated DTOs/operation metadata."
     },
     {
       "step": 5,
