@@ -713,6 +713,7 @@ fn supervisor_allows_pi_driver(enabled: bool, status: WorkLoopStatus) -> bool {
                 | WorkLoopStatus::AwaitingHarnessTurn
                 | WorkLoopStatus::EvaluatingOutcome
                 | WorkLoopStatus::AdvancingTask
+                | WorkLoopStatus::TransportDegraded
                 | WorkLoopStatus::Idle
         )
 }
@@ -723,7 +724,8 @@ fn supervisor_should_start_pi_driver(
     has_current_task: bool,
 ) -> bool {
     supervisor_allows_pi_driver(enabled, status)
-        && (has_current_task || status != WorkLoopStatus::Idle)
+        && (has_current_task
+            || !matches!(status, WorkLoopStatus::Idle | WorkLoopStatus::TransportDegraded))
 }
 
 async fn reflection_scheduler_loop(base_url: String) {
@@ -1298,7 +1300,7 @@ mod tests {
         ));
         assert!(!supervisor_allows_pi_driver(true, WorkLoopStatus::Paused));
         assert!(!supervisor_allows_pi_driver(true, WorkLoopStatus::Blocked));
-        assert!(!supervisor_allows_pi_driver(
+        assert!(supervisor_allows_pi_driver(
             true,
             WorkLoopStatus::TransportDegraded
         ));
@@ -1319,6 +1321,16 @@ mod tests {
         assert!(supervisor_should_start_pi_driver(
             true,
             WorkLoopStatus::AwaitingHarnessTurn,
+            false
+        ));
+        assert!(supervisor_should_start_pi_driver(
+            true,
+            WorkLoopStatus::TransportDegraded,
+            true
+        ));
+        assert!(!supervisor_should_start_pi_driver(
+            true,
+            WorkLoopStatus::TransportDegraded,
             false
         ));
     }

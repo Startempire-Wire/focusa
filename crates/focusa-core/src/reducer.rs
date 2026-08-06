@@ -2058,6 +2058,17 @@ pub fn reduce_with_meta(
             state.work_loop.transport_session_state = Some("attached".to_string());
             state.work_loop.last_transport_event_kind = Some("session_attached".to_string());
             state.work_loop.last_transport_event_summary = Some(session_id);
+            if state.work_loop.enabled
+                && state.work_loop.status == WorkLoopStatus::TransportDegraded
+            {
+                state.work_loop.status = if state.work_loop.current_task.is_some() {
+                    WorkLoopStatus::PreparingTurn
+                } else {
+                    WorkLoopStatus::Idle
+                };
+                state.work_loop.last_blocker_class = None;
+                state.work_loop.last_blocker_reason = None;
+            }
         }
         FocusaEvent::ContinuousTransportAbortForwarded { reason } => {
             state.work_loop.transport_abort_reason = Some(reason.clone());
@@ -6896,6 +6907,48 @@ mod tests {
         assert_eq!(
             attached.work_loop.transport_workpoint_id,
             Some(workpoint_id)
+        );
+    }
+
+    #[test]
+    fn replacement_transport_recovers_degraded_selected_task() {
+        let project = crate::scoped_state::ScopeRef::project(
+            "project:focusa",
+            "/repo/focusa",
+            "Focusa",
+            "sha256:focusa",
+        )
+        .unwrap();
+        let scope = crate::scoped_state::WorkstreamKey::new(project, "cont-focusa").unwrap();
+        let mut state = fresh_state();
+        state.work_loop.enabled = true;
+        state.work_loop.status = WorkLoopStatus::TransportDegraded;
+        state.work_loop.last_blocker_class = Some(BlockerClass::Transport);
+        state.work_loop.last_blocker_reason = Some("rpc stream closed".to_string());
+        state.work_loop.current_task = Some(SpecLinkedTaskPacket {
+            work_item_id: "focusa-vbcqu.20.15.7".to_string(),
+            ..SpecLinkedTaskPacket::default()
+        });
+
+        let recovered = reduce(
+            state,
+            FocusaEvent::ContinuousTransportSessionAttached {
+                adapter: "pi-rpc".to_string(),
+                session_id: "replacement-session".to_string(),
+                scope,
+                work_item_id: "focusa-vbcqu.20.15".to_string(),
+                workpoint_id: Uuid::now_v7(),
+            },
+        )
+        .unwrap()
+        .new_state;
+
+        assert_eq!(recovered.work_loop.status, WorkLoopStatus::PreparingTurn);
+        assert!(recovered.work_loop.last_blocker_class.is_none());
+        assert!(recovered.work_loop.last_blocker_reason.is_none());
+        assert_eq!(
+            recovered.work_loop.transport_session_id.as_deref(),
+            Some("replacement-session")
         );
     }
 
