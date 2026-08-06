@@ -1,0 +1,44 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "UI-002",
+  "result": "DesktopContext now accepts only generated canonical Workstream packets, stores a frozen exact WorkstreamAuthorityContext, and clears to an unbound state for malformed, non-canonical, or mismatched identity. It does not persist or derive authority from presentation state.",
+  "targets": [
+    "apps/desktop/src/lib/mission-canvas/context.ts",
+    "apps/desktop/tests/context-runtime.mjs",
+    "apps/desktop/package.json"
+  ],
+  "checks": [
+    "npm --prefix apps/desktop test (exit 0; shell, Desktop context, and Mission Canvas runtime: PASS)",
+    "npm --prefix apps/desktop run check (exit 0; svelte-check: 0 errors, 0 warnings)",
+    "npm --prefix apps/desktop run build (exit 0)",
+    "git diff --check (exit 0)"
+  ],
+  "negative_cases": {
+    "missing_workstream": "Packets without an explicit generated WorkstreamKey become unbound.",
+    "scope_only_or_subordinate_only": "A continuity-only or legacy flat project/workstream shape is rejected; subordinate IDs do not select an owner.",
+    "missing_authority": "A generated Workstream operation packet without canonical AuthorityContext is rejected.",
+    "non_canonical_authority": "Blocked operation authority is rejected rather than used as a Desktop binding.",
+    "foreign_workstream": "A valid packet for another Workstream clears an existing bound store; foreign Attachment ownership is rejected by the generated validator.",
+    "immutability": "The bound state and nested generated identity are cloned and deeply frozen; later packet mutation cannot alter the store.",
+    "local_presentation_state": "Presentation-shaped input is not a generated packet and remains unbound."
+  },
+  "acceptance": [
+    "Context cannot be created from CWD, tab, remembered workspace, latest record, continuity alone, or local UI state.",
+    "Desktop selection cannot mint or repair authority; DesktopContext only accepts explicit generated identity and canonical authority packets.",
+    "Mismatch clears the store to an unbound state and invalidates subordinate identity.",
+    "The store uses generated WorkstreamKey, WorkstreamAuthorityContext, WorkstreamOperationRequest, and validator owners without a local identity resolver."
+  ],
+  "source_authority": [
+    "docs/spec158/01-identity-ownership-and-reducer.md",
+    "docs/spec158/02-persistence-migration-and-quarantine.md",
+    "docs/spec158/03-client-runtime-and-desktop-contracts.md",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-types.generated.ts",
+    "docs/contracts/spec135/mission-canvas-v1/typescript/mission-canvas-validators.generated.ts",
+    "docs/135-series-current-manifest.md",
+    "docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md",
+    "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml",
+    "docs/agent/spec135-implementation-acceleration-directive.md"
+  ],
+  "remaining_work": [],
+  "status": "verified"
+}
