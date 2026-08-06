@@ -38,7 +38,7 @@
     "shellcheck is unavailable; no installation was authorized",
     "WPUIAI/uiai-engine shared-vector acceptance remains external"
   ],
-  "generated_at": "2026-08-06T03:27:25.766224Z",
+  "generated_at": "2026-08-06T03:29:23.653951Z",
   "governance": {
     "admitted_mapping_count": 412,
     "evidence_state_counts": {
@@ -230,7 +230,7 @@
   ],
   "provider_snapshot": {
     "record_count": 2766,
-    "sha256": "sha256:d5afc866b67c2da83983c0b4b76461ab29a97753e0985412e0c64bc58151af3c",
+    "sha256": "sha256:9363fb7ada687e3f34d770a014d1c7ed88e61795b4d47835b856a2c0f348d476",
     "source": "canonical:.beads/issues.jsonl"
   },
   "schema": "focusa.spec152_locked_release_implementation_reconciliation_summary.v1"

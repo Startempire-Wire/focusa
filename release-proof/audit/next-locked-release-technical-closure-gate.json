@@ -1237,7 +1237,7 @@
       "technical_evidence_missing"
     ]
   },
-  "gate_digest": "sha256:6edf79a2b4380f10ca267a6c0fdae06adc648f1963d221ad27d13c7152c02057",
+  "gate_digest": "sha256:eeb7f602c324da21f136bd4ebca3b9a9a7a0e479c5deff8882ed19c3654baf94",
   "invalid_closed_count": 0,
   "invalid_closed_ids": [],
   "mapping_count": 412,
@@ -1253,7 +1253,7 @@
     "reopen_is_idempotent": true,
     "unknown_beads_fail_closed": true
   },
-  "reconciliation_digest": "sha256:26318a60047a6d70e13854889bebb7aa8b1429bc3c41f0bac95c7232b251e2ae",
+  "reconciliation_digest": "sha256:5f453f10f699407533971b4d6d7e32c226633a694043cbbd2926e3501cc80bde",
   "schema": "focusa.locked_release_technical_closure_gate.v1",
   "status": "verified",
   "technically_accepted_count": 209,

@@ -10467,7 +10467,9 @@
       "github_issue_refs": [
         119
       ],
-      "implementation_commit_refs": [],
+      "implementation_commit_refs": [
+        "git:a6263904"
+      ],
       "ordered_task_key": [
         "focusa",
         "vbcqu",
@@ -10475,10 +10477,13 @@
       ],
       "parent_bead_id": null,
       "projection_drift": false,
-      "provider_record_digest": "sha256:321163710557059b4079134b344794e44e0268a75ed59f96d4ba7e8b106de64e",
+      "provider_record_digest": "sha256:08fab2a19fa4fa6bfb02642dabd2f216747c3815f7a1c7c57ce756d928e932d7",
       "provider_state": "open",
-      "provider_updated_at": "2026-08-05T03:55:21.973146485Z",
-      "runtime_or_acceptance_evidence_refs": [],
+      "provider_updated_at": "2026-08-06T03:29:04.179998310Z",
+      "runtime_or_acceptance_evidence_refs": [
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt",
+        "release-proof/audit/spec152-locked-release-implementation-reconciliation-summary.json"
+      ],
       "task_plan_ref": null,
       "technical_acceptance_claim": false,
       "title": "GH#119 \u2014 Spec 152 signed authority licensing and unified onboarding"
@@ -10492,7 +10497,8 @@
       "frozen_projection": null,
       "github_issue_refs": [],
       "implementation_commit_refs": [
-        "git:70536860"
+        "git:70536860",
+        "git:a6263904"
       ],
       "ordered_task_key": [
         "focusa",
@@ -10502,11 +10508,13 @@
       ],
       "parent_bead_id": "focusa-vbcqu.20",
       "projection_drift": false,
-      "provider_record_digest": "sha256:145970a9416bbfda6eb78dd9dc28d721df4554503321923a992bfc4057d726a8",
+      "provider_record_digest": "sha256:5867c3967838fc5b0dea816fdd755dab869c352cb88e7ac1ba3200868e15bc60",
       "provider_state": "in_progress",
-      "provider_updated_at": "2026-08-06T03:19:54.554114661Z",
+      "provider_updated_at": "2026-08-06T03:29:04.971786269Z",
       "runtime_or_acceptance_evidence_refs": [
         "crates/focusa-api/src/routes/license.rs",
+        "docs/evidence/release/focusa-vbcqu.20-locked-release-reconciliation.txt",
+        "release-proof/audit/spec152-locked-release-implementation-reconciliation-summary.json",
         "tests/spec152_license_decision_inventory_test.py"
       ],
       "task_plan_ref": null,
@@ -13059,7 +13067,7 @@
   ],
   "provider_snapshot": {
     "record_count": 2766,
-    "sha256": "sha256:d5afc866b67c2da83983c0b4b76461ab29a97753e0985412e0c64bc58151af3c",
+    "sha256": "sha256:9363fb7ada687e3f34d770a014d1c7ed88e61795b4d47835b856a2c0f348d476",
     "source": "canonical:.beads/issues.jsonl"
   },
   "provider_state_counts": {
@@ -13067,7 +13075,7 @@
     "in_progress": 52,
     "open": 151
   },
-  "reconciliation_digest": "sha256:26318a60047a6d70e13854889bebb7aa8b1429bc3c41f0bac95c7232b251e2ae",
+  "reconciliation_digest": "sha256:5f453f10f699407533971b4d6d7e32c226633a694043cbbd2926e3501cc80bde",
   "repair_overlay_mapping_count": 137,
   "schema": "focusa.locked_release_governance_reconciliation.v1",
   "status": "blocked",
