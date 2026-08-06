@@ -11,8 +11,15 @@ pub mod authority_client;
 pub mod authority_credentials;
 pub mod authority_http;
 pub mod authority_store;
+mod entitlement_policy;
 pub mod feature_decision;
 pub mod license_migration;
+
+pub use entitlement_policy::{
+    CapabilityFamily, CommercialTreatment, DecisionReason, EntitlementPolicyTypeError, LimitBucket,
+    OperationClass, PolicyActivation, PolicyEntitlementState, RecoveryAllowance, RequiredFeature,
+    ResolvedEntitlementPolicy,
+};
 pub mod uiai_child_token;
 
 use chrono::{DateTime, Utc};

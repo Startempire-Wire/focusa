@@ -3,6 +3,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+use crate::{EntitlementPolicyTypeError, LimitBucket, RequiredFeature};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FeatureOperationClass {
@@ -50,6 +52,19 @@ pub struct ProductFeatureRegistry {
     pub features: Vec<ProductFeatureDefinition>,
 }
 
+impl ProductFeatureDefinition {
+    pub fn required_feature(&self) -> Result<RequiredFeature, EntitlementPolicyTypeError> {
+        RequiredFeature::new(self.key.as_str())
+    }
+
+    pub fn typed_limit_bucket(&self) -> Result<Option<LimitBucket>, EntitlementPolicyTypeError> {
+        self.limit_bucket
+            .as_deref()
+            .map(LimitBucket::new)
+            .transpose()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FeatureDecision {
     Granted { reserved_units: u64 },
@@ -87,6 +102,8 @@ impl ProductFeatureRegistry {
                 || feature.owner.trim().is_empty()
                 || !seen.insert(feature.key.as_str())
                 || feature.limit_bucket.is_some() != feature.limit_unit.is_some()
+                || feature.required_feature().is_err()
+                || feature.typed_limit_bucket().is_err()
             {
                 return Err(FeatureRegistryError::InvalidFeature);
             }
