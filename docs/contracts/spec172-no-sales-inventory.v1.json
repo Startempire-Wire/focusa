@@ -12,9 +12,10 @@
   "decision": {
     "zero_sales_proven": false,
     "clean_cutover_allowed": false,
-    "status": "blocked_ambiguous",
+    "implementation_may_continue": true,
+    "status": "migration_preserving_path_selected",
     "confirmed_genuine_sales_redacted_count": 0,
-    "reason": "The redacted read-only aggregates confirm potential customer-right-bearing history across EDD and the install site. They do not establish genuine-versus-synthetic classification. Preserve every record and customer right; zero-sales and clean-cutover claims remain blocked pending immutable Stripe live/test correlation and migration preservation."
+    "reason": "The redacted inventory is complete enough to reject a destructive no-migration cutover. Treat every ambiguous customer-right-bearing record as migration input, preserve it, and continue implementation on the migration-preserving path while immutable Stripe live/test correlation is completed in the migration journal."
   },
   "required_rails": [
     "edd",
@@ -78,6 +79,7 @@
     "deployed_surface_inventory": "docs/contracts/spec152e-deployed-surface-inventory.v1.json",
     "product_registry": "docs/contracts/spec152e-edd-product-registry.v1.json",
     "dedicated_offer_checkout_enabled_redacted_count": 0,
+    "selected_cutover_path": "migration_preserving",
     "legacy_records_preserved": true,
     "immutable_stripe_live_test_correlation_required": true,
     "migration_preservation_required": true

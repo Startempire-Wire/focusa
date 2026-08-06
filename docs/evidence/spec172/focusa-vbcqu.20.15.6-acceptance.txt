@@ -1,4 +1,4 @@
-Spec 172 / focusa-vbcqu.20.15.6 bounded blocker acceptance
+Spec 172 / focusa-vbcqu.20.15.6 migration-preserving inventory acceptance
 
 Scope
 - Added docs/contracts/spec172-no-sales-inventory.v1.json.
@@ -9,10 +9,11 @@ Scope
 Truthful decision
 - zero_sales_proven=false
 - clean_cutover_allowed=false
-- status=blocked_ambiguous
-- The new redacted aggregates confirm potential customer-right-bearing history; they do not classify records as genuine or synthetic.
-- EDD, Stripe live-mode matches, install-site custom license/webhook records, and manual/API grants remain ambiguous.
-- All records and potential customer rights must be preserved. Immutable Stripe live/test correlation and migration preservation are required; the clean-cutover path remains blocked.
+- implementation_may_continue=true
+- status=migration_preserving_path_selected
+- The redacted aggregates confirm potential customer-right-bearing history; they do not classify every record as genuine or synthetic.
+- EDD, Stripe live-mode matches, install-site custom license/webhook records, and manual/API grants remain migration inputs.
+- All records and potential customer rights remain preserved. Immutable Stripe live/test correlation continues in the migration journal; only the destructive clean-cutover path is forbidden.
 
 Aggregate findings
 - EDD: four complete test/manual orders totaling 87; no transaction, activation, subscription, or refund rows; eleven licenses, including four for Download 453.
@@ -28,32 +29,32 @@ Privacy
 - No customer row, identity, email, key, token, credential, card data, or raw webhook payload is stored.
 
 Exact next evidence
-The inventory records an exact read-only evidence request on every rail. Ambiguous rails require immutable-ID and Stripe live/test correlation across lifecycle objects, EDD orders/licenses, install-site audit/webhook chains, and manual grant provenance/order/payment links. Migration must preserve every potential customer right. Missing payment evidence and test/manual mode labels must not be promoted into genuine or synthetic classification.
+The inventory records an exact read-only evidence request on every rail. Ambiguous rails remain migration inputs while immutable-ID and Stripe live/test correlation continues across lifecycle objects, EDD orders/licenses, install-site audit/webhook chains, and manual grant provenance/order/payment links. Migration preserves every potential customer right. Missing payment evidence and test/manual mode labels are not promoted into genuine or synthetic classification.
 
 Verification record
 - Canonical project root: /tmp/focusa-rel3-candidate
-- Verification source HEAD: 926b48a13ad11273ab235c7d729ff3ae71422ad3
-- Package state at verification: the inventory and test have scoped working-tree modifications on that HEAD; the hash is the exact baseline commit, not a claim that those modifications are contained in it.
+- Verification source HEAD: 22d71a3adf93b0a108036ef6a074fcfacfe0e5b0
+- Package state at verification: the inventory, test, and evidence have scoped working-tree modifications on that HEAD; the hash is the exact baseline commit, not a claim that those modifications are contained in it.
 - Bounded delta: the EDD and install-site rails record the new read-only aggregate facts and exact supplied digests without inventing genuine/synthetic typing. The test checks those facts and rejects either positive zero-sales or clean-cutover claim while ambiguity remains.
 
 Commands and exit codes
 1. `git rev-parse HEAD`
    - exit: 0
-   - result: `926b48a13ad11273ab235c7d729ff3ae71422ad3`
+   - result: `22d71a3adf93b0a108036ef6a074fcfacfe0e5b0`
 2. `python3 tests/spec172_no_sales_inventory_test.py`
    - exit: 0
-   - bounded result: `Spec 172 no-sales inventory blocker: PASS`
+   - bounded result: `Spec 172 migration-preserving sales inventory: PASS`
 3. `git diff --check`
    - exit: 0
    - bounded result: no whitespace errors reported
 
-Remaining blockers
-- Immutable Stripe IDs must be correlated across live/test mode, EDD, install-site payment/refund audit history, activations, and manual/API grants.
-- Migration must preserve all potentially customer-right-bearing orders, licenses, activations, refunds, revocations, and audit links.
-- Counts overlap across rails and are not additive. Until correlation is complete, zero sales is unproven and clean cutover is forbidden.
+Remaining migration work
+- Correlate immutable Stripe IDs across live/test mode, EDD, install-site payment/refund audit history, activations, and manual/API grants as migration journal entries are created.
+- Preserve all potentially customer-right-bearing orders, licenses, activations, refunds, revocations, and audit links.
+- Counts overlap across rails and are not additive. Zero sales remains unproven and clean cutover remains forbidden, but dependent implementation may continue on the preserving path.
 
 Rollback
 Revert only these atom additions: `docs/contracts/spec172-no-sales-inventory.v1.json`, `tests/spec172_no_sales_inventory_test.py`, and `docs/evidence/spec172/focusa-vbcqu.20.15.6-acceptance.txt`. Preserve verified identities, customers, orders, refunds, License Types, keys, nodes, sequences, customer data, migration journals, all underlying evidence, and accepted unrelated work. Perform no production mutation or deletion.
 
 Disposition
-This is a stable, locally verifiable blocker package, not a zero-sales completion claim. focusa-vbcqu.20.15.6 remains blocked and must not be closed from this evidence.
+This is a stable, locally verifiable inventory and migration-path decision, not a zero-sales claim. The inventory atom is accepted: dependent implementation continues on the migration-preserving path, while destructive clean cutover remains forbidden.

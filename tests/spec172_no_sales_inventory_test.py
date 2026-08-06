@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail closed on ambiguous Spec 172 no-sales and clean-cutover claims."""
+"""Require a preserving migration when Spec 172 cannot prove zero sales."""
 import json
 import re
 from pathlib import Path
@@ -70,12 +70,14 @@ assert install["redacted_aggregate_counts"] == {
 assert "potential customer-right-bearing history" in edd["basis"]
 assert "potential customer-right-bearing history" in install["basis"]
 
-# Core fail-closed invariant, including negative in-memory claim fixtures.
+# Core fail-closed invariant: ambiguity forbids destructive clean cutover but
+# does not stop implementation when every possible customer right is migrated.
 def validate_decision(decision, ambiguous_rows):
     if ambiguous_rows:
         assert decision["zero_sales_proven"] is False, "false zero-sales claim while ambiguity remains"
         assert decision["clean_cutover_allowed"] is False, "false clean-cutover claim while ambiguity remains"
-        assert decision["status"] == "blocked_ambiguous"
+        assert decision["implementation_may_continue"] is True
+        assert decision["status"] == "migration_preserving_path_selected"
 
 
 decision = data["decision"]
@@ -93,8 +95,9 @@ for forbidden_claim in ("zero_sales_proven", "clean_cutover_allowed"):
 registry = json.loads((ROOT / data["reconciliation"]["product_registry"]).read_text())
 assert registry["counts"]["checkout_enabled"] == 0
 assert all(not offer["checkout_enabled"] for offer in registry["protected_offers"])
+assert data["reconciliation"]["selected_cutover_path"] == "migration_preserving"
 assert data["reconciliation"]["legacy_records_preserved"] is True
 assert data["reconciliation"]["immutable_stripe_live_test_correlation_required"] is True
 assert data["reconciliation"]["migration_preservation_required"] is True
 
-print("Spec 172 no-sales inventory blocker: PASS")
+print("Spec 172 migration-preserving sales inventory: PASS")
