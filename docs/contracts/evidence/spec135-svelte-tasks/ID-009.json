@@ -1,0 +1,104 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "ID-009",
+  "result": "Implemented canonical project-owned active Workstream selection. ActiveWorkstreamCommand accepts only an exact WorkstreamKey plus idempotency and revision/fencing cursors; WorkstreamState.reduce validates the registered owner, rejects foreign/unknown/cross-project and stale requests, mutates only the ProjectState selection cursor, and emits a canonical ActiveWorkstreamEvent with a Receipt. Desktop/UI input remains a request and cannot mutate selection directly.",
+  "targets": [
+    "crates/focusa-core/src/workstream_state.rs",
+    "crates/focusa-core/src/workstream_context.rs",
+    "crates/focusa-core/src/reducer.rs",
+    "tests/spec158_active_workstream_source_test.py"
+  ],
+  "presentation_contract": {
+    "interaction_mode": "headless",
+    "host_renderer": "headless_none",
+    "surface_kind": "canonical_runtime",
+    "rich_gui_required": false,
+    "terminal_fallback_required": false,
+    "eligible_contributions": [],
+    "omitted_contribution_reasons": [
+      "canonical reducer/state slice has no presentation contribution"
+    ]
+  },
+  "checks": [
+    "rustfmt --edition 2024 --check crates/focusa-core/src/workstream_state.rs crates/focusa-core/src/workstream_context.rs crates/focusa-core/src/reducer.rs (exit 0)",
+    "python3 tests/spec158_active_workstream_source_test.py (exit 0; hostile and positive active Workstream source contract: PASS)",
+    "python3 tests/spec158_workstream_identity_source_test.py (exit 0; PASS)",
+    "python3 tests/spec158_workstream_context_source_test.py (exit 0; PASS)",
+    "python3 tests/spec158_workstream_state_source_test.py (exit 0; PASS)",
+    "python3 tests/spec158_workstream_migration_source_test.py (exit 0; PASS)",
+    "python3 tests/spec158_workstream_quarantine_source_test.py (exit 0; PASS)",
+    "python3 tests/spec158_workstream_shadow_source_test.py (exit 0; PASS)",
+    "python3 -m py_compile tests/spec158_active_workstream_source_test.py tests/spec158_workstream_identity_source_test.py tests/spec158_workstream_context_source_test.py tests/spec158_workstream_state_source_test.py tests/spec158_workstream_migration_source_test.py tests/spec158_workstream_quarantine_source_test.py tests/spec158_workstream_shadow_source_test.py (exit 0)",
+    "git diff --check (exit 0; no output)"
+  ],
+  "remaining_checks": [
+    "cargo test -p focusa-core active_workstream_state --lib (not run; Cargo is prohibited for this corrective pass)"
+  ],
+  "remaining_work": [
+    "Cargo runtime validation only; no unresolved source implementation work remains"
+  ],
+  "dependency_gate": {
+    "ID-004": {
+      "evidence": "docs/contracts/evidence/spec135-svelte-tasks/ID-004.json",
+      "status": "implemented_partial",
+      "decision": "Dependency source work is complete; only its deferred Cargo runtime check remains."
+    },
+    "ID-008": {
+      "evidence": "docs/contracts/evidence/spec135-svelte-tasks/ID-008.json",
+      "status": "implemented_partial",
+      "decision": "Dependency source work is complete; only its deferred Cargo runtime check remains."
+    }
+  },
+  "negative_cases": {
+    "unknown_workstream": "An explicit WorkstreamId absent from the canonical ProjectState returns UnknownWorkstream and leaves the selection cursor unchanged.",
+    "foreign_workstream_scope": "A same-ID WorkstreamKey with a different ScopeRef fails exact registered-owner validation and cannot mutate selection.",
+    "cross_project_key": "A ProjectState containing Workstream entries from more than one ScopeRef fails closed with CrossProjectWorkstream; no project is inferred.",
+    "stale_revision": "A non-idempotent request whose expected revision differs from the canonical selection revision returns StaleRevision without mutation.",
+    "stale_fencing_token": "A request with a stale expected fencing cursor returns StaleFencingToken without mutation.",
+    "continuity_only": "WorkstreamRequestEnvelope extraction rejects a continuity-only request before ActiveWorkstreamCommand construction.",
+    "idempotency_conflict": "Reusing an idempotency key for a different exact command fails closed; an exact replay returns the original event/Receipt without a second revision.",
+    "presentation_authority": "The request carries actor/context only; the active selection field is private and is changed only by the canonical reducer result. No CWD, tab, recent session, continuity-only, latest-record, or daemon-global pointer fallback exists in the active-selection production slice."
+  },
+  "acceptance": [
+    {
+      "statement": "UI focus alone does not alter active Workstream state.",
+      "status": "implemented_source_verified_runtime_deferred",
+      "proof": "desktop_request_is_only_a_request_until_reducer_accepts_it proves the exact Desktop request leaves the ProjectState cursor unchanged until WorkstreamState.reduce accepts it; the packet-required Cargo execution is deferred."
+    },
+    {
+      "statement": "Canonical active Workstream state is explicit and revision/fencing guarded.",
+      "status": "implemented_source_verified_runtime_deferred",
+      "proof": "ActiveWorkstreamState owns the private active Workstream key, monotonic revision, fencing token, bounded idempotency records, and reducer-only apply path."
+    },
+    {
+      "statement": "Accepted selection emits a canonical active Workstream event and Receipt.",
+      "status": "implemented_source_verified_runtime_deferred",
+      "proof": "The positive reducer fixture asserts the exact event, revision/fencing cursors, canonical Receipt, and emitted event; Receipt::emit is called only after command validation."
+    },
+    {
+      "statement": "Unknown, foreign, cross-project, stale, subordinate-only, and conflicting-idempotency requests fail closed.",
+      "status": "implemented_source_verified_runtime_deferred",
+      "proof": "The active_workstream_state Rust fixtures and spec158_active_workstream_source_test.py cover each hostile path without Cargo; runtime execution remains the sole deferred check."
+    }
+  ],
+  "source_authority": {
+    "docs/spec158/01-identity-ownership-and-reducer.md": "read completely",
+    "docs/spec158/02-persistence-migration-and-quarantine.md": "read completely",
+    "docs/spec158/03-client-runtime-and-desktop-contracts.md": "read completely",
+    "crates/focusa-core/src/workstream_identity.rs": "read completely",
+    "crates/focusa-core/src/workstream_state.rs": "read completely before and after implementation",
+    "crates/focusa-core/src/workstream_context.rs": "read completely before and after implementation",
+    "crates/focusa-core/src/workstream_shadow.rs": "read completely",
+    "crates/focusa-core/src/reducer.rs": "read completely before and after implementation"
+  },
+  "evidence_refs": [
+    "docs/spec158/01-identity-ownership-and-reducer.md",
+    "docs/spec158/02-persistence-migration-and-quarantine.md",
+    "docs/spec158/03-client-runtime-and-desktop-contracts.md",
+    "crates/focusa-core/src/workstream_state.rs",
+    "crates/focusa-core/src/workstream_context.rs",
+    "crates/focusa-core/src/reducer.rs",
+    "tests/spec158_active_workstream_source_test.py"
+  ],
+  "status": "implemented_partial"
+}

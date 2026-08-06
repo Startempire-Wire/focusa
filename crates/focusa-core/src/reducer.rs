@@ -25,7 +25,10 @@ use crate::focus::stack::rebuild_stack_path;
 use crate::focus::state::apply_delta;
 use crate::scoped_state::WorkstreamKey;
 use crate::types::*;
-use crate::workstream_state::{ProjectState, ProjectionVersion, WorkstreamEvent, WorkstreamState};
+use crate::workstream_state::{
+    ActiveWorkstreamCommand, ActiveWorkstreamError, ActiveWorkstreamReductionResult, ProjectState,
+    ProjectionVersion, WorkstreamEvent, WorkstreamState,
+};
 
 fn ontology_value_matches_workstream(
     value: &serde_json::Value,
@@ -577,6 +580,16 @@ pub fn reduce_workstream(
         new_state: state,
         emitted_events: vec![event],
     })
+}
+
+/// Route an explicit active-Workstream request through the canonical project
+/// reducer.  Desktop/UI focus is only an input request; this result is the sole
+/// authority-bearing event and Receipt path.
+pub fn reduce_active_workstream(
+    state: ProjectState<WorkstreamState>,
+    command: ActiveWorkstreamCommand,
+) -> Result<ActiveWorkstreamReductionResult, ActiveWorkstreamError> {
+    WorkstreamState::reduce(state, command)
 }
 
 /// Reduce with ownership metadata (docs/43 Policy #5).
