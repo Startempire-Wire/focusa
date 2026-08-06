@@ -1,0 +1,31 @@
+Work item: focusa-vbcqu.20.15.8 — 172.01.03 Reconcile the EDD product registry to Spec 172
+Recorded at: 2026-08-06
+Canonical project root: repository root (public-safe; no host-local path recorded)
+
+Commits
+- Implementation commit: 7a389cf53d0be54783fdf4abba4aca107e2ed72d
+- Exact verified repository commit: 8484ab97793d025e4df3c34cb94129c27587219c
+- Evidence file commit: the commit containing this path (resolve with `git log -1 --format=%H -- docs/evidence/spec172/focusa-vbcqu.20.15.8-acceptance.txt`)
+
+Exact verification
+Command (run literally from the canonical project root):
+  python3 tests/spec152e_product_registry_contract_test.py && php tests/spec152e_product_registry_test.php
+Exit code: 0
+
+Bounded results
+- Python: passed_fail_closed_pending_operator_mapping; protected_offers=3; checkout_enabled=0; assigned_edd_downloads=0; catalog_entries=14; legacy classes migrate=3, quarantine=5, retire=2.
+- PHP: passed; protected_offers=3; blocked_unassigned=3; forbidden_caller_fields=19; legacy_classes=10.
+- Canonical paid offers are Focusa Operator Lifetime v1 at USD 697.00, UIAI Engine Operator Lifetime v1 at USD 697.00, and the exact-union Bundle at USD 1,254.60.
+- verified_no_license is a non-license, non-anonymous posture with no EDD key and no automatic expiry.
+- All three paid offers remain non-purchasable with null EDD Download/price IDs until dedicated mappings exist.
+- Legacy records retain explicit migrate/quarantine/retire dispositions; Download 453 is explicitly quarantined and has no protected-offer mapping.
+- Registry policy values are server-owned; caller-controlled product, price, License Type, family, feature, limit, node, sale, refund, upgrade, and commercial-right fields are denied.
+
+Remaining blockers
+- None for this registry atom's acceptance.
+- Dedicated EDD Download/price IDs are intentionally unassigned; checkout remains fail-closed as required and must be enabled only by separately approved mapping work.
+
+Rollback
+- Revert only implementation commit 7a389cf53d0be54783fdf4abba4aca107e2ed72d (and this evidence-only commit if removal of this acceptance record is required).
+- Preserve verified identities, customers, orders, refunds, License Types, keys, nodes, authority sequences, customer data, migration journals, unrelated evidence, and unrelated accepted work.
+- Rollback must not invent an implicit mapping for Download 453 or enable checkout.
