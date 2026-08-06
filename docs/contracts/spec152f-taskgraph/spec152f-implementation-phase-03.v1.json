@@ -1,0 +1,157 @@
+{
+  "authority": "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md",
+  "parent": "focusa-vbcqu.20.14",
+  "phase": "03",
+  "schema": "focusa.spec152f_implementation_phase.v1",
+  "task_count": 8,
+  "tasks": [
+    {
+      "code": "03.01",
+      "dependencies": [
+        "focusa-vbcqu.20.14.4",
+        "focusa-vbcqu.20.14.6"
+      ],
+      "done_condition": "Every callable operation has one valid policy owner and generated outputs reproduce without diff.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.22-acceptance.txt",
+      "exact_surfaces": "docs/contracts/spec135/generated-contract-v1/operation-registry.json; generator source; Agent Capability Descriptor V2 inputs",
+      "id": "focusa-vbcqu.20.14.22",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "03",
+      "required_output": "Generated operation metadata used by all surface projections.",
+      "required_steps": "Add operation class, family, base/premium/recovery treatment, limit bucket, and source owner at the operation level. Generate rather than hand-edit outputs. Preserve stable operation IDs.",
+      "title": "Add operation-family metadata to canonical registry",
+      "verification": "python3 tests/spec135_operation_registry_test.py && python3 tests/spec152f_operation_policy_metadata_test.py"
+    },
+    {
+      "code": "03.02",
+      "dependencies": [
+        "focusa-vbcqu.20.14.16",
+        "focusa-vbcqu.20.14.22"
+      ],
+      "done_condition": "All 31 baseline routes are source-backed and no mutation is classified as read merely to avoid entitlement.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.23-acceptance.txt",
+      "exact_surfaces": "route declaration sources for connect/context-cognition/pair/device/call-stack/agent; route-classification generator and output",
+      "id": "focusa-vbcqu.20.14.23",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "03",
+      "required_output": "Route metadata with zero unknown methods for the 31-entry set.",
+      "required_steps": "For each baseline unknown route, record exact HTTP methods and side-effect class from source. Assign read/recovery/base/premium. Do not infer from path names. Add negative method tests.",
+      "title": "Classify all 31 unknown-method REST routes",
+      "verification": "python3 tests/spec152f_unknown_route_method_test.py"
+    },
+    {
+      "code": "03.03",
+      "dependencies": [
+        "focusa-vbcqu.20.14.15",
+        "focusa-vbcqu.20.14.22",
+        "focusa-vbcqu.20.14.23"
+      ],
+      "done_condition": "199/199 routes resolve through canonical operations and no route owns pricing, tier, or caller-controlled grants.",
+      "estimate_minutes": 300,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.24-acceptance.txt",
+      "exact_surfaces": "route-classification generator/output; operation registry; API middleware; spec152f reconciliation manifest",
+      "id": "focusa-vbcqu.20.14.24",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "03",
+      "required_output": "REST entitlement coverage with zero unmatched entries.",
+      "required_steps": "Link each REST route to canonical operation policy. Split multi-operation routes explicitly. Mark recovery/read exceptions narrowly. Default remaining value mutations to BASE; premium only at approved family boundaries.",
+      "title": "Resolve all 199 REST inventory entries by inheritance",
+      "verification": "python3 tests/spec152f_rest_entitlement_inheritance_test.py && cargo test -p focusa-api route_entitlement_inheritance"
+    },
+    {
+      "code": "03.04",
+      "dependencies": [
+        "focusa-vbcqu.20.14.14",
+        "focusa-vbcqu.20.14.22"
+      ],
+      "done_condition": "86/86 top-level commands inherit policy; no command name is treated as a standalone SKU or bypass.",
+      "estimate_minutes": 300,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.25-acceptance.txt",
+      "exact_surfaces": "crates/focusa-cli/src/main.rs; command modules; docs/contracts/spec152f-cli-operation-map.v1.json",
+      "id": "focusa-vbcqu.20.14.25",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "03",
+      "required_output": "Generated/tested CLI-to-operation map.",
+      "required_steps": "Map top-level and protected subcommands to operation IDs. Mark local display/help, recovery, and destructive confirmation explicitly. Commands that call core directly must use the core guard.",
+      "title": "Map all 86 CLI commands to canonical operations",
+      "verification": "python3 tests/spec152f_cli_operation_map_test.py && cargo test -p focusa-cli --test command_hierarchy_e2e"
+    },
+    {
+      "code": "03.05",
+      "dependencies": [
+        "focusa-vbcqu.20.14.15",
+        "focusa-vbcqu.20.14.22"
+      ],
+      "done_condition": "83/83 baseline actions are mapped; buttons never mint or reinterpret entitlement and protected denial remains actionable.",
+      "estimate_minutes": 300,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.26-acceptance.txt",
+      "exact_surfaces": "apps/menubar/src/**/*.svelte; apps/menubar/src/lib/api.ts; docs/contracts/spec152f-menubar-action-map.v1.json",
+      "id": "focusa-vbcqu.20.14.26",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "03",
+      "required_output": "Generated/tested action map and thin presenters.",
+      "required_steps": "Classify click handlers as navigation/display, recovery/account, or an invoked canonical operation. Remove commercial decisions from components. For multi-action handlers identify each protected call and preserve accessibility.",
+      "title": "Map all 83 menubar actions to canonical operations",
+      "verification": "node tests/spec152f_menubar_action_map_test.mjs"
+    },
+    {
+      "code": "03.06",
+      "dependencies": [
+        "focusa-vbcqu.20.14.4"
+      ],
+      "done_condition": "No test fixture is counted as runtime policy and no production entrypoint is hidden by the exclusion.",
+      "estimate_minutes": 120,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.27-acceptance.txt",
+      "exact_surfaces": "scripts/generate-spec152-entitlement-coverage.py; seven baseline _test.rs/tests paths; tests/spec152f_surface_scanner_test.py",
+      "id": "focusa-vbcqu.20.14.27",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "03",
+      "required_output": "Scanner rules and deterministic exclusion receipt.",
+      "required_steps": "Exclude paths under test directories and recognized test modules without excluding production modules that contain test helpers. Assert the exact seven baseline false positives disappear.",
+      "title": "Exclude test-only files from runtime surface discovery",
+      "verification": "python3 tests/spec152f_surface_scanner_test.py"
+    },
+    {
+      "code": "03.07",
+      "dependencies": [
+        "focusa-vbcqu.20.14.18",
+        "focusa-vbcqu.20.14.19",
+        "focusa-vbcqu.20.14.22",
+        "focusa-vbcqu.20.14.27"
+      ],
+      "done_condition": "20/20 production files resolve by callable operation and none is licensed merely because its filename contains release/update/export/scheduler.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.28-acceptance.txt",
+      "exact_surfaces": "release/update/export/scheduler runtime files in reconciliation manifest; canonical operation metadata; core guard",
+      "id": "focusa-vbcqu.20.14.28",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "03",
+      "required_output": "20-entry runtime map and guarded call sites.",
+      "required_steps": "Replace filename-based policy with callable entrypoint metadata. Classify release modules as base/release_proof as appropriate, stable update/repair and basic export as allowances, premium update/package operations explicitly, schedulers by initiating operation.",
+      "title": "Classify the remaining 20 runtime file-derived entrypoints",
+      "verification": "python3 tests/spec152f_runtime_entrypoint_map_test.py && cargo test --workspace runtime_entrypoint_entitlement"
+    },
+    {
+      "code": "03.08",
+      "dependencies": [
+        "focusa-vbcqu.20.14.24",
+        "focusa-vbcqu.20.14.25",
+        "focusa-vbcqu.20.14.26",
+        "focusa-vbcqu.20.14.28"
+      ],
+      "done_condition": "Every current REST/CLI/menubar/runtime entry resolves through base, premium, allowance, or explicit denial with zero silent defaults.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.29-acceptance.txt",
+      "exact_surfaces": "scripts/generate-spec152-entitlement-coverage.py; docs/contracts/spec152-entitlement-coverage.v1.json; tests/spec152_entitlement_coverage_test.py",
+      "id": "focusa-vbcqu.20.14.29",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "03",
+      "required_output": "Deterministic current coverage ledger plus historical reconciliation.",
+      "required_steps": "Teach coverage generation to consume canonical operation maps and inheritance. Preserve the historical 395 baseline in the reconciliation contract. Current unmatched must be zero; unknown side effects remain explicit failures, not auto-covered.",
+      "title": "Regenerate entitlement coverage with zero unmatched surfaces",
+      "verification": "python3 scripts/generate-spec152-entitlement-coverage.py --check && python3 tests/spec152_entitlement_coverage_test.py && python3 tests/spec152f_surface_reconciliation_contract_test.py"
+    }
+  ]
+}

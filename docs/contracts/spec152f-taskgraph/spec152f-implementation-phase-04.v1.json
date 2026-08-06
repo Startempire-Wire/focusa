@@ -1,0 +1,147 @@
+{
+  "authority": "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md",
+  "parent": "focusa-vbcqu.20.14",
+  "phase": "04",
+  "schema": "focusa.spec152f_implementation_phase.v1",
+  "task_count": 7,
+  "tasks": [
+    {
+      "code": "04.01",
+      "dependencies": [
+        "focusa-vbcqu.20.14.10",
+        "focusa-vbcqu.20.14.17",
+        "focusa-vbcqu.20.14.18",
+        "focusa-vbcqu.20.14.29"
+      ],
+      "done_condition": "Interactive base use is not accidentally premium; unattended/parallel work cannot run without exact grants and capacity.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.30-acceptance.txt",
+      "exact_surfaces": "silent-session, scheduled-work, subagent, provider-parallelism operation metadata and call sites",
+      "id": "focusa-vbcqu.20.14.30",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "04",
+      "required_output": "Automation family map, guards, and limits tests.",
+      "required_steps": "Keep ordinary interactive Work Loop/session operations in BASE. Require silent_sessions for autonomous silent work and parallelism for concurrent subagents/providers. Revalidate at dispatch and reserve limits before spawn.",
+      "title": "Enforce automation premium boundaries",
+      "verification": "cargo test --workspace spec152f_automation_entitlement"
+    },
+    {
+      "code": "04.02",
+      "dependencies": [
+        "focusa-vbcqu.20.14.10",
+        "focusa-vbcqu.20.14.17",
+        "focusa-vbcqu.20.14.21",
+        "focusa-vbcqu.20.14.29"
+      ],
+      "done_condition": "Activation is not paywalled; expansion beyond base allowance requires exact authority grants and cannot exceed limits.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.31-acceptance.txt",
+      "exact_surfaces": "connect/pair/device/sync/instances/tokens/session-transfer operations; node management; focusa.remote.stream",
+      "id": "focusa-vbcqu.20.14.31",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "04",
+      "required_output": "Team/remote family map and race/recovery tests.",
+      "required_steps": "Allow activation/recovery pairing and base-node management. Require team.multi_operator/remote.stream for additional peers/operators/remote collaboration. Keep revoke/deactivate/recovery available and enforce node/seat reservations.",
+      "title": "Enforce team and remote premium boundaries",
+      "verification": "cargo test --workspace spec152f_team_remote_entitlement"
+    },
+    {
+      "code": "04.03",
+      "dependencies": [
+        "focusa-vbcqu.20.14.10",
+        "focusa-vbcqu.20.14.28",
+        "focusa-vbcqu.20.14.29"
+      ],
+      "done_condition": "Only justified release orchestration/proof operations require the premium grant and all presenters agree.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.32-acceptance.txt",
+      "exact_surfaces": "release operation registry; crates/focusa-api/src/routes/release.rs; CLI release commands; core release modules",
+      "id": "focusa-vbcqu.20.14.32",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "04",
+      "required_output": "Release-proof operation map and guard tests.",
+      "required_steps": "Keep safe release status/read projection available as appropriate. Require release.proof only for advanced governed proof/orchestration operations. Do not gate unrelated base temporal/evidence capability by filename.",
+      "title": "Enforce release-proof premium boundary",
+      "verification": "cargo test --workspace spec152f_release_proof_entitlement"
+    },
+    {
+      "code": "04.04",
+      "dependencies": [
+        "focusa-vbcqu.20.14.10",
+        "focusa-vbcqu.20.14.21",
+        "focusa-vbcqu.20.14.28"
+      ],
+      "done_condition": "Expired/revoked users can become secure and recover; premium channels/unattended apply remain authority controlled.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.33-acceptance.txt",
+      "exact_surfaces": "crates/focusa-core/src/update.rs; API/CLI update modules; trust metadata; update/install-channel features",
+      "id": "focusa-vbcqu.20.14.33",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "04",
+      "required_output": "Update policy map and blocked-state tests.",
+      "required_steps": "Allow stable trust refresh, security update, repair, and rollback in blocked states. Require unattended for background apply and preview/nightly channel grants for those channels. Preserve signature/trust verification and confirmation.",
+      "title": "Split stable security maintenance from premium updates",
+      "verification": "cargo test --workspace spec152f_update_entitlement && python3 tests/spec152f_recovery_matrix_test.py"
+    },
+    {
+      "code": "04.05",
+      "dependencies": [
+        "focusa-vbcqu.20.14.10",
+        "focusa-vbcqu.20.14.21",
+        "focusa-vbcqu.20.14.28"
+      ],
+      "done_condition": "Basic export works in every blocked state and premium denial affects only clearly additive packaging.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.34-acceptance.txt",
+      "exact_surfaces": "API/CLI export operations; silent-session retention export; focusa.export.packaged feature",
+      "id": "focusa-vbcqu.20.14.34",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "04",
+      "required_output": "Export policy map, fixtures, and privacy/redaction tests.",
+      "required_steps": "Always permit authenticated export of customer-owned records in usable formats. Use export.packaged only for value-added hosted packaging/transformation/report formats. Never delete or mutate source data on entitlement denial.",
+      "title": "Separate basic customer-data export from premium packaging",
+      "verification": "cargo test --workspace spec152f_export_entitlement"
+    },
+    {
+      "code": "04.06",
+      "dependencies": [
+        "focusa-vbcqu.20.13.59",
+        "focusa-vbcqu.20.14.10",
+        "focusa-vbcqu.20.14.29"
+      ],
+      "done_condition": "UIAI/browser paths inherit parent decisions, reject stale/widened tokens, and remain independent from pairing/auth authority.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.35-acceptance.txt",
+      "exact_surfaces": "browser/proxy/MCP/UIAI operations; crates/focusa-license/src/uiai_child_token.rs; UIAI issue #5 integration",
+      "id": "focusa-vbcqu.20.14.35",
+      "owner": "Startempire-Wire/focusa + WPUIAI/uiai-engine",
+      "phase": "04",
+      "required_output": "Integration family map and shared golden vectors.",
+      "required_steps": "Classify local base integration versus remote/premium capability. Mint bounded child tokens only from usable parent entitlement with audience, operation scope, expiry, sequence, node, and feature subset. Child tokens cannot widen authority.",
+      "title": "Bind UIAI/browser integrations to parent policy and child tokens",
+      "verification": "python3 tests/spec152_uiai_child_token_broker_test.py && python3 tests/spec152f_uiai_policy_test.py"
+    },
+    {
+      "code": "04.07",
+      "dependencies": [
+        "focusa-vbcqu.20.14.30",
+        "focusa-vbcqu.20.14.31",
+        "focusa-vbcqu.20.14.32",
+        "focusa-vbcqu.20.14.33",
+        "focusa-vbcqu.20.14.34",
+        "focusa-vbcqu.20.14.35"
+      ],
+      "done_condition": "No family or limit can be widened by client metadata, presentation layer, replay, race, stale state, or another product/account.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.36-acceptance.txt",
+      "exact_surfaces": "all four premium-family tests; feature/limit registry; reservation service; product fixtures",
+      "id": "focusa-vbcqu.20.14.36",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "04",
+      "required_output": "One premium-family adversarial matrix.",
+      "required_steps": "Run wrong product, caller-supplied feature, stale lease, duplicate request, exhausted limit, concurrent reservation, Evaluation omission, Offline Grace expansion, cross-family, and cross-account cases.",
+      "title": "Prove premium limit, idempotency, and grant isolation",
+      "verification": "python3 tests/spec152f_premium_family_adversarial_test.py && cargo test --workspace spec152f_premium_adversarial"
+    }
+  ]
+}

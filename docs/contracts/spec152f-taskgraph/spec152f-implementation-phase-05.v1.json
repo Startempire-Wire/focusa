@@ -1,0 +1,127 @@
+{
+  "authority": "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md",
+  "parent": "focusa-vbcqu.20.14",
+  "phase": "05",
+  "schema": "focusa.spec152f_implementation_phase.v1",
+  "task_count": 6,
+  "tasks": [
+    {
+      "code": "05.01",
+      "dependencies": [
+        "focusa-vbcqu.20.14.12",
+        "focusa-vbcqu.20.14.25",
+        "focusa-vbcqu.20.14.36"
+      ],
+      "done_condition": "All 86 commands inherit policy and CLI never becomes an independent authority or blocks recovery commands.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.37-acceptance.txt",
+      "exact_surfaces": "crates/focusa-cli/src/commands/license.rs; command dispatcher/preflight; JSON output fixtures",
+      "id": "focusa-vbcqu.20.14.37",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "05",
+      "required_output": "CLI presenter parity and transcript fixtures.",
+      "required_steps": "Use the canonical decision for fast preflight and final execution. Render base/premium/recovery reason and next action. Preserve stable JSON, secret redaction, nonzero exit semantics, and no local grant fallback.",
+      "title": "Project canonical decisions through CLI",
+      "verification": "python3 tests/spec152_cli_entitlement_gate_test.py && python3 tests/spec152f_cli_presenter_test.py"
+    },
+    {
+      "code": "05.02",
+      "dependencies": [
+        "focusa-vbcqu.20.14.12",
+        "focusa-vbcqu.20.14.26",
+        "focusa-vbcqu.20.14.36"
+      ],
+      "done_condition": "Menubar/TUI show the same decision/recovery action and no disabled control traps the customer away from data or purchase.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.38-acceptance.txt",
+      "exact_surfaces": "apps/menubar entitlement components/API; crates/focusa-tui/src/api.rs and views; action map",
+      "id": "focusa-vbcqu.20.14.38",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "05",
+      "required_output": "Desktop/TUI presenter parity tests and accessibility fixtures.",
+      "required_steps": "Keep navigation, status, account, read, export, recovery, repair, update, and uninstall reachable. Disable only denied value actions with accessible explanation and Evaluation/purchase/recovery action. Remove component-local policy.",
+      "title": "Project canonical decisions through menubar and TUI",
+      "verification": "node apps/menubar/tests/entitlement-posture.mjs && python3 tests/spec152_tui_entitlement_gate_test.py && node tests/spec152f_presenter_accessibility_test.mjs"
+    },
+    {
+      "code": "05.03",
+      "dependencies": [
+        "focusa-vbcqu.20.14.12",
+        "focusa-vbcqu.20.14.22",
+        "focusa-vbcqu.20.14.36"
+      ],
+      "done_condition": "Every agent tool inherits its operation policy and licensing never grants operator/cognitive authority.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.39-acceptance.txt",
+      "exact_surfaces": "apps/pi-extension tool preflight/state/commands; Agent Capability Descriptor V2; agent JSON envelopes",
+      "id": "focusa-vbcqu.20.14.39",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "05",
+      "required_output": "Pi/agent policy adapter and parity tests.",
+      "required_steps": "Resolve operation policy before side effects, preserve operator permission/confirmation independently, return stable machine JSON, and expose recovery actions. Tool discovery/visibility must not itself grant entitlement.",
+      "title": "Project canonical decisions through Pi and agent tools",
+      "verification": "node apps/pi-extension/tests/pi-entitlement-gate.test.mjs && python3 tests/spec152f_agent_presenter_test.py"
+    },
+    {
+      "code": "05.04",
+      "dependencies": [
+        "focusa-vbcqu.20.13.42",
+        "focusa-vbcqu.20.13.44",
+        "focusa-vbcqu.20.14.12",
+        "focusa-vbcqu.20.14.21",
+        "focusa-vbcqu.20.14.36"
+      ],
+      "done_condition": "Official and source installs use the same policy; no installer creates Evaluation or duplicates commercial logic.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.40-acceptance.txt",
+      "exact_surfaces": "crates/focusa-core/src/install_lifecycle; Rust installer/CLI; scripts/install-focusa.sh; scripts/install-focusa.ps1; Spec150A receipts",
+      "id": "focusa-vbcqu.20.14.40",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "05",
+      "required_output": "Lifecycle policy binding and reconciled receipt tests.",
+      "required_steps": "Installer remains usable for install/preflight/activate/repair/update/uninstall. First useful value mutation requires authority-backed Evaluation/paid lease. Record policy digest, family, state, lease sequence, recovery posture, and no raw key.",
+      "title": "Bind installer and lifecycle receipts to simple policy",
+      "verification": "python3 tests/170_focusa_installer_entitlement_activation_gate_test.py && python3 tests/spec152f_lifecycle_policy_test.py"
+    },
+    {
+      "code": "05.05",
+      "dependencies": [
+        "focusa-vbcqu.20.13.31",
+        "focusa-vbcqu.20.14.12",
+        "focusa-vbcqu.20.14.36"
+      ],
+      "done_condition": "Every facade explains the same authority decision and cannot turn dormant/premium fields on or off.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.41-acceptance.txt",
+      "exact_surfaces": "registered facade descriptors/pages; authority denial/recovery envelopes; Focusa website presenters",
+      "id": "focusa-vbcqu.20.14.41",
+      "owner": "WPUIAI/wpuiai + facade owners",
+      "phase": "05",
+      "required_output": "Facade policy presenter contract and spoof tests.",
+      "required_steps": "Facades display base/premium family, Evaluation/purchase/recovery action, and safe masked status from authority. They cannot select grants, prices, feature activation, or runtime policy. Exact-origin/session/redirect rules remain Spec 152E-owned.",
+      "title": "Bind branded facades to policy explanation only",
+      "verification": "python3 tests/spec152f_facade_policy_presenter_test.py"
+    },
+    {
+      "code": "05.06",
+      "dependencies": [
+        "focusa-vbcqu.20.14.37",
+        "focusa-vbcqu.20.14.38",
+        "focusa-vbcqu.20.14.39",
+        "focusa-vbcqu.20.14.40",
+        "focusa-vbcqu.20.14.41"
+      ],
+      "done_condition": "Messages are semantically identical, accessible, redacted, and always preserve a route to purchase or recovery.",
+      "estimate_minutes": 210,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.42-acceptance.txt",
+      "exact_surfaces": "stable error registry; CLI/desktop/TUI/Pi/facade message fixtures; account/evaluation/checkout/recovery links",
+      "id": "focusa-vbcqu.20.14.42",
+      "owner": "Startempire-Wire/focusa + WPUIAI/wpuiai",
+      "phase": "05",
+      "required_output": "Cross-presenter message catalog and accessibility/privacy checks.",
+      "required_steps": "For each state/family, provide plain-language blocked action, reason, retained access, and one safe next action. Avoid internal route/lease details, false urgency, account enumeration, raw email/key/token, and dead-end paywalls.",
+      "title": "Standardize denial, purchase, and recovery UX",
+      "verification": "python3 tests/spec152f_denial_ux_parity_test.py"
+    }
+  ]
+}

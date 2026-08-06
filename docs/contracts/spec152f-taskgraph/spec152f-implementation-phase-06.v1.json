@@ -1,0 +1,194 @@
+{
+  "authority": "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md",
+  "parent": "focusa-vbcqu.20.14",
+  "phase": "06",
+  "schema": "focusa.spec152f_implementation_phase.v1",
+  "task_count": 10,
+  "tasks": [
+    {
+      "code": "06.01",
+      "dependencies": [
+        "focusa-vbcqu.20.14.21",
+        "focusa-vbcqu.20.14.36"
+      ],
+      "done_condition": "Every grid cell matches Spec 152F and API/core decisions are identical.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.43-acceptance.txt",
+      "exact_surfaces": "policy golden vectors; canonical resolver; API/core guards; recovery matrix",
+      "id": "focusa-vbcqu.20.14.43",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "06",
+      "required_output": "Replayable state-grid acceptance receipt.",
+      "required_steps": "Exercise all eight states against all nine families, positive/negative feature grants, base compatibility, limits, roles, node/product/audience, and unknown policy. Compare pure resolver, API, and core results.",
+      "title": "Run complete entitlement-state grid acceptance",
+      "verification": "cargo test -p focusa-license --test entitlement_policy_grid && cargo test --workspace spec152f_state_grid_acceptance"
+    },
+    {
+      "code": "06.02",
+      "dependencies": [
+        "focusa-vbcqu.20.14.42",
+        "focusa-vbcqu.20.14.43"
+      ],
+      "done_condition": "Every presenter agrees with canonical authority and contains no independent grant or dead-end recovery behavior.",
+      "estimate_minutes": 240,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.44-acceptance.txt",
+      "exact_surfaces": "CLI, menubar, TUI, Pi/agent, installer/lifecycle, facade fixtures; canonical decision vectors",
+      "id": "focusa-vbcqu.20.14.44",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "06",
+      "required_output": "Cross-presenter parity report with exact vector IDs.",
+      "required_steps": "Replay identical base/premium/recovery denials and allows through each presenter. Compare state, family, reason, error, recovery action, redaction, and side-effect counters.",
+      "title": "Run complete cross-presenter parity acceptance",
+      "verification": "python3 tests/spec152f_cross_presenter_parity_test.py"
+    },
+    {
+      "code": "06.03",
+      "dependencies": [
+        "focusa-vbcqu.20.13.58",
+        "focusa-vbcqu.20.14.40",
+        "focusa-vbcqu.20.14.44"
+      ],
+      "done_condition": "One verified Evaluation reaches first useful outcome with no local issuance, duplicate customer/key, or 395-step paywall friction.",
+      "estimate_minutes": 300,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.45-acceptance.txt",
+      "exact_surfaces": "verified-email Evaluation fixture; EDD-backed key/lease; installer/first-run; base Focusa project/Workpoint operation",
+      "id": "focusa-vbcqu.20.14.45",
+      "owner": "WPUIAI/wpuiai + Startempire-Wire/focusa",
+      "phase": "06",
+      "required_output": "Redacted Evaluation E2E receipt tied to exact commits and records.",
+      "required_steps": "Start without customer, verify mailbox, issue eligible EDD-backed Evaluation, activate node, receive signed lease, install/resume, and complete one base value loop without card. Assert no premium grant unless authority includes it.",
+      "title": "Prove verified Evaluation reaches first useful value",
+      "verification": "python3 tests/spec152f_evaluation_first_value_e2e_test.py"
+    },
+    {
+      "code": "06.04",
+      "dependencies": [
+        "focusa-vbcqu.20.13.56",
+        "focusa-vbcqu.20.13.61",
+        "focusa-vbcqu.20.14.45"
+      ],
+      "done_condition": "Payment enables base/purchased families and adverse states remove value capability without deleting customer data or rolling authority backward.",
+      "estimate_minutes": 300,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.46-acceptance.txt",
+      "exact_surfaces": "branded EDD purchase; canonical customer/order/key/node/lease; existing Evaluation/project data; refund/revoke/expiry transitions",
+      "id": "focusa-vbcqu.20.14.46",
+      "owner": "WPUIAI/wpuiai + Startempire-Wire/focusa",
+      "phase": "06",
+      "required_output": "Paid/adverse E2E receipts with before/after authority sequence.",
+      "required_steps": "Purchase continues the same account/project/node without reinstall. Then exercise expiry, refund, revoke, renewal, and node removal. Protected work stops; read/export/recovery/security update/uninstall remain.",
+      "title": "Prove paid continuation and adverse lifecycle",
+      "verification": "python3 tests/spec152f_paid_lifecycle_e2e_test.py"
+    },
+    {
+      "code": "06.05",
+      "dependencies": [
+        "focusa-vbcqu.20.14.43",
+        "focusa-vbcqu.20.14.44",
+        "focusa-vbcqu.20.14.46"
+      ],
+      "done_condition": "No outage, stale cache, alternate presenter, worker, or child token widens capability; recovery remains available.",
+      "estimate_minutes": 300,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.47-acceptance.txt",
+      "exact_surfaces": "cached lease fixtures; authority outage harness; stale sequence/refund/revoke set; direct core/API/CLI/worker/UIAI bypass attempts",
+      "id": "focusa-vbcqu.20.14.47",
+      "owner": "Startempire-Wire/focusa + WPUIAI/wpuiai",
+      "phase": "06",
+      "required_output": "Adversarial outage/bypass matrix.",
+      "required_steps": "Verify cached base/premium grants only within signed bounds; no new node/grant/limit expansion; higher refund/revoke sequence wins; outage preserves recovery; direct handler/core/worker/child-token bypass fails.",
+      "title": "Prove Offline Grace, outage, and bypass resistance",
+      "verification": "python3 tests/spec152f_offline_adversarial_test.py && cargo test --workspace spec152f_bypass_resistance"
+    },
+    {
+      "code": "06.06",
+      "dependencies": [
+        "focusa-vbcqu.20.14.18",
+        "focusa-vbcqu.20.14.43"
+      ],
+      "done_condition": "Resolver is deterministic, bounded, cache-safe by lease sequence/policy digest, and adds no unbounded I/O or sensitive telemetry.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.48-acceptance.txt",
+      "exact_surfaces": "focusa-license resolver benchmark; API middleware benchmark; policy registry load path; scheduler revalidation metrics",
+      "id": "focusa-vbcqu.20.14.48",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "06",
+      "required_output": "Performance budget and benchmark receipt.",
+      "required_steps": "Benchmark hot cached decision, cold validation, premium+limit decision, denial, and policy load. Add bounded counters by family/reason without customer secrets. Prevent per-request file parsing or network dependency.",
+      "title": "Measure resolver and middleware overhead",
+      "verification": "cargo bench -p focusa-license entitlement_policy --no-run && cargo test --workspace spec152f_observability"
+    },
+    {
+      "code": "06.07",
+      "dependencies": [
+        "focusa-vbcqu.20.14.29",
+        "focusa-vbcqu.20.14.42",
+        "focusa-vbcqu.20.14.44"
+      ],
+      "done_condition": "The gate exits zero, lists every constituent test, records exact SHA, and cannot pass with missing tools/tests or stale generated output.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.49-acceptance.txt",
+      "exact_surfaces": "all Spec152F contracts/generators/static tests; docs consistency; source scanners; presenter fixtures",
+      "id": "focusa-vbcqu.20.14.49",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "06",
+      "required_output": "Single build-independent gate script and immutable result.",
+      "required_steps": "Run every Python/Node/shell/static gate from a clean checkout. Verify generated files are current, no unmatched surfaces, no forbidden local Evaluation, no presenter-owned grants, and no test runtime false positives.",
+      "title": "Run complete build-independent Spec 152F gate",
+      "verification": "bash tests/spec152f_build_independent_gate.sh"
+    },
+    {
+      "code": "06.08",
+      "dependencies": [
+        "focusa-vbcqu.20.13.62",
+        "focusa-vbcqu.20.14.46",
+        "focusa-vbcqu.20.14.47",
+        "focusa-vbcqu.20.14.48",
+        "focusa-vbcqu.20.14.49"
+      ],
+      "done_condition": "Every required platform passes installed authority-backed acceptance twice where specified; unsigned/demo/candidate-only artifacts do not satisfy stable acceptance.",
+      "estimate_minutes": 480,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.50-acceptance.txt",
+      "exact_surfaces": "final candidate artifacts for macOS arm64/x64, Windows x64/arm64, Linux GNU/musl; installed CLI/desktop/agent flows; WPUIAI test authority",
+      "id": "focusa-vbcqu.20.14.50",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "06",
+      "required_output": "Platform receipts and artifact manifest bound to exact SHA.",
+      "required_steps": "Build/sign at one exact post-implementation SHA, install cleanly twice where required, run Evaluation/paid/expired/refunded/recovery/premium cases, restart, update/rollback, and verify policy/lease digests. No stable publication.",
+      "title": "Run installed exact-SHA cross-platform acceptance",
+      "verification": "python3 tests/spec152f_installed_acceptance_receipt_test.py"
+    },
+    {
+      "code": "06.09",
+      "dependencies": [
+        "focusa-vbcqu.20.14.50"
+      ],
+      "done_condition": "All child atoms are technically accepted, zero unmatched surfaces remain, recovery and simple commercial model are proven, and no false completion is recorded.",
+      "estimate_minutes": 180,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.51-acceptance.txt",
+      "exact_surfaces": "Spec152F tasks; policy/coverage ledgers; build-independent, E2E, performance, installed receipts; release governance ledger",
+      "id": "focusa-vbcqu.20.14.51",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "06",
+      "required_output": "Technical closure receipt and zero-invalid-closure governance result.",
+      "required_steps": "Audit every child against exact done condition and evidence. Regenerate governance. Refuse closure for partial/static-only/external evidence. Link exact SHAs and stable refs; preserve all release blockers outside Spec152F.",
+      "title": "Seal Spec 152F technical closure",
+      "verification": "python3 tests/spec152f_final_closure_test.py && python3 tests/165_focusa_locked_release_technical_closure_reducer_test.py"
+    },
+    {
+      "code": "06.10",
+      "dependencies": [
+        "focusa-vbcqu.20.14.51"
+      ],
+      "done_condition": "Spec152F cannot be bypassed by REL closure, graph has zero cycles, and stable publication still requires exact final release acceptance.",
+      "estimate_minutes": 120,
+      "evidence_path": "docs/evidence/spec152f/focusa-vbcqu.20.14.52-acceptance.txt",
+      "exact_surfaces": "Spec152 document set/final audit/next-command/release blocker; Beads edges; REL.4-REL.7 governance",
+      "id": "focusa-vbcqu.20.14.52",
+      "owner": "Startempire-Wire/focusa",
+      "phase": "06",
+      "required_output": "Final dependency/provenance audit with no cycles.",
+      "required_steps": "Make Spec152E final closure and final release milestones depend on accepted Spec152F closure. Update active docs from implementation_pending to accepted only with receipts. Keep publication forbidden until all independent blockers close.",
+      "title": "Wire Spec 152F closure into Spec 152E and release milestones",
+      "verification": "python3 tests/spec152f_release_dependency_test.py && python3 tests/164_focusa_locked_release_governance_reconciliation_test.py && bd dep cycles --json"
+    }
+  ]
+}

@@ -18,7 +18,9 @@ DECOMPOSITION
 - Downstream release edge: focusa-vbcqu.20.13.63 depends on focusa-vbcqu.20.14.52
 - Active dependency cycles: 0
 - Canonical Beads JSONL snapshot SHA256: 42dcf98d7423a51c09be056018111b2e5187a99a02abc93652452a252ce4abed
-- Taskgraph contract SHA256: b4506db843fedb0bd38d5d8670500bc4a6c0f6c55284af8fc17c05491934241f
+- Original monolithic taskgraph SHA256: b4506db843fedb0bd38d5d8670500bc4a6c0f6c55284af8fc17c05491934241f
+- Context-safe taskgraph index SHA256: 23e86df9439b49d2dc90113a85327f364814774bcfac870ea119c5f270eadce6
+- Phase shard SHA256 values are pinned in the index; index and every phase file remain below 500 lines.
 
 WEAKER-MODEL CONTRACT
 Every atom names an owner, exact surfaces, required steps, output, exact verification command, evidence path, forbidden actions, rollback boundary, estimate, dependencies, and literal done condition. Execution follows dependency edges one atom at a time. Static or administrative status alone cannot close an atom.

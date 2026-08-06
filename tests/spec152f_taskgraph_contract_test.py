@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Validate the atomic, weaker-model-safe Spec 152F implementation graph."""
 
+import hashlib
 import json
 from collections import Counter, defaultdict, deque
 from pathlib import Path
@@ -8,14 +9,31 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PATH = ROOT / "docs/contracts/spec152f-implementation-taskgraph.v1.json"
 GRAPH = json.loads(PATH.read_text(encoding="utf-8"))
+assert len(PATH.read_bytes().splitlines()) < 500
 
-assert GRAPH["schema"] == "focusa.spec152f_implementation_taskgraph.v1"
+assert GRAPH["schema"] == "focusa.spec152f_implementation_taskgraph_index.v1"
 assert GRAPH["authority"] == "docs/152f-simple-entitlement-gating-and-future-granularity-addendum.md"
 assert GRAPH["parent"] == "focusa-vbcqu.20.14"
 assert GRAPH["task_count"] == 52
 assert GRAPH["first_task"] == "focusa-vbcqu.20.14.1"
 assert GRAPH["final_task"] == "focusa-vbcqu.20.14.52"
 assert GRAPH["phase_counts"] == {"00": 4, "01": 9, "02": 8, "03": 8, "04": 7, "05": 6, "06": 10}
+assert GRAPH["internal_dependency_edge_count"] == 123
+assert set(GRAPH["phase_files"]) == set(GRAPH["phase_counts"])
+assert set(GRAPH["phase_file_sha256"]) == set(GRAPH["phase_counts"])
+
+phase_documents = []
+for phase, relative_path in sorted(GRAPH["phase_files"].items()):
+    raw = (ROOT / relative_path).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == GRAPH["phase_file_sha256"][phase]
+    document = json.loads(raw)
+    assert document["schema"] == "focusa.spec152f_implementation_phase.v1"
+    assert document["authority"] == GRAPH["authority"]
+    assert document["parent"] == GRAPH["parent"]
+    assert document["phase"] == phase
+    assert document["task_count"] == GRAPH["phase_counts"][phase]
+    assert len(raw.splitlines()) < 500
+    phase_documents.append(document)
 
 required_task_fields = {
     "id",
@@ -32,7 +50,7 @@ required_task_fields = {
     "dependencies",
     "estimate_minutes",
 }
-tasks = GRAPH["tasks"]
+tasks = [task for document in phase_documents for task in document["tasks"]]
 assert len(tasks) == 52
 assert [task["id"] for task in tasks] == [f"focusa-vbcqu.20.14.{n}" for n in range(1, 53)]
 assert len({task["code"] for task in tasks}) == 52
@@ -49,8 +67,13 @@ for task in tasks:
         ("python3 ", "cargo ", "node ", "bash ")
     ), task["id"]
 
-internal_edges = GRAPH["internal_dependency_edges"]
-assert len(internal_edges) == 123
+internal_edges = [
+    {"blocked": task["id"], "blocker": dependency}
+    for task in tasks
+    for dependency in task["dependencies"]
+    if dependency.startswith("focusa-vbcqu.20.14.")
+]
+assert len(internal_edges) == GRAPH["internal_dependency_edge_count"] == 123
 assert len({(edge["blocked"], edge["blocker"]) for edge in internal_edges}) == 123
 for edge in internal_edges:
     assert edge["blocked"] in by_id
