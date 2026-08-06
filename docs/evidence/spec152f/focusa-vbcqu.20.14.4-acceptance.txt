@@ -1,0 +1,56 @@
+Spec 152F 395-surface reconciliation baseline acceptance
+Work item: focusa-vbcqu.20.14.4
+Implementation commit: fc9603e34390bedf8728b3e3c7083b3659bc0edc
+
+OUTPUTS
+- Reconciliation index: docs/contracts/spec152f-surface-reconciliation.v1.json
+  SHA256: 302224373742c198aae2f8079682984d5a7663aad5eabfbde53340e1c82e9368
+- Deterministic generator: scripts/generate-spec152-entitlement-coverage.py
+  SHA256: 0f23acf2a4e8f84f3324e9a18b01dffed4cac99f206cba8d43da364d07ee51ca
+- Validator: tests/spec152f_surface_reconciliation_contract_test.py
+  SHA256: ad89a8a0bc97d0b84eca116b99021e0487de18805f3396e23da875db1d6c3b4a
+- Context-safe shards:
+  REST 199 rows SHA256 16b2e822bd095e8e29392a73b1d52e8827a05d3ae5a6a3de4dc879592902f39e
+  CLI 86 rows SHA256 84f85683f2b2fc5040af3577c36af4151b513cfe141dc63e734fa1fc7b427fc7
+  Menubar 83 rows SHA256 37bb2c825f3f79275ef678b8889dd02697b67554d37f366c27fa7ba9a229d67d
+  Runtime files 27 rows SHA256 16fe3ebc30571ac3892596a53cc4a0dfb487688ff010855d510a0be27216ea9e
+
+BASELINE COUNTS
+- Existing covered rows: 569
+- Explicit unmatched frontier: 395
+- Total inventoried rows: 964
+- REST: 199
+- CLI: 86
+- Menubar: 83
+- Filename-derived runtime/test entries: 27
+- Unknown-method REST routes requiring metadata repair: 31
+- Test-only scanner exclusions: 7
+- Runtime file entrypoints after exclusion: 20
+
+RESOLUTION OWNERSHIP
+- Base entitlement candidates: 138
+- Premium-family candidates: 41
+- Recovery/read allowances: 3
+- Metadata repairs: 31
+- Canonical-operation inheritance: 175
+- Test-only scanner exclusions: 7
+- Total: 395
+
+Every row has a stable baseline ID, original source, mutation class, resolution, candidate family where applicable, exact owner task, and rationale. Inventory rows are explicitly not prices, SKUs, tiers, caller grants, or independent paywalls. Unknown methods remain unresolved until source-backed repair; they are not silently considered reads or free.
+
+VERIFICATION
+PASS python3 tests/spec152f_surface_reconciliation_contract_test.py
+  rows=395 rest=199 cli=86 menubar=83 runtime_files=27 unknown_methods=31 test_exclusions=7 runtime_after_exclusion=20
+PASS python3 tests/spec152_entitlement_coverage_test.py
+  covered=569 unmatched=395 total=964 result=passed_with_explicit_unmatched_frontier
+PASS python3 scripts/generate-spec152-entitlement-coverage.py --check
+PASS python3 -m py_compile generator and validator
+PASS git diff --check
+PASS index, generator, validator, and every shard are below 500 lines
+
+ROLLBACK
+Revert implementation commit fc9603e3 and this evidence commit only. Preserve the original Spec 152 coverage ledger, Spec 152F policy/call-stack contracts, Spec 152E authority, customers, orders, refunds, licenses, nodes, sequences, data, and prior evidence. Rollback must not classify unknown methods as safe or create route-local paywalls.
+
+RESULT
+TECHNICAL_ACCEPTANCE: VERIFIED
+The 395-row frontier is frozen deterministically and decomposed into bounded shards. Each row is owned for later base, premium, recovery/read, metadata, inherited-operation, or test-exclusion resolution. This receipt proves baseline reconciliation only; it does not claim the 395 rows are already enforced or that current unmatched coverage is zero.
