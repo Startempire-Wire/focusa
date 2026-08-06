@@ -77,6 +77,8 @@ assert '"idempotency-key", &driver_idempotency_key' in api_server
 assert '"idempotency_key": driver_idempotency_key' in api_server
 assert "active.expires_at =" in api_server
 assert "writer_lease_expiry(now)" in api_server
+assert 'std::env::var("FOCUSA_WORK_LOOP_DRIVER_CWD")' in api_server
+assert '"cwd": &driver_cwd' in api_server
 assert "stale_driver" in api_loop
 assert "existing.child.try_wait()" in api_loop
 for header in (

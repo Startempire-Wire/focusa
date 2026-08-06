@@ -885,6 +885,10 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
             };
             let project_root = scope.root_scope.root_path.to_string_lossy().to_string();
             let continuity_id = scope.continuity_id.clone();
+            let driver_cwd = std::env::var("FOCUSA_WORK_LOOP_DRIVER_CWD")
+                .ok()
+                .filter(|value| !value.trim().is_empty())
+                .unwrap_or_else(|| project_root.clone());
             let claim_key = format!(
                 "project:{}|workstream:{}|work_item:{}",
                 project_root.replace('|', "_"),
@@ -1026,7 +1030,7 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                     .header("x-focusa-continuity-id", &continuity_id)
                     .header("idempotency-key", &driver_idempotency_key)
                     .json(&serde_json::json!({
-                        "cwd": project_root,
+                        "cwd": &driver_cwd,
                         "idempotency_key": driver_idempotency_key,
                     }))
                     .send()
@@ -1093,7 +1097,7 @@ async fn continuous_work_supervisor_loop(state: Arc<AppState>, base_url: String)
                         .header("x-focusa-continuity-id", &continuity_id)
                         .header("idempotency-key", &driver_idempotency_key)
                         .json(&serde_json::json!({
-                            "cwd": project_root,
+                            "cwd": &driver_cwd,
                             "idempotency_key": driver_idempotency_key,
                         }))
                         .send()
