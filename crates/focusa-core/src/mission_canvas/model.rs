@@ -20,6 +20,51 @@ pub struct MissionCanvasAuthorityContext {
 }
 
 impl MissionCanvasAuthorityContext {
+    /// Construct canonical Mission Canvas scope from the generated Workstream
+    /// identity and, when present, its exact Attachment owner.
+    pub fn new(
+        workstream: WorkstreamKey,
+        attachment: Option<AttachmentKey>,
+    ) -> Result<Self, &'static str> {
+        let continuity_id = attachment
+            .as_ref()
+            .and_then(|value| value.continuity_id.clone());
+        let workspace_binding_id = attachment
+            .as_ref()
+            .map(|value| value.workspace_binding_id.clone());
+        Self::from_parts(
+            workstream,
+            continuity_id,
+            attachment,
+            workspace_binding_id,
+            None,
+            None,
+        )
+    }
+
+    /// Adapter for generated authority DTOs that carry subordinate context
+    /// alongside the canonical WorkstreamKey.  No field is inferred from CWD,
+    /// a current tab, or a legacy record.
+    pub fn from_parts(
+        workstream: WorkstreamKey,
+        continuity_id: Option<ContinuityId>,
+        attachment: Option<AttachmentKey>,
+        workspace_binding_id: Option<WorkspaceBindingId>,
+        runtime_object: Option<RuntimeObjectRef>,
+        work_surface_id: Option<WorkSurfaceId>,
+    ) -> Result<Self, &'static str> {
+        let context = Self {
+            workstream,
+            continuity_id,
+            attachment,
+            workspace_binding_id,
+            runtime_object,
+            work_surface_id,
+        };
+        context.validate()?;
+        Ok(context)
+    }
+
     pub fn storage_key(&self) -> String {
         serde_json::to_string(self).expect("MissionCanvas authority context is serializable")
     }
@@ -43,7 +88,6 @@ impl MissionCanvasAuthorityContext {
             return Err("invalid_workspace_binding");
         }
         self.workstream
-            .legacy_scope()
             .validate()
             .map_err(|_| "invalid_workstream_scope")?;
         if let Some(runtime) = self.runtime_object.as_ref() {
@@ -64,6 +108,10 @@ impl MissionCanvasAuthorityContext {
             {
                 return Err("invalid_attachment");
             }
+            attachment
+                .workstream
+                .validate()
+                .map_err(|_| "invalid_attachment_workstream")?;
             attachment
                 .validate_owner(&self.workstream)
                 .map_err(|_| "foreign_attachment_workstream")?;
@@ -211,4 +259,68 @@ pub struct StoredDocument {
     pub revision: u64,
     pub payload: Value,
     pub updated_at: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::scoped_state::ScopeRef as LegacyScopeRef;
+    use crate::workstream_identity::{
+        AttachmentId, AttachmentKey, ContinuityId, InstanceId, ScopeRef, SessionId,
+        WorkspaceBindingId, WorkstreamId, WorkstreamKey,
+    };
+
+    fn workstream(id: &str) -> WorkstreamKey {
+        let legacy = LegacyScopeRef::project(
+            "project:focusa",
+            "/workspace/focusa",
+            "Focusa",
+            "host-a:worktree-main",
+        )
+        .unwrap();
+        WorkstreamKey::new(
+            ScopeRef::project(legacy).unwrap(),
+            WorkstreamId::parse(id).unwrap(),
+        )
+    }
+
+    fn attachment(owner: WorkstreamKey, id: &str) -> AttachmentKey {
+        AttachmentKey::new(
+            owner,
+            Some(ContinuityId::parse("continuity:mission-canvas").unwrap()),
+            InstanceId::parse("instance:pi").unwrap(),
+            SessionId::parse("session:pi").unwrap(),
+            AttachmentId::parse(id).unwrap(),
+            WorkspaceBindingId::parse("workspace:mission-canvas").unwrap(),
+        )
+    }
+
+    #[test]
+    fn mission_canvas_scope_new_requires_exact_attachment_owner() {
+        let owner = workstream("ws:mission-canvas");
+        let scope = MissionCanvasScope::new(
+            owner.clone(),
+            Some(attachment(owner.clone(), "attachment:pi")),
+        )
+        .expect("canonical Workstream and Attachment should construct a scope");
+        assert_eq!(scope.workstream, owner);
+        assert_eq!(
+            scope.attachment.as_ref().unwrap().attachment_id.as_str(),
+            "attachment:pi"
+        );
+
+        let foreign = attachment(workstream("ws:other"), "attachment:foreign");
+        assert_eq!(
+            MissionCanvasScope::new(workstream("ws:mission-canvas"), Some(foreign)).unwrap_err(),
+            "foreign_attachment_workstream"
+        );
+    }
+
+    #[test]
+    fn mission_canvas_scope_new_allows_workstream_only_scope() {
+        let scope = MissionCanvasScope::new(workstream("ws:overview"), None)
+            .expect("a Workstream-only aggregate scope is canonical");
+        assert!(scope.attachment.is_none());
+        assert!(scope.validate().is_ok());
+    }
 }

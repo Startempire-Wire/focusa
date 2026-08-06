@@ -465,27 +465,27 @@ mod tests {
         );
         let continuity =
             crate::workstream_identity::ContinuityId::parse("continuity:mission-canvas").unwrap();
-        MissionCanvasScope {
-            workstream: workstream.clone(),
-            continuity_id: Some(continuity.clone()),
-            attachment: Some(crate::workstream_identity::AttachmentKey::new(
-                workstream,
-                Some(continuity),
-                crate::workstream_identity::InstanceId::parse("instance:1").unwrap(),
-                crate::workstream_identity::SessionId::parse("session:1").unwrap(),
-                crate::workstream_identity::AttachmentId::parse("attachment:1").unwrap(),
-                crate::workstream_identity::WorkspaceBindingId::parse("workspace:mission-canvas")
-                    .unwrap(),
-            )),
-            workspace_binding_id: Some(
+        let attachment = crate::workstream_identity::AttachmentKey::new(
+            workstream.clone(),
+            Some(continuity),
+            crate::workstream_identity::InstanceId::parse("instance:1").unwrap(),
+            crate::workstream_identity::SessionId::parse("session:1").unwrap(),
+            crate::workstream_identity::AttachmentId::parse("attachment:1").unwrap(),
+            crate::workstream_identity::WorkspaceBindingId::parse("workspace:mission-canvas")
+                .unwrap(),
+        );
+        MissionCanvasScope::from_parts(
+            workstream,
+            None,
+            Some(attachment),
+            Some(
                 crate::workstream_identity::WorkspaceBindingId::parse("workspace:mission-canvas")
                     .unwrap(),
             ),
-            runtime_object: None,
-            work_surface_id: Some(
-                crate::workstream_identity::WorkSurfaceId::parse("surface:primary").unwrap(),
-            ),
-        }
+            None,
+            Some(crate::workstream_identity::WorkSurfaceId::parse("surface:primary").unwrap()),
+        )
+        .unwrap()
     }
 
     fn event(id: &str, revision: u64) -> CompositionEvent {

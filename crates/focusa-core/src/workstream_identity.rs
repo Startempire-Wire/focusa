@@ -146,6 +146,14 @@ impl WorkstreamKey {
         }
     }
 
+    pub fn validate(&self) -> Result<(), ScopeKeyError> {
+        self.scope.validate()?;
+        if self.workstream_id.as_str().trim().is_empty() {
+            return Err(ScopeKeyError::Missing("workstream_id"));
+        }
+        Ok(())
+    }
+
     pub fn storage_key(&self) -> String {
         let bytes = serde_json::to_vec(self).unwrap_or_default();
         hex::encode(Sha256::digest(bytes))
@@ -204,6 +212,29 @@ impl ScopeRef {
 
     pub fn host(scope: LegacyScopeRef) -> Result<Self, ScopeKeyError> {
         HostScopeKey::new(scope).map(Self::Host)
+    }
+
+    pub fn validate(&self) -> Result<(), ScopeKeyError> {
+        match self {
+            Self::Project(key) => {
+                if key.0.scope_kind != ScopeKind::Project {
+                    return Err(ScopeKeyError::KindMismatch {
+                        expected: ScopeKind::Project,
+                        found: key.0.scope_kind,
+                    });
+                }
+                key.0.validate()
+            }
+            Self::Host(key) => {
+                if key.0.scope_kind != ScopeKind::Host {
+                    return Err(ScopeKeyError::KindMismatch {
+                        expected: ScopeKind::Host,
+                        found: key.0.scope_kind,
+                    });
+                }
+                key.0.validate()
+            }
+        }
     }
 
     pub fn storage_key(&self) -> String {

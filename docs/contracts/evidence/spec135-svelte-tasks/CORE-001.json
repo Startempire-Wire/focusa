@@ -1,0 +1,119 @@
+{
+  "schema": "focusa.spec135.svelte_task_evidence.v1",
+  "task_id": "CORE-001",
+  "result": "Completed the Mission Canvas Workstream identity seam: WorkstreamKey now exposes canonical validation, MissionCanvasScope construction routes through the generated Workstream authority plus optional exact Attachment context, and bounded Mission Canvas/API consumers no longer construct scope through legacy field literals. Legacy flat scope input remains compatibility-only and is not an authority source.",
+  "targets": [
+    "crates/focusa-core/src/workstream_identity.rs",
+    "crates/focusa-core/src/mission_canvas/model.rs",
+    "crates/focusa-core/src/mission_canvas/resolver.rs",
+    "crates/focusa-core/src/mission_canvas/memory.rs",
+    "crates/focusa-core/src/mission_canvas/persistence.rs",
+    "crates/focusa-core/src/workstream_state.rs",
+    "crates/focusa-api/src/routes/mission_canvas.rs",
+    "tests/spec135_core001_mission_canvas_scope_source_test.py"
+  ],
+  "presentation_contract": {
+    "interaction_mode": "headless",
+    "host_renderer": "headless_none",
+    "surface_kind": "canonical_runtime",
+    "rich_gui_required": false,
+    "terminal_fallback_required": false,
+    "eligible_contributions": [],
+    "omitted_contribution_reasons": [
+      "canonical identity/model slice has no presentation contribution"
+    ]
+  },
+  "checks": [
+    "python3 tests/spec135_core001_mission_canvas_scope_source_test.py (exit 0; canonical constructor, Workstream validation, compatibility-only input, and bounded-consumer source checks: PASS)",
+    "python3 tests/spec158_mission_canvas_identity_contract_test.py (exit 0; missing, legacy-only, foreign Workstream, foreign Continuity, and foreign workspace-binding checks: PASS)",
+    "python3 tests/spec158_workstream_identity_source_test.py (exit 0; PASS)",
+    "python3 tests/spec158_workstream_context_source_test.py (exit 0; PASS)",
+    "python3 tests/spec135_mission_canvas_generated_parity_test.py (exit 0; generated artifacts, identity parity, and determinism: PASS)",
+    "python3 tests/spec135_mission_canvas_operation_registry_test.py (exit 0; 25 operations: PASS)",
+    "python3 tests/spec135_projection_events_proof_test.py (exit 0; PASS)",
+    "python3 tests/spec135_projection_state_contract_test.py (exit 0; PASS)",
+    "python3 tests/spec135_resolved_projection_contract_test.py (exit 0; PASS)",
+    "python3 tests/spec135_mission_canvas_api_static_test.py (exit 0; PASS)",
+    "python3 tests/spec135_mission_canvas_full_shell_gui_test.py (exit 0; authoritative host/renderer contract: PASS)",
+    "python3 tests/spec135_generated_clients_test.py (exit 0; 108 operations: PASS)",
+    "python3 tests/spec135_generated_pi_surface_test.py (exit 0; PASS)",
+    "python3 tests/spec135_protocol_handshake_test.py (exit 0; exact scope/permission/fail-closed handshake: PASS)",
+    "python3 tests/spec135_work_rail_test.py (exit 0; PASS)",
+    "python3 -m py_compile CORE-001 and related Spec 135/158 source-contract tests (exit 0)",
+    "rustfmt --edition 2024 --check changed Rust identity/Mission Canvas/API sources (exit 0)",
+    "git diff --check (exit 0; no output)",
+    "npm --prefix apps/desktop run gate (exit 1; shell contract passed, then missing @sveltejs/adapter-static in the clean worktree)",
+    "npm --prefix apps/pi-extension run typecheck (exit 2; clean worktree lacks @earendil-works/pi-coding-agent, @earendil-works/pi-tui, and @sinclair/typebox)",
+    "apps/pi-extension Mission Canvas node checks (first surface check passed; subsequent checks blocked by missing @earendil-works/pi-tui)",
+    "npm ci --ignore-scripts in affected package directories (exit 1; checked-in package locks are out of sync with package.json, including esbuild 0.25.12/0.28.1 mismatch)",
+    "Cargo validation intentionally not run per operator instruction"
+  ],
+  "remaining_checks": [
+    "cargo test -p focusa-core mission_canvas_scope --lib (not run; Cargo is prohibited for this corrective pass)",
+    "Desktop/Pi/package JavaScript gates require dependency installation or lockfile repair outside CORE-001; no CORE-001 source failure was reported by the permitted static/source checks"
+  ],
+  "remaining_work": [
+    "Cargo runtime validation only; no unresolved CORE-001 source implementation work remains"
+  ],
+  "dependency_gate": {
+    "ID-010": {
+      "evidence": "docs/contracts/evidence/spec135-svelte-tasks/ID-010.json",
+      "status": "implemented_partial",
+      "decision": "The ID-010 source implementation and generated identity contract are integrated on this base. Its only recorded remainder is prohibited Cargo validation, so no source dependency work is unresolved for CORE-001."
+    }
+  },
+  "negative_cases": {
+    "foreign_workstream": "MissionCanvasAuthorityContext::new/from_parts validates the WorkstreamKey and exact AttachmentKey owner; a foreign AttachmentKey returns foreign_attachment_workstream.",
+    "missing_authority": "WorkstreamKey is required by the generated schema and ScopeQuery parses it explicitly; no scope constructor accepts project_root or continuity_id as authority.",
+    "stale_revision_cursor": "Existing Mission Canvas projection/store revision and event-cursor gates remain unchanged and are covered by the existing projection/state contract checks; this identity slice does not weaken them.",
+    "unavailable_capability": "Existing generated projection omission diagnostics and fail-closed capability/permission checks remain unchanged; generated parity and projection-contract checks pass.",
+    "ineligible_or_empty_contribution": "Existing deterministic omission/recomposition behavior remains unchanged; projection, resolved-projection, and Work Rail checks pass.",
+    "ambiguous_legacy_row": "LegacyExactScopeCompatibilityInput remains a separately named generated compatibility schema. It has no WorkstreamKey and cannot validate as WorkstreamAuthorityContext; no local resolver or identity inference was added."
+  },
+  "acceptance": [
+    {
+      "statement": "MissionCanvasScope no longer uses project_root plus continuity_id as authority.",
+      "status": "implemented_source_verified_runtime_deferred",
+      "proof": "The canonical model contains WorkstreamKey authority, constructor-based validation, and no project_root/session/attachment flat fields; the CORE-001 source contract and ID-010 identity contract pass."
+    },
+    {
+      "statement": "project_root plus continuity_id cannot bind or focus a Work Surface.",
+      "status": "implemented_source_verified_runtime_deferred",
+      "proof": "Scope construction requires generated WorkstreamKey input, exact Attachment ownership is checked, and legacy-only input is compatibility-schema-only. No CWD, tab, latest-record, or nearest-candidate resolver exists in the changed slice."
+    },
+    {
+      "statement": "ambiguous legacy rows are quarantined, not guessed.",
+      "status": "implemented_source_verified_runtime_deferred",
+      "proof": "The explicit LegacyExactScopeCompatibilityInput boundary remains intact and the existing Spec 158 migration/quarantine authority is unchanged; no legacy mapping or inference was introduced by CORE-001."
+    }
+  ],
+  "source_authority": {
+    "docs/135-series-current-manifest.md": "read completely",
+    "docs/contracts/spec135/authoritative-handoff/spec135_agent_handoff_apple_principles.md": "read completely",
+    "docs/contracts/spec135/authoritative-handoff/focusa_activity_mode_recomposition.png": "read",
+    "docs/contracts/spec135/authoritative-handoff/focusa_dynamic_vertical_recomposition.png": "read",
+    "docs/contracts/spec135-mission-canvas-host-renderer-contract.v1.yaml": "read completely",
+    "docs/agent/spec135-implementation-acceleration-directive.md": "read completely",
+    "docs/135g-multiplexed-mission-canvas-work-surfaces-session-attachments-and-browser-context-isolation-spec.md": "read completely",
+    "docs/contracts/spec135-complete-feature-ledger.v1.yaml": "read completely",
+    "docs/contracts/spec135-mission-canvas-agent-first-gui-proof.v1.json": "read completely",
+    "docs/transitions/FOCUSA-TRANSITION-001-spec135-svelte-translation-matrix.md": "read completely",
+    "docs/contracts/spec135-svelte-task-packets/CORE-001.json": "read completely",
+    "crates/focusa-core/src/mission_canvas/model.rs": "read completely and updated",
+    "apps/pi-extension/src/mission-canvas-model.ts": "read completely as behavior source",
+    "apps/pi-extension/src/mission-canvas-session-inventory.ts": "read completely as behavior source",
+    "crates/focusa-core/src/workstream_identity.rs": "read completely and updated"
+  },
+  "evidence_refs": [
+    "docs/contracts/evidence/spec135-svelte-tasks/ID-010.json",
+    "docs/spec158/01-identity-ownership-and-reducer.md",
+    "docs/spec158/02-persistence-migration-and-quarantine.md",
+    "docs/spec158/03-client-runtime-and-desktop-contracts.md",
+    "schemas/spec135/mission-canvas/composition-bundle.v1.schema.json",
+    "tests/spec135_core001_mission_canvas_scope_source_test.py",
+    "tests/spec158_mission_canvas_identity_contract_test.py",
+    "tests/spec158_workstream_identity_source_test.py",
+    "tests/spec158_workstream_context_source_test.py"
+  ],
+  "status": "implemented_partial"
+}

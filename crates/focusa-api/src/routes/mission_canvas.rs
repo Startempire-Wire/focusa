@@ -52,46 +52,43 @@ impl ScopeQuery {
                     "work_surface_id must be non-empty",
                 )
             })?;
-        let scope = MissionCanvasScope {
+        let continuity_id = self
+            .continuity_id
+            .as_deref()
+            .filter(|value| !value.trim().is_empty())
+            .map(|value| focusa_core::workstream_identity::ContinuityId::parse(value.to_owned()))
+            .transpose()
+            .map_err(|_| {
+                error(
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                    "continuity_invalid",
+                    "continuity_id must be non-empty when provided",
+                )
+            })?;
+        let workspace_binding_id = self
+            .workspace_binding_id
+            .as_deref()
+            .filter(|value| !value.trim().is_empty())
+            .map(|value| {
+                focusa_core::workstream_identity::WorkspaceBindingId::parse(value.to_owned())
+            })
+            .transpose()
+            .map_err(|_| {
+                error(
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                    "workspace_binding_invalid",
+                    "workspace_binding_id must be non-empty when provided",
+                )
+            })?;
+        MissionCanvasScope::from_parts(
             workstream,
-            continuity_id: self
-                .continuity_id
-                .as_deref()
-                .filter(|value| !value.trim().is_empty())
-                .map(|value| {
-                    focusa_core::workstream_identity::ContinuityId::parse(value.to_owned())
-                })
-                .transpose()
-                .map_err(|_| {
-                    error(
-                        StatusCode::UNPROCESSABLE_ENTITY,
-                        "continuity_invalid",
-                        "continuity_id must be non-empty when provided",
-                    )
-                })?,
+            continuity_id,
             attachment,
-            workspace_binding_id: self
-                .workspace_binding_id
-                .as_deref()
-                .filter(|value| !value.trim().is_empty())
-                .map(|value| {
-                    focusa_core::workstream_identity::WorkspaceBindingId::parse(value.to_owned())
-                })
-                .transpose()
-                .map_err(|_| {
-                    error(
-                        StatusCode::UNPROCESSABLE_ENTITY,
-                        "workspace_binding_invalid",
-                        "workspace_binding_id must be non-empty when provided",
-                    )
-                })?,
+            workspace_binding_id,
             runtime_object,
             work_surface_id,
-        };
-        scope.validate().map_err(|reason| {
-            error(StatusCode::UNPROCESSABLE_ENTITY, "scope_incomplete", reason)
-        })?;
-        Ok(scope)
+        )
+        .map_err(|reason| error(StatusCode::UNPROCESSABLE_ENTITY, "scope_incomplete", reason))
     }
 }
 
