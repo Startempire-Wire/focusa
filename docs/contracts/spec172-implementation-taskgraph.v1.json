@@ -114,6 +114,9 @@
     "04": "docs/contracts/spec172-taskgraph/spec172-implementation-phase-04.v1.json",
     "05": "docs/contracts/spec172-taskgraph/spec172-implementation-phase-05.v1.json"
   },
+  "reconciliation_map": "docs/contracts/spec172-spec152-reconciliation-map.v1.json",
+  "reconciliation_map_sha256": "4a320ea5b515a0dca4d9ae0f5480004d446edefa4c33f0a7247b68078dcbb6b1",
+  "reconciliation_requirement_count": 28,
   "schema": "focusa.spec172_implementation_taskgraph_index.v1",
   "task_count": 42,
   "weaker_model_contract": {

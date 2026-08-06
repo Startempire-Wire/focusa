@@ -149,6 +149,53 @@ assert "one atomic task" in INDEX["execution_rule"]
 assert any("exact verification" in item for item in contract["before_close"])
 assert any("Do not implement adjacent tasks" in item for item in contract["during_work"])
 
+# The reconciliation map assigns every enumerated downstream and acceptance
+# requirement to one implementation owner while preserving exact cross-root order.
+map_path = ROOT / INDEX["reconciliation_map"]
+map_raw = map_path.read_bytes()
+reconciliation = json.loads(map_raw)
+assert reconciliation["schema"] == "focusa.spec172_spec152_reconciliation_map.v1"
+assert hashlib.sha256(map_raw).hexdigest() == INDEX["reconciliation_map_sha256"]
+requirements = reconciliation["requirements"]
+assert INDEX["reconciliation_requirement_count"] == len(requirements) == 28
+assert reconciliation["scope"] == {
+    "sections": ["22", "23"],
+    "requirement_count": 28,
+    "covered_requirement_count": 28,
+    "uncovered_requirement_count": 0,
+}
+assert len({item["requirement_id"] for item in requirements}) == 28
+assert {item["source"] for item in requirements} == {"section_22", "section_23"}
+assert Counter(item["source"] for item in requirements) == Counter({"section_22": 12, "section_23": 16})
+assert {item["implementation_root"] for item in requirements} == {"spec152e", "spec152f", "spec172"}
+for item in requirements:
+    assert item["implementation_rule"] == "single_owner_no_duplicate"
+    task_id = item["implementation_task"]
+    root = item["implementation_root"]
+    expected_prefix = {"spec152e": "focusa-vbcqu.20.13.", "spec152f": "focusa-vbcqu.20.14.", "spec172": f"{PARENT}."}[root]
+    assert task_id.startswith(expected_prefix), item
+    if root == "spec172":
+        assert task_id in by_id
+
+assert "MUST NOT create a second implementation" in reconciliation["duplicate_implementation_policy"]
+overlays_by_id = {item["overlay_id"]: item for item in reconciliation["superseded_overlays"]}
+assert set(overlays_by_id) == {"evaluation", "optional_premium_sale_assumptions"}
+assert all(item["status"] == "superseded" for item in overlays_by_id.values())
+assert "verified_no_license" in overlays_by_id["evaluation"]["replacement"]
+assert "$1,254.60" in overlays_by_id["optional_premium_sale_assumptions"]["replacement"]
+
+expected_cross_root = {
+    (edge["blocked"], edge["blocker"], "upstream") for edge in external_edges
+} | {
+    (edge["blocked"], edge["blocker"], "downstream") for edge in INDEX["downstream_edges"]
+}
+actual_cross_root = {
+    (edge["blocked"], edge["blocker"], edge["direction"])
+    for edge in reconciliation["cross_root_edges"]
+}
+assert actual_cross_root == expected_cross_root
+assert reconciliation["cross_root_edge_count"] == len(actual_cross_root) == 62
+
 print("Spec 172 implementation task graph: PASS")
 print("tasks=42 phases=6 internal_edges=114 external_edges=56 overlays=14 cycles=0")
 print("final_task=focusa-vbcqu.20.15.42")
