@@ -1,12 +1,13 @@
 {
   "schema": "focusa.spec135.svelte_task_evidence.v1",
   "task_id": "ID-004",
-  "result": "Source-staging review confirms the existing bounded ProjectState<W> partition is keyed exclusively by WorkstreamId, rejects silent replacement, and exposes exact-key reads/mutations. No additional source change was made: the canonical WorkstreamState payload and reducer routing are not authorized by the available exact target/source boundary.",
+  "result": "Source-staging pass verifies the existing bounded ProjectState<W> partition is keyed exclusively by WorkstreamId, rejects silent replacement, and exposes exact-key reads and mutations. No further source change is safe: the authorized target contains no canonical WorkstreamState payload or reducer-routing operation, and inventing either would cross the task's authority boundary.",
   "targets": [
     "crates/focusa-core/src/workstream_state.rs",
     "crates/focusa-core/src/lib.rs",
     "tests/spec158_workstream_state_source_test.py"
   ],
+  "source_changes": [],
   "checks": [
     "rustfmt --edition 2021 --check crates/focusa-core/src/workstream_state.rs (exit 0; no output)",
     "python3 tests/spec158_workstream_state_source_test.py (exit 0; Spec 158 Workstream state partition source contract: PASS)"
@@ -15,26 +16,31 @@
     "cargo test -p focusa-core reducer_workstream_partition --lib (not run; prohibited by the operator's pre-50-percent Cargo rule)"
   ],
   "remaining_work": [
-    "Introduce or authorize the canonical WorkstreamState payload before routing the existing reducer through one exact ProjectState Workstream entry"
+    "Introduce or authorize the canonical WorkstreamState payload and exact reducer routing before claiming the event-level partition acceptance"
   ],
   "dependency_gate": {
     "ID-002": {
       "evidence": "docs/contracts/evidence/spec135-svelte-tasks/ID-002.json",
       "status": "implemented_partial",
-      "exact_required_source_present": "crates/focusa-core/src/workstream_identity.rs",
-      "decision": "Allowed under the operator exception because WorkstreamId and WorkstreamKey source/types are present; its Cargo check remains deferred."
+      "exact_required_source_present": [
+        "crates/focusa-core/src/workstream_identity.rs (WorkstreamId)",
+        "crates/focusa-core/src/workstream_identity.rs (WorkstreamKey)"
+      ],
+      "decision": "Allowed for this source-staging pass under the operator exception because the exact WorkstreamId and WorkstreamKey source/types are present; ID-002 completion and its deferred Cargo check are not claimed."
     }
   },
   "source_authority": {
-    "/tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md": "missing; exact required source could not be read",
-    "/tmp/focusa-spec158-transition/docs__spec158__02-persistence-migration-and-quarantine.md": "missing; exact required source could not be read",
     "docs/spec158/01-identity-ownership-and-reducer.md": "read completely",
-    "crates/focusa-core/src/reducer.rs": "read completely"
+    "docs/spec158/02-persistence-migration-and-quarantine.md": "read completely",
+    "crates/focusa-core/src/reducer.rs": "read completely",
+    "crates/focusa-core/src/workstream_state.rs": "inspected completely",
+    "crates/focusa-core/src/lib.rs": "inspected completely",
+    "tests/spec158_workstream_state_source_test.py": "inspected completely"
   },
   "negative_cases": {
-    "foreign_workstream_scope": "not runtime-verified because the required Cargo check is prohibited; exact WorkstreamId map lookup is present",
-    "missing_authority": "not applicable to this partition container; it accepts no authority-bearing action",
-    "stale_revision_or_cursor": "not applicable; this target exposes no revision/cursor operation",
+    "foreign_workstream_scope": "source seam uses exact WorkstreamId lookup and returns NotFound for an unregistered key; runtime event behavior is not verified because the required Cargo check is prohibited",
+    "missing_authority": "the generic partition container performs no authority-bearing operation; canonical reducer routing remains unavailable and was not inferred",
+    "stale_revision_or_cursor": "not applicable; this target exposes no revision or cursor operation",
     "unavailable_capability": "not applicable; capability resolution is outside this target",
     "ineligible_or_empty_contribution": "not applicable; contribution eligibility is outside this core state container"
   },
@@ -42,18 +48,18 @@
     {
       "statement": "Same event under another Workstream leaves the first Workstream unchanged.",
       "status": "not_verified",
-      "reason": "The required reducer_workstream_partition Cargo test was not run under the operator prohibition."
+      "reason": "The required reducer_workstream_partition Cargo test was not run under the operator prohibition; the current source seam is a generic exact-key container rather than event routing."
     }
   ],
   "blockers": [
-    "Required authority source is missing: /tmp/focusa-spec158-transition/docs__spec158__01-identity-ownership-and-reducer.md",
-    "Required authority source is missing: /tmp/focusa-spec158-transition/docs__spec158__02-persistence-migration-and-quarantine.md",
-    "Cargo validation remains deferred under the operator's pre-50-percent build prohibition"
+    "The canonical WorkstreamState payload and exact reducer routing operation are not present in the authorized target/source seam; adding them would require inventing missing bindings or semantics.",
+    "Cargo validation remains deferred under the operator's pre-50-percent build prohibition; no deferred Cargo result is claimed."
   ],
   "evidence_refs": [
     "docs/spec158/01-identity-ownership-and-reducer.md",
+    "docs/spec158/02-persistence-migration-and-quarantine.md",
     "crates/focusa-core/src/reducer.rs",
     "docs/contracts/evidence/spec135-svelte-tasks/ID-002.json"
   ],
-  "status": "blocked"
+  "status": "implemented_partial"
 }
