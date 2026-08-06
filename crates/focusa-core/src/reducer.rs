@@ -25,6 +25,7 @@ use crate::focus::stack::rebuild_stack_path;
 use crate::focus::state::apply_delta;
 use crate::scoped_state::WorkstreamKey;
 use crate::types::*;
+use crate::workstream_state::{ProjectState, ProjectionVersion, WorkstreamEvent, WorkstreamState};
 
 fn ontology_value_matches_workstream(
     value: &serde_json::Value,
@@ -491,6 +492,87 @@ use uuid::Uuid;
 pub fn reduce(state: FocusaState, event: FocusaEvent) -> Result<ReductionResult, ReducerError> {
     // Default: no ownership enforcement (local events)
     reduce_with_meta(state, event, None, None, false)
+}
+
+/// Result of reducing one exact Workstream event through a ProjectState partition.
+#[derive(Debug, Clone)]
+pub struct WorkstreamReductionResult {
+    pub new_state: ProjectState<WorkstreamState>,
+    pub emitted_events: Vec<WorkstreamEvent>,
+}
+
+/// Reduce one event against exactly one canonical Workstream entry.
+///
+/// The envelope carries the full WorkstreamKey.  Its WorkstreamId selects the
+/// only ProjectState map entry that may be read or mutated; a matching map key
+/// with a different ScopeRef is rejected rather than inferred or repaired.
+/// Existing reducer behavior remains the owner of the typed FocusaState payload.
+pub fn reduce_workstream(
+    mut state: ProjectState<WorkstreamState>,
+    event: WorkstreamEvent,
+) -> Result<WorkstreamReductionResult, ReducerError> {
+    event
+        .workstream
+        .legacy_scope()
+        .validate()
+        .map_err(|error| ReducerError::WorkstreamPartition(error.to_string()))?;
+    if event.workstream.workstream_id.as_str().trim().is_empty() {
+        return Err(ReducerError::WorkstreamPartition(
+            "workstream event requires a non-empty WorkstreamId".to_string(),
+        ));
+    }
+
+    let workstream_id = event.workstream_id().clone();
+    let (current_state, current_revision) = {
+        let selected = state
+            .workstream(&workstream_id)
+            .map_err(|error| ReducerError::WorkstreamPartition(error.to_string()))?;
+        if selected.key != event.workstream {
+            return Err(ReducerError::WorkstreamPartition(
+                "event WorkstreamKey does not exactly own the selected ProjectState entry"
+                    .to_string(),
+            ));
+        }
+
+        let current_revision = selected.reducer_revision();
+        if selected.event_head.sequence != current_revision
+            || selected.projection_version.0 != current_revision
+        {
+            return Err(ReducerError::WorkstreamPartition(
+                "Workstream event head and projection version are stale or inconsistent"
+                    .to_string(),
+            ));
+        }
+        if let Some(expected_revision) = event.expected_revision
+            && expected_revision != current_revision
+        {
+            return Err(ReducerError::WorkstreamPartition(format!(
+                "stale Workstream revision: expected {}, actual {}",
+                expected_revision, current_revision
+            )));
+        }
+        (selected.reducer_state().clone(), current_revision)
+    };
+
+    let reduction = reduce(current_state, event.event.clone())?;
+    let next_revision = reduction.new_state.version;
+    if next_revision < current_revision {
+        return Err(ReducerError::WorkstreamPartition(
+            "Workstream reducer revision moved backwards".to_string(),
+        ));
+    }
+
+    let selected = state
+        .workstream_mut(&workstream_id)
+        .map_err(|error| ReducerError::WorkstreamPartition(error.to_string()))?;
+    selected.replace_reducer_state(reduction.new_state);
+    selected.event_head.sequence = next_revision;
+    selected.projection_version = ProjectionVersion(next_revision);
+
+    Ok(WorkstreamReductionResult {
+        new_state: state,
+        emitted_events: vec![event],
+    })
 }
 
 /// Reduce with ownership metadata (docs/43 Policy #5).
@@ -5043,6 +5125,9 @@ pub enum ReducerError {
     #[error("Session error: {0}")]
     SessionError(String),
 
+    #[error("Workstream partition error: {0}")]
+    WorkstreamPartition(String),
+
     #[error(
         "Ownership violation: thread {thread_id} owned by {owner}, attempted by {attempted_by:?}"
     )]
@@ -5257,7 +5342,10 @@ mod tests {
             .unwrap();
         assert_eq!(active.status, WorkpointStatus::Active);
         assert_eq!(active.confidence, WorkpointConfidence::Verified);
-        assert_eq!(state.trajectory.records[0].active_workpoint_id, Some(workpoint_id));
+        assert_eq!(
+            state.trajectory.records[0].active_workpoint_id,
+            Some(workpoint_id)
+        );
     }
 
     #[test]
@@ -6306,6 +6394,97 @@ mod tests {
             false,
         );
         assert!(result.is_err());
+    }
+
+    fn canonical_partition_workstream(
+        id: &str,
+        fingerprint: &str,
+    ) -> crate::workstream_identity::WorkstreamKey {
+        let scope = crate::scoped_state::ScopeRef::project(
+            "project:focusa",
+            "/workspace/focusa",
+            "Focusa",
+            fingerprint,
+        )
+        .expect("valid partition test scope");
+        crate::workstream_identity::WorkstreamKey::new(
+            crate::workstream_identity::ScopeRef::project(scope).expect("project scope"),
+            crate::workstream_identity::WorkstreamId::parse(id).expect("workstream id"),
+        )
+    }
+
+    #[test]
+    fn reducer_workstream_partition_routes_one_entry_and_preserves_foreign_entry() {
+        let key_a = canonical_partition_workstream("planning", "host-a:worktree-main");
+        let key_b = canonical_partition_workstream("delivery", "host-a:worktree-main");
+        let id_a = key_a.workstream_id.clone();
+        let id_b = key_b.workstream_id.clone();
+        let mut project = ProjectState::new();
+        project
+            .register_workstream(id_a.clone(), WorkstreamState::new(key_a.clone()))
+            .unwrap();
+        project
+            .register_workstream(id_b.clone(), WorkstreamState::new(key_b.clone()))
+            .unwrap();
+
+        let frame_id = Uuid::now_v7();
+        let event = FocusaEvent::FocusFramePushed {
+            frame_id,
+            beads_issue_id: "BEAD-partition".to_string(),
+            title: "Partitioned frame".to_string(),
+            goal: "Prove one Workstream mutation".to_string(),
+            project_root: Some("/workspace/focusa".to_string()),
+            continuity_id: Some("continuity-partition".to_string()),
+            constraints: vec![],
+            tags: vec![],
+        };
+
+        assert!(matches!(
+            reduce_workstream(
+                ProjectState::<WorkstreamState>::new(),
+                WorkstreamEvent::new(key_a.clone(), event.clone()),
+            ),
+            Err(ReducerError::WorkstreamPartition(message))
+                if message.contains("not registered")
+        ));
+
+        let first = reduce_workstream(project, WorkstreamEvent::new(key_a.clone(), event.clone()))
+            .expect("first Workstream event reduces")
+            .new_state;
+        let first_a = first.workstream(&id_a).expect("planning entry");
+        let first_a_revision = first_a.reducer_revision();
+        let first_a_frame_count = first_a.focus_stack().frames.len();
+        assert_eq!(first_a_revision, 1);
+        assert_eq!(first_a_frame_count, 1);
+
+        let second = reduce_workstream(first, WorkstreamEvent::new(key_b.clone(), event.clone()))
+            .expect("same event under another Workstream reduces")
+            .new_state;
+        let second_a = second.workstream(&id_a).expect("planning entry remains");
+        let second_b = second.workstream(&id_b).expect("delivery entry");
+        assert_eq!(second_a.reducer_revision(), first_a_revision);
+        assert_eq!(second_a.focus_stack().frames.len(), first_a_frame_count);
+        assert_eq!(second_a.event_head.sequence, 1);
+        assert_eq!(second_b.reducer_revision(), 1);
+        assert_eq!(second_b.focus_stack().frames.len(), 1);
+
+        let foreign_key = canonical_partition_workstream("planning", "host-b:worktree-main");
+        assert!(matches!(
+            reduce_workstream(
+                second.clone(),
+                WorkstreamEvent::new(foreign_key, event.clone()),
+            ),
+            Err(ReducerError::WorkstreamPartition(message))
+                if message.contains("does not exactly own")
+        ));
+        assert!(matches!(
+            reduce_workstream(
+                second,
+                WorkstreamEvent::at_revision(key_a, 0, event),
+            ),
+            Err(ReducerError::WorkstreamPartition(message))
+                if message.contains("stale Workstream revision")
+        ));
     }
 
     fn ontology_test_workstream(id: &str, root: &str) -> WorkstreamKey {
