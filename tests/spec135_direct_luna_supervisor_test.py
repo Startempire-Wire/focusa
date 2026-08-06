@@ -12,13 +12,17 @@ assert "INTERVAL_SECONDS = 180" in source
 assert "MAX_WORKERS = 3" in source
 assert "integrate_finished" in source
 assert "select_ready" in source
-assert "git\", \"cherry-pick" in source
-assert "git\", \"cherry-pick\", \"--abort" in source
+assert '"gh", "pr", "create"' in source
+assert '"gh", "pr", "merge"' in source
+assert '"git", "push", "-u", "origin"' in source
+assert '"git", "merge", "--ff-only"' in source
 assert "git\", \"worktree\", \"remove\", \"--force" in source
 assert "source_staging" in source
 assert "process_alive" in source
 assert "PROTECTED_PATHS" in source
 assert "docs/contracts/spec135-svelte-task-packets/" in source
+assert "INTERVAL_SECONDS = 180" in source
+assert "SOURCE_STAGE_SEEDS" in source
 assert "HEARTBEAT" in source
 assert "TICK ERROR" in source
 assert "focusa_silent_sessions" not in source

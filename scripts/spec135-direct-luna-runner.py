@@ -66,7 +66,7 @@ Follow CARDINAL-135-SVELTE-001: Mission Canvas Pi-overlay behavior translates to
 Work only on this task and its exact targets. Do not infer missing identity, bindings, operations, paths, or acceptance criteria.
 Do not edit the central executable graph, execution index, generated task packets, or another task's evidence; the integration writer owns them.
 Do not run Cargo commands: the operator's pre-50-percent Cargo prohibition remains binding.
-Do not merge, rebase, push, release, or modify another worktree.
+Do not merge, rebase, release, or modify another worktree. Commit your bounded branch; the supervisor will push it and submit a pull request for orchestrator review and merge.
 Run all permitted non-Cargo checks from the packet. Add or update only {task['evidence_ref']} with truthful partial/verified status.
 Commit bounded changes on your branch. If no safe source change remains, record the concise result in {task['evidence_ref']}, commit it, and stop.
 If blocked by a dependency or authority boundary, record the exact blocker in {task['evidence_ref']}, commit it, and stop without selecting another task.

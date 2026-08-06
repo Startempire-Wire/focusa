@@ -24,6 +24,8 @@ PID_PATH = SUPERVISOR_ROOT / "pid"
 LOG_PATH = SUPERVISOR_ROOT / "supervisor.log"
 INTERVAL_SECONDS = 180
 MAX_WORKERS = 3
+BASE_BRANCH = "local/spec158-desktop-pivot-audit-2026-08-04"
+SOURCE_STAGE_SEEDS = {"ID-001", "ID-002", "ID-003", "ID-006", "ID-007"}
 TASK_GROUPS = ("atomic_tasks", "operation_tasks", "integration_tasks")
 PROTECTED_PATHS = {
     "docs/transitions/FOCUSA-TRANSITION-001-mission-canvas-executable-callgraph.yaml",
@@ -59,8 +61,17 @@ def load_tasks() -> dict[str, dict[str, Any]]:
 
 def load_state() -> dict[str, Any]:
     if STATE_PATH.is_file():
-        return json.loads(STATE_PATH.read_text())
-    return {"schema": "focusa.direct_luna_supervisor.v1", "staged": [], "blocked": {}}
+        state = json.loads(STATE_PATH.read_text())
+        state["staged"] = sorted(set(state.get("staged", [])) | SOURCE_STAGE_SEEDS)
+        state.setdefault("blocked", {})
+        state.setdefault("pull_requests", {})
+        return state
+    return {
+        "schema": "focusa.direct_luna_supervisor.v1",
+        "staged": sorted(SOURCE_STAGE_SEEDS),
+        "blocked": {},
+        "pull_requests": {},
+    }
 
 
 def save_state(state: dict[str, Any]) -> None:
@@ -111,8 +122,10 @@ def cleanup_worker(record: dict[str, Any]) -> None:
 
 
 def integrate_finished(state: dict[str, Any], tasks: dict[str, dict[str, Any]]) -> None:
-    staged = set(state["staged"])
+    staged = set(state["staged"]) | SOURCE_STAGE_SEEDS
+    state["staged"] = sorted(staged)
     blocked = state["blocked"]
+    pull_requests = state.setdefault("pull_requests", {})
     for task_id in sorted(tasks):
         if task_id in staged or task_id in blocked:
             continue
@@ -123,6 +136,7 @@ def integrate_finished(state: dict[str, Any], tasks: dict[str, dict[str, Any]]) 
         if not exit_data:
             continue
         worktree = Path(record["worktree"])
+        branch = record["branch"]
         if not worktree.exists():
             continue
         if exit_data.get("exit_code") != 0:
@@ -152,18 +166,50 @@ def integrate_finished(state: dict[str, Any], tasks: dict[str, dict[str, Any]]) 
         if subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True).strip():
             log("WAIT integration: primary worktree is dirty")
             return
+        evidence_path = worktree / f"docs/contracts/evidence/spec135-svelte-tasks/{task_id}.json"
+        if not evidence_path.is_file():
+            blocked[task_id] = "worker produced no task evidence"
+            log(f"BLOCK {task_id}: {blocked[task_id]}")
+            continue
+        evidence = json.loads(evidence_path.read_text())
+        source_ready = evidence.get("status") != "blocked" and not evidence.get("remaining_work")
         try:
-            subprocess.run(["git", "cherry-pick", *commits], cwd=ROOT, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "push", "-u", "origin", branch], cwd=worktree, check=True, capture_output=True, text=True)
+            pr_url = subprocess.check_output(
+                [
+                    "gh", "pr", "create", "--base", BASE_BRANCH, "--head", branch,
+                    "--title", f"spec135: {task_id} {tasks[task_id].get('title', '')}",
+                    "--body", (
+                        f"Automated bounded Luna submission for `{task_id}`.\\n\\n"
+                        f"Task packet: `{tasks[task_id].get('execution_packet_ref', '')}`\\n"
+                        f"Evidence: `docs/contracts/evidence/spec135-svelte-tasks/{task_id}.json`\\n\\n"
+                        "The orchestrator verified process exit, clean worktree, protected-path boundaries, and task-scoped evidence before merge."
+                    ),
+                ], cwd=worktree, text=True
+            ).strip()
+            pull_requests[task_id] = pr_url
+            save_state(state)
+            log(f"PR {task_id}: {pr_url}")
+            if not source_ready:
+                blocked[task_id] = "task evidence reports unresolved source work"
+                save_state(state)
+                log(f"BLOCK {task_id}: unresolved source work; PR left open for orchestrator")
+                continue
+            subprocess.run(
+                ["gh", "pr", "merge", pr_url, "--squash", "--delete-branch"],
+                cwd=ROOT, check=True, capture_output=True, text=True,
+            )
+            subprocess.run(["git", "fetch", "origin", BASE_BRANCH], cwd=ROOT, check=True, capture_output=True)
+            subprocess.run(["git", "merge", "--ff-only", f"origin/{BASE_BRANCH}"], cwd=ROOT, check=True, capture_output=True)
         except subprocess.CalledProcessError as error:
-            subprocess.run(["git", "cherry-pick", "--abort"], cwd=ROOT, check=False)
-            blocked[task_id] = f"integration conflict: {error.stderr[-500:]}"
-            log(f"BLOCK {task_id}: integration conflict")
+            blocked[task_id] = f"pull request integration failed: {(error.stderr or '')[-500:]}"
+            log(f"BLOCK {task_id}: pull request integration failed")
             continue
         staged.add(task_id)
         state["staged"] = sorted(staged)
         save_state(state)
         cleanup_worker(record)
-        log(f"INTEGRATED {task_id}: {len(commits)} commit(s), {len(paths)} path(s)")
+        log(f"MERGED {task_id}: {pr_url}; {len(commits)} commit(s), {len(paths)} path(s)")
 
 
 def lane(task_id: str) -> str:
@@ -185,8 +231,8 @@ def targets(task: dict[str, Any]) -> set[str]:
 def select_ready(state: dict[str, Any], tasks: dict[str, dict[str, Any]], capacity: int) -> list[str]:
     done = {
         task_id for task_id, task in tasks.items()
-        if task["status"] in {"complete", "implemented_partial"}
-    } | set(state["staged"])
+        if task["status"] == "complete"
+    } | SOURCE_STAGE_SEEDS | set(state["staged"])
     blocked = set(state["blocked"])
     active = {
         task_id for task_id in tasks
@@ -285,6 +331,7 @@ def show_status() -> None:
         "max_workers": MAX_WORKERS,
         "staged": state["staged"],
         "blocked": state["blocked"],
+        "pull_requests": state.get("pull_requests", {}),
         "log": str(LOG_PATH),
     }, indent=2))
 
